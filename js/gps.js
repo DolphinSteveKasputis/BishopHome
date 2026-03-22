@@ -119,7 +119,10 @@ function showGpsRecordMode() {
 
     // Reset UI to pre-start state
     document.getElementById('gpsmapStartBtn').classList.remove('hidden');
-    document.getElementById('gpsmapStopBtn').classList.add('hidden');
+    var stopBtn = document.getElementById('gpsmapStopBtn');
+    stopBtn.classList.add('hidden');
+    stopBtn.textContent = '■ Stop Recording';
+    stopBtn.disabled = false;
     document.getElementById('gpsmapRecordStats').classList.add('hidden');
     updateRecordStats(0, 0, null);
 }
@@ -174,6 +177,11 @@ function stopRecording() {
         navigator.geolocation.clearWatch(gpsWatchId);
         gpsWatchId = null;
     }
+
+    // Give immediate visual feedback that recording has stopped
+    var stopBtn = document.getElementById('gpsmapStopBtn');
+    stopBtn.textContent = '⏹ Recording Stopped';
+    stopBtn.disabled = true;
 
     if (gpsRecordedPoints.length < 3) {
         alert('Not enough points recorded (need at least 3 to form a shape). Try walking a larger area.');

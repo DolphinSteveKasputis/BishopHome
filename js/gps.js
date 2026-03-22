@@ -34,6 +34,13 @@ var gpsEditPoints  = [];   // working copy of points in the editor
 var gpsEditMarkers = [];   // Leaflet Marker objects for each edit point
 var gpsEditPolygon = null; // Leaflet Polygon drawn in edit mode
 
+// Live recording map state
+var gpsRecordMap         = null;
+var gpsRecordTileLayer   = null;
+var gpsRecordPolyline    = null;  // path walked so far
+var gpsRecordClosingLine = null;  // dashed line closing the shape back to start
+var gpsRecordDot         = null;  // red dot showing current position
+
 // ---------- Page Entry: loadGpsMapPage ----------
 
 /**
@@ -146,6 +153,7 @@ function startRecording() {
 
     gpsRecordedPoints = [];
     gpsLastPoint      = null;
+    destroyRecordMap(); // clear any previous recording map
 
     document.getElementById('gpsmapStartBtn').classList.add('hidden');
     document.getElementById('gpsmapStopBtn').classList.remove('hidden');
@@ -172,6 +180,9 @@ function stopRecording() {
         showGpsRecordMode();
         return;
     }
+
+    // Tear down the live recording map before opening the editor
+    destroyRecordMap();
 
     // Move directly to the point editor for cleanup
     showGpsEditMode(gpsRecordedPoints);
@@ -207,11 +218,86 @@ function handleGpsPosition(position) {
     gpsRecordedPoints.push(newPoint);
     gpsLastPoint = newPoint;
     updateRecordStats(gpsRecordedPoints.length, totalDistanceFt(gpsRecordedPoints), accuracy);
+    updateRecordMap(gpsRecordedPoints);
 }
 
 function handleGpsError(error) {
     // Transient errors are normal — log but don't stop recording
     console.warn('GPS position error:', error.message);
+}
+
+// ---------- Live Recording Map ----------
+
+/**
+ * Called after each accepted GPS point to update the live map.
+ * On the first point, initializes the Leaflet map and shows the container.
+ * On subsequent points, updates the polyline and pans to follow.
+ */
+function updateRecordMap(points) {
+    var container = document.getElementById('gpsmapRecordMapContainer');
+    var last = points[points.length - 1];
+
+    if (points.length === 1) {
+        // First point — initialize the map centered here
+        container.classList.remove('hidden');
+
+        gpsRecordMap       = L.map('gpsmapRecordMapContainer').setView([last.lat, last.lng], 19);
+        gpsRecordTileLayer = L.tileLayer(TILE_URL, { attribution: TILE_ATTR }).addTo(gpsRecordMap);
+
+        // Blue polyline for the path walked
+        gpsRecordPolyline = L.polyline([[last.lat, last.lng]], {
+            color:  '#1565C0',
+            weight: 4
+        }).addTo(gpsRecordMap);
+
+        // Red dot for current position
+        gpsRecordDot = L.circleMarker([last.lat, last.lng], {
+            radius:      9,
+            color:       '#fff',
+            weight:      2,
+            fillColor:   '#C62828',
+            fillOpacity: 1
+        }).addTo(gpsRecordMap);
+
+    } else if (gpsRecordPolyline) {
+        // Update path and move the current-position dot
+        var latLngs = points.map(function(p) { return [p.lat, p.lng]; });
+        gpsRecordPolyline.setLatLngs(latLngs);
+        gpsRecordDot.setLatLng([last.lat, last.lng]);
+
+        // Pan smoothly to keep the dot in view
+        gpsRecordMap.panTo([last.lat, last.lng]);
+
+        // Once we have 3+ points draw a dashed closing line back to the start
+        if (points.length >= 3) {
+            var first = points[0];
+            if (gpsRecordClosingLine) {
+                gpsRecordClosingLine.setLatLngs([[last.lat, last.lng], [first.lat, first.lng]]);
+            } else {
+                gpsRecordClosingLine = L.polyline([[last.lat, last.lng], [first.lat, first.lng]], {
+                    color:     '#888',
+                    weight:    2,
+                    dashArray: '6 5'
+                }).addTo(gpsRecordMap);
+            }
+        }
+    }
+}
+
+/**
+ * Tear down the live recording map and hide the container.
+ */
+function destroyRecordMap() {
+    if (gpsRecordMap) {
+        gpsRecordMap.remove();
+        gpsRecordMap         = null;
+        gpsRecordTileLayer   = null;
+        gpsRecordPolyline    = null;
+        gpsRecordClosingLine = null;
+        gpsRecordDot         = null;
+    }
+    var container = document.getElementById('gpsmapRecordMapContainer');
+    if (container) container.classList.add('hidden');
 }
 
 /**
@@ -764,6 +850,7 @@ document.getElementById('gpsmapCancelRecordBtn').addEventListener('click', funct
         navigator.geolocation.clearWatch(gpsWatchId);
         gpsWatchId = null;
     }
+    destroyRecordMap();
     showGpsViewMode();
 });
 

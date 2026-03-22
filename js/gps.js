@@ -729,18 +729,25 @@ async function loadYardMapPage() {
     emptyState.style.display = 'none';
 
     destroyMap('yard');
+    updateImportBoundaryBtn();
 
     try {
         var snap = await db.collection('gpsShapes').get();
 
-        if (snap.empty) {
+        // Separate property boundary from zone shapes
+        var propertyBoundary = null;
+        var shapes = [];
+        snap.forEach(function(doc) {
+            var d = { id: doc.id, ...doc.data() };
+            if (d.zoneId === '__property__') { propertyBoundary = d; }
+            else                             { shapes.push(d); }
+        });
+
+        if (!propertyBoundary && shapes.length === 0) {
             emptyState.textContent   = 'No shapes recorded yet. Open a zone and tap 📍 Map to record its boundary.';
             emptyState.style.display = 'block';
             return;
         }
-
-        var shapes = [];
-        snap.forEach(function(doc) { shapes.push({ id: doc.id, ...doc.data() }); });
 
         // Initialize the Leaflet map
         setTimeout(function() {
@@ -749,6 +756,43 @@ async function loadYardMapPage() {
 
             var allBounds    = null;
             var shapePolys   = {};  // shapeId → L.Polygon, for toggle control
+
+            // Draw property boundary first (so it renders underneath zone shapes)
+            if (propertyBoundary && propertyBoundary.points && propertyBoundary.points.length >= 3) {
+                var boundaryLatLngs = propertyBoundary.points.map(function(p) { return [p.lat, p.lng]; });
+                var boundaryPoly    = L.polygon(boundaryLatLngs, {
+                    color:       '#000000',
+                    fillColor:   '#000000',
+                    fillOpacity: 0.05,
+                    weight:      2,
+                    dashArray:   '8, 6'
+                }).addTo(gpsYardMap);
+
+                boundaryPoly.bindTooltip('Property Boundary', {
+                    permanent:  false,
+                    direction:  'center',
+                    className:  'gps-shape-label'
+                });
+
+                shapePolys[propertyBoundary.id] = boundaryPoly;
+                var bBounds = boundaryPoly.getBounds();
+                allBounds   = allBounds ? allBounds.extend(bBounds) : bBounds;
+
+                // Toggle row for property boundary
+                var bRow = document.createElement('label');
+                bRow.className = 'gps-shape-toggle-row gps-shape-toggle-boundary';
+                bRow.innerHTML =
+                    '<input type="checkbox" checked data-sid="' + propertyBoundary.id + '">' +
+                    '<span class="gps-color-swatch gps-color-swatch--boundary"></span>' +
+                    '<span class="gps-toggle-name">Property Boundary</span>' +
+                    '<span class="gps-toggle-area">' + formatArea(propertyBoundary.areaSqft) + '</span>';
+                bRow.querySelector('input').addEventListener('change', function(e) {
+                    var p = shapePolys[e.target.dataset.sid];
+                    if (e.target.checked) { p.addTo(gpsYardMap); }
+                    else                  { gpsYardMap.removeLayer(p); }
+                });
+                togglesEl.appendChild(bRow);
+            }
 
             shapes.forEach(function(shape) {
                 if (!shape.points || shape.points.length < 3) return;
@@ -965,6 +1009,168 @@ document.getElementById('gpsmapToggleBgEditBtn').addEventListener('click', funct
 
 document.getElementById('yardmapToggleBgBtn').addEventListener('click', function() {
     toggleMapBg(gpsYardMap, gpsYardTileLayer, 'yardmapToggleBgBtn');
+});
+
+// ---------- Property Boundary Import ----------
+
+// Default coordinates for 3398 Townside Dr, Bishop, GA 30621
+var DEFAULT_BOUNDARY_POINTS = [
+    {"lat":33.80871,"lng":-83.52193},
+    {"lat":33.80895,"lng":-83.52178},
+    {"lat":33.80912,"lng":-83.52157},
+    {"lat":33.80931,"lng":-83.52124},
+    {"lat":33.80944,"lng":-83.52091},
+    {"lat":33.80951,"lng":-83.52053},
+    {"lat":33.80948,"lng":-83.52016},
+    {"lat":33.80935,"lng":-83.51981},
+    {"lat":33.80913,"lng":-83.51952},
+    {"lat":33.80884,"lng":-83.51931},
+    {"lat":33.80852,"lng":-83.51921},
+    {"lat":33.80819,"lng":-83.51922},
+    {"lat":33.80788,"lng":-83.51934},
+    {"lat":33.80762,"lng":-83.51955},
+    {"lat":33.80744,"lng":-83.51984},
+    {"lat":33.80736,"lng":-83.52017},
+    {"lat":33.80739,"lng":-83.52051},
+    {"lat":33.80752,"lng":-83.52083},
+    {"lat":33.80774,"lng":-83.52110},
+    {"lat":33.80803,"lng":-83.52129},
+    {"lat":33.80835,"lng":-83.52139},
+    {"lat":33.80856,"lng":-83.52166},
+    {"lat":33.80871,"lng":-83.52193}
+];
+
+/**
+ * Check if a property boundary shape exists and update the import button label.
+ * Called when the yard map page loads.
+ */
+async function updateImportBoundaryBtn() {
+    var btn = document.getElementById('importBoundaryBtn');
+    if (!btn) return;
+    try {
+        var snap = await db.collection('gpsShapes')
+            .where('zoneId', '==', '__property__')
+            .limit(1)
+            .get();
+        btn.textContent = snap.empty ? '📥 Import Property Boundary' : '📥 Re-import Property Boundary';
+    } catch (err) {
+        console.error('Error checking property boundary:', err);
+    }
+}
+
+/**
+ * Show the import panel, pre-filled with existing boundary points or the default.
+ */
+async function openImportBoundaryPanel() {
+    var panel  = document.getElementById('importBoundaryPanel');
+    var input  = document.getElementById('importBoundaryInput');
+    var errEl  = document.getElementById('importBoundaryError');
+
+    errEl.classList.add('hidden');
+
+    // Try to load existing boundary first
+    try {
+        var snap = await db.collection('gpsShapes')
+            .where('zoneId', '==', '__property__')
+            .limit(1)
+            .get();
+        if (!snap.empty) {
+            input.value = JSON.stringify(snap.docs[0].data().points, null, 2);
+        } else {
+            input.value = JSON.stringify(DEFAULT_BOUNDARY_POINTS, null, 2);
+        }
+    } catch (err) {
+        input.value = JSON.stringify(DEFAULT_BOUNDARY_POINTS, null, 2);
+    }
+
+    panel.classList.remove('hidden');
+    input.focus();
+}
+
+/**
+ * Parse the textarea, validate, and save to Firestore as the property boundary shape.
+ */
+async function saveImportedBoundary() {
+    var input   = document.getElementById('importBoundaryInput');
+    var errEl   = document.getElementById('importBoundaryError');
+    var saveBtn = document.getElementById('importBoundarySaveBtn');
+
+    errEl.classList.add('hidden');
+
+    // Parse JSON
+    var points;
+    try {
+        points = JSON.parse(input.value.trim());
+    } catch (e) {
+        errEl.textContent = 'Invalid JSON — check the format and try again.';
+        errEl.classList.remove('hidden');
+        return;
+    }
+
+    // Validate: must be array of {lat, lng}
+    if (!Array.isArray(points) || points.length < 3) {
+        errEl.textContent = 'Must be an array of at least 3 points.';
+        errEl.classList.remove('hidden');
+        return;
+    }
+    for (var i = 0; i < points.length; i++) {
+        if (typeof points[i].lat !== 'number' || typeof points[i].lng !== 'number') {
+            errEl.textContent = 'Each point must have numeric "lat" and "lng" fields.';
+            errEl.classList.remove('hidden');
+            return;
+        }
+    }
+
+    saveBtn.textContent = 'Saving...';
+    saveBtn.disabled    = true;
+
+    try {
+        var areaSqft = calculateAreaSqft(points);
+
+        // Check for existing boundary doc to update or create new
+        var snap = await db.collection('gpsShapes')
+            .where('zoneId', '==', '__property__')
+            .limit(1)
+            .get();
+
+        if (!snap.empty) {
+            await db.collection('gpsShapes').doc(snap.docs[0].id).update({
+                points:    points,
+                areaSqft:  areaSqft,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        } else {
+            await db.collection('gpsShapes').add({
+                zoneId:    '__property__',
+                name:      'Property Boundary',
+                points:    points,
+                areaSqft:  areaSqft,
+                color:     '#000000',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+
+        document.getElementById('importBoundaryPanel').classList.add('hidden');
+        document.getElementById('importBoundaryBtn').textContent = '📥 Re-import Property Boundary';
+
+        // Reload the yard map to show the new boundary
+        loadYardMapPage();
+
+    } catch (err) {
+        console.error('Error saving property boundary:', err);
+        errEl.textContent = 'Error saving — please try again.';
+        errEl.classList.remove('hidden');
+    } finally {
+        saveBtn.textContent = 'Save Boundary';
+        saveBtn.disabled    = false;
+    }
+}
+
+document.getElementById('importBoundaryBtn').addEventListener('click', openImportBoundaryPanel);
+document.getElementById('importBoundarySaveBtn').addEventListener('click', saveImportedBoundary);
+document.getElementById('importBoundaryCancelBtn').addEventListener('click', function() {
+    document.getElementById('importBoundaryPanel').classList.add('hidden');
 });
 
 // Exclude toggle — save immediately to Firestore when user flips the checkbox

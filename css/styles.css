@@ -1597,6 +1597,63 @@ button {
     display: inline-block;
 }
 
+/* Property boundary swatch — dashed black border, no fill */
+.gps-color-swatch--boundary {
+    background: transparent !important;
+    border: 2px dashed #000;
+}
+
+/* Boundary toggle row — subtle separator from zone shapes */
+.gps-shape-toggle-boundary {
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 4px;
+    padding-bottom: 4px;
+}
+
+/* Import Property Boundary panel */
+.import-boundary-panel {
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.import-boundary-panel h3 {
+    margin: 0 0 6px;
+    font-size: 1rem;
+}
+
+.import-boundary-desc {
+    font-size: 0.85rem;
+    color: #555;
+    margin: 0 0 10px;
+}
+
+.import-boundary-textarea {
+    width: 100%;
+    font-family: monospace;
+    font-size: 0.78rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 8px;
+    resize: vertical;
+    box-sizing: border-box;
+}
+
+.import-boundary-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+
+.import-boundary-error {
+    color: #c0392b;
+    font-size: 0.85rem;
+}
+
 .gps-toggle-name {
     font-weight: 500;
 }

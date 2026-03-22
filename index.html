@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=104">
+    <link rel="stylesheet" href="css/styles.css?v=105">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -285,6 +285,18 @@
             <div class="page-header">
                 <h2>Yard Map</h2>
                 <button class="btn btn-secondary btn-small" id="yardmapToggleBgBtn">Hide Map</button>
+                <button class="btn btn-secondary btn-small" id="importBoundaryBtn">📥 Import Property Boundary</button>
+            </div>
+            <!-- Property Boundary Import Panel -->
+            <div id="importBoundaryPanel" class="import-boundary-panel hidden">
+                <h3 id="importBoundaryTitle">Import Property Boundary</h3>
+                <p class="import-boundary-desc">Paste an array of <code>{"lat": ..., "lng": ...}</code> points below. The default is pre-filled with the property at 3398 Townside Dr, Bishop, GA — replace with your own coordinates if needed.</p>
+                <textarea id="importBoundaryInput" class="import-boundary-textarea" rows="10" spellcheck="false"></textarea>
+                <div class="import-boundary-actions">
+                    <button class="btn btn-primary" id="importBoundarySaveBtn">Save Boundary</button>
+                    <button class="btn btn-secondary" id="importBoundaryCancelBtn">Cancel</button>
+                    <span class="import-boundary-error hidden" id="importBoundaryError"></span>
+                </div>
             </div>
             <div id="yardmapShapeToggles" class="gps-shape-toggles"></div>
             <div id="yardmapContainer" class="gps-map-container gps-map-container--large"></div>
@@ -1005,21 +1017,21 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=104"></script>
-    <script src="js/auth.js?v=104"></script>
-    <script src="js/zones.js?v=104"></script>
-    <script src="js/plants.js?v=104"></script>
-    <script src="js/problems.js?v=104"></script>
-    <script src="js/facts.js?v=104"></script>
-    <script src="js/projects.js?v=104"></script>
-    <script src="js/chemicals.js?v=104"></script>
-    <script src="js/activities.js?v=104"></script>
-    <script src="js/photos.js?v=104"></script>
-    <script src="js/weeds.js?v=104"></script>
-    <script src="js/calendar.js?v=104"></script>
-    <script src="js/gps.js?v=104"></script>
-    <script src="js/settings.js?v=104"></script>
-    <script src="js/app.js?v=104"></script>
+    <script src="js/firebase-config.js?v=105"></script>
+    <script src="js/auth.js?v=105"></script>
+    <script src="js/zones.js?v=105"></script>
+    <script src="js/plants.js?v=105"></script>
+    <script src="js/problems.js?v=105"></script>
+    <script src="js/facts.js?v=105"></script>
+    <script src="js/projects.js?v=105"></script>
+    <script src="js/chemicals.js?v=105"></script>
+    <script src="js/activities.js?v=105"></script>
+    <script src="js/photos.js?v=105"></script>
+    <script src="js/weeds.js?v=105"></script>
+    <script src="js/calendar.js?v=105"></script>
+    <script src="js/gps.js?v=105"></script>
+    <script src="js/settings.js?v=105"></script>
+    <script src="js/app.js?v=105"></script>
 
 </body>
 </html>

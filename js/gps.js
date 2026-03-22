@@ -298,6 +298,8 @@ function updateRecordMap(points) {
             fillOpacity: 1
         }).addTo(gpsRecordMap);
 
+        addPropertyBoundaryOverlay(gpsRecordMap);
+
     } else if (gpsRecordPolyline) {
         // Update path and move the current-position dot
         var latLngs = points.map(function(p) { return [p.lat, p.lng]; });
@@ -348,6 +350,35 @@ function updateRecordStats(pointCount, distanceFt, accuracy) {
     document.getElementById('gpsmapAccuracy').textContent   = accuracy ? Math.round(accuracy) + ' m' : '—';
 }
 
+// ---------- Property Boundary Overlay ----------
+
+/**
+ * Fetch the property boundary from Firestore and draw it as a dashed outline
+ * on the given Leaflet map instance. Fire-and-forget (async, non-blocking).
+ */
+async function addPropertyBoundaryOverlay(mapInstance) {
+    if (!mapInstance) return;
+    try {
+        var snap = await db.collection('gpsShapes')
+            .where('zoneId', '==', '__property__')
+            .limit(1)
+            .get();
+        if (snap.empty) return;
+        var pts = snap.docs[0].data().points;
+        if (!pts || pts.length < 3) return;
+        var latLngs = pts.map(function(p) { return [p.lat, p.lng]; });
+        L.polygon(latLngs, {
+            color:       '#000000',
+            fillColor:   '#000000',
+            fillOpacity: 0.04,
+            weight:      2,
+            dashArray:   '8, 6'
+        }).addTo(mapInstance).bindTooltip('Property Boundary', { sticky: true });
+    } catch (e) {
+        // Silently ignore — boundary overlay is best-effort
+    }
+}
+
 // ---------- View Map ----------
 
 function initViewMap(points, color) {
@@ -363,6 +394,7 @@ function initViewMap(points, color) {
     }).addTo(gpsViewMap);
 
     gpsViewMap.fitBounds(poly.getBounds(), { padding: [20, 20] });
+    addPropertyBoundaryOverlay(gpsViewMap);
 }
 
 // ---------- Edit Map ----------
@@ -387,6 +419,7 @@ function initEditMap(points) {
 
     rebuildEditMarkers();
     showEditorInfo('Tap a vertex handle to select. Drag to move. Tap Auto-Simplify to clean up extra points.');
+    addPropertyBoundaryOverlay(gpsEditMap);
 }
 
 /**

@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__Claude_Preview__preview_start",
+      "Bash(netstat -ano)",
+      "Bash(tasklist /FI \"PID eq 347372\")",
+      "Bash(powershell -Command \"Get-Process -Id 347372 | Select-Object Name, Id, Path\")",
+      "Bash(powershell -Command \"Stop-Process -Id 347372 -Force\")"
+    ]
+  }
+}

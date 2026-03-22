@@ -1,0 +1,1335 @@
+/* ============================================================
+   Bishop - Yard & Garden Tracker
+   Base styles — mobile-first responsive layout
+   ============================================================ */
+
+/* ---------- CSS Reset & Base ---------- */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: #f5f5f5;
+    color: #333;
+    line-height: 1.5;
+    min-height: 100vh;
+}
+
+a {
+    color: #2e7d32;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+button {
+    cursor: pointer;
+    font-family: inherit;
+    font-size: inherit;
+}
+
+/* ---------- App Header ---------- */
+.app-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #2e7d32;
+    color: white;
+    padding: 0 16px;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.header-title .home-link {
+    color: white;
+    font-size: 1.3rem;
+    font-weight: 700;
+    text-decoration: none;
+    letter-spacing: 0.5px;
+}
+
+/* Desktop nav links in header */
+.header-nav {
+    display: none;
+    gap: 4px;
+}
+
+.header-nav .nav-link,
+.mobile-nav .nav-link {
+    color: rgba(255, 255, 255, 0.85);
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: background-color 0.2s, color 0.2s;
+    text-decoration: none;
+}
+
+.header-nav .nav-link:hover,
+.mobile-nav .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+    color: white;
+    text-decoration: none;
+}
+
+.header-nav .nav-link.active,
+.mobile-nav .nav-link.active {
+    background-color: rgba(255, 255, 255, 0.25);
+    color: white;
+}
+
+/* ---------- Hamburger Button (mobile) ---------- */
+.hamburger {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    background: none;
+    border: none;
+    padding: 8px;
+    cursor: pointer;
+}
+
+.hamburger span {
+    display: block;
+    width: 24px;
+    height: 2px;
+    background-color: white;
+    border-radius: 2px;
+    transition: transform 0.2s, opacity 0.2s;
+}
+
+/* When menu is open, animate hamburger to X */
+.hamburger.open span:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+}
+.hamburger.open span:nth-child(2) {
+    opacity: 0;
+}
+.hamburger.open span:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+}
+
+/* ---------- Mobile Nav Dropdown ---------- */
+.mobile-nav {
+    display: none;
+    flex-direction: column;
+    background-color: #1b5e20;
+    padding: 8px 16px 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.mobile-nav.open {
+    display: flex;
+}
+
+.mobile-nav .nav-link {
+    padding: 12px 14px;
+    border-radius: 6px;
+    font-size: 1rem;
+}
+
+/* ---------- Main Content Area ---------- */
+.app-main {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 16px;
+}
+
+/* ---------- Breadcrumb Bar ---------- */
+.breadcrumb-bar {
+    font-size: 0.85rem;
+    color: #666;
+    padding: 8px 0;
+    margin-bottom: 8px;
+}
+
+.breadcrumb-bar:empty {
+    display: none;
+}
+
+.breadcrumb-bar a {
+    color: #2e7d32;
+}
+
+.breadcrumb-bar .separator {
+    margin: 0 6px;
+    color: #999;
+}
+
+/* ---------- Page Header (title + action buttons) ---------- */
+.page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.page-header h2 {
+    margin-bottom: 0;
+}
+
+.page-header-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+/* ---------- Section Headings (within a page) ---------- */
+.section-heading {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #555;
+    margin-top: 24px;
+    margin-bottom: 10px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 24px;
+    margin-bottom: 10px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.section-header .section-heading {
+    margin: 0;
+    padding: 0;
+    border: none;
+}
+
+/* ---------- Plant Detail ---------- */
+.plant-zone-info {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 16px;
+}
+
+.metadata-form {
+    background: white;
+    border-radius: 10px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin-bottom: 16px;
+}
+
+.form-row {
+    display: flex;
+    gap: 16px;
+}
+
+.form-row .form-group {
+    flex: 1;
+}
+
+/* Stack form rows on small screens */
+@media (max-width: 500px) {
+    .form-row {
+        flex-direction: column;
+        gap: 0;
+    }
+}
+
+/* ---------- Page Sections ---------- */
+.page {
+    animation: fadeIn 0.2s ease-in;
+}
+
+.page.hidden {
+    display: none;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* ---------- Page Headings ---------- */
+.page h2 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: #1b5e20;
+}
+
+/* ---------- Empty State ---------- */
+.empty-state {
+    color: #888;
+    font-style: italic;
+    padding: 24px 0;
+    text-align: center;
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 18px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+.btn:active {
+    transform: scale(0.97);
+}
+
+.btn-primary {
+    background-color: #2e7d32;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #1b5e20;
+}
+
+.btn-secondary {
+    background-color: #e0e0e0;
+    color: #333;
+}
+
+.btn-secondary:hover {
+    background-color: #bdbdbd;
+}
+
+.btn-danger {
+    background-color: #c62828;
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #b71c1c;
+}
+
+.btn-complete {
+    background-color: #2e7d32;
+    color: white;
+}
+
+.btn-complete:hover {
+    background-color: #1b5e20;
+}
+
+.btn-small {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ---------- Cards / List Items ---------- */
+.card-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.card {
+    background: white;
+    border-radius: 10px;
+    padding: 14px 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: box-shadow 0.2s, transform 0.1s;
+}
+
+.card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
+}
+
+.card-title {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #333;
+}
+
+.card-title--link {
+    color: #2e7d32;
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: transparent;
+}
+.card-title--link:hover {
+    text-decoration-color: #2e7d32;
+}
+
+.selected-chemicals-display {
+    min-height: 26px;
+    margin-bottom: 6px;
+}
+
+.chemical-tag {
+    display: inline-block;
+    background: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #c8e6c9;
+    border-radius: 12px;
+    padding: 2px 10px;
+    font-size: 0.8rem;
+    margin: 2px 4px 2px 0;
+}
+
+.chemicals-none-text {
+    color: #888;
+    font-size: 0.85rem;
+    font-style: italic;
+}
+
+.card-subtitle {
+    font-size: 0.85rem;
+    color: #888;
+    margin-top: 2px;
+}
+
+.card-arrow {
+    color: #aaa;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+    margin-left: 12px;
+}
+
+/* ---------- Forms ---------- */
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 4px;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-family: inherit;
+    background: white;
+    transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #2e7d32;
+    box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.2);
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* ---------- Modal / Dialog ---------- */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 200;
+    justify-content: center;
+    align-items: center;
+    padding: 16px;
+}
+
+.modal-overlay.open {
+    display: flex;
+}
+
+/* Facts modal can open on top of another modal (e.g. chemical edit) */
+#factModal {
+    z-index: 300;
+}
+
+/* Chemical modal is wider to make facts/URLs easier to read */
+#chemicalModal .modal {
+    max-width: 640px;
+}
+
+.modal {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    width: 100%;
+    max-width: 480px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.modal h3 {
+    font-size: 1.2rem;
+    margin-bottom: 16px;
+    color: #1b5e20;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+/* ---------- Section Header with Actions ---------- */
+.section-header-actions {
+    display: flex;
+    gap: 6px;
+}
+
+/* ---------- Problem Items ---------- */
+/* Problem items — compact single-row layout */
+.problem-item {
+    background: white;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.problem-item.resolved {
+    opacity: 0.7;
+}
+
+.problem-left {
+    flex: 1;
+    min-width: 0;
+}
+
+.problem-top-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.problem-badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.badge-open {
+    background-color: #fff3e0;
+    color: #e65100;
+}
+
+.badge-resolved {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+}
+
+.problem-description {
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.problem-secondary {
+    font-size: 0.8rem;
+    color: #999;
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.problem-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+/* Legacy item-actions (used by other components) */
+.item-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+/* ---------- Facts Table ---------- */
+.facts-table {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.fact-row {
+    display: flex;
+    align-items: flex-start;
+    padding: 10px 16px;
+    border-bottom: 1px solid #f0f0f0;
+    gap: 12px;
+}
+
+.fact-row:last-child {
+    border-bottom: none;
+}
+
+.fact-label {
+    font-weight: 600;
+    color: #555;
+    min-width: 100px;
+    flex-shrink: 0;
+}
+
+.fact-value {
+    flex: 1;
+    color: #333;
+}
+
+.fact-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+/* ---------- Project Cards ---------- */
+.project-card {
+    background: white;
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.project-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.project-title-area {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+    flex-wrap: wrap;
+}
+
+.project-toggle {
+    cursor: pointer;
+    font-size: 1rem;
+    color: #888;
+    user-select: none;
+    flex-shrink: 0;
+}
+
+.project-title {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #333;
+}
+
+.project-item-count {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #888;
+    background: #f0f0f0;
+    padding: 1px 7px;
+    border-radius: 10px;
+    flex-shrink: 0;
+}
+
+.project-header-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+/* Collapsible project body — hidden by default */
+.project-body {
+    display: none;
+    margin-top: 10px;
+}
+
+.project-body.expanded {
+    display: block;
+}
+
+.project-notes {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 10px;
+}
+
+/* ---------- Completed Projects ---------- */
+.project-completed {
+    opacity: 0.7;
+    border-left: 3px solid #2e7d32;
+}
+
+.project-completed-date {
+    font-size: 0.8rem;
+    color: #2e7d32;
+    margin-top: 2px;
+}
+
+/* ---------- Show/Hide Toggle Labels ---------- */
+.show-toggle {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.8rem;
+    color: #888;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.show-toggle input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    accent-color: #2e7d32;
+    cursor: pointer;
+}
+
+/* ---------- Checklist ---------- */
+.project-checklist {
+    margin-bottom: 10px;
+}
+
+/* Wrapper groups the item row, notes display, and notes edit area */
+.checklist-item-wrapper {
+    border-bottom: 1px solid #f5f5f5;
+    padding-bottom: 2px;
+}
+
+.checklist-item-wrapper:last-child {
+    border-bottom: none;
+}
+
+.checklist-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+}
+
+.checklist-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    accent-color: #2e7d32;
+    cursor: pointer;
+}
+
+/* Text + completion date column */
+.checklist-text-col {
+    flex: 1;
+    min-width: 0;
+}
+
+.checklist-text {
+    font-size: 0.95rem;
+    display: block;
+}
+
+.checklist-item.checked .checklist-text {
+    text-decoration: line-through;
+    color: #999;
+}
+
+/* Completion timestamp on individual checklist items */
+.checklist-completed-date {
+    font-size: 0.75rem;
+    color: #999;
+    margin-top: 1px;
+}
+
+/* Notes toggle button on checklist items */
+.checklist-notes-btn {
+    background: none;
+    border: 1px solid #e0e0e0;
+    color: #aaa;
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    cursor: pointer;
+    flex-shrink: 0;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+.checklist-notes-btn:hover {
+    color: #2e7d32;
+    border-color: #2e7d32;
+    background-color: #f0f0f0;
+}
+
+.checklist-notes-btn.has-notes {
+    color: #2e7d32;
+    border-color: #2e7d32;
+    font-weight: 600;
+}
+
+/* Read-only notes display below checklist item */
+.checklist-item-notes-display {
+    font-size: 0.8rem;
+    color: #888;
+    padding: 2px 0 4px 26px;
+    font-style: italic;
+}
+
+/* Notes edit area (textarea + save button) */
+.checklist-notes-edit {
+    padding: 4px 0 6px 26px;
+}
+
+.checklist-notes-input {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 40px;
+}
+
+.checklist-notes-input:focus {
+    outline: none;
+    border-color: #2e7d32;
+    box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.2);
+}
+
+.checklist-remove {
+    background: none;
+    border: none;
+    color: #ccc;
+    font-size: 1.2rem;
+    padding: 0 4px;
+    cursor: pointer;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.checklist-remove:hover {
+    color: #c62828;
+}
+
+/* (problem-resolved-date removed — now using .problem-secondary) */
+
+/* ---------- Add Checklist Item Row ---------- */
+.add-checklist-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.add-checklist-input {
+    flex: 1;
+    padding: 6px 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-family: inherit;
+}
+
+.add-checklist-input:focus {
+    outline: none;
+    border-color: #2e7d32;
+    box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.2);
+}
+
+/* ---------- Activity Items (compact row) ---------- */
+.activity-item {
+    background: white;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.activity-left {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.activity-date {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #1565c0;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.activity-description {
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ---------- View Activity Modal Fields ---------- */
+.view-field {
+    margin-bottom: 12px;
+}
+
+.view-field label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.view-value {
+    font-size: 0.95rem;
+    color: #333;
+}
+
+/* ---------- View All Plants Badges ---------- */
+.plant-zone-path {
+    font-size: 0.8rem;
+    color: #888;
+    margin-top: 2px;
+}
+
+/* ---------- Photo Viewer ---------- */
+.photo-viewer {
+    background: white;
+    border-radius: 10px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.photo-viewer-image {
+    width: 100%;
+    max-height: 450px;
+    object-fit: contain;
+    border-radius: 8px;
+    background: #f0f0f0;
+    display: block;
+}
+
+.photo-nav-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 12px;
+    gap: 8px;
+}
+
+.photo-nav-btn {
+    min-width: 70px;
+}
+
+.photo-nav-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.photo-nav-info {
+    text-align: center;
+    flex: 1;
+}
+
+.photo-date {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #555;
+}
+
+.photo-counter {
+    font-size: 0.75rem;
+    color: #999;
+}
+
+.photo-caption {
+    font-size: 0.9rem;
+    color: #666;
+    font-style: italic;
+    margin-top: 8px;
+    padding: 0 4px;
+}
+
+.photo-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+}
+
+/* ---------- Calendar ---------- */
+.calendar-range-picker {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.range-select {
+    padding: 4px 8px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-family: inherit;
+    background: white;
+    cursor: pointer;
+}
+
+.range-select:focus {
+    outline: none;
+    border-color: #2e7d32;
+}
+
+.calendar-month-header {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #2e7d32;
+    margin: 20px 0 8px 0;
+    padding-bottom: 4px;
+    border-bottom: 2px solid #e8f5e9;
+}
+
+.calendar-month-header:first-child {
+    margin-top: 4px;
+}
+
+.calendar-event-card {
+    background: white;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.calendar-event-date {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #1565c0;
+    margin-bottom: 4px;
+}
+
+.calendar-event-title {
+    font-weight: 500;
+    font-size: 1rem;
+    margin-bottom: 2px;
+}
+
+.calendar-event-desc {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 4px;
+}
+
+.calendar-event-target {
+    font-size: 0.8rem;
+    color: #999;
+    font-style: italic;
+    margin-bottom: 4px;
+}
+
+.calendar-recurring-badge {
+    font-size: 0.8rem;
+    color: #6a1b9a;
+    font-weight: 500;
+    margin-bottom: 6px;
+}
+
+.calendar-event-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+}
+
+/* Completed events (shown when "Show completed" checkbox is checked) */
+.calendar-event-card--completed {
+    opacity: 0.6;
+    border-left: 3px solid #2e7d32;
+}
+
+.calendar-event-card--completed .calendar-event-title {
+    text-decoration: line-through;
+    color: #555;
+}
+
+.calendar-completed-badge {
+    display: inline-block;
+    background-color: #2e7d32;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-bottom: 4px;
+}
+
+/* Overdue events section */
+.calendar-overdue-heading {
+    color: #e65100;
+}
+
+.calendar-overdue-card {
+    border-left: 3px solid #e65100;
+}
+
+.calendar-overdue-badge {
+    display: inline-block;
+    background-color: #e65100;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-bottom: 4px;
+}
+
+/* Info line inside modals (e.g., "Adding event for: Front Yard") */
+.modal-info-line {
+    font-size: 0.9rem;
+    color: #555;
+    margin-bottom: 12px;
+    padding: 6px 10px;
+    background: #f5f5f5;
+    border-radius: 6px;
+}
+
+/* ---------- Home Page: Calendar & Project Source Labels ---------- */
+.home-calendar-item {
+    background: white;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.home-calendar-date {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #1565c0;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.home-calendar-title {
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.calendar-recurring-badge-small {
+    font-size: 0.7rem;
+    color: #6a1b9a;
+    font-weight: 500;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.home-calendar-more {
+    display: block;
+    text-align: center;
+    font-size: 0.85rem;
+    color: #2e7d32;
+    font-weight: 500;
+    padding: 8px;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.home-calendar-more:hover {
+    text-decoration: underline;
+}
+
+.project-source-label {
+    font-size: 0.75rem;
+    color: #888;
+    margin-top: 2px;
+}
+
+/* ---------- Weed Info Section ---------- */
+.weed-info-section {
+    background: white;
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.weed-info-row {
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.weed-info-row:last-child {
+    border-bottom: none;
+}
+
+.weed-info-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+}
+
+.weed-info-value {
+    font-size: 0.95rem;
+    color: #333;
+}
+
+.weed-info-value.empty-field {
+    color: #bbb;
+    font-style: italic;
+}
+
+/* Affected zone links */
+.weed-zone-link {
+    display: block;
+    background: white;
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    color: #1565c0;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: background 0.15s;
+}
+
+.weed-zone-link:hover {
+    background: #f0f7f0;
+}
+
+/* Zone checkbox list in modal */
+.zone-checkbox-list {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 8px 0;
+    margin-bottom: 12px;
+}
+
+.zone-checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background 0.1s;
+}
+
+.zone-checkbox-item:hover {
+    background: #f5f5f5;
+}
+
+.zone-checkbox-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #2e7d32;
+    flex-shrink: 0;
+}
+
+.modal-description {
+    font-size: 0.85rem;
+    color: #888;
+    margin: -4px 0 12px 0;
+}
+
+/* ---------- Utility Classes ---------- */
+.text-center {
+    text-align: center;
+}
+
+.mt-8 {
+    margin-top: 8px;
+}
+
+.mt-16 {
+    margin-top: 16px;
+}
+
+.mb-16 {
+    margin-bottom: 16px;
+}
+
+/* ---------- Responsive: Tablet & Desktop ---------- */
+@media (min-width: 768px) {
+    /* Show desktop nav, hide hamburger */
+    .header-nav {
+        display: flex;
+    }
+
+    .hamburger {
+        display: none;
+    }
+
+    .mobile-nav {
+        display: none !important;
+    }
+
+    .app-main {
+        padding: 24px;
+    }
+
+    .page h2 {
+        font-size: 1.6rem;
+    }
+}

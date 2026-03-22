@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bishop - Yard & Garden Tracker</title>
+    <link rel="stylesheet" href="css/styles.css?v=98">
+
+    <!-- Firebase SDK (compat version — works without a build step) -->
+    <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+
+    <!-- ========== TOP NAV BAR ========== -->
+    <header class="app-header">
+        <div class="header-title" id="headerTitle">
+            <a href="#home" class="home-link">Bishop</a>
+        </div>
+        <nav class="header-nav">
+            <a href="#home" class="nav-link active" data-page="home">Zones</a>
+            <a href="#weeds" class="nav-link" data-page="weeds">Weeds</a>
+            <a href="#calendar" class="nav-link" data-page="calendar">Calendar</a>
+            <a href="#chemicals" class="nav-link" data-page="chemicals">Chemicals</a>
+            <a href="#actions" class="nav-link" data-page="actions">Actions</a>
+        </nav>
+        <!-- Hamburger menu for mobile -->
+        <button class="hamburger" id="hamburgerBtn" aria-label="Toggle menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+    </header>
+
+    <!-- Mobile nav dropdown (hidden by default) -->
+    <nav class="mobile-nav" id="mobileNav">
+        <a href="#home" class="nav-link active" data-page="home">Zones</a>
+        <a href="#weeds" class="nav-link" data-page="weeds">Weeds</a>
+        <a href="#calendar" class="nav-link" data-page="calendar">Calendar</a>
+        <a href="#chemicals" class="nav-link" data-page="chemicals">Chemicals</a>
+        <a href="#actions" class="nav-link" data-page="actions">Actions</a>
+    </nav>
+
+    <!-- ========== MAIN CONTENT AREA ========== -->
+    <main class="app-main">
+
+        <!-- Breadcrumb bar (shown when drilling into zones) -->
+        <div class="breadcrumb-bar" id="breadcrumbBar"></div>
+
+        <!-- Page: Home / Zones list -->
+        <section class="page" id="page-home">
+            <div class="page-header">
+                <h2>My Yard</h2>
+                <button class="btn btn-primary btn-small" id="addZoneBtn">+ Add Zone</button>
+            </div>
+            <div class="card-list" id="zoneListContainer"></div>
+            <p class="empty-state" id="zoneEmptyState">Loading...</p>
+
+            <!-- All Projects (rolled up from entire yard) -->
+            <div class="section-header">
+                <h3 class="section-heading">All Projects</h3>
+                <div class="section-header-actions">
+                    <label class="show-toggle"><input type="checkbox" id="showCompletedHomeProjects"> Show completed</label>
+                </div>
+            </div>
+            <div id="homeProjectsContainer"></div>
+            <p class="empty-state" id="homeProjectsEmptyState"></p>
+
+            <!-- Upcoming Calendar Events -->
+            <div class="section-header">
+                <h3 class="section-heading">Upcoming Calendar</h3>
+            </div>
+            <div id="homeCalendarContainer"></div>
+            <p class="empty-state" id="homeCalendarEmptyState"></p>
+        </section>
+
+        <!-- Page: Zone detail (sub-zones + plants) -->
+        <section class="page hidden" id="page-zone">
+            <div class="page-header">
+                <h2 id="zoneTitle">Zone</h2>
+                <div class="page-header-actions">
+                    <button class="btn btn-primary btn-small" id="addSubZoneBtn" style="display:none;">+ Sub-zone</button>
+                    <button class="btn btn-secondary btn-small" id="editZoneBtn" style="display:none;">Edit</button>
+                    <button class="btn btn-danger btn-small" id="deleteZoneBtn" style="display:none;">Delete</button>
+                </div>
+            </div>
+
+            <!-- Sub-zones section -->
+            <h3 class="section-heading">Sub-zones</h3>
+            <div class="card-list" id="subZoneListContainer"></div>
+            <p class="empty-state" id="subZoneEmptyState"></p>
+
+            <!-- Plants section -->
+            <div class="section-header">
+                <h3 class="section-heading">Plants</h3>
+                <div class="section-header-actions">
+                    <button class="btn btn-primary btn-small" id="viewAllPlantsBtn" style="display:none;">View All Plants</button>
+                    <button class="btn btn-primary btn-small" id="addPlantBtn" style="display:none;">+ Add Plant</button>
+                </div>
+            </div>
+            <div class="card-list" id="zonePlantListContainer"></div>
+            <p class="empty-state" id="zonePlantEmptyState"></p>
+
+            <!-- View All Plants results (hidden by default) -->
+            <div id="viewAllPlantsSection" style="display:none;">
+                <div class="section-header">
+                    <h3 class="section-heading">All Plants in Zone Hierarchy</h3>
+                    <button class="btn btn-secondary btn-small" id="hideAllPlantsBtn">Hide</button>
+                </div>
+                <div class="card-list" id="allPlantsListContainer"></div>
+                <p class="empty-state" id="allPlantsEmptyState"></p>
+            </div>
+
+            <!-- Zone Problems section -->
+            <div class="section-header">
+                <h3 class="section-heading">Problems / Concerns</h3>
+                <div class="section-header-actions">
+                    <label class="show-toggle"><input type="checkbox" id="showResolvedZoneProblems"> Show resolved</label>
+                    <button class="btn btn-primary btn-small" id="addZoneProblemBtn">+ Add</button>
+                </div>
+            </div>
+            <div id="zoneProblemsContainer"></div>
+            <p class="empty-state" id="zoneProblemsEmptyState"></p>
+
+            <!-- Zone Facts section -->
+            <div class="section-header">
+                <h3 class="section-heading">Facts</h3>
+                <button class="btn btn-primary btn-small" id="addZoneFactBtn">+ Add</button>
+            </div>
+            <div id="zoneFactsContainer"></div>
+            <p class="empty-state" id="zoneFactsEmptyState"></p>
+
+            <!-- Zone Projects section -->
+            <div class="section-header">
+                <h3 class="section-heading">Future Projects</h3>
+                <div class="section-header-actions">
+                    <label class="show-toggle"><input type="checkbox" id="showSubZoneProjects"> Include sub-zones</label>
+                    <label class="show-toggle"><input type="checkbox" id="showCompletedZoneProjects"> Show completed</label>
+                    <button class="btn btn-primary btn-small" id="addZoneProjectBtn">+ Add</button>
+                </div>
+            </div>
+            <div id="zoneProjectsContainer"></div>
+            <p class="empty-state" id="zoneProjectsEmptyState"></p>
+
+            <!-- Zone Calendar Events -->
+            <div class="section-header">
+                <h3 class="section-heading">Calendar Events</h3>
+                <div class="section-header-actions">
+                    <div class="calendar-range-picker">
+                        <label>Next</label>
+                        <select id="zoneCalendarRangeSelect" class="range-select">
+                            <option value="1">1 mo</option>
+                            <option value="3" selected>3 mo</option>
+                            <option value="6">6 mo</option>
+                            <option value="12">12 mo</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary btn-small" id="addZoneCalendarEventBtn">+ Add Event</button>
+                </div>
+            </div>
+            <div id="zoneCalendarEventsContainer"></div>
+            <p class="empty-state" id="zoneCalendarEventsEmptyState"></p>
+
+            <!-- Zone Activity History -->
+            <div class="section-header">
+                <h3 class="section-heading">Activity History</h3>
+                <button class="btn btn-primary btn-small" id="logZoneActivityBtn">+ Log Activity</button>
+            </div>
+            <div id="zoneActivityContainer"></div>
+            <p class="empty-state" id="zoneActivityEmptyState"></p>
+
+            <!-- Zone Photos -->
+            <div class="section-header">
+                <h3 class="section-heading">Photos</h3>
+                <button class="btn btn-primary btn-small" id="addZonePhotoBtn">+ Add Photo</button>
+            </div>
+            <div id="zonePhotoContainer"></div>
+            <p class="empty-state" id="zonePhotoEmptyState">No photos yet.</p>
+        </section>
+
+        <!-- Page: Plant detail -->
+        <section class="page hidden" id="page-plant">
+            <div class="page-header">
+                <h2 id="plantTitle">Plant</h2>
+                <div class="page-header-actions">
+                    <button class="btn btn-secondary btn-small" id="editPlantNameBtn">Rename</button>
+                    <button class="btn btn-secondary btn-small" id="movePlantBtn">Move</button>
+                    <button class="btn btn-danger btn-small" id="deletePlantBtn">Delete</button>
+                </div>
+            </div>
+
+            <!-- Zone location -->
+            <p class="plant-zone-info" id="plantZoneInfo"></p>
+
+            <!-- Metadata section -->
+            <h3 class="section-heading">Plant Care Info</h3>
+            <div id="plantMetadataForm" class="metadata-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="plantHeatTolerance">Heat Tolerance</label>
+                        <select id="plantHeatTolerance">
+                            <option value="">-- Select --</option>
+                            <option value="High">High</option>
+                            <option value="Medium-High">Medium-High</option>
+                            <option value="Medium">Medium</option>
+                            <option value="Medium-Low">Medium-Low</option>
+                            <option value="Low">Low</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="plantColdTolerance">Cold Tolerance</label>
+                        <select id="plantColdTolerance">
+                            <option value="">-- Select --</option>
+                            <option value="High">High</option>
+                            <option value="Medium-High">Medium-High</option>
+                            <option value="Medium">Medium</option>
+                            <option value="Medium-Low">Medium-Low</option>
+                            <option value="Low">Low</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="plantWateringNeeds">Watering Needs</label>
+                        <input type="text" id="plantWateringNeeds" placeholder="e.g., Weekly, Drought tolerant">
+                    </div>
+                    <div class="form-group">
+                        <label for="plantSunShade">Sun / Shade</label>
+                        <select id="plantSunShade">
+                            <option value="">-- Select --</option>
+                            <option value="Full Sun">Full Sun</option>
+                            <option value="Partial Sun">Partial Sun</option>
+                            <option value="Partial Shade">Partial Shade</option>
+                            <option value="Full Shade">Full Shade</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="plantBloomMonth">Bloom Month</label>
+                        <select id="plantBloomMonth">
+                            <option value="">-- Select --</option>
+                            <option value="January">January</option>
+                            <option value="February">February</option>
+                            <option value="March">March</option>
+                            <option value="April">April</option>
+                            <option value="May">May</option>
+                            <option value="June">June</option>
+                            <option value="July">July</option>
+                            <option value="August">August</option>
+                            <option value="September">September</option>
+                            <option value="October">October</option>
+                            <option value="November">November</option>
+                            <option value="December">December</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="plantDormantMonth">Dormant Month</label>
+                        <select id="plantDormantMonth">
+                            <option value="">-- Select --</option>
+                            <option value="January">January</option>
+                            <option value="February">February</option>
+                            <option value="March">March</option>
+                            <option value="April">April</option>
+                            <option value="May">May</option>
+                            <option value="June">June</option>
+                            <option value="July">July</option>
+                            <option value="August">August</option>
+                            <option value="September">September</option>
+                            <option value="October">October</option>
+                            <option value="November">November</option>
+                            <option value="December">December</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="plantNotes">Notes</label>
+                    <textarea id="plantNotes" placeholder="General care notes..."></textarea>
+                </div>
+                <button class="btn btn-primary btn-small" id="saveMetadataBtn">Save Care Info</button>
+            </div>
+
+            <!-- Plant Problems section -->
+            <div class="section-header">
+                <h3 class="section-heading">Problems / Concerns</h3>
+                <div class="section-header-actions">
+                    <label class="show-toggle"><input type="checkbox" id="showResolvedPlantProblems"> Show resolved</label>
+                    <button class="btn btn-primary btn-small" id="addPlantProblemBtn">+ Add</button>
+                </div>
+            </div>
+            <div id="plantProblemsContainer"></div>
+            <p class="empty-state" id="plantProblemsEmptyState"></p>
+
+            <!-- Plant Facts section -->
+            <div class="section-header">
+                <h3 class="section-heading">Facts</h3>
+                <button class="btn btn-primary btn-small" id="addPlantFactBtn">+ Add</button>
+            </div>
+            <div id="plantFactsContainer"></div>
+            <p class="empty-state" id="plantFactsEmptyState"></p>
+
+            <!-- Plant Projects section -->
+            <div class="section-header">
+                <h3 class="section-heading">Future Projects</h3>
+                <div class="section-header-actions">
+                    <label class="show-toggle"><input type="checkbox" id="showCompletedPlantProjects"> Show completed</label>
+                    <button class="btn btn-primary btn-small" id="addPlantProjectBtn">+ Add</button>
+                </div>
+            </div>
+            <div id="plantProjectsContainer"></div>
+            <p class="empty-state" id="plantProjectsEmptyState"></p>
+
+            <!-- Plant Calendar Events -->
+            <div class="section-header">
+                <h3 class="section-heading">Calendar Events</h3>
+                <div class="section-header-actions">
+                    <div class="calendar-range-picker">
+                        <label>Next</label>
+                        <select id="plantCalendarRangeSelect" class="range-select">
+                            <option value="1">1 mo</option>
+                            <option value="3" selected>3 mo</option>
+                            <option value="6">6 mo</option>
+                            <option value="12">12 mo</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary btn-small" id="addPlantCalendarEventBtn">+ Add Event</button>
+                </div>
+            </div>
+            <div id="plantCalendarEventsContainer"></div>
+            <p class="empty-state" id="plantCalendarEventsEmptyState"></p>
+
+            <!-- Plant Activity History -->
+            <div class="section-header">
+                <h3 class="section-heading">Activity History</h3>
+                <button class="btn btn-primary btn-small" id="logPlantActivityBtn">+ Log Activity</button>
+            </div>
+            <div id="plantActivityContainer"></div>
+            <p class="empty-state" id="plantActivityEmptyState">No activities logged yet.</p>
+
+            <!-- Photos -->
+            <div class="section-header">
+                <h3 class="section-heading">Photos</h3>
+                <button class="btn btn-primary btn-small" id="addPlantPhotoBtn">+ Add Photo</button>
+            </div>
+            <div id="plantPhotoContainer"></div>
+            <p class="empty-state" id="plantPhotoEmptyState">No photos yet.</p>
+        </section>
+
+        <!-- Page: Weeds list -->
+        <section class="page hidden" id="page-weeds">
+            <div class="page-header">
+                <h2>Weeds</h2>
+                <button class="btn btn-primary btn-small" id="addWeedBtn">+ Add Weed</button>
+            </div>
+            <div class="card-list" id="weedsListContainer"></div>
+            <p class="empty-state" id="weedsEmptyState">Loading...</p>
+        </section>
+
+        <!-- Page: Weed detail -->
+        <section class="page hidden" id="page-weed">
+            <div class="page-header">
+                <h2 id="weedTitle">Weed</h2>
+                <div class="page-header-actions">
+                    <button class="btn btn-secondary btn-small" id="editWeedBtn">Edit</button>
+                    <button class="btn btn-danger btn-small" id="deleteWeedBtn">Delete</button>
+                </div>
+            </div>
+
+            <!-- Weed Info Section -->
+            <div class="weed-info-section">
+                <div class="weed-info-row">
+                    <div class="weed-info-label">Treatment Method</div>
+                    <div class="weed-info-value" id="weedTreatmentMethod">Not specified</div>
+                </div>
+                <div class="weed-info-row">
+                    <div class="weed-info-label">Application Timing</div>
+                    <div class="weed-info-value" id="weedApplicationTiming">Not specified</div>
+                </div>
+                <div class="weed-info-row">
+                    <div class="weed-info-label">Notes</div>
+                    <div class="weed-info-value" id="weedNotesDisplay">No notes.</div>
+                </div>
+            </div>
+
+            <!-- Affected Zones section -->
+            <div class="section-header">
+                <h3 class="section-heading">Affected Zones</h3>
+                <button class="btn btn-primary btn-small" id="manageWeedZonesBtn">Manage Zones</button>
+            </div>
+            <div id="weedZonesContainer"></div>
+            <p class="empty-state" id="weedZonesEmptyState"></p>
+
+            <!-- Weed Facts section -->
+            <div class="section-header">
+                <h3 class="section-heading">Facts</h3>
+                <button class="btn btn-primary btn-small" id="addWeedFactBtn">+ Add</button>
+            </div>
+            <div id="weedFactsContainer"></div>
+            <p class="empty-state" id="weedFactsEmptyState"></p>
+
+            <!-- Weed Photos -->
+            <div class="section-header">
+                <h3 class="section-heading">Photos</h3>
+                <button class="btn btn-primary btn-small" id="addWeedPhotoBtn">+ Add Photo</button>
+            </div>
+            <div id="weedPhotoContainer"></div>
+            <p class="empty-state" id="weedPhotoEmptyState">No photos yet.</p>
+
+            <!-- Weed Activity History -->
+            <div class="section-header">
+                <h3 class="section-heading">Activity History</h3>
+                <button class="btn btn-primary btn-small" id="logWeedActivityBtn">+ Log Activity</button>
+            </div>
+            <div id="weedActivityContainer"></div>
+            <p class="empty-state" id="weedActivityEmptyState">No activities logged yet.</p>
+        </section>
+
+        <!-- Page: Calendar -->
+        <section class="page hidden" id="page-calendar">
+            <div class="page-header">
+                <h2>Calendar</h2>
+                <div class="page-header-actions">
+                    <div class="calendar-range-picker">
+                        <label for="calendarRangeSelect">Show next</label>
+                        <select id="calendarRangeSelect" class="range-select">
+                            <option value="1">1 month</option>
+                            <option value="3" selected>3 months</option>
+                            <option value="6">6 months</option>
+                            <option value="12">12 months</option>
+                        </select>
+                    </div>
+                    <label class="show-toggle"><input type="checkbox" id="showCompletedCalendarEvents"> Show completed</label>
+                    <button class="btn btn-primary btn-small" id="addCalendarEventBtn">+ Add Event</button>
+                </div>
+            </div>
+            <!-- Overdue events section (past uncompleted) -->
+            <div id="calendarOverdueSection" style="display:none;">
+                <h3 class="section-heading calendar-overdue-heading">Overdue</h3>
+                <div id="calendarOverdueContainer"></div>
+            </div>
+            <div id="calendarEventsContainer"></div>
+            <p class="empty-state" id="calendarEmptyState">Loading...</p>
+        </section>
+
+        <!-- Page: Chemicals / Products -->
+        <section class="page hidden" id="page-chemicals">
+            <div class="page-header">
+                <h2>Chemicals & Products</h2>
+                <button class="btn btn-primary btn-small" id="addChemicalBtn">+ Add</button>
+            </div>
+            <div class="card-list" id="chemicalsListContainer"></div>
+            <p class="empty-state" id="chemicalsEmptyState">Loading...</p>
+        </section>
+
+        <!-- Page: Chemical detail -->
+        <section class="page hidden" id="page-chemical">
+            <div class="page-header">
+                <h2 id="chemicalDetailName">Chemical</h2>
+                <div class="page-header-actions">
+                    <button class="btn btn-secondary btn-small" id="editChemicalDetailBtn">Edit</button>
+                    <button class="btn btn-danger btn-small" id="deleteChemicalDetailBtn">Delete</button>
+                </div>
+            </div>
+            <!-- Notes display -->
+            <div id="chemicalDetailNotesSection" class="weed-info-section" style="display:none;">
+                <div class="weed-info-row">
+                    <div class="weed-info-label">Notes</div>
+                    <div class="weed-info-value" id="chemicalDetailNotes"></div>
+                </div>
+            </div>
+            <!-- Facts section -->
+            <div class="section-header">
+                <h3 class="section-heading">Facts</h3>
+                <button class="btn btn-primary btn-small" id="addChemicalFactBtn">+ Add</button>
+            </div>
+            <div id="chemicalFactsContainer"></div>
+            <p class="empty-state" id="chemicalFactsEmptyState">No facts recorded.</p>
+        </section>
+
+        <!-- Page: Saved Actions -->
+        <section class="page hidden" id="page-actions">
+            <div class="page-header">
+                <h2>Saved Actions</h2>
+                <button class="btn btn-primary btn-small" id="addSavedActionBtn">+ Add</button>
+            </div>
+            <div class="card-list" id="savedActionsListContainer"></div>
+            <p class="empty-state" id="savedActionsEmptyState">Loading...</p>
+        </section>
+
+    </main>
+
+    <!-- ========== MODALS ========== -->
+
+    <!-- Zone Add/Edit Modal -->
+    <div class="modal-overlay" id="zoneModal">
+        <div class="modal">
+            <h3 id="zoneModalTitle">Add Zone</h3>
+            <div class="form-group">
+                <label for="zoneNameInput">Zone Name</label>
+                <input type="text" id="zoneNameInput" placeholder="e.g., Front Yard">
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="zoneModalCancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="zoneModalSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Plant Add/Edit Name Modal -->
+    <div class="modal-overlay" id="plantModal">
+        <div class="modal">
+            <h3 id="plantModalTitle">Add Plant</h3>
+            <div class="form-group">
+                <label for="plantNameInput">Plant Name</label>
+                <input type="text" id="plantNameInput" placeholder="e.g., Azalea #1">
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="plantModalCancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="plantModalSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Move Plant Modal -->
+    <div class="modal-overlay" id="movePlantModal">
+        <div class="modal">
+            <h3>Move Plant to Zone</h3>
+            <div class="form-group">
+                <label for="movePlantZoneSelect">Select New Zone</label>
+                <select id="movePlantZoneSelect"></select>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="movePlantCancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="movePlantSaveBtn">Move</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Problem Add/Edit Modal -->
+    <div class="modal-overlay" id="problemModal">
+        <div class="modal">
+            <h3 id="problemModalTitle">Add Problem</h3>
+            <div class="form-group">
+                <label for="problemDescInput">Description</label>
+                <input type="text" id="problemDescInput" placeholder="e.g., Aphids on leaves">
+            </div>
+            <div class="form-group">
+                <label for="problemNotesInput">Notes (optional)</label>
+                <textarea id="problemNotesInput" placeholder="Additional details..."></textarea>
+            </div>
+
+            <!-- Facts section — only shown in edit mode -->
+            <div id="problemFactsSection" style="display:none;">
+                <div class="section-header" style="margin-top: 8px; margin-bottom: 4px; padding-bottom: 4px;">
+                    <h4 style="font-weight: 600; color: #555; font-size: 0.95rem;">Facts</h4>
+                    <button class="btn btn-primary btn-small" id="addProblemFactBtn" type="button">+ Add</button>
+                </div>
+                <div id="problemFactsContainer"></div>
+                <p class="empty-state" id="problemFactsEmptyState" style="padding: 8px 0;"></p>
+            </div>
+
+            <div class="modal-buttons">
+                <button class="btn btn-danger" id="problemModalDeleteBtn" style="display:none;">Delete</button>
+                <div style="flex:1;"></div>
+                <button class="btn btn-secondary" id="problemModalCancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="problemModalSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fact Add/Edit Modal -->
+    <div class="modal-overlay" id="factModal">
+        <div class="modal">
+            <h3 id="factModalTitle">Add Fact</h3>
+            <div class="form-group">
+                <label for="factLabelInput">Label</label>
+                <input type="text" id="factLabelInput" placeholder="e.g., Square Feet, Bloom Season">
+            </div>
+            <div class="form-group">
+                <label for="factValueInput">Value</label>
+                <input type="text" id="factValueInput" placeholder="e.g., 200, March-May">
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="factModalCancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="factModalSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Project Add/Edit Modal -->
+    <div class="modal-overlay" id="projectModal">
+        <div class="modal">
+            <h3 id="projectModalTitle">Add Project</h3>
+            <div class="form-group">
+                <label for="projectTitleInput">Project Title</label>
+                <input type="text" id="projectTitleInput" placeholder="e.g., Level the front yard">
+            </div>
+            <div class="form-group">
+                <label for="projectNotesInput">Notes (optional)</label>
+                <textarea id="projectNotesInput" placeholder="Project details..."></textarea>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="projectModalCancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="projectModalSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chemical Add/Edit Modal -->
+    <div class="modal-overlay" id="chemicalModal">
+        <div class="modal">
+            <h3 id="chemicalModalTitle">Add Chemical</h3>
+            <div class="form-group">
+                <label for="chemicalNameInput">Name</label>
+                <input type="text" id="chemicalNameInput" placeholder="e.g., Roundup, Scotts Turf Builder">
+            </div>
+            <div class="form-group">
+                <label for="chemicalNotesInput">Notes (optional)</label>
+                <textarea id="chemicalNotesInput" placeholder="Usage details, mixing ratios, etc."></textarea>
+            </div>
+            <div id="chemicalFactsSection" style="display:none;">
+                <div class="section-header" style="margin-top: 8px; margin-bottom: 4px; padding-bottom: 4px;">
+                    <h4 style="font-weight: 600; color: #555; font-size: 0.95rem;">Facts</h4>
+                    <button class="btn btn-primary btn-small" id="addChemicalModalFactBtn" type="button">+ Add</button>
+                </div>
+                <div id="chemicalModalFactsContainer"></div>
+                <p class="empty-state" id="chemicalModalFactsEmptyState" style="padding: 8px 0;"></p>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="chemicalModalCancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="chemicalModalSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Log Activity Modal -->
+    <div class="modal-overlay" id="activityModal">
+        <div class="modal">
+            <h3>Log Activity</h3>
+            <div class="form-group">
+                <label for="activitySavedActionSelect">Use Saved Action</label>
+                <select id="activitySavedActionSelect">
+                    <option value="">-- Start from scratch --</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="activityDescInput">Description</label>
+                <input type="text" id="activityDescInput" placeholder="e.g., Applied weed killer">
+            </div>
+            <div class="form-group">
+                <label for="activityDateInput">Date</label>
+                <input type="date" id="activityDateInput">
+            </div>
+            <div class="form-group">
+                <label>Chemical / Product (optional)</label>
+                <div class="zone-checkbox-list" id="activityChemicalList"></div>
+            </div>
+            <div class="form-group">
+                <label for="activityNotesInput">Notes (optional)</label>
+                <textarea id="activityNotesInput" placeholder="Additional details..."></textarea>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="activityModalCancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="activityModalSaveBtn">Log Activity</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Activity Detail Modal -->
+    <div class="modal-overlay" id="viewActivityModal">
+        <div class="modal">
+            <h3>Activity Details</h3>
+            <div class="view-field">
+                <label>Date</label>
+                <div id="viewActivityDate" class="view-value"></div>
+            </div>
+            <div class="view-field">
+                <label>Description</label>
+                <div id="viewActivityDesc" class="view-value"></div>
+            </div>
+            <div class="view-field">
+                <label>Chemical / Product</label>
+                <div id="viewActivityChemical" class="view-value"></div>
+            </div>
+            <div class="view-field">
+                <label>Notes</label>
+                <div id="viewActivityNotes" class="view-value"></div>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="viewActivitySaveAsBtn">Save as Action</button>
+                <button class="btn btn-danger" id="viewActivityDeleteBtn">Delete</button>
+                <div style="flex:1;"></div>
+                <button class="btn btn-secondary" id="viewActivityCloseBtn">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Saved Action Add/Edit Modal -->
+    <div class="modal-overlay" id="savedActionModal">
+        <div class="modal">
+            <h3 id="savedActionModalTitle">Save as Action</h3>
+            <div class="form-group">
+                <label for="savedActionNameInput">Action Name</label>
+                <input type="text" id="savedActionNameInput" placeholder="e.g., Spring weed treatment">
+            </div>
+            <div class="form-group">
+                <label for="savedActionDescInput">Description</label>
+                <input type="text" id="savedActionDescInput" placeholder="What this action does">
+            </div>
+            <div class="form-group">
+                <label>Chemical / Product (optional)</label>
+                <div id="savedActionSelectedChemicalsDisplay" class="selected-chemicals-display"></div>
+                <button class="btn btn-secondary btn-small" id="openChemicalPickerBtn" type="button">Select Chemicals...</button>
+            </div>
+            <div class="form-group">
+                <label for="savedActionNotesInput">Notes (optional)</label>
+                <textarea id="savedActionNotesInput" placeholder="Additional details..."></textarea>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="savedActionModalCancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="savedActionModalSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chemical Picker Modal (used by Saved Action modal) -->
+    <div class="modal-overlay" id="chemicalPickerModal">
+        <div class="modal">
+            <h3>Select Chemicals / Products</h3>
+            <div class="zone-checkbox-list" id="chemicalPickerList"></div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="chemicalPickerCancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="chemicalPickerDoneBtn">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendar Event Add/Edit/Copy Modal -->
+    <div class="modal-overlay" id="calendarEventModal">
+        <div class="modal">
+            <h3 id="calendarEventModalTitle">Add Event</h3>
+            <div class="form-group">
+                <label for="calEventTitleInput">Title</label>
+                <input type="text" id="calEventTitleInput" placeholder="e.g., Apply pre-emergent herbicide">
+            </div>
+            <div class="form-group">
+                <label for="calEventDescInput">Description (optional)</label>
+                <textarea id="calEventDescInput" placeholder="Details about this event..."></textarea>
+            </div>
+            <div class="form-group">
+                <label for="calEventTypeSelect">Event Type</label>
+                <select id="calEventTypeSelect">
+                    <option value="one-time">One-time</option>
+                    <option value="recurring">Recurring</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="calEventDateInput" id="calEventDateLabel">Date</label>
+                <input type="date" id="calEventDateInput">
+            </div>
+            <!-- Recurring options (hidden by default) -->
+            <div id="calRecurringOptions" style="display:none;">
+                <div class="form-group">
+                    <label for="calEventFrequencySelect">Frequency</label>
+                    <select id="calEventFrequencySelect">
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                        <option value="every_x_days">Every X Days</option>
+                    </select>
+                </div>
+                <div class="form-group" id="calIntervalGroup" style="display:none;">
+                    <label for="calEventIntervalInput">Every how many days?</label>
+                    <input type="number" id="calEventIntervalInput" min="1" value="14" placeholder="e.g., 14">
+                </div>
+            </div>
+            <!-- Linked saved action (optional) -->
+            <div class="form-group">
+                <label for="calEventSavedActionSelect">Link Saved Action (optional)</label>
+                <select id="calEventSavedActionSelect">
+                    <option value="">-- None --</option>
+                </select>
+            </div>
+            <!-- Linked entity label (shown for plant-linked events, read-only) -->
+            <div id="calEventLinkedEntity" style="display:none;" class="modal-info-line"></div>
+            <!-- Zone associations (shown when not a plant-linked event) -->
+            <div id="calEventZoneSection" class="form-group" style="display:none;">
+                <label>Linked Zones (optional)</label>
+                <div class="zone-checkbox-list" id="calEventZoneCheckboxList"></div>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-danger" id="calEventDeleteBtn" style="display:none; margin-right:auto;">Delete</button>
+                <button class="btn btn-secondary" id="calEventCancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="calEventSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Recurring Event Modal -->
+    <div class="modal-overlay" id="deleteRecurringModal">
+        <div class="modal">
+            <h3>Delete Recurring Event</h3>
+            <div id="deleteRecurringInfo" class="modal-info-line"></div>
+            <p style="margin: 0.75rem 0; font-size: 0.9rem; color: #555;">
+                Would you like to delete only this occurrence, or remove the entire recurring event?
+            </p>
+            <div class="modal-buttons" style="flex-direction: column; gap: 0.5rem;">
+                <button class="btn btn-danger" id="deleteThisOccurrenceBtn">Delete This Occurrence Only</button>
+                <button class="btn btn-danger" id="deleteAllOccurrencesBtn">Delete All Occurrences</button>
+                <button class="btn btn-secondary" id="deleteRecurringCancelBtn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Complete Event Modal -->
+    <div class="modal-overlay" id="completeEventModal">
+        <div class="modal">
+            <h3>Complete Event</h3>
+            <div id="completeEventInfo" class="modal-info-line"></div>
+            <div class="form-group">
+                <label for="completeEventNotesInput">Notes for activity log (optional)</label>
+                <textarea id="completeEventNotesInput" placeholder="Optional notes..."></textarea>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="completeEventCancelBtn">Cancel</button>
+                <button class="btn btn-complete" id="completeEventConfirmBtn">Complete &amp; Log Activity</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Weed Add/Edit Modal -->
+    <div class="modal-overlay" id="weedModal">
+        <div class="modal">
+            <h3 id="weedModalTitle">Add Weed</h3>
+            <div class="form-group">
+                <label for="weedNameInput">Weed Name</label>
+                <input type="text" id="weedNameInput" placeholder="e.g., Wild Onions, Crabgrass">
+            </div>
+            <div class="form-group">
+                <label for="weedTreatmentInput">Treatment Method</label>
+                <textarea id="weedTreatmentInput" placeholder="e.g., Pull by hand, Roundup spray"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="weedTimingInput">Application Timing</label>
+                <input type="text" id="weedTimingInput" placeholder="e.g., Pre-spring, As-needed, Fall">
+            </div>
+            <div class="form-group">
+                <label for="weedNotesInput">Notes (optional)</label>
+                <textarea id="weedNotesInput" placeholder="Additional details..."></textarea>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="weedModalCancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="weedModalSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Weed Zone Assignment Modal -->
+    <div class="modal-overlay" id="weedZoneModal">
+        <div class="modal">
+            <h3>Assign Zones</h3>
+            <p class="modal-description">Select the zones where this weed is found:</p>
+            <div class="zone-checkbox-list" id="weedZoneCheckboxList"></div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="weedZoneCancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="weedZoneSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== SCRIPTS ========== -->
+    <script src="js/firebase-config.js?v=98"></script>
+    <script src="js/zones.js?v=98"></script>
+    <script src="js/plants.js?v=98"></script>
+    <script src="js/problems.js?v=98"></script>
+    <script src="js/facts.js?v=98"></script>
+    <script src="js/projects.js?v=98"></script>
+    <script src="js/chemicals.js?v=98"></script>
+    <script src="js/activities.js?v=98"></script>
+    <script src="js/photos.js?v=98"></script>
+    <script src="js/weeds.js?v=98"></script>
+    <script src="js/calendar.js?v=98"></script>
+    <script src="js/app.js?v=98"></script>
+
+</body>
+</html>

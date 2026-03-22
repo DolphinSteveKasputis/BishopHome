@@ -16,7 +16,7 @@ const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions'];
 /**
  * All pages that can be shown (includes detail pages that aren't in the nav).
  */
-const ALL_PAGES = [...TOP_LEVEL_PAGES, 'zone', 'plant', 'weed', 'chemical'];
+const ALL_PAGES = [...TOP_LEVEL_PAGES, 'zone', 'plant', 'weed', 'chemical', 'gpsmap', 'yardmap'];
 
 /**
  * Navigate to a page by showing/hiding the right section.
@@ -40,7 +40,7 @@ function showPage(page) {
     // Update active state on nav links (both desktop and mobile)
     // Map detail pages to their parent nav link
     var navPage = page;
-    if (page === 'zone' || page === 'plant') navPage = 'home';
+    if (page === 'zone' || page === 'plant' || page === 'gpsmap' || page === 'yardmap') navPage = 'home';
     if (page === 'weed') navPage = 'weeds';
     if (page === 'chemical') navPage = 'chemicals';
 
@@ -105,6 +105,12 @@ function handleRoute() {
     } else if (page === 'actions') {
         showPage('actions');
         loadSavedActionsList();
+    } else if (page === 'gpsmap' && id) {
+        showPage('gpsmap');
+        loadGpsMapPage(id);
+    } else if (page === 'yardmap') {
+        showPage('yardmap');
+        loadYardMapPage();
     } else if (TOP_LEVEL_PAGES.includes(page)) {
         showPage(page);
     } else {

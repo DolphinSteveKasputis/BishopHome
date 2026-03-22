@@ -153,6 +153,9 @@ async function loadZoneDetail(zoneId) {
         }
         loadActivities('zone', zoneId, 'zoneActivityContainer', 'zoneActivityEmptyState');
         loadPhotos('zone', zoneId, 'zonePhotoContainer', 'zonePhotoEmptyState');
+        if (typeof loadGpsSection === 'function') {
+            loadGpsSection(zoneId);
+        }
 
         // Reset View All Plants section
         document.getElementById('viewAllPlantsSection').style.display = 'none';

@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=99">
+    <link rel="stylesheet" href="css/styles.css?v=100">
+
+    <!-- Leaflet.js — map display library (free, open source) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 
     <!-- Firebase SDK (compat version — works without a build step) -->
     <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
@@ -79,6 +82,7 @@
             <div class="page-header">
                 <h2>My Yard</h2>
                 <button class="btn btn-primary btn-small" id="addZoneBtn">+ Add Zone</button>
+                <button class="btn btn-secondary btn-small" id="viewYardMapBtn">🗺 Yard Map</button>
             </div>
             <div class="card-list" id="zoneListContainer"></div>
             <p class="empty-state" id="zoneEmptyState">Loading...</p>
@@ -188,6 +192,14 @@
             <div id="zoneCalendarEventsContainer"></div>
             <p class="empty-state" id="zoneCalendarEventsEmptyState"></p>
 
+            <!-- Zone GPS Shape -->
+            <div class="section-header">
+                <h3 class="section-heading">GPS Shape</h3>
+                <button class="btn btn-secondary btn-small" id="zoneGpsBtn">📍 Map</button>
+            </div>
+            <div id="zoneGpsPreview"></div>
+            <p class="empty-state" id="zoneGpsEmptyState"></p>
+
             <!-- Zone Activity History -->
             <div class="section-header">
                 <h3 class="section-heading">Activity History</h3>
@@ -203,6 +215,70 @@
             </div>
             <div id="zonePhotoContainer"></div>
             <p class="empty-state" id="zonePhotoEmptyState">No photos yet.</p>
+        </section>
+
+        <!-- Page: GPS Map (zone-specific shape recording and editing) -->
+        <section class="page hidden" id="page-gpsmap">
+            <div class="page-header">
+                <h2 id="gpsmapTitle">Zone Map</h2>
+            </div>
+
+            <!-- View Mode: shows existing shape with area info -->
+            <div id="gpsmapViewMode">
+                <div class="gps-map-info-bar">
+                    <span id="gpsmapAreaDisplay" class="gps-area-display"></span>
+                    <button class="btn btn-secondary btn-small" id="gpsmapToggleBgBtn">Hide Map</button>
+                </div>
+                <div id="gpsmapViewMapContainer" class="gps-map-container"></div>
+                <div class="gps-action-row">
+                    <button class="btn btn-primary" id="gpsmapRecordBtn">Record Shape</button>
+                    <button class="btn btn-secondary" id="gpsmapEditBtn" style="display:none;">Edit Shape</button>
+                    <button class="btn btn-danger btn-small" id="gpsmapDeleteBtn" style="display:none;">Delete</button>
+                </div>
+            </div>
+
+            <!-- Record Mode: live GPS recording -->
+            <div id="gpsmapRecordMode" class="hidden">
+                <div class="gps-record-instructions">
+                    <p>Walk the perimeter of <strong id="gpsmapRecordZoneName"></strong>.</p>
+                    <p class="gps-hint">Press Start when you are at a corner of the area.</p>
+                </div>
+                <div id="gpsmapRecordStats" class="gps-record-stats hidden">
+                    <div class="gps-stat"><span class="gps-stat-label">Points</span><strong id="gpsmapPointCount">0</strong></div>
+                    <div class="gps-stat"><span class="gps-stat-label">Distance</span><strong id="gpsmapDistance">0 ft</strong></div>
+                    <div class="gps-stat"><span class="gps-stat-label">GPS Accuracy</span><strong id="gpsmapAccuracy">—</strong></div>
+                </div>
+                <div class="gps-record-buttons">
+                    <button class="btn btn-primary btn-large" id="gpsmapStartBtn">▶ Start Recording</button>
+                    <button class="btn btn-danger btn-large hidden" id="gpsmapStopBtn">■ Stop Recording</button>
+                    <button class="btn btn-secondary" id="gpsmapCancelRecordBtn">Cancel</button>
+                </div>
+            </div>
+
+            <!-- Edit Mode: drag points, delete points, see segment lengths -->
+            <div id="gpsmapEditMode" class="hidden">
+                <div class="gps-editor-toolbar">
+                    <button class="btn btn-secondary btn-small" id="gpsmapSimplifyBtn">⚡ Auto-Simplify</button>
+                    <button class="btn btn-secondary btn-small" id="gpsmapToggleBgEditBtn">Hide Map</button>
+                    <span class="gps-editor-hint" id="gpsmapEditorInfo">Tap a point to select it. Drag to move.</span>
+                </div>
+                <div id="gpsmapEditMapContainer" class="gps-map-container"></div>
+                <div class="gps-action-row">
+                    <button class="btn btn-primary" id="gpsmapSaveEditBtn">Save Shape</button>
+                    <button class="btn btn-secondary" id="gpsmapCancelEditBtn">Cancel</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Page: Yard Map (all zone shapes together) -->
+        <section class="page hidden" id="page-yardmap">
+            <div class="page-header">
+                <h2>Yard Map</h2>
+                <button class="btn btn-secondary btn-small" id="yardmapToggleBgBtn">Hide Map</button>
+            </div>
+            <div id="yardmapShapeToggles" class="gps-shape-toggles"></div>
+            <div id="yardmapContainer" class="gps-map-container gps-map-container--large"></div>
+            <p class="empty-state" id="yardmapEmptyState"></p>
         </section>
 
         <!-- Page: Plant detail -->
@@ -897,19 +973,21 @@
     </div><!-- end #appWrapper -->
 
     <!-- ========== SCRIPTS ========== -->
-    <script src="js/firebase-config.js?v=99"></script>
-    <script src="js/auth.js?v=99"></script>
-    <script src="js/zones.js?v=99"></script>
-    <script src="js/plants.js?v=99"></script>
-    <script src="js/problems.js?v=99"></script>
-    <script src="js/facts.js?v=99"></script>
-    <script src="js/projects.js?v=99"></script>
-    <script src="js/chemicals.js?v=99"></script>
-    <script src="js/activities.js?v=99"></script>
-    <script src="js/photos.js?v=99"></script>
-    <script src="js/weeds.js?v=99"></script>
-    <script src="js/calendar.js?v=99"></script>
-    <script src="js/app.js?v=99"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV/XN2GRnA=" crossorigin=""></script>
+    <script src="js/firebase-config.js?v=100"></script>
+    <script src="js/auth.js?v=100"></script>
+    <script src="js/zones.js?v=100"></script>
+    <script src="js/plants.js?v=100"></script>
+    <script src="js/problems.js?v=100"></script>
+    <script src="js/facts.js?v=100"></script>
+    <script src="js/projects.js?v=100"></script>
+    <script src="js/chemicals.js?v=100"></script>
+    <script src="js/activities.js?v=100"></script>
+    <script src="js/photos.js?v=100"></script>
+    <script src="js/weeds.js?v=100"></script>
+    <script src="js/calendar.js?v=100"></script>
+    <script src="js/gps.js?v=100"></script>
+    <script src="js/app.js?v=100"></script>
 
 </body>
 </html>

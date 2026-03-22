@@ -1405,6 +1405,224 @@ button {
     color: rgba(255,255,255,0.85);
 }
 
+/* ---------- GPS / Map Feature ---------- */
+
+.gps-map-container {
+    width: 100%;
+    height: 380px;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 12px;
+    border: 1px solid #ddd;
+    background: #e8e8e8;
+}
+
+.gps-map-container--large {
+    height: 520px;
+}
+
+.gps-map-info-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.gps-area-display {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #2e7d32;
+}
+
+.gps-action-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+    margin-bottom: 16px;
+}
+
+.gps-record-instructions {
+    background: #fff;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+    border: 1px solid #ddd;
+}
+
+.gps-record-instructions p {
+    margin-bottom: 6px;
+}
+
+.gps-hint {
+    font-size: 0.85rem;
+    color: #888;
+}
+
+.gps-record-stats {
+    display: flex;
+    gap: 16px;
+    background: #f5f5f5;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.gps-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 70px;
+}
+
+.gps-stat-label {
+    font-size: 0.75rem;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.gps-stat strong {
+    font-size: 1.1rem;
+    color: #333;
+}
+
+.gps-record-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+}
+
+.btn-large {
+    padding: 14px 28px;
+    font-size: 1.1rem;
+    min-width: 200px;
+}
+
+.gps-editor-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+    padding: 8px;
+    background: #f5f5f5;
+    border-radius: 6px;
+}
+
+.gps-editor-hint {
+    font-size: 0.8rem;
+    color: #666;
+    flex: 1;
+    min-width: 150px;
+}
+
+/* Vertex handle in the point editor */
+.gps-edit-marker {
+    background: #fff;
+    border: 3px solid #1565C0;
+    border-radius: 3px;
+    cursor: grab;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+}
+
+.gps-edit-marker:active {
+    cursor: grabbing;
+}
+
+/* Popup shown when clicking a vertex */
+.gps-point-popup {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 130px;
+}
+
+.gps-popup-lengths {
+    font-size: 0.8rem;
+    color: #555;
+    text-align: center;
+}
+
+/* Persistent shape labels on the yard map */
+.gps-shape-label {
+    background: rgba(255,255,255,0.85);
+    border: none;
+    box-shadow: none;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #333;
+    white-space: nowrap;
+}
+
+/* Shape toggle list on the yard map page */
+.gps-shape-toggles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.gps-shape-toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    padding: 4px 12px 4px 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    user-select: none;
+}
+
+.gps-shape-toggle-row:hover {
+    background: #f5f5f5;
+}
+
+.gps-color-swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    display: inline-block;
+}
+
+.gps-toggle-name {
+    font-weight: 500;
+}
+
+.gps-toggle-area {
+    color: #888;
+    font-size: 0.78rem;
+    margin-left: 4px;
+}
+
+/* GPS section on zone detail page */
+.gps-zone-preview {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+}
+
+.gps-color-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.gps-area-badge {
+    font-size: 0.9rem;
+    color: #555;
+}
+
 /* ---------- Responsive: Tablet & Desktop ---------- */
 @media (min-width: 768px) {
     /* Show desktop nav, hide hamburger */

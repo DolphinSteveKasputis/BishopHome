@@ -1654,6 +1654,23 @@ button {
     font-size: 0.85rem;
 }
 
+/* Ruler status bar */
+.gps-ruler-status {
+    background: #fff8e1;
+    border: 1px solid #ffe082;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 0.9rem;
+    margin-bottom: 6px;
+}
+
+/* Active/toggled button state (ruler, add-point) */
+.btn-active {
+    background: #1565C0 !important;
+    color: #fff !important;
+    border-color: #1565C0 !important;
+}
+
 .gps-toggle-name {
     font-weight: 500;
 }

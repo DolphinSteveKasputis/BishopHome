@@ -158,9 +158,40 @@ PC with a larger monitor is the recommended way to do precise fine-tuning.
 ---
 
 ## Build Phases (tentative)
-- **Phase A**: Recording flow — walk, auto-filter, save shape linked to zone
-- **Phase B**: Leaflet map display on zone page (shape preview + square footage)
-- **Phase C**: Point editor — drag, delete, segment length display, Simplify button
-- **Phase D**: "View Yard Map" — all shapes layered, per-shape toggles, map background toggle
+- **Phase A**: Recording flow — walk, auto-filter, save shape linked to zone ✅
+- **Phase B**: Leaflet map display on zone page (shape preview + square footage) ✅
+- **Phase C**: Point editor — drag, delete, segment length display, Simplify button ✅
+- **Phase D**: "View Yard Map" — all shapes layered, per-shape toggles, map background toggle ✅
 - **Phase E**: Color picker per shape
+
+---
+
+## Planned Features (post-launch)
+
+### 1. Ruler Tool ✅ BUILT (v107)
+- Toggle "📏 Ruler" button on view map, edit map, and yard map
+- First tap = point A (red dot), second tap = point B (blue dot) + measurement shown
+- Stays in ruler mode — third tap becomes new point A, enabling chained measurements
+- Result shown in feet and meters in a yellow status bar
+- Button turns blue while active; tap again to exit ruler mode
+
+### 2. Insert Point in Edit Mode ✅ BUILT (v107)
+- "+" Add Point" button in the edit toolbar
+- When active (button turns blue, cursor crosshair): tap anywhere on the map
+- New point is inserted into the nearest segment edge
+- Exits add-point mode immediately after insertion
+- Works alongside existing drag/delete vertex features
+
+### 3. House Footprint from OpenStreetMap ✅ BUILT (v107)
+- "🏠 Get House Footprint" button on the GPS map view (only when no shape exists yet)
+- Queries Overpass API (OpenStreetMap) for `building` polygons within ~55m of:
+  - The current zone's shape centroid (if it has one), OR
+  - The property boundary centroid (fallback)
+- Picks closest building polygon, shows point count + sq ft in a confirm dialog
+- If confirmed, loads points directly into the edit mode for review before saving
+- **Caveat**: OSM coverage varies — many rural/suburban homes are not mapped. If no
+  building is found, the app tells the user to walk the perimeter instead.
+- **Future option**: Microsoft Building Footprints dataset (GitHub) has near-complete
+  US coverage including rural areas. Could be queried via a proxy/script or downloaded
+  for Georgia and hosted as a static GeoJSON file. Consider if OSM proves insufficient.
 

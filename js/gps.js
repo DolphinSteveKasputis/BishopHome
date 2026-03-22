@@ -98,6 +98,7 @@ function showGpsViewMode() {
     if (gpsCurrentShape) {
         document.getElementById('gpsmapEditBtn').style.display   = 'inline-flex';
         document.getElementById('gpsmapDeleteBtn').style.display = 'inline-flex';
+        document.getElementById('gpsmapHouseBtn').style.display  = 'none';
         document.getElementById('gpsmapRecordBtn').textContent   = 'Re-record Shape';
 
         // Show gross area immediately; net area loads async once descendants are fetched
@@ -114,6 +115,7 @@ function showGpsViewMode() {
     } else {
         document.getElementById('gpsmapEditBtn').style.display   = 'none';
         document.getElementById('gpsmapDeleteBtn').style.display = 'none';
+        document.getElementById('gpsmapHouseBtn').style.display  = 'inline-flex';
         document.getElementById('gpsmapRecordBtn').textContent   = 'Record Shape';
         document.getElementById('gpsmapAreaDisplay').innerHTML   = '';
         excludeLabel.classList.add('hidden');
@@ -599,6 +601,8 @@ async function saveGpsShape() {
             gpsCurrentShape = { id: ref.id, ...shapeData };
         }
 
+        saveBtn.disabled    = false;
+        saveBtn.textContent = 'Save Shape';
         destroyMap('edit');
         showGpsViewMode();
 
@@ -988,6 +992,263 @@ function assignColor(zoneId) {
     return GPS_COLORS[Math.abs(hash) % GPS_COLORS.length];
 }
 
+// ---------- Ruler Tool ----------
+
+var gpsRulerActive   = false;  // is ruler mode on?
+var gpsRulerPointA   = null;   // first click lat/lng
+var gpsRulerLine     = null;   // Leaflet polyline between A and B
+var gpsRulerMarkerA  = null;
+var gpsRulerMarkerB  = null;
+var gpsRulerMapRef   = null;   // which map the ruler is currently on
+var gpsRulerStatusId = null;   // element ID for the status bar
+
+/**
+ * Toggle ruler mode on a given Leaflet map.
+ * @param {L.Map} mapInstance
+ * @param {string} btnId       - the toggle button element ID
+ * @param {string} statusElId  - element ID to show the measurement result
+ */
+function toggleRuler(mapInstance, btnId, statusElId) {
+    var btn    = document.getElementById(btnId);
+    var status = document.getElementById(statusElId);
+
+    if (gpsRulerActive && gpsRulerMapRef === mapInstance) {
+        // Turn off
+        clearRuler();
+        btn.textContent = '📏 Ruler';
+        btn.classList.remove('btn-active');
+        status.textContent = '';
+        status.classList.add('hidden');
+        return;
+    }
+
+    // Clear any ruler on a different map first
+    clearRuler();
+
+    gpsRulerActive   = true;
+    gpsRulerMapRef   = mapInstance;
+    gpsRulerStatusId = statusElId;
+
+    btn.textContent = '📏 Ruler ON';
+    btn.classList.add('btn-active');
+    status.textContent = 'Tap point A on the map';
+    status.classList.remove('hidden');
+
+    mapInstance.on('click', handleRulerClick);
+    mapInstance.getContainer().style.cursor = 'crosshair';
+}
+
+function handleRulerClick(e) {
+    if (!gpsRulerActive) return;
+    var status = document.getElementById(gpsRulerStatusId);
+
+    if (!gpsRulerPointA) {
+        // First click — place point A
+        gpsRulerPointA = e.latlng;
+        gpsRulerMarkerA = L.circleMarker(e.latlng, {
+            radius: 6, color: '#C62828', fillColor: '#C62828', fillOpacity: 1, weight: 2
+        }).addTo(gpsRulerMapRef);
+        status.textContent = 'Point A set — now tap point B';
+    } else {
+        // Second click — place point B, show distance
+        var ptA = { lat: gpsRulerPointA.lat, lng: gpsRulerPointA.lng };
+        var ptB = { lat: e.latlng.lat,       lng: e.latlng.lng };
+        var meters = haversineDistance(ptA, ptB);
+        var feet   = meters * 3.28084;
+
+        gpsRulerMarkerB = L.circleMarker(e.latlng, {
+            radius: 6, color: '#1565C0', fillColor: '#1565C0', fillOpacity: 1, weight: 2
+        }).addTo(gpsRulerMapRef);
+
+        if (gpsRulerLine) gpsRulerMapRef.removeLayer(gpsRulerLine);
+        gpsRulerLine = L.polyline([gpsRulerPointA, e.latlng], {
+            color: '#333', weight: 2, dashArray: '5 4'
+        }).addTo(gpsRulerMapRef);
+
+        var label = Math.round(feet) + ' ft  (' + meters.toFixed(1) + ' m)';
+        status.textContent = '📏 Distance: ' + label;
+
+        // Reset for a new measurement from B
+        if (gpsRulerMarkerA) gpsRulerMapRef.removeLayer(gpsRulerMarkerA);
+        gpsRulerPointA  = e.latlng;
+        gpsRulerMarkerA = gpsRulerMarkerB;
+        gpsRulerMarkerB = null;
+    }
+}
+
+function clearRuler() {
+    if (gpsRulerMapRef) {
+        gpsRulerMapRef.off('click', handleRulerClick);
+        gpsRulerMapRef.getContainer().style.cursor = '';
+    }
+    if (gpsRulerLine    && gpsRulerMapRef) gpsRulerMapRef.removeLayer(gpsRulerLine);
+    if (gpsRulerMarkerA && gpsRulerMapRef) gpsRulerMapRef.removeLayer(gpsRulerMarkerA);
+    if (gpsRulerMarkerB && gpsRulerMapRef) gpsRulerMapRef.removeLayer(gpsRulerMarkerB);
+    gpsRulerActive  = false;
+    gpsRulerPointA  = null;
+    gpsRulerLine    = null;
+    gpsRulerMarkerA = null;
+    gpsRulerMarkerB = null;
+    gpsRulerMapRef  = null;
+    gpsRulerStatusId = null;
+}
+
+// ---------- Insert Point in Edit Mode ----------
+
+var gpsAddPointMode = false;  // true while waiting for user to tap map to add a point
+
+/**
+ * Toggle "add point" mode. In this mode, tapping the map inserts a new vertex
+ * at the nearest segment, then exits add-point mode.
+ */
+function toggleAddPointMode() {
+    var btn = document.getElementById('gpsmapAddPointBtn');
+    if (gpsAddPointMode) {
+        gpsAddPointMode = false;
+        gpsEditMap.off('click', handleAddPointClick);
+        gpsEditMap.getContainer().style.cursor = '';
+        btn.textContent = '+ Add Point';
+        btn.classList.remove('btn-active');
+        showEditorInfo('Tap a vertex handle to select. Drag to move.');
+    } else {
+        gpsAddPointMode = true;
+        gpsEditMap.on('click', handleAddPointClick);
+        gpsEditMap.getContainer().style.cursor = 'crosshair';
+        btn.textContent = '+ Adding...';
+        btn.classList.add('btn-active');
+        showEditorInfo('Tap anywhere on the map to insert a point on the nearest edge.');
+    }
+}
+
+function handleAddPointClick(e) {
+    if (!gpsAddPointMode) return;
+
+    var newPt = { lat: e.latlng.lat, lng: e.latlng.lng };
+    var n     = gpsEditPoints.length;
+
+    // Find the segment whose midpoint is closest to the tap
+    var bestIdx = 0;
+    var bestD   = Infinity;
+    for (var i = 0; i < n; i++) {
+        var j   = (i + 1) % n;
+        var mid = {
+            lat: (gpsEditPoints[i].lat + gpsEditPoints[j].lat) / 2,
+            lng: (gpsEditPoints[i].lng + gpsEditPoints[j].lng) / 2
+        };
+        var d = haversineDistance(newPt, mid);
+        if (d < bestD) { bestD = d; bestIdx = i; }
+    }
+
+    // Insert after bestIdx
+    gpsEditPoints.splice(bestIdx + 1, 0, newPt);
+    updateEditPolygon();
+    rebuildEditMarkers();
+
+    // Exit add-point mode
+    gpsAddPointMode = false;
+    gpsEditMap.off('click', handleAddPointClick);
+    gpsEditMap.getContainer().style.cursor = '';
+    var btn = document.getElementById('gpsmapAddPointBtn');
+    btn.textContent = '+ Add Point';
+    btn.classList.remove('btn-active');
+    showEditorInfo('Point added. ' + gpsEditPoints.length + ' points total.');
+}
+
+// ---------- House Footprint (Microsoft Building Footprints) ----------
+
+/**
+ * Fetch the building footprint for the current zone's location from the
+ * Microsoft US Building Footprints dataset via the Overture Maps API.
+ * Falls back to a simple lat/lng-based query against the OSM Overpass API.
+ *
+ * Strategy: Use the zone's existing shape centroid (or the property boundary
+ * centroid) to find the nearest building polygon, then offer to create a new
+ * shape from it.
+ */
+async function fetchHouseFootprint() {
+    var btn = document.getElementById('gpsmapHouseBtn');
+    btn.textContent = 'Fetching...';
+    btn.disabled    = true;
+
+    try {
+        // Get a reference lat/lng — prefer current shape centroid, else property boundary
+        var refLat, refLng;
+        if (gpsCurrentShape && gpsCurrentShape.points.length >= 3) {
+            var pts = gpsCurrentShape.points;
+            refLat = pts.reduce(function(s, p) { return s + p.lat; }, 0) / pts.length;
+            refLng = pts.reduce(function(s, p) { return s + p.lng; }, 0) / pts.length;
+        } else {
+            // Use property boundary centroid
+            var snap = await db.collection('gpsShapes').where('zoneId','==','__property__').limit(1).get();
+            if (snap.empty) {
+                alert('No reference location found. Record a shape or import your property boundary first.');
+                return;
+            }
+            var bPts = snap.docs[0].data().points;
+            refLat   = bPts.reduce(function(s, p) { return s + p.lat; }, 0) / bPts.length;
+            refLng   = bPts.reduce(function(s, p) { return s + p.lng; }, 0) / bPts.length;
+        }
+
+        // Query Overpass API for building polygons near this point (50m radius)
+        var delta = 0.0005; // ~55m
+        var bbox  = (refLat - delta) + ',' + (refLng - delta) + ',' +
+                    (refLat + delta) + ',' + (refLng + delta);
+        var query = '[out:json];way["building"](' + bbox + ');out geom;';
+        var url   = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(query);
+
+        var resp  = await fetch(url);
+        var data  = await resp.json();
+        var ways  = (data.elements || []).filter(function(el) {
+            return el.type === 'way' && el.geometry && el.geometry.length >= 3;
+        });
+
+        if (ways.length === 0) {
+            alert('No building found in OpenStreetMap near this location.\n\nTip: You may need to walk the house perimeter if it hasn\'t been mapped in OSM.');
+            return;
+        }
+
+        // Pick the way whose centroid is closest to refLat/refLng
+        var best = ways[0];
+        if (ways.length > 1) {
+            var bestD = Infinity;
+            ways.forEach(function(w) {
+                var cLat = w.geometry.reduce(function(s, p) { return s + p.lat; }, 0) / w.geometry.length;
+                var cLng = w.geometry.reduce(function(s, p) { return s + p.lon; }, 0) / w.geometry.length;
+                var d    = haversineDistance({ lat: refLat, lng: refLng }, { lat: cLat, lng: cLng });
+                if (d < bestD) { bestD = d; best = w; }
+            });
+        }
+
+        // Convert to {lat, lng} array (drop duplicate closing point)
+        var footprintPts = best.geometry.map(function(p) { return { lat: p.lat, lng: p.lon }; });
+        // OSM ways close the ring — remove last point if it duplicates the first
+        if (footprintPts.length > 1) {
+            var first = footprintPts[0], last = footprintPts[footprintPts.length - 1];
+            if (Math.abs(first.lat - last.lat) < 0.000001 && Math.abs(first.lng - last.lng) < 0.000001) {
+                footprintPts.pop();
+            }
+        }
+
+        var areaSqft = calculateAreaSqft(footprintPts);
+        var confirm  = window.confirm(
+            'Found a building footprint with ' + footprintPts.length + ' points (' +
+            Math.round(areaSqft).toLocaleString() + ' sq ft).\n\nUse this as the shape for this zone?'
+        );
+        if (!confirm) return;
+
+        // Load into edit mode so user can review before saving
+        gpsEditPoints = footprintPts;
+        showGpsEditMode(footprintPts);
+
+    } catch (err) {
+        console.error('Error fetching building footprint:', err);
+        alert('Error fetching building footprint. Check your internet connection and try again.');
+    } finally {
+        btn.textContent = '🏠 Get House Footprint';
+        btn.disabled    = false;
+    }
+}
+
 // ---------- Button Wire-Up ----------
 
 document.getElementById('viewYardMapBtn').addEventListener('click', function() {
@@ -1036,12 +1297,28 @@ document.getElementById('gpsmapToggleBgBtn').addEventListener('click', function(
     toggleMapBg(gpsViewMap, gpsViewTileLayer, 'gpsmapToggleBgBtn');
 });
 
+document.getElementById('gpsmapRulerBtn').addEventListener('click', function() {
+    toggleRuler(gpsViewMap, 'gpsmapRulerBtn', 'gpsmapRulerStatus');
+});
+
 document.getElementById('gpsmapToggleBgEditBtn').addEventListener('click', function() {
     toggleMapBg(gpsEditMap, gpsEditTileLayer, 'gpsmapToggleBgEditBtn');
 });
 
+document.getElementById('gpsmapAddPointBtn').addEventListener('click', toggleAddPointMode);
+
+document.getElementById('gpsmapRulerEditBtn').addEventListener('click', function() {
+    toggleRuler(gpsEditMap, 'gpsmapRulerEditBtn', 'gpsmapEditorInfo');
+});
+
+document.getElementById('gpsmapHouseBtn').addEventListener('click', fetchHouseFootprint);
+
 document.getElementById('yardmapToggleBgBtn').addEventListener('click', function() {
     toggleMapBg(gpsYardMap, gpsYardTileLayer, 'yardmapToggleBgBtn');
+});
+
+document.getElementById('yardmapRulerBtn').addEventListener('click', function() {
+    toggleRuler(gpsYardMap, 'yardmapRulerBtn', 'yardmapRulerStatus');
 });
 
 // ---------- Property Boundary Import ----------

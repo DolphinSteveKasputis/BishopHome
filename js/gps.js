@@ -24,8 +24,9 @@ var gpsCurrentShape   = null;     // loaded Firestore shape doc for current zone
 // Leaflet map instances — only one should be active at a time
 var gpsViewMap       = null;
 var gpsViewTileLayer = null;
-var gpsEditMap       = null;
-var gpsEditTileLayer = null;
+var gpsEditMap              = null;
+var gpsEditTileLayer        = null;
+var gpsEditBoundaryLayer    = null;  // property boundary overlay in edit mode
 var gpsYardMap       = null;
 var gpsYardTileLayer = null;
 
@@ -110,10 +111,12 @@ function showGpsViewMode() {
         document.getElementById('gpsmapHouseBtn').style.display  = 'none';
         document.getElementById('gpsmapRecordBtn').textContent   = 'Re-record Shape';
 
-        // Show gross area immediately; net area loads async once descendants are fetched
+        // Show gross area + perimeter immediately; net area loads async
+        var perim = perimeterFt(gpsCurrentShape.points);
         document.getElementById('gpsmapAreaDisplay').innerHTML =
-            '<div class="gps-area-gross">' + formatArea(gpsCurrentShape.areaSqft) + '</div>';
-        updateGpsNetDisplay(gpsCurrentZoneId, gpsCurrentShape.areaSqft);
+            '<div class="gps-area-gross">' + formatArea(gpsCurrentShape.areaSqft) + '</div>' +
+            '<div class="gps-area-perimeter">' + formatPerimeter(perim) + '</div>';
+        updateGpsNetDisplay(gpsCurrentZoneId, gpsCurrentShape.areaSqft, perim);
 
         // Show exclude toggle and reflect the current saved state
         excludeLabel.classList.remove('hidden');
@@ -135,19 +138,22 @@ function showGpsViewMode() {
  * Fetch excluded-descendant area and update the area display with gross + net.
  * Called after showGpsViewMode() sets the gross area — updates in place once loaded.
  */
-async function updateGpsNetDisplay(zoneId, grossSqft) {
+async function updateGpsNetDisplay(zoneId, grossSqft, perimFt) {
     var netSqft = await calculateNetSqft(zoneId, grossSqft);
     var display = document.getElementById('gpsmapAreaDisplay');
     if (!display) return;
 
+    var perimRow = perimFt ? '<div class="gps-area-perimeter">' + formatPerimeter(perimFt) + '</div>' : '';
+
     if (netSqft < grossSqft) {
-        // Different — show both rows
         display.innerHTML =
             '<div class="gps-area-gross">Gross: ' + formatArea(grossSqft) + '</div>' +
-            '<div class="gps-area-net">Net: '   + formatArea(netSqft)   + '</div>';
+            '<div class="gps-area-net">Net: '     + formatArea(netSqft)   + '</div>' +
+            perimRow;
     } else {
-        // No exclusions — show a single clean line
-        display.innerHTML = '<div class="gps-area-gross">' + formatArea(grossSqft) + '</div>';
+        display.innerHTML =
+            '<div class="gps-area-gross">' + formatArea(grossSqft) + '</div>' +
+            perimRow;
     }
 }
 
@@ -543,25 +549,26 @@ function updateRecordStats(pointCount, distanceFt, accuracy) {
  * on the given Leaflet map instance. Fire-and-forget (async, non-blocking).
  */
 async function addPropertyBoundaryOverlay(mapInstance) {
-    if (!mapInstance) return;
+    if (!mapInstance) return null;
     try {
         var snap = await db.collection('gpsShapes')
             .where('zoneId', '==', '__property__')
             .limit(1)
             .get();
-        if (snap.empty) return;
+        if (snap.empty) return null;
         var pts = snap.docs[0].data().points;
-        if (!pts || pts.length < 3) return;
+        if (!pts || pts.length < 3) return null;
         var latLngs = pts.map(function(p) { return [p.lat, p.lng]; });
-        L.polygon(latLngs, {
+        var layer = L.polygon(latLngs, {
             color:       '#000000',
             fillColor:   '#000000',
             fillOpacity: 0.04,
             weight:      2,
             dashArray:   '8, 6'
         }).addTo(mapInstance).bindTooltip('Property Boundary', { sticky: true });
+        return layer;
     } catch (e) {
-        // Silently ignore — boundary overlay is best-effort
+        return null;
     }
 }
 
@@ -605,7 +612,15 @@ function initEditMap(points) {
 
     rebuildEditMarkers();
     showEditorInfo('Tap a vertex handle to select. Drag to move. Tap Auto-Simplify to clean up extra points.');
-    addPropertyBoundaryOverlay(gpsEditMap);
+
+    // Load boundary overlay and store reference so toggle button can show/hide it
+    gpsEditBoundaryLayer = null;
+    addPropertyBoundaryOverlay(gpsEditMap).then(function(layer) {
+        gpsEditBoundaryLayer = layer;
+        // Sync toggle button state — starts as "shown"
+        var btn = document.getElementById('gpsmapToggleBoundaryEditBtn');
+        if (btn) btn.textContent = '🏠 Hide Property Line';
+    });
 }
 
 /**
@@ -896,6 +911,7 @@ async function loadGpsSection(zoneId) {
         if (shape) {
             var grossSqft = shape.areaSqft || 0;
             var netSqft   = await calculateNetSqft(zoneId, grossSqft);
+            var perim     = perimeterFt(shape.points);
 
             var areaText = netSqft < grossSqft
                 ? 'Gross: ' + formatArea(grossSqft) + ' · Net: ' + formatArea(netSqft)
@@ -904,7 +920,8 @@ async function loadGpsSection(zoneId) {
             var badge      = document.createElement('div');
             badge.className = 'gps-zone-preview';
             badge.innerHTML = '<span class="gps-color-dot" style="background:' + shape.color + '"></span>' +
-                              '<span class="gps-area-badge">📐 ' + areaText + '</span>';
+                              '<span class="gps-area-badge">📐 ' + areaText +
+                              (perim > 0 ? ' · 📏 ' + formatPerimeter(perim) : '') + '</span>';
             preview.appendChild(badge);
         } else {
             emptyState.textContent   = 'No shape recorded yet. Tap 📍 Map to record one.';
@@ -1039,11 +1056,13 @@ async function loadYardMapPage() {
                 // Build toggle row
                 var row = document.createElement('label');
                 row.className = 'gps-shape-toggle-row';
+                var shapePerim = perimeterFt(shape.points);
                 row.innerHTML =
                     '<input type="checkbox" checked data-sid="' + shape.id + '">' +
                     '<span class="gps-color-swatch" style="background:' + shape.color + '"></span>' +
                     '<span class="gps-toggle-name">' + shape.name + '</span>' +
-                    '<span class="gps-toggle-area">' + formatArea(shape.areaSqft) + '</span>';
+                    '<span class="gps-toggle-area">' + formatArea(shape.areaSqft) +
+                    (shapePerim > 0 ? '<br><small>' + formatPerimeter(shapePerim) + '</small>' : '') + '</span>';
 
                 row.querySelector('input').addEventListener('change', function(e) {
                     var p = shapePolys[e.target.dataset.sid];
@@ -1150,6 +1169,28 @@ function calculateAreaSqft(points) {
     area = Math.abs(area) / 2; // square meters
 
     return area * 10.7639; // m² → ft²
+}
+
+/**
+ * Calculate the perimeter of a closed polygon in feet.
+ * Sums all sides including the closing segment back to the first point.
+ */
+function perimeterFt(points) {
+    if (!points || points.length < 2) return 0;
+    var total = 0;
+    for (var i = 0; i < points.length; i++) {
+        var next = (i + 1) % points.length;
+        total += haversineDistance(points[i], points[next]);
+    }
+    return total * 3.28084; // meters → feet
+}
+
+/**
+ * Format a perimeter in feet for display.
+ */
+function formatPerimeter(feet) {
+    if (!feet || feet <= 0) return '';
+    return Math.round(feet).toLocaleString() + ' ft perimeter';
 }
 
 /**
@@ -1509,6 +1550,21 @@ document.getElementById('gpsmapToggleBgEditBtn').addEventListener('click', funct
 });
 
 document.getElementById('gpsmapAddPointBtn').addEventListener('click', toggleAddPointMode);
+
+document.getElementById('gpsmapToggleBoundaryEditBtn').addEventListener('click', function() {
+    var btn = document.getElementById('gpsmapToggleBoundaryEditBtn');
+    if (!gpsEditBoundaryLayer || !gpsEditMap) {
+        btn.textContent = '🏠 No Property Line';
+        return;
+    }
+    if (gpsEditMap.hasLayer(gpsEditBoundaryLayer)) {
+        gpsEditMap.removeLayer(gpsEditBoundaryLayer);
+        btn.textContent = '🏠 Show Property Line';
+    } else {
+        gpsEditBoundaryLayer.addTo(gpsEditMap);
+        btn.textContent = '🏠 Hide Property Line';
+    }
+});
 
 document.getElementById('gpsmapRulerEditBtn').addEventListener('click', function() {
     toggleRuler(gpsEditMap, 'gpsmapRulerEditBtn', 'gpsmapEditorInfo');

@@ -1780,6 +1780,12 @@ button {
     margin-top: 2px;
 }
 
+.gps-area-perimeter {
+    font-size: 0.85rem;
+    color: #666;
+    margin-top: 2px;
+}
+
 /* ---------- Settings Page ---------- */
 .settings-card {
     background: #fff;

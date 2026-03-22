@@ -18,4 +18,7 @@ firebase.initializeApp(firebaseConfig);
 // Get a reference to Firestore — this is what we'll use everywhere to read/write data
 const db = firebase.firestore();
 
+// Get a reference to Firebase Auth — used by auth.js for login/logout
+const auth = firebase.auth();
+
 console.log("Firebase initialized successfully. Project:", firebaseConfig.projectId);

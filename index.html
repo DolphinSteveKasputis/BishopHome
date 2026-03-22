@@ -4,13 +4,38 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=98">
+    <link rel="stylesheet" href="css/styles.css?v=99">
 
     <!-- Firebase SDK (compat version — works without a build step) -->
     <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
 </head>
 <body>
+
+    <!-- ========== LOGIN SCREEN ========== -->
+    <!-- Shown when user is not authenticated. Hidden once signed in. -->
+    <div id="loginScreen" class="login-screen">
+        <div class="login-card">
+            <h1 class="login-title">Bishop</h1>
+            <p class="login-subtitle">Yard &amp; Garden Tracker</p>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="loginEmail">Email</label>
+                    <input type="email" id="loginEmail" placeholder="your@email.com" required autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" placeholder="Password" required autocomplete="current-password">
+                </div>
+                <p class="login-error" id="loginError"></p>
+                <button type="submit" class="btn btn-primary btn-full" id="loginSubmitBtn">Sign In</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========== APP WRAPPER (hidden until signed in) ========== -->
+    <div id="appWrapper" class="hidden">
 
     <!-- ========== TOP NAV BAR ========== -->
     <header class="app-header">
@@ -23,6 +48,7 @@
             <a href="#calendar" class="nav-link" data-page="calendar">Calendar</a>
             <a href="#chemicals" class="nav-link" data-page="chemicals">Chemicals</a>
             <a href="#actions" class="nav-link" data-page="actions">Actions</a>
+            <button class="nav-signout-btn" id="signOutBtn" title="Sign out">Sign Out</button>
         </nav>
         <!-- Hamburger menu for mobile -->
         <button class="hamburger" id="hamburgerBtn" aria-label="Toggle menu">
@@ -39,6 +65,7 @@
         <a href="#calendar" class="nav-link" data-page="calendar">Calendar</a>
         <a href="#chemicals" class="nav-link" data-page="chemicals">Chemicals</a>
         <a href="#actions" class="nav-link" data-page="actions">Actions</a>
+        <button class="nav-signout-btn" id="signOutBtnMobile">Sign Out</button>
     </nav>
 
     <!-- ========== MAIN CONTENT AREA ========== -->
@@ -867,19 +894,22 @@
         </div>
     </div>
 
+    </div><!-- end #appWrapper -->
+
     <!-- ========== SCRIPTS ========== -->
-    <script src="js/firebase-config.js?v=98"></script>
-    <script src="js/zones.js?v=98"></script>
-    <script src="js/plants.js?v=98"></script>
-    <script src="js/problems.js?v=98"></script>
-    <script src="js/facts.js?v=98"></script>
-    <script src="js/projects.js?v=98"></script>
-    <script src="js/chemicals.js?v=98"></script>
-    <script src="js/activities.js?v=98"></script>
-    <script src="js/photos.js?v=98"></script>
-    <script src="js/weeds.js?v=98"></script>
-    <script src="js/calendar.js?v=98"></script>
-    <script src="js/app.js?v=98"></script>
+    <script src="js/firebase-config.js?v=99"></script>
+    <script src="js/auth.js?v=99"></script>
+    <script src="js/zones.js?v=99"></script>
+    <script src="js/plants.js?v=99"></script>
+    <script src="js/problems.js?v=99"></script>
+    <script src="js/facts.js?v=99"></script>
+    <script src="js/projects.js?v=99"></script>
+    <script src="js/chemicals.js?v=99"></script>
+    <script src="js/activities.js?v=99"></script>
+    <script src="js/photos.js?v=99"></script>
+    <script src="js/weeds.js?v=99"></script>
+    <script src="js/calendar.js?v=99"></script>
+    <script src="js/app.js?v=99"></script>
 
 </body>
 </html>

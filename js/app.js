@@ -139,7 +139,11 @@ mobileNav.querySelectorAll('.nav-link').forEach(function(link) {
 // Listen for hash changes (back/forward buttons, clicking links)
 window.addEventListener('hashchange', handleRoute);
 
-// Route on initial page load
-handleRoute();
-
-console.log("Bishop app initialized.");
+/**
+ * Called by auth.js once the user is confirmed signed in.
+ * Starts the routing so pages can load.
+ */
+function initApp() {
+    handleRoute();
+    console.log("Bishop app initialized.");
+}

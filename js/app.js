@@ -11,7 +11,7 @@
  * List of top-level pages that map to nav links.
  * Each key matches a hash value AND a data-page attribute AND a page section id.
  */
-const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions'];
+const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'settings'];
 
 /**
  * All pages that can be shown (includes detail pages that aren't in the nav).
@@ -41,6 +41,7 @@ function showPage(page) {
     // Map detail pages to their parent nav link
     var navPage = page;
     if (page === 'zone' || page === 'plant' || page === 'gpsmap' || page === 'yardmap') navPage = 'home';
+    if (page === 'settings') navPage = 'settings';
     if (page === 'weed') navPage = 'weeds';
     if (page === 'chemical') navPage = 'chemicals';
 
@@ -111,6 +112,9 @@ function handleRoute() {
     } else if (page === 'yardmap') {
         showPage('yardmap');
         loadYardMapPage();
+    } else if (page === 'settings') {
+        showPage('settings');
+        loadSettingsPage();
     } else if (TOP_LEVEL_PAGES.includes(page)) {
         showPage(page);
     } else {

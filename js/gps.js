@@ -93,11 +93,21 @@ function showGpsViewMode() {
     destroyMap('view');
     destroyMap('edit');
 
+    var excludeLabel = document.getElementById('gpsmapExcludeLabel');
+
     if (gpsCurrentShape) {
         document.getElementById('gpsmapEditBtn').style.display   = 'inline-flex';
         document.getElementById('gpsmapDeleteBtn').style.display = 'inline-flex';
         document.getElementById('gpsmapRecordBtn').textContent   = 'Re-record Shape';
-        document.getElementById('gpsmapAreaDisplay').textContent = formatArea(gpsCurrentShape.areaSqft);
+
+        // Show gross area immediately; net area loads async once descendants are fetched
+        document.getElementById('gpsmapAreaDisplay').innerHTML =
+            '<div class="gps-area-gross">' + formatArea(gpsCurrentShape.areaSqft) + '</div>';
+        updateGpsNetDisplay(gpsCurrentZoneId, gpsCurrentShape.areaSqft);
+
+        // Show exclude toggle and reflect the current saved state
+        excludeLabel.classList.remove('hidden');
+        document.getElementById('gpsmapExcludeToggle').checked = !!gpsCurrentShape.excludeFromParent;
 
         // Init the view map after a brief delay so the container is visible
         setTimeout(function() { initViewMap(gpsCurrentShape.points, gpsCurrentShape.color); }, 120);
@@ -105,7 +115,28 @@ function showGpsViewMode() {
         document.getElementById('gpsmapEditBtn').style.display   = 'none';
         document.getElementById('gpsmapDeleteBtn').style.display = 'none';
         document.getElementById('gpsmapRecordBtn').textContent   = 'Record Shape';
-        document.getElementById('gpsmapAreaDisplay').textContent = '';
+        document.getElementById('gpsmapAreaDisplay').innerHTML   = '';
+        excludeLabel.classList.add('hidden');
+    }
+}
+
+/**
+ * Fetch excluded-descendant area and update the area display with gross + net.
+ * Called after showGpsViewMode() sets the gross area — updates in place once loaded.
+ */
+async function updateGpsNetDisplay(zoneId, grossSqft) {
+    var netSqft = await calculateNetSqft(zoneId, grossSqft);
+    var display = document.getElementById('gpsmapAreaDisplay');
+    if (!display) return;
+
+    if (netSqft < grossSqft) {
+        // Different — show both rows
+        display.innerHTML =
+            '<div class="gps-area-gross">Gross: ' + formatArea(grossSqft) + '</div>' +
+            '<div class="gps-area-net">Net: '   + formatArea(netSqft)   + '</div>';
+    } else {
+        // No exclusions — show a single clean line
+        display.innerHTML = '<div class="gps-area-gross">' + formatArea(grossSqft) + '</div>';
     }
 }
 
@@ -517,12 +548,13 @@ async function saveGpsShape() {
         var color    = gpsCurrentShape ? gpsCurrentShape.color : assignColor(gpsCurrentZoneId);
 
         var shapeData = {
-            zoneId:   gpsCurrentZoneId,
-            name:     window.currentZone ? window.currentZone.name : 'Zone Shape',
-            points:   gpsEditPoints,
-            areaSqft: areaSqft,
-            color:    color,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            zoneId:            gpsCurrentZoneId,
+            name:              window.currentZone ? window.currentZone.name : 'Zone Shape',
+            points:            gpsEditPoints,
+            areaSqft:          areaSqft,
+            color:             color,
+            excludeFromParent: gpsCurrentShape ? (gpsCurrentShape.excludeFromParent || false) : false,
+            updatedAt:         firebase.firestore.FieldValue.serverTimestamp()
         };
 
         if (gpsCurrentShape) {
@@ -562,6 +594,51 @@ async function deleteGpsShape() {
     }
 }
 
+// ---------- Net Sq Ft: Excluded Descendants ----------
+
+/**
+ * Return all descendant zone IDs (up to 3 levels) for the given zoneId.
+ * Walks level1 children, then level2 children of each — max depth Bishop supports.
+ */
+async function getDescendantZoneIds(zoneId) {
+    var ids    = [];
+    var level1 = await db.collection('zones').where('parentId', '==', zoneId).get();
+    var level1Ids = [];
+    level1.forEach(function(doc) {
+        level1Ids.push(doc.id);
+        ids.push(doc.id);
+    });
+    for (var i = 0; i < level1Ids.length; i++) {
+        var level2 = await db.collection('zones').where('parentId', '==', level1Ids[i]).get();
+        level2.forEach(function(doc) { ids.push(doc.id); });
+    }
+    return ids;
+}
+
+/**
+ * Calculate net square footage by subtracting any excluded descendant shapes.
+ * Returns grossSqft unchanged if there are no excluded descendants.
+ */
+async function calculateNetSqft(zoneId, grossSqft) {
+    try {
+        var descendantIds = await getDescendantZoneIds(zoneId);
+        if (descendantIds.length === 0) return grossSqft;
+
+        var snap = await db.collection('gpsShapes')
+            .where('zoneId', 'in', descendantIds)
+            .where('excludeFromParent', '==', true)
+            .get();
+
+        var excludedArea = 0;
+        snap.forEach(function(doc) { excludedArea += doc.data().areaSqft || 0; });
+
+        return Math.max(0, grossSqft - excludedArea);
+    } catch (err) {
+        console.error('GPS: error calculating net sqft:', err);
+        return grossSqft;
+    }
+}
+
 // ---------- Firestore: Load Shape ----------
 
 async function loadShapeForZone(zoneId) {
@@ -596,10 +673,17 @@ async function loadGpsSection(zoneId) {
         var shape = await loadShapeForZone(zoneId);
 
         if (shape) {
+            var grossSqft = shape.areaSqft || 0;
+            var netSqft   = await calculateNetSqft(zoneId, grossSqft);
+
+            var areaText = netSqft < grossSqft
+                ? 'Gross: ' + formatArea(grossSqft) + ' · Net: ' + formatArea(netSqft)
+                : formatArea(grossSqft);
+
             var badge      = document.createElement('div');
             badge.className = 'gps-zone-preview';
             badge.innerHTML = '<span class="gps-color-dot" style="background:' + shape.color + '"></span>' +
-                              '<span class="gps-area-badge">📐 ' + formatArea(shape.areaSqft) + '</span>';
+                              '<span class="gps-area-badge">📐 ' + areaText + '</span>';
             preview.appendChild(badge);
         } else {
             emptyState.textContent   = 'No shape recorded yet. Tap 📍 Map to record one.';
@@ -881,4 +965,25 @@ document.getElementById('gpsmapToggleBgEditBtn').addEventListener('click', funct
 
 document.getElementById('yardmapToggleBgBtn').addEventListener('click', function() {
     toggleMapBg(gpsYardMap, gpsYardTileLayer, 'yardmapToggleBgBtn');
+});
+
+// Exclude toggle — save immediately to Firestore when user flips the checkbox
+document.getElementById('gpsmapExcludeToggle').addEventListener('change', async function() {
+    if (!gpsCurrentShape) return;
+    var exclude   = this.checked;
+    var checkbox  = this;
+
+    try {
+        await db.collection('gpsShapes').doc(gpsCurrentShape.id).update({
+            excludeFromParent: exclude,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        // Update in-memory shape so re-renders stay consistent
+        gpsCurrentShape.excludeFromParent = exclude;
+    } catch (err) {
+        console.error('Error saving excludeFromParent:', err);
+        // Revert checkbox on failure so the UI stays honest
+        checkbox.checked = !exclude;
+        alert('Error saving — please try again.');
+    }
 });

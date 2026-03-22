@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=103">
+    <link rel="stylesheet" href="css/styles.css?v=104">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -51,6 +51,7 @@
             <a href="#calendar" class="nav-link" data-page="calendar">Calendar</a>
             <a href="#chemicals" class="nav-link" data-page="chemicals">Chemicals</a>
             <a href="#actions" class="nav-link" data-page="actions">Actions</a>
+            <a href="#settings" class="nav-link" data-page="settings">Settings</a>
             <button class="nav-signout-btn" id="signOutBtn" title="Sign out">Sign Out</button>
         </nav>
         <!-- Hamburger menu for mobile -->
@@ -68,6 +69,7 @@
         <a href="#calendar" class="nav-link" data-page="calendar">Calendar</a>
         <a href="#chemicals" class="nav-link" data-page="chemicals">Chemicals</a>
         <a href="#actions" class="nav-link" data-page="actions">Actions</a>
+        <a href="#settings" class="nav-link" data-page="settings">Settings</a>
         <button class="nav-signout-btn" id="signOutBtnMobile">Sign Out</button>
     </nav>
 
@@ -226,10 +228,15 @@
             <!-- View Mode: shows existing shape with area info -->
             <div id="gpsmapViewMode">
                 <div class="gps-map-info-bar">
-                    <span id="gpsmapAreaDisplay" class="gps-area-display"></span>
+                    <div id="gpsmapAreaDisplay" class="gps-area-display"></div>
                     <button class="btn btn-secondary btn-small" id="gpsmapToggleBgBtn">Hide Map</button>
                 </div>
                 <div id="gpsmapViewMapContainer" class="gps-map-container"></div>
+                <!-- Exclude toggle — only shown when a shape exists -->
+                <label class="gps-exclude-toggle hidden" id="gpsmapExcludeLabel">
+                    <input type="checkbox" id="gpsmapExcludeToggle">
+                    Exclude this area from parent zones' net sq ft
+                </label>
                 <div class="gps-action-row">
                     <button class="btn btn-primary" id="gpsmapRecordBtn">Record Shape</button>
                     <button class="btn btn-secondary" id="gpsmapEditBtn" style="display:none;">Edit Shape</button>
@@ -282,6 +289,27 @@
             <div id="yardmapShapeToggles" class="gps-shape-toggles"></div>
             <div id="yardmapContainer" class="gps-map-container gps-map-container--large"></div>
             <p class="empty-state" id="yardmapEmptyState"></p>
+        </section>
+
+        <!-- Page: Settings -->
+        <section class="page hidden" id="page-settings">
+            <div class="page-header">
+                <h2>Settings</h2>
+            </div>
+            <div class="settings-card">
+                <div class="form-group">
+                    <label for="settingsAddress">Property Address</label>
+                    <textarea id="settingsAddress" class="settings-textarea" placeholder="Enter your property address" rows="2"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="settingsParcelId">Parcel ID</label>
+                    <input type="text" id="settingsParcelId" placeholder="e.g. 12-34-567-890">
+                </div>
+                <div class="settings-save-row">
+                    <button class="btn btn-primary" id="settingsSaveBtn">Save Settings</button>
+                    <span class="settings-saved-msg hidden" id="settingsSavedMsg">✓ Saved</span>
+                </div>
+            </div>
         </section>
 
         <!-- Page: Plant detail -->
@@ -977,20 +1005,21 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=103"></script>
-    <script src="js/auth.js?v=103"></script>
-    <script src="js/zones.js?v=103"></script>
-    <script src="js/plants.js?v=103"></script>
-    <script src="js/problems.js?v=103"></script>
-    <script src="js/facts.js?v=103"></script>
-    <script src="js/projects.js?v=103"></script>
-    <script src="js/chemicals.js?v=103"></script>
-    <script src="js/activities.js?v=103"></script>
-    <script src="js/photos.js?v=103"></script>
-    <script src="js/weeds.js?v=103"></script>
-    <script src="js/calendar.js?v=103"></script>
-    <script src="js/gps.js?v=103"></script>
-    <script src="js/app.js?v=103"></script>
+    <script src="js/firebase-config.js?v=104"></script>
+    <script src="js/auth.js?v=104"></script>
+    <script src="js/zones.js?v=104"></script>
+    <script src="js/plants.js?v=104"></script>
+    <script src="js/problems.js?v=104"></script>
+    <script src="js/facts.js?v=104"></script>
+    <script src="js/projects.js?v=104"></script>
+    <script src="js/chemicals.js?v=104"></script>
+    <script src="js/activities.js?v=104"></script>
+    <script src="js/photos.js?v=104"></script>
+    <script src="js/weeds.js?v=104"></script>
+    <script src="js/calendar.js?v=104"></script>
+    <script src="js/gps.js?v=104"></script>
+    <script src="js/settings.js?v=104"></script>
+    <script src="js/app.js?v=104"></script>
 
 </body>
 </html>

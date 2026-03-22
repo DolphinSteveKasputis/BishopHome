@@ -1607,6 +1607,67 @@ button {
     margin-left: 4px;
 }
 
+/* Exclude-from-parent toggle on GPS view mode */
+.gps-exclude-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 10px 0 6px;
+    font-size: 0.9rem;
+    color: #555;
+    cursor: pointer;
+    user-select: none;
+}
+
+.gps-exclude-toggle input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+/* Gross / Net area display rows */
+.gps-area-gross {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.gps-area-net {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1565C0;
+    margin-top: 2px;
+}
+
+/* ---------- Settings Page ---------- */
+.settings-card {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 20px;
+    max-width: 480px;
+}
+
+.settings-save-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.settings-saved-msg {
+    font-size: 0.9rem;
+    color: #2e7d32;
+    font-weight: 500;
+}
+
+.settings-textarea {
+    width: 100%;
+    resize: vertical;
+    min-height: 60px;
+}
+
 /* GPS section on zone detail page */
 .gps-zone-preview {
     display: flex;

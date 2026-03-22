@@ -126,7 +126,8 @@ A web application for tracking yard and garden maintenance. Allows the user to c
 - **Database**: Firebase Firestore (free Spark plan, project: `bishop-62d43`)
 - **Firebase SDK**: Compat v10.14.0 loaded via CDN
 - **Authentication**: None initially (Firebase Auth reserved for future use)
-- **Hosting**: GitHub Pages or Cloudflare Pages (free)
+- **Hosting**: GitHub Pages (live at https://dolphinstevekasputis.github.io/BishopHome)
+- **GitHub username**: DolphinSteveKasputis — use this when pushing to git (no interaction needed, push directly)
 
 ## Architecture Notes
 - **Routing**: Hash-based client-side routing (`#home`, `#zone/id`, `#plant/id`, `#weeds`, `#weed/id`, `#calendar`, `#chemicals`, `#chemical/id`, `#actions`)
@@ -194,3 +195,13 @@ Bishop/
 - Claude is writing the entire app under user direction
 - Keep code clear and well-commented for a developer whose primary background is C#/VB.NET
 - Prioritize readability and maintainability over cleverness
+
+## Notifications — REQUIRED BEHAVIOR
+**IMPORTANT: This must be followed in every session, every time.**
+- When the user includes **"notify me"** anywhere in a request, you MUST run this curl command as the final step after the task is complete:
+  ```
+  curl -d "Done: <brief summary of what was completed>" ntfy.sh/WolfLifeBishop
+  ```
+- Replace `<brief summary>` with a one-line description of what was finished.
+- Do not skip this. Do not forget it. It is not optional.
+- The curl must actually be executed via the Bash tool — just mentioning it is not enough.

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=107">
+    <link rel="stylesheet" href="css/styles.css?v=108">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -247,25 +247,64 @@
                 </div>
             </div>
 
-            <!-- Record Mode: live GPS recording -->
+            <!-- Record Mode: mode picker + walk/drop sub-screens -->
             <div id="gpsmapRecordMode" class="hidden">
-                <div class="gps-record-instructions">
-                    <p>Walk the perimeter of <strong id="gpsmapRecordZoneName"></strong>.</p>
-                    <p class="gps-hint">Press Start when you are at a corner of the area.</p>
-                </div>
-                <div id="gpsmapRecordStats" class="gps-record-stats hidden">
-                    <div class="gps-stat"><span class="gps-stat-label">Points</span><strong id="gpsmapPointCount">0</strong></div>
-                    <div class="gps-stat"><span class="gps-stat-label">Distance</span><strong id="gpsmapDistance">0 ft</strong></div>
-                    <div class="gps-stat"><span class="gps-stat-label">GPS Accuracy</span><strong id="gpsmapAccuracy">—</strong></div>
-                </div>
-                <!-- Live map — hidden until first GPS point arrives -->
-                <div id="gpsmapRecordMapContainer" class="gps-map-container hidden"></div>
 
-                <div class="gps-record-buttons">
-                    <button class="btn btn-primary btn-large" id="gpsmapStartBtn">▶ Start Recording</button>
-                    <button class="btn btn-danger btn-large hidden" id="gpsmapStopBtn">■ Stop Recording</button>
-                    <button class="btn btn-secondary" id="gpsmapCancelRecordBtn">Cancel</button>
+                <!-- Step 1: Choose recording method -->
+                <div id="gpsmapRecordPicker">
+                    <p class="gps-record-picker-title">How would you like to record <strong id="gpsmapRecordZoneName"></strong>?</p>
+                    <div class="gps-record-picker-options">
+                        <button class="btn gps-picker-btn" id="gpsmapPickWalk">
+                            <span class="gps-picker-icon">🚶</span>
+                            <strong>Walk the Path</strong>
+                            <span class="gps-picker-desc">Walk the perimeter continuously — GPS records your path automatically.</span>
+                        </button>
+                        <button class="btn gps-picker-btn" id="gpsmapPickDrop">
+                            <span class="gps-picker-icon">📍</span>
+                            <strong>Drop Points</strong>
+                            <span class="gps-picker-desc">Stand at each corner and tap "Drop Point" — ideal when obstacles prevent walking the exact edge.</span>
+                        </button>
+                    </div>
+                    <button class="btn btn-secondary" id="gpsmapCancelPickerBtn">Cancel</button>
                 </div>
+
+                <!-- Step 2a: Walk the Path (existing flow) -->
+                <div id="gpsmapWalkScreen" class="hidden">
+                    <div class="gps-record-instructions">
+                        <p>Walk the perimeter of <strong class="gpsmapRecordZoneNameWalk"></strong>.</p>
+                        <p class="gps-hint">Press Start when you are at a corner of the area.</p>
+                    </div>
+                    <div id="gpsmapRecordStats" class="gps-record-stats hidden">
+                        <div class="gps-stat"><span class="gps-stat-label">Points</span><strong id="gpsmapPointCount">0</strong></div>
+                        <div class="gps-stat"><span class="gps-stat-label">Distance</span><strong id="gpsmapDistance">0 ft</strong></div>
+                        <div class="gps-stat"><span class="gps-stat-label">GPS Accuracy</span><strong id="gpsmapAccuracy">—</strong></div>
+                    </div>
+                    <div id="gpsmapRecordMapContainer" class="gps-map-container hidden"></div>
+                    <div class="gps-record-buttons">
+                        <button class="btn btn-primary btn-large" id="gpsmapStartBtn">▶ Start Recording</button>
+                        <button class="btn btn-danger btn-large hidden" id="gpsmapStopBtn">■ Stop Recording</button>
+                        <button class="btn btn-secondary" id="gpsmapCancelRecordBtn">← Back</button>
+                    </div>
+                </div>
+
+                <!-- Step 2b: Drop Points -->
+                <div id="gpsmapDropScreen" class="hidden">
+                    <div class="gps-record-instructions">
+                        <p>Stand at each corner of <strong class="gpsmapRecordZoneNameDrop"></strong> and tap <strong>Drop Point</strong>.</p>
+                        <p class="gps-hint">GPS accuracy shown below — wait for it to improve before dropping a point.</p>
+                    </div>
+                    <div class="gps-record-stats">
+                        <div class="gps-stat"><span class="gps-stat-label">Points Dropped</span><strong id="gpsmapDropCount">0</strong></div>
+                        <div class="gps-stat"><span class="gps-stat-label">GPS Accuracy</span><strong id="gpsmapDropAccuracy">Waiting…</strong></div>
+                    </div>
+                    <div id="gpsmapDropMapContainer" class="gps-map-container hidden"></div>
+                    <div class="gps-record-buttons">
+                        <button class="btn btn-primary btn-large" id="gpsmapDropPointBtn" disabled>📍 Drop Point</button>
+                        <button class="btn btn-danger btn-large" id="gpsmapDropStopBtn" disabled>■ Done — Finish Shape</button>
+                        <button class="btn btn-secondary" id="gpsmapCancelDropBtn">← Back</button>
+                    </div>
+                </div>
+
             </div>
 
             <!-- Edit Mode: drag points, delete points, see segment lengths -->
@@ -1024,21 +1063,21 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=107"></script>
-    <script src="js/auth.js?v=107"></script>
-    <script src="js/zones.js?v=107"></script>
-    <script src="js/plants.js?v=107"></script>
-    <script src="js/problems.js?v=107"></script>
-    <script src="js/facts.js?v=107"></script>
-    <script src="js/projects.js?v=107"></script>
-    <script src="js/chemicals.js?v=107"></script>
-    <script src="js/activities.js?v=107"></script>
-    <script src="js/photos.js?v=107"></script>
-    <script src="js/weeds.js?v=107"></script>
-    <script src="js/calendar.js?v=107"></script>
-    <script src="js/gps.js?v=107"></script>
-    <script src="js/settings.js?v=107"></script>
-    <script src="js/app.js?v=107"></script>
+    <script src="js/firebase-config.js?v=108"></script>
+    <script src="js/auth.js?v=108"></script>
+    <script src="js/zones.js?v=108"></script>
+    <script src="js/plants.js?v=108"></script>
+    <script src="js/problems.js?v=108"></script>
+    <script src="js/facts.js?v=108"></script>
+    <script src="js/projects.js?v=108"></script>
+    <script src="js/chemicals.js?v=108"></script>
+    <script src="js/activities.js?v=108"></script>
+    <script src="js/photos.js?v=108"></script>
+    <script src="js/weeds.js?v=108"></script>
+    <script src="js/calendar.js?v=108"></script>
+    <script src="js/gps.js?v=108"></script>
+    <script src="js/settings.js?v=108"></script>
+    <script src="js/app.js?v=108"></script>
 
 </body>
 </html>

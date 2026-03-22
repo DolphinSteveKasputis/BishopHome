@@ -41,6 +41,15 @@ var gpsRecordPolyline    = null;  // path walked so far
 var gpsRecordClosingLine = null;  // dashed line closing the shape back to start
 var gpsRecordDot         = null;  // red dot showing current position
 
+// Drop Points mode state
+var gpsDropWatchId       = null;  // watchPosition ID for drop-points GPS monitor
+var gpsDropPoints        = [];    // accumulated dropped points
+var gpsDropCurrentPos    = null;  // most recent GPS position (used when Drop Point is tapped)
+var gpsDropMap           = null;
+var gpsDropTileLayer     = null;
+var gpsDropPolyline      = null;  // lines connecting dropped points
+var gpsDropMarkers       = [];    // circle markers at each dropped point
+
 // ---------- Page Entry: loadGpsMapPage ----------
 
 /**
@@ -149,6 +158,24 @@ function showGpsRecordMode() {
     document.getElementById('gpsmapViewMode').classList.add('hidden');
     document.getElementById('gpsmapRecordMode').classList.remove('hidden');
     document.getElementById('gpsmapEditMode').classList.add('hidden');
+    showRecordPicker();
+}
+
+/**
+ * Show the mode-picker screen (Walk the Path / Drop Points).
+ */
+function showRecordPicker() {
+    document.getElementById('gpsmapRecordPicker').classList.remove('hidden');
+    document.getElementById('gpsmapWalkScreen').classList.add('hidden');
+    document.getElementById('gpsmapDropScreen').classList.add('hidden');
+}
+
+/**
+ * Enter the Walk-the-Path sub-screen (existing continuous recording flow).
+ */
+function showWalkScreen() {
+    document.getElementById('gpsmapRecordPicker').classList.add('hidden');
+    document.getElementById('gpsmapWalkScreen').classList.remove('hidden');
 
     // Reset UI to pre-start state
     document.getElementById('gpsmapStartBtn').classList.remove('hidden');
@@ -158,6 +185,36 @@ function showGpsRecordMode() {
     stopBtn.disabled = false;
     document.getElementById('gpsmapRecordStats').classList.add('hidden');
     updateRecordStats(0, 0, null);
+}
+
+/**
+ * Enter the Drop Points sub-screen.
+ */
+function showDropScreen() {
+    document.getElementById('gpsmapRecordPicker').classList.add('hidden');
+    document.getElementById('gpsmapDropScreen').classList.remove('hidden');
+
+    // Reset drop state
+    gpsDropPoints      = [];
+    gpsDropCurrentPos  = null;
+    document.getElementById('gpsmapDropCount').textContent    = '0';
+    document.getElementById('gpsmapDropAccuracy').textContent = 'Waiting…';
+    document.getElementById('gpsmapDropPointBtn').disabled    = true;
+    document.getElementById('gpsmapDropStopBtn').disabled     = true;
+    document.getElementById('gpsmapDropMapContainer').classList.add('hidden');
+
+    // Destroy any leftover drop map
+    destroyDropMap();
+
+    // Start watching GPS position so accuracy shows live
+    if (gpsDropWatchId !== null) {
+        navigator.geolocation.clearWatch(gpsDropWatchId);
+    }
+    gpsDropWatchId = navigator.geolocation.watchPosition(
+        handleDropGpsUpdate,
+        handleGpsError,
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
+    );
 }
 
 /**
@@ -227,6 +284,133 @@ function stopRecording() {
 
     // Move directly to the point editor for cleanup
     showGpsEditMode(gpsRecordedPoints);
+}
+
+// ---------- Drop Points Mode ----------
+
+/**
+ * Called continuously by watchPosition in drop-points mode.
+ * Updates the accuracy display and stores the current position for use
+ * when the user taps "Drop Point".
+ */
+function handleDropGpsUpdate(position) {
+    var accuracy = position.coords.accuracy;
+    gpsDropCurrentPos = { lat: position.coords.latitude, lng: position.coords.longitude };
+
+    var accEl = document.getElementById('gpsmapDropAccuracy');
+    accEl.textContent = Math.round(accuracy) + ' m';
+    // Color-code accuracy: green < 5m, yellow < 15m, red >= 15m
+    accEl.style.color = accuracy < 5 ? '#2E7D32' : accuracy < 15 ? '#E65100' : '#C62828';
+
+    // Enable Drop Point button once we have a GPS fix
+    document.getElementById('gpsmapDropPointBtn').disabled = false;
+}
+
+/**
+ * Drop a point at the current GPS location.
+ */
+function dropPoint() {
+    if (!gpsDropCurrentPos) {
+        alert('No GPS fix yet — wait for accuracy to appear.');
+        return;
+    }
+
+    gpsDropPoints.push({ lat: gpsDropCurrentPos.lat, lng: gpsDropCurrentPos.lng });
+
+    var count = gpsDropPoints.length;
+    document.getElementById('gpsmapDropCount').textContent = count;
+
+    // Enable the Finish button once we have at least 3 points
+    if (count >= 3) {
+        document.getElementById('gpsmapDropStopBtn').disabled = false;
+    }
+
+    // Show/update the live map
+    updateDropMap(gpsDropPoints);
+}
+
+/**
+ * Create or update the drop-points live map.
+ */
+function updateDropMap(points) {
+    var mapEl = document.getElementById('gpsmapDropMapContainer');
+
+    if (!gpsDropMap) {
+        mapEl.classList.remove('hidden');
+        gpsDropMap       = L.map('gpsmapDropMapContainer');
+        gpsDropTileLayer = L.tileLayer(TILE_URL, { attribution: TILE_ATTR }).addTo(gpsDropMap);
+        addPropertyBoundaryOverlay(gpsDropMap);
+    }
+
+    // Remove old markers and polyline
+    gpsDropMarkers.forEach(function(m) { gpsDropMap.removeLayer(m); });
+    gpsDropMarkers = [];
+    if (gpsDropPolyline) { gpsDropMap.removeLayer(gpsDropPolyline); gpsDropPolyline = null; }
+
+    // Draw each dropped point as a numbered circle
+    points.forEach(function(pt, i) {
+        var icon = L.divIcon({
+            className:  '',
+            html:       '<div class="gps-drop-marker">' + (i + 1) + '</div>',
+            iconSize:   [24, 24],
+            iconAnchor: [12, 12]
+        });
+        var m = L.marker([pt.lat, pt.lng], { icon: icon }).addTo(gpsDropMap);
+        gpsDropMarkers.push(m);
+    });
+
+    // Draw connecting lines (open polyline so user can see the shape forming)
+    if (points.length >= 2) {
+        var latLngs = points.map(function(p) { return [p.lat, p.lng]; });
+        // Close the line back to point 1 if >= 3 points
+        if (points.length >= 3) latLngs.push([points[0].lat, points[0].lng]);
+        gpsDropPolyline = L.polyline(latLngs, { color: '#1565C0', weight: 2, dashArray: '6 4' }).addTo(gpsDropMap);
+    }
+
+    // Fit map to show all points
+    var lls = points.map(function(p) { return [p.lat, p.lng]; });
+    if (lls.length === 1) {
+        gpsDropMap.setView(lls[0], 19);
+    } else {
+        gpsDropMap.fitBounds(L.latLngBounds(lls), { padding: [30, 30] });
+    }
+}
+
+/**
+ * Finish drop-points recording and move to the editor.
+ */
+function finishDropPoints() {
+    if (gpsDropWatchId !== null) {
+        navigator.geolocation.clearWatch(gpsDropWatchId);
+        gpsDropWatchId = null;
+    }
+
+    var stopBtn = document.getElementById('gpsmapDropStopBtn');
+    stopBtn.textContent = '⏹ Done';
+    stopBtn.disabled    = true;
+
+    if (gpsDropPoints.length < 3) {
+        alert('Need at least 3 points to form a shape.');
+        showDropScreen();
+        return;
+    }
+
+    destroyDropMap();
+    showGpsEditMode(gpsDropPoints);
+}
+
+/**
+ * Destroy the drop-points map and clean up state.
+ */
+function destroyDropMap() {
+    if (gpsDropMap) {
+        gpsDropMarkers.forEach(function(m) { gpsDropMap.removeLayer(m); });
+        gpsDropMarkers = [];
+        if (gpsDropPolyline) { gpsDropMap.removeLayer(gpsDropPolyline); gpsDropPolyline = null; }
+        gpsDropMap.remove();
+        gpsDropMap       = null;
+        gpsDropTileLayer = null;
+    }
 }
 
 /**
@@ -1271,18 +1455,37 @@ document.getElementById('gpsmapEditBtn').addEventListener('click', function() {
 
 document.getElementById('gpsmapDeleteBtn').addEventListener('click', deleteGpsShape);
 
+// Record mode — picker buttons
+document.getElementById('gpsmapPickWalk').addEventListener('click', showWalkScreen);
+document.getElementById('gpsmapPickDrop').addEventListener('click', showDropScreen);
+document.getElementById('gpsmapCancelPickerBtn').addEventListener('click', function() {
+    showGpsViewMode();
+});
+
+// Walk the Path buttons
 document.getElementById('gpsmapStartBtn').addEventListener('click', startRecording);
-
 document.getElementById('gpsmapStopBtn').addEventListener('click', stopRecording);
-
 document.getElementById('gpsmapCancelRecordBtn').addEventListener('click', function() {
+    showRecordPicker();
     if (gpsWatchId !== null) {
         navigator.geolocation.clearWatch(gpsWatchId);
         gpsWatchId = null;
     }
     destroyRecordMap();
-    showGpsViewMode();
 });
+
+// Drop Points buttons
+document.getElementById('gpsmapDropPointBtn').addEventListener('click', dropPoint);
+document.getElementById('gpsmapDropStopBtn').addEventListener('click', finishDropPoints);
+document.getElementById('gpsmapCancelDropBtn').addEventListener('click', function() {
+    if (gpsDropWatchId !== null) {
+        navigator.geolocation.clearWatch(gpsDropWatchId);
+        gpsDropWatchId = null;
+    }
+    destroyDropMap();
+    showRecordPicker();
+});
+
 
 document.getElementById('gpsmapSimplifyBtn').addEventListener('click', simplifyEditPoints);
 

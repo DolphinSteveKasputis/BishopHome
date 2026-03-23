@@ -14,7 +14,7 @@ async function loadChemicalsList() {
     const emptyState = document.getElementById('chemicalsEmptyState');
 
     try {
-        const snapshot = await db.collection('chemicals').get();
+        const snapshot = await userCol('chemicals').get();
 
         container.innerHTML = '';
 
@@ -182,7 +182,7 @@ async function handleChemicalModalSave() {
 
     try {
         if (mode === 'add') {
-            await db.collection('chemicals').add({
+            await userCol('chemicals').add({
                 name: name,
                 notes: notes,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -191,7 +191,7 @@ async function handleChemicalModalSave() {
 
         } else if (mode === 'edit') {
             const chemicalId = modal.dataset.editId;
-            await db.collection('chemicals').doc(chemicalId).update({
+            await userCol('chemicals').doc(chemicalId).update({
                 name: name,
                 notes: notes
             });
@@ -225,7 +225,7 @@ async function handleDeleteChemical(chemicalId) {
     }
 
     try {
-        await db.collection('chemicals').doc(chemicalId).delete();
+        await userCol('chemicals').doc(chemicalId).delete();
         console.log('Chemical deleted:', chemicalId);
         // If we were on the detail page, go back to the list
         window.location.hash = 'chemicals';
@@ -245,7 +245,7 @@ async function handleDeleteChemical(chemicalId) {
  */
 async function loadChemicalDetail(chemicalId) {
     try {
-        const doc = await db.collection('chemicals').doc(chemicalId).get();
+        const doc = await userCol('chemicals').doc(chemicalId).get();
 
         if (!doc.exists) {
             document.getElementById('chemicalDetailName').textContent = 'Chemical not found';
@@ -282,7 +282,7 @@ async function loadChemicalDetail(chemicalId) {
  * @returns {Promise<Array>} Array of {id, name, notes} objects sorted by name.
  */
 async function getAllChemicals() {
-    const snapshot = await db.collection('chemicals').get();
+    const snapshot = await userCol('chemicals').get();
     const chemicals = [];
     snapshot.forEach(function(doc) {
         chemicals.push({ id: doc.id, ...doc.data() });
@@ -527,7 +527,7 @@ function saveBarcodeFacts(targetType, targetId, barcode, resultElId) {
 
     var batch = db.batch();
     entries.forEach(function(f) {
-        batch.set(db.collection('facts').doc(), {
+        batch.set(userCol('facts').doc(), {
             targetType : targetType,
             targetId   : targetId,
             label      : f.label,

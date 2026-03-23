@@ -33,7 +33,7 @@ async function loadPhotos(targetType, targetId, containerId, emptyStateId) {
     var emptyState = document.getElementById(emptyStateId);
 
     try {
-        var snapshot = await db.collection('photos')
+        var snapshot = await userCol('photos')
             .where('targetType', '==', targetType)
             .where('targetId', '==', targetId)
             .get();
@@ -252,7 +252,7 @@ async function handlePhotoFile(file, targetType, targetId) {
         var caption = prompt('Add a caption (optional):') || '';
 
         // Save to Firestore
-        await db.collection('photos').add({
+        await userCol('photos').add({
             targetType: targetType,
             targetId: targetId,
             imageData: imageData,
@@ -365,7 +365,7 @@ async function editPhotoCaption(photoId, targetType, containerId) {
     if (newCaption === null) return; // User cancelled
 
     try {
-        await db.collection('photos').doc(photoId).update({
+        await userCol('photos').doc(photoId).update({
             caption: newCaption.trim()
         });
 
@@ -393,7 +393,7 @@ async function handleDeletePhoto(photoId, targetType) {
     if (!confirm('Are you sure you want to delete this photo?')) return;
 
     try {
-        await db.collection('photos').doc(photoId).delete();
+        await userCol('photos').doc(photoId).delete();
         console.log('Photo deleted:', photoId);
 
         // Determine current target ID and reload

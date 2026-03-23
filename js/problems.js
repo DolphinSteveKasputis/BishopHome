@@ -53,7 +53,7 @@ async function loadProblems(targetType, targetId, containerId, emptyStateId) {
     const showResolved = checkbox ? checkbox.checked : false;
 
     try {
-        const snapshot = await db.collection('problems')
+        const snapshot = await userCol('problems')
             .where('targetType', '==', targetType)
             .where('targetId', '==', targetId)
             .get();
@@ -285,7 +285,7 @@ async function handleProblemModalSave() {
 
     try {
         if (mode === 'add') {
-            await db.collection('problems').add({
+            await userCol('problems').add({
                 targetType: targetType,
                 targetId: targetId,
                 description: description,
@@ -299,7 +299,7 @@ async function handleProblemModalSave() {
 
         } else if (mode === 'edit') {
             const problemId = modal.dataset.editId;
-            await db.collection('problems').doc(problemId).update({
+            await userCol('problems').doc(problemId).update({
                 description: description,
                 notes: notes
             });
@@ -340,7 +340,7 @@ async function toggleProblemStatus(problemId, currentStatus, targetType, targetI
             updateData.resolvedAt = null;
         }
 
-        await db.collection('problems').doc(problemId).update(updateData);
+        await userCol('problems').doc(problemId).update(updateData);
         console.log('Problem status changed to:', newStatus);
         reloadProblemsForCurrentTarget(targetType, targetId);
 
@@ -364,7 +364,7 @@ async function handleDeleteProblem(problemId, targetType, targetId) {
     }
 
     try {
-        await db.collection('problems').doc(problemId).delete();
+        await userCol('problems').doc(problemId).delete();
         console.log('Problem deleted:', problemId);
         reloadProblemsForCurrentTarget(targetType, targetId);
 
@@ -415,7 +415,7 @@ async function ensureProblemSaved() {
     }
 
     try {
-        var docRef = await db.collection('problems').add({
+        var docRef = await userCol('problems').add({
             targetType: targetType,
             targetId: targetId,
             description: description,

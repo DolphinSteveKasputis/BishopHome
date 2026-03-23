@@ -21,7 +21,7 @@ async function loadSettingsPage() {
     savedMsg.classList.add('hidden');
 
     try {
-        var doc = await db.collection('settings').doc('main').get();
+        var doc = await userCol('settings').doc('main').get();
         if (doc.exists) {
             var data         = doc.data();
             appNameEl.value  = data.appName  || '';
@@ -50,7 +50,7 @@ async function saveSettings() {
     try {
         var newAppName = appNameEl.value.trim() || 'My House';
 
-        await db.collection('settings').doc('main').set({
+        await userCol('settings').doc('main').set({
             appName:   newAppName,
             address:   addressEl.value.trim(),
             parcelId:  parcelIdEl.value.trim(),
@@ -87,7 +87,7 @@ async function saveSettings() {
  */
 async function initAppName() {
     try {
-        var doc = await db.collection('settings').doc('main').get();
+        var doc = await userCol('settings').doc('main').get();
         window.appName = (doc.exists && doc.data().appName)
             ? doc.data().appName
             : 'My House';

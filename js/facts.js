@@ -19,7 +19,7 @@ async function loadFacts(targetType, targetId, containerId, emptyStateId) {
     const emptyState = document.getElementById(emptyStateId);
 
     try {
-        const snapshot = await db.collection('facts')
+        const snapshot = await userCol('facts')
             .where('targetType', '==', targetType)
             .where('targetId', '==', targetId)
             .get();
@@ -199,7 +199,7 @@ async function handleFactModalSave() {
 
     try {
         if (mode === 'add') {
-            await db.collection('facts').add({
+            await userCol('facts').add({
                 targetType: targetType,
                 targetId: targetId,
                 label: label,
@@ -210,7 +210,7 @@ async function handleFactModalSave() {
 
         } else if (mode === 'edit') {
             const factId = modal.dataset.editId;
-            await db.collection('facts').doc(factId).update({
+            await userCol('facts').doc(factId).update({
                 label: label,
                 value: value
             });
@@ -240,7 +240,7 @@ async function handleDeleteFact(factId, targetType, targetId) {
     }
 
     try {
-        await db.collection('facts').doc(factId).delete();
+        await userCol('facts').doc(factId).delete();
         console.log('Fact deleted:', factId);
         reloadFactsForCurrentTarget(targetType, targetId);
 

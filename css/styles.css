@@ -1902,6 +1902,54 @@ button {
 .house-thing-cat-badge--ceiling-light { background: #fff8e1; color: #f57f17; }
 .house-thing-cat-badge--electronics   { background: #fce4ec; color: #880e4f; }
 
+/* ---- House Summary Stats Bar (#house page) ---- */
+.house-summary-stats {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+    font-size: 0.9rem;
+}
+
+/* Separator dot between stat items */
+.house-stat-sep {
+    color: #ccc;
+    font-size: 1rem;
+    line-height: 1;
+}
+
+/* Individual stat chip */
+.house-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+.house-stat-num {
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+.house-stat-label {
+    color: #555;
+}
+
+/* Color variants */
+.house-stat--problems .house-stat-num { color: #b91c1c; }   /* red — open problems */
+.house-stat--events .house-stat-num   { color: #1d4ed8; }   /* blue — events */
+.house-stat--neutral .house-stat-num  { color: #374151; }   /* neutral — room count */
+.house-stat--ok .house-stat-label     { color: #15803d; }   /* green — all clear */
+
+/* Floor card: room count sub-label */
+.house-floor-card-rooms {
+    font-size: 0.82rem;
+    color: #888;
+    margin-top: 2px;
+}
+
 /* Hint text inside modal labels */
 .label-hint {
     font-size: 0.8rem;

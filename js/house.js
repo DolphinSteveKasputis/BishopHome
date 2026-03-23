@@ -26,40 +26,163 @@ var THING_CATEGORIES = {
 
 /**
  * Load and render the House home page.
- * Called by app.js when the route is #house.
+ * Fetches floors, rooms, open problems, and upcoming calendar events in parallel,
+ * then renders a summary stats bar and the floor list with room counts.
  */
 function loadHousePage() {
     var container  = document.getElementById('floorListContainer');
     var emptyState = document.getElementById('floorEmptyState');
+    var statsEl    = document.getElementById('houseSummaryStats');
 
     container.innerHTML    = '';
     emptyState.textContent = 'Loading…';
+    statsEl.innerHTML      = '';
 
-    db.collection('floors')
-        .orderBy('floorNumber', 'asc')
-        .get()
-        .then(function(snapshot) {
+    // Build the date range for "upcoming in next 30 days"
+    var today   = new Date();
+    today.setHours(0, 0, 0, 0);
+    var in30    = new Date(today);
+    in30.setDate(in30.getDate() + 30);
+    var todayStr = today.toISOString().slice(0, 10);
+    var in30Str  = in30.toISOString().slice(0, 10);
+
+    // Run all four queries in parallel
+    var floorsQ   = db.collection('floors').orderBy('floorNumber', 'asc').get();
+    var roomsQ    = db.collection('rooms').get();
+    var problemsQ = db.collection('problems')
+        .where('targetType', 'in', ['floor', 'room', 'thing']).get();
+    var eventsQ   = db.collection('calendarEvents')
+        .where('targetType', 'in', ['floor', 'room', 'thing']).get();
+
+    Promise.all([floorsQ, roomsQ, problemsQ, eventsQ])
+        .then(function(results) {
+            var floorSnap   = results[0];
+            var roomSnap    = results[1];
+            var problemSnap = results[2];
+            var eventSnap   = results[3];
+
             emptyState.textContent = '';
 
-            if (snapshot.empty) {
+            // --- Room counts per floor ---
+            var roomCountByFloor = {};
+            roomSnap.forEach(function(doc) {
+                var floorId = doc.data().floorId;
+                if (floorId) {
+                    roomCountByFloor[floorId] = (roomCountByFloor[floorId] || 0) + 1;
+                }
+            });
+
+            // --- Open problem count ---
+            var openProblems = 0;
+            problemSnap.forEach(function(doc) {
+                if (doc.data().status === 'open') openProblems++;
+            });
+
+            // --- Upcoming event count (next 30 days, one-time events only) ---
+            // Recurring events are shown as "active" since they repeat indefinitely
+            var upcomingEvents  = 0;
+            var recurringEvents = 0;
+            eventSnap.forEach(function(doc) {
+                var d = doc.data();
+                if (d.recurring) {
+                    recurringEvents++;
+                } else if (d.date && d.date >= todayStr && d.date <= in30Str) {
+                    upcomingEvents++;
+                }
+            });
+
+            // --- Render summary stats bar ---
+            renderHouseSummaryStats(statsEl, {
+                openProblems:   openProblems,
+                upcomingEvents: upcomingEvents,
+                recurringEvents: recurringEvents,
+                totalRooms: roomSnap.size,
+                totalThings: 0   // placeholder — not queried separately
+            });
+
+            // --- Render floor list ---
+            if (floorSnap.empty) {
                 emptyState.textContent = 'No floors yet. Add a floor to get started.';
                 return;
             }
 
-            snapshot.forEach(function(doc) {
-                container.appendChild(buildFloorCard(doc.id, doc.data()));
+            floorSnap.forEach(function(doc) {
+                var roomCount = roomCountByFloor[doc.id] || 0;
+                container.appendChild(buildFloorCard(doc.id, doc.data(), roomCount));
             });
         })
         .catch(function(err) {
             console.error('loadHousePage error:', err);
-            emptyState.textContent = 'Error loading floors.';
+            emptyState.textContent = 'Error loading house data.';
         });
 }
 
 /**
- * Build a clickable card for a floor.
+ * Render the summary stats bar on the House home page.
+ * @param {Element} el     - The container element to populate
+ * @param {object}  stats  - { openProblems, upcomingEvents, recurringEvents, totalRooms }
  */
-function buildFloorCard(id, data) {
+function renderHouseSummaryStats(el, stats) {
+    var items = [];
+
+    // Open problems
+    if (stats.openProblems > 0) {
+        items.push(
+            '<span class="house-stat house-stat--problems">' +
+                '<span class="house-stat-num">' + stats.openProblems + '</span>' +
+                '<span class="house-stat-label"> open problem' + (stats.openProblems !== 1 ? 's' : '') + '</span>' +
+            '</span>'
+        );
+    } else {
+        items.push(
+            '<span class="house-stat house-stat--ok">' +
+                '<span class="house-stat-label">No open problems</span>' +
+            '</span>'
+        );
+    }
+
+    // Upcoming events (next 30 days)
+    if (stats.upcomingEvents > 0 || stats.recurringEvents > 0) {
+        var eventParts = [];
+        if (stats.upcomingEvents > 0) {
+            eventParts.push(stats.upcomingEvents + ' upcoming');
+        }
+        if (stats.recurringEvents > 0) {
+            eventParts.push(stats.recurringEvents + ' recurring');
+        }
+        items.push(
+            '<span class="house-stat house-stat--events">' +
+                '<span class="house-stat-num">' + eventParts.join(', ') + '</span>' +
+                '<span class="house-stat-label"> calendar event' +
+                    (stats.upcomingEvents + stats.recurringEvents !== 1 ? 's' : '') + '</span>' +
+            '</span>'
+        );
+    } else {
+        items.push(
+            '<span class="house-stat house-stat--ok">' +
+                '<span class="house-stat-label">No upcoming events</span>' +
+            '</span>'
+        );
+    }
+
+    // Room count
+    items.push(
+        '<span class="house-stat house-stat--neutral">' +
+            '<span class="house-stat-num">' + stats.totalRooms + '</span>' +
+            '<span class="house-stat-label"> room' + (stats.totalRooms !== 1 ? 's' : '') + '</span>' +
+        '</span>'
+    );
+
+    el.innerHTML = items.join('<span class="house-stat-sep">·</span>');
+}
+
+/**
+ * Build a clickable card for a floor, showing room count.
+ * @param {string} id         - Firestore document ID
+ * @param {object} data       - Floor document data
+ * @param {number} roomCount  - Number of rooms on this floor
+ */
+function buildFloorCard(id, data, roomCount) {
     var card = document.createElement('div');
     card.className = 'card card--clickable';
 
@@ -67,10 +190,14 @@ function buildFloorCard(id, data) {
     var numLabel = (data.floorNumber !== undefined && data.floorNumber !== null)
         ? ' <span class="house-floor-num">Floor ' + data.floorNumber + '</span>'
         : '';
+    var roomLabel = roomCount > 0
+        ? '<span class="house-floor-meta">' + roomCount + ' room' + (roomCount !== 1 ? 's' : '') + '</span>'
+        : '<span class="house-floor-meta">No rooms yet</span>';
 
     card.innerHTML =
         '<div class="card-main">' +
             '<span class="card-title">' + label + numLabel + '</span>' +
+            roomLabel +
         '</div>' +
         '<span class="card-arrow">›</span>';
 

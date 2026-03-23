@@ -58,7 +58,7 @@ function loadFloorPlanPage(floorId) {
     fpSetTool('select');
 
     // Load floor record for the title
-    db.collection('floors').doc(floorId).get()
+    userCol('floors').doc(floorId).get()
         .then(function(doc) {
             if (!doc.exists) { window.location.hash = '#house'; return; }
             fpFloor = Object.assign({ id: doc.id }, doc.data());
@@ -67,7 +67,7 @@ function loadFloorPlanPage(floorId) {
             document.getElementById('fpBackBtn').href = '#floor/' + floorId;
 
             // Load rooms list (for linking shapes + stairs detection)
-            var roomsPromise = db.collection('rooms').where('floorId', '==', floorId).get()
+            var roomsPromise = userCol('rooms').where('floorId', '==', floorId).get()
                 .then(function(snap) {
                     fpRoomList = [];
                     snap.forEach(function(d) {
@@ -81,7 +81,7 @@ function loadFloorPlanPage(floorId) {
                 });
 
             // Load all floors so stair labels can show the connected floor name
-            var floorsPromise = db.collection('floors').get().then(function(snap) {
+            var floorsPromise = userCol('floors').get().then(function(snap) {
                 fpAllFloors = {};
                 snap.forEach(function(d) {
                     fpAllFloors[d.id] = d.data();
@@ -92,7 +92,7 @@ function loadFloorPlanPage(floorId) {
         })
         .then(function() {
             // Load or initialize the floor plan document
-            return db.collection('floorPlans').doc(floorId).get();
+            return userCol('floorPlans').doc(floorId).get();
         })
         .then(function(planDoc) {
             if (planDoc.exists) {
@@ -762,7 +762,7 @@ document.getElementById('fpRoomLinkSaveBtn').addEventListener('click', function(
         addShape(select.value, existing ? existing.name : 'Room');
     } else {
         // Create a new room record in Firestore, then link
-        db.collection('rooms').add({
+        userCol('rooms').add({
             name:      newName,
             floorId:   fpFloorId,
             type:      'standard',
@@ -1105,7 +1105,7 @@ function fpSave() {
     btn.textContent = 'Saving…';
     btn.disabled    = true;
 
-    db.collection('floorPlans').doc(fpFloorId).set({
+    userCol('floorPlans').doc(fpFloorId).set({
         widthFt:          fpPlan.widthFt,
         heightFt:         fpPlan.heightFt,
         rooms:            fpPlan.rooms            || [],
@@ -1180,7 +1180,7 @@ function fpLoadAndRenderThumbnail(floorId, containerId, emptyId) {
     var emptyEl   = document.getElementById(emptyId);
     if (!container) return;
 
-    db.collection('floorPlans').doc(floorId).get()
+    userCol('floorPlans').doc(floorId).get()
         .then(function(doc) {
             if (!doc.exists || !(doc.data().rooms || []).length) {
                 if (emptyEl) emptyEl.style.display = '';
@@ -1705,7 +1705,7 @@ function fpLoadBreakerOptions(selectId, currentBreakerId) {
     var select = document.getElementById(selectId);
     select.innerHTML = '<option value="">— No breaker linked —</option>';
 
-    db.collection('breakerPanels').get()
+    userCol('breakerPanels').get()
         .then(function(snap) {
             if (snap.empty) return;  // No panels configured yet — leave just the default option
 
@@ -2178,7 +2178,7 @@ function fpOpenCeilingModal(editId, data) {
     // Async: load ceiling-fan/ceiling-light Things in this room
     var firestoreRoomId = modal.dataset.firestoreRoomId;
     if (firestoreRoomId) {
-        db.collection('things')
+        userCol('things')
             .where('roomId', '==', firestoreRoomId)
             .get()
             .then(function(snap) {
@@ -2269,7 +2269,7 @@ document.getElementById('fpCeilingSaveBtn').addEventListener('click', function()
     } else {
         // Create a new Thing record then link
         var newCat = category;
-        db.collection('things').add({
+        userCol('things').add({
             name:      newName,
             category:  newCat,
             roomId:    firestoreRoomId,

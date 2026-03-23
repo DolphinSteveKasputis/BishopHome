@@ -42,40 +42,40 @@ var thingsActiveTag      = null;  // Currently selected tag name, or null
 async function getHouseContextLabel(targetType, targetId) {
     try {
         if (targetType === 'floor') {
-            var floorDoc = await db.collection('floors').doc(targetId).get();
+            var floorDoc = await userCol('floors').doc(targetId).get();
             if (!floorDoc.exists) return null;
             return 'House \u203a ' + floorDoc.data().name;
 
         } else if (targetType === 'room') {
-            var roomDoc = await db.collection('rooms').doc(targetId).get();
+            var roomDoc = await userCol('rooms').doc(targetId).get();
             if (!roomDoc.exists) return null;
             var roomData = roomDoc.data();
-            var floorDoc2 = await db.collection('floors').doc(roomData.floorId).get();
+            var floorDoc2 = await userCol('floors').doc(roomData.floorId).get();
             var floorName = floorDoc2.exists ? floorDoc2.data().name : 'Floor';
             return 'House \u203a ' + floorName + ' \u203a ' + roomData.name;
 
         } else if (targetType === 'thing') {
-            var thingDoc = await db.collection('things').doc(targetId).get();
+            var thingDoc = await userCol('things').doc(targetId).get();
             if (!thingDoc.exists) return null;
             var thingData = thingDoc.data();
-            var roomDoc2 = await db.collection('rooms').doc(thingData.roomId).get();
+            var roomDoc2 = await userCol('rooms').doc(thingData.roomId).get();
             if (!roomDoc2.exists) return 'House \u203a \u2026 \u203a ' + thingData.name;
             var roomData2 = roomDoc2.data();
-            var floorDoc3 = await db.collection('floors').doc(roomData2.floorId).get();
+            var floorDoc3 = await userCol('floors').doc(roomData2.floorId).get();
             var floorName2 = floorDoc3.exists ? floorDoc3.data().name : 'Floor';
             return 'House \u203a ' + floorName2 + ' \u203a ' + roomData2.name + ' \u203a ' + thingData.name;
 
         } else if (targetType === 'subthing') {
-            var stDoc = await db.collection('subThings').doc(targetId).get();
+            var stDoc = await userCol('subThings').doc(targetId).get();
             if (!stDoc.exists) return null;
             var stData   = stDoc.data();
-            var thingDoc = await db.collection('things').doc(stData.thingId).get();
+            var thingDoc = await userCol('things').doc(stData.thingId).get();
             if (!thingDoc.exists) return 'House \u203a \u2026 \u203a ' + stData.name;
             var tData    = thingDoc.data();
-            var rDoc2    = await db.collection('rooms').doc(tData.roomId).get();
+            var rDoc2    = await userCol('rooms').doc(tData.roomId).get();
             if (!rDoc2.exists) return 'House \u203a \u2026 \u203a ' + tData.name + ' \u203a ' + stData.name;
             var rData2   = rDoc2.data();
-            var fDoc2    = await db.collection('floors').doc(rData2.floorId).get();
+            var fDoc2    = await userCol('floors').doc(rData2.floorId).get();
             var fName2   = fDoc2.exists ? fDoc2.data().name : 'Floor';
             return 'House \u203a ' + fName2 + ' \u203a ' + rData2.name + ' \u203a ' + tData.name + ' \u203a ' + stData.name;
         }
@@ -126,11 +126,11 @@ function loadHousePage() {
     var in30Str  = in30.toISOString().slice(0, 10);
 
     // Run all four queries in parallel
-    var floorsQ   = db.collection('floors').orderBy('floorNumber', 'asc').get();
-    var roomsQ    = db.collection('rooms').get();
-    var problemsQ = db.collection('problems')
+    var floorsQ   = userCol('floors').orderBy('floorNumber', 'asc').get();
+    var roomsQ    = userCol('rooms').get();
+    var problemsQ = userCol('problems')
         .where('targetType', 'in', ['floor', 'room', 'thing']).get();
-    var eventsQ   = db.collection('calendarEvents')
+    var eventsQ   = userCol('calendarEvents')
         .where('targetType', 'in', ['floor', 'room', 'thing']).get();
 
     Promise.all([floorsQ, roomsQ, problemsQ, eventsQ])
@@ -296,7 +296,7 @@ function buildFloorCard(id, data, roomCount) {
  * Called by app.js when the route is #floor/{id}.
  */
 function loadFloorDetail(floorId) {
-    db.collection('floors').doc(floorId).get()
+    userCol('floors').doc(floorId).get()
         .then(function(doc) {
             if (!doc.exists) {
                 window.location.hash = '#house';
@@ -371,7 +371,7 @@ function loadRoomsList(floorId) {
     container.innerHTML    = '';
     emptyState.textContent = 'Loading…';
 
-    db.collection('rooms')
+    userCol('rooms')
         .where('floorId', '==', floorId)
         .get()
         .then(function(snapshot) {
@@ -444,7 +444,7 @@ function buildRoomTypeBadge(type) {
  * Called by app.js when the route is #room/{id}.
  */
 function loadRoomDetail(roomId) {
-    db.collection('rooms').doc(roomId).get()
+    userCol('rooms').doc(roomId).get()
         .then(function(doc) {
             if (!doc.exists) {
                 window.location.hash = '#house';
@@ -453,7 +453,7 @@ function loadRoomDetail(roomId) {
             currentRoom = Object.assign({ id: doc.id }, doc.data());
 
             // Also load the parent floor so we can show it in the breadcrumb
-            return db.collection('floors').doc(currentRoom.floorId).get()
+            return userCol('floors').doc(currentRoom.floorId).get()
                 .then(function(floorDoc) {
                     currentFloor = floorDoc.exists
                         ? Object.assign({ id: floorDoc.id }, floorDoc.data())
@@ -592,7 +592,7 @@ document.getElementById('floorModalSaveBtn').addEventListener('click', function(
     var editId = modal.dataset.editId;
 
     if (mode === 'edit' && editId) {
-        db.collection('floors').doc(editId).update(floorData)
+        userCol('floors').doc(editId).update(floorData)
             .then(function() {
                 closeModal('floorModal');
                 if (window.location.hash.startsWith('#floor/')) {
@@ -604,7 +604,7 @@ document.getElementById('floorModalSaveBtn').addEventListener('click', function(
             .catch(function(err) { console.error('Update floor error:', err); });
     } else {
         floorData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-        db.collection('floors').add(floorData)
+        userCol('floors').add(floorData)
             .then(function() {
                 closeModal('floorModal');
                 loadHousePage();
@@ -622,14 +622,14 @@ document.getElementById('floorModalDeleteBtn').addEventListener('click', functio
     if (!editId) return;
 
     // Block delete if the floor has rooms
-    db.collection('rooms').where('floorId', '==', editId).limit(1).get()
+    userCol('rooms').where('floorId', '==', editId).limit(1).get()
         .then(function(snap) {
             if (!snap.empty) {
                 alert('This floor has rooms. Delete or move all rooms first.');
                 return;
             }
             if (!confirm('Delete this floor? This cannot be undone.')) return;
-            db.collection('floors').doc(editId).delete()
+            userCol('floors').doc(editId).delete()
                 .then(function() {
                     closeModal('floorModal');
                     window.location.hash = '#house';
@@ -673,7 +673,7 @@ function openRoomModal(editId, data) {
 
     // Load all floors into the "connects to" dropdown (exclude the current floor)
     connectSel.innerHTML = '<option value="">— Not specified —</option>';
-    db.collection('floors').orderBy('floorNumber', 'asc').get()
+    userCol('floors').orderBy('floorNumber', 'asc').get()
         .then(function(snap) {
             snap.forEach(function(doc) {
                 if (currentFloor && doc.id === currentFloor.id) return; // skip current floor
@@ -712,7 +712,7 @@ document.getElementById('roomModalSaveBtn').addEventListener('click', function()
     }
 
     if (mode === 'edit' && editId) {
-        db.collection('rooms').doc(editId).update({
+        userCol('rooms').doc(editId).update({
             name:               nameVal,
             type:               typeVal,
             connectsToFloorId:  connectsToFloorId
@@ -732,7 +732,7 @@ document.getElementById('roomModalSaveBtn').addEventListener('click', function()
             floorId:            currentFloor.id,
             createdAt:          firebase.firestore.FieldValue.serverTimestamp()
         };
-        db.collection('rooms').add(roomData)
+        userCol('rooms').add(roomData)
             .then(function() {
                 closeModal('roomModal');
                 loadRoomsList(currentFloor.id);
@@ -751,7 +751,7 @@ document.getElementById('roomModalDeleteBtn').addEventListener('click', function
 
     if (!confirm('Delete this room? This cannot be undone.')) return;
 
-    db.collection('rooms').doc(editId).delete()
+    userCol('rooms').doc(editId).delete()
         .then(function() {
             closeModal('roomModal');
             // Go back to the floor this room belonged to
@@ -775,7 +775,7 @@ function openMoveRoomModal() {
     var select = document.getElementById('moveRoomFloorSelect');
     select.innerHTML = '<option value="">Loading floors…</option>';
 
-    db.collection('floors').orderBy('floorNumber', 'asc').get()
+    userCol('floors').orderBy('floorNumber', 'asc').get()
         .then(function(snapshot) {
             select.innerHTML = '';
             snapshot.forEach(function(doc) {
@@ -805,7 +805,7 @@ document.getElementById('moveRoomSaveBtn').addEventListener('click', function() 
         return;
     }
 
-    db.collection('rooms').doc(currentRoom.id).update({ floorId: newFloorId })
+    userCol('rooms').doc(currentRoom.id).update({ floorId: newFloorId })
         .then(function() {
             closeModal('moveRoomModal');
             // Navigate to the new floor
@@ -838,14 +838,14 @@ document.getElementById('deleteFloorBtn').addEventListener('click', function() {
     if (!currentFloor) return;
 
     // Block if rooms exist
-    db.collection('rooms').where('floorId', '==', currentFloor.id).limit(1).get()
+    userCol('rooms').where('floorId', '==', currentFloor.id).limit(1).get()
         .then(function(snap) {
             if (!snap.empty) {
                 alert('This floor has rooms. Delete or move all rooms first.');
                 return;
             }
             if (!confirm('Delete "' + (currentFloor.name || 'this floor') + '"? This cannot be undone.')) return;
-            db.collection('floors').doc(currentFloor.id).delete()
+            userCol('floors').doc(currentFloor.id).delete()
                 .then(function() { window.location.hash = '#house'; })
                 .catch(function(err) { console.error('Delete floor error:', err); });
         });
@@ -874,7 +874,7 @@ document.getElementById('deleteRoomBtn').addEventListener('click', function() {
 
     if (!confirm('Delete "' + (currentRoom.name || 'this room') + '"? This cannot be undone.')) return;
 
-    db.collection('rooms').doc(currentRoom.id).delete()
+    userCol('rooms').doc(currentRoom.id).delete()
         .then(function() {
             if (currentFloor) {
                 window.location.hash = '#floor/' + currentFloor.id;
@@ -900,7 +900,7 @@ function loadThingsList(roomId) {
     container.innerHTML    = '';
     emptyState.textContent = 'Loading…';
 
-    db.collection('things')
+    userCol('things')
         .where('roomId', '==', roomId)
         .get()
         .then(function(snapshot) {
@@ -972,7 +972,7 @@ function buildThingCategoryBadge(category) {
  * Called by app.js when the route is #thing/{id}.
  */
 function loadThingDetail(thingId) {
-    db.collection('things').doc(thingId).get()
+    userCol('things').doc(thingId).get()
         .then(function(doc) {
             if (!doc.exists) {
                 window.location.hash = '#house';
@@ -981,7 +981,7 @@ function loadThingDetail(thingId) {
             currentThing = Object.assign({ id: doc.id }, doc.data());
 
             // Load parent room, then parent floor for breadcrumb
-            return db.collection('rooms').doc(currentThing.roomId).get()
+            return userCol('rooms').doc(currentThing.roomId).get()
                 .then(function(roomDoc) {
                     currentRoom = roomDoc.exists
                         ? Object.assign({ id: roomDoc.id }, roomDoc.data())
@@ -994,7 +994,7 @@ function loadThingDetail(thingId) {
                         return;
                     }
 
-                    return db.collection('floors').doc(floorId).get()
+                    return userCol('floors').doc(floorId).get()
                         .then(function(floorDoc) {
                             currentFloor = floorDoc.exists
                                 ? Object.assign({ id: floorDoc.id }, floorDoc.data())
@@ -1105,7 +1105,7 @@ document.getElementById('thingModalSaveBtn').addEventListener('click', function(
 
     if (mode === 'edit' && editId) {
         var updateData = Object.assign({ name: nameVal, category: catVal }, extraFields);
-        db.collection('things').doc(editId).update(updateData)
+        userCol('things').doc(editId).update(updateData)
             .then(function() {
                 closeModal('thingModal');
                 loadThingDetail(editId);
@@ -1119,7 +1119,7 @@ document.getElementById('thingModalSaveBtn').addEventListener('click', function(
             roomId:    currentRoom.id,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         }, extraFields);
-        db.collection('things').add(thingData)
+        userCol('things').add(thingData)
             .then(function() {
                 closeModal('thingModal');
                 loadThingsList(currentRoom.id);
@@ -1136,7 +1136,7 @@ document.getElementById('thingModalDeleteBtn').addEventListener('click', functio
     var editId = document.getElementById('thingModal').dataset.editId;
     if (!editId) return;
 
-    db.collection('subThings').where('thingId', '==', editId).limit(1).get()
+    userCol('subThings').where('thingId', '==', editId).limit(1).get()
         .then(function(snap) {
             if (!snap.empty) {
                 alert('This thing has items. Delete all items first.');
@@ -1145,7 +1145,7 @@ document.getElementById('thingModalDeleteBtn').addEventListener('click', functio
 
             if (!confirm('Delete this thing? This cannot be undone.')) return;
 
-            db.collection('things').doc(editId).delete()
+            userCol('things').doc(editId).delete()
                 .then(function() {
                     closeModal('thingModal');
                     if (currentRoom) {
@@ -1171,7 +1171,7 @@ function openMoveThingModal() {
     select.innerHTML = '<option value="">Loading rooms…</option>';
 
     // Load all floors then all rooms, grouped by floor for the dropdown
-    db.collection('floors').orderBy('floorNumber', 'asc').get()
+    userCol('floors').orderBy('floorNumber', 'asc').get()
         .then(function(floorSnap) {
             var floorMap   = {};
             var floorOrder = [];
@@ -1180,7 +1180,7 @@ function openMoveThingModal() {
                 floorOrder.push(doc.id);
             });
 
-            return db.collection('rooms').get().then(function(roomSnap) {
+            return userCol('rooms').get().then(function(roomSnap) {
                 var byFloor = {};
                 roomSnap.forEach(function(doc) {
                     var d = doc.data();
@@ -1223,7 +1223,7 @@ document.getElementById('moveThingSaveBtn').addEventListener('click', function()
         return;
     }
 
-    db.collection('things').doc(currentThing.id).update({ roomId: newRoomId })
+    userCol('things').doc(currentThing.id).update({ roomId: newRoomId })
         .then(function() {
             closeModal('moveThingModal');
             window.location.hash = '#room/' + newRoomId;
@@ -1262,7 +1262,7 @@ document.getElementById('deleteThingBtn').addEventListener('click', function() {
 
     if (!confirm('Delete "' + (currentThing.name || 'this thing') + '"? This cannot be undone.')) return;
 
-    db.collection('things').doc(currentThing.id).delete()
+    userCol('things').doc(currentThing.id).delete()
         .then(function() {
             if (currentRoom) {
                 window.location.hash = '#room/' + currentRoom.id;
@@ -1420,7 +1420,7 @@ function loadPanelList() {
     container.innerHTML    = '';
     emptyState.textContent = 'Loading…';
 
-    db.collection('breakerPanels').get()
+    userCol('breakerPanels').get()
         .then(function(snap) {
             emptyState.textContent = '';
 
@@ -1489,7 +1489,7 @@ function buildPanelCard(id, data) {
  * @param {string} panelId
  */
 function loadPanelDetail(panelId) {
-    db.collection('breakerPanels').doc(panelId).get()
+    userCol('breakerPanels').doc(panelId).get()
         .then(function(doc) {
             if (!doc.exists) {
                 window.location.hash = '#house';
@@ -1673,7 +1673,7 @@ document.getElementById('panelModalSaveBtn').addEventListener('click', function(
     var editId = modal.dataset.editId;
 
     if (mode === 'edit' && editId) {
-        db.collection('breakerPanels').doc(editId).update(panelData)
+        userCol('breakerPanels').doc(editId).update(panelData)
             .then(function() {
                 closeModal('panelModal');
                 loadPanelDetail(editId);
@@ -1682,7 +1682,7 @@ document.getElementById('panelModalSaveBtn').addEventListener('click', function(
     } else {
         panelData.breakers  = [];
         panelData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-        db.collection('breakerPanels').add(panelData)
+        userCol('breakerPanels').add(panelData)
             .then(function(ref) {
                 closeModal('panelModal');
                 window.location.hash = '#panel/' + ref.id;
@@ -1699,7 +1699,7 @@ document.getElementById('panelModalDeleteBtn').addEventListener('click', functio
     var editId = document.getElementById('panelModal').dataset.editId;
     if (!editId) return;
     if (!confirm('Delete this panel and all its breaker data? This cannot be undone.')) return;
-    db.collection('breakerPanels').doc(editId).delete()
+    userCol('breakerPanels').doc(editId).delete()
         .then(function() {
             closeModal('panelModal');
             window.location.hash = '#house';
@@ -1791,7 +1791,7 @@ document.getElementById('breakerModalSaveBtn').addEventListener('click', functio
     // Keep array sorted by slot for readability in Firestore
     breakers.sort(function(a, b) { return a.slot - b.slot; });
 
-    db.collection('breakerPanels').doc(currentPanel.id).update({ breakers: breakers })
+    userCol('breakerPanels').doc(currentPanel.id).update({ breakers: breakers })
         .then(function() {
             currentPanel.breakers = breakers;
             closeModal('breakerModal');
@@ -1813,7 +1813,7 @@ document.getElementById('breakerClearBtn').addEventListener('click', function() 
         return b.slot !== bpEditSlot;
     });
 
-    db.collection('breakerPanels').doc(currentPanel.id).update({ breakers: breakers })
+    userCol('breakerPanels').doc(currentPanel.id).update({ breakers: breakers })
         .then(function() {
             currentPanel.breakers = breakers;
             closeModal('breakerModal');
@@ -1847,7 +1847,7 @@ document.getElementById('editPanelBtn').addEventListener('click', function() {
 document.getElementById('deletePanelBtn').addEventListener('click', function() {
     if (!currentPanel) return;
     if (!confirm('Delete "' + (currentPanel.name || 'this panel') + '"? This cannot be undone.')) return;
-    db.collection('breakerPanels').doc(currentPanel.id).delete()
+    userCol('breakerPanels').doc(currentPanel.id).delete()
         .then(function() { window.location.hash = '#house'; })
         .catch(function(err) { console.error('Delete panel error:', err); });
 });
@@ -1856,7 +1856,7 @@ document.getElementById('deletePanelBtn').addEventListener('click', function() {
 document.getElementById('addBreakerSlotBtn').addEventListener('click', function() {
     if (!currentPanel) return;
     var newTotal = (currentPanel.totalSlots || 0) + 2;
-    db.collection('breakerPanels').doc(currentPanel.id).update({ totalSlots: newTotal })
+    userCol('breakerPanels').doc(currentPanel.id).update({ totalSlots: newTotal })
         .then(function() {
             currentPanel.totalSlots = newTotal;
             renderPanelGrid(currentPanel);
@@ -1903,8 +1903,8 @@ function loadRoomsPage() {
         { label: 'Rooms', hash: null }
     ]);
 
-    var floorsQ = db.collection('floors').orderBy('floorNumber', 'asc').get();
-    var roomsQ  = db.collection('rooms').get();
+    var floorsQ = userCol('floors').orderBy('floorNumber', 'asc').get();
+    var roomsQ  = userCol('rooms').get();
 
     Promise.all([floorsQ, roomsQ])
         .then(function(results) {
@@ -1994,7 +1994,7 @@ function loadBreakerDevices(breakerId, containerId, emptyId) {
     emptyEl.textContent    = 'Loading…';
 
     // Scan all floorPlans documents for markers with this breakerId
-    db.collection('floorPlans').get()
+    userCol('floorPlans').get()
         .then(function(snap) {
             var devices = [];
 
@@ -2041,7 +2041,7 @@ function loadBreakerDevices(breakerId, containerId, emptyId) {
 
             // Fetch floor names, then render
             return Promise.all(uniqueFloorIds.map(function(fid) {
-                return db.collection('floors').doc(fid).get();
+                return userCol('floors').doc(fid).get();
             })).then(function(floorDocs) {
                 var floorNames = {};
                 floorDocs.forEach(function(d) {
@@ -2122,7 +2122,7 @@ function loadSubThingsList(thingId) {
     container.innerHTML    = '';
     emptyState.textContent = 'Loading…';
 
-    db.collection('subThings').where('thingId', '==', thingId).get()
+    userCol('subThings').where('thingId', '==', thingId).get()
         .then(function(snapshot) {
             emptyState.textContent = '';
             if (snapshot.empty) {
@@ -2177,13 +2177,13 @@ function buildSubThingCard(id, data) {
 // ============================================================
 
 function loadSubThingDetail(subThingId) {
-    db.collection('subThings').doc(subThingId).get()
+    userCol('subThings').doc(subThingId).get()
         .then(function(doc) {
             if (!doc.exists) { window.location.hash = '#house'; return; }
             currentSubThing = Object.assign({ id: doc.id }, doc.data());
 
             // Load parent chain: thing → room → floor
-            return db.collection('things').doc(currentSubThing.thingId).get()
+            return userCol('things').doc(currentSubThing.thingId).get()
                 .then(function(thingDoc) {
                     currentThing = thingDoc.exists
                         ? Object.assign({ id: thingDoc.id }, thingDoc.data())
@@ -2197,7 +2197,7 @@ function loadSubThingDetail(subThingId) {
                         return;
                     }
 
-                    return db.collection('rooms').doc(roomId).get()
+                    return userCol('rooms').doc(roomId).get()
                         .then(function(roomDoc) {
                             currentRoom = roomDoc.exists
                                 ? Object.assign({ id: roomDoc.id }, roomDoc.data())
@@ -2210,7 +2210,7 @@ function loadSubThingDetail(subThingId) {
                                 return;
                             }
 
-                            return db.collection('floors').doc(floorId).get()
+                            return userCol('floors').doc(floorId).get()
                                 .then(function(floorDoc) {
                                     currentFloor = floorDoc.exists
                                         ? Object.assign({ id: floorDoc.id }, floorDoc.data())
@@ -2332,7 +2332,7 @@ document.getElementById('stModalSaveBtn').addEventListener('click', function() {
     var editId = modal.dataset.editId;
 
     if (mode === 'edit' && editId) {
-        db.collection('subThings').doc(editId).update(itemData)
+        userCol('subThings').doc(editId).update(itemData)
             .then(function() {
                 closeModal('subThingModal');
                 loadSubThingDetail(editId);
@@ -2342,7 +2342,7 @@ document.getElementById('stModalSaveBtn').addEventListener('click', function() {
         if (!currentThing) { alert('No parent item selected.'); return; }
         itemData.thingId   = currentThing.id;
         itemData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-        db.collection('subThings').add(itemData)
+        userCol('subThings').add(itemData)
             .then(function() {
                 closeModal('subThingModal');
                 loadSubThingsList(currentThing.id);
@@ -2371,7 +2371,7 @@ document.getElementById('stModalDeleteBtn').addEventListener('click', function()
     var editId = document.getElementById('subThingModal').dataset.editId;
     if (!editId) return;
     if (!confirm('Delete this item? This cannot be undone.')) return;
-    db.collection('subThings').doc(editId).delete()
+    userCol('subThings').doc(editId).delete()
         .then(function() {
             closeModal('subThingModal');
             if (currentThing) {
@@ -2388,7 +2388,7 @@ document.getElementById('stModalDeleteBtn').addEventListener('click', function()
 // ============================================================
 
 function stLoadTags() {
-    db.collection('tags').get()
+    userCol('tags').get()
         .then(function(snap) {
             stAllTags = [];
             snap.forEach(function(d) {
@@ -2435,7 +2435,7 @@ function stAddTag(name) {
     if (!existsInAll) {
         stAllTags.push(name);
         stAllTags.sort(function(a, b) { return a.toLowerCase().localeCompare(b.toLowerCase()); });
-        db.collection('tags').add({
+        userCol('tags').add({
             name:      name,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         }).catch(function(err) { console.error('stAddTag: error saving tag:', err); });
@@ -2542,9 +2542,9 @@ function openStMoveModal() {
 
     // Load things + rooms + floors in parallel (or reuse if already cached)
     Promise.all([
-        db.collection('things').orderBy('name').get(),
-        db.collection('rooms').get(),
-        db.collection('floors').get()
+        userCol('things').orderBy('name').get(),
+        userCol('rooms').get(),
+        userCol('floors').get()
     ]).then(function(results) {
         var thingsSnap = results[0];
         var roomsSnap  = results[1];
@@ -2618,7 +2618,7 @@ function stMoveConfirm(targetThing) {
     var stName = currentSubThing.name || 'this item';
     if (!confirm('Move "' + stName + '" to "' + targetThing.name + '"?')) return;
 
-    db.collection('subThings').doc(currentSubThing.id)
+    userCol('subThings').doc(currentSubThing.id)
         .update({ thingId: targetThing.id })
         .then(function() {
             closeModal('stMoveModal');
@@ -2649,7 +2649,7 @@ document.getElementById('stMoveSearchInput').addEventListener('input', function(
 document.getElementById('deleteStBtn').addEventListener('click', function() {
     if (!currentSubThing) return;
     if (!confirm('Delete "' + (currentSubThing.name || 'this item') + '"? This cannot be undone.')) return;
-    db.collection('subThings').doc(currentSubThing.id).delete()
+    userCol('subThings').doc(currentSubThing.id).delete()
         .then(function() {
             if (currentThing) {
                 window.location.hash = '#thing/' + currentThing.id;
@@ -2778,7 +2778,7 @@ function loadThingsPage() {
  * Caches results in thingsTagsCache.
  */
 function thingsLoadTags() {
-    db.collection('tags').orderBy('name', 'asc').get()
+    userCol('tags').orderBy('name', 'asc').get()
         .then(function(snap) {
             thingsTagsCache = [];
             snap.forEach(function(doc) {
@@ -2863,13 +2863,13 @@ function thingsEnsureDataLoaded(includeSubThings) {
     if (needsThings) {
         // Fetch things + room + floor lookup maps in parallel
         promises.push(
-            db.collection('things').get(),
-            db.collection('rooms').get(),
-            db.collection('floors').get()
+            userCol('things').get(),
+            userCol('rooms').get(),
+            userCol('floors').get()
         );
     }
     if (needsSubThings) {
-        promises.push(db.collection('subThings').get());
+        promises.push(userCol('subThings').get());
     }
 
     return Promise.all(promises).then(function(results) {

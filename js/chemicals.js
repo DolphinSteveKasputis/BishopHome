@@ -290,6 +290,165 @@ async function getAllChemicals() {
     return chemicals;
 }
 
+// ============================================================
+// BARCODE SCANNER
+// Uses html5-qrcode (CDN) for camera scanning, then queries
+// two free APIs for product info and shows all returned data
+// in a popup so the user can see what's available.
+//
+// APIs tried (in order, both free / no key required):
+//   1. UPC Item DB  — https://api.upcitemdb.com/prod/trial/lookup
+//   2. Open Food Facts — https://world.openfoodfacts.org/api/v0/product/
+// ============================================================
+
+var barcodeScanner = null;  // Html5Qrcode instance
+
+/**
+ * Open the scanner modal and start the rear camera.
+ */
+function openBarcodeScanner() {
+    var scannerDiv = document.getElementById('barcodeScannerDiv');
+    var statusEl   = document.getElementById('barcodeScanStatus');
+
+    // Clear any previous camera frame
+    scannerDiv.innerHTML = '';
+    statusEl.textContent = 'Point camera at a barcode\u2026';
+
+    openModal('barcodeScanModal');
+
+    barcodeScanner = new Html5Qrcode('barcodeScannerDiv');
+    barcodeScanner.start(
+        { facingMode: 'environment' },          // use rear/back camera
+        { fps: 10, qrbox: { width: 260, height: 120 } },
+        function onSuccess(decodedText) {
+            // Stop immediately on first successful scan
+            barcodeScanner.stop().then(function() {
+                barcodeScanner = null;
+                lookupBarcode(decodedText);
+            }).catch(function() {
+                lookupBarcode(decodedText);
+            });
+        },
+        function onFailure() { /* ignore per-frame misses while scanning */ }
+    ).catch(function(err) {
+        statusEl.textContent = 'Camera error: ' + err;
+    });
+}
+
+/**
+ * Stop camera and close the scanner modal.
+ */
+function closeBarcodeScanner() {
+    if (barcodeScanner) {
+        barcodeScanner.stop().catch(function() {});
+        barcodeScanner = null;
+    }
+    closeModal('barcodeScanModal');
+}
+
+/**
+ * Query UPC Item DB first, then Open Food Facts as a fallback.
+ * Both are free with no API key required.
+ * @param {string} barcode
+ */
+async function lookupBarcode(barcode) {
+    // Switch to result modal immediately with a loading message
+    closeModal('barcodeScanModal');
+    renderBarcodeResult('<p style="color:#555;padding:12px 0">Looking up <strong>' +
+        escapeHtml(barcode) + '</strong>\u2026</p>');
+    openModal('barcodeResultModal');
+
+    try {
+        // ---- Attempt 1: UPC Item DB ----
+        var upcRes  = await fetch('https://api.upcitemdb.com/prod/trial/lookup?upc=' +
+                                  encodeURIComponent(barcode));
+        var upcData = await upcRes.json();
+
+        if (upcData.items && upcData.items.length > 0) {
+            var item = upcData.items[0];
+            renderBarcodeResult(buildBarcodeTable([
+                { label: 'Barcode',       value: barcode },
+                { label: 'Title',         value: item.title },
+                { label: 'Brand',         value: item.brand },
+                { label: 'Description',   value: item.description },
+                { label: 'Category',      value: item.category },
+                { label: 'Size / Weight', value: item.size },
+                { label: 'Color',         value: item.color },
+                { label: 'Model #',       value: item.model },
+                { label: 'ASIN',          value: item.asin },
+                { label: 'EAN',           value: item.ean },
+                { label: 'Offers found',  value: item.offers ? String(item.offers.length) : null },
+                { label: 'Source',        value: 'UPC Item DB' }
+            ], item.images && item.images.length ? item.images[0] : null));
+            return;
+        }
+
+        // ---- Attempt 2: Open Food Facts ----
+        var ffRes  = await fetch('https://world.openfoodfacts.org/api/v0/product/' +
+                                  encodeURIComponent(barcode) + '.json');
+        var ffData = await ffRes.json();
+
+        if (ffData.status === 1 && ffData.product) {
+            var p = ffData.product;
+            renderBarcodeResult(buildBarcodeTable([
+                { label: 'Barcode',     value: barcode },
+                { label: 'Name',        value: p.product_name || p.product_name_en },
+                { label: 'Brand',       value: p.brands },
+                { label: 'Categories',  value: p.categories },
+                { label: 'Quantity',    value: p.quantity },
+                { label: 'Ingredients', value: p.ingredients_text },
+                { label: 'Countries',   value: p.countries },
+                { label: 'Source',      value: 'Open Food Facts' }
+            ], p.image_front_url || p.image_url || null));
+            return;
+        }
+
+        // ---- Nothing found in either database ----
+        renderBarcodeResult(buildBarcodeTable([
+            { label: 'Barcode', value: barcode },
+            { label: 'Result',  value: 'No product information found. Free databases have limited ' +
+                                       'coverage for pesticides and specialty chemicals \u2014 ' +
+                                       'this is normal.' }
+        ], null));
+
+    } catch (err) {
+        renderBarcodeResult(buildBarcodeTable([
+            { label: 'Barcode', value: barcode },
+            { label: 'Error',   value: 'Lookup failed: ' + err.message }
+        ], null));
+    }
+}
+
+/**
+ * Build an HTML string: optional product image + a two-column table of fields.
+ * Skips rows where value is null / empty.
+ * @param {Array<{label:string, value:string|null}>} fields
+ * @param {string|null} imageUrl
+ * @returns {string}
+ */
+function buildBarcodeTable(fields, imageUrl) {
+    var html = '';
+    if (imageUrl) {
+        html += '<img src="' + escapeHtml(imageUrl) +
+                '" class="barcode-result-img" alt="Product image">';
+    }
+    html += '<table class="barcode-result-table">';
+    fields.forEach(function(f) {
+        if (f.value === null || f.value === undefined || f.value === '') return;
+        html += '<tr>' +
+                '<td class="barcode-result-label">' + escapeHtml(f.label) + '</td>' +
+                '<td class="barcode-result-value">' + escapeHtml(String(f.value)) + '</td>' +
+                '</tr>';
+    });
+    html += '</table>';
+    return html;
+}
+
+/** Set the innerHTML of the result modal body. */
+function renderBarcodeResult(html) {
+    document.getElementById('barcodeResultContent').innerHTML = html;
+}
+
 // ---------- Event Listeners ----------
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -327,5 +486,26 @@ document.addEventListener('DOMContentLoaded', function() {
         if (window.currentChemical) {
             handleDeleteChemical(window.currentChemical.id);
         }
+    });
+
+    // Barcode scanner — Scan Barcode button on chemicals list page
+    document.getElementById('scanBarcodeBtn').addEventListener('click', openBarcodeScanner);
+
+    // Barcode scanner — Cancel button inside scanner modal
+    document.getElementById('barcodeCancelBtn').addEventListener('click', closeBarcodeScanner);
+
+    // Barcode scanner — clicking the overlay closes the scanner
+    document.getElementById('barcodeScanModal').addEventListener('click', function(e) {
+        if (e.target === this) closeBarcodeScanner();
+    });
+
+    // Barcode result — Close button
+    document.getElementById('barcodeResultCloseBtn').addEventListener('click', function() {
+        closeModal('barcodeResultModal');
+    });
+
+    // Barcode result — clicking the overlay closes it
+    document.getElementById('barcodeResultModal').addEventListener('click', function(e) {
+        if (e.target === this) closeModal('barcodeResultModal');
     });
 });

@@ -2619,3 +2619,60 @@ button {
 .main-page #mobileNavHouse .nav-link:not([data-page="settings"]) {
     display: none;
 }
+
+/* ============================================================
+   Barcode Scanner & Result Modal
+   ============================================================ */
+
+.barcode-scan-status {
+    text-align: center;
+    font-size: 0.9rem;
+    color: #555;
+    margin: 10px 0 4px;
+}
+
+/* Scrollable result area inside the result modal */
+.barcode-result-content {
+    max-height: 60vh;
+    overflow-y: auto;
+    padding: 4px 0;
+}
+
+/* Optional product image */
+.barcode-result-img {
+    display: block;
+    max-width: 140px;
+    max-height: 140px;
+    object-fit: contain;
+    margin: 0 auto 14px;
+    border-radius: 6px;
+    border: 1px solid #eee;
+}
+
+/* Two-column info table */
+.barcode-result-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.barcode-result-label {
+    font-weight: 600;
+    font-size: 0.82rem;
+    color: #666;
+    padding: 5px 10px 5px 0;
+    vertical-align: top;
+    white-space: nowrap;
+    width: 36%;
+}
+
+.barcode-result-value {
+    font-size: 0.88rem;
+    color: #1a1a2e;
+    padding: 5px 0;
+    vertical-align: top;
+    word-break: break-word;
+}
+
+.barcode-result-table tr + tr td {
+    border-top: 1px solid #f0f0f0;
+}

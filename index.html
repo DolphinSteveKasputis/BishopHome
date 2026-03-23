@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=129">
+    <link rel="stylesheet" href="css/styles.css?v=130">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -1178,7 +1178,10 @@
         <section class="page hidden" id="page-chemicals">
             <div class="page-header">
                 <h2>Chemicals & Products</h2>
-                <button class="btn btn-primary btn-small" id="addChemicalBtn">+ Add</button>
+                <div class="page-header-actions">
+                    <button class="btn btn-secondary btn-small" id="scanBarcodeBtn">&#128269; Scan Barcode</button>
+                    <button class="btn btn-primary btn-small" id="addChemicalBtn">+ Add</button>
+                </div>
             </div>
             <div class="card-list" id="chemicalsListContainer"></div>
             <p class="empty-state" id="chemicalsEmptyState">Loading...</p>
@@ -2164,27 +2167,52 @@
         </div>
     </div>
 
+    <!-- ===== Barcode Scanner Modal ===== -->
+    <div class="modal hidden" id="barcodeScanModal">
+        <div class="modal-content">
+            <h3 class="modal-title">Scan Barcode</h3>
+            <!-- html5-qrcode renders the camera feed inside this div -->
+            <div id="barcodeScannerDiv"></div>
+            <p id="barcodeScanStatus" class="barcode-scan-status">Point camera at a barcode…</p>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="barcodeCancelBtn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Barcode Result Modal ===== -->
+    <div class="modal hidden" id="barcodeResultModal">
+        <div class="modal-content">
+            <h3 class="modal-title">Product Information</h3>
+            <div id="barcodeResultContent" class="barcode-result-content"></div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="barcodeResultCloseBtn">Close</button>
+            </div>
+        </div>
+    </div>
+
     </div><!-- end #appWrapper -->
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=129"></script>
-    <script src="js/auth.js?v=129"></script>
-    <script src="js/zones.js?v=129"></script>
-    <script src="js/plants.js?v=129"></script>
-    <script src="js/problems.js?v=129"></script>
-    <script src="js/facts.js?v=129"></script>
-    <script src="js/projects.js?v=129"></script>
-    <script src="js/chemicals.js?v=129"></script>
-    <script src="js/activities.js?v=129"></script>
-    <script src="js/photos.js?v=129"></script>
-    <script src="js/weeds.js?v=129"></script>
-    <script src="js/calendar.js?v=129"></script>
-    <script src="js/gps.js?v=129"></script>
-    <script src="js/settings.js?v=129"></script>
-    <script src="js/house.js?v=129"></script>
-    <script src="js/floorplan.js?v=129"></script>
-    <script src="js/app.js?v=129"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="js/firebase-config.js?v=130"></script>
+    <script src="js/auth.js?v=130"></script>
+    <script src="js/zones.js?v=130"></script>
+    <script src="js/plants.js?v=130"></script>
+    <script src="js/problems.js?v=130"></script>
+    <script src="js/facts.js?v=130"></script>
+    <script src="js/projects.js?v=130"></script>
+    <script src="js/chemicals.js?v=130"></script>
+    <script src="js/activities.js?v=130"></script>
+    <script src="js/photos.js?v=130"></script>
+    <script src="js/weeds.js?v=130"></script>
+    <script src="js/calendar.js?v=130"></script>
+    <script src="js/gps.js?v=130"></script>
+    <script src="js/settings.js?v=130"></script>
+    <script src="js/house.js?v=130"></script>
+    <script src="js/floorplan.js?v=130"></script>
+    <script src="js/app.js?v=130"></script>
 
 </body>
 </html>

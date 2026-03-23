@@ -292,84 +292,151 @@ async function getAllChemicals() {
 
 // ============================================================
 // BARCODE SCANNER
-// Uses html5-qrcode (CDN) for camera scanning, then queries
-// two free APIs for product info and shows all returned data
-// in a popup so the user can see what's available.
+// Uses native browser APIs — no third-party library needed.
+//   • getUserMedia  — direct camera stream attached to a <video> element
+//   • BarcodeDetector — native Chrome barcode API (Android Chrome 83+)
+// Falls back gracefully if BarcodeDetector is not available.
 //
-// APIs tried (in order, both free / no key required):
+// Lookup APIs (free, no key):
 //   1. UPC Item DB  — https://api.upcitemdb.com/prod/trial/lookup
 //   2. Open Food Facts — https://world.openfoodfacts.org/api/v0/product/
 // ============================================================
 
-var barcodeScanner = null;  // Html5Qrcode instance
+var bcStream     = null;  // MediaStream from getUserMedia
+var bcDetecting  = false; // scan-loop flag
 
 /**
- * Build a fullscreen overlay directly on <body> and start the rear camera.
- * Using a fullscreen overlay (not the modal system) avoids CSS conflicts
- * that prevent the video element from rendering on mobile browsers.
+ * Build a fullscreen overlay, attach the rear camera to a <video> element
+ * we create ourselves, then start the BarcodeDetector scan loop.
  */
 function openBarcodeScanner() {
-    // Kill any leftover scanner
-    if (barcodeScanner) {
-        barcodeScanner.stop().catch(function() {});
-        barcodeScanner = null;
-    }
+    // Stop any existing stream
+    bcStopStream();
 
-    // Remove any leftover overlay from a previous attempt
+    // Remove any leftover overlay
     var old = document.getElementById('barcodeScanOverlay');
     if (old) old.remove();
 
-    // Build fullscreen overlay
+    // Build the fullscreen overlay with our own <video> element
     var overlay = document.createElement('div');
     overlay.id = 'barcodeScanOverlay';
-    overlay.innerHTML =
-        '<div id="barcodeScannerDiv"></div>' +
-        '<p id="barcodeScanStatus" class="barcode-scan-status">Point camera at a barcode\u2026</p>' +
-        '<button id="barcodeCancelBtn2" class="btn btn-secondary" ' +
-        'style="display:block;margin:12px auto;">Cancel</button>';
+
+    var video = document.createElement('video');
+    video.id = 'barcodeScanVideo';
+    video.setAttribute('playsinline', '');  // required for iOS; also helps Android
+    video.setAttribute('autoplay', '');
+    video.setAttribute('muted', '');
+    video.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;background:#000;';
+
+    var status = document.createElement('p');
+    status.id = 'barcodeScanStatus';
+    status.className = 'barcode-scan-status';
+    status.textContent = 'Starting camera\u2026';
+
+    var cancelBtn = document.createElement('button');
+    cancelBtn.className = 'btn btn-secondary';
+    cancelBtn.style.cssText = 'display:block;margin:12px auto;';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.addEventListener('click', closeBarcodeScanner);
+
+    overlay.appendChild(video);
+    overlay.appendChild(status);
+    overlay.appendChild(cancelBtn);
     document.body.appendChild(overlay);
 
-    document.getElementById('barcodeCancelBtn2').addEventListener('click', closeBarcodeScanner);
-
-    barcodeScanner = new Html5Qrcode('barcodeScannerDiv');
-    barcodeScanner.start(
-        { facingMode: 'environment' },
-        { fps: 10, qrbox: { width: 260, height: 120 } },
-        function onSuccess(decodedText) {
-            barcodeScanner.stop().then(function() {
-                barcodeScanner = null;
-                lookupBarcode(decodedText);
-            }).catch(function() {
-                barcodeScanner = null;
-                lookupBarcode(decodedText);
-            });
-        },
-        function onFailure() { /* ignore per-frame misses */ }
-    ).catch(function(err) {
-        barcodeScanner = null;
+    // Request the rear camera
+    navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 } }
+    }).then(function(stream) {
+        bcStream = stream;
+        video.srcObject = stream;
+        video.play();
+        status.textContent = 'Point camera at a barcode\u2026';
+        bcStartDetecting(video, status);
+    }).catch(function(err) {
         var msg = String(err).toLowerCase();
-        var isPermission = msg.includes('notallowed') || msg.includes('permission') ||
-                           msg.includes('denied') || msg.includes('dismissed');
-        var statusEl = document.getElementById('barcodeScanStatus');
-        if (statusEl) {
-            statusEl.className = 'barcode-scan-status barcode-scan-error';
-            statusEl.innerHTML = isPermission
-                ? '<strong>Camera permission denied.</strong><br><br>' +
-                  'Tap the \uD83D\uDD12 lock icon in your browser address bar \u2192 ' +
-                  'Site settings \u2192 Camera \u2192 Allow. Then reload and try again.'
-                : 'Camera error: ' + err + ' \u2014 try reloading the page.';
-        }
+        var denied = msg.includes('notallowed') || msg.includes('permission') ||
+                     msg.includes('denied') || msg.includes('dismissed');
+        status.className = 'barcode-scan-status barcode-scan-error';
+        status.innerHTML = denied
+            ? '<strong>Camera permission denied.</strong><br><br>' +
+              'Tap the \uD83D\uDD12 lock in your browser address bar \u2192 ' +
+              'Site settings \u2192 Camera \u2192 Allow, then reload the page.'
+            : 'Camera error: ' + err;
     });
 }
 
 /**
- * Stop camera and remove the fullscreen overlay.
+ * Run the BarcodeDetector scan loop on the live video feed.
+ * Falls back to a manual-entry prompt if the API is not available.
+ */
+function bcStartDetecting(video, statusEl) {
+    if (!('BarcodeDetector' in window)) {
+        // BarcodeDetector not available — offer manual entry as fallback
+        statusEl.textContent = '';
+        var msg = document.createElement('div');
+        msg.style.cssText = 'color:#fff;text-align:center;padding:0 12px;';
+        msg.innerHTML = 'Automatic barcode detection is not supported in this browser.<br><br>' +
+            '<label style="display:block;margin-bottom:6px;">Enter barcode manually:</label>';
+        var inp = document.createElement('input');
+        inp.type = 'text';
+        inp.inputMode = 'numeric';
+        inp.style.cssText = 'width:100%;max-width:280px;padding:8px;font-size:1rem;border-radius:6px;border:none;';
+        inp.placeholder = 'e.g. 071121009071';
+        var goBtn = document.createElement('button');
+        goBtn.className = 'btn btn-primary';
+        goBtn.style.cssText = 'display:block;margin:10px auto 0;';
+        goBtn.textContent = 'Look Up';
+        goBtn.addEventListener('click', function() {
+            var val = inp.value.trim();
+            if (val) { closeBarcodeScanner(); lookupBarcode(val); }
+        });
+        msg.appendChild(inp);
+        msg.appendChild(goBtn);
+        statusEl.parentNode.insertBefore(msg, statusEl);
+        return;
+    }
+
+    var detector = new BarcodeDetector({
+        formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'qr_code']
+    });
+
+    bcDetecting = true;
+
+    function scan() {
+        if (!bcDetecting) return;
+        if (video.readyState < 2) { requestAnimationFrame(scan); return; }
+
+        detector.detect(video).then(function(results) {
+            if (results.length > 0) {
+                bcDetecting = false;
+                var code = results[0].rawValue;
+                closeBarcodeScanner();
+                lookupBarcode(code);
+            } else {
+                requestAnimationFrame(scan);
+            }
+        }).catch(function() {
+            if (bcDetecting) requestAnimationFrame(scan);
+        });
+    }
+    scan();
+}
+
+/** Stop camera stream and scan loop. */
+function bcStopStream() {
+    bcDetecting = false;
+    if (bcStream) {
+        bcStream.getTracks().forEach(function(t) { t.stop(); });
+        bcStream = null;
+    }
+}
+
+/**
+ * Stop camera, remove overlay.
  */
 function closeBarcodeScanner() {
-    if (barcodeScanner) {
-        barcodeScanner.stop().catch(function() {});
-        barcodeScanner = null;
-    }
+    bcStopStream();
     var overlay = document.getElementById('barcodeScanOverlay');
     if (overlay) overlay.remove();
 }

@@ -729,7 +729,7 @@ function loadThingDetail(thingId) {
 }
 
 /**
- * Render thing header / meta / breadcrumb.
+ * Render thing header / meta / breadcrumb, then load all feature sections.
  */
 function renderThingDetail(thing, room, floor) {
     document.getElementById('thingTitle').textContent = thing.name || 'Thing';
@@ -746,6 +746,19 @@ function renderThingDetail(thing, room, floor) {
         { label: room.name  || 'Room',  hash: '#room/'  + room.id },
         { label: thing.name || 'Thing', hash: null }
     ]);
+
+    // ---- Load all feature sections ----
+    loadProblems('thing', thing.id, 'thingProblemsContainer', 'thingProblemsEmptyState');
+    loadFacts(   'thing', thing.id, 'thingFactsContainer',    'thingFactsEmptyState');
+    loadProjects('thing', thing.id, 'thingProjectsContainer', 'thingProjectsEmptyState');
+    loadActivities('thing', thing.id, 'thingActivityContainer', 'thingActivityEmptyState');
+    loadPhotos(  'thing', thing.id, 'thingPhotoContainer',    'thingPhotoEmptyState');
+
+    if (typeof loadEventsForTarget === 'function') {
+        var months = parseInt(document.getElementById('thingCalendarRangeSelect').value, 10) || 3;
+        loadEventsForTarget('thing', thing.id,
+            'thingCalendarEventsContainer', 'thingCalendarEventsEmptyState', months);
+    }
 }
 
 // ============================================================
@@ -946,4 +959,48 @@ document.getElementById('deleteThingBtn').addEventListener('click', function() {
             }
         })
         .catch(function(err) { console.error('Delete thing error:', err); });
+});
+
+// ============================================================
+// THING FEATURE BUTTON WIRING  (Problems, Facts, Projects,
+// Activities, Photos, Calendar Events on the Thing detail page)
+// ============================================================
+
+document.getElementById('addThingProblemBtn').addEventListener('click', function() {
+    if (currentThing) openAddProblemModal('thing', currentThing.id);
+});
+
+document.getElementById('addThingFactBtn').addEventListener('click', function() {
+    if (currentThing) openAddFactModal('thing', currentThing.id);
+});
+
+document.getElementById('addThingProjectBtn').addEventListener('click', function() {
+    if (currentThing) openAddProjectModal('thing', currentThing.id);
+});
+
+document.getElementById('logThingActivityBtn').addEventListener('click', function() {
+    if (currentThing) openLogActivityModal('thing', currentThing.id);
+});
+
+document.getElementById('addThingPhotoBtn').addEventListener('click', function() {
+    if (currentThing) triggerPhotoUpload('thing', currentThing.id);
+});
+
+document.getElementById('addThingCalendarEventBtn').addEventListener('click', function() {
+    if (currentThing && typeof openAddCalendarEventModal === 'function') {
+        var reloadFn = function() {
+            var months = parseInt(document.getElementById('thingCalendarRangeSelect').value, 10) || 3;
+            loadEventsForTarget('thing', currentThing.id,
+                'thingCalendarEventsContainer', 'thingCalendarEventsEmptyState', months);
+        };
+        openAddCalendarEventModal('thing', currentThing.id, reloadFn);
+    }
+});
+
+document.getElementById('thingCalendarRangeSelect').addEventListener('change', function() {
+    if (currentThing && typeof loadEventsForTarget === 'function') {
+        var months = parseInt(this.value, 10) || 3;
+        loadEventsForTarget('thing', currentThing.id,
+            'thingCalendarEventsContainer', 'thingCalendarEventsEmptyState', months);
+    }
 });

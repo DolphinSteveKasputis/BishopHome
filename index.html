@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=114">
+    <link rel="stylesheet" href="css/styles.css?v=115">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -446,11 +446,64 @@
             <!-- Context: room › floor, category badge -->
             <p class="house-thing-meta" id="thingMeta"></p>
 
-            <!-- Features placeholder (added in Phase H4) -->
+            <!-- Problems / Concerns -->
             <div class="section-header">
-                <h3 class="section-heading">Details</h3>
+                <h3 class="section-heading">Problems / Concerns</h3>
+                <button class="btn btn-primary btn-small" id="addThingProblemBtn">+ Add</button>
             </div>
-            <p class="empty-state">Facts, problems, projects, activities, and photos will be added in the next phase.</p>
+            <div id="thingProblemsContainer"></div>
+            <p class="empty-state" id="thingProblemsEmptyState"></p>
+
+            <!-- Facts -->
+            <div class="section-header">
+                <h3 class="section-heading">Facts</h3>
+                <button class="btn btn-primary btn-small" id="addThingFactBtn">+ Add</button>
+            </div>
+            <div id="thingFactsContainer"></div>
+            <p class="empty-state" id="thingFactsEmptyState"></p>
+
+            <!-- Future Projects -->
+            <div class="section-header">
+                <h3 class="section-heading">Future Projects</h3>
+                <button class="btn btn-primary btn-small" id="addThingProjectBtn">+ Add</button>
+            </div>
+            <div id="thingProjectsContainer"></div>
+            <p class="empty-state" id="thingProjectsEmptyState"></p>
+
+            <!-- Calendar Events -->
+            <div class="section-header">
+                <h3 class="section-heading">Calendar Events</h3>
+                <div class="section-header-actions">
+                    <div class="calendar-range-picker">
+                        <label>Next</label>
+                        <select id="thingCalendarRangeSelect" class="range-select">
+                            <option value="1">1 mo</option>
+                            <option value="3" selected>3 mo</option>
+                            <option value="6">6 mo</option>
+                            <option value="12">12 mo</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary btn-small" id="addThingCalendarEventBtn">+ Add Event</button>
+                </div>
+            </div>
+            <div id="thingCalendarEventsContainer"></div>
+            <p class="empty-state" id="thingCalendarEventsEmptyState"></p>
+
+            <!-- Activity History -->
+            <div class="section-header">
+                <h3 class="section-heading">Activity History</h3>
+                <button class="btn btn-primary btn-small" id="logThingActivityBtn">+ Log Activity</button>
+            </div>
+            <div id="thingActivityContainer"></div>
+            <p class="empty-state" id="thingActivityEmptyState">No activities logged yet.</p>
+
+            <!-- Photos -->
+            <div class="section-header">
+                <h3 class="section-heading">Photos</h3>
+                <button class="btn btn-primary btn-small" id="addThingPhotoBtn">+ Add Photo</button>
+            </div>
+            <div id="thingPhotoContainer"></div>
+            <p class="empty-state" id="thingPhotoEmptyState">No photos yet.</p>
         </section>
 
         <!-- Page: Plant detail -->
@@ -1250,22 +1303,22 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=114"></script>
-    <script src="js/auth.js?v=114"></script>
-    <script src="js/zones.js?v=114"></script>
-    <script src="js/plants.js?v=114"></script>
-    <script src="js/problems.js?v=114"></script>
-    <script src="js/facts.js?v=114"></script>
-    <script src="js/projects.js?v=114"></script>
-    <script src="js/chemicals.js?v=114"></script>
-    <script src="js/activities.js?v=114"></script>
-    <script src="js/photos.js?v=114"></script>
-    <script src="js/weeds.js?v=114"></script>
-    <script src="js/calendar.js?v=114"></script>
-    <script src="js/gps.js?v=114"></script>
-    <script src="js/settings.js?v=114"></script>
-    <script src="js/house.js?v=114"></script>
-    <script src="js/app.js?v=114"></script>
+    <script src="js/firebase-config.js?v=115"></script>
+    <script src="js/auth.js?v=115"></script>
+    <script src="js/zones.js?v=115"></script>
+    <script src="js/plants.js?v=115"></script>
+    <script src="js/problems.js?v=115"></script>
+    <script src="js/facts.js?v=115"></script>
+    <script src="js/projects.js?v=115"></script>
+    <script src="js/chemicals.js?v=115"></script>
+    <script src="js/activities.js?v=115"></script>
+    <script src="js/photos.js?v=115"></script>
+    <script src="js/weeds.js?v=115"></script>
+    <script src="js/calendar.js?v=115"></script>
+    <script src="js/gps.js?v=115"></script>
+    <script src="js/settings.js?v=115"></script>
+    <script src="js/house.js?v=115"></script>
+    <script src="js/app.js?v=115"></script>
 
 </body>
 </html>

@@ -1876,6 +1876,98 @@ document.getElementById('addPanelPhotoBtn').addEventListener('click', function()
 });
 
 // ============================================================
+// ROOMS PAGE  (#rooms)
+// Displays a navigable tree of all floors and their rooms.
+// ============================================================
+
+/**
+ * Load and render the Rooms tree page.
+ * Shows all floors (sorted by floorNumber) with their rooms listed
+ * beneath each floor. Both floor and room rows are clickable links.
+ */
+function loadRoomsPage() {
+    var container  = document.getElementById('roomsTreeContainer');
+    var emptyState = document.getElementById('roomsTreeEmptyState');
+
+    container.innerHTML    = '';
+    emptyState.textContent = 'Loading…';
+
+    buildHouseBreadcrumb([
+        { label: 'House', hash: '#house' },
+        { label: 'Rooms', hash: null }
+    ]);
+
+    var floorsQ = db.collection('floors').orderBy('floorNumber', 'asc').get();
+    var roomsQ  = db.collection('rooms').get();
+
+    Promise.all([floorsQ, roomsQ])
+        .then(function(results) {
+            var floorSnap = results[0];
+            var roomSnap  = results[1];
+
+            emptyState.textContent = '';
+
+            if (floorSnap.empty) {
+                emptyState.textContent = 'No floors yet. Add a floor from the House page.';
+                return;
+            }
+
+            // Group rooms by floorId, sorted by createdAt
+            var roomsByFloor = {};
+            roomSnap.forEach(function(doc) {
+                var fId = doc.data().floorId;
+                if (!roomsByFloor[fId]) roomsByFloor[fId] = [];
+                roomsByFloor[fId].push({ id: doc.id, data: doc.data() });
+            });
+            Object.keys(roomsByFloor).forEach(function(fId) {
+                roomsByFloor[fId].sort(function(a, b) {
+                    var ta = a.data.createdAt ? a.data.createdAt.toMillis() : 0;
+                    var tb = b.data.createdAt ? b.data.createdAt.toMillis() : 0;
+                    return ta - tb;
+                });
+            });
+
+            // Render floor rows + indented room rows
+            floorSnap.forEach(function(floorDoc) {
+                var floor = floorDoc.data();
+                var rooms = roomsByFloor[floorDoc.id] || [];
+
+                // Floor link row
+                var floorRow = document.createElement('a');
+                floorRow.href      = '#floor/' + floorDoc.id;
+                floorRow.className = 'rooms-tree-floor';
+                floorRow.textContent = floor.name || 'Floor';
+                if (floor.floorNumber !== null && floor.floorNumber !== undefined) {
+                    var numSpan = document.createElement('span');
+                    numSpan.className   = 'rooms-tree-floor-num';
+                    numSpan.textContent = '  (Floor ' + floor.floorNumber + ')';
+                    floorRow.appendChild(numSpan);
+                }
+                container.appendChild(floorRow);
+
+                if (!rooms.length) {
+                    var noRooms = document.createElement('div');
+                    noRooms.className   = 'rooms-tree-empty';
+                    noRooms.textContent = 'No rooms on this floor';
+                    container.appendChild(noRooms);
+                } else {
+                    rooms.forEach(function(r) {
+                        var roomRow = document.createElement('a');
+                        roomRow.href      = '#room/' + r.id;
+                        roomRow.className = 'rooms-tree-room';
+                        roomRow.textContent = r.data.name || 'Room';
+                        container.appendChild(roomRow);
+                    });
+                }
+            });
+        })
+        .catch(function(err) {
+            console.error('loadRoomsPage error:', err);
+            emptyState.textContent = 'Error loading rooms.';
+        });
+}
+
+// ============================================================
 // CIRCUIT LINKAGE  (Phase H13)
 // Scan all floor plan documents to find markers linked to a breaker.
 // ============================================================

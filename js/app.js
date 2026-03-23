@@ -4,56 +4,81 @@
 // ============================================================
 
 // ---------- Router ----------
-// We use the URL hash (#home, #weeds, #calendar, etc.) to show/hide pages.
-// This means no server-side routing is needed — it's all client-side.
+// We use the URL hash (#main, #home, #house, etc.) to show/hide pages.
 
 /**
  * List of top-level pages that map to nav links.
- * Each key matches a hash value AND a data-page attribute AND a page section id.
+ * These pages clear the breadcrumb bar when shown.
  */
-const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'house', 'settings'];
+const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'house', 'settings', 'main'];
 
 /**
- * All pages that can be shown (includes detail pages that aren't in the nav).
+ * All pages that can be shown (includes detail pages not in the nav).
  */
-const ALL_PAGES = [...TOP_LEVEL_PAGES, 'zone', 'plant', 'weed', 'chemical', 'gpsmap', 'yardmap', 'floor', 'room', 'thing', 'subthing', 'floorplan', 'panel'];
+const ALL_PAGES = [
+    ...TOP_LEVEL_PAGES,
+    'zone', 'plant', 'weed', 'chemical', 'gpsmap', 'yardmap',
+    'floor', 'room', 'thing', 'subthing', 'floorplan', 'panel', 'rooms'
+];
+
+/**
+ * House-context pages — switching to any of these shows the house nav.
+ * Yard-context pages — switching to any of these shows the yard nav.
+ * Shared pages (calendar, settings) keep whichever context was last active.
+ */
+const HOUSE_PAGES = ['house', 'floor', 'room', 'thing', 'subthing', 'floorplan', 'panel', 'rooms'];
+const YARD_PAGES  = ['main', 'home', 'zone', 'plant', 'weeds', 'weed', 'chemicals', 'chemical', 'actions', 'gpsmap', 'yardmap'];
+
+/** Tracks which nav context is currently active ('yard' or 'house'). */
+var currentNavContext = 'yard';
 
 /**
  * Navigate to a page by showing/hiding the right section.
- * @param {string} page - The page name (e.g., "home", "zone", "plant")
+ * Also swaps the nav bar between yard and house contexts.
+ * @param {string} page - The page name (e.g., "home", "zone", "house")
  */
 function showPage(page) {
     // Hide all page sections
     ALL_PAGES.forEach(function(p) {
         const el = document.getElementById('page-' + p);
-        if (el) {
-            el.classList.add('hidden');
-        }
+        if (el) el.classList.add('hidden');
     });
 
     // Show the requested page
     const targetPage = document.getElementById('page-' + page);
-    if (targetPage) {
-        targetPage.classList.remove('hidden');
-    }
+    if (targetPage) targetPage.classList.remove('hidden');
 
-    // Update active state on nav links (both desktop and mobile)
-    // Map detail pages to their parent nav link
+    // Update nav context (shared pages keep the current context)
+    if (HOUSE_PAGES.indexOf(page) !== -1)     currentNavContext = 'house';
+    else if (YARD_PAGES.indexOf(page) !== -1) currentNavContext = 'yard';
+
+    // Toggle yard vs house nav bars (desktop + mobile sections)
+    var isHouse = currentNavContext === 'house';
+    var yardNavEl        = document.getElementById('yardNav');
+    var houseNavEl       = document.getElementById('houseNav');
+    var mobileYardNavEl  = document.getElementById('mobileNavYard');
+    var mobileHouseNavEl = document.getElementById('mobileNavHouse');
+    if (yardNavEl)        yardNavEl.classList.toggle('hidden', isHouse);
+    if (houseNavEl)       houseNavEl.classList.toggle('hidden', !isHouse);
+    if (mobileYardNavEl)  mobileYardNavEl.classList.toggle('hidden', isHouse);
+    if (mobileHouseNavEl) mobileHouseNavEl.classList.toggle('hidden', !isHouse);
+
+    // Determine which nav link should be highlighted
     var navPage = page;
     if (page === 'zone' || page === 'plant' || page === 'gpsmap' || page === 'yardmap') navPage = 'home';
-    if (page === 'settings') navPage = 'settings';
-    if (page === 'weed') navPage = 'weeds';
-    if (page === 'chemical') navPage = 'chemicals';
+    if (page === 'weed')       navPage = 'weeds';
+    if (page === 'chemical')   navPage = 'chemicals';
     if (page === 'floor')      navPage = 'house';
     if (page === 'room')       navPage = 'house';
     if (page === 'thing')      navPage = 'house';
     if (page === 'floorplan')  navPage = 'house';
     if (page === 'panel')      navPage = 'house';
     if (page === 'subthing')   navPage = 'house';
+    if (page === 'main')       navPage = '';       // No link highlighted on the landing page
 
     document.querySelectorAll('.nav-link').forEach(function(link) {
         link.classList.remove('active');
-        if (link.getAttribute('data-page') === navPage) {
+        if (navPage && link.getAttribute('data-page') === navPage) {
             link.classList.add('active');
         }
     });
@@ -61,31 +86,23 @@ function showPage(page) {
     // Close mobile nav if open
     closeMobileNav();
 
-    // Clear breadcrumbs and header zone name for top-level pages
+    // Clear breadcrumbs and reset header title for top-level pages
     if (TOP_LEVEL_PAGES.includes(page)) {
         document.getElementById('breadcrumbBar').innerHTML = '';
-        document.getElementById('headerTitle').innerHTML = '<a href="#home" class="home-link">Bishop</a>';
+        document.getElementById('headerTitle').innerHTML =
+            '<a href="#main" class="home-link">Bishop</a>';
     }
 }
 
 /**
- * Parse the URL hash and route to the correct page.
- * Hash format examples:
- *   #home           -> home page (zone list)
- *   #zone/abc123    -> zone detail page for zone with id "abc123"
- *   #plant/xyz789   -> plant detail page for plant with id "xyz789"
- *   #weeds          -> weeds page
- *   #calendar       -> calendar page
- *   #chemicals      -> chemicals page
- *   #actions        -> saved actions page
+ * Parse the URL hash and route to the correct page + load its data.
  */
 function handleRoute() {
-    const hash = window.location.hash.slice(1) || 'home';  // Remove the '#', default to 'home'
+    const hash  = window.location.hash.slice(1) || 'main';
     const parts = hash.split('/');
-    const page = parts[0];
-    const id = parts[1] || null;
+    const page  = parts[0];
+    const id    = parts[1] || null;
 
-    // Show the correct page section and load its data
     if (page === 'zone' && id) {
         showPage('zone');
         loadZoneDetail(id);
@@ -98,6 +115,8 @@ function handleRoute() {
     } else if (page === 'home') {
         showPage('home');
         loadZonesList();
+    } else if (page === 'main') {
+        showPage('main');
     } else if (page === 'weeds') {
         showPage('weeds');
         loadWeedsList();
@@ -122,6 +141,9 @@ function handleRoute() {
     } else if (page === 'house') {
         showPage('house');
         loadHousePage();
+    } else if (page === 'rooms') {
+        showPage('rooms');
+        loadRoomsPage();
     } else if (page === 'floor' && id) {
         showPage('floor');
         loadFloorDetail(id);
@@ -146,16 +168,15 @@ function handleRoute() {
     } else if (TOP_LEVEL_PAGES.includes(page)) {
         showPage(page);
     } else {
-        // Unknown route — go home
-        showPage('home');
-        loadZonesList();
+        // Unknown route — go to landing page
+        showPage('main');
     }
 }
 
 // ---------- Mobile Navigation ----------
 
 const hamburgerBtn = document.getElementById('hamburgerBtn');
-const mobileNav = document.getElementById('mobileNav');
+const mobileNav    = document.getElementById('mobileNav');
 
 function closeMobileNav() {
     mobileNav.classList.remove('open');
@@ -167,19 +188,31 @@ hamburgerBtn.addEventListener('click', function() {
     hamburgerBtn.classList.toggle('open');
 });
 
-// Close mobile nav when clicking a link inside it
+// Close mobile nav when clicking any nav link inside it (both contexts)
 mobileNav.querySelectorAll('.nav-link').forEach(function(link) {
     link.addEventListener('click', closeMobileNav);
 });
 
+// Wire house-context sign-out buttons to delegate to the main sign-out button
+var signOutBtnHouse       = document.getElementById('signOutBtnHouse');
+var signOutBtnMobileHouse = document.getElementById('signOutBtnMobileHouse');
+if (signOutBtnHouse) {
+    signOutBtnHouse.addEventListener('click', function() {
+        document.getElementById('signOutBtn').click();
+    });
+}
+if (signOutBtnMobileHouse) {
+    signOutBtnMobileHouse.addEventListener('click', function() {
+        document.getElementById('signOutBtnMobile').click();
+    });
+}
+
 // ---------- Initialize ----------
 
-// Listen for hash changes (back/forward buttons, clicking links)
 window.addEventListener('hashchange', handleRoute);
 
 /**
  * Called by auth.js once the user is confirmed signed in.
- * Starts the routing so pages can load.
  */
 function initApp() {
     handleRoute();

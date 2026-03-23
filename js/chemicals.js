@@ -496,13 +496,39 @@ function closeBarcodeScanner() {
  * Both are free with no API key required.
  * @param {string} barcode
  */
+/**
+ * Look up a barcode and show results in a fresh body-level overlay.
+ * Avoids the modal system entirely so nothing can block it from appearing.
+ */
 async function lookupBarcode(barcode) {
-    // Show result modal with a loading message.
-    // Small timeout lets the scanner overlay finish removing from the DOM first.
-    renderBarcodeResult('<p style="color:#555;padding:12px 0">Looking up <strong>' +
-        escapeHtml(barcode) + '</strong>\u2026</p>');
-    setTimeout(function() { openModal('barcodeResultModal'); }, 80);
+    // Build result overlay and attach to body immediately
+    var old = document.getElementById('barcodeResultOverlay');
+    if (old) old.remove();
 
+    var overlay = document.createElement('div');
+    overlay.id = 'barcodeResultOverlay';
+
+    var title = document.createElement('h3');
+    title.style.cssText = 'margin:0 0 12px;font-size:1.1rem;';
+    title.textContent = 'Product Information';
+
+    var body = document.createElement('div');
+    body.id = 'barcodeResultBody';
+    body.style.cssText = 'flex:1;overflow-y:auto;';
+    body.innerHTML = '<p style="color:#aaa;">Looking up ' + escapeHtml(barcode) + '\u2026</p>';
+
+    var closeBtn = document.createElement('button');
+    closeBtn.className = 'btn btn-secondary';
+    closeBtn.style.cssText = 'display:block;margin:14px auto 0;';
+    closeBtn.textContent = 'Close';
+    closeBtn.addEventListener('click', function() { overlay.remove(); });
+
+    overlay.appendChild(title);
+    overlay.appendChild(body);
+    overlay.appendChild(closeBtn);
+    document.body.appendChild(overlay);
+
+    // Now do the lookup and update body when done
     try {
         // ---- Attempt 1: UPC Item DB ----
         var upcRes  = await fetch('https://api.upcitemdb.com/prod/trial/lookup?upc=' +
@@ -511,7 +537,7 @@ async function lookupBarcode(barcode) {
 
         if (upcData.items && upcData.items.length > 0) {
             var item = upcData.items[0];
-            renderBarcodeResult(buildBarcodeTable([
+            body.innerHTML = buildBarcodeTable([
                 { label: 'Barcode',       value: barcode },
                 { label: 'Title',         value: item.title },
                 { label: 'Brand',         value: item.brand },
@@ -524,7 +550,7 @@ async function lookupBarcode(barcode) {
                 { label: 'EAN',           value: item.ean },
                 { label: 'Offers found',  value: item.offers ? String(item.offers.length) : null },
                 { label: 'Source',        value: 'UPC Item DB' }
-            ], item.images && item.images.length ? item.images[0] : null));
+            ], item.images && item.images.length ? item.images[0] : null);
             return;
         }
 
@@ -535,7 +561,7 @@ async function lookupBarcode(barcode) {
 
         if (ffData.status === 1 && ffData.product) {
             var p = ffData.product;
-            renderBarcodeResult(buildBarcodeTable([
+            body.innerHTML = buildBarcodeTable([
                 { label: 'Barcode',     value: barcode },
                 { label: 'Name',        value: p.product_name || p.product_name_en },
                 { label: 'Brand',       value: p.brands },
@@ -544,32 +570,27 @@ async function lookupBarcode(barcode) {
                 { label: 'Ingredients', value: p.ingredients_text },
                 { label: 'Countries',   value: p.countries },
                 { label: 'Source',      value: 'Open Food Facts' }
-            ], p.image_front_url || p.image_url || null));
+            ], p.image_front_url || p.image_url || null);
             return;
         }
 
-        // ---- Nothing found in either database ----
-        renderBarcodeResult(buildBarcodeTable([
-            { label: 'Barcode', value: barcode },
-            { label: 'Result',  value: 'No product information found. Free databases have limited ' +
-                                       'coverage for pesticides and specialty chemicals \u2014 ' +
-                                       'this is normal.' }
-        ], null));
+        // ---- Nothing found ----
+        body.innerHTML = '<p style="color:#555;line-height:1.5;">' +
+            '<strong>Barcode: ' + escapeHtml(barcode) + '</strong><br><br>' +
+            'No product information found in either database.<br>' +
+            'This is common for pesticides and specialty chemicals \u2014 ' +
+            'their barcodes are often not in free databases.</p>';
 
     } catch (err) {
-        renderBarcodeResult(buildBarcodeTable([
-            { label: 'Barcode', value: barcode },
-            { label: 'Error',   value: 'Lookup failed: ' + err.message }
-        ], null));
+        body.innerHTML = '<p style="color:#c0392b;">' +
+            '<strong>Barcode: ' + escapeHtml(barcode) + '</strong><br><br>' +
+            'Lookup failed: ' + escapeHtml(err.message) + '</p>';
     }
 }
 
 /**
  * Build an HTML string: optional product image + a two-column table of fields.
  * Skips rows where value is null / empty.
- * @param {Array<{label:string, value:string|null}>} fields
- * @param {string|null} imageUrl
- * @returns {string}
  */
 function buildBarcodeTable(fields, imageUrl) {
     var html = '';
@@ -587,11 +608,6 @@ function buildBarcodeTable(fields, imageUrl) {
     });
     html += '</table>';
     return html;
-}
-
-/** Set the innerHTML of the result modal body. */
-function renderBarcodeResult(html) {
-    document.getElementById('barcodeResultContent').innerHTML = html;
 }
 
 // ---------- Event Listeners ----------

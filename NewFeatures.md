@@ -209,7 +209,7 @@ Useful for appliances and major items — knowing when a water heater or dishwas
 ---
 
 ## NF-11 — Calendar Rollup on House Page
-**Status:** PLANNED
+**Status:** COMPLETE
 
 **What it does:**
 Adds an **Upcoming Events** rollup section to the House main page (`#house`), positioned between the Floors list and the Breaker Panel section. Shows the next 14 days of calendar events as a compact, read-only list. Each item links to the Calendar page.
@@ -245,7 +245,7 @@ When you land on the House page, you can immediately see if anything is coming u
 | NF-8  | Clone a Plant                    | Small      | COMPLETE |
 | NF-9  | Bulk Activity Logging            | Medium     | COMPLETE |
 | NF-10 | Purchase Date on Things          | Very Small | COMPLETE |
-| NF-11 | Calendar Rollup on House Page    | Small      | PLANNED |
+| NF-11 | Calendar Rollup on House Page    | Small      | COMPLETE |
 
 ---
 

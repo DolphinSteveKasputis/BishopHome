@@ -1974,6 +1974,35 @@ button {
 .house-thing-cat-badge--ceiling-light { background: #fff8e1; color: #f57f17; }
 .house-thing-cat-badge--electronics   { background: #fce4ec; color: #880e4f; }
 
+/* ---- House Calendar Rollup (Upcoming Next 14 Days) ---- */
+
+/* One row per upcoming event */
+.house-cal-item {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 7px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.house-cal-item:last-child {
+    border-bottom: none;
+}
+
+/* Date column — fixed width so titles align */
+.house-cal-date {
+    font-size: 0.8rem;
+    color: #888;
+    white-space: nowrap;
+    min-width: 90px;
+}
+
+/* Event title */
+.house-cal-title {
+    font-size: 0.9rem;
+    color: #333;
+}
+
 /* ---- House Summary Stats Bar (#house page) ---- */
 .house-summary-stats {
     display: flex;

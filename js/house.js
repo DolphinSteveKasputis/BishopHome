@@ -117,6 +117,9 @@ function loadHousePage() {
     // Load the breaker panels list independently (different DOM container)
     loadPanelList();
 
+    // Load the 14-day calendar rollup independently
+    loadHouseCalendarRollup();
+
     // Build the date range for "upcoming in next 30 days"
     var today   = new Date();
     today.setHours(0, 0, 0, 0);
@@ -194,6 +197,87 @@ function loadHousePage() {
             console.error('loadHousePage error:', err);
             emptyState.textContent = 'Error loading house data.';
         });
+}
+
+/**
+ * Loads all calendar events, generates occurrences for the next 14 days,
+ * and renders them as a compact read-only list on the House home page.
+ * Completed and overdue occurrences are excluded — this is a forward-looking
+ * rollup only. Uses generateOccurrences() from calendar.js.
+ */
+async function loadHouseCalendarRollup() {
+    var container  = document.getElementById('houseCalendarRollup');
+    var emptyState = document.getElementById('houseCalendarRollupEmpty');
+
+    container.innerHTML    = '';
+    emptyState.textContent = '';
+    emptyState.style.display = 'none';
+
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+    var todayStr = today.toISOString().slice(0, 10);
+
+    var end14 = new Date(today);
+    end14.setDate(end14.getDate() + 14);
+    var end14Str = end14.toISOString().slice(0, 10);
+
+    try {
+        var snap = await userCol('calendarEvents').get();
+        if (snap.empty) {
+            emptyState.textContent = 'No upcoming events in the next 14 days.';
+            emptyState.style.display = 'block';
+            return;
+        }
+
+        // Collect all events and generate occurrences within the 14-day window
+        var allOccurrences = [];
+        snap.forEach(function(doc) {
+            var event = Object.assign({ id: doc.id }, doc.data());
+            // generateOccurrences is defined in calendar.js (loaded before house.js)
+            var occs = generateOccurrences(event, todayStr, end14Str);
+            // Keep only uncompleted, non-overdue occurrences
+            occs.forEach(function(occ) {
+                if (!occ.completed) allOccurrences.push(occ);
+            });
+        });
+
+        // Sort chronologically
+        allOccurrences.sort(function(a, b) {
+            return a.occurrenceDate.localeCompare(b.occurrenceDate);
+        });
+
+        if (allOccurrences.length === 0) {
+            emptyState.textContent = 'No upcoming events in the next 14 days.';
+            emptyState.style.display = 'block';
+            return;
+        }
+
+        // Render compact list
+        allOccurrences.forEach(function(occ) {
+            var item = document.createElement('div');
+            item.className = 'house-cal-item';
+
+            var dateEl = document.createElement('span');
+            dateEl.className = 'house-cal-date';
+            var d = new Date(occ.occurrenceDate + 'T00:00:00');
+            dateEl.textContent = d.toLocaleDateString('en-US', {
+                weekday: 'short', month: 'short', day: 'numeric'
+            });
+            item.appendChild(dateEl);
+
+            var titleEl = document.createElement('span');
+            titleEl.className = 'house-cal-title';
+            titleEl.textContent = occ.title;
+            item.appendChild(titleEl);
+
+            container.appendChild(item);
+        });
+
+    } catch (err) {
+        console.error('loadHouseCalendarRollup error:', err);
+        emptyState.textContent = 'Error loading calendar events.';
+        emptyState.style.display = 'block';
+    }
 }
 
 /**

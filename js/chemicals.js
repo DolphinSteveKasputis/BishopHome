@@ -528,13 +528,46 @@ async function lookupBarcode(barcode) {
     overlay.appendChild(closeBtn);
     document.body.appendChild(overlay);
 
-    // Now do the lookup and update body when done
-    try {
-        // ---- Attempt 1: UPC Item DB ----
-        var upcRes  = await fetch('https://api.upcitemdb.com/prod/trial/lookup?upc=' +
-                                  encodeURIComponent(barcode));
-        var upcData = await upcRes.json();
+    // Helper: fetch with a 8-second timeout
+    function fetchWithTimeout(url) {
+        var controller = new AbortController();
+        var timer = setTimeout(function() { controller.abort(); }, 8000);
+        return fetch(url, { signal: controller.signal })
+            .finally(function() { clearTimeout(timer); });
+    }
 
+    // Now do the lookup — try each API independently so one failure
+    // doesn't prevent the other from running.
+    var found = false;
+
+    // ---- Attempt 1: Open Food Facts (reliable CORS, good for many products) ----
+    try {
+        var ffRes  = await fetchWithTimeout('https://world.openfoodfacts.org/api/v0/product/' +
+                                            encodeURIComponent(barcode) + '.json');
+        var ffData = await ffRes.json();
+        if (ffData.status === 1 && ffData.product) {
+            var p = ffData.product;
+            body.innerHTML = buildBarcodeTable([
+                { label: 'Barcode',     value: barcode },
+                { label: 'Name',        value: p.product_name || p.product_name_en },
+                { label: 'Brand',       value: p.brands },
+                { label: 'Categories',  value: p.categories },
+                { label: 'Quantity',    value: p.quantity },
+                { label: 'Ingredients', value: p.ingredients_text },
+                { label: 'Countries',   value: p.countries },
+                { label: 'Source',      value: 'Open Food Facts' }
+            ], p.image_front_url || p.image_url || null);
+            found = true;
+        }
+    } catch (e) { /* network/CORS error — fall through to next API */ }
+
+    if (found) return;
+
+    // ---- Attempt 2: UPC Item DB trial (good for general retail products) ----
+    try {
+        var upcRes  = await fetchWithTimeout('https://api.upcitemdb.com/prod/trial/lookup?upc=' +
+                                             encodeURIComponent(barcode));
+        var upcData = await upcRes.json();
         if (upcData.items && upcData.items.length > 0) {
             var item = upcData.items[0];
             body.innerHTML = buildBarcodeTable([
@@ -551,41 +584,22 @@ async function lookupBarcode(barcode) {
                 { label: 'Offers found',  value: item.offers ? String(item.offers.length) : null },
                 { label: 'Source',        value: 'UPC Item DB' }
             ], item.images && item.images.length ? item.images[0] : null);
-            return;
+            found = true;
         }
+    } catch (e) { /* network/CORS error — fall through */ }
 
-        // ---- Attempt 2: Open Food Facts ----
-        var ffRes  = await fetch('https://world.openfoodfacts.org/api/v0/product/' +
-                                  encodeURIComponent(barcode) + '.json');
-        var ffData = await ffRes.json();
+    if (found) return;
 
-        if (ffData.status === 1 && ffData.product) {
-            var p = ffData.product;
-            body.innerHTML = buildBarcodeTable([
-                { label: 'Barcode',     value: barcode },
-                { label: 'Name',        value: p.product_name || p.product_name_en },
-                { label: 'Brand',       value: p.brands },
-                { label: 'Categories',  value: p.categories },
-                { label: 'Quantity',    value: p.quantity },
-                { label: 'Ingredients', value: p.ingredients_text },
-                { label: 'Countries',   value: p.countries },
-                { label: 'Source',      value: 'Open Food Facts' }
-            ], p.image_front_url || p.image_url || null);
-            return;
-        }
-
-        // ---- Nothing found ----
-        body.innerHTML = '<p style="color:#555;line-height:1.5;">' +
-            '<strong>Barcode: ' + escapeHtml(barcode) + '</strong><br><br>' +
-            'No product information found in either database.<br>' +
-            'This is common for pesticides and specialty chemicals \u2014 ' +
-            'their barcodes are often not in free databases.</p>';
-
-    } catch (err) {
-        body.innerHTML = '<p style="color:#c0392b;">' +
-            '<strong>Barcode: ' + escapeHtml(barcode) + '</strong><br><br>' +
-            'Lookup failed: ' + escapeHtml(err.message) + '</p>';
-    }
+    // ---- Nothing found — show barcode + Google search link as fallback ----
+    var googleUrl = 'https://www.google.com/search?q=' + encodeURIComponent(barcode + ' barcode product');
+    body.innerHTML =
+        '<p style="margin-bottom:12px;"><strong>Barcode:</strong> ' + escapeHtml(barcode) + '</p>' +
+        '<p style="color:#555;line-height:1.6;margin-bottom:16px;">' +
+        'No product info found in free databases.<br>' +
+        'This is common for pesticides and specialty chemicals.</p>' +
+        '<a href="' + googleUrl + '" target="_blank" rel="noopener" ' +
+        'style="display:inline-block;padding:9px 18px;background:#4A90E2;color:#fff;' +
+        'border-radius:6px;text-decoration:none;font-weight:600;">Search Google for this barcode</a>';
 }
 
 /**

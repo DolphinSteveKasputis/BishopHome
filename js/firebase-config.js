@@ -21,4 +21,26 @@ const db = firebase.firestore();
 // Get a reference to Firebase Auth — used by auth.js for login/logout
 const auth = firebase.auth();
 
+// ============================================================
+// userCol() — Per-user Firestore collection helper
+//
+// Instead of db.collection('things')  →  shared by everyone
+// Use    userCol('things')            →  /users/{uid}/things
+//
+// Reads whoever is currently signed in via Firebase Auth,
+// so it works automatically for any user — no hardcoding.
+//
+// Used by all JS modules after the multi-user refactor (MU-5+).
+// ============================================================
+function userCol(collectionName) {
+    var user = firebase.auth().currentUser;
+    if (!user) {
+        console.error('userCol() called with no signed-in user');
+        // Return a dead-end reference that won't throw but also won't
+        // read or write real data — prevents silent cross-user leaks
+        return db.collection('__nouser__').doc('__nouser__').collection(collectionName);
+    }
+    return db.collection('users').doc(user.uid).collection(collectionName);
+}
+
 console.log("Firebase initialized successfully. Project:", firebaseConfig.projectId);

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=115">
+    <link rel="stylesheet" href="css/styles.css?v=116">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -407,6 +407,65 @@
             </div>
             <div class="card-list" id="roomListContainer"></div>
             <p class="empty-state" id="roomListEmptyState"></p>
+
+            <!-- Problems / Concerns -->
+            <div class="section-header">
+                <h3 class="section-heading">Problems / Concerns</h3>
+                <button class="btn btn-primary btn-small" id="addFloorProblemBtn">+ Add</button>
+            </div>
+            <div id="floorProblemsContainer"></div>
+            <p class="empty-state" id="floorProblemsEmptyState"></p>
+
+            <!-- Facts -->
+            <div class="section-header">
+                <h3 class="section-heading">Facts</h3>
+                <button class="btn btn-primary btn-small" id="addFloorFactBtn">+ Add</button>
+            </div>
+            <div id="floorFactsContainer"></div>
+            <p class="empty-state" id="floorFactsEmptyState"></p>
+
+            <!-- Future Projects -->
+            <div class="section-header">
+                <h3 class="section-heading">Future Projects</h3>
+                <button class="btn btn-primary btn-small" id="addFloorProjectBtn">+ Add</button>
+            </div>
+            <div id="floorProjectsContainer"></div>
+            <p class="empty-state" id="floorProjectsEmptyState"></p>
+
+            <!-- Calendar Events -->
+            <div class="section-header">
+                <h3 class="section-heading">Calendar Events</h3>
+                <div class="section-header-actions">
+                    <div class="calendar-range-picker">
+                        <label>Next</label>
+                        <select id="floorCalendarRangeSelect" class="range-select">
+                            <option value="1">1 mo</option>
+                            <option value="3" selected>3 mo</option>
+                            <option value="6">6 mo</option>
+                            <option value="12">12 mo</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary btn-small" id="addFloorCalendarEventBtn">+ Add Event</button>
+                </div>
+            </div>
+            <div id="floorCalendarEventsContainer"></div>
+            <p class="empty-state" id="floorCalendarEventsEmptyState"></p>
+
+            <!-- Activity History -->
+            <div class="section-header">
+                <h3 class="section-heading">Activity History</h3>
+                <button class="btn btn-primary btn-small" id="logFloorActivityBtn">+ Log Activity</button>
+            </div>
+            <div id="floorActivityContainer"></div>
+            <p class="empty-state" id="floorActivityEmptyState">No activities logged yet.</p>
+
+            <!-- Photos -->
+            <div class="section-header">
+                <h3 class="section-heading">Photos</h3>
+                <button class="btn btn-primary btn-small" id="addFloorPhotoBtn">+ Add Photo</button>
+            </div>
+            <div id="floorPhotoContainer"></div>
+            <p class="empty-state" id="floorPhotoEmptyState">No photos yet.</p>
         </section>
 
         <!-- Page: Room Detail -->
@@ -430,6 +489,65 @@
             </div>
             <div class="card-list" id="thingListContainer"></div>
             <p class="empty-state" id="thingListEmptyState"></p>
+
+            <!-- Problems / Concerns -->
+            <div class="section-header">
+                <h3 class="section-heading">Problems / Concerns</h3>
+                <button class="btn btn-primary btn-small" id="addRoomProblemBtn">+ Add</button>
+            </div>
+            <div id="roomProblemsContainer"></div>
+            <p class="empty-state" id="roomProblemsEmptyState"></p>
+
+            <!-- Facts -->
+            <div class="section-header">
+                <h3 class="section-heading">Facts</h3>
+                <button class="btn btn-primary btn-small" id="addRoomFactBtn">+ Add</button>
+            </div>
+            <div id="roomFactsContainer"></div>
+            <p class="empty-state" id="roomFactsEmptyState"></p>
+
+            <!-- Future Projects -->
+            <div class="section-header">
+                <h3 class="section-heading">Future Projects</h3>
+                <button class="btn btn-primary btn-small" id="addRoomProjectBtn">+ Add</button>
+            </div>
+            <div id="roomProjectsContainer"></div>
+            <p class="empty-state" id="roomProjectsEmptyState"></p>
+
+            <!-- Calendar Events -->
+            <div class="section-header">
+                <h3 class="section-heading">Calendar Events</h3>
+                <div class="section-header-actions">
+                    <div class="calendar-range-picker">
+                        <label>Next</label>
+                        <select id="roomCalendarRangeSelect" class="range-select">
+                            <option value="1">1 mo</option>
+                            <option value="3" selected>3 mo</option>
+                            <option value="6">6 mo</option>
+                            <option value="12">12 mo</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary btn-small" id="addRoomCalendarEventBtn">+ Add Event</button>
+                </div>
+            </div>
+            <div id="roomCalendarEventsContainer"></div>
+            <p class="empty-state" id="roomCalendarEventsEmptyState"></p>
+
+            <!-- Activity History -->
+            <div class="section-header">
+                <h3 class="section-heading">Activity History</h3>
+                <button class="btn btn-primary btn-small" id="logRoomActivityBtn">+ Log Activity</button>
+            </div>
+            <div id="roomActivityContainer"></div>
+            <p class="empty-state" id="roomActivityEmptyState">No activities logged yet.</p>
+
+            <!-- Photos -->
+            <div class="section-header">
+                <h3 class="section-heading">Photos</h3>
+                <button class="btn btn-primary btn-small" id="addRoomPhotoBtn">+ Add Photo</button>
+            </div>
+            <div id="roomPhotoContainer"></div>
+            <p class="empty-state" id="roomPhotoEmptyState">No photos yet.</p>
         </section>
 
         <!-- Page: Thing Detail -->
@@ -1303,22 +1421,22 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=115"></script>
-    <script src="js/auth.js?v=115"></script>
-    <script src="js/zones.js?v=115"></script>
-    <script src="js/plants.js?v=115"></script>
-    <script src="js/problems.js?v=115"></script>
-    <script src="js/facts.js?v=115"></script>
-    <script src="js/projects.js?v=115"></script>
-    <script src="js/chemicals.js?v=115"></script>
-    <script src="js/activities.js?v=115"></script>
-    <script src="js/photos.js?v=115"></script>
-    <script src="js/weeds.js?v=115"></script>
-    <script src="js/calendar.js?v=115"></script>
-    <script src="js/gps.js?v=115"></script>
-    <script src="js/settings.js?v=115"></script>
-    <script src="js/house.js?v=115"></script>
-    <script src="js/app.js?v=115"></script>
+    <script src="js/firebase-config.js?v=116"></script>
+    <script src="js/auth.js?v=116"></script>
+    <script src="js/zones.js?v=116"></script>
+    <script src="js/plants.js?v=116"></script>
+    <script src="js/problems.js?v=116"></script>
+    <script src="js/facts.js?v=116"></script>
+    <script src="js/projects.js?v=116"></script>
+    <script src="js/chemicals.js?v=116"></script>
+    <script src="js/activities.js?v=116"></script>
+    <script src="js/photos.js?v=116"></script>
+    <script src="js/weeds.js?v=116"></script>
+    <script src="js/calendar.js?v=116"></script>
+    <script src="js/gps.js?v=116"></script>
+    <script src="js/settings.js?v=116"></script>
+    <script src="js/house.js?v=116"></script>
+    <script src="js/app.js?v=116"></script>
 
 </body>
 </html>

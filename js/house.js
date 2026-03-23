@@ -104,7 +104,7 @@ function loadFloorDetail(floorId) {
 }
 
 /**
- * Render floor header / meta / breadcrumb.
+ * Render floor header / meta / breadcrumb, then load all feature sections.
  */
 function renderFloorDetail(floor) {
     document.getElementById('floorTitle').textContent = floor.name || 'Floor';
@@ -122,6 +122,19 @@ function renderFloorDetail(floor) {
         { label: 'House', hash: '#house' },
         { label: floor.name || 'Floor', hash: null }
     ]);
+
+    // ---- Load all feature sections ----
+    loadProblems('floor', floor.id, 'floorProblemsContainer', 'floorProblemsEmptyState');
+    loadFacts(   'floor', floor.id, 'floorFactsContainer',    'floorFactsEmptyState');
+    loadProjects('floor', floor.id, 'floorProjectsContainer', 'floorProjectsEmptyState');
+    loadActivities('floor', floor.id, 'floorActivityContainer', 'floorActivityEmptyState');
+    loadPhotos(  'floor', floor.id, 'floorPhotoContainer',    'floorPhotoEmptyState');
+
+    if (typeof loadEventsForTarget === 'function') {
+        var months = parseInt(document.getElementById('floorCalendarRangeSelect').value, 10) || 3;
+        loadEventsForTarget('floor', floor.id,
+            'floorCalendarEventsContainer', 'floorCalendarEventsEmptyState', months);
+    }
 }
 
 // ============================================================
@@ -234,7 +247,7 @@ function loadRoomDetail(roomId) {
 }
 
 /**
- * Render room header / meta / breadcrumb.
+ * Render room header / meta / breadcrumb, then load all feature sections.
  */
 function renderRoomDetail(room, floor) {
     document.getElementById('roomTitle').textContent = room.name || 'Room';
@@ -254,6 +267,19 @@ function renderRoomDetail(room, floor) {
         { label: floor.name || 'Floor', hash: '#floor/' + floor.id },
         { label: room.name || 'Room',  hash: null }
     ]);
+
+    // ---- Load all feature sections ----
+    loadProblems('room', room.id, 'roomProblemsContainer', 'roomProblemsEmptyState');
+    loadFacts(   'room', room.id, 'roomFactsContainer',    'roomFactsEmptyState');
+    loadProjects('room', room.id, 'roomProjectsContainer', 'roomProjectsEmptyState');
+    loadActivities('room', room.id, 'roomActivityContainer', 'roomActivityEmptyState');
+    loadPhotos(  'room', room.id, 'roomPhotoContainer',    'roomPhotoEmptyState');
+
+    if (typeof loadEventsForTarget === 'function') {
+        var months = parseInt(document.getElementById('roomCalendarRangeSelect').value, 10) || 3;
+        loadEventsForTarget('room', room.id,
+            'roomCalendarEventsContainer', 'roomCalendarEventsEmptyState', months);
+    }
 }
 
 // ============================================================
@@ -1002,5 +1028,93 @@ document.getElementById('thingCalendarRangeSelect').addEventListener('change', f
         var months = parseInt(this.value, 10) || 3;
         loadEventsForTarget('thing', currentThing.id,
             'thingCalendarEventsContainer', 'thingCalendarEventsEmptyState', months);
+    }
+});
+
+// ============================================================
+// FLOOR FEATURE BUTTON WIRING  (Problems, Facts, Projects,
+// Activities, Photos, Calendar Events on the Floor detail page)
+// ============================================================
+
+document.getElementById('addFloorProblemBtn').addEventListener('click', function() {
+    if (currentFloor) openAddProblemModal('floor', currentFloor.id);
+});
+
+document.getElementById('addFloorFactBtn').addEventListener('click', function() {
+    if (currentFloor) openAddFactModal('floor', currentFloor.id);
+});
+
+document.getElementById('addFloorProjectBtn').addEventListener('click', function() {
+    if (currentFloor) openAddProjectModal('floor', currentFloor.id);
+});
+
+document.getElementById('logFloorActivityBtn').addEventListener('click', function() {
+    if (currentFloor) openLogActivityModal('floor', currentFloor.id);
+});
+
+document.getElementById('addFloorPhotoBtn').addEventListener('click', function() {
+    if (currentFloor) triggerPhotoUpload('floor', currentFloor.id);
+});
+
+document.getElementById('addFloorCalendarEventBtn').addEventListener('click', function() {
+    if (currentFloor && typeof openAddCalendarEventModal === 'function') {
+        var reloadFn = function() {
+            var months = parseInt(document.getElementById('floorCalendarRangeSelect').value, 10) || 3;
+            loadEventsForTarget('floor', currentFloor.id,
+                'floorCalendarEventsContainer', 'floorCalendarEventsEmptyState', months);
+        };
+        openAddCalendarEventModal('floor', currentFloor.id, reloadFn);
+    }
+});
+
+document.getElementById('floorCalendarRangeSelect').addEventListener('change', function() {
+    if (currentFloor && typeof loadEventsForTarget === 'function') {
+        var months = parseInt(this.value, 10) || 3;
+        loadEventsForTarget('floor', currentFloor.id,
+            'floorCalendarEventsContainer', 'floorCalendarEventsEmptyState', months);
+    }
+});
+
+// ============================================================
+// ROOM FEATURE BUTTON WIRING  (Problems, Facts, Projects,
+// Activities, Photos, Calendar Events on the Room detail page)
+// ============================================================
+
+document.getElementById('addRoomProblemBtn').addEventListener('click', function() {
+    if (currentRoom) openAddProblemModal('room', currentRoom.id);
+});
+
+document.getElementById('addRoomFactBtn').addEventListener('click', function() {
+    if (currentRoom) openAddFactModal('room', currentRoom.id);
+});
+
+document.getElementById('addRoomProjectBtn').addEventListener('click', function() {
+    if (currentRoom) openAddProjectModal('room', currentRoom.id);
+});
+
+document.getElementById('logRoomActivityBtn').addEventListener('click', function() {
+    if (currentRoom) openLogActivityModal('room', currentRoom.id);
+});
+
+document.getElementById('addRoomPhotoBtn').addEventListener('click', function() {
+    if (currentRoom) triggerPhotoUpload('room', currentRoom.id);
+});
+
+document.getElementById('addRoomCalendarEventBtn').addEventListener('click', function() {
+    if (currentRoom && typeof openAddCalendarEventModal === 'function') {
+        var reloadFn = function() {
+            var months = parseInt(document.getElementById('roomCalendarRangeSelect').value, 10) || 3;
+            loadEventsForTarget('room', currentRoom.id,
+                'roomCalendarEventsContainer', 'roomCalendarEventsEmptyState', months);
+        };
+        openAddCalendarEventModal('room', currentRoom.id, reloadFn);
+    }
+});
+
+document.getElementById('roomCalendarRangeSelect').addEventListener('change', function() {
+    if (currentRoom && typeof loadEventsForTarget === 'function') {
+        var months = parseInt(this.value, 10) || 3;
+        loadEventsForTarget('room', currentRoom.id,
+            'roomCalendarEventsContainer', 'roomCalendarEventsEmptyState', months);
     }
 });

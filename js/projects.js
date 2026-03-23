@@ -27,7 +27,7 @@ async function loadProjects(targetType, targetId, containerId, emptyStateId) {
     const showCompleted = checkbox ? checkbox.checked : false;
 
     try {
-        const snapshot = await db.collection('projects')
+        const snapshot = await userCol('projects')
             .where('targetType', '==', targetType)
             .where('targetId', '==', targetId)
             .get();
@@ -120,7 +120,7 @@ async function loadAllProjects() {
     var showCompleted = checkbox ? checkbox.checked : false;
 
     try {
-        var snapshot = await db.collection('projects').get();
+        var snapshot = await userCol('projects').get();
 
         // Capture which projects are currently expanded before clearing
         var expandedIds = {};
@@ -172,7 +172,7 @@ async function loadAllProjects() {
             if (!nameCache[cacheKey]) {
                 try {
                     var collection = p.targetType === 'plant' ? 'plants' : 'zones';
-                    var targetDoc = await db.collection(collection).doc(p.targetId).get();
+                    var targetDoc = await userCol(collection).doc(p.targetId).get();
                     nameCache[cacheKey] = targetDoc.exists ? targetDoc.data().name : '(unknown)';
                 } catch (e) {
                     nameCache[cacheKey] = '(unknown)';
@@ -562,7 +562,7 @@ async function handleProjectModalSave() {
 
     try {
         if (mode === 'add') {
-            await db.collection('projects').add({
+            await userCol('projects').add({
                 targetType: targetType,
                 targetId: targetId,
                 title: title,
@@ -576,7 +576,7 @@ async function handleProjectModalSave() {
 
         } else if (mode === 'edit') {
             var projectId = modal.dataset.editId;
-            await db.collection('projects').doc(projectId).update({
+            await userCol('projects').doc(projectId).update({
                 title: title,
                 notes: notes
             });
@@ -615,7 +615,7 @@ async function toggleProjectStatus(projectId, currentStatus, targetType, targetI
             updateData.completedAt = null;
         }
 
-        await db.collection('projects').doc(projectId).update(updateData);
+        await userCol('projects').doc(projectId).update(updateData);
         console.log('Project status changed to:', newStatus);
         reloadProjectsForCurrentTarget(targetType, targetId);
 
@@ -637,13 +637,13 @@ async function toggleProjectStatus(projectId, currentStatus, targetType, targetI
  */
 async function addChecklistItem(projectId, text, targetType, targetId) {
     try {
-        var doc = await db.collection('projects').doc(projectId).get();
+        var doc = await userCol('projects').doc(projectId).get();
         if (!doc.exists) return;
 
         var items = doc.data().items || [];
         items.push({ text: text, done: false, notes: '', completedAt: null });
 
-        await db.collection('projects').doc(projectId).update({ items: items });
+        await userCol('projects').doc(projectId).update({ items: items });
         console.log('Checklist item added:', text);
         reloadProjectsForCurrentTarget(targetType, targetId);
 
@@ -665,14 +665,14 @@ async function addChecklistItem(projectId, text, targetType, targetId) {
  */
 async function toggleChecklistItem(projectId, index, newDone, targetType, targetId) {
     try {
-        var doc = await db.collection('projects').doc(projectId).get();
+        var doc = await userCol('projects').doc(projectId).get();
         if (!doc.exists) return;
 
         var items = doc.data().items || [];
         if (index >= 0 && index < items.length) {
             items[index].done = newDone;
             items[index].completedAt = newDone ? new Date().toISOString() : null;
-            await db.collection('projects').doc(projectId).update({ items: items });
+            await userCol('projects').doc(projectId).update({ items: items });
             console.log('Checklist item toggled:', items[index].text, '->', newDone);
             reloadProjectsForCurrentTarget(targetType, targetId);
         }
@@ -693,13 +693,13 @@ async function toggleChecklistItem(projectId, index, newDone, targetType, target
  */
 async function updateChecklistItemNotes(projectId, index, notes, targetType, targetId) {
     try {
-        var doc = await db.collection('projects').doc(projectId).get();
+        var doc = await userCol('projects').doc(projectId).get();
         if (!doc.exists) return;
 
         var items = doc.data().items || [];
         if (index >= 0 && index < items.length) {
             items[index].notes = notes;
-            await db.collection('projects').doc(projectId).update({ items: items });
+            await userCol('projects').doc(projectId).update({ items: items });
             console.log('Checklist item notes updated');
             reloadProjectsForCurrentTarget(targetType, targetId);
         }
@@ -720,13 +720,13 @@ async function removeChecklistItem(projectId, index, targetType, targetId) {
     if (!confirm('Remove this checklist item?')) return;
 
     try {
-        var doc = await db.collection('projects').doc(projectId).get();
+        var doc = await userCol('projects').doc(projectId).get();
         if (!doc.exists) return;
 
         var items = doc.data().items || [];
         if (index >= 0 && index < items.length) {
             items.splice(index, 1);
-            await db.collection('projects').doc(projectId).update({ items: items });
+            await userCol('projects').doc(projectId).update({ items: items });
             console.log('Checklist item removed');
             reloadProjectsForCurrentTarget(targetType, targetId);
         }
@@ -750,7 +750,7 @@ async function handleDeleteProject(projectId, targetType, targetId) {
     }
 
     try {
-        await db.collection('projects').doc(projectId).delete();
+        await userCol('projects').doc(projectId).delete();
         console.log('Project deleted:', projectId);
         reloadProjectsForCurrentTarget(targetType, targetId);
 
@@ -790,7 +790,7 @@ async function loadSubZoneProjects(zoneId) {
         // Firestore 'in' queries are limited to 30 items; chunk the sub-zone IDs
         for (var i = 0; i < subZoneIds.length; i += 30) {
             var chunk = subZoneIds.slice(i, i + 30);
-            var plantSnap = await db.collection('plants')
+            var plantSnap = await userCol('plants')
                 .where('zoneId', 'in', chunk)
                 .get();
             plantSnap.forEach(function(doc) {
@@ -802,7 +802,7 @@ async function loadSubZoneProjects(zoneId) {
         var subProjects = [];
         for (var i = 0; i < subZoneIds.length; i += 30) {
             var chunk = subZoneIds.slice(i, i + 30);
-            var snap = await db.collection('projects')
+            var snap = await userCol('projects')
                 .where('targetType', '==', 'zone')
                 .where('targetId', 'in', chunk)
                 .get();
@@ -814,7 +814,7 @@ async function loadSubZoneProjects(zoneId) {
         // Step 4: Query projects for plants within sub-zones
         for (var i = 0; i < plantIds.length; i += 30) {
             var chunk = plantIds.slice(i, i + 30);
-            var snap = await db.collection('projects')
+            var snap = await userCol('projects')
                 .where('targetType', '==', 'plant')
                 .where('targetId', 'in', chunk)
                 .get();
@@ -846,7 +846,7 @@ async function loadSubZoneProjects(zoneId) {
             if (!nameCache[cacheKey]) {
                 try {
                     var collection = p.targetType === 'plant' ? 'plants' : 'zones';
-                    var targetDoc = await db.collection(collection).doc(p.targetId).get();
+                    var targetDoc = await userCol(collection).doc(p.targetId).get();
                     nameCache[cacheKey] = targetDoc.exists ? targetDoc.data().name : '(unknown)';
                 } catch (e) {
                     nameCache[cacheKey] = '(unknown)';

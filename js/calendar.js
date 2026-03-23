@@ -63,7 +63,7 @@ async function loadCalendar() {
     await loadOverdueEvents();
 
     try {
-        var snapshot = await db.collection('calendarEvents').get();
+        var snapshot = await userCol('calendarEvents').get();
 
         container.innerHTML = '';
 
@@ -162,7 +162,7 @@ async function loadEventsForTarget(targetType, targetId, containerId, emptyState
 
         if (targetType === 'zone') {
             // Query 1: old-style targetType/targetId links directly to this zone
-            var snap1 = await db.collection('calendarEvents')
+            var snap1 = await userCol('calendarEvents')
                 .where('targetType', '==', 'zone')
                 .where('targetId', '==', targetId)
                 .get();
@@ -171,7 +171,7 @@ async function loadEventsForTarget(targetType, targetId, containerId, emptyState
             });
 
             // Query 2: new-style zoneIds array-contains this zone
-            var snap2 = await db.collection('calendarEvents')
+            var snap2 = await userCol('calendarEvents')
                 .where('zoneIds', 'array-contains', targetId)
                 .get();
             snap2.forEach(function(doc) {
@@ -185,14 +185,14 @@ async function loadEventsForTarget(targetType, targetId, containerId, emptyState
             var allZoneChunks = chunkArray(allZoneIds, 30);
             var plantIds = [];
             for (var z = 0; z < allZoneChunks.length; z++) {
-                var plantSnap = await db.collection('plants')
+                var plantSnap = await userCol('plants')
                     .where('zoneId', 'in', allZoneChunks[z])
                     .get();
                 plantSnap.forEach(function(doc) { plantIds.push(doc.id); });
             }
             var plantChunks = chunkArray(plantIds, 30);
             for (var p = 0; p < plantChunks.length; p++) {
-                var evSnap = await db.collection('calendarEvents')
+                var evSnap = await userCol('calendarEvents')
                     .where('targetType', '==', 'plant')
                     .where('targetId', 'in', plantChunks[p])
                     .get();
@@ -203,7 +203,7 @@ async function loadEventsForTarget(targetType, targetId, containerId, emptyState
 
         } else {
             // For plants: single query by targetType/targetId
-            var snapshot = await db.collection('calendarEvents')
+            var snapshot = await userCol('calendarEvents')
                 .where('targetType', '==', targetType)
                 .where('targetId', '==', targetId)
                 .get();
@@ -275,7 +275,7 @@ async function loadOverdueEvents() {
     yesterday.setDate(yesterday.getDate() - 1);
 
     try {
-        var snapshot = await db.collection('calendarEvents').get();
+        var snapshot = await userCol('calendarEvents').get();
 
         if (snapshot.empty) {
             section.style.display = 'none';
@@ -509,14 +509,14 @@ function createCalendarEventCard(occ, reloadFn) {
     (async function() {
         try {
             if (occ.targetType === 'plant' && occ.targetId) {
-                var plantDoc = await db.collection('plants').doc(occ.targetId).get();
+                var plantDoc = await userCol('plants').doc(occ.targetId).get();
                 if (plantDoc.exists) {
                     targetEl.textContent = 'Plant: ' + plantDoc.data().name;
                 }
             } else if (occ.zoneIds && occ.zoneIds.length > 0) {
                 var zoneNames = [];
                 for (var zi = 0; zi < occ.zoneIds.length; zi++) {
-                    var zDoc = await db.collection('zones').doc(occ.zoneIds[zi]).get();
+                    var zDoc = await userCol('zones').doc(occ.zoneIds[zi]).get();
                     if (zDoc.exists) zoneNames.push(zDoc.data().name);
                 }
                 if (zoneNames.length > 0) {
@@ -639,7 +639,7 @@ async function handleCompleteEvent() {
         var chemicalIds = [];
         if (occ.savedActionId) {
             try {
-                var actionDoc = await db.collection('savedActions').doc(occ.savedActionId).get();
+                var actionDoc = await userCol('savedActions').doc(occ.savedActionId).get();
                 if (actionDoc.exists) {
                     chemicalIds = normalizeChemicalIds(actionDoc.data());
                 }
@@ -651,7 +651,7 @@ async function handleCompleteEvent() {
         // Zone-linked events: one activity per zone in zoneIds[].
         var zoneIds = occ.zoneIds || [];
         if (occ.targetType === 'plant' && occ.targetId) {
-            await db.collection('activities').add({
+            await userCol('activities').add({
                 targetType: 'plant',
                 targetId: occ.targetId,
                 description: occ.title,
@@ -663,7 +663,7 @@ async function handleCompleteEvent() {
             });
         } else {
             for (var i = 0; i < zoneIds.length; i++) {
-                await db.collection('activities').add({
+                await userCol('activities').add({
                     targetType: 'zone',
                     targetId: zoneIds[i],
                     description: occ.title,
@@ -677,7 +677,7 @@ async function handleCompleteEvent() {
         }
 
         // Mark the event as completed in Firestore
-        var eventRef = db.collection('calendarEvents').doc(occ.eventId);
+        var eventRef = userCol('calendarEvents').doc(occ.eventId);
         if (!occ.recurring) {
             // One-time event: mark as completed
             await eventRef.update({
@@ -791,7 +791,7 @@ async function openEditCalendarEventModal(eventId, reloadFn, occurrenceDate) {
     modalTitle.textContent = 'Edit Event';
 
     try {
-        var doc = await db.collection('calendarEvents').doc(eventId).get();
+        var doc = await userCol('calendarEvents').doc(eventId).get();
         if (!doc.exists) {
             alert('Event not found.');
             return;
@@ -874,7 +874,7 @@ async function openCopyCalendarEventModal(eventId, reloadFn) {
     modalTitle.textContent = 'Copy Event';
 
     try {
-        var doc = await db.collection('calendarEvents').doc(eventId).get();
+        var doc = await userCol('calendarEvents').doc(eventId).get();
         if (!doc.exists) {
             alert('Event not found.');
             return;
@@ -977,7 +977,7 @@ async function handleCalendarEventModalSave() {
 
     try {
         if (mode === 'add') {
-            await db.collection('calendarEvents').add({
+            await userCol('calendarEvents').add({
                 title: title,
                 description: description,
                 date: date,
@@ -994,7 +994,7 @@ async function handleCalendarEventModalSave() {
 
         } else if (mode === 'edit') {
             var eventId = modal.dataset.editId;
-            await db.collection('calendarEvents').doc(eventId).update({
+            await userCol('calendarEvents').doc(eventId).update({
                 title: title,
                 description: description,
                 date: date,
@@ -1032,7 +1032,7 @@ async function handleCalendarEventModalSave() {
  */
 async function handleDeleteCalendarEvent(eventId, reloadFn) {
     try {
-        await db.collection('calendarEvents').doc(eventId).delete();
+        await userCol('calendarEvents').doc(eventId).delete();
         console.log('Calendar event deleted:', eventId);
 
         if (typeof reloadFn === 'function') {
@@ -1081,7 +1081,7 @@ async function handleCalEventSavedActionSelect() {
     if (!actionId) return;
 
     try {
-        var doc = await db.collection('savedActions').doc(actionId).get();
+        var doc = await userCol('savedActions').doc(actionId).get();
         if (!doc.exists) return;
         var action = doc.data();
         if (action.name) {
@@ -1104,7 +1104,7 @@ async function handleCalEventSavedActionSelect() {
 async function resolveTargetName(targetType, targetId) {
     try {
         var collection = targetType === 'plant' ? 'plants' : 'zones';
-        var doc = await db.collection(collection).doc(targetId).get();
+        var doc = await userCol(collection).doc(targetId).get();
         if (doc.exists) return doc.data().name || targetId;
     } catch (e) { /* ignore */ }
     return targetId;
@@ -1122,7 +1122,7 @@ async function loadCalEventZoneCheckboxes(selectedZoneIds) {
     container.innerHTML = '<p style="margin:0;font-size:0.85rem;color:#888">Loading zones...</p>';
 
     try {
-        var snapshot = await db.collection('zones').get();
+        var snapshot = await userCol('zones').get();
         var allZones = [];
         snapshot.forEach(function(doc) {
             allZones.push({ id: doc.id, ...doc.data() });
@@ -1243,7 +1243,7 @@ async function handleDeleteThisOccurrence() {
     closeModal('deleteRecurringModal');
 
     try {
-        await db.collection('calendarEvents').doc(eventId).update({
+        await userCol('calendarEvents').doc(eventId).update({
             cancelledDates: firebase.firestore.FieldValue.arrayUnion(occurrenceDate)
         });
         console.log('Cancelled occurrence:', occurrenceDate, 'for event:', eventId);
@@ -1290,7 +1290,7 @@ async function loadHomeCalendar() {
     var rangeEnd = formatDateISO(rangeEndDate);
 
     try {
-        var snapshot = await db.collection('calendarEvents').get();
+        var snapshot = await userCol('calendarEvents').get();
 
         container.innerHTML = '';
 
@@ -1377,7 +1377,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var reloadFn = typeof calendarEventModalReloadFn === 'function' ? calendarEventModalReloadFn : loadCalendar;
 
         try {
-            var doc = await db.collection('calendarEvents').doc(eventId).get();
+            var doc = await userCol('calendarEvents').doc(eventId).get();
             if (!doc.exists) return;
             var event = doc.data();
 

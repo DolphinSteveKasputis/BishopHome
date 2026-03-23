@@ -311,6 +311,32 @@ async function getZonePath(zoneId) {
     return parts.join(' &rsaquo; ');
 }
 
+// ---------- Clone Plant ----------
+
+/**
+ * Opens the plant name modal in "clone" mode, pre-filled with the current
+ * plant's name (plus " (Clone)" suffix). On save, the new plant is created
+ * in the same zone with the same metadata and health status copied over.
+ * No activity history, photos, facts, problems, or projects are copied.
+ */
+function clonePlant() {
+    if (!window.currentPlant) return;
+
+    var modal      = document.getElementById('plantModal');
+    var modalTitle = document.getElementById('plantModalTitle');
+    var nameInput  = document.getElementById('plantNameInput');
+
+    modalTitle.textContent = 'Clone Plant';
+    nameInput.value        = window.currentPlant.name + ' (Clone)';
+
+    modal.dataset.mode        = 'clone';
+    modal.dataset.zoneId      = window.currentPlant.zoneId || '';
+    modal.dataset.cloneFromId = window.currentPlant.id;
+
+    openModal('plantModal');
+    nameInput.select();   // Pre-select so the user can easily change the name
+}
+
 // ---------- Add Plant ----------
 
 /**
@@ -378,14 +404,40 @@ async function handlePlantModalSave() {
             });
             console.log('Plant added:', name);
 
+            closeModal('plantModal');
+            refreshCurrentView();
+
         } else if (mode === 'edit') {
             const plantId = modal.dataset.editId;
             await userCol('plants').doc(plantId).update({ name: name });
             console.log('Plant renamed:', name);
-        }
 
-        closeModal('plantModal');
-        refreshCurrentView();
+            closeModal('plantModal');
+            refreshCurrentView();
+
+        } else if (mode === 'clone') {
+            // Copy metadata and health status from the source plant
+            var cloneFromId = modal.dataset.cloneFromId;
+            var zoneId      = modal.dataset.zoneId;
+            var sourceDoc   = await userCol('plants').doc(cloneFromId).get();
+            var sourceMeta  = sourceDoc.exists ? (sourceDoc.data().metadata || {}) : {};
+            var sourceHealth = sourceDoc.exists ? (sourceDoc.data().healthStatus || '') : '';
+
+            var newData = {
+                name:      name,
+                zoneId:    zoneId,
+                metadata:  sourceMeta,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            if (sourceHealth) newData.healthStatus = sourceHealth;
+
+            var newRef = await userCol('plants').add(newData);
+            console.log('Plant cloned:', name, '(from', cloneFromId + ')');
+
+            // Navigate to the new plant's detail page so the user can review it
+            closeModal('plantModal');
+            window.location.hash = 'plant/' + newRef.id;
+        }
 
     } catch (error) {
         console.error('Error saving plant:', error);
@@ -818,6 +870,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Plant detail — Move button
     document.getElementById('movePlantBtn').addEventListener('click', openMovePlantModal);
+
+    // Plant detail — Clone button
+    document.getElementById('clonePlantBtn').addEventListener('click', clonePlant);
 
     // Plant detail — Delete button
     document.getElementById('deletePlantBtn').addEventListener('click', handleDeletePlant);

@@ -150,7 +150,7 @@ Currently an overdue event can only be completed or ignored. Often the task just
 ---
 
 ## NF-8 — Clone / Duplicate a Plant
-**Status:** PLANNED
+**Status:** COMPLETE
 
 **What it does:**
 A **Clone** button on the plant detail page that opens the Add Plant modal pre-filled with the source plant's name, zone, and all metadata fields. User can adjust any field before saving. Creates a fresh record with no activities, photos, facts, problems, or projects carried over.
@@ -242,7 +242,7 @@ When you land on the House page, you can immediately see if anything is coming u
 | NF-5  | Seasonal Care Checklists         | Large      | COMPLETE |
 | NF-6  | Application Rate on Activities   | Small      | COMPLETE |
 | NF-7  | Reschedule Overdue Events        | Small      | COMPLETE |
-| NF-8  | Clone a Plant                    | Small      | PLANNED |
+| NF-8  | Clone a Plant                    | Small      | COMPLETE |
 | NF-9  | Bulk Activity Logging            | Medium     | PLANNED |
 | NF-10 | Purchase Date on Things          | Very Small | PLANNED |
 | NF-11 | Calendar Rollup on House Page    | Small      | PLANNED |

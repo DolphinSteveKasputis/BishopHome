@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=126">
+    <link rel="stylesheet" href="css/styles.css?v=127">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -63,7 +63,7 @@
             <a href="#calendar" class="nav-link" data-page="calendar">Calendar</a>
             <a href="#home" class="nav-link" data-page="yard">Yard</a>
             <a href="#settings" class="nav-link" data-page="settings">Settings</a>
-            <span class="nav-link nav-link--disabled">Things</span>
+            <a href="#things" class="nav-link" data-page="things">Things</a>
             <button class="nav-signout-btn" id="signOutBtnHouse" title="Sign out">Sign Out</button>
         </nav>
         <!-- Hamburger menu for mobile -->
@@ -94,7 +94,7 @@
             <a href="#calendar" class="nav-link" data-page="calendar">Calendar</a>
             <a href="#home" class="nav-link" data-page="yard">Yard</a>
             <a href="#settings" class="nav-link" data-page="settings">Settings</a>
-            <span class="nav-link nav-link--disabled">Things</span>
+            <a href="#things" class="nav-link" data-page="things">Things</a>
             <button class="nav-signout-btn" id="signOutBtnMobileHouse">Sign Out</button>
         </div>
     </nav>
@@ -401,6 +401,11 @@
                 <h2>Settings</h2>
             </div>
             <div class="settings-card">
+                <div class="form-group">
+                    <label for="settingsAppName">App Name</label>
+                    <input type="text" id="settingsAppName" placeholder="e.g. My House" maxlength="40">
+                    <small class="form-hint">Shown in the header on every page. Default: "My House"</small>
+                </div>
                 <div class="form-group">
                     <label for="settingsAddress">Property Address</label>
                     <textarea id="settingsAddress" class="settings-textarea" placeholder="Enter your property address" rows="2"></textarea>
@@ -828,6 +833,38 @@
             </div>
             <div id="roomsTreeContainer"></div>
             <p class="empty-state" id="roomsTreeEmptyState"></p>
+        </section>
+
+        <!-- Page: Things Global Search (#things) -->
+        <section class="page hidden" id="page-things">
+            <!-- Top toolbar: search + All button + sub-things toggle -->
+            <div class="things-toolbar">
+                <input type="text" id="thingsSearchInput" class="things-search-input"
+                       placeholder="Search by name…" autocomplete="off">
+                <button class="btn btn-secondary btn-small" id="thingsAllBtn">All</button>
+                <label class="things-toggle-label">
+                    <input type="checkbox" id="thingsSubthingsToggle">
+                    Show Sub-things
+                </label>
+            </div>
+            <!-- Category chips row (hidden until data loads) -->
+            <div class="things-chips-section hidden" id="thingsCategoriesSection">
+                <div class="things-chips-label">Categories</div>
+                <div class="things-chips-row" id="thingsCategoryChips"></div>
+            </div>
+            <!-- Tag chips row (hidden when sub-things toggle is OFF) -->
+            <div class="things-chips-section hidden" id="thingsTagsSection">
+                <div class="things-chips-label">Tags</div>
+                <div class="things-chips-row" id="thingsTagChips"></div>
+            </div>
+            <!-- Loading state -->
+            <p class="empty-state hidden" id="thingsLoadingState">Loading…</p>
+            <!-- Empty / prompt state -->
+            <p class="empty-state" id="thingsEmptyState">
+                Search by name, click a category or tag, or click All to see everything.
+            </p>
+            <!-- Results list -->
+            <div class="hidden" id="thingsResultsContainer"></div>
         </section>
 
         <!-- Page: Floor Plan Editor (Phase H8) -->
@@ -2130,23 +2167,23 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=126"></script>
-    <script src="js/auth.js?v=126"></script>
-    <script src="js/zones.js?v=126"></script>
-    <script src="js/plants.js?v=126"></script>
-    <script src="js/problems.js?v=126"></script>
-    <script src="js/facts.js?v=126"></script>
-    <script src="js/projects.js?v=126"></script>
-    <script src="js/chemicals.js?v=126"></script>
-    <script src="js/activities.js?v=126"></script>
-    <script src="js/photos.js?v=126"></script>
-    <script src="js/weeds.js?v=126"></script>
-    <script src="js/calendar.js?v=126"></script>
-    <script src="js/gps.js?v=126"></script>
-    <script src="js/settings.js?v=126"></script>
-    <script src="js/house.js?v=126"></script>
-    <script src="js/floorplan.js?v=126"></script>
-    <script src="js/app.js?v=126"></script>
+    <script src="js/firebase-config.js?v=127"></script>
+    <script src="js/auth.js?v=127"></script>
+    <script src="js/zones.js?v=127"></script>
+    <script src="js/plants.js?v=127"></script>
+    <script src="js/problems.js?v=127"></script>
+    <script src="js/facts.js?v=127"></script>
+    <script src="js/projects.js?v=127"></script>
+    <script src="js/chemicals.js?v=127"></script>
+    <script src="js/activities.js?v=127"></script>
+    <script src="js/photos.js?v=127"></script>
+    <script src="js/weeds.js?v=127"></script>
+    <script src="js/calendar.js?v=127"></script>
+    <script src="js/gps.js?v=127"></script>
+    <script src="js/settings.js?v=127"></script>
+    <script src="js/house.js?v=127"></script>
+    <script src="js/floorplan.js?v=127"></script>
+    <script src="js/app.js?v=127"></script>
 
 </body>
 </html>

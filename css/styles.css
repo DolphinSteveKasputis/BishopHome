@@ -2445,3 +2445,166 @@ button {
     cursor: default;
     pointer-events: none;
 }
+
+/* ============================================================
+   Things Global Search Page (#things)
+   ============================================================ */
+
+/* Top toolbar: search input + All button + sub-things toggle */
+.things-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-bottom: 1px solid #eee;
+    flex-wrap: wrap;
+}
+
+.things-search-input {
+    flex: 1;
+    min-width: 160px;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.95rem;
+}
+
+.things-search-input:focus {
+    outline: none;
+    border-color: #4A90E2;
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.15);
+}
+
+.things-toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.88rem;
+    color: #555;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+/* Chips section wrapper */
+.things-chips-section {
+    padding: 8px 16px 6px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.things-chips-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #999;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+/* Chips row */
+.things-chips-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+/* Individual chip button — category style */
+.things-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 16px;
+    border: 1px solid #c8d8f0;
+    background: #eef4ff;
+    color: #1a3a6e;
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.things-chip:hover {
+    background: #d8eaff;
+    border-color: #4A90E2;
+}
+
+.things-chip--active {
+    background: #4A90E2;
+    border-color: #2a6fbf;
+    color: white;
+}
+
+/* Tag chip variant */
+.things-chip--tag {
+    background: #f0f8f0;
+    border-color: #b0d8b0;
+    color: #1a4e1a;
+}
+
+.things-chip--tag:hover {
+    background: #d0ead0;
+    border-color: #4caf50;
+}
+
+.things-chip--tag.things-chip--active {
+    background: #4caf50;
+    border-color: #2e7d32;
+    color: white;
+}
+
+/* Result items */
+.things-result-item {
+    margin: 6px 12px;
+}
+
+.things-result-name {
+    display: block;
+    font-weight: 600;
+    font-size: 0.97rem;
+    color: #1a1a2e;
+}
+
+.things-result-context {
+    display: block;
+    font-size: 0.83rem;
+    color: #777;
+    margin-top: 2px;
+}
+
+/* Tag badges on sub-thing result rows */
+.things-tag-badges {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.things-tag-badge {
+    display: inline-block;
+    background: #e8f5e9;
+    border: 1px solid #b0d8b0;
+    border-radius: 10px;
+    padding: 1px 8px;
+    font-size: 0.75rem;
+    color: #2e7d32;
+}
+
+/* Category badge on thing result rows */
+.things-category-badge {
+    display: inline-block;
+    background: #e8f0ff;
+    border: 1px solid #c0d0f0;
+    border-radius: 10px;
+    padding: 1px 8px;
+    font-size: 0.75rem;
+    color: #2a4a8e;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+
+/* Settings form helper text */
+.form-hint {
+    display: block;
+    font-size: 0.8rem;
+    color: #888;
+    margin-top: 4px;
+}

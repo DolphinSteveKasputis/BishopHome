@@ -19,6 +19,12 @@ var currentSubThing = null;   // Sub-thing document currently being viewed
 var stSelectedTags  = [];     // Tags currently selected in the modal
 var stAllTags       = [];     // All known tag names loaded from Firestore
 
+// ---- Things Global Search page state ----
+var thingsCache          = null;  // { things[], rooms{}, floors{}, subThings } — loaded on demand
+var thingsTagsCache      = null;  // [{ id, name }] — loaded from tags collection
+var thingsActiveCategory = null;  // Currently selected category key, or null
+var thingsActiveTag      = null;  // Currently selected tag name, or null
+
 // ============================================================
 // HOUSE CONTEXT LABEL  (used by calendar.js for event cards)
 // ============================================================
@@ -531,10 +537,10 @@ function buildHouseBreadcrumb(crumbs) {
         }
     });
 
-    // Sticky header — "Bishop › [deepest label]"
+    // Sticky header — "AppName › [deepest label]"
     var deepest = crumbs[crumbs.length - 1].label;
     header.innerHTML =
-        '<a href="#home" class="home-link">Bishop</a>' +
+        '<a href="#main" class="home-link">' + escapeHtml(window.appName || 'My House') + '</a>' +
         '<span class="header-zone-sep">›</span>' +
         '<span class="header-zone-name">' + escapeHtml(deepest) + '</span>';
 }
@@ -2572,4 +2578,498 @@ function bpUUID() {
         var r = Math.random() * 16 | 0;
         return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
     });
+}
+
+// ============================================================
+// THINGS GLOBAL SEARCH PAGE  (#things)
+// Searchable list of all Things and Sub-Things in the house.
+// Data loads lazily; cached in memory for the session.
+// ============================================================
+
+/**
+ * Entry point — called by handleRoute() when navigating to #things.
+ * Resets UI state (but keeps in-memory cache), wires event listeners once,
+ * and eagerly loads the tags collection for the tag chips row.
+ */
+function loadThingsPage() {
+    buildHouseBreadcrumb([
+        { label: 'House', hash: '#house' },
+        { label: 'Things', hash: null }
+    ]);
+
+    // Reset active filters (keep memory cache for fast repeat visits)
+    thingsActiveCategory = null;
+    thingsActiveTag      = null;
+
+    // Reset UI
+    document.getElementById('thingsSearchInput').value = '';
+    document.getElementById('thingsSubthingsToggle').checked = false;
+    document.getElementById('thingsEmptyState').textContent =
+        'Search by name, click a category or tag, or click All to see everything.';
+    document.getElementById('thingsEmptyState').classList.remove('hidden');
+    document.getElementById('thingsResultsContainer').classList.add('hidden');
+    document.getElementById('thingsResultsContainer').innerHTML = '';
+    document.getElementById('thingsCategoriesSection').classList.add('hidden');
+    document.getElementById('thingsTagsSection').classList.add('hidden');
+    document.getElementById('thingsLoadingState').classList.add('hidden');
+
+    // Wire event listeners only once (guard with a data attribute)
+    var searchInput = document.getElementById('thingsSearchInput');
+    var allBtn      = document.getElementById('thingsAllBtn');
+    var toggle      = document.getElementById('thingsSubthingsToggle');
+
+    if (!searchInput.dataset.wired) {
+        searchInput.dataset.wired = '1';
+
+        // Debounced text search — fires 300ms after the user stops typing
+        var searchTimer = null;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(thingsHandleSearch, 300);
+        });
+
+        allBtn.addEventListener('click', thingsHandleAll);
+        toggle.addEventListener('change', thingsHandleToggle);
+    }
+
+    // Load tags eagerly on every visit (small collection, used for chips)
+    thingsLoadTags();
+}
+
+// ---- Tags ----
+
+/**
+ * Fetch the tags collection and populate the tag chips row.
+ * Caches results in thingsTagsCache.
+ */
+function thingsLoadTags() {
+    db.collection('tags').orderBy('name', 'asc').get()
+        .then(function(snap) {
+            thingsTagsCache = [];
+            snap.forEach(function(doc) {
+                thingsTagsCache.push({ id: doc.id, name: doc.data().name || '' });
+            });
+            // Show category chips now that we have data context ready
+            thingsRenderCategoryChips();
+            thingsRenderTagChips(thingsTagsCache);
+        })
+        .catch(function(err) {
+            console.error('thingsLoadTags error:', err);
+        });
+}
+
+// ---- Chip renderers ----
+
+/**
+ * Build and mount clickable category chips from THING_CATEGORIES.
+ * Shows the categories section.
+ */
+function thingsRenderCategoryChips() {
+    var container = document.getElementById('thingsCategoryChips');
+    container.innerHTML = '';
+
+    Object.keys(THING_CATEGORIES).forEach(function(key) {
+        var chip = document.createElement('button');
+        chip.className = 'things-chip' +
+            (thingsActiveCategory === key ? ' things-chip--active' : '');
+        chip.textContent = THING_CATEGORIES[key];
+        chip.dataset.category = key;
+        chip.addEventListener('click', function() {
+            thingsHandleCategoryChip(key);
+        });
+        container.appendChild(chip);
+    });
+
+    document.getElementById('thingsCategoriesSection').classList.remove('hidden');
+}
+
+/**
+ * Build and mount clickable tag chips from the supplied tag list.
+ * @param {Array<{id:string, name:string}>} tags
+ */
+function thingsRenderTagChips(tags) {
+    var container = document.getElementById('thingsTagChips');
+    container.innerHTML = '';
+
+    tags.forEach(function(tag) {
+        var chip = document.createElement('button');
+        chip.className = 'things-chip things-chip--tag' +
+            (thingsActiveTag === tag.name ? ' things-chip--active' : '');
+        chip.textContent = tag.name;
+        chip.addEventListener('click', function() {
+            thingsHandleTagChip(tag.name);
+        });
+        container.appendChild(chip);
+    });
+    // Visibility of the tags section is controlled by the toggle, not here
+}
+
+// ---- Lazy data loading ----
+
+/**
+ * Ensure things, rooms, and floors are loaded into thingsCache.
+ * If includeSubThings is true and subThings haven't been fetched yet, fetch them too.
+ * Returns a Promise that resolves when the cache is ready.
+ * @param {boolean} includeSubThings
+ * @returns {Promise}
+ */
+function thingsEnsureDataLoaded(includeSubThings) {
+    var needsThings    = !thingsCache;
+    var needsSubThings = includeSubThings && (!thingsCache || thingsCache.subThings === null);
+
+    if (!needsThings && !needsSubThings) {
+        return Promise.resolve();
+    }
+
+    document.getElementById('thingsLoadingState').classList.remove('hidden');
+    document.getElementById('thingsEmptyState').classList.add('hidden');
+
+    var promises = [];
+    if (needsThings) {
+        // Fetch things + room + floor lookup maps in parallel
+        promises.push(
+            db.collection('things').get(),
+            db.collection('rooms').get(),
+            db.collection('floors').get()
+        );
+    }
+    if (needsSubThings) {
+        promises.push(db.collection('subThings').get());
+    }
+
+    return Promise.all(promises).then(function(results) {
+        var idx = 0;
+
+        if (needsThings) {
+            var thingsSnap = results[idx++];
+            var roomsSnap  = results[idx++];
+            var floorsSnap = results[idx++];
+
+            var things = [];
+            var rooms  = {};
+            var floors = {};
+
+            thingsSnap.forEach(function(doc) {
+                things.push(Object.assign({ id: doc.id }, doc.data()));
+            });
+            roomsSnap.forEach(function(doc) {
+                rooms[doc.id] = Object.assign({ id: doc.id }, doc.data());
+            });
+            floorsSnap.forEach(function(doc) {
+                floors[doc.id] = Object.assign({ id: doc.id }, doc.data());
+            });
+
+            thingsCache = {
+                things:    things,
+                subThings: null,   // Loaded separately when needed
+                rooms:     rooms,
+                floors:    floors
+            };
+        }
+
+        if (needsSubThings) {
+            var stSnap     = results[idx++];
+            var subThings  = [];
+            stSnap.forEach(function(doc) {
+                subThings.push(Object.assign({ id: doc.id }, doc.data()));
+            });
+            thingsCache.subThings = subThings;
+        }
+
+        document.getElementById('thingsLoadingState').classList.add('hidden');
+    }).catch(function(err) {
+        console.error('thingsEnsureDataLoaded error:', err);
+        document.getElementById('thingsLoadingState').classList.add('hidden');
+        throw err;
+    });
+}
+
+// ---- Event handlers ----
+
+/** Handle text input (debounced). */
+function thingsHandleSearch() {
+    var query = document.getElementById('thingsSearchInput').value.trim();
+    if (!query) return;   // Don't auto-load on empty — wait for explicit input
+
+    // Searching clears active category/tag filters
+    thingsActiveCategory = null;
+    thingsActiveTag      = null;
+    thingsRenderCategoryChips();
+    if (thingsTagsCache) thingsRenderTagChips(thingsTagsCache);
+
+    var includeSubs = document.getElementById('thingsSubthingsToggle').checked;
+    thingsEnsureDataLoaded(includeSubs).then(function() {
+        thingsApplyFilters();
+    });
+}
+
+/** Handle "All" button click — clears filters and shows everything. */
+function thingsHandleAll() {
+    document.getElementById('thingsSearchInput').value = '';
+    thingsActiveCategory = null;
+    thingsActiveTag      = null;
+    thingsRenderCategoryChips();
+    if (thingsTagsCache) thingsRenderTagChips(thingsTagsCache);
+
+    var includeSubs = document.getElementById('thingsSubthingsToggle').checked;
+    thingsEnsureDataLoaded(includeSubs).then(function() {
+        thingsApplyFilters();
+    });
+}
+
+/**
+ * Handle a category chip click.
+ * Clicking the active category deselects it (toggle behavior).
+ * @param {string} key  - Category key from THING_CATEGORIES
+ */
+function thingsHandleCategoryChip(key) {
+    document.getElementById('thingsSearchInput').value = '';
+    thingsActiveTag = null;
+
+    // Toggle: clicking the already-active chip deselects it
+    thingsActiveCategory = (thingsActiveCategory === key) ? null : key;
+    thingsRenderCategoryChips();
+
+    var includeSubs = document.getElementById('thingsSubthingsToggle').checked;
+    thingsEnsureDataLoaded(includeSubs).then(function() {
+        thingsApplyFilters();
+        // Narrow tag chips to only those relevant to the selected category
+        if (thingsActiveCategory && includeSubs) {
+            thingsNarrowTagChips();
+        } else if (thingsTagsCache) {
+            thingsRenderTagChips(thingsTagsCache);  // Restore full tag list
+        }
+    });
+}
+
+/**
+ * Handle a tag chip click.
+ * Clicking the active tag deselects it (toggle behavior).
+ * @param {string} tagName
+ */
+function thingsHandleTagChip(tagName) {
+    document.getElementById('thingsSearchInput').value = '';
+
+    // Toggle: clicking the already-active chip deselects it
+    thingsActiveTag = (thingsActiveTag === tagName) ? null : tagName;
+    if (thingsTagsCache) thingsRenderTagChips(thingsTagsCache);  // Re-render to show active state
+
+    var includeSubs = document.getElementById('thingsSubthingsToggle').checked;
+    if (!includeSubs) return;  // Tags only apply when sub-things are shown
+
+    thingsEnsureDataLoaded(true).then(function() {
+        thingsApplyFilters();
+    });
+}
+
+/** Handle "Show Sub-things" toggle change. */
+function thingsHandleToggle() {
+    var on          = document.getElementById('thingsSubthingsToggle').checked;
+    var tagsSection = document.getElementById('thingsTagsSection');
+
+    if (on) {
+        tagsSection.classList.remove('hidden');
+        // If results are already showing, reload to include sub-things
+        if (!document.getElementById('thingsResultsContainer').classList.contains('hidden')) {
+            thingsEnsureDataLoaded(true).then(function() {
+                thingsApplyFilters();
+                if (thingsActiveCategory) thingsNarrowTagChips();
+            });
+        }
+    } else {
+        tagsSection.classList.add('hidden');
+        thingsActiveTag = null;
+        if (thingsTagsCache) thingsRenderTagChips(thingsTagsCache);
+        // If results are showing, refilter without sub-things
+        if (!document.getElementById('thingsResultsContainer').classList.contains('hidden')) {
+            thingsApplyFilters();
+        }
+    }
+}
+
+// ---- Tag narrowing ----
+
+/**
+ * When a category is active and sub-things are shown, narrow the tag chips
+ * to only those tags that appear on sub-things whose parent thing is in
+ * the filtered category. Falls back to the full tag list if data isn't ready.
+ */
+function thingsNarrowTagChips() {
+    if (!thingsCache || !thingsCache.subThings || !thingsActiveCategory || !thingsTagsCache) return;
+
+    // Collect IDs of things in the active category
+    var thingIds = {};
+    thingsCache.things.forEach(function(t) {
+        if (t.category === thingsActiveCategory) thingIds[t.id] = true;
+    });
+
+    // Collect tag names used by sub-things that belong to those things
+    var tagSet = {};
+    thingsCache.subThings.forEach(function(st) {
+        if (thingIds[st.thingId] && Array.isArray(st.tags)) {
+            st.tags.forEach(function(tag) { tagSet[tag] = true; });
+        }
+    });
+
+    var narrowed = thingsTagsCache.filter(function(t) { return tagSet[t.name]; });
+    thingsRenderTagChips(narrowed.length > 0 ? narrowed : thingsTagsCache);
+}
+
+// ---- Filtering ----
+
+/**
+ * Core client-side filter — runs after data is in thingsCache.
+ * Applies text / category / tag filters and calls thingsRenderResults().
+ */
+function thingsApplyFilters() {
+    if (!thingsCache) return;
+
+    var query       = document.getElementById('thingsSearchInput').value.trim().toLowerCase();
+    var includeSubs = document.getElementById('thingsSubthingsToggle').checked;
+
+    var filteredThings    = thingsCache.things.slice();
+    var filteredSubThings = [];
+
+    // ---- Filter Things ----
+    if (query) {
+        filteredThings = filteredThings.filter(function(t) {
+            return t.name && t.name.toLowerCase().includes(query);
+        });
+    } else if (thingsActiveCategory) {
+        filteredThings = filteredThings.filter(function(t) {
+            return t.category === thingsActiveCategory;
+        });
+    }
+    // No filter = "All" — show every thing
+
+    // ---- Filter Sub-Things ----
+    if (includeSubs && thingsCache.subThings) {
+        // Build a set of filtered thing IDs for optional category scoping
+        var filteredThingIdSet = {};
+        filteredThings.forEach(function(t) { filteredThingIdSet[t.id] = true; });
+
+        filteredSubThings = thingsCache.subThings.slice();
+
+        if (query) {
+            // Text search: match sub-thing name
+            filteredSubThings = filteredSubThings.filter(function(st) {
+                return st.name && st.name.toLowerCase().includes(query);
+            });
+        } else if (thingsActiveTag) {
+            // Tag filter: sub-things must have the tag
+            filteredSubThings = filteredSubThings.filter(function(st) {
+                return Array.isArray(st.tags) && st.tags.indexOf(thingsActiveTag) !== -1;
+            });
+            // If a category is also active, scope to sub-things of those things
+            if (thingsActiveCategory) {
+                filteredSubThings = filteredSubThings.filter(function(st) {
+                    return filteredThingIdSet[st.thingId];
+                });
+            }
+        } else if (thingsActiveCategory) {
+            // Category active but no tag: show sub-things of filtered things
+            filteredSubThings = filteredSubThings.filter(function(st) {
+                return filteredThingIdSet[st.thingId];
+            });
+        }
+        // "All" with toggle on: all sub-things shown
+    }
+
+    thingsRenderResults(filteredThings, filteredSubThings);
+}
+
+// ---- Result rendering ----
+
+/**
+ * Render the filtered result list into #thingsResultsContainer.
+ * @param {Array} things
+ * @param {Array} subThings
+ */
+function thingsRenderResults(things, subThings) {
+    var container  = document.getElementById('thingsResultsContainer');
+    var emptyState = document.getElementById('thingsEmptyState');
+    container.innerHTML = '';
+
+    var total = things.length + subThings.length;
+
+    if (total === 0) {
+        container.classList.add('hidden');
+        emptyState.textContent = 'No results found.';
+        emptyState.classList.remove('hidden');
+        return;
+    }
+
+    emptyState.classList.add('hidden');
+    container.classList.remove('hidden');
+
+    // Lookup map: thingId → thing (for sub-thing parent labels)
+    var thingById = {};
+    (thingsCache.things || []).forEach(function(t) { thingById[t.id] = t; });
+
+    // Render Things first
+    things.forEach(function(thing) {
+        container.appendChild(thingsBuildResultItem(thing, false, thingById));
+    });
+
+    // Render Sub-Things below
+    subThings.forEach(function(st) {
+        container.appendChild(thingsBuildResultItem(st, true, thingById));
+    });
+}
+
+/**
+ * Build one result card DOM element.
+ * @param {Object}  item        - thing or sub-thing data object
+ * @param {boolean} isSubThing
+ * @param {Object}  thingById   - lookup map of thingId → thing
+ * @returns {HTMLElement}
+ */
+function thingsBuildResultItem(item, isSubThing, thingById) {
+    var card = document.createElement('div');
+    card.className = 'card card--clickable things-result-item';
+
+    var nameHtml    = '<span class="things-result-name">' + escapeHtml(item.name || 'Unnamed') + '</span>';
+    var contextHtml = '';
+
+    if (isSubThing) {
+        // Sub-thing: show parent thing name + tag badges
+        var parentThing = thingById[item.thingId];
+        var parentName  = parentThing ? escapeHtml(parentThing.name) : 'Unknown';
+        contextHtml = '<span class="things-result-context">Sub-thing of: ' + parentName + '</span>';
+
+        if (Array.isArray(item.tags) && item.tags.length) {
+            var tagBadges = item.tags.map(function(t) {
+                return '<span class="things-tag-badge">' + escapeHtml(t) + '</span>';
+            }).join('');
+            contextHtml += '<span class="things-tag-badges">' + tagBadges + '</span>';
+        }
+    } else {
+        // Thing: show room / floor location + category badge
+        var room      = thingsCache.rooms[item.roomId];
+        var floor     = room ? thingsCache.floors[room.floorId] : null;
+        var roomName  = room  ? escapeHtml(room.name)  : '';
+        var floorName = floor ? escapeHtml(floor.name) : '';
+
+        if (roomName && floorName) {
+            contextHtml = '<span class="things-result-context">' +
+                roomName + ' / ' + floorName + '</span>';
+        } else if (roomName) {
+            contextHtml = '<span class="things-result-context">' + roomName + '</span>';
+        }
+
+        if (item.category && THING_CATEGORIES[item.category]) {
+            contextHtml += ' <span class="things-category-badge">' +
+                escapeHtml(THING_CATEGORIES[item.category]) + '</span>';
+        }
+    }
+
+    card.innerHTML =
+        '<div class="card-main">' + nameHtml + contextHtml + '</div>' +
+        '<span class="card-arrow">\u203a</span>';
+
+    card.addEventListener('click', function() {
+        window.location.hash = isSubThing ? '#subthing/' + item.id : '#thing/' + item.id;
+    });
+
+    return card;
 }

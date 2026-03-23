@@ -18,7 +18,7 @@ const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'h
 const ALL_PAGES = [
     ...TOP_LEVEL_PAGES,
     'zone', 'plant', 'weed', 'chemical', 'gpsmap', 'yardmap',
-    'floor', 'room', 'thing', 'subthing', 'floorplan', 'panel', 'rooms'
+    'floor', 'room', 'thing', 'subthing', 'floorplan', 'panel', 'rooms', 'things'
 ];
 
 /**
@@ -26,7 +26,7 @@ const ALL_PAGES = [
  * Yard-context pages — switching to any of these shows the yard nav.
  * Shared pages (calendar, settings) keep whichever context was last active.
  */
-const HOUSE_PAGES = ['house', 'floor', 'room', 'thing', 'subthing', 'floorplan', 'panel', 'rooms'];
+const HOUSE_PAGES = ['house', 'floor', 'room', 'thing', 'subthing', 'floorplan', 'panel', 'rooms', 'things'];
 const YARD_PAGES  = ['main', 'home', 'zone', 'plant', 'weeds', 'weed', 'chemicals', 'chemical', 'actions', 'gpsmap', 'yardmap'];
 
 /** Tracks which nav context is currently active ('yard' or 'house'). */
@@ -90,7 +90,8 @@ function showPage(page) {
     if (TOP_LEVEL_PAGES.includes(page)) {
         document.getElementById('breadcrumbBar').innerHTML = '';
         document.getElementById('headerTitle').innerHTML =
-            '<a href="#main" class="home-link">Bishop</a>';
+            '<a href="#main" class="home-link">' +
+            escapeHtml(window.appName || 'My House') + '</a>';
     }
 }
 
@@ -144,6 +145,9 @@ function handleRoute() {
     } else if (page === 'rooms') {
         showPage('rooms');
         loadRoomsPage();
+    } else if (page === 'things') {
+        showPage('things');
+        loadThingsPage();
     } else if (page === 'floor' && id) {
         showPage('floor');
         loadFloorDetail(id);
@@ -213,8 +217,11 @@ window.addEventListener('hashchange', handleRoute);
 
 /**
  * Called by auth.js once the user is confirmed signed in.
+ * Loads the app name from Firestore first, then routes to the correct page.
  */
 function initApp() {
-    handleRoute();
+    initAppName().then(function() {
+        handleRoute();
+    });
     console.log("Bishop app initialized.");
 }

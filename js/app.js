@@ -18,7 +18,8 @@ const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'h
 const ALL_PAGES = [
     ...TOP_LEVEL_PAGES,
     'zone', 'plant', 'weed', 'chemical', 'gpsmap', 'yardmap',
-    'floor', 'room', 'thing', 'subthing', 'floorplan', 'panel', 'rooms', 'things'
+    'floor', 'room', 'thing', 'subthing', 'floorplan', 'panel', 'rooms', 'things',
+    'backup'
 ];
 
 /**
@@ -182,6 +183,9 @@ function handleRoute() {
     } else if (page === 'settings') {
         showPage('settings');
         loadSettingsPage();
+    } else if (page === 'backup') {
+        showPage('backup');
+        loadBackupPage();
     } else if (page === 'notes') {
         showPage('notes');
         loadNotesPage();

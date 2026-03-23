@@ -122,6 +122,18 @@ function updateHeaderTitle() {
 }
 
 // ============================================================
+// Backup & Restore Page
+// ============================================================
+
+/**
+ * Called by app.js when routing to #backup.
+ * Refreshes the "last backup" timestamp shown on the page.
+ */
+function loadBackupPage() {
+    backupLoadLastMsg();
+}
+
+// ============================================================
 // Backup
 // ============================================================
 

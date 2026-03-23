@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=174">
+    <link rel="stylesheet" href="css/styles.css?v=175">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -503,50 +503,12 @@
                 </div>
             </div>
 
-            <!-- ===== Backup Section ===== -->
+            <!-- ===== Backup & Restore Link ===== -->
             <div class="settings-card">
-                <h3 class="settings-section-title">Backup</h3>
-                <p class="settings-section-desc">
-                    Downloads your data as a JSON file. Keep data backups monthly
-                    and photo backups yearly.
-                </p>
-                <div class="settings-toggle-row">
-                    <label class="settings-toggle-label">
-                        <input type="checkbox" id="backupPhotosToggle">
-                        Create photos file also
-                    </label>
-                    <small class="form-hint">Photos file can be large (varies by number of photos)</small>
-                </div>
+                <h3 class="settings-section-title">Backup &amp; Restore</h3>
+                <p class="settings-section-desc">Download a backup of your data or restore from a previous backup.</p>
                 <div class="settings-save-row">
-                    <button class="btn btn-primary" id="backupBtn">&#8681; Download Backup</button>
-                    <span class="settings-saved-msg hidden" id="backupStatusMsg"></span>
-                </div>
-                <p class="settings-last-backup" id="backupLastMsg"></p>
-            </div>
-
-            <!-- ===== Restore Section ===== -->
-            <div class="settings-card">
-                <h3 class="settings-section-title">Restore</h3>
-                <p class="settings-section-desc">
-                    Replaces all current data with a previously downloaded backup file.
-                    Data and photos restore independently — use the matching file for each.
-                </p>
-                <div class="restore-warning">
-                    ⚠ Restore permanently replaces your current data. This cannot be undone.
-                </div>
-                <div class="settings-save-row" style="flex-wrap:wrap;gap:10px;">
-                    <button class="btn btn-secondary" id="restoreDataBtn">&#8679; Restore Data&#8230;</button>
-                    <button class="btn btn-secondary" id="restorePhotosBtn">&#8679; Restore Photos&#8230;</button>
-                </div>
-                <!-- Hidden file inputs -->
-                <input type="file" id="restoreDataFile"   accept=".json" style="display:none">
-                <input type="file" id="restorePhotosFile" accept=".json" style="display:none">
-                <!-- Progress log -->
-                <div id="restoreProgress" class="restore-progress hidden">
-                    <div id="restoreProgressBar" class="restore-progress-bar">
-                        <div id="restoreProgressFill" class="restore-progress-fill"></div>
-                    </div>
-                    <div id="restoreLog" class="restore-log"></div>
+                    <a href="#backup" class="btn btn-secondary">&#8681; Backup &amp; Restore</a>
                 </div>
             </div>
 
@@ -592,6 +554,60 @@
                 <p class="settings-section-desc">Personal scratchpad for tracking issues and ideas while testing the app.</p>
                 <div class="settings-save-row">
                     <a href="#notes" class="btn btn-secondary">&#128221; Notes</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Page: Backup & Restore -->
+        <section class="page hidden" id="page-backup">
+            <div class="page-header">
+                <h2>Backup &amp; Restore</h2>
+            </div>
+
+            <!-- ===== Backup Section ===== -->
+            <div class="settings-card">
+                <h3 class="settings-section-title">Backup</h3>
+                <p class="settings-section-desc">
+                    Downloads your data as a JSON file. Keep data backups monthly
+                    and photo backups yearly.
+                </p>
+                <div class="settings-toggle-row">
+                    <label class="settings-toggle-label">
+                        <input type="checkbox" id="backupPhotosToggle">
+                        Create photos file also
+                    </label>
+                    <small class="form-hint">Photos file can be large (varies by number of photos)</small>
+                </div>
+                <div class="settings-save-row">
+                    <button class="btn btn-primary" id="backupBtn">&#8681; Download Backup</button>
+                    <span class="settings-saved-msg hidden" id="backupStatusMsg"></span>
+                </div>
+                <p class="settings-last-backup" id="backupLastMsg"></p>
+            </div>
+
+            <!-- ===== Restore Section ===== -->
+            <div class="settings-card">
+                <h3 class="settings-section-title">Restore</h3>
+                <p class="settings-section-desc">
+                    Replaces all current data with a previously downloaded backup file.
+                    Data and photos restore independently — use the matching file for each.
+                </p>
+                <div class="restore-warning">
+                    ⚠ Restore permanently replaces your current data. This cannot be undone.
+                </div>
+                <div class="settings-save-row" style="flex-wrap:wrap;gap:10px;">
+                    <button class="btn btn-secondary" id="restoreDataBtn">&#8679; Restore Data&#8230;</button>
+                    <button class="btn btn-secondary" id="restorePhotosBtn">&#8679; Restore Photos&#8230;</button>
+                </div>
+                <!-- Hidden file inputs -->
+                <input type="file" id="restoreDataFile"   accept=".json" style="display:none">
+                <input type="file" id="restorePhotosFile" accept=".json" style="display:none">
+                <!-- Progress log -->
+                <div id="restoreProgress" class="restore-progress hidden">
+                    <div id="restoreProgressBar" class="restore-progress-bar">
+                        <div id="restoreProgressFill" class="restore-progress-fill"></div>
+                    </div>
+                    <div id="restoreLog" class="restore-log"></div>
                 </div>
             </div>
         </section>
@@ -2780,30 +2796,30 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=174"></script>
-    <script src="js/auth.js?v=174"></script>
-    <script src="js/zones.js?v=174"></script>
-    <script src="js/plants.js?v=174"></script>
-    <script src="js/problems.js?v=174"></script>
-    <script src="js/facts.js?v=174"></script>
-    <script src="js/projects.js?v=174"></script>
-    <script src="js/chemicals.js?v=174"></script>
-    <script src="js/activities.js?v=174"></script>
-    <script src="js/photos.js?v=174"></script>
-    <script src="js/weeds.js?v=174"></script>
-    <script src="js/calendar.js?v=174"></script>
-    <script src="js/gps.js?v=174"></script>
-    <script src="js/settings.js?v=174"></script>
-    <script src="js/house.js?v=174"></script>
-    <script src="js/floorplan.js?v=174"></script>
-    <script src="js/search.js?v=174"></script>
-    <script src="js/activityreport.js?v=174"></script>
-    <script src="js/checklists.js?v=174"></script>
-    <script src="js/bulkactivity.js?v=174"></script>
-    <script src="js/devnotes.js?v=174"></script>
+    <script src="js/firebase-config.js?v=175"></script>
+    <script src="js/auth.js?v=175"></script>
+    <script src="js/zones.js?v=175"></script>
+    <script src="js/plants.js?v=175"></script>
+    <script src="js/problems.js?v=175"></script>
+    <script src="js/facts.js?v=175"></script>
+    <script src="js/projects.js?v=175"></script>
+    <script src="js/chemicals.js?v=175"></script>
+    <script src="js/activities.js?v=175"></script>
+    <script src="js/photos.js?v=175"></script>
+    <script src="js/weeds.js?v=175"></script>
+    <script src="js/calendar.js?v=175"></script>
+    <script src="js/gps.js?v=175"></script>
+    <script src="js/settings.js?v=175"></script>
+    <script src="js/house.js?v=175"></script>
+    <script src="js/floorplan.js?v=175"></script>
+    <script src="js/search.js?v=175"></script>
+    <script src="js/activityreport.js?v=175"></script>
+    <script src="js/checklists.js?v=175"></script>
+    <script src="js/bulkactivity.js?v=175"></script>
+    <script src="js/devnotes.js?v=175"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=174"></script>
-    <script src="js/app.js?v=174"></script>
+    <script src="js/chat.js?v=175"></script>
+    <script src="js/app.js?v=175"></script>
 
 </body>
 </html>

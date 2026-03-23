@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=118">
+    <link rel="stylesheet" href="css/styles.css?v=119">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -406,6 +406,15 @@
             <!-- Floor number badge -->
             <p class="house-floor-meta" id="floorMeta"></p>
 
+            <!-- Floor Plan section (Phase H8) -->
+            <div class="section-header">
+                <h3 class="section-heading">Floor Plan</h3>
+                <a id="editFloorPlanBtn" href="#house" class="btn btn-secondary btn-small">Edit Floor Plan</a>
+            </div>
+            <div id="floorPlanThumbnailContainer" class="fp-thumbnail-wrapper" title="Click to open floor plan editor">
+                <p class="empty-state" id="floorPlanThumbnailEmpty">No floor plan drawn yet. Click "Edit Floor Plan" to start drawing.</p>
+            </div>
+
             <!-- Rooms section -->
             <div class="section-header">
                 <h3 class="section-heading">Rooms</h3>
@@ -628,6 +637,43 @@
             </div>
             <div id="thingPhotoContainer"></div>
             <p class="empty-state" id="thingPhotoEmptyState">No photos yet.</p>
+        </section>
+
+        <!-- Page: Floor Plan Editor (Phase H8) -->
+        <section class="page hidden" id="page-floorplan">
+
+            <!-- Top bar: back, title, dimensions, grid, save -->
+            <div class="fp-header">
+                <a id="fpBackBtn" href="#house" class="btn btn-secondary btn-small">← Back</a>
+                <h2 id="fpFloorTitle" class="fp-title">Floor Plan</h2>
+                <div class="fp-header-right">
+                    <button id="fpSetDimensionsBtn" class="btn btn-secondary btn-small">Dimensions</button>
+                    <label class="fp-grid-label">
+                        <input type="checkbox" id="fpGridToggle" checked> Grid
+                    </label>
+                    <button id="fpSaveBtn" class="btn btn-primary btn-small">Save</button>
+                </div>
+            </div>
+
+            <!-- Drawing tool toolbar -->
+            <div class="fp-toolbar">
+                <button class="fp-tool-btn active" id="fpToolSelect" data-tool="select">▷ Select</button>
+                <button class="fp-tool-btn" id="fpToolRoom" data-tool="room">⬜ Room</button>
+                <button class="fp-tool-btn" id="fpToolDoor" data-tool="door">🚪 Door</button>
+                <button class="fp-tool-btn" id="fpToolWindow" data-tool="window">🪟 Window</button>
+                <span class="fp-tool-sep"></span>
+                <button id="fpEditRoomBtn" class="btn btn-secondary btn-small" style="display:none">Edit Room</button>
+                <button id="fpDeleteRoomBtn" class="btn btn-danger btn-small" style="display:none">Remove</button>
+            </div>
+
+            <!-- SVG Canvas -->
+            <div class="fp-canvas-wrapper" id="fpCanvasWrapper">
+                <svg id="fpSvg" class="fp-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+            </div>
+
+            <!-- Status bar -->
+            <div class="fp-status" id="fpStatus">Select a tool to begin.</div>
+
         </section>
 
         <!-- Page: Plant detail -->
@@ -1423,26 +1469,138 @@
         </div>
     </div>
 
+    <!-- ===== FLOOR PLAN MODALS (Phase H8) ===== -->
+
+    <!-- Dimensions Modal -->
+    <div class="modal-overlay" id="fpDimensionsModal">
+        <div class="modal">
+            <h3>Floor Dimensions</h3>
+            <p class="label-hint">Enter the overall size of this floor so the canvas scales correctly. You can change this any time.</p>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="fpWidthInput">Width (feet)</label>
+                    <input type="number" id="fpWidthInput" min="5" max="500" step="1" placeholder="e.g. 40">
+                </div>
+                <div class="form-group">
+                    <label for="fpHeightInput">Depth (feet)</label>
+                    <input type="number" id="fpHeightInput" min="5" max="500" step="1" placeholder="e.g. 30">
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="fpDimensionsCancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="fpDimensionsSaveBtn">Apply</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Room Link Modal (link drawn shape to a Room record) -->
+    <div class="modal-overlay" id="fpRoomLinkModal">
+        <div class="modal">
+            <h3>Link Room Shape</h3>
+            <p class="label-hint">Connect this shape to a room record, or create a new one.</p>
+            <div class="form-group">
+                <label for="fpRoomLinkSelect">Link to existing room</label>
+                <select id="fpRoomLinkSelect"></select>
+            </div>
+            <div class="form-group" id="fpRoomLinkNewNameGroup">
+                <label for="fpRoomLinkNewName">New room name</label>
+                <input type="text" id="fpRoomLinkNewName" placeholder="e.g. Kitchen, Living Room">
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="fpRoomLinkCancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="fpRoomLinkSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Room Edit Modal (adjust label, color, corner positions) -->
+    <div class="modal-overlay" id="fpRoomEditModal">
+        <div class="modal">
+            <h3>Edit Room Shape</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="fpRoomEditLabel">Room name (label)</label>
+                    <input type="text" id="fpRoomEditLabel" placeholder="Room name">
+                </div>
+                <div class="form-group">
+                    <label for="fpRoomEditColor">Color</label>
+                    <input type="color" id="fpRoomEditColor" value="#B3D9FF">
+                </div>
+            </div>
+            <p class="label-hint">Adjust corners (feet from top-left origin):</p>
+            <table class="fp-corner-table">
+                <thead><tr><th>Corner</th><th>X (ft)</th><th>Y (ft)</th></tr></thead>
+                <tbody id="fpRoomEditCornersBody"></tbody>
+            </table>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="fpRoomEditCancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="fpRoomEditSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Door Modal -->
+    <div class="modal-overlay" id="fpDoorModal">
+        <div class="modal">
+            <h3>Add Door</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="fpDoorWidthInput">Width (feet)</label>
+                    <input type="number" id="fpDoorWidthInput" min="1" max="12" step="0.5" value="3">
+                </div>
+                <div class="form-group">
+                    <label for="fpDoorSwingSelect">Swing direction</label>
+                    <select id="fpDoorSwingSelect">
+                        <option value="inward-left">Inward — Left hinge</option>
+                        <option value="inward-right">Inward — Right hinge</option>
+                        <option value="outward-left">Outward — Left hinge</option>
+                        <option value="outward-right">Outward — Right hinge</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="fpDoorCancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="fpDoorSaveBtn">Place Door</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Window Modal -->
+    <div class="modal-overlay" id="fpWindowModal">
+        <div class="modal">
+            <h3>Add Window</h3>
+            <div class="form-group">
+                <label for="fpWindowWidthInput">Width (feet)</label>
+                <input type="number" id="fpWindowWidthInput" min="1" max="20" step="0.5" value="3">
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="fpWindowCancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="fpWindowSaveBtn">Place Window</button>
+            </div>
+        </div>
+    </div>
+
     </div><!-- end #appWrapper -->
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=118"></script>
-    <script src="js/auth.js?v=118"></script>
-    <script src="js/zones.js?v=118"></script>
-    <script src="js/plants.js?v=118"></script>
-    <script src="js/problems.js?v=118"></script>
-    <script src="js/facts.js?v=118"></script>
-    <script src="js/projects.js?v=118"></script>
-    <script src="js/chemicals.js?v=118"></script>
-    <script src="js/activities.js?v=118"></script>
-    <script src="js/photos.js?v=118"></script>
-    <script src="js/weeds.js?v=118"></script>
-    <script src="js/calendar.js?v=118"></script>
-    <script src="js/gps.js?v=118"></script>
-    <script src="js/settings.js?v=118"></script>
-    <script src="js/house.js?v=118"></script>
-    <script src="js/app.js?v=118"></script>
+    <script src="js/firebase-config.js?v=119"></script>
+    <script src="js/auth.js?v=119"></script>
+    <script src="js/zones.js?v=119"></script>
+    <script src="js/plants.js?v=119"></script>
+    <script src="js/problems.js?v=119"></script>
+    <script src="js/facts.js?v=119"></script>
+    <script src="js/projects.js?v=119"></script>
+    <script src="js/chemicals.js?v=119"></script>
+    <script src="js/activities.js?v=119"></script>
+    <script src="js/photos.js?v=119"></script>
+    <script src="js/weeds.js?v=119"></script>
+    <script src="js/calendar.js?v=119"></script>
+    <script src="js/gps.js?v=119"></script>
+    <script src="js/settings.js?v=119"></script>
+    <script src="js/house.js?v=119"></script>
+    <script src="js/floorplan.js?v=119"></script>
+    <script src="js/app.js?v=119"></script>
 
 </body>
 </html>

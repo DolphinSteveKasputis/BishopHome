@@ -2002,3 +2002,156 @@ button {
         font-size: 1.6rem;
     }
 }
+
+/* ============================================================
+   Floor Plan Editor  (Phase H8)
+   ============================================================ */
+
+/* The floor plan page fills the full viewport height under the nav */
+#page-floorplan {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 56px);
+    overflow: hidden;
+    padding: 0;
+}
+#page-floorplan.hidden {
+    display: none;
+}
+
+/* Top header bar */
+.fp-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    background: var(--surface, #fff);
+    border-bottom: 1px solid var(--border, #ddd);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+}
+.fp-title {
+    flex: 1;
+    margin: 0;
+    font-size: 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.fp-header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.fp-grid-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.875rem;
+    cursor: pointer;
+    white-space: nowrap;
+    user-select: none;
+}
+
+/* Tool toolbar */
+.fp-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: #f5f5f5;
+    border-bottom: 1px solid var(--border, #ddd);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+}
+.fp-tool-btn {
+    padding: 5px 13px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: background 0.15s, border-color 0.15s;
+}
+.fp-tool-btn:hover {
+    background: #eee;
+}
+.fp-tool-btn.active {
+    background: #2e7d32;
+    color: #fff;
+    border-color: #2e7d32;
+}
+.fp-tool-sep {
+    display: inline-block;
+    width: 1px;
+    height: 22px;
+    background: #ccc;
+    margin: 0 4px;
+    vertical-align: middle;
+}
+
+/* Scrollable canvas area */
+.fp-canvas-wrapper {
+    flex: 1;
+    overflow: auto;
+    padding: 16px;
+    background: #d8d8d8;
+    display: flex;
+    align-items: flex-start;
+}
+.fp-svg {
+    display: block;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+    background: #f8f8f8;
+}
+
+/* Status bar */
+.fp-status {
+    padding: 5px 14px;
+    background: var(--surface, #fff);
+    border-top: 1px solid var(--border, #ddd);
+    font-size: 0.78rem;
+    color: #555;
+    min-height: 26px;
+    flex-shrink: 0;
+}
+
+/* Floor plan thumbnail on floor detail page */
+.fp-thumbnail-wrapper {
+    border: 1px solid var(--border, #ddd);
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f4f4f4;
+    margin-bottom: 20px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.fp-thumbnail-wrapper:hover {
+    border-color: #2e7d32;
+}
+.fp-thumbnail-svg {
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+
+/* Corner position table inside the room edit modal */
+.fp-corner-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    margin-bottom: 10px;
+}
+.fp-corner-table th,
+.fp-corner-table td {
+    padding: 4px 8px;
+    border: 1px solid var(--border, #ddd);
+    text-align: left;
+}
+.fp-corner-table th {
+    background: #f0f0f0;
+}

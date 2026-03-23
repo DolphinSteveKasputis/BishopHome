@@ -296,6 +296,19 @@ function renderFloorDetail(floor) {
         { label: floor.name || 'Floor', hash: null }
     ]);
 
+    // ---- Floor Plan button + thumbnail ----
+    var fpBtn = document.getElementById('editFloorPlanBtn');
+    if (fpBtn) fpBtn.href = '#floorplan/' + floor.id;
+
+    var thumbContainer = document.getElementById('floorPlanThumbnailContainer');
+    if (thumbContainer) {
+        thumbContainer.onclick = function() { window.location.hash = '#floorplan/' + floor.id; };
+    }
+
+    if (typeof fpLoadAndRenderThumbnail === 'function') {
+        fpLoadAndRenderThumbnail(floor.id, 'floorPlanThumbnailContainer', 'floorPlanThumbnailEmpty');
+    }
+
     // ---- Load all feature sections ----
     loadProblems('floor', floor.id, 'floorProblemsContainer', 'floorProblemsEmptyState');
     loadFacts(   'floor', floor.id, 'floorFactsContainer',    'floorFactsEmptyState');

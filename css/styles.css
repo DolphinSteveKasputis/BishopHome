@@ -1830,6 +1830,31 @@ button {
     min-height: 60px;
 }
 
+/* ---------- House / Interior Feature ---------- */
+
+/* Small floor number badge shown next to the floor name in cards */
+.house-floor-num {
+    font-size: 0.8rem;
+    color: #888;
+    font-weight: 400;
+    margin-left: 6px;
+}
+
+/* Meta line on the floor detail page (shows floor number) */
+.house-floor-meta {
+    color: #666;
+    font-size: 0.9rem;
+    margin: -6px 0 12px 0;
+}
+
+/* Hint text inside modal labels */
+.label-hint {
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: #888;
+    margin-left: 4px;
+}
+
 /* GPS section on zone detail page */
 .gps-zone-preview {
     display: flex;

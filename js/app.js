@@ -11,12 +11,12 @@
  * List of top-level pages that map to nav links.
  * Each key matches a hash value AND a data-page attribute AND a page section id.
  */
-const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'settings'];
+const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'house', 'settings'];
 
 /**
  * All pages that can be shown (includes detail pages that aren't in the nav).
  */
-const ALL_PAGES = [...TOP_LEVEL_PAGES, 'zone', 'plant', 'weed', 'chemical', 'gpsmap', 'yardmap'];
+const ALL_PAGES = [...TOP_LEVEL_PAGES, 'zone', 'plant', 'weed', 'chemical', 'gpsmap', 'yardmap', 'floor'];
 
 /**
  * Navigate to a page by showing/hiding the right section.
@@ -44,6 +44,7 @@ function showPage(page) {
     if (page === 'settings') navPage = 'settings';
     if (page === 'weed') navPage = 'weeds';
     if (page === 'chemical') navPage = 'chemicals';
+    if (page === 'floor') navPage = 'house';
 
     document.querySelectorAll('.nav-link').forEach(function(link) {
         link.classList.remove('active');
@@ -113,6 +114,12 @@ function handleRoute() {
     } else if (page === 'yardmap') {
         showPage('yardmap');
         loadYardMapPage();
+    } else if (page === 'house') {
+        showPage('house');
+        loadHousePage();
+    } else if (page === 'floor' && id) {
+        showPage('floor');
+        loadFloorDetail(id);
     } else if (page === 'settings') {
         showPage('settings');
         loadSettingsPage();

@@ -562,6 +562,42 @@ function createCalendarEventCard(occ, reloadFn) {
         card.appendChild(overdueBadge);
     }
 
+    // Inline reschedule row — built early so the button click handler can reference it.
+    // Hidden by default; revealed when the Reschedule button is clicked.
+    var rescheduleRow = null;
+    if (occ.overdue) {
+        rescheduleRow = document.createElement('div');
+        rescheduleRow.className = 'cal-reschedule-row hidden';
+
+        var reschedLabel = document.createElement('label');
+        reschedLabel.className = 'cal-reschedule-label';
+        reschedLabel.textContent = 'New date:';
+        rescheduleRow.appendChild(reschedLabel);
+
+        var reschedInput = document.createElement('input');
+        reschedInput.type = 'date';
+        reschedInput.className = 'cal-reschedule-input';
+        rescheduleRow.appendChild(reschedInput);
+
+        var reschedConfirmBtn = document.createElement('button');
+        reschedConfirmBtn.className = 'btn btn-small btn-primary';
+        reschedConfirmBtn.textContent = 'Confirm';
+        reschedConfirmBtn.addEventListener('click', function() {
+            var newDate = reschedInput.value;
+            if (!newDate) { alert('Please pick a new date.'); return; }
+            calHandleReschedule(occ, newDate, reloadFn);
+        });
+        rescheduleRow.appendChild(reschedConfirmBtn);
+
+        var reschedCancelBtn = document.createElement('button');
+        reschedCancelBtn.className = 'btn btn-small btn-secondary';
+        reschedCancelBtn.textContent = 'Cancel';
+        reschedCancelBtn.addEventListener('click', function() {
+            rescheduleRow.classList.add('hidden');
+        });
+        rescheduleRow.appendChild(reschedCancelBtn);
+    }
+
     // Action buttons
     var actions = document.createElement('div');
     actions.className = 'calendar-event-actions';
@@ -575,6 +611,20 @@ function createCalendarEventCard(occ, reloadFn) {
             openCompleteEventModal(occ, reloadFn);
         });
         actions.appendChild(completeBtn);
+    }
+
+    // Reschedule button — only shown for overdue occurrences
+    if (occ.overdue) {
+        var rescheduleBtn = document.createElement('button');
+        rescheduleBtn.className = 'btn btn-small btn-reschedule';
+        rescheduleBtn.textContent = 'Reschedule';
+        rescheduleBtn.addEventListener('click', function() {
+            rescheduleRow.classList.toggle('hidden');
+            if (!rescheduleRow.classList.contains('hidden')) {
+                reschedInput.focus();
+            }
+        });
+        actions.appendChild(rescheduleBtn);
     }
 
     var editBtn = document.createElement('button');
@@ -595,7 +645,50 @@ function createCalendarEventCard(occ, reloadFn) {
 
     card.appendChild(actions);
 
+    // Append the reschedule row below the action buttons (only for overdue cards)
+    if (rescheduleRow) {
+        card.appendChild(rescheduleRow);
+    }
+
     return card;
+}
+
+// ---------- Reschedule Overdue Event ----------
+
+/**
+ * Reschedules an overdue calendar event occurrence to a new date.
+ *
+ * For one-time events: the event's `date` field is updated directly.
+ * For recurring events: the overdue occurrence date is added to `cancelledDates`
+ * (so it stops showing as overdue), and the series `date` anchor is updated to
+ * the new date so the pattern continues forward from there.
+ *
+ * @param {Object} occ     - The occurrence object from createCalendarEventCard.
+ * @param {string} newDate - ISO date string "YYYY-MM-DD" for the new date.
+ * @param {Function} reloadFn - Callback to refresh the calendar after saving.
+ */
+async function calHandleReschedule(occ, newDate, reloadFn) {
+    try {
+        var eventRef = userCol('calendarEvents').doc(occ.eventId);
+
+        if (!occ.recurring) {
+            // One-time event: simply move the date forward
+            await eventRef.update({ date: newDate });
+        } else {
+            // Recurring event: cancel this specific occurrence and shift the series
+            // anchor to the new date so all future occurrences flow from there.
+            await eventRef.update({
+                date: newDate,
+                cancelledDates: firebase.firestore.FieldValue.arrayUnion(occ.occurrenceDate)
+            });
+        }
+
+        if (typeof reloadFn === 'function') reloadFn();
+
+    } catch (err) {
+        console.error('Error rescheduling event:', err);
+        alert('Error rescheduling event. Please try again.');
+    }
 }
 
 // ---------- Complete Event Modal ----------

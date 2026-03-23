@@ -353,6 +353,39 @@ button {
     background-color: #1b5e20;
 }
 
+.btn-reschedule {
+    background-color: #e65100;
+    color: white;
+}
+
+.btn-reschedule:hover {
+    background-color: #bf360c;
+}
+
+/* Inline reschedule date-picker row on overdue calendar cards */
+.cal-reschedule-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.cal-reschedule-label {
+    font-size: 0.85rem;
+    color: #555;
+    white-space: nowrap;
+}
+
+.cal-reschedule-input {
+    padding: 4px 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 0.85rem;
+}
+
 .btn-small {
     padding: 6px 12px;
     font-size: 0.85rem;

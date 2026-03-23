@@ -131,7 +131,7 @@ Currently there's no structured way to record how much of a product was used. Fo
 ---
 
 ## NF-7 — Reschedule Overdue Calendar Events
-**Status:** PLANNED
+**Status:** COMPLETE
 
 **What it does:**
 Adds a **Reschedule** button to events shown in the Overdue section of the Calendar page. Clicking it opens a simple date picker to pick a new date, then updates the event (or advances the next occurrence for recurring events).
@@ -241,7 +241,7 @@ When you land on the House page, you can immediately see if anything is coming u
 | NF-4  | Plant Health Status              | Small      | COMPLETE |
 | NF-5  | Seasonal Care Checklists         | Large      | COMPLETE |
 | NF-6  | Application Rate on Activities   | Small      | COMPLETE |
-| NF-7  | Reschedule Overdue Events        | Small      | PLANNED |
+| NF-7  | Reschedule Overdue Events        | Small      | COMPLETE |
 | NF-8  | Clone a Plant                    | Small      | PLANNED |
 | NF-9  | Bulk Activity Logging            | Medium     | PLANNED |
 | NF-10 | Purchase Date on Things          | Very Small | PLANNED |

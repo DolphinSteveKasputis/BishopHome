@@ -232,7 +232,7 @@ async function buildBreadcrumbs(zoneId) {
     }
 
     // Build the breadcrumb HTML
-    let html = '<a href="#home">Home</a>';
+    let html = '<a href="#home">Yard</a>';
     crumbs.forEach(function(crumb, index) {
         html += '<span class="separator">&rsaquo;</span>';
         if (index < crumbs.length - 1) {

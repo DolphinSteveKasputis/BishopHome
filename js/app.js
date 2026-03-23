@@ -83,6 +83,10 @@ function showPage(page) {
         }
     });
 
+    // On the landing page show only Settings + Sign Out in the nav;
+    // on all other pages restore the full nav.
+    document.body.classList.toggle('main-page', page === 'main');
+
     // Close mobile nav if open
     closeMobileNav();
 

@@ -354,6 +354,15 @@ function openAddPlantModal(zoneId) {
     modal.dataset.mode = 'add';
     modal.dataset.zoneId = zoneId;
 
+    // Reset From Picture section
+    document.getElementById('plantFromPictureSection').classList.add('hidden');
+    document.getElementById('plantPicStatus').classList.add('hidden');
+    document.getElementById('plantPicStatus').textContent = '';
+    document.getElementById('plantPicInput').value = '';
+    document.getElementById('plantCamInput').value = '';
+    // Check if LLM is configured and show the section if so
+    plantCheckLlmForModal();
+
     openModal('plantModal');
     nameInput.focus();
 }
@@ -832,6 +841,243 @@ function refreshCurrentView() {
     }
 }
 
+// ---------- Plant Identification from Picture ----------
+
+// The prompt sent to the LLM for plant identification.
+// Instructs the LLM to return ONLY a JSON object with exact field values.
+var PLANT_ID_PROMPT = [
+    'You are a plant identification assistant. Analyze the provided plant image(s) and return ONLY a valid JSON object.',
+    'No explanation, no markdown, no code blocks, no extra text of any kind.',
+    'Your entire response must be parseable by JSON.parse().',
+    '',
+    'Return this exact structure:',
+    '{',
+    '  "name": "",',
+    '  "heatTolerance": "",',
+    '  "coldTolerance": "",',
+    '  "wateringNeeds": "",',
+    '  "sunShade": "",',
+    '  "bloomMonth": "",',
+    '  "dormantMonth": "",',
+    '  "notes": "",',
+    '  "additionalMessage": ""',
+    '}',
+    '',
+    'Field rules:',
+    '- name: the most recognizable common name, e.g. "Purple Diamond Loropetalum"',
+    '- heatTolerance: one of exactly: "High", "Medium-High", "Medium", "Medium-Low", "Low", or "" if unknown',
+    '- coldTolerance: one of exactly: "High", "Medium-High", "Medium", "Medium-Low", "Low", or "" if unknown',
+    '- wateringNeeds: free text, e.g. "Weekly", "Drought tolerant", or "" if unknown',
+    '- sunShade: one of exactly: "Full Sun", "Partial Sun", "Partial Shade", "Full Shade", or "" if unknown',
+    '- bloomMonth: the typical primary bloom month as a number 1-12 (e.g. "4" for April), or "" if unknown',
+    '- dormantMonth: the typical primary dormancy month as a number 1-12, or "" if unknown',
+    '- notes: brief description including scientific name and one key care tip. Maximum 200 characters.',
+    '- additionalMessage: use for issues such as unclear image or plant not recognized. Leave "" if no issues.',
+    '',
+    'If you cannot identify the plant at all, return all fields as "" and explain in additionalMessage.'
+].join('\n');
+
+// Month number → name lookup (index 0 unused so index == month number)
+var PLANT_MONTH_NAMES = ['','January','February','March','April','May','June',
+                         'July','August','September','October','November','December'];
+
+// Holds parsed LLM data while the review modal is open
+var plantLlmPending = null;
+
+/**
+ * Checks Firestore for an LLM config and shows the From Picture section if found.
+ * Called each time the Add Plant modal opens.
+ */
+async function plantCheckLlmForModal() {
+    try {
+        var doc = await userCol('settings').doc('llm').get();
+        var ok  = doc.exists && doc.data().provider && doc.data().apiKey;
+        document.getElementById('plantFromPictureSection').classList.toggle('hidden', !ok);
+    } catch (e) {
+        // Leave hidden on error
+    }
+}
+
+/**
+ * Main handler: compress selected images, call the LLM, then either open the
+ * review modal (if "Show response" is checked) or save the plant directly.
+ */
+async function plantHandleFromPicture(files) {
+    if (!files || files.length === 0) return;
+
+    var statusEl   = document.getElementById('plantPicStatus');
+    var saveBtn    = document.getElementById('plantModalSaveBtn');
+    var galleryBtn = document.getElementById('plantPicGalleryBtn');
+    var cameraBtn  = document.getElementById('plantPicCameraBtn');
+    var modal      = document.getElementById('plantModal');
+
+    // Disable controls while working
+    statusEl.textContent = 'Identifying plant\u2026';
+    statusEl.classList.remove('hidden');
+    saveBtn.disabled    = true;
+    galleryBtn.disabled = true;
+    cameraBtn.disabled  = true;
+
+    try {
+        // Compress images (up to 4)
+        var images = [];
+        for (var i = 0; i < Math.min(files.length, 4); i++) {
+            images.push(await compressImage(files[i]));
+        }
+
+        // Load LLM config
+        var cfgDoc  = await userCol('settings').doc('llm').get();
+        var cfg     = cfgDoc.exists ? cfgDoc.data() : null;
+        if (!cfg || !cfg.provider || !cfg.apiKey) {
+            statusEl.textContent = 'No LLM configured. Go to Settings.';
+            return;
+        }
+        var llm = LLM_PROVIDERS[cfg.provider];
+        if (!llm) { statusEl.textContent = 'Unknown LLM provider.'; return; }
+
+        // Build the message content: prompt text + images
+        var content = [{ type: 'text', text: PLANT_ID_PROMPT }];
+        images.forEach(function(url) {
+            content.push({ type: 'image_url', image_url: { url: url } });
+        });
+
+        var activeModel  = cfg.model || llm.model;
+        var responseText = await chatCallOpenAICompat(llm, cfg.apiKey, content, activeModel);
+        var parsed       = plantParseLlmResponse(responseText);
+        var zoneId       = modal.dataset.zoneId;
+
+        if (document.getElementById('plantShowResponseToggle').checked) {
+            // Store pending and open review modal
+            plantLlmPending = { parsed: parsed, images: images, zoneId: zoneId };
+            statusEl.textContent = '';
+            statusEl.classList.add('hidden');
+            closeModal('plantModal');
+            plantShowReviewModal(PLANT_ID_PROMPT, responseText, parsed);
+        } else {
+            // Check for complete identification failure
+            if (!parsed.name && parsed.additionalMessage) {
+                statusEl.textContent = '\u26a0 ' + parsed.additionalMessage;
+                return;
+            }
+            await plantSaveFromLlm(parsed, images, zoneId, '');
+            statusEl.textContent = '';
+            statusEl.classList.add('hidden');
+            closeModal('plantModal');
+            refreshCurrentView();
+        }
+
+    } catch (err) {
+        console.error('Plant ID error:', err);
+        statusEl.textContent = 'Error: ' + err.message;
+    } finally {
+        saveBtn.disabled    = false;
+        galleryBtn.disabled = false;
+        cameraBtn.disabled  = false;
+        document.getElementById('plantPicInput').value = '';
+        document.getElementById('plantCamInput').value = '';
+    }
+}
+
+/**
+ * Parse the LLM's JSON response. Strips accidental markdown fences.
+ * Returns a safe object even if parsing fails.
+ */
+function plantParseLlmResponse(text) {
+    try {
+        var clean = text.trim()
+            .replace(/^```json\s*/i, '')
+            .replace(/^```\s*/,      '')
+            .replace(/```\s*$/,      '');
+        return JSON.parse(clean);
+    } catch (e) {
+        return {
+            name: '', heatTolerance: '', coldTolerance: '', wateringNeeds: '',
+            sunShade: '', bloomMonth: '', dormantMonth: '', notes: '',
+            additionalMessage: 'Could not parse response: ' + text.substring(0, 120)
+        };
+    }
+}
+
+/**
+ * Show the review modal with the raw prompt, raw response, and a summary
+ * of the parsed fields so the user can verify before saving.
+ */
+function plantShowReviewModal(prompt, rawResponse, parsed) {
+    document.getElementById('reviewPromptText').textContent   = prompt;
+    document.getElementById('reviewResponseText').textContent = rawResponse;
+    document.getElementById('plantReviewName').value          = parsed.name || '';
+
+    function monthLabel(val) {
+        var n = parseInt(val);
+        return (n >= 1 && n <= 12) ? PLANT_MONTH_NAMES[n] : (val || '—');
+    }
+
+    document.getElementById('reviewHeatTolerance').textContent = parsed.heatTolerance  || '—';
+    document.getElementById('reviewColdTolerance').textContent = parsed.coldTolerance  || '—';
+    document.getElementById('reviewWateringNeeds').textContent = parsed.wateringNeeds  || '—';
+    document.getElementById('reviewSunShade').textContent      = parsed.sunShade       || '—';
+    document.getElementById('reviewBloomMonth').textContent    = monthLabel(parsed.bloomMonth);
+    document.getElementById('reviewDormantMonth').textContent  = monthLabel(parsed.dormantMonth);
+    document.getElementById('reviewNotes').textContent         = parsed.notes          || '—';
+
+    var msgEl = document.getElementById('plantReviewMessage');
+    if (parsed.additionalMessage) {
+        msgEl.textContent = '\u26a0 ' + parsed.additionalMessage;
+        msgEl.classList.remove('hidden');
+    } else {
+        msgEl.classList.add('hidden');
+    }
+
+    openModal('plantLlmReviewModal');
+}
+
+/**
+ * Create the plant record + save photos from the LLM response.
+ * nameOverride is used when the user edited the name in the review modal.
+ * Photos are only saved when a plant name was successfully identified.
+ */
+async function plantSaveFromLlm(parsed, images, zoneId, nameOverride) {
+    var plantName = (nameOverride || parsed.name || 'Unknown Plant').trim();
+
+    function monthVal(num) {
+        var n = parseInt(num);
+        return (n >= 1 && n <= 12) ? PLANT_MONTH_NAMES[n] : '';
+    }
+
+    var metadata = {
+        heatTolerance : parsed.heatTolerance || '',
+        coldTolerance : parsed.coldTolerance || '',
+        wateringNeeds : parsed.wateringNeeds || '',
+        sunShade      : parsed.sunShade      || '',
+        bloomMonth    : monthVal(parsed.bloomMonth),
+        dormantMonth  : monthVal(parsed.dormantMonth),
+        notes         : parsed.notes         || ''
+    };
+
+    var newRef = await userCol('plants').add({
+        name      : plantName,
+        zoneId    : zoneId,
+        metadata  : metadata,
+        createdAt : firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    // Only attach photos when identification produced a plant name
+    var identified = !!(parsed.name || nameOverride);
+    if (identified) {
+        for (var i = 0; i < images.length; i++) {
+            await userCol('photos').add({
+                targetType : 'plant',
+                targetId   : newRef.id,
+                imageData  : images[i],
+                caption    : '',
+                createdAt  : firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+    }
+
+    return newRef.id;
+}
+
 // ---------- Event Listeners ----------
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -932,6 +1178,55 @@ document.addEventListener('DOMContentLoaded', function() {
             var months = parseInt(this.value, 10) || 3;
             loadEventsForTarget('plant', window.currentPlant.id,
                 'plantCalendarEventsContainer', 'plantCalendarEventsEmptyState', months);
+        }
+    });
+
+    // From Picture — gallery and camera buttons open the hidden file inputs
+    document.getElementById('plantPicGalleryBtn').addEventListener('click', function() {
+        document.getElementById('plantPicInput').click();
+    });
+    document.getElementById('plantPicCameraBtn').addEventListener('click', function() {
+        document.getElementById('plantCamInput').click();
+    });
+    document.getElementById('plantPicInput').addEventListener('change', function() {
+        if (this.files && this.files.length > 0) plantHandleFromPicture(this.files);
+    });
+    document.getElementById('plantCamInput').addEventListener('change', function() {
+        if (this.files && this.files.length > 0) plantHandleFromPicture(this.files);
+    });
+
+    // Review modal — Add It button
+    document.getElementById('plantReviewAddBtn').addEventListener('click', async function() {
+        if (!plantLlmPending) return;
+        var btn          = this;
+        var nameOverride = document.getElementById('plantReviewName').value.trim();
+        btn.disabled     = true;
+        btn.textContent  = 'Saving\u2026';
+        try {
+            await plantSaveFromLlm(plantLlmPending.parsed, plantLlmPending.images,
+                                   plantLlmPending.zoneId, nameOverride);
+            plantLlmPending = null;
+            closeModal('plantLlmReviewModal');
+            refreshCurrentView();
+        } catch (err) {
+            console.error('Error saving plant from LLM:', err);
+            alert('Error saving plant. Please try again.');
+            btn.disabled    = false;
+            btn.textContent = 'Add It';
+        }
+    });
+
+    // Review modal — Cancel button
+    document.getElementById('plantReviewCancelBtn').addEventListener('click', function() {
+        plantLlmPending = null;
+        closeModal('plantLlmReviewModal');
+    });
+
+    // Review modal — close on overlay click
+    document.getElementById('plantLlmReviewModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            plantLlmPending = null;
+            closeModal('plantLlmReviewModal');
         }
     });
 });

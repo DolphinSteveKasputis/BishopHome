@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=164">
+    <link rel="stylesheet" href="css/styles.css?v=169">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -1560,9 +1560,59 @@
                 <label for="plantNameInput">Plant Name</label>
                 <input type="text" id="plantNameInput" placeholder="e.g., Azalea #1">
             </div>
+
+            <!-- From Picture section — only shown in add mode when LLM is configured -->
+            <div id="plantFromPictureSection" class="plant-from-pic-section hidden">
+                <div class="plant-from-pic-divider">— or identify from a photo —</div>
+                <input type="file" id="plantPicInput" accept="image/*" multiple style="display:none">
+                <input type="file" id="plantCamInput" accept="image/*" capture="environment" style="display:none">
+                <div class="plant-from-pic-buttons">
+                    <button type="button" class="btn btn-secondary btn-sm" id="plantPicGalleryBtn">📎 Gallery</button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="plantPicCameraBtn">📷 Camera</button>
+                </div>
+                <label class="plant-from-pic-toggle">
+                    <input type="checkbox" id="plantShowResponseToggle">
+                    Show response before adding
+                </label>
+                <div id="plantPicStatus" class="plant-pic-status hidden"></div>
+            </div>
+
             <div class="modal-buttons">
                 <button class="btn btn-secondary" id="plantModalCancelBtn">Cancel</button>
                 <button class="btn btn-primary" id="plantModalSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Plant LLM Review Modal -->
+    <div class="modal-overlay" id="plantLlmReviewModal">
+        <div class="modal modal-wide">
+            <h3>Plant Identified</h3>
+            <div class="form-group">
+                <label for="plantReviewName">Plant Name (editable)</label>
+                <input type="text" id="plantReviewName" class="plant-review-name-input">
+            </div>
+            <div class="plant-review-fields">
+                <div class="plant-review-row"><span class="plant-review-label">Heat Tolerance</span><span id="reviewHeatTolerance"></span></div>
+                <div class="plant-review-row"><span class="plant-review-label">Cold Tolerance</span><span id="reviewColdTolerance"></span></div>
+                <div class="plant-review-row"><span class="plant-review-label">Watering Needs</span><span id="reviewWateringNeeds"></span></div>
+                <div class="plant-review-row"><span class="plant-review-label">Sun / Shade</span><span id="reviewSunShade"></span></div>
+                <div class="plant-review-row"><span class="plant-review-label">Bloom Month</span><span id="reviewBloomMonth"></span></div>
+                <div class="plant-review-row"><span class="plant-review-label">Dormant Month</span><span id="reviewDormantMonth"></span></div>
+                <div class="plant-review-row"><span class="plant-review-label">Notes</span><span id="reviewNotes"></span></div>
+            </div>
+            <div id="plantReviewMessage" class="plant-review-message hidden"></div>
+            <details class="plant-review-debug">
+                <summary>Prompt sent to LLM</summary>
+                <pre id="reviewPromptText" class="plant-review-pre"></pre>
+            </details>
+            <details class="plant-review-debug">
+                <summary>Raw LLM response</summary>
+                <pre id="reviewResponseText" class="plant-review-pre"></pre>
+            </details>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="plantReviewCancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="plantReviewAddBtn">Add It</button>
             </div>
         </div>
     </div>
@@ -2620,30 +2670,30 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=164"></script>
-    <script src="js/auth.js?v=164"></script>
-    <script src="js/zones.js?v=164"></script>
-    <script src="js/plants.js?v=164"></script>
-    <script src="js/problems.js?v=164"></script>
-    <script src="js/facts.js?v=164"></script>
-    <script src="js/projects.js?v=164"></script>
-    <script src="js/chemicals.js?v=164"></script>
-    <script src="js/activities.js?v=164"></script>
-    <script src="js/photos.js?v=164"></script>
-    <script src="js/weeds.js?v=164"></script>
-    <script src="js/calendar.js?v=164"></script>
-    <script src="js/gps.js?v=164"></script>
-    <script src="js/settings.js?v=164"></script>
-    <script src="js/house.js?v=164"></script>
-    <script src="js/floorplan.js?v=164"></script>
-    <script src="js/search.js?v=164"></script>
-    <script src="js/activityreport.js?v=164"></script>
-    <script src="js/checklists.js?v=164"></script>
-    <script src="js/bulkactivity.js?v=164"></script>
-    <script src="js/devnotes.js?v=164"></script>
+    <script src="js/firebase-config.js?v=169"></script>
+    <script src="js/auth.js?v=169"></script>
+    <script src="js/zones.js?v=169"></script>
+    <script src="js/plants.js?v=169"></script>
+    <script src="js/problems.js?v=169"></script>
+    <script src="js/facts.js?v=169"></script>
+    <script src="js/projects.js?v=169"></script>
+    <script src="js/chemicals.js?v=169"></script>
+    <script src="js/activities.js?v=169"></script>
+    <script src="js/photos.js?v=169"></script>
+    <script src="js/weeds.js?v=169"></script>
+    <script src="js/calendar.js?v=169"></script>
+    <script src="js/gps.js?v=169"></script>
+    <script src="js/settings.js?v=169"></script>
+    <script src="js/house.js?v=169"></script>
+    <script src="js/floorplan.js?v=169"></script>
+    <script src="js/search.js?v=169"></script>
+    <script src="js/activityreport.js?v=169"></script>
+    <script src="js/checklists.js?v=169"></script>
+    <script src="js/bulkactivity.js?v=169"></script>
+    <script src="js/devnotes.js?v=169"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=168"></script>
-    <script src="js/app.js?v=164"></script>
+    <script src="js/chat.js?v=169"></script>
+    <script src="js/app.js?v=169"></script>
 
 </body>
 </html>

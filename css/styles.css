@@ -3574,6 +3574,104 @@ a.ar-target-link:hover {
     word-wrap: break-word;
 }
 
+/* Plant — From Picture section in Add modal */
+.plant-from-pic-section {
+    border-top: 1px solid #e0e0e0;
+    margin-top: 16px;
+    padding-top: 14px;
+}
+.plant-from-pic-divider {
+    text-align: center;
+    font-size: 0.8rem;
+    color: #999;
+    margin-bottom: 12px;
+}
+.plant-from-pic-buttons {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+.plant-from-pic-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: #555;
+    cursor: pointer;
+}
+.plant-pic-status {
+    margin-top: 8px;
+    font-size: 0.88rem;
+    color: #c62828;
+}
+
+/* Plant — LLM Review Modal */
+.modal-wide {
+    max-width: 560px;
+    width: 95%;
+}
+.plant-review-name-input {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+.plant-review-fields {
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    margin: 14px 0;
+    overflow: hidden;
+}
+.plant-review-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 7px 12px;
+    font-size: 0.88rem;
+    border-bottom: 1px solid #f0f0f0;
+}
+.plant-review-row:last-child { border-bottom: none; }
+.plant-review-row:nth-child(even) { background: #fafafa; }
+.plant-review-label {
+    font-weight: 600;
+    color: #555;
+    flex-shrink: 0;
+    margin-right: 12px;
+}
+.plant-review-message {
+    background: #fff3e0;
+    border: 1px solid #ffe0b2;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 0.88rem;
+    color: #e65100;
+    margin-bottom: 12px;
+}
+.plant-review-debug {
+    margin-bottom: 8px;
+    font-size: 0.82rem;
+}
+.plant-review-debug summary {
+    cursor: pointer;
+    color: #777;
+    padding: 4px 0;
+}
+.plant-review-pre {
+    background: #f5f5f5;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    padding: 10px;
+    font-size: 0.78rem;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 200px;
+    overflow-y: auto;
+    margin-top: 6px;
+}
+
 /* Chat — image attachment thumbnail strip */
 .chat-image-preview {
     display: flex;

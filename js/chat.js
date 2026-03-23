@@ -9,7 +9,7 @@
 var LLM_PROVIDERS = {
     openai: {
         endpoint : 'https://api.openai.com/v1/chat/completions',
-        model    : 'gpt-5.4-mini',
+        model    : 'gpt-4o-mini',
         name     : 'ChatGPT (OpenAI)'
     },
     grok: {

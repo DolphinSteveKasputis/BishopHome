@@ -14,7 +14,7 @@ Add a "Chat" button to the top nav bar. Clicking it opens a chat interface where
 | Conversation style | Single Q&A. Each question is independent. No thread. |
 | Persistence | Ephemeral — no chat history saved. |
 | LLM providers | ChatGPT (OpenAI) + Grok (xAI). Hard-coded default models. No Anthropic (removed). |
-| Default models | OpenAI → `gpt-5.4-mini`, xAI → `grok-3` |
+| Default models | OpenAI → `gpt-4o-mini`, xAI → `grok-3` |
 | Keyboard shortcut | Ctrl+Enter (or Cmd+Enter) sends the message |
 
 ---

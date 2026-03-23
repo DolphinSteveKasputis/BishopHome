@@ -310,8 +310,13 @@ function openBarcodeScanner() {
     var scannerDiv = document.getElementById('barcodeScannerDiv');
     var statusEl   = document.getElementById('barcodeScanStatus');
 
-    // Clear any previous camera frame
+    // Clean up any previous broken instance before creating a new one
+    if (barcodeScanner) {
+        barcodeScanner.stop().catch(function() {});
+        barcodeScanner = null;
+    }
     scannerDiv.innerHTML = '';
+    statusEl.className   = 'barcode-scan-status';
     statusEl.textContent = 'Point camera at a barcode\u2026';
 
     openModal('barcodeScanModal');
@@ -326,12 +331,32 @@ function openBarcodeScanner() {
                 barcodeScanner = null;
                 lookupBarcode(decodedText);
             }).catch(function() {
+                barcodeScanner = null;
                 lookupBarcode(decodedText);
             });
         },
         function onFailure() { /* ignore per-frame misses while scanning */ }
     ).catch(function(err) {
-        statusEl.textContent = 'Camera error: ' + err;
+        // Always null out so the next button press starts fresh
+        barcodeScanner = null;
+
+        var msg = String(err).toLowerCase();
+        var isPermission = msg.includes('notallowed') || msg.includes('permission') ||
+                           msg.includes('denied') || msg.includes('dismissed');
+
+        statusEl.className = 'barcode-scan-status barcode-scan-error';
+        if (isPermission) {
+            statusEl.innerHTML =
+                '<strong>Camera permission was denied.</strong><br><br>' +
+                'To fix it:<br>' +
+                '1. Tap the \uD83D\uDD12 lock icon in your browser\u2019s address bar<br>' +
+                '2. Tap <em>Site settings</em> (or <em>Permissions</em>)<br>' +
+                '3. Set <em>Camera</em> to <em>Allow</em><br>' +
+                '4. Reload the page and try again';
+        } else {
+            statusEl.textContent = 'Camera error: ' + err +
+                '\u2014 try reloading the page.';
+        }
     });
 }
 

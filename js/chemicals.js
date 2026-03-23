@@ -409,10 +409,9 @@ function bcStartDetecting(video, statusEl) {
 
         detector.detect(video).then(function(results) {
             if (results.length > 0) {
+                // Pause scanning — show what was found and let the user confirm
                 bcDetecting = false;
-                var code = results[0].rawValue;
-                closeBarcodeScanner();
-                lookupBarcode(code);
+                bcShowConfirm(results[0].rawValue, statusEl, video, detector);
             } else {
                 requestAnimationFrame(scan);
             }
@@ -421,6 +420,57 @@ function bcStartDetecting(video, statusEl) {
         });
     }
     scan();
+}
+
+/**
+ * Barcode detected — pause and ask the user to confirm before looking it up.
+ * Shows the barcode value, a "Use This" button, and a "Scan Again" button.
+ */
+function bcShowConfirm(code, statusEl, video, detector) {
+    statusEl.textContent = '';
+
+    var box = document.createElement('div');
+    box.id = 'bcConfirmBox';
+    box.style.cssText = 'background:rgba(0,0,0,0.82);color:#fff;text-align:center;' +
+                        'padding:14px 16px;border-radius:8px;margin:8px 0;';
+    box.innerHTML = '<div style="font-size:0.8rem;opacity:0.7;margin-bottom:4px;">Barcode detected:</div>' +
+                    '<div style="font-size:1.1rem;font-weight:700;letter-spacing:0.05em;margin-bottom:12px;">' +
+                    escapeHtml(code) + '</div>';
+
+    var useBtn = document.createElement('button');
+    useBtn.className = 'btn btn-primary';
+    useBtn.style.cssText = 'margin-right:10px;';
+    useBtn.textContent = 'Look Up This One';
+    useBtn.addEventListener('click', function() {
+        closeBarcodeScanner();
+        lookupBarcode(code);
+    });
+
+    var againBtn = document.createElement('button');
+    againBtn.className = 'btn btn-secondary';
+    againBtn.textContent = 'Scan Again';
+    againBtn.addEventListener('click', function() {
+        box.remove();
+        statusEl.textContent = 'Point camera at a barcode\u2026';
+        // Resume scan loop
+        bcDetecting = true;
+        (function scan() {
+            if (!bcDetecting) return;
+            if (video.readyState < 2) { requestAnimationFrame(scan); return; }
+            detector.detect(video).then(function(results) {
+                if (results.length > 0) {
+                    bcDetecting = false;
+                    bcShowConfirm(results[0].rawValue, statusEl, video, detector);
+                } else {
+                    requestAnimationFrame(scan);
+                }
+            }).catch(function() { if (bcDetecting) requestAnimationFrame(scan); });
+        })();
+    });
+
+    box.appendChild(useBtn);
+    box.appendChild(againBtn);
+    statusEl.parentNode.insertBefore(box, statusEl);
 }
 
 /** Stop camera stream and scan loop. */
@@ -447,11 +497,11 @@ function closeBarcodeScanner() {
  * @param {string} barcode
  */
 async function lookupBarcode(barcode) {
-    // Switch to result modal immediately with a loading message
-    closeModal('barcodeScanModal');
+    // Show result modal with a loading message.
+    // Small timeout lets the scanner overlay finish removing from the DOM first.
     renderBarcodeResult('<p style="color:#555;padding:12px 0">Looking up <strong>' +
         escapeHtml(barcode) + '</strong>\u2026</p>');
-    openModal('barcodeResultModal');
+    setTimeout(function() { openModal('barcodeResultModal'); }, 80);
 
     try {
         // ---- Attempt 1: UPC Item DB ----

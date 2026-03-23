@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=124">
+    <link rel="stylesheet" href="css/styles.css?v=125">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -640,6 +640,17 @@
             <!-- Context: room › floor, category badge -->
             <p class="house-thing-meta" id="thingMeta"></p>
 
+            <!-- Inventory details (price, worth, year, description, comment) -->
+            <div id="thingDetailsSection" class="thing-details-section" style="display:none"></div>
+
+            <!-- Sub-things / Items section -->
+            <div class="section-header">
+                <h3 class="section-heading">Items</h3>
+                <button class="btn btn-primary btn-small" id="addSubThingBtn">+ Add Item</button>
+            </div>
+            <div class="card-list" id="subThingListContainer"></div>
+            <p class="empty-state" id="subThingListEmptyState"></p>
+
             <!-- Problems / Concerns -->
             <div class="section-header">
                 <h3 class="section-heading">Problems / Concerns</h3>
@@ -698,6 +709,73 @@
             </div>
             <div id="thingPhotoContainer"></div>
             <p class="empty-state" id="thingPhotoEmptyState">No photos yet.</p>
+        </section>
+
+        <!-- Page: Sub-thing Detail (Things Enhancement) -->
+        <section class="page hidden" id="page-subthing">
+            <div class="page-header">
+                <h2 id="stTitle">Item</h2>
+                <div class="page-header-actions">
+                    <button class="btn btn-secondary btn-small" id="editStBtn">Edit</button>
+                    <button class="btn btn-danger btn-small" id="deleteStBtn">Delete</button>
+                </div>
+            </div>
+            <p class="house-thing-meta" id="stMeta"></p>
+            <!-- Inventory details -->
+            <div id="stDetailsSection" class="thing-details-section" style="display:none"></div>
+            <!-- Problems -->
+            <div class="section-header">
+                <h3 class="section-heading">Problems / Concerns</h3>
+                <button class="btn btn-primary btn-small" id="addStProblemBtn">+ Add</button>
+            </div>
+            <div id="stProblemsContainer"></div>
+            <p class="empty-state" id="stProblemsEmptyState"></p>
+            <!-- Facts -->
+            <div class="section-header">
+                <h3 class="section-heading">Facts</h3>
+                <button class="btn btn-primary btn-small" id="addStFactBtn">+ Add</button>
+            </div>
+            <div id="stFactsContainer"></div>
+            <p class="empty-state" id="stFactsEmptyState"></p>
+            <!-- Future Projects -->
+            <div class="section-header">
+                <h3 class="section-heading">Future Projects</h3>
+                <button class="btn btn-primary btn-small" id="addStProjectBtn">+ Add</button>
+            </div>
+            <div id="stProjectsContainer"></div>
+            <p class="empty-state" id="stProjectsEmptyState"></p>
+            <!-- Calendar Events -->
+            <div class="section-header">
+                <h3 class="section-heading">Calendar Events</h3>
+                <div class="section-header-actions">
+                    <div class="calendar-range-picker">
+                        <label>Next</label>
+                        <select id="stCalendarRangeSelect" class="range-select">
+                            <option value="1">1 mo</option>
+                            <option value="3" selected>3 mo</option>
+                            <option value="6">6 mo</option>
+                            <option value="12">12 mo</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary btn-small" id="addStCalendarEventBtn">+ Add Event</button>
+                </div>
+            </div>
+            <div id="stCalendarEventsContainer"></div>
+            <p class="empty-state" id="stCalendarEventsEmptyState"></p>
+            <!-- Activity History -->
+            <div class="section-header">
+                <h3 class="section-heading">Activity History</h3>
+                <button class="btn btn-primary btn-small" id="logStActivityBtn">+ Log Activity</button>
+            </div>
+            <div id="stActivityContainer"></div>
+            <p class="empty-state" id="stActivityEmptyState">No activities logged yet.</p>
+            <!-- Photos -->
+            <div class="section-header">
+                <h3 class="section-heading">Photos</h3>
+                <button class="btn btn-primary btn-small" id="addStPhotoBtn">+ Add Photo</button>
+            </div>
+            <div id="stPhotoContainer"></div>
+            <p class="empty-state" id="stPhotoEmptyState">No photos yet.</p>
         </section>
 
         <!-- Page: Floor Plan Editor (Phase H8) -->
@@ -1450,11 +1528,80 @@
                     <option value="other">Other</option>
                 </select>
             </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="thingPricePaidInput">Price Paid ($)</label>
+                    <input type="number" id="thingPricePaidInput" min="0" step="0.01" placeholder="e.g. 299.99">
+                </div>
+                <div class="form-group">
+                    <label for="thingWorthInput">Worth / Value ($)</label>
+                    <input type="number" id="thingWorthInput" min="0" step="0.01" placeholder="e.g. 199.99">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="thingYearBoughtInput">Year Bought</label>
+                <input type="number" id="thingYearBoughtInput" min="1900" max="2100" placeholder="e.g. 2022">
+            </div>
+            <div class="form-group">
+                <label for="thingDescriptionInput">Description</label>
+                <textarea id="thingDescriptionInput" rows="2" placeholder="Describe this item…"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="thingCommentInput">Personal comment</label>
+                <textarea id="thingCommentInput" rows="2" placeholder="Something personal about this item…"></textarea>
+            </div>
             <div class="modal-buttons">
                 <button class="btn btn-danger" id="thingModalDeleteBtn" style="display:none;">Delete</button>
                 <div style="flex:1;"></div>
                 <button class="btn btn-secondary" id="thingModalCancelBtn">Cancel</button>
                 <button class="btn btn-primary" id="thingModalSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sub-thing Add/Edit Modal (Things Enhancement) -->
+    <div class="modal-overlay" id="subThingModal">
+        <div class="modal">
+            <h3 id="stModalTitle">Add Item</h3>
+            <div class="form-group">
+                <label for="stNameInput">Name <span class="label-required">*</span></label>
+                <input type="text" id="stNameInput" placeholder="e.g. Dell Monitor, Mechanical Keyboard">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="stPricePaidInput">Price Paid ($)</label>
+                    <input type="number" id="stPricePaidInput" min="0" step="0.01" placeholder="e.g. 299.99">
+                </div>
+                <div class="form-group">
+                    <label for="stWorthInput">Worth / Value ($)</label>
+                    <input type="number" id="stWorthInput" min="0" step="0.01" placeholder="e.g. 199.99">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="stYearBoughtInput">Year Bought</label>
+                <input type="number" id="stYearBoughtInput" min="1900" max="2100" placeholder="e.g. 2022">
+            </div>
+            <div class="form-group">
+                <label for="stDescriptionInput">Description</label>
+                <textarea id="stDescriptionInput" rows="2" placeholder="Describe this item…"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="stCommentInput">Personal comment</label>
+                <textarea id="stCommentInput" rows="2" placeholder="Something personal about this item…"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Tags <span class="label-hint">(type and press Enter, or click a suggestion)</span></label>
+                <div class="tag-input-wrapper" id="stTagWrapper">
+                    <div class="tag-chips" id="stTagChips"></div>
+                    <input type="text" id="stTagInput" placeholder="Type a tag…" autocomplete="off">
+                </div>
+                <div class="tag-suggestions hidden" id="stTagSuggestions"></div>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-danger" id="stModalDeleteBtn" style="display:none">Delete</button>
+                <div style="flex:1"></div>
+                <button class="btn btn-secondary" id="stModalCancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="stModalSaveBtn">Save</button>
             </div>
         </div>
     </div>
@@ -1931,23 +2078,23 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=124"></script>
-    <script src="js/auth.js?v=124"></script>
-    <script src="js/zones.js?v=124"></script>
-    <script src="js/plants.js?v=124"></script>
-    <script src="js/problems.js?v=124"></script>
-    <script src="js/facts.js?v=124"></script>
-    <script src="js/projects.js?v=124"></script>
-    <script src="js/chemicals.js?v=124"></script>
-    <script src="js/activities.js?v=124"></script>
-    <script src="js/photos.js?v=124"></script>
-    <script src="js/weeds.js?v=124"></script>
-    <script src="js/calendar.js?v=124"></script>
-    <script src="js/gps.js?v=124"></script>
-    <script src="js/settings.js?v=124"></script>
-    <script src="js/house.js?v=124"></script>
-    <script src="js/floorplan.js?v=124"></script>
-    <script src="js/app.js?v=124"></script>
+    <script src="js/firebase-config.js?v=125"></script>
+    <script src="js/auth.js?v=125"></script>
+    <script src="js/zones.js?v=125"></script>
+    <script src="js/plants.js?v=125"></script>
+    <script src="js/problems.js?v=125"></script>
+    <script src="js/facts.js?v=125"></script>
+    <script src="js/projects.js?v=125"></script>
+    <script src="js/chemicals.js?v=125"></script>
+    <script src="js/activities.js?v=125"></script>
+    <script src="js/photos.js?v=125"></script>
+    <script src="js/weeds.js?v=125"></script>
+    <script src="js/calendar.js?v=125"></script>
+    <script src="js/gps.js?v=125"></script>
+    <script src="js/settings.js?v=125"></script>
+    <script src="js/house.js?v=125"></script>
+    <script src="js/floorplan.js?v=125"></script>
+    <script src="js/app.js?v=125"></script>
 
 </body>
 </html>

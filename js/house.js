@@ -14,6 +14,11 @@ var currentPanel = null;   // Breaker panel document currently being viewed
 var bpEditSlot = null;     // Slot number (1-based) being edited
 var bpEditId   = null;     // breaker.id of the existing entry, or null if new
 
+var currentSubThing = null;   // Sub-thing document currently being viewed
+// Tag input state for the subThingModal
+var stSelectedTags  = [];     // Tags currently selected in the modal
+var stAllTags       = [];     // All known tag names loaded from Firestore
+
 // ============================================================
 // HOUSE CONTEXT LABEL  (used by calendar.js for event cards)
 // ============================================================
@@ -53,6 +58,20 @@ async function getHouseContextLabel(targetType, targetId) {
             var floorDoc3 = await db.collection('floors').doc(roomData2.floorId).get();
             var floorName2 = floorDoc3.exists ? floorDoc3.data().name : 'Floor';
             return 'House \u203a ' + floorName2 + ' \u203a ' + roomData2.name + ' \u203a ' + thingData.name;
+
+        } else if (targetType === 'subthing') {
+            var stDoc = await db.collection('subThings').doc(targetId).get();
+            if (!stDoc.exists) return null;
+            var stData   = stDoc.data();
+            var thingDoc = await db.collection('things').doc(stData.thingId).get();
+            if (!thingDoc.exists) return 'House \u203a \u2026 \u203a ' + stData.name;
+            var tData    = thingDoc.data();
+            var rDoc2    = await db.collection('rooms').doc(tData.roomId).get();
+            if (!rDoc2.exists) return 'House \u203a \u2026 \u203a ' + tData.name + ' \u203a ' + stData.name;
+            var rData2   = rDoc2.data();
+            var fDoc2    = await db.collection('floors').doc(rData2.floorId).get();
+            var fName2   = fDoc2.exists ? fDoc2.data().name : 'Floor';
+            return 'House \u203a ' + fName2 + ' \u203a ' + rData2.name + ' \u203a ' + tData.name + ' \u203a ' + stData.name;
         }
         return null;
     } catch (e) {
@@ -992,6 +1011,9 @@ function renderThingDetail(thing, room, floor) {
     meta.textContent = (floor.name || '') + ' \u203a ' + (room.name || '') +
                        (catLabel ? ' \u00b7 ' + catLabel : '');
 
+    // Inventory details card
+    renderInventoryDetails(thing, 'thingDetailsSection');
+
     // Breadcrumb: House > Floor > Room > Thing
     buildHouseBreadcrumb([
         { label: 'House',               hash: '#house' },
@@ -1012,6 +1034,9 @@ function renderThingDetail(thing, room, floor) {
         loadEventsForTarget('thing', thing.id,
             'thingCalendarEventsContainer', 'thingCalendarEventsEmptyState', months);
     }
+
+    // Load sub-things (items) list
+    loadSubThingsList(thing.id);
 }
 
 // ============================================================
@@ -1028,6 +1053,11 @@ function openThingModal(editId, data) {
         document.getElementById('thingModalTitle').textContent = 'Edit Thing';
         nameInput.value         = data.name || '';
         catSelect.value         = data.category || 'furniture';
+        document.getElementById('thingPricePaidInput').value   = data.pricePaid   || '';
+        document.getElementById('thingWorthInput').value       = data.worth       || '';
+        document.getElementById('thingYearBoughtInput').value  = data.yearBought  || '';
+        document.getElementById('thingDescriptionInput').value = data.description || '';
+        document.getElementById('thingCommentInput').value     = data.comment     || '';
         deleteBtn.style.display = '';
         modal.dataset.mode      = 'edit';
         modal.dataset.editId    = editId;
@@ -1035,6 +1065,11 @@ function openThingModal(editId, data) {
         document.getElementById('thingModalTitle').textContent = 'Add Thing';
         nameInput.value         = '';
         catSelect.value         = 'furniture';
+        document.getElementById('thingPricePaidInput').value   = '';
+        document.getElementById('thingWorthInput').value       = '';
+        document.getElementById('thingYearBoughtInput').value  = '';
+        document.getElementById('thingDescriptionInput').value = '';
+        document.getElementById('thingCommentInput').value     = '';
         deleteBtn.style.display = 'none';
         modal.dataset.mode      = 'add';
         modal.dataset.editId    = '';
@@ -1054,8 +1089,17 @@ document.getElementById('thingModalSaveBtn').addEventListener('click', function(
     var mode   = modal.dataset.mode;
     var editId = modal.dataset.editId;
 
+    var extraFields = {
+        pricePaid:   document.getElementById('thingPricePaidInput').value.trim()   || null,
+        worth:       document.getElementById('thingWorthInput').value.trim()       || null,
+        yearBought:  document.getElementById('thingYearBoughtInput').value.trim()  || null,
+        description: document.getElementById('thingDescriptionInput').value.trim(),
+        comment:     document.getElementById('thingCommentInput').value.trim()
+    };
+
     if (mode === 'edit' && editId) {
-        db.collection('things').doc(editId).update({ name: nameVal, category: catVal })
+        var updateData = Object.assign({ name: nameVal, category: catVal }, extraFields);
+        db.collection('things').doc(editId).update(updateData)
             .then(function() {
                 closeModal('thingModal');
                 loadThingDetail(editId);
@@ -1063,12 +1107,12 @@ document.getElementById('thingModalSaveBtn').addEventListener('click', function(
             .catch(function(err) { console.error('Update thing error:', err); });
     } else {
         if (!currentRoom) { alert('No room selected.'); return; }
-        var thingData = {
+        var thingData = Object.assign({
             name:      nameVal,
             category:  catVal,
             roomId:    currentRoom.id,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        };
+        }, extraFields);
         db.collection('things').add(thingData)
             .then(function() {
                 closeModal('thingModal');
@@ -1086,18 +1130,27 @@ document.getElementById('thingModalDeleteBtn').addEventListener('click', functio
     var editId = document.getElementById('thingModal').dataset.editId;
     if (!editId) return;
 
-    if (!confirm('Delete this thing? This cannot be undone.')) return;
-
-    db.collection('things').doc(editId).delete()
-        .then(function() {
-            closeModal('thingModal');
-            if (currentRoom) {
-                window.location.hash = '#room/' + currentRoom.id;
-            } else {
-                window.location.hash = '#house';
+    db.collection('subThings').where('thingId', '==', editId).limit(1).get()
+        .then(function(snap) {
+            if (!snap.empty) {
+                alert('This thing has items. Delete all items first.');
+                return;
             }
+
+            if (!confirm('Delete this thing? This cannot be undone.')) return;
+
+            db.collection('things').doc(editId).delete()
+                .then(function() {
+                    closeModal('thingModal');
+                    if (currentRoom) {
+                        window.location.hash = '#room/' + currentRoom.id;
+                    } else {
+                        window.location.hash = '#house';
+                    }
+                })
+                .catch(function(err) { console.error('Delete thing error:', err); });
         })
-        .catch(function(err) { console.error('Delete thing error:', err); });
+        .catch(function(err) { console.error('Check subThings error:', err); });
 });
 
 // ============================================================
@@ -1927,6 +1980,493 @@ function loadBreakerDevices(breakerId, containerId, emptyId) {
 
 // ============================================================
 // UUID HELPER  (generates stable IDs for individual breakers)
+// ============================================================
+// SHARED INVENTORY DETAIL RENDERER
+// Renders price/worth/year/description/comment as a card.
+// Used by both thing detail and sub-thing detail pages.
+// ============================================================
+
+function renderInventoryDetails(data, sectionId) {
+    var section = document.getElementById(sectionId);
+    if (!section) return;
+
+    var rows = [];
+    if (data.pricePaid  !== null && data.pricePaid  !== undefined && data.pricePaid  !== '')
+        rows.push(['Price Paid',  '$' + data.pricePaid]);
+    if (data.worth      !== null && data.worth      !== undefined && data.worth      !== '')
+        rows.push(['Worth',       '$' + data.worth]);
+    if (data.yearBought !== null && data.yearBought !== undefined && data.yearBought !== '')
+        rows.push(['Year Bought', data.yearBought]);
+    if (data.description)
+        rows.push(['Description', data.description]);
+    if (data.comment)
+        rows.push(['Comment',     data.comment]);
+
+    if (!rows.length) { section.style.display = 'none'; return; }
+
+    section.style.display = '';
+    section.innerHTML = rows.map(function(r) {
+        return '<div class="thing-detail-row">' +
+               '<span class="thing-detail-label">' + escapeHtml(r[0]) + '</span>' +
+               '<span class="thing-detail-value">'  + escapeHtml(String(r[1])) + '</span>' +
+               '</div>';
+    }).join('');
+}
+
+// ============================================================
+// SUB-THINGS LIST  (shown on Thing detail page)
+// ============================================================
+
+function loadSubThingsList(thingId) {
+    var container  = document.getElementById('subThingListContainer');
+    var emptyState = document.getElementById('subThingListEmptyState');
+
+    container.innerHTML    = '';
+    emptyState.textContent = 'Loading…';
+
+    db.collection('subThings').where('thingId', '==', thingId).get()
+        .then(function(snapshot) {
+            emptyState.textContent = '';
+            if (snapshot.empty) {
+                emptyState.textContent = 'No items yet. Add an item to start tracking inventory.';
+                return;
+            }
+
+            var docs = [];
+            snapshot.forEach(function(doc) { docs.push(doc); });
+            docs.sort(function(a, b) {
+                var ta = a.data().createdAt ? a.data().createdAt.toMillis() : 0;
+                var tb = b.data().createdAt ? b.data().createdAt.toMillis() : 0;
+                return ta - tb;
+            });
+            docs.forEach(function(doc) {
+                container.appendChild(buildSubThingCard(doc.id, doc.data()));
+            });
+        })
+        .catch(function(err) {
+            console.error('loadSubThingsList error:', err);
+            emptyState.textContent = 'Error loading items.';
+        });
+}
+
+function buildSubThingCard(id, data) {
+    var card = document.createElement('div');
+    card.className = 'card card--clickable';
+
+    var label = escapeHtml(data.name || 'Unnamed Item');
+    var tags  = (data.tags || []).map(function(t) {
+        return '<span class="thing-tag-badge">' + escapeHtml(t) + '</span>';
+    }).join('');
+    var meta  = tags
+        ? '<div class="house-floor-meta" style="margin-top:3px">' + tags + '</div>'
+        : '';
+
+    card.innerHTML =
+        '<div class="card-main">' +
+            '<span class="card-title">' + label + '</span>' +
+            meta +
+        '</div>' +
+        '<span class="card-arrow">\u203a</span>';
+
+    card.addEventListener('click', function() {
+        window.location.hash = '#subthing/' + id;
+    });
+    return card;
+}
+
+// ============================================================
+// SUB-THING DETAIL PAGE  (#subthing/{id})
+// ============================================================
+
+function loadSubThingDetail(subThingId) {
+    db.collection('subThings').doc(subThingId).get()
+        .then(function(doc) {
+            if (!doc.exists) { window.location.hash = '#house'; return; }
+            currentSubThing = Object.assign({ id: doc.id }, doc.data());
+
+            // Load parent chain: thing → room → floor
+            return db.collection('things').doc(currentSubThing.thingId).get()
+                .then(function(thingDoc) {
+                    currentThing = thingDoc.exists
+                        ? Object.assign({ id: thingDoc.id }, thingDoc.data())
+                        : { id: currentSubThing.thingId, name: 'Thing', roomId: null };
+
+                    var roomId = currentThing.roomId;
+                    if (!roomId) {
+                        currentRoom  = { id: '', name: 'Room',  floorId: null };
+                        currentFloor = { id: '', name: 'Floor' };
+                        renderSubThingDetail(currentSubThing, currentThing, currentRoom, currentFloor);
+                        return;
+                    }
+
+                    return db.collection('rooms').doc(roomId).get()
+                        .then(function(roomDoc) {
+                            currentRoom = roomDoc.exists
+                                ? Object.assign({ id: roomDoc.id }, roomDoc.data())
+                                : { id: roomId, name: 'Room', floorId: null };
+
+                            var floorId = currentRoom.floorId;
+                            if (!floorId) {
+                                currentFloor = { id: '', name: 'Floor' };
+                                renderSubThingDetail(currentSubThing, currentThing, currentRoom, currentFloor);
+                                return;
+                            }
+
+                            return db.collection('floors').doc(floorId).get()
+                                .then(function(floorDoc) {
+                                    currentFloor = floorDoc.exists
+                                        ? Object.assign({ id: floorDoc.id }, floorDoc.data())
+                                        : { id: floorId, name: 'Floor' };
+                                    renderSubThingDetail(currentSubThing, currentThing, currentRoom, currentFloor);
+                                });
+                        });
+                });
+        })
+        .catch(function(err) { console.error('loadSubThingDetail error:', err); });
+}
+
+function renderSubThingDetail(subThing, thing, room, floor) {
+    document.getElementById('stTitle').textContent = subThing.name || 'Item';
+
+    // Meta line: Floor › Room › Thing · #tag1 #tag2
+    var meta     = document.getElementById('stMeta');
+    var tagsText = (subThing.tags || []).map(function(t) { return '#' + t; }).join(' ');
+    meta.textContent =
+        (floor.name || '') + ' \u203a ' +
+        (room.name  || '') + ' \u203a ' +
+        (thing.name || '') +
+        (tagsText ? ' \u00b7 ' + tagsText : '');
+
+    // Breadcrumb: House › Floor › Room › Thing › Item
+    buildHouseBreadcrumb([
+        { label: 'House',                  hash: '#house' },
+        { label: floor.name || 'Floor',    hash: floor.id  ? '#floor/' + floor.id  : null },
+        { label: room.name  || 'Room',     hash: room.id   ? '#room/'  + room.id   : null },
+        { label: thing.name || 'Thing',    hash: thing.id  ? '#thing/' + thing.id  : null },
+        { label: subThing.name || 'Item',  hash: null }
+    ]);
+
+    // Details card
+    renderInventoryDetails(subThing, 'stDetailsSection');
+
+    // All cross-entity feature sections
+    loadProblems(  'subthing', subThing.id, 'stProblemsContainer', 'stProblemsEmptyState');
+    loadFacts(     'subthing', subThing.id, 'stFactsContainer',    'stFactsEmptyState');
+    loadProjects(  'subthing', subThing.id, 'stProjectsContainer', 'stProjectsEmptyState');
+    loadActivities('subthing', subThing.id, 'stActivityContainer', 'stActivityEmptyState');
+    loadPhotos(    'subthing', subThing.id, 'stPhotoContainer',    'stPhotoEmptyState');
+
+    if (typeof loadEventsForTarget === 'function') {
+        var months = parseInt(document.getElementById('stCalendarRangeSelect').value, 10) || 3;
+        loadEventsForTarget('subthing', subThing.id,
+            'stCalendarEventsContainer', 'stCalendarEventsEmptyState', months);
+    }
+}
+
+// ============================================================
+// SUB-THING MODAL  (Add / Edit)
+// ============================================================
+
+function openSubThingModal(editId, data) {
+    var modal     = document.getElementById('subThingModal');
+    var nameInput = document.getElementById('stNameInput');
+    var deleteBtn = document.getElementById('stModalDeleteBtn');
+
+    if (editId) {
+        document.getElementById('stModalTitle').textContent = 'Edit Item';
+        nameInput.value                                      = data.name        || '';
+        document.getElementById('stPricePaidInput').value   = data.pricePaid   || '';
+        document.getElementById('stWorthInput').value       = data.worth       || '';
+        document.getElementById('stYearBoughtInput').value  = data.yearBought  || '';
+        document.getElementById('stDescriptionInput').value = data.description || '';
+        document.getElementById('stCommentInput').value     = data.comment     || '';
+        deleteBtn.style.display = '';
+        modal.dataset.mode      = 'edit';
+        modal.dataset.editId    = editId;
+    } else {
+        document.getElementById('stModalTitle').textContent = 'Add Item';
+        nameInput.value                                      = '';
+        document.getElementById('stPricePaidInput').value   = '';
+        document.getElementById('stWorthInput').value       = '';
+        document.getElementById('stYearBoughtInput').value  = '';
+        document.getElementById('stDescriptionInput').value = '';
+        document.getElementById('stCommentInput').value     = '';
+        deleteBtn.style.display = 'none';
+        modal.dataset.mode      = 'add';
+        modal.dataset.editId    = '';
+    }
+
+    // Initialize tag state
+    stSelectedTags = editId ? (data.tags || []).slice() : [];
+    stRenderChips();
+    document.getElementById('stTagInput').value = '';
+    document.getElementById('stTagSuggestions').classList.add('hidden');
+
+    // Load known tags from Firestore for autocomplete
+    stLoadTags();
+
+    openModal('subThingModal');
+    nameInput.focus();
+}
+
+document.getElementById('stModalSaveBtn').addEventListener('click', function() {
+    var modal   = document.getElementById('subThingModal');
+    var nameVal = document.getElementById('stNameInput').value.trim();
+
+    if (!nameVal) { alert('Please enter a name.'); return; }
+
+    var itemData = {
+        name:        nameVal,
+        pricePaid:   document.getElementById('stPricePaidInput').value.trim()   || null,
+        worth:       document.getElementById('stWorthInput').value.trim()       || null,
+        yearBought:  document.getElementById('stYearBoughtInput').value.trim()  || null,
+        description: document.getElementById('stDescriptionInput').value.trim(),
+        comment:     document.getElementById('stCommentInput').value.trim(),
+        tags:        stSelectedTags.slice()
+    };
+
+    var mode   = modal.dataset.mode;
+    var editId = modal.dataset.editId;
+
+    if (mode === 'edit' && editId) {
+        db.collection('subThings').doc(editId).update(itemData)
+            .then(function() {
+                closeModal('subThingModal');
+                loadSubThingDetail(editId);
+            })
+            .catch(function(err) { console.error('Update subThing error:', err); });
+    } else {
+        if (!currentThing) { alert('No parent item selected.'); return; }
+        itemData.thingId   = currentThing.id;
+        itemData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        db.collection('subThings').add(itemData)
+            .then(function() {
+                closeModal('subThingModal');
+                loadSubThingsList(currentThing.id);
+            })
+            .catch(function(err) { console.error('Add subThing error:', err); });
+    }
+});
+
+document.getElementById('stModalCancelBtn').addEventListener('click', function() {
+    closeModal('subThingModal');
+});
+
+document.getElementById('stModalDeleteBtn').addEventListener('click', function() {
+    var editId = document.getElementById('subThingModal').dataset.editId;
+    if (!editId) return;
+    if (!confirm('Delete this item? This cannot be undone.')) return;
+    db.collection('subThings').doc(editId).delete()
+        .then(function() {
+            closeModal('subThingModal');
+            if (currentThing) {
+                window.location.hash = '#thing/' + currentThing.id;
+            } else {
+                window.location.hash = '#house';
+            }
+        })
+        .catch(function(err) { console.error('Delete subThing error:', err); });
+});
+
+// ============================================================
+// TAG INPUT LOGIC
+// ============================================================
+
+function stLoadTags() {
+    db.collection('tags').get()
+        .then(function(snap) {
+            stAllTags = [];
+            snap.forEach(function(d) {
+                var n = d.data().name;
+                if (n) stAllTags.push(n);
+            });
+            stAllTags.sort(function(a, b) { return a.toLowerCase().localeCompare(b.toLowerCase()); });
+        })
+        .catch(function(err) { console.error('stLoadTags error:', err); });
+}
+
+function stRenderChips() {
+    var chipsEl = document.getElementById('stTagChips');
+    chipsEl.innerHTML = '';
+    stSelectedTags.forEach(function(tag) {
+        var chip = document.createElement('span');
+        chip.className = 'tag-chip';
+        chip.innerHTML =
+            escapeHtml(tag) +
+            '<button class="tag-chip-remove" data-tag="' + escapeHtml(tag) + '" title="Remove">\u00d7</button>';
+        chip.querySelector('.tag-chip-remove').addEventListener('click', function(e) {
+            e.stopPropagation();
+            stRemoveTag(this.dataset.tag);
+        });
+        chipsEl.appendChild(chip);
+    });
+}
+
+function stRemoveTag(name) {
+    stSelectedTags = stSelectedTags.filter(function(t) { return t !== name; });
+    stRenderChips();
+}
+
+function stAddTag(name) {
+    name = name.trim();
+    if (!name) return;
+    // Avoid duplicates (case-insensitive check)
+    var lower = name.toLowerCase();
+    if (stSelectedTags.some(function(t) { return t.toLowerCase() === lower; })) return;
+    stSelectedTags.push(name);
+    stRenderChips();
+    // Persist new tag to Firestore if it doesn't exist yet
+    var existsInAll = stAllTags.some(function(t) { return t.toLowerCase() === lower; });
+    if (!existsInAll) {
+        stAllTags.push(name);
+        stAllTags.sort(function(a, b) { return a.toLowerCase().localeCompare(b.toLowerCase()); });
+        db.collection('tags').add({
+            name:      name,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).catch(function(err) { console.error('stAddTag: error saving tag:', err); });
+    }
+}
+
+function stUpdateSuggestions(query) {
+    var sugEl = document.getElementById('stTagSuggestions');
+    sugEl.innerHTML = '';
+
+    var q = query.trim();
+    if (!q) { sugEl.classList.add('hidden'); return; }
+
+    var qLower   = q.toLowerCase();
+    var selected = stSelectedTags.map(function(t) { return t.toLowerCase(); });
+
+    // Filter existing tags matching the query that are not already selected
+    var matches = stAllTags.filter(function(t) {
+        return t.toLowerCase().indexOf(qLower) !== -1 &&
+               selected.indexOf(t.toLowerCase()) === -1;
+    });
+
+    // Check if the exact query already exists as a tag
+    var exactMatch = stAllTags.some(function(t) { return t.toLowerCase() === qLower; });
+
+    var items = matches.map(function(t) { return { label: t, isNew: false }; });
+    if (!exactMatch && selected.indexOf(qLower) === -1) {
+        items.push({ label: q, isNew: true });
+    }
+
+    if (!items.length) { sugEl.classList.add('hidden'); return; }
+
+    items.forEach(function(item) {
+        var div = document.createElement('div');
+        div.className = 'tag-suggestion-item' + (item.isNew ? ' tag-suggestion-new' : '');
+        div.textContent = item.isNew ? '+ Add "' + item.label + '"' : item.label;
+        div.addEventListener('mousedown', function(e) {
+            e.preventDefault();  // Prevent input blur
+            stAddTag(item.label);
+            document.getElementById('stTagInput').value = '';
+            stUpdateSuggestions('');
+        });
+        sugEl.appendChild(div);
+    });
+
+    sugEl.classList.remove('hidden');
+}
+
+// Wire up the tag text input events
+document.getElementById('stTagInput').addEventListener('input', function() {
+    stUpdateSuggestions(this.value);
+});
+
+document.getElementById('stTagInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' || e.key === ',') {
+        e.preventDefault();
+        var val = this.value.trim().replace(/,$/, '');
+        if (val) { stAddTag(val); this.value = ''; stUpdateSuggestions(''); }
+    } else if (e.key === 'Backspace' && !this.value && stSelectedTags.length) {
+        stRemoveTag(stSelectedTags[stSelectedTags.length - 1]);
+    }
+});
+
+document.getElementById('stTagInput').addEventListener('blur', function() {
+    setTimeout(function() {
+        var sugEl = document.getElementById('stTagSuggestions');
+        if (sugEl) sugEl.classList.add('hidden');
+    }, 150);
+});
+
+// Focus the wrapper clicks into the input
+document.getElementById('stTagWrapper').addEventListener('click', function() {
+    document.getElementById('stTagInput').focus();
+});
+
+// ============================================================
+// SUB-THING PAGE BUTTON WIRING
+// ============================================================
+
+// Thing detail — Add Sub-thing
+document.getElementById('addSubThingBtn').addEventListener('click', function() {
+    if (!currentThing) return;
+    openSubThingModal(null, null);
+});
+
+// Sub-thing detail — Edit
+document.getElementById('editStBtn').addEventListener('click', function() {
+    if (!currentSubThing) return;
+    openSubThingModal(currentSubThing.id, currentSubThing);
+});
+
+// Sub-thing detail — Delete
+document.getElementById('deleteStBtn').addEventListener('click', function() {
+    if (!currentSubThing) return;
+    if (!confirm('Delete "' + (currentSubThing.name || 'this item') + '"? This cannot be undone.')) return;
+    db.collection('subThings').doc(currentSubThing.id).delete()
+        .then(function() {
+            if (currentThing) {
+                window.location.hash = '#thing/' + currentThing.id;
+            } else {
+                window.location.hash = '#house';
+            }
+        })
+        .catch(function(err) { console.error('Delete subThing error:', err); });
+});
+
+// Sub-thing feature section buttons
+document.getElementById('addStProblemBtn').addEventListener('click', function() {
+    if (currentSubThing) openAddProblemModal('subthing', currentSubThing.id);
+});
+
+document.getElementById('addStFactBtn').addEventListener('click', function() {
+    if (currentSubThing) openAddFactModal('subthing', currentSubThing.id);
+});
+
+document.getElementById('addStProjectBtn').addEventListener('click', function() {
+    if (currentSubThing) openAddProjectModal('subthing', currentSubThing.id);
+});
+
+document.getElementById('logStActivityBtn').addEventListener('click', function() {
+    if (currentSubThing) openLogActivityModal('subthing', currentSubThing.id);
+});
+
+document.getElementById('addStPhotoBtn').addEventListener('click', function() {
+    if (currentSubThing) triggerPhotoUpload('subthing', currentSubThing.id);
+});
+
+document.getElementById('addStCalendarEventBtn').addEventListener('click', function() {
+    if (currentSubThing && typeof openAddCalendarEventModal === 'function') {
+        var reloadFn = function() {
+            var months = parseInt(document.getElementById('stCalendarRangeSelect').value, 10) || 3;
+            loadEventsForTarget('subthing', currentSubThing.id,
+                'stCalendarEventsContainer', 'stCalendarEventsEmptyState', months);
+        };
+        openAddCalendarEventModal('subthing', currentSubThing.id, reloadFn);
+    }
+});
+
+document.getElementById('stCalendarRangeSelect').addEventListener('change', function() {
+    if (currentSubThing && typeof loadEventsForTarget === 'function') {
+        var months = parseInt(this.value, 10) || 3;
+        loadEventsForTarget('subthing', currentSubThing.id,
+            'stCalendarEventsContainer', 'stCalendarEventsEmptyState', months);
+    }
+});
+
 // ============================================================
 
 /**

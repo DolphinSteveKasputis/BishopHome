@@ -16,7 +16,7 @@ const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'h
 /**
  * All pages that can be shown (includes detail pages that aren't in the nav).
  */
-const ALL_PAGES = [...TOP_LEVEL_PAGES, 'zone', 'plant', 'weed', 'chemical', 'gpsmap', 'yardmap', 'floor', 'room', 'thing', 'floorplan', 'panel'];
+const ALL_PAGES = [...TOP_LEVEL_PAGES, 'zone', 'plant', 'weed', 'chemical', 'gpsmap', 'yardmap', 'floor', 'room', 'thing', 'subthing', 'floorplan', 'panel'];
 
 /**
  * Navigate to a page by showing/hiding the right section.
@@ -49,6 +49,7 @@ function showPage(page) {
     if (page === 'thing')      navPage = 'house';
     if (page === 'floorplan')  navPage = 'house';
     if (page === 'panel')      navPage = 'house';
+    if (page === 'subthing')   navPage = 'house';
 
     document.querySelectorAll('.nav-link').forEach(function(link) {
         link.classList.remove('active');
@@ -136,6 +137,9 @@ function handleRoute() {
     } else if (page === 'panel' && id) {
         showPage('panel');
         loadPanelDetail(id);
+    } else if (page === 'subthing' && id) {
+        showPage('subthing');
+        loadSubThingDetail(id);
     } else if (page === 'settings') {
         showPage('settings');
         loadSettingsPage();

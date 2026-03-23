@@ -29,7 +29,7 @@ Currently you must know where something lives in the hierarchy to find it. If yo
 ---
 
 ## NF-2 — Activity History Report
-**Status:** PLANNED
+**Status:** COMPLETE
 
 **What it does:**
 A report page (accessible from nav or Settings) showing all logged activities across all plants, zones, and weeds in reverse-chronological order. Filterable by date range and optionally by zone or chemical used.
@@ -236,7 +236,7 @@ When you land on the House page, you can immediately see if anything is coming u
 | ID    | Feature                          | Effort     | Status  |
 |-------|----------------------------------|------------|---------|
 | NF-1  | Global Search                    | Medium     | COMPLETE |
-| NF-2  | Activity History Report          | Medium     | PLANNED |
+| NF-2  | Activity History Report          | Medium     | COMPLETE |
 | NF-3  | Chemical Usage Log               | Small      | PLANNED |
 | NF-4  | Plant Health Status              | Small      | PLANNED |
 | NF-5  | Seasonal Care Checklists         | Large      | PLANNED |

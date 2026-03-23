@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=149">
+    <link rel="stylesheet" href="css/styles.css?v=150">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -50,6 +50,7 @@
             <a href="#home" class="nav-link" data-page="home">Zones</a>
             <a href="#weeds" class="nav-link" data-page="weeds">Weeds</a>
             <a href="#calendar" class="nav-link" data-page="calendar">Calendar</a>
+            <a href="#activityreport" class="nav-link" data-page="activityreport">History</a>
             <a href="#chemicals" class="nav-link" data-page="chemicals">Chemicals</a>
             <a href="#actions" class="nav-link" data-page="actions">Actions</a>
             <a href="#house" class="nav-link" data-page="house">House</a>
@@ -83,6 +84,7 @@
             <a href="#home" class="nav-link" data-page="home">Zones</a>
             <a href="#weeds" class="nav-link" data-page="weeds">Weeds</a>
             <a href="#calendar" class="nav-link" data-page="calendar">Calendar</a>
+            <a href="#activityreport" class="nav-link" data-page="activityreport">History</a>
             <a href="#chemicals" class="nav-link" data-page="chemicals">Chemicals</a>
             <a href="#actions" class="nav-link" data-page="actions">Actions</a>
             <a href="#house" class="nav-link" data-page="house">House</a>
@@ -142,6 +144,53 @@
             <!-- Results area — filled dynamically by search.js -->
             <div id="searchResults" class="search-results"></div>
             <p class="empty-state hidden" id="searchEmptyState"></p>
+        </section>
+
+        <!-- Page: Activity History Report -->
+        <section class="page hidden" id="page-activityreport">
+            <div class="page-header">
+                <h2>Activity History</h2>
+            </div>
+
+            <!-- Filter bar -->
+            <div class="ar-filters">
+                <div class="ar-filter-row">
+                    <div class="ar-filter-group">
+                        <label for="arFromDate">From</label>
+                        <input type="date" id="arFromDate">
+                    </div>
+                    <div class="ar-filter-group">
+                        <label for="arToDate">To</label>
+                        <input type="date" id="arToDate">
+                    </div>
+                    <div class="ar-filter-group">
+                        <label for="arTypeFilter">Type</label>
+                        <select id="arTypeFilter">
+                            <option value="">All types</option>
+                            <option value="plant">Plants</option>
+                            <option value="zone">Zones</option>
+                            <option value="weed">Weeds</option>
+                        </select>
+                    </div>
+                    <div class="ar-filter-group">
+                        <label for="arChemicalFilter">Chemical</label>
+                        <select id="arChemicalFilter">
+                            <option value="">All chemicals</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="ar-filter-actions">
+                    <button class="btn btn-primary btn-small" id="arApplyBtn">Apply</button>
+                    <button class="btn btn-secondary btn-small" id="arClearBtn">Clear</button>
+                </div>
+            </div>
+
+            <!-- Summary line (e.g. "47 activities found") -->
+            <p class="ar-summary" id="arSummary"></p>
+
+            <!-- Results filled dynamically by activityreport.js -->
+            <div id="arResults"></div>
+            <p class="empty-state hidden" id="arEmptyState"></p>
         </section>
 
         <!-- Page: Home / Zones list -->
@@ -2285,24 +2334,25 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=149"></script>
-    <script src="js/auth.js?v=149"></script>
-    <script src="js/zones.js?v=149"></script>
-    <script src="js/plants.js?v=149"></script>
-    <script src="js/problems.js?v=149"></script>
-    <script src="js/facts.js?v=149"></script>
-    <script src="js/projects.js?v=149"></script>
-    <script src="js/chemicals.js?v=149"></script>
-    <script src="js/activities.js?v=149"></script>
-    <script src="js/photos.js?v=149"></script>
-    <script src="js/weeds.js?v=149"></script>
-    <script src="js/calendar.js?v=149"></script>
-    <script src="js/gps.js?v=149"></script>
-    <script src="js/settings.js?v=149"></script>
-    <script src="js/house.js?v=149"></script>
-    <script src="js/floorplan.js?v=149"></script>
-    <script src="js/search.js?v=149"></script>
-    <script src="js/app.js?v=149"></script>
+    <script src="js/firebase-config.js?v=150"></script>
+    <script src="js/auth.js?v=150"></script>
+    <script src="js/zones.js?v=150"></script>
+    <script src="js/plants.js?v=150"></script>
+    <script src="js/problems.js?v=150"></script>
+    <script src="js/facts.js?v=150"></script>
+    <script src="js/projects.js?v=150"></script>
+    <script src="js/chemicals.js?v=150"></script>
+    <script src="js/activities.js?v=150"></script>
+    <script src="js/photos.js?v=150"></script>
+    <script src="js/weeds.js?v=150"></script>
+    <script src="js/calendar.js?v=150"></script>
+    <script src="js/gps.js?v=150"></script>
+    <script src="js/settings.js?v=150"></script>
+    <script src="js/house.js?v=150"></script>
+    <script src="js/floorplan.js?v=150"></script>
+    <script src="js/search.js?v=150"></script>
+    <script src="js/activityreport.js?v=150"></script>
+    <script src="js/app.js?v=150"></script>
 
 </body>
 </html>

@@ -2940,3 +2940,164 @@ button {
     font-size: 0.8rem;
     color: #888;
 }
+
+/* ---------- Activity History Report (NF-2) ---------- */
+
+/* Filter bar — wraps the two rows (inputs + buttons) */
+.ar-filters {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+}
+
+/* Row of filter inputs — wraps on small screens */
+.ar-filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+/* Each label + control pair */
+.ar-filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex: 1 1 140px;    /* grow but collapse nicely on mobile */
+}
+
+.ar-filter-group label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.ar-filter-group input[type="date"],
+.ar-filter-group select {
+    padding: 7px 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    background: #fafafa;
+}
+
+/* Apply / Clear button row */
+.ar-filter-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* Summary line: "47 activities found" */
+.ar-summary {
+    font-size: 0.85rem;
+    color: #666;
+    margin-bottom: 8px;
+}
+
+/* Month group heading: "March 2026" */
+.ar-month-heading {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #444;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-bottom: 2px solid #e0e0e0;
+    padding: 4px 0;
+    margin: 16px 0 6px;
+}
+
+.ar-month-heading:first-child {
+    margin-top: 0;
+}
+
+/* Single activity card */
+.ar-card {
+    background: #fff;
+    border: 1px solid #e8e8e8;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+/* Top row: date badge + type chip + target link */
+.ar-card-top {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+/* Date badge — compact YYYY-MM-DD pill */
+.ar-date-badge {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #555;
+    background: #f0f0f0;
+    border-radius: 4px;
+    padding: 2px 7px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* Type chip — color differs per entity type */
+.ar-type-chip {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-radius: 4px;
+    padding: 2px 7px;
+    flex-shrink: 0;
+}
+
+.ar-type-plant { background: #e8f5e9; color: #2e7d32; }
+.ar-type-zone  { background: #e3f2fd; color: #1565c0; }
+.ar-type-weed  { background: #fce4ec; color: #ad1457; }
+
+/* Target entity link */
+.ar-target-link {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #2e7d32;
+}
+
+a.ar-target-link:hover {
+    text-decoration: underline;
+}
+
+/* Activity description */
+.ar-description {
+    font-size: 0.95rem;
+    color: #333;
+}
+
+/* Row of chemical tags */
+.ar-chem-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+/* Individual chemical tag pill */
+.ar-chem-tag {
+    font-size: 0.78rem;
+    background: #fff8e1;
+    border: 1px solid #ffe082;
+    color: #6d4c0f;
+    border-radius: 4px;
+    padding: 2px 8px;
+}
+
+/* Notes — muted, smaller */
+.ar-notes {
+    font-size: 0.82rem;
+    color: #777;
+    font-style: italic;
+}

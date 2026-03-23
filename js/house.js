@@ -9,6 +9,52 @@ var currentFloor = null;   // Floor document currently being viewed
 var currentRoom  = null;   // Room document currently being viewed
 var currentThing = null;   // Thing document currently being viewed
 
+// ============================================================
+// HOUSE CONTEXT LABEL  (used by calendar.js for event cards)
+// ============================================================
+
+/**
+ * Returns a human-readable "House › Floor › Room" context label for a
+ * house entity. Called asynchronously from createCalendarEventCard in
+ * calendar.js so that house event cards show a useful location label on
+ * the main Calendar page.
+ *
+ * @param {string} targetType  - "floor" | "room" | "thing"
+ * @param {string} targetId    - Firestore document ID of the target
+ * @returns {Promise<string|null>} Formatted label, or null if not found
+ */
+async function getHouseContextLabel(targetType, targetId) {
+    try {
+        if (targetType === 'floor') {
+            var floorDoc = await db.collection('floors').doc(targetId).get();
+            if (!floorDoc.exists) return null;
+            return 'House \u203a ' + floorDoc.data().name;
+
+        } else if (targetType === 'room') {
+            var roomDoc = await db.collection('rooms').doc(targetId).get();
+            if (!roomDoc.exists) return null;
+            var roomData = roomDoc.data();
+            var floorDoc2 = await db.collection('floors').doc(roomData.floorId).get();
+            var floorName = floorDoc2.exists ? floorDoc2.data().name : 'Floor';
+            return 'House \u203a ' + floorName + ' \u203a ' + roomData.name;
+
+        } else if (targetType === 'thing') {
+            var thingDoc = await db.collection('things').doc(targetId).get();
+            if (!thingDoc.exists) return null;
+            var thingData = thingDoc.data();
+            var roomDoc2 = await db.collection('rooms').doc(thingData.roomId).get();
+            if (!roomDoc2.exists) return 'House \u203a \u2026 \u203a ' + thingData.name;
+            var roomData2 = roomDoc2.data();
+            var floorDoc3 = await db.collection('floors').doc(roomData2.floorId).get();
+            var floorName2 = floorDoc3.exists ? floorDoc3.data().name : 'Floor';
+            return 'House \u203a ' + floorName2 + ' \u203a ' + roomData2.name + ' \u203a ' + thingData.name;
+        }
+        return null;
+    } catch (e) {
+        return null;  // Silently skip if any lookup fails
+    }
+}
+
 // ---- Category helpers ----
 var THING_CATEGORIES = {
     'furniture':     'Furniture',

@@ -522,6 +522,12 @@ function createCalendarEventCard(occ, reloadFn) {
                 if (zoneNames.length > 0) {
                     targetEl.textContent = (zoneNames.length === 1 ? 'Zone: ' : 'Zones: ') + zoneNames.join(', ');
                 }
+            } else if ((occ.targetType === 'floor' || occ.targetType === 'room' || occ.targetType === 'thing') && occ.targetId) {
+                // House context label — resolved by house.js to keep calendar.js yard-agnostic
+                if (typeof getHouseContextLabel === 'function') {
+                    var houseLabel = await getHouseContextLabel(occ.targetType, occ.targetId);
+                    if (houseLabel) targetEl.textContent = houseLabel;
+                }
             }
         } catch (e) { /* silently skip if lookup fails */ }
     })();

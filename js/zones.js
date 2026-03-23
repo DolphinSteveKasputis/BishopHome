@@ -15,7 +15,7 @@ async function loadZonesList() {
 
     try {
         // Query Firestore for top-level zones (sort client-side to avoid composite index)
-        const snapshot = await db.collection('zones')
+        const snapshot = await userCol('zones')
             .where('parentId', '==', null)
             .get();
 
@@ -78,7 +78,7 @@ async function loadZoneDetail(zoneId) {
 
     try {
         // Get the zone document
-        const doc = await db.collection('zones').doc(zoneId).get();
+        const doc = await userCol('zones').doc(zoneId).get();
 
         if (!doc.exists) {
             titleEl.textContent = 'Zone not found';
@@ -109,7 +109,7 @@ async function loadZoneDetail(zoneId) {
         document.getElementById('viewAllPlantsBtn').style.display = 'inline-flex';
 
         // --- Load sub-zones (sort client-side to avoid composite index) ---
-        const subSnapshot = await db.collection('zones')
+        const subSnapshot = await userCol('zones')
             .where('parentId', '==', zoneId)
             .get();
 
@@ -223,7 +223,7 @@ async function buildBreadcrumbs(zoneId) {
     // Walk up the parent chain
     let currentId = zoneId;
     while (currentId) {
-        const doc = await db.collection('zones').doc(currentId).get();
+        const doc = await userCol('zones').doc(currentId).get();
         if (!doc.exists) break;
 
         const zone = doc.data();
@@ -327,7 +327,7 @@ async function handleZoneModalSave() {
             const parentId = modal.dataset.parentId || null;
             const level = parseInt(modal.dataset.newLevel);
 
-            await db.collection('zones').add({
+            await userCol('zones').add({
                 name: name,
                 parentId: parentId,
                 level: level,
@@ -339,7 +339,7 @@ async function handleZoneModalSave() {
         } else if (mode === 'edit') {
             // Update existing zone name
             const zoneId = modal.dataset.editId;
-            await db.collection('zones').doc(zoneId).update({
+            await userCol('zones').doc(zoneId).update({
                 name: name
             });
 
@@ -366,7 +366,7 @@ async function handleZoneModalSave() {
 async function handleDeleteZone(zoneId) {
     try {
         // Check for sub-zones
-        const subZones = await db.collection('zones')
+        const subZones = await userCol('zones')
             .where('parentId', '==', zoneId)
             .limit(1)
             .get();
@@ -377,7 +377,7 @@ async function handleDeleteZone(zoneId) {
         }
 
         // Check for plants
-        const plants = await db.collection('plants')
+        const plants = await userCol('plants')
             .where('zoneId', '==', zoneId)
             .limit(1)
             .get();
@@ -392,7 +392,7 @@ async function handleDeleteZone(zoneId) {
             return;
         }
 
-        await db.collection('zones').doc(zoneId).delete();
+        await userCol('zones').doc(zoneId).delete();
         console.log('Zone deleted:', zoneId);
 
         // Navigate back to parent or home

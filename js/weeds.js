@@ -15,7 +15,7 @@ async function loadWeedsList() {
     var emptyState = document.getElementById('weedsEmptyState');
 
     try {
-        var snapshot = await db.collection('weeds').get();
+        var snapshot = await userCol('weeds').get();
 
         container.innerHTML = '';
 
@@ -102,7 +102,7 @@ async function loadWeedDetail(weedId) {
     var titleEl = document.getElementById('weedTitle');
 
     try {
-        var doc = await db.collection('weeds').doc(weedId).get();
+        var doc = await userCol('weeds').doc(weedId).get();
 
         if (!doc.exists) {
             titleEl.textContent = 'Weed not found';
@@ -190,7 +190,7 @@ async function loadWeedZones(zoneIds) {
     // Load zone names and build links
     for (var i = 0; i < zoneIds.length; i++) {
         try {
-            var zoneDoc = await db.collection('zones').doc(zoneIds[i]).get();
+            var zoneDoc = await userCol('zones').doc(zoneIds[i]).get();
             if (zoneDoc.exists) {
                 var zonePath = await getZonePath(zoneIds[i]);
                 var link = document.createElement('a');
@@ -280,7 +280,7 @@ async function handleWeedModalSave() {
 
     try {
         if (mode === 'add') {
-            await db.collection('weeds').add({
+            await userCol('weeds').add({
                 name: name,
                 treatmentMethod: treatmentMethod,
                 applicationTiming: applicationTiming,
@@ -292,7 +292,7 @@ async function handleWeedModalSave() {
 
         } else if (mode === 'edit') {
             var weedId = modal.dataset.editId;
-            await db.collection('weeds').doc(weedId).update({
+            await userCol('weeds').doc(weedId).update({
                 name: name,
                 treatmentMethod: treatmentMethod,
                 applicationTiming: applicationTiming,
@@ -334,7 +334,7 @@ async function handleDeleteWeed() {
         var weedId = window.currentWeed.id;
 
         // Delete associated activities
-        var actSnapshot = await db.collection('activities')
+        var actSnapshot = await userCol('activities')
             .where('targetType', '==', 'weed')
             .where('targetId', '==', weedId)
             .get();
@@ -344,7 +344,7 @@ async function handleDeleteWeed() {
         });
 
         // Delete associated photos
-        var photoSnapshot = await db.collection('photos')
+        var photoSnapshot = await userCol('photos')
             .where('targetType', '==', 'weed')
             .where('targetId', '==', weedId)
             .get();
@@ -355,7 +355,7 @@ async function handleDeleteWeed() {
         await Promise.all(deletePromises);
 
         // Delete the weed itself
-        await db.collection('weeds').doc(weedId).delete();
+        await userCol('weeds').doc(weedId).delete();
         console.log('Weed deleted:', window.currentWeed.name);
 
         // Navigate back to weeds list
@@ -383,7 +383,7 @@ async function openWeedZoneModal() {
 
     try {
         // Load all zones
-        var snapshot = await db.collection('zones').get();
+        var snapshot = await userCol('zones').get();
         var allZones = [];
         snapshot.forEach(function(doc) {
             allZones.push({ id: doc.id, ...doc.data() });
@@ -441,7 +441,7 @@ async function handleWeedZoneSave() {
     });
 
     try {
-        await db.collection('weeds').doc(window.currentWeed.id).update({
+        await userCol('weeds').doc(window.currentWeed.id).update({
             zoneIds: selectedZoneIds
         });
 

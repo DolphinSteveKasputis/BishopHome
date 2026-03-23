@@ -22,7 +22,7 @@ async function loadPlantsInZone(zoneId) {
     }
 
     try {
-        const snapshot = await db.collection('plants')
+        const snapshot = await userCol('plants')
             .where('zoneId', '==', zoneId)
             .get();
 
@@ -115,7 +115,7 @@ async function loadPlantDetail(plantId) {
     const activityEmptyState = document.getElementById('plantActivityEmptyState');
 
     try {
-        const doc = await db.collection('plants').doc(plantId).get();
+        const doc = await userCol('plants').doc(plantId).get();
 
         if (!doc.exists) {
             titleEl.textContent = 'Plant not found';
@@ -185,7 +185,7 @@ async function buildPlantBreadcrumbs(plantId, plant) {
     // Walk up the zone parent chain
     let currentZoneId = plant.zoneId;
     while (currentZoneId) {
-        const zoneDoc = await db.collection('zones').doc(currentZoneId).get();
+        const zoneDoc = await userCol('zones').doc(currentZoneId).get();
         if (!zoneDoc.exists) break;
         const zone = zoneDoc.data();
         crumbs.unshift({ id: zoneDoc.id, name: zone.name, type: 'zone' });
@@ -216,7 +216,7 @@ async function getZonePath(zoneId) {
     let currentId = zoneId;
 
     while (currentId) {
-        const doc = await db.collection('zones').doc(currentId).get();
+        const doc = await userCol('zones').doc(currentId).get();
         if (!doc.exists) break;
         const zone = doc.data();
         parts.unshift(escapeHtml(zone.name));
@@ -285,7 +285,7 @@ async function handlePlantModalSave() {
     try {
         if (mode === 'add') {
             const zoneId = modal.dataset.zoneId;
-            await db.collection('plants').add({
+            await userCol('plants').add({
                 name: name,
                 zoneId: zoneId,
                 metadata: {},
@@ -295,7 +295,7 @@ async function handlePlantModalSave() {
 
         } else if (mode === 'edit') {
             const plantId = modal.dataset.editId;
-            await db.collection('plants').doc(plantId).update({ name: name });
+            await userCol('plants').doc(plantId).update({ name: name });
             console.log('Plant renamed:', name);
         }
 
@@ -367,7 +367,7 @@ async function savePlantMetadata() {
     };
 
     try {
-        await db.collection('plants').doc(window.currentPlant.id).update({
+        await userCol('plants').doc(window.currentPlant.id).update({
             metadata: metadata
         });
 
@@ -413,7 +413,7 @@ async function openMovePlantModal() {
 
     try {
         // Load all zones
-        const snapshot = await db.collection('zones').get();
+        const snapshot = await userCol('zones').get();
         const zones = [];
         snapshot.forEach(function(doc) {
             zones.push({ id: doc.id, ...doc.data() });
@@ -479,7 +479,7 @@ async function handleMovePlantSave() {
     if (!window.currentPlant) return;
 
     try {
-        await db.collection('plants').doc(window.currentPlant.id).update({
+        await userCol('plants').doc(window.currentPlant.id).update({
             zoneId: newZoneId
         });
 
@@ -509,7 +509,7 @@ async function handleDeletePlant() {
 
     try {
         const zoneId = window.currentPlant.zoneId;
-        await db.collection('plants').doc(window.currentPlant.id).delete();
+        await userCol('plants').doc(window.currentPlant.id).delete();
         console.log('Plant deleted:', window.currentPlant.name);
 
         // Navigate back to the zone
@@ -550,7 +550,7 @@ async function loadAllPlantsInHierarchy() {
 
         for (var i = 0; i < chunks.length; i++) {
             var chunk = chunks[i];
-            var snapshot = await db.collection('plants')
+            var snapshot = await userCol('plants')
                 .where('zoneId', 'in', chunk)
                 .get();
 
@@ -602,7 +602,7 @@ async function loadAllPlantsInHierarchy() {
 async function getDescendantZoneIds(zoneId) {
     const ids = [zoneId];
 
-    const snapshot = await db.collection('zones')
+    const snapshot = await userCol('zones')
         .where('parentId', '==', zoneId)
         .get();
 

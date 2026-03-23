@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=111">
+    <link rel="stylesheet" href="css/styles.css?v=112">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -400,11 +400,34 @@
             <!-- Floor number badge -->
             <p class="house-floor-meta" id="floorMeta"></p>
 
-            <!-- Rooms placeholder (added in Phase H2) -->
+            <!-- Rooms section -->
             <div class="section-header">
                 <h3 class="section-heading">Rooms</h3>
+                <button class="btn btn-primary btn-small" id="addRoomBtn">+ Add Room</button>
             </div>
-            <p class="empty-state">Rooms will be added in the next phase.</p>
+            <div class="card-list" id="roomListContainer"></div>
+            <p class="empty-state" id="roomListEmptyState"></p>
+        </section>
+
+        <!-- Page: Room Detail -->
+        <section class="page hidden" id="page-room">
+            <div class="page-header">
+                <h2 id="roomTitle">Room</h2>
+                <div class="page-header-actions">
+                    <button class="btn btn-secondary btn-small" id="editRoomBtn">Edit</button>
+                    <button class="btn btn-secondary btn-small" id="moveRoomBtn">Move</button>
+                    <button class="btn btn-danger btn-small" id="deleteRoomBtn">Delete</button>
+                </div>
+            </div>
+
+            <!-- Room context (floor name) and type badge -->
+            <p class="house-room-meta" id="roomMeta"></p>
+
+            <!-- Things placeholder (added in Phase H3) -->
+            <div class="section-header">
+                <h3 class="section-heading">Things</h3>
+            </div>
+            <p class="empty-state">Things (furniture, appliances, fixtures) will be added in the next phase.</p>
         </section>
 
         <!-- Page: Plant detail -->
@@ -1096,6 +1119,46 @@
         </div>
     </div>
 
+    <!-- Room Add/Edit Modal -->
+    <div class="modal-overlay" id="roomModal">
+        <div class="modal">
+            <h3 id="roomModalTitle">Add Room</h3>
+            <div class="form-group">
+                <label for="roomNameInput">Room Name</label>
+                <input type="text" id="roomNameInput" placeholder="e.g., Kitchen, Master Bedroom, Hallway">
+            </div>
+            <div class="form-group">
+                <label for="roomTypeSelect">Room Type</label>
+                <select id="roomTypeSelect">
+                    <option value="standard">Standard Room</option>
+                    <option value="hallway">Hallway</option>
+                    <option value="stairs">Stairs</option>
+                </select>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-danger" id="roomModalDeleteBtn" style="display:none;">Delete</button>
+                <div style="flex:1;"></div>
+                <button class="btn btn-secondary" id="roomModalCancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="roomModalSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Move Room Modal -->
+    <div class="modal-overlay" id="moveRoomModal">
+        <div class="modal">
+            <h3>Move Room to Floor</h3>
+            <div class="form-group">
+                <label for="moveRoomFloorSelect">Select Floor</label>
+                <select id="moveRoomFloorSelect"></select>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="moveRoomCancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="moveRoomSaveBtn">Move</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Floor Add/Edit Modal -->
     <div class="modal-overlay" id="floorModal">
         <div class="modal">
@@ -1121,22 +1184,22 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=111"></script>
-    <script src="js/auth.js?v=111"></script>
-    <script src="js/zones.js?v=111"></script>
-    <script src="js/plants.js?v=111"></script>
-    <script src="js/problems.js?v=111"></script>
-    <script src="js/facts.js?v=111"></script>
-    <script src="js/projects.js?v=111"></script>
-    <script src="js/chemicals.js?v=111"></script>
-    <script src="js/activities.js?v=111"></script>
-    <script src="js/photos.js?v=111"></script>
-    <script src="js/weeds.js?v=111"></script>
-    <script src="js/calendar.js?v=111"></script>
-    <script src="js/gps.js?v=111"></script>
-    <script src="js/settings.js?v=111"></script>
-    <script src="js/house.js?v=111"></script>
-    <script src="js/app.js?v=111"></script>
+    <script src="js/firebase-config.js?v=112"></script>
+    <script src="js/auth.js?v=112"></script>
+    <script src="js/zones.js?v=112"></script>
+    <script src="js/plants.js?v=112"></script>
+    <script src="js/problems.js?v=112"></script>
+    <script src="js/facts.js?v=112"></script>
+    <script src="js/projects.js?v=112"></script>
+    <script src="js/chemicals.js?v=112"></script>
+    <script src="js/activities.js?v=112"></script>
+    <script src="js/photos.js?v=112"></script>
+    <script src="js/weeds.js?v=112"></script>
+    <script src="js/calendar.js?v=112"></script>
+    <script src="js/gps.js?v=112"></script>
+    <script src="js/settings.js?v=112"></script>
+    <script src="js/house.js?v=112"></script>
+    <script src="js/app.js?v=112"></script>
 
 </body>
 </html>

@@ -1847,6 +1847,34 @@ button {
     margin: -6px 0 12px 0;
 }
 
+/* Meta line on the room detail page (floor name + type) */
+.house-room-meta {
+    color: #666;
+    font-size: 0.9rem;
+    margin: -6px 0 12px 0;
+}
+
+/* Room type badge shown on room cards and detail pages */
+.house-room-type-badge {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 10px;
+    margin-left: 8px;
+    vertical-align: middle;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+.house-room-type-badge--hallway {
+    background: #e8f4fd;
+    color: #1565c0;
+}
+.house-room-type-badge--stairs {
+    background: #fff3e0;
+    color: #e65100;
+}
+
 /* Hint text inside modal labels */
 .label-hint {
     font-size: 0.8rem;

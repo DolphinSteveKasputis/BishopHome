@@ -590,16 +590,20 @@ async function lookupBarcode(barcode) {
 
     if (found) return;
 
-    // ---- Nothing found — show barcode + Google search link as fallback ----
-    var googleUrl = 'https://www.google.com/search?q=' + encodeURIComponent(barcode + ' barcode product');
+    // ---- Nothing found — show barcode + lookup links as fallback ----
+    var barcodeUrl = 'https://www.barcodelookup.com/' + encodeURIComponent(barcode);
+    var googleUrl  = 'https://www.google.com/search?q=' + encodeURIComponent(barcode + ' barcode product');
+    var btnStyle   = 'display:inline-block;padding:9px 18px;border-radius:6px;' +
+                     'text-decoration:none;font-weight:600;color:#fff;margin:4px 6px 4px 0;';
     body.innerHTML =
         '<p style="margin-bottom:12px;"><strong>Barcode:</strong> ' + escapeHtml(barcode) + '</p>' +
         '<p style="color:#555;line-height:1.6;margin-bottom:16px;">' +
         'No product info found in free databases.<br>' +
-        'This is common for pesticides and specialty chemicals.</p>' +
+        'Try one of these to look it up:</p>' +
+        '<a href="' + barcodeUrl + '" target="_blank" rel="noopener" ' +
+        'style="' + btnStyle + 'background:#2e7d32;">Barcode Lookup</a>' +
         '<a href="' + googleUrl + '" target="_blank" rel="noopener" ' +
-        'style="display:inline-block;padding:9px 18px;background:#4A90E2;color:#fff;' +
-        'border-radius:6px;text-decoration:none;font-weight:600;">Search Google for this barcode</a>';
+        'style="' + btnStyle + 'background:#4A90E2;">Search Google</a>';
 }
 
 /**

@@ -123,8 +123,9 @@ function openAddChemicalModal() {
 
     modal.dataset.mode = 'add';
 
-    // Hide facts section — no ID yet for a new chemical
+    // Hide facts section and scan row — no ID yet for a new chemical
     document.getElementById('chemicalFactsSection').style.display = 'none';
+    document.getElementById('chemicalScanRow').style.display      = 'none';
 
     openModal('chemicalModal');
     nameInput.focus();
@@ -149,8 +150,10 @@ function openEditChemicalModal(chemical) {
     modal.dataset.mode = 'edit';
     modal.dataset.editId = chemical.id;
 
-    // Show facts section and load existing facts
+    // Show facts section and scan row; load existing facts
     document.getElementById('chemicalFactsSection').style.display = 'block';
+    document.getElementById('chemicalScanRow').style.display      = 'block';
+    document.getElementById('chemicalScanResult').style.display   = 'none';
     loadFacts('chemical', chemical.id, 'chemicalModalFactsContainer', 'chemicalModalFactsEmptyState');
 
     openModal('chemicalModal');
@@ -302,14 +305,23 @@ async function getAllChemicals() {
 //   2. Open Food Facts — https://world.openfoodfacts.org/api/v0/product/
 // ============================================================
 
-var bcStream     = null;  // MediaStream from getUserMedia
-var bcDetecting  = false; // scan-loop flag
+var bcStream          = null;   // MediaStream from getUserMedia
+var bcDetecting       = false;  // scan-loop flag
+var bcCaptureCallback = null;   // set by openBarcodeScanner; called with the confirmed barcode string
 
 /**
  * Build a fullscreen overlay, attach the rear camera to a <video> element
  * we create ourselves, then start the BarcodeDetector scan loop.
  */
-function openBarcodeScanner() {
+/**
+ * Open the fullscreen barcode scanner.
+ * @param {Function} [captureCallback] - Called with the confirmed barcode string.
+ *   Defaults to lookupBarcode() (show product info popup) when omitted.
+ */
+function openBarcodeScanner(captureCallback) {
+    // Store callback — bcShowConfirm and manual-entry fallback both use it
+    bcCaptureCallback = captureCallback || function(code) { lookupBarcode(code); };
+
     // Stop any existing stream
     bcStopStream();
 
@@ -389,7 +401,7 @@ function bcStartDetecting(video, statusEl) {
         goBtn.textContent = 'Look Up';
         goBtn.addEventListener('click', function() {
             var val = inp.value.trim();
-            if (val) { closeBarcodeScanner(); lookupBarcode(val); }
+            if (val) { closeBarcodeScanner(); bcCaptureCallback(val); }
         });
         msg.appendChild(inp);
         msg.appendChild(goBtn);
@@ -443,7 +455,7 @@ function bcShowConfirm(code, statusEl, video, detector) {
     useBtn.textContent = 'Look Up This One';
     useBtn.addEventListener('click', function() {
         closeBarcodeScanner();
-        lookupBarcode(code);
+        bcCaptureCallback(code);
     });
 
     var againBtn = document.createElement('button');
@@ -500,6 +512,48 @@ function closeBarcodeScanner() {
  * Look up a barcode and show results in a fresh body-level overlay.
  * Avoids the modal system entirely so nothing can block it from appearing.
  */
+/**
+ * Save two facts for a scanned barcode: the barcode number and a Barcode Lookup URL.
+ * @param {string} targetType  - 'chemical' or 'subthing'
+ * @param {string} targetId    - Firestore document ID of the owner
+ * @param {string} barcode     - The scanned barcode string
+ * @param {string} resultElId  - ID of an element to show a ✓/error message in
+ */
+function saveBarcodeFacts(targetType, targetId, barcode, resultElId) {
+    var entries = [
+        { label: 'Barcode',        value: barcode },
+        { label: 'Barcode Lookup', value: 'https://www.barcodelookup.com/' + barcode }
+    ];
+
+    var batch = db.batch();
+    entries.forEach(function(f) {
+        batch.set(db.collection('facts').doc(), {
+            targetType : targetType,
+            targetId   : targetId,
+            label      : f.label,
+            value      : f.value,
+            createdAt  : firebase.firestore.FieldValue.serverTimestamp()
+        });
+    });
+
+    batch.commit().then(function() {
+        var el = document.getElementById(resultElId);
+        if (el) {
+            el.textContent     = '\u2713 Barcode saved as 2 facts';
+            el.style.color     = '#2e7d32';
+            el.style.display   = 'block';
+            setTimeout(function() { el.style.display = 'none'; }, 3500);
+        }
+    }).catch(function(err) {
+        var el = document.getElementById(resultElId);
+        if (el) {
+            el.textContent   = 'Error saving: ' + err.message;
+            el.style.color   = '#c62828';
+            el.style.display = 'block';
+        }
+    });
+}
+
 async function lookupBarcode(barcode) {
     // Build result overlay and attach to body immediately
     var old = document.getElementById('barcodeResultOverlay');
@@ -651,6 +705,17 @@ document.addEventListener('DOMContentLoaded', function() {
     // Chemical modal — Enter key to save
     document.getElementById('chemicalNameInput').addEventListener('keydown', function(e) {
         if (e.key === 'Enter') handleChemicalModalSave();
+    });
+
+    // Chemical modal — Scan barcode button (edit mode only)
+    document.getElementById('chemicalModalScanBtn').addEventListener('click', function() {
+        var editId = document.getElementById('chemicalModal').dataset.editId;
+        if (!editId) return;
+        openBarcodeScanner(function(code) {
+            saveBarcodeFacts('chemical', editId, code, 'chemicalScanResult');
+            // Reload facts list so the new facts appear immediately
+            loadFacts('chemical', editId, 'chemicalModalFactsContainer', 'chemicalModalFactsEmptyState');
+        });
     });
 
     // Chemical detail — Edit button

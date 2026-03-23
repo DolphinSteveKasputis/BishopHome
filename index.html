@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=138">
+    <link rel="stylesheet" href="css/styles.css?v=139">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -1361,6 +1361,10 @@
                 <div id="chemicalModalFactsContainer"></div>
                 <p class="empty-state" id="chemicalModalFactsEmptyState" style="padding: 8px 0;"></p>
             </div>
+            <div id="chemicalScanRow" style="display:none;text-align:center;margin:8px 0;">
+                <button class="btn btn-secondary" id="chemicalModalScanBtn" type="button">&#128247; Scan Barcode &#8594; Save as Facts</button>
+                <p id="chemicalScanResult" style="margin:6px 0 0;font-size:0.85rem;display:none;"></p>
+            </div>
             <div class="modal-buttons">
                 <button class="btn btn-secondary" id="chemicalModalCancelBtn">Cancel</button>
                 <button class="btn btn-primary" id="chemicalModalSaveBtn">Save</button>
@@ -1689,6 +1693,10 @@
                     <input type="text" id="stTagInput" placeholder="Type a tag…" autocomplete="off">
                 </div>
                 <div class="tag-suggestions hidden" id="stTagSuggestions"></div>
+            </div>
+            <div id="stScanRow" style="display:none;text-align:center;margin:8px 0;">
+                <button class="btn btn-secondary" id="stModalScanBtn" type="button">&#128247; Scan Barcode &#8594; Save as Facts</button>
+                <p id="stScanResult" style="margin:6px 0 0;font-size:0.85rem;display:none;"></p>
             </div>
             <div class="modal-buttons">
                 <button class="btn btn-danger" id="stModalDeleteBtn" style="display:none">Delete</button>
@@ -2195,23 +2203,23 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=138"></script>
-    <script src="js/auth.js?v=138"></script>
-    <script src="js/zones.js?v=138"></script>
-    <script src="js/plants.js?v=138"></script>
-    <script src="js/problems.js?v=138"></script>
-    <script src="js/facts.js?v=138"></script>
-    <script src="js/projects.js?v=138"></script>
-    <script src="js/chemicals.js?v=138"></script>
-    <script src="js/activities.js?v=138"></script>
-    <script src="js/photos.js?v=138"></script>
-    <script src="js/weeds.js?v=138"></script>
-    <script src="js/calendar.js?v=138"></script>
-    <script src="js/gps.js?v=138"></script>
-    <script src="js/settings.js?v=138"></script>
-    <script src="js/house.js?v=138"></script>
-    <script src="js/floorplan.js?v=138"></script>
-    <script src="js/app.js?v=138"></script>
+    <script src="js/firebase-config.js?v=139"></script>
+    <script src="js/auth.js?v=139"></script>
+    <script src="js/zones.js?v=139"></script>
+    <script src="js/plants.js?v=139"></script>
+    <script src="js/problems.js?v=139"></script>
+    <script src="js/facts.js?v=139"></script>
+    <script src="js/projects.js?v=139"></script>
+    <script src="js/chemicals.js?v=139"></script>
+    <script src="js/activities.js?v=139"></script>
+    <script src="js/photos.js?v=139"></script>
+    <script src="js/weeds.js?v=139"></script>
+    <script src="js/calendar.js?v=139"></script>
+    <script src="js/gps.js?v=139"></script>
+    <script src="js/settings.js?v=139"></script>
+    <script src="js/house.js?v=139"></script>
+    <script src="js/floorplan.js?v=139"></script>
+    <script src="js/app.js?v=139"></script>
 
 </body>
 </html>

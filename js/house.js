@@ -2281,6 +2281,9 @@ function openSubThingModal(editId, data) {
         deleteBtn.style.display = '';
         modal.dataset.mode      = 'edit';
         modal.dataset.editId    = editId;
+        // Show scan button in edit mode; reset result message
+        document.getElementById('stScanRow').style.display    = 'block';
+        document.getElementById('stScanResult').style.display = 'none';
     } else {
         document.getElementById('stModalTitle').textContent = 'Add Item';
         nameInput.value                                      = '';
@@ -2292,6 +2295,8 @@ function openSubThingModal(editId, data) {
         deleteBtn.style.display = 'none';
         modal.dataset.mode      = 'add';
         modal.dataset.editId    = '';
+        // Hide scan button — no ID yet for a new item
+        document.getElementById('stScanRow').style.display  = 'none';
     }
 
     // Initialize tag state
@@ -2348,6 +2353,18 @@ document.getElementById('stModalSaveBtn').addEventListener('click', function() {
 
 document.getElementById('stModalCancelBtn').addEventListener('click', function() {
     closeModal('subThingModal');
+});
+
+// Sub-thing modal — Scan barcode button (edit mode only)
+document.getElementById('stModalScanBtn').addEventListener('click', function() {
+    var editId = document.getElementById('subThingModal').dataset.editId;
+    if (!editId) return;
+    openBarcodeScanner(function(code) {
+        saveBarcodeFacts('subthing', editId, code, 'stScanResult');
+        // Reload facts list so the new facts appear immediately on the detail page
+        loadFacts('subthing', editId,
+            'subthingFactsContainer', 'subthingFactsEmpty');
+    });
 });
 
 document.getElementById('stModalDeleteBtn').addEventListener('click', function() {

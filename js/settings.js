@@ -13,6 +13,7 @@ async function loadSettingsPage() {
     var addressEl  = document.getElementById('settingsAddress');
     var parcelIdEl = document.getElementById('settingsParcelId');
     var savedMsg   = document.getElementById('settingsSavedMsg');
+    backupLoadLastMsg();  // show last backup timestamp
 
     // Clear form while loading
     appNameEl.value  = '';
@@ -113,6 +114,172 @@ function updateHeaderTitle() {
     }
 }
 
+// ============================================================
+// Backup
+// ============================================================
+
+// Collections included in the DATA backup (everything except photos)
+var BACKUP_DATA_COLLECTIONS = [
+    'activities', 'breakerPanels', 'calendarEvents', 'chemicals',
+    'facts', 'floorPlans', 'floors', 'gpsShapes', 'plants',
+    'problems', 'projects', 'rooms', 'savedActions', 'settings',
+    'subThings', 'tags', 'things', 'weeds', 'zones'
+];
+
+/**
+ * Build a timestamp string for the filename: YYYY-MM-DD_HHmm
+ */
+function backupTimestamp() {
+    var now = new Date();
+    var pad = function(n) { return String(n).padStart(2, '0'); };
+    return now.getFullYear() + '-' +
+           pad(now.getMonth() + 1) + '-' +
+           pad(now.getDate()) + '_' +
+           pad(now.getHours()) +
+           pad(now.getMinutes());
+}
+
+/**
+ * Read all documents from a list of user collections and return as
+ * a plain object: { collectionName: [ { id, data }, ... ], ... }
+ */
+async function backupReadCollections(collectionNames) {
+    var result = {};
+    for (var i = 0; i < collectionNames.length; i++) {
+        var name = collectionNames[i];
+        var snap = await userCol(name).get();
+        result[name] = [];
+        snap.forEach(function(doc) {
+            // Convert Firestore Timestamps to ISO strings so JSON.stringify works
+            var raw  = doc.data();
+            var data = backupSerialize(raw);
+            result[name].push({ id: doc.id, data: data });
+        });
+    }
+    return result;
+}
+
+/**
+ * Recursively convert Firestore Timestamps → ISO strings so the
+ * object can be safely JSON-serialized.
+ */
+function backupSerialize(obj) {
+    if (obj === null || obj === undefined) return obj;
+    if (obj.toDate && typeof obj.toDate === 'function') {
+        // Firestore Timestamp
+        return obj.toDate().toISOString();
+    }
+    if (Array.isArray(obj)) {
+        return obj.map(backupSerialize);
+    }
+    if (typeof obj === 'object') {
+        var out = {};
+        Object.keys(obj).forEach(function(k) {
+            out[k] = backupSerialize(obj[k]);
+        });
+        return out;
+    }
+    return obj;
+}
+
+/**
+ * Trigger a browser download of a JSON object as a .json file.
+ */
+function backupDownload(filename, payload) {
+    var json = JSON.stringify(payload, null, 2);
+    var blob = new Blob([json], { type: 'application/json' });
+    var url  = URL.createObjectURL(blob);
+    var a    = document.createElement('a');
+    a.href     = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+/**
+ * Main backup handler — reads collections and triggers downloads.
+ */
+async function runBackup() {
+    var btn        = document.getElementById('backupBtn');
+    var statusMsg  = document.getElementById('backupStatusMsg');
+    var withPhotos = document.getElementById('backupPhotosToggle').checked;
+    var appName    = (window.appName || 'Bishop').replace(/\s+/g, '_');
+    var ts         = backupTimestamp();
+
+    btn.disabled    = true;
+    btn.textContent = 'Preparing\u2026';
+    statusMsg.textContent = '';
+    statusMsg.classList.remove('hidden');
+
+    try {
+        // ---- Data file ----
+        statusMsg.textContent = 'Reading data\u2026';
+        var dataCollections = await backupReadCollections(BACKUP_DATA_COLLECTIONS);
+        var dataPayload = {
+            version    : 1,
+            type       : 'data',
+            exportedAt : new Date().toISOString(),
+            appName    : window.appName || 'Bishop',
+            collections: dataCollections
+        };
+        backupDownload(appName + '_Data_' + ts + '.json', dataPayload);
+
+        // ---- Photos file (optional) ----
+        if (withPhotos) {
+            statusMsg.textContent = 'Reading photos\u2026';
+            var photoCollections = await backupReadCollections(['photos']);
+            var photoPayload = {
+                version    : 1,
+                type       : 'photos',
+                exportedAt : new Date().toISOString(),
+                appName    : window.appName || 'Bishop',
+                collections: photoCollections
+            };
+            backupDownload(appName + '_Photos_' + ts + '.json', photoPayload);
+        }
+
+        // ---- Done ----
+        var photoCount = withPhotos
+            ? (dataCollections ? 0 : 0)  // photos counted separately
+            : 0;
+        statusMsg.textContent = withPhotos
+            ? '\u2713 Data and photos files downloaded'
+            : '\u2713 Data file downloaded';
+
+        // Record last backup time in localStorage
+        var lastBackupStr = new Date().toLocaleString('en-US', {
+            month: 'short', day: 'numeric', year: 'numeric',
+            hour: 'numeric', minute: '2-digit'
+        });
+        localStorage.setItem('lastBackup', lastBackupStr);
+        document.getElementById('backupLastMsg').textContent =
+            'Last backup: ' + lastBackupStr;
+
+    } catch (err) {
+        console.error('Backup error:', err);
+        statusMsg.textContent = 'Error: ' + err.message;
+        statusMsg.style.color = '#c62828';
+    } finally {
+        btn.disabled    = false;
+        btn.textContent = '\u2B07 Download Backup';
+    }
+}
+
+/**
+ * Show the last backup timestamp from localStorage when the settings
+ * page loads.
+ */
+function backupLoadLastMsg() {
+    var last = localStorage.getItem('lastBackup');
+    var el   = document.getElementById('backupLastMsg');
+    if (el) {
+        el.textContent = last ? 'Last backup: ' + last : 'Last backup: never';
+    }
+}
+
 // ---------- Button Wire-Up ----------
 
 document.getElementById('settingsSaveBtn').addEventListener('click', saveSettings);
+document.getElementById('backupBtn').addEventListener('click', runBackup);

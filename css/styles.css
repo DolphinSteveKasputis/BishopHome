@@ -3358,6 +3358,35 @@ button {
     margin-top: 0;
 }
 
+/* ---------- Dev Notes ---------- */
+
+.note-card {
+    background: #fff;
+    border: 1px solid #e8e8e8;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+}
+
+.note-date {
+    font-size: 0.75rem;
+    color: #aaa;
+    margin-bottom: 6px;
+}
+
+.note-text {
+    font-size: 0.9rem;
+    color: #333;
+    white-space: pre-wrap;   /* preserve line breaks */
+    margin-bottom: 10px;
+    line-height: 1.5;
+}
+
+.note-actions {
+    display: flex;
+    gap: 8px;
+}
+
 /* Single activity card */
 .ar-card {
     background: #fff;

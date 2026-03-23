@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=159">
+    <link rel="stylesheet" href="css/styles.css?v=160">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -540,6 +540,25 @@
                     <div id="restoreLog" class="restore-log"></div>
                 </div>
             </div>
+
+            <!-- ===== Dev Notes Section ===== -->
+            <div class="settings-card">
+                <h3 class="settings-section-title">Dev Notes</h3>
+                <p class="settings-section-desc">Personal scratchpad for tracking issues and ideas while testing the app.</p>
+                <div class="settings-save-row">
+                    <a href="#notes" class="btn btn-secondary">&#128221; Notes</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Page: Dev Notes -->
+        <section class="page hidden" id="page-notes">
+            <div class="page-header">
+                <h2>Dev Notes</h2>
+                <button class="btn btn-primary btn-small" id="addNoteBtn">+ Add</button>
+            </div>
+            <div id="notesContainer"></div>
+            <p class="empty-state" id="notesEmptyState"></p>
         </section>
 
         <!-- ================================================== -->
@@ -1714,6 +1733,20 @@
         </div>
     </div>
 
+    <!-- Dev Note Add/Edit Modal -->
+    <div class="modal-overlay" id="noteModal">
+        <div class="modal">
+            <h3 id="noteModalTitle">Add Note</h3>
+            <div class="form-group">
+                <textarea id="noteTextInput" rows="6" placeholder="Type your note here…" style="width:100%;"></textarea>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="noteModalCancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="noteModalSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Saved Action Add/Edit Modal -->
     <div class="modal-overlay" id="savedActionModal">
         <div class="modal">
@@ -2504,27 +2537,28 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=159"></script>
-    <script src="js/auth.js?v=159"></script>
-    <script src="js/zones.js?v=159"></script>
-    <script src="js/plants.js?v=159"></script>
-    <script src="js/problems.js?v=159"></script>
-    <script src="js/facts.js?v=159"></script>
-    <script src="js/projects.js?v=159"></script>
-    <script src="js/chemicals.js?v=159"></script>
-    <script src="js/activities.js?v=159"></script>
-    <script src="js/photos.js?v=159"></script>
-    <script src="js/weeds.js?v=159"></script>
-    <script src="js/calendar.js?v=159"></script>
-    <script src="js/gps.js?v=159"></script>
-    <script src="js/settings.js?v=159"></script>
-    <script src="js/house.js?v=159"></script>
-    <script src="js/floorplan.js?v=159"></script>
-    <script src="js/search.js?v=159"></script>
-    <script src="js/activityreport.js?v=159"></script>
-    <script src="js/checklists.js?v=159"></script>
-    <script src="js/bulkactivity.js?v=159"></script>
-    <script src="js/app.js?v=159"></script>
+    <script src="js/firebase-config.js?v=160"></script>
+    <script src="js/auth.js?v=160"></script>
+    <script src="js/zones.js?v=160"></script>
+    <script src="js/plants.js?v=160"></script>
+    <script src="js/problems.js?v=160"></script>
+    <script src="js/facts.js?v=160"></script>
+    <script src="js/projects.js?v=160"></script>
+    <script src="js/chemicals.js?v=160"></script>
+    <script src="js/activities.js?v=160"></script>
+    <script src="js/photos.js?v=160"></script>
+    <script src="js/weeds.js?v=160"></script>
+    <script src="js/calendar.js?v=160"></script>
+    <script src="js/gps.js?v=160"></script>
+    <script src="js/settings.js?v=160"></script>
+    <script src="js/house.js?v=160"></script>
+    <script src="js/floorplan.js?v=160"></script>
+    <script src="js/search.js?v=160"></script>
+    <script src="js/activityreport.js?v=160"></script>
+    <script src="js/checklists.js?v=160"></script>
+    <script src="js/bulkactivity.js?v=160"></script>
+    <script src="js/devnotes.js?v=160"></script>
+    <script src="js/app.js?v=160"></script>
 
 </body>
 </html>

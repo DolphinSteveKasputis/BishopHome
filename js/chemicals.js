@@ -269,10 +269,157 @@ async function loadChemicalDetail(chemicalId) {
         // Load facts for this chemical
         loadFacts('chemical', chemicalId, 'chemicalFactsContainer', 'chemicalFactsEmptyState');
 
+        // Load usage history (activities that used this chemical)
+        loadChemicalUsageHistory(chemicalId);
+
     } catch (error) {
         console.error('Error loading chemical detail:', error);
         document.getElementById('chemicalDetailName').textContent = 'Error loading chemical';
     }
+}
+
+// ---------- Chemical Usage History ----------
+
+/**
+ * Loads all activities that used this chemical and renders them on the
+ * chemical detail page under "Usage History".
+ *
+ * Queries two fields to handle both old records (chemicalId singular) and
+ * new records (chemicalIds array), then merges + deduplicates.
+ *
+ * @param {string} chemicalId - The chemical's Firestore document ID.
+ */
+async function loadChemicalUsageHistory(chemicalId) {
+    var container = document.getElementById('chemicalUsageContainer');
+    var emptyEl   = document.getElementById('chemicalUsageEmptyState');
+
+    container.innerHTML = '<p class="ar-summary">Loading…</p>';
+    emptyEl.style.display = 'none';
+
+    try {
+        // Query both storage formats in parallel
+        var [newSnap, oldSnap, plantsSnap, zonesSnap, weedsSnap] = await Promise.all([
+            userCol('activities').where('chemicalIds', 'array-contains', chemicalId).get(),
+            userCol('activities').where('chemicalId', '==', chemicalId).get(),
+            userCol('plants').get(),
+            userCol('zones').get(),
+            userCol('weeds').get(),
+        ]);
+
+        // Merge and deduplicate by document ID
+        var seen = {};
+        var activities = [];
+        function collect(snap) {
+            snap.forEach(function(doc) {
+                if (!seen[doc.id]) {
+                    seen[doc.id] = true;
+                    activities.push({ id: doc.id, ...doc.data() });
+                }
+            });
+        }
+        collect(newSnap);
+        collect(oldSnap);
+
+        // Sort newest first
+        activities.sort(function(a, b) {
+            return (b.date || '').localeCompare(a.date || '');
+        });
+
+        container.innerHTML = '';
+
+        if (activities.length === 0) {
+            emptyEl.style.display = 'block';
+            return;
+        }
+
+        // Build name maps for resolving target names
+        var nameMap = { plant: {}, zone: {}, weed: {} };
+        plantsSnap.forEach(function(doc) { nameMap.plant[doc.id] = doc.data().name || ''; });
+        zonesSnap.forEach(function(doc)  { nameMap.zone[doc.id]  = doc.data().name || ''; });
+        weedsSnap.forEach(function(doc)  { nameMap.weed[doc.id]  = doc.data().name || ''; });
+
+        // Render a summary count
+        var summary = document.createElement('p');
+        summary.className = 'ar-summary';
+        summary.textContent = activities.length + ' activit' + (activities.length === 1 ? 'y' : 'ies');
+        container.appendChild(summary);
+
+        // Render each activity as a card (reuses ar-* classes from activity report)
+        activities.forEach(function(a) {
+            container.appendChild(chemUsageBuildCard(a, nameMap));
+        });
+
+    } catch (err) {
+        console.error('Error loading chemical usage history:', err);
+        container.innerHTML = '';
+        emptyEl.textContent = 'Error loading usage history.';
+        emptyEl.style.display = 'block';
+    }
+}
+
+/**
+ * Builds a single usage-history card for one activity.
+ * Reuses the ar-* card styles from the Activity History Report (NF-2).
+ * @param {Object} a       - Activity data object.
+ * @param {Object} nameMap - { plant: {id:name}, zone: {id:name}, weed: {id:name} }
+ * @returns {HTMLElement}
+ */
+function chemUsageBuildCard(a, nameMap) {
+    var card = document.createElement('div');
+    card.className = 'ar-card';
+
+    // Top row: date badge + type chip + target link
+    var topRow = document.createElement('div');
+    topRow.className = 'ar-card-top';
+
+    var dateBadge = document.createElement('span');
+    dateBadge.className   = 'ar-date-badge';
+    dateBadge.textContent = a.date || '—';
+    topRow.appendChild(dateBadge);
+
+    var typeName = a.targetType || '';
+    var typeChip = document.createElement('span');
+    typeChip.className   = 'ar-type-chip ar-type-' + typeName;
+    typeChip.textContent = typeName ? (typeName.charAt(0).toUpperCase() + typeName.slice(1)) : '?';
+    topRow.appendChild(typeChip);
+
+    // Resolve target name and build a clickable link
+    var map     = nameMap[typeName] || {};
+    var rawName = map[a.targetId];
+    var targetName = rawName !== undefined ? (rawName || '(Unnamed)') : '(Deleted)';
+    var prefixes   = { plant: '#plant/', zone: '#zone/', weed: '#weed/' };
+    var prefix     = prefixes[typeName];
+
+    var targetEl;
+    if (prefix && a.targetId) {
+        targetEl      = document.createElement('a');
+        targetEl.href = prefix + a.targetId;
+    } else {
+        targetEl = document.createElement('span');
+    }
+    targetEl.className   = 'ar-target-link';
+    targetEl.textContent = targetName;
+    topRow.appendChild(targetEl);
+
+    card.appendChild(topRow);
+
+    // Description
+    if (a.description) {
+        var desc = document.createElement('div');
+        desc.className   = 'ar-description';
+        desc.textContent = a.description;
+        card.appendChild(desc);
+    }
+
+    // Notes (muted)
+    if (a.notes) {
+        var notes = document.createElement('div');
+        notes.className   = 'ar-notes';
+        notes.textContent = a.notes;
+        card.appendChild(notes);
+    }
+
+    return card;
 }
 
 // ---------- Helper: Get chemicals for dropdown ----------

@@ -50,7 +50,7 @@ Activities are currently siloed — you can only see them per-plant or per-zone.
 ---
 
 ## NF-3 — Chemical Usage Log (on Chemical Detail Page)
-**Status:** PLANNED
+**Status:** COMPLETE
 
 **What it does:**
 On the chemical detail page, add a section listing every activity that has ever used that chemical — showing the date, the target (plant/zone/weed name), and the activity description.
@@ -237,7 +237,7 @@ When you land on the House page, you can immediately see if anything is coming u
 |-------|----------------------------------|------------|---------|
 | NF-1  | Global Search                    | Medium     | COMPLETE |
 | NF-2  | Activity History Report          | Medium     | COMPLETE |
-| NF-3  | Chemical Usage Log               | Small      | PLANNED |
+| NF-3  | Chemical Usage Log               | Small      | COMPLETE |
 | NF-4  | Plant Health Status              | Small      | PLANNED |
 | NF-5  | Seasonal Care Checklists         | Large      | PLANNED |
 | NF-6  | Application Rate on Activities   | Small      | PLANNED |

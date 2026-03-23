@@ -9,25 +9,28 @@
  * Called by app.js when routing to #settings.
  */
 async function loadSettingsPage() {
-    var appNameEl  = document.getElementById('settingsAppName');
-    var addressEl  = document.getElementById('settingsAddress');
-    var parcelIdEl = document.getElementById('settingsParcelId');
-    var savedMsg   = document.getElementById('settingsSavedMsg');
+    var appNameEl   = document.getElementById('settingsAppName');
+    var addressEl   = document.getElementById('settingsAddress');
+    var parcelIdEl  = document.getElementById('settingsParcelId');
+    var cityStateEl = document.getElementById('settingsCityState');
+    var savedMsg    = document.getElementById('settingsSavedMsg');
     backupLoadLastMsg();  // show last backup timestamp
 
     // Clear form while loading
-    appNameEl.value  = '';
-    addressEl.value  = '';
-    parcelIdEl.value = '';
+    appNameEl.value   = '';
+    addressEl.value   = '';
+    parcelIdEl.value  = '';
+    cityStateEl.value = '';
     savedMsg.classList.add('hidden');
 
     try {
         var doc = await userCol('settings').doc('main').get();
         if (doc.exists) {
-            var data         = doc.data();
-            appNameEl.value  = data.appName  || '';
-            addressEl.value  = data.address  || '';
-            parcelIdEl.value = data.parcelId || '';
+            var data          = doc.data();
+            appNameEl.value   = data.appName   || '';
+            addressEl.value   = data.address   || '';
+            parcelIdEl.value  = data.parcelId  || '';
+            cityStateEl.value = data.cityState || '';
         }
     } catch (err) {
         console.error('Error loading settings:', err);
@@ -40,11 +43,12 @@ async function loadSettingsPage() {
  * Save settings to Firestore using merge so other future fields are preserved.
  */
 async function saveSettings() {
-    var saveBtn    = document.getElementById('settingsSaveBtn');
-    var savedMsg   = document.getElementById('settingsSavedMsg');
-    var appNameEl  = document.getElementById('settingsAppName');
-    var addressEl  = document.getElementById('settingsAddress');
-    var parcelIdEl = document.getElementById('settingsParcelId');
+    var saveBtn     = document.getElementById('settingsSaveBtn');
+    var savedMsg    = document.getElementById('settingsSavedMsg');
+    var appNameEl   = document.getElementById('settingsAppName');
+    var addressEl   = document.getElementById('settingsAddress');
+    var parcelIdEl  = document.getElementById('settingsParcelId');
+    var cityStateEl = document.getElementById('settingsCityState');
 
     saveBtn.disabled    = true;
     saveBtn.textContent = 'Saving...';
@@ -57,6 +61,7 @@ async function saveSettings() {
             appName:   newAppName,
             address:   addressEl.value.trim(),
             parcelId:  parcelIdEl.value.trim(),
+            cityState: cityStateEl.value.trim(),
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
 

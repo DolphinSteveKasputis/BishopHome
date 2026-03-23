@@ -656,8 +656,15 @@ async function weedHandleFromPicture(files) {
         var llm = LLM_PROVIDERS[cfg.provider];
         if (!llm) { statusEl.textContent = 'Unknown LLM provider.'; return; }
 
+        // Optionally append city/state location context to the prompt
+        var mainDoc   = await userCol('settings').doc('main').get();
+        var cityState = (mainDoc.exists && mainDoc.data().cityState) ? mainDoc.data().cityState.trim() : '';
+        var prompt    = cityState
+            ? WEED_ID_PROMPT + '\n\nLocation: ' + cityState
+            : WEED_ID_PROMPT;
+
         // Build content: prompt + images
-        var content = [{ type: 'text', text: WEED_ID_PROMPT }];
+        var content = [{ type: 'text', text: prompt }];
         images.forEach(function(url) {
             content.push({ type: 'image_url', image_url: { url: url } });
         });
@@ -671,7 +678,7 @@ async function weedHandleFromPicture(files) {
             statusEl.textContent = '';
             statusEl.classList.add('hidden');
             closeModal('weedModal');
-            weedShowReviewModal(WEED_ID_PROMPT, responseText, parsed);
+            weedShowReviewModal(prompt, responseText, parsed);
         } else {
             if (!parsed.name && parsed.additionalMessage) {
                 statusEl.textContent = '\u26a0 ' + parsed.additionalMessage;

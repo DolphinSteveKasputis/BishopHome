@@ -935,8 +935,15 @@ async function plantHandleFromPicture(files) {
         var llm = LLM_PROVIDERS[cfg.provider];
         if (!llm) { statusEl.textContent = 'Unknown LLM provider.'; return; }
 
+        // Optionally append city/state location context to the prompt
+        var mainDoc   = await userCol('settings').doc('main').get();
+        var cityState = (mainDoc.exists && mainDoc.data().cityState) ? mainDoc.data().cityState.trim() : '';
+        var prompt    = cityState
+            ? PLANT_ID_PROMPT + '\n\nLocation: ' + cityState
+            : PLANT_ID_PROMPT;
+
         // Build the message content: prompt text + images
-        var content = [{ type: 'text', text: PLANT_ID_PROMPT }];
+        var content = [{ type: 'text', text: prompt }];
         images.forEach(function(url) {
             content.push({ type: 'image_url', image_url: { url: url } });
         });
@@ -952,7 +959,7 @@ async function plantHandleFromPicture(files) {
             statusEl.textContent = '';
             statusEl.classList.add('hidden');
             closeModal('plantModal');
-            plantShowReviewModal(PLANT_ID_PROMPT, responseText, parsed);
+            plantShowReviewModal(prompt, responseText, parsed);
         } else {
             // Check for complete identification failure
             if (!parsed.name && parsed.additionalMessage) {

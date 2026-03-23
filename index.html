@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=146">
+    <link rel="stylesheet" href="css/styles.css?v=147">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -439,6 +439,32 @@
                     <span class="settings-saved-msg hidden" id="backupStatusMsg"></span>
                 </div>
                 <p class="settings-last-backup" id="backupLastMsg"></p>
+            </div>
+
+            <!-- ===== Restore Section ===== -->
+            <div class="settings-card">
+                <h3 class="settings-section-title">Restore</h3>
+                <p class="settings-section-desc">
+                    Replaces all current data with a previously downloaded backup file.
+                    Data and photos restore independently — use the matching file for each.
+                </p>
+                <div class="restore-warning">
+                    ⚠ Restore permanently replaces your current data. This cannot be undone.
+                </div>
+                <div class="settings-save-row" style="flex-wrap:wrap;gap:10px;">
+                    <button class="btn btn-secondary" id="restoreDataBtn">&#8679; Restore Data&#8230;</button>
+                    <button class="btn btn-secondary" id="restorePhotosBtn">&#8679; Restore Photos&#8230;</button>
+                </div>
+                <!-- Hidden file inputs -->
+                <input type="file" id="restoreDataFile"   accept=".json" style="display:none">
+                <input type="file" id="restorePhotosFile" accept=".json" style="display:none">
+                <!-- Progress log -->
+                <div id="restoreProgress" class="restore-progress hidden">
+                    <div id="restoreProgressBar" class="restore-progress-bar">
+                        <div id="restoreProgressFill" class="restore-progress-fill"></div>
+                    </div>
+                    <div id="restoreLog" class="restore-log"></div>
+                </div>
             </div>
         </section>
 
@@ -2239,23 +2265,23 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=146"></script>
-    <script src="js/auth.js?v=146"></script>
-    <script src="js/zones.js?v=146"></script>
-    <script src="js/plants.js?v=146"></script>
-    <script src="js/problems.js?v=146"></script>
-    <script src="js/facts.js?v=146"></script>
-    <script src="js/projects.js?v=146"></script>
-    <script src="js/chemicals.js?v=146"></script>
-    <script src="js/activities.js?v=146"></script>
-    <script src="js/photos.js?v=146"></script>
-    <script src="js/weeds.js?v=146"></script>
-    <script src="js/calendar.js?v=146"></script>
-    <script src="js/gps.js?v=146"></script>
-    <script src="js/settings.js?v=146"></script>
-    <script src="js/house.js?v=146"></script>
-    <script src="js/floorplan.js?v=146"></script>
-    <script src="js/app.js?v=146"></script>
+    <script src="js/firebase-config.js?v=147"></script>
+    <script src="js/auth.js?v=147"></script>
+    <script src="js/zones.js?v=147"></script>
+    <script src="js/plants.js?v=147"></script>
+    <script src="js/problems.js?v=147"></script>
+    <script src="js/facts.js?v=147"></script>
+    <script src="js/projects.js?v=147"></script>
+    <script src="js/chemicals.js?v=147"></script>
+    <script src="js/activities.js?v=147"></script>
+    <script src="js/photos.js?v=147"></script>
+    <script src="js/weeds.js?v=147"></script>
+    <script src="js/calendar.js?v=147"></script>
+    <script src="js/gps.js?v=147"></script>
+    <script src="js/settings.js?v=147"></script>
+    <script src="js/house.js?v=147"></script>
+    <script src="js/floorplan.js?v=147"></script>
+    <script src="js/app.js?v=147"></script>
 
 </body>
 </html>

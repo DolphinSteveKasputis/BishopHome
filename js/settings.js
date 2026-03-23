@@ -279,7 +279,173 @@ function backupLoadLastMsg() {
     }
 }
 
+// ============================================================
+// Restore
+// ============================================================
+
+/**
+ * Log a line to the restore progress area.
+ */
+function restoreLog(msg, cls) {
+    var log  = document.getElementById('restoreLog');
+    var line = document.createElement('div');
+    line.textContent = msg;
+    if (cls) line.style.color = cls;
+    log.appendChild(line);
+    log.scrollTop = log.scrollHeight;
+}
+
+/**
+ * Update the progress bar fill (0–100).
+ */
+function restoreSetProgress(pct) {
+    document.getElementById('restoreProgressFill').style.width = pct + '%';
+}
+
+/**
+ * Delete all documents in a user collection in batches of 400.
+ */
+async function restoreDeleteCollection(colName) {
+    var snap = await userCol(colName).get();
+    if (snap.empty) return;
+    var docs   = snap.docs;
+    var i      = 0;
+    while (i < docs.length) {
+        var batch = db.batch();
+        var chunk = docs.slice(i, i + 400);
+        chunk.forEach(function(d) { batch.delete(userCol(colName).doc(d.id)); });
+        await batch.commit();
+        i += 400;
+    }
+}
+
+/**
+ * Write documents from a backup collection array in batches of 400.
+ * Each entry is { id, data }.
+ */
+async function restoreWriteCollection(colName, docs) {
+    var i = 0;
+    while (i < docs.length) {
+        var batch = db.batch();
+        var chunk = docs.slice(i, i + 400);
+        chunk.forEach(function(entry) {
+            batch.set(userCol(colName).doc(entry.id), entry.data);
+        });
+        await batch.commit();
+        i += 400;
+    }
+}
+
+/**
+ * Core restore: given a parsed backup payload, wipe + rewrite each collection.
+ */
+async function runRestore(payload) {
+    var collections = Object.keys(payload.collections);
+    var total       = collections.length;
+    var progress    = document.getElementById('restoreProgress');
+    var log         = document.getElementById('restoreLog');
+
+    // Show progress area
+    log.innerHTML = '';
+    restoreSetProgress(0);
+    progress.classList.remove('hidden');
+
+    restoreLog('Starting restore of ' + total + ' collection(s)\u2026');
+
+    for (var i = 0; i < collections.length; i++) {
+        var name = collections[i];
+        var docs = payload.collections[name];
+        restoreLog('\u2192 ' + name + ': deleting existing\u2026');
+        await restoreDeleteCollection(name);
+        restoreLog('\u2192 ' + name + ': writing ' + docs.length + ' document(s)\u2026');
+        await restoreWriteCollection(name, docs);
+        restoreLog('\u2713 ' + name + ' done (' + docs.length + ')', '#2e7d32');
+        restoreSetProgress(Math.round(((i + 1) / total) * 100));
+    }
+
+    restoreLog('\n\u2705 Restore complete!', '#2e7d32');
+    restoreSetProgress(100);
+}
+
+/**
+ * Handle a file selected for restore.
+ * Validates the JSON, shows confirmation, then runs restore.
+ * @param {File}   file       - The selected .json file
+ * @param {string} expectType - 'data' or 'photos'
+ */
+function handleRestoreFile(file, expectType) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        var payload;
+        try {
+            payload = JSON.parse(e.target.result);
+        } catch (err) {
+            alert('Invalid file — could not parse JSON.');
+            return;
+        }
+
+        // Validate
+        if (!payload.version || !payload.type || !payload.collections) {
+            alert('This does not look like a Bishop backup file.');
+            return;
+        }
+        if (payload.type !== expectType) {
+            alert('Wrong file type. Expected a "' + expectType + '" backup file but got "' + payload.type + '".');
+            return;
+        }
+
+        // Show confirmation — user must type RESTORE
+        var exportedAt = payload.exportedAt
+            ? new Date(payload.exportedAt).toLocaleString('en-US', {
+                month: 'short', day: 'numeric', year: 'numeric',
+                hour: 'numeric', minute: '2-digit'
+              })
+            : 'unknown date';
+
+        var msg = 'This will REPLACE all current ' + expectType + ' with the backup from ' +
+                  exportedAt + '.\n\nThis cannot be undone.\n\nType RESTORE to confirm:';
+        var answer = prompt(msg);
+        if (answer !== 'RESTORE') {
+            alert('Restore cancelled — you must type RESTORE exactly.');
+            return;
+        }
+
+        // Disable both restore buttons during operation
+        document.getElementById('restoreDataBtn').disabled   = true;
+        document.getElementById('restorePhotosBtn').disabled = true;
+
+        runRestore(payload)
+            .catch(function(err) {
+                restoreLog('ERROR: ' + err.message, '#c62828');
+                console.error('Restore error:', err);
+            })
+            .finally(function() {
+                document.getElementById('restoreDataBtn').disabled   = false;
+                document.getElementById('restorePhotosBtn').disabled = false;
+            });
+    };
+    reader.readAsText(file);
+}
+
 // ---------- Button Wire-Up ----------
 
 document.getElementById('settingsSaveBtn').addEventListener('click', saveSettings);
 document.getElementById('backupBtn').addEventListener('click', runBackup);
+
+// Restore — data
+document.getElementById('restoreDataBtn').addEventListener('click', function() {
+    document.getElementById('restoreDataFile').value = '';
+    document.getElementById('restoreDataFile').click();
+});
+document.getElementById('restoreDataFile').addEventListener('change', function() {
+    if (this.files && this.files[0]) handleRestoreFile(this.files[0], 'data');
+});
+
+// Restore — photos
+document.getElementById('restorePhotosBtn').addEventListener('click', function() {
+    document.getElementById('restorePhotosFile').value = '';
+    document.getElementById('restorePhotosFile').click();
+});
+document.getElementById('restorePhotosFile').addEventListener('change', function() {
+    if (this.files && this.files[0]) handleRestoreFile(this.files[0], 'photos');
+});

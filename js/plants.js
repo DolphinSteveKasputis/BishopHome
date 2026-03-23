@@ -4,6 +4,79 @@
 // plants, as well as rendering plant lists and detail pages.
 // ============================================================
 
+// ---------- Health Status Config ----------
+
+/**
+ * Defines the four health statuses plus their display properties.
+ * Stored in Firestore as the key string (e.g. 'healthy').
+ */
+var HEALTH_STATUSES = {
+    healthy:    { label: 'Healthy',    emoji: '🟢', cssClass: 'health-healthy' },
+    struggling: { label: 'Struggling', emoji: '🟡', cssClass: 'health-struggling' },
+    dormant:    { label: 'Dormant',    emoji: '🔵', cssClass: 'health-dormant' },
+    dead:       { label: 'Dead',       emoji: '🔴', cssClass: 'health-dead' },
+};
+
+/**
+ * Builds a badge <span> element for a given health status value.
+ * Returns null if the status is empty or unrecognized.
+ * @param {string} status - One of: 'healthy', 'struggling', 'dormant', 'dead', or ''.
+ * @returns {HTMLElement|null}
+ */
+function buildHealthBadge(status) {
+    var cfg = status ? HEALTH_STATUSES[status] : null;
+    if (!cfg) return null;
+    var span = document.createElement('span');
+    span.className   = 'health-badge ' + cfg.cssClass;
+    span.textContent = cfg.emoji + '\u2009' + cfg.label;   // thin space between emoji + label
+    return span;
+}
+
+/**
+ * Updates the health badge in the plant detail page header.
+ * Replaces the content of #plantHealthBadge with the new status styling.
+ * @param {string} status - The current health status value.
+ */
+function updatePlantHealthBadge(status) {
+    var badgeEl = document.getElementById('plantHealthBadge');
+    if (!badgeEl) return;
+    var cfg = status ? HEALTH_STATUSES[status] : null;
+    if (cfg) {
+        badgeEl.className   = 'health-badge ' + cfg.cssClass;
+        badgeEl.textContent = cfg.emoji + '\u2009' + cfg.label;
+        badgeEl.style.display = '';
+    } else {
+        badgeEl.style.display = 'none';
+        badgeEl.textContent   = '';
+    }
+}
+
+/**
+ * Saves the selected health status to Firestore for the current plant.
+ * Called automatically when the dropdown value changes.
+ * @param {string} status - The newly selected status value (may be empty to clear).
+ */
+async function saveHealthStatus(status) {
+    if (!window.currentPlant) return;
+    try {
+        await userCol('plants').doc(window.currentPlant.id).update({
+            healthStatus: status || firebase.firestore.FieldValue.delete()
+        });
+        window.currentPlant.healthStatus = status || '';
+        updatePlantHealthBadge(status);
+
+        // Flash a brief "✓ Saved" confirmation
+        var msg = document.getElementById('plantHealthSavedMsg');
+        if (msg) {
+            msg.style.display = 'inline';
+            setTimeout(function() { msg.style.display = 'none'; }, 1800);
+        }
+    } catch (err) {
+        console.error('Error saving health status:', err);
+        alert('Error saving health status.');
+    }
+}
+
 // ---------- Load Plants in a Zone ----------
 
 /**
@@ -79,6 +152,13 @@ function createPlantCard(id, plant) {
     title.textContent = plant.name;
     info.appendChild(title);
 
+    // Health status badge — shown beneath the name when a status is set
+    var badge = buildHealthBadge(plant.healthStatus);
+    if (badge) {
+        badge.style.marginTop = '3px';
+        info.appendChild(badge);
+    }
+
     // Show a brief metadata summary if available
     const meta = plant.metadata || {};
     const summaryParts = [];
@@ -127,6 +207,11 @@ async function loadPlantDetail(plantId) {
 
         // Store current plant info for buttons
         window.currentPlant = { id: doc.id, ...plant };
+
+        // Populate health status dropdown and update the header badge
+        var healthSelect = document.getElementById('plantHealthStatusSelect');
+        healthSelect.value = plant.healthStatus || '';
+        updatePlantHealthBadge(plant.healthStatus || '');
 
         // Build breadcrumbs: Home > Zone path > Plant Name
         await buildPlantBreadcrumbs(doc.id, plant);
@@ -654,6 +739,13 @@ function createPlantCardWithPath(id, plant, zonePath) {
     title.textContent = plant.name;
     info.appendChild(title);
 
+    // Health status badge — shown when a status is set
+    var badge = buildHealthBadge(plant.healthStatus);
+    if (badge) {
+        badge.style.marginTop = '3px';
+        info.appendChild(badge);
+    }
+
     // Show zone path
     const path = document.createElement('div');
     path.className = 'plant-zone-path';
@@ -752,6 +844,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Move plant modal — Close on overlay click
     document.getElementById('movePlantModal').addEventListener('click', function(e) {
         if (e.target === this) closeModal('movePlantModal');
+    });
+
+    // Plant detail — Health status dropdown (auto-saves on change)
+    document.getElementById('plantHealthStatusSelect').addEventListener('change', function() {
+        saveHealthStatus(this.value);
     });
 
     // "View All Plants" button on zone detail page

@@ -70,7 +70,7 @@ Currently there's no way to see where and when a chemical was applied without ch
 ---
 
 ## NF-4 — Plant Health Status
-**Status:** PLANNED
+**Status:** COMPLETE
 
 **What it does:**
 Adds a **Health Status** field to each plant record: `Healthy`, `Struggling`, `Dormant`, or `Dead`. The status shows as a small colored badge on plant cards in zone list views, so you can immediately see which plants need attention without opening each one.
@@ -238,7 +238,7 @@ When you land on the House page, you can immediately see if anything is coming u
 | NF-1  | Global Search                    | Medium     | COMPLETE |
 | NF-2  | Activity History Report          | Medium     | COMPLETE |
 | NF-3  | Chemical Usage Log               | Small      | COMPLETE |
-| NF-4  | Plant Health Status              | Small      | PLANNED |
+| NF-4  | Plant Health Status              | Small      | COMPLETE |
 | NF-5  | Seasonal Care Checklists         | Large      | PLANNED |
 | NF-6  | Application Rate on Activities   | Small      | PLANNED |
 | NF-7  | Reschedule Overdue Events        | Small      | PLANNED |

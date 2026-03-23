@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=151">
+    <link rel="stylesheet" href="css/styles.css?v=152">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -1030,7 +1030,8 @@
         <!-- Page: Plant detail -->
         <section class="page hidden" id="page-plant">
             <div class="page-header">
-                <h2 id="plantTitle">Plant</h2>
+                <!-- Health badge lives inside the h2 so it flows inline with the title -->
+                <h2 id="plantTitle">Plant <span id="plantHealthBadge" class="health-badge" style="display:none;"></span></h2>
                 <div class="page-header-actions">
                     <button class="btn btn-secondary btn-small" id="editPlantNameBtn">Rename</button>
                     <button class="btn btn-secondary btn-small" id="movePlantBtn">Move</button>
@@ -1040,6 +1041,19 @@
 
             <!-- Zone location -->
             <p class="plant-zone-info" id="plantZoneInfo"></p>
+
+            <!-- Health status — inline dropdown that auto-saves on change -->
+            <div class="health-status-row">
+                <label for="plantHealthStatusSelect" class="health-status-label">Health Status</label>
+                <select id="plantHealthStatusSelect" class="health-status-select">
+                    <option value="">— Not set —</option>
+                    <option value="healthy">🟢 Healthy</option>
+                    <option value="struggling">🟡 Struggling</option>
+                    <option value="dormant">🔵 Dormant</option>
+                    <option value="dead">🔴 Dead</option>
+                </select>
+                <span id="plantHealthSavedMsg" class="health-saved-msg" style="display:none;">✓ Saved</span>
+            </div>
 
             <!-- Metadata section -->
             <h3 class="section-heading">Plant Care Info</h3>
@@ -2341,25 +2355,25 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=151"></script>
-    <script src="js/auth.js?v=151"></script>
-    <script src="js/zones.js?v=151"></script>
-    <script src="js/plants.js?v=151"></script>
-    <script src="js/problems.js?v=151"></script>
-    <script src="js/facts.js?v=151"></script>
-    <script src="js/projects.js?v=151"></script>
-    <script src="js/chemicals.js?v=151"></script>
-    <script src="js/activities.js?v=151"></script>
-    <script src="js/photos.js?v=151"></script>
-    <script src="js/weeds.js?v=151"></script>
-    <script src="js/calendar.js?v=151"></script>
-    <script src="js/gps.js?v=151"></script>
-    <script src="js/settings.js?v=151"></script>
-    <script src="js/house.js?v=151"></script>
-    <script src="js/floorplan.js?v=151"></script>
-    <script src="js/search.js?v=151"></script>
-    <script src="js/activityreport.js?v=151"></script>
-    <script src="js/app.js?v=151"></script>
+    <script src="js/firebase-config.js?v=152"></script>
+    <script src="js/auth.js?v=152"></script>
+    <script src="js/zones.js?v=152"></script>
+    <script src="js/plants.js?v=152"></script>
+    <script src="js/problems.js?v=152"></script>
+    <script src="js/facts.js?v=152"></script>
+    <script src="js/projects.js?v=152"></script>
+    <script src="js/chemicals.js?v=152"></script>
+    <script src="js/activities.js?v=152"></script>
+    <script src="js/photos.js?v=152"></script>
+    <script src="js/weeds.js?v=152"></script>
+    <script src="js/calendar.js?v=152"></script>
+    <script src="js/gps.js?v=152"></script>
+    <script src="js/settings.js?v=152"></script>
+    <script src="js/house.js?v=152"></script>
+    <script src="js/floorplan.js?v=152"></script>
+    <script src="js/search.js?v=152"></script>
+    <script src="js/activityreport.js?v=152"></script>
+    <script src="js/app.js?v=152"></script>
 
 </body>
 </html>

@@ -411,6 +411,14 @@ function chemUsageBuildCard(a, nameMap) {
         card.appendChild(desc);
     }
 
+    // Amount used (when recorded)
+    if (a.amountUsed) {
+        var amount = document.createElement('div');
+        amount.className   = 'ar-notes';
+        amount.textContent = '⚗️ ' + a.amountUsed;
+        card.appendChild(amount);
+    }
+
     // Notes (muted)
     if (a.notes) {
         var notes = document.createElement('div');

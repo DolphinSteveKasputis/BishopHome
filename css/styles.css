@@ -938,6 +938,16 @@ button {
     white-space: nowrap;
 }
 
+/* Amount used — shown beneath the description on activity list cards */
+.activity-amount {
+    font-size: 0.78rem;
+    color: #777;
+    font-style: italic;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 /* ---------- View Activity Modal Fields ---------- */
 .view-field {
     margin-bottom: 12px;

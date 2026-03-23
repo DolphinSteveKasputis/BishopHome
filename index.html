@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=153">
+    <link rel="stylesheet" href="css/styles.css?v=154">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -1591,6 +1591,12 @@
                 <label>Chemical / Product (optional)</label>
                 <div class="zone-checkbox-list" id="activityChemicalList"></div>
             </div>
+            <!-- Amount Used — only shown when at least one chemical is checked -->
+            <div class="form-group" id="activityAmountUsedRow" style="display:none;">
+                <label for="activityAmountUsedInput">Amount Used <span class="label-hint">(optional)</span></label>
+                <input type="text" id="activityAmountUsedInput"
+                       placeholder="e.g., 2 oz per gallon, 1 gallon applied">
+            </div>
             <div class="form-group">
                 <label for="activityNotesInput">Notes (optional)</label>
                 <textarea id="activityNotesInput" placeholder="Additional details..."></textarea>
@@ -1617,6 +1623,10 @@
             <div class="view-field">
                 <label>Chemical / Product</label>
                 <div id="viewActivityChemical" class="view-value"></div>
+            </div>
+            <div class="view-field" id="viewActivityAmountUsedField" style="display:none;">
+                <label>Amount Used</label>
+                <div id="viewActivityAmountUsed" class="view-value"></div>
             </div>
             <div class="view-field">
                 <label>Notes</label>
@@ -2415,26 +2425,26 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=153"></script>
-    <script src="js/auth.js?v=153"></script>
-    <script src="js/zones.js?v=153"></script>
-    <script src="js/plants.js?v=153"></script>
-    <script src="js/problems.js?v=153"></script>
-    <script src="js/facts.js?v=153"></script>
-    <script src="js/projects.js?v=153"></script>
-    <script src="js/chemicals.js?v=153"></script>
-    <script src="js/activities.js?v=153"></script>
-    <script src="js/photos.js?v=153"></script>
-    <script src="js/weeds.js?v=153"></script>
-    <script src="js/calendar.js?v=153"></script>
-    <script src="js/gps.js?v=153"></script>
-    <script src="js/settings.js?v=153"></script>
-    <script src="js/house.js?v=153"></script>
-    <script src="js/floorplan.js?v=153"></script>
-    <script src="js/search.js?v=153"></script>
-    <script src="js/activityreport.js?v=153"></script>
-    <script src="js/checklists.js?v=153"></script>
-    <script src="js/app.js?v=153"></script>
+    <script src="js/firebase-config.js?v=154"></script>
+    <script src="js/auth.js?v=154"></script>
+    <script src="js/zones.js?v=154"></script>
+    <script src="js/plants.js?v=154"></script>
+    <script src="js/problems.js?v=154"></script>
+    <script src="js/facts.js?v=154"></script>
+    <script src="js/projects.js?v=154"></script>
+    <script src="js/chemicals.js?v=154"></script>
+    <script src="js/activities.js?v=154"></script>
+    <script src="js/photos.js?v=154"></script>
+    <script src="js/weeds.js?v=154"></script>
+    <script src="js/calendar.js?v=154"></script>
+    <script src="js/gps.js?v=154"></script>
+    <script src="js/settings.js?v=154"></script>
+    <script src="js/house.js?v=154"></script>
+    <script src="js/floorplan.js?v=154"></script>
+    <script src="js/search.js?v=154"></script>
+    <script src="js/activityreport.js?v=154"></script>
+    <script src="js/checklists.js?v=154"></script>
+    <script src="js/app.js?v=154"></script>
 
 </body>
 </html>

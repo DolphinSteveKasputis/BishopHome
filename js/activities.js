@@ -85,6 +85,19 @@ function getCheckedChemicalIds(containerId) {
     return checked;
 }
 
+// ---------- Amount Used Visibility Helper ----------
+
+/**
+ * Shows or hides the "Amount Used" field in the log-activity modal based on
+ * whether at least one chemical checkbox is currently checked.
+ * Called whenever checkboxes change or the modal opens.
+ */
+function updateAmountUsedVisibility() {
+    var anyChecked = getCheckedChemicalIds('activityChemicalList').length > 0;
+    var row = document.getElementById('activityAmountUsedRow');
+    if (row) row.style.display = anyChecked ? '' : 'none';
+}
+
 // ---------- Load & Display Activity History ----------
 
 /**
@@ -188,6 +201,14 @@ function createActivityItem(activity, chemicalNames, targetType, targetId) {
     desc.textContent = activity.description;
     leftSide.appendChild(desc);
 
+    // Show amount used if recorded (only appears when a chemical was used)
+    if (activity.amountUsed) {
+        const amountEl = document.createElement('span');
+        amountEl.className = 'activity-amount';
+        amountEl.textContent = activity.amountUsed;
+        leftSide.appendChild(amountEl);
+    }
+
     item.appendChild(leftSide);
 
     // Right side: Edit button
@@ -220,6 +241,16 @@ function openViewActivityModal(activity, chemicalNames, targetType, targetId) {
     document.getElementById('viewActivityChemical').textContent =
         chemicalNames && chemicalNames.length > 0 ? chemicalNames.join(', ') : 'None';
     document.getElementById('viewActivityNotes').textContent = activity.notes || 'None';
+
+    // Show Amount Used only when it was recorded
+    var amountField = document.getElementById('viewActivityAmountUsedField');
+    var amountVal   = activity.amountUsed || '';
+    if (amountVal) {
+        document.getElementById('viewActivityAmountUsed').textContent = amountVal;
+        amountField.style.display = '';
+    } else {
+        amountField.style.display = 'none';
+    }
 
     // Show/hide "Save as Action" button
     var saveAsBtn = document.getElementById('viewActivitySaveAsBtn');
@@ -268,12 +299,15 @@ async function openLogActivityModal(targetType, targetId) {
     descInput.value = '';
     dateInput.value = new Date().toISOString().split('T')[0];  // Today
     notesInput.value = '';
+    document.getElementById('activityAmountUsedInput').value = '';
+    document.getElementById('activityAmountUsedRow').style.display = 'none';
 
     modal.dataset.targetType = targetType;
     modal.dataset.targetId = targetId;
 
     // Build chemical checkbox list (none pre-checked)
     await buildChemicalCheckboxList('activityChemicalList', []);
+    updateAmountUsedVisibility();
 
     // Populate saved actions dropdown
     savedActionSelect.innerHTML = '<option value="">-- Start from scratch --</option>';
@@ -313,6 +347,7 @@ async function handleSavedActionSelect() {
         // Pre-check chemicals from the saved action
         var ids = normalizeChemicalIds(action);
         await buildChemicalCheckboxList('activityChemicalList', ids);
+        updateAmountUsedVisibility();
 
         console.log('Saved action loaded:', action.name);
 
@@ -336,6 +371,7 @@ async function handleActivityModalSave() {
     const description = descInput.value.trim();
     const date = dateInput.value;
     const notes = notesInput.value.trim();
+    const amountUsed = document.getElementById('activityAmountUsedInput').value.trim();
     const chemicalIds = getCheckedChemicalIds('activityChemicalList');
     const savedActionId = savedActionSelect.value || null;
 
@@ -354,14 +390,15 @@ async function handleActivityModalSave() {
 
     try {
         await userCol('activities').add({
-            targetType: targetType,
-            targetId: targetId,
+            targetType:  targetType,
+            targetId:    targetId,
             description: description,
-            date: date,
-            notes: notes,
+            date:        date,
+            notes:       notes,
+            amountUsed:  amountUsed || '',
             chemicalIds: chemicalIds,
             savedActionId: savedActionId,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            createdAt:   firebase.firestore.FieldValue.serverTimestamp()
         });
 
         console.log('Activity logged:', description);
@@ -825,6 +862,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Activity modal — Saved action dropdown change
     document.getElementById('activitySavedActionSelect').addEventListener('change', handleSavedActionSelect);
+
+    // Activity modal — show/hide Amount Used field when chemicals are checked/unchecked
+    // Uses event delegation on the container so it works even after the list is rebuilt
+    document.getElementById('activityChemicalList').addEventListener('change', function(e) {
+        if (e.target.type === 'checkbox') updateAmountUsedVisibility();
+    });
 
     // "Add Saved Action" button on the actions page
     document.getElementById('addSavedActionBtn').addEventListener('click', openAddSavedActionModal);

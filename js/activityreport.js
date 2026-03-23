@@ -285,6 +285,14 @@ function arBuildCard(a) {
         card.appendChild(chemRow);
     }
 
+    // ── Amount used ───────────────────────────────────────────────────────────
+    if (a.amountUsed) {
+        var amount = document.createElement('div');
+        amount.className   = 'ar-notes';
+        amount.textContent = '⚗️ ' + a.amountUsed;
+        card.appendChild(amount);
+    }
+
     // ── Notes (collapsed into a subtle line) ─────────────────────────────────
     if (a.notes) {
         var notes = document.createElement('div');

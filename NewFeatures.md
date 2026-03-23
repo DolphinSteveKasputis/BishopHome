@@ -112,7 +112,7 @@ Calendar events are great for individual tasks on specific dates. Checklists are
 ---
 
 ## NF-6 — Application Rate / Amount on Activities
-**Status:** PLANNED
+**Status:** COMPLETE
 
 **What it does:**
 When logging an activity that includes one or more chemicals, add an optional free-text **"Amount Used"** field to capture dosage/quantity. Examples: "2 oz per gallon, 1 gallon applied" or "Granules — broadcast 5 lbs."
@@ -240,7 +240,7 @@ When you land on the House page, you can immediately see if anything is coming u
 | NF-3  | Chemical Usage Log               | Small      | COMPLETE |
 | NF-4  | Plant Health Status              | Small      | COMPLETE |
 | NF-5  | Seasonal Care Checklists         | Large      | COMPLETE |
-| NF-6  | Application Rate on Activities   | Small      | PLANNED |
+| NF-6  | Application Rate on Activities   | Small      | COMPLETE |
 | NF-7  | Reschedule Overdue Events        | Small      | PLANNED |
 | NF-8  | Clone a Plant                    | Small      | PLANNED |
 | NF-9  | Bulk Activity Logging            | Medium     | PLANNED |

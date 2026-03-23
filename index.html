@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=148">
+    <link rel="stylesheet" href="css/styles.css?v=149">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -53,6 +53,7 @@
             <a href="#chemicals" class="nav-link" data-page="chemicals">Chemicals</a>
             <a href="#actions" class="nav-link" data-page="actions">Actions</a>
             <a href="#house" class="nav-link" data-page="house">House</a>
+            <a href="#search" class="nav-link" data-page="search">🔍 Search</a>
             <a href="#settings" class="nav-link" data-page="settings">Settings</a>
             <button class="nav-signout-btn" id="signOutBtn" title="Sign out">Sign Out</button>
         </nav>
@@ -64,6 +65,7 @@
             <a href="#home" class="nav-link" data-page="yard">Yard</a>
             <a href="#settings" class="nav-link" data-page="settings">Settings</a>
             <a href="#things" class="nav-link" data-page="things">Things</a>
+            <a href="#search" class="nav-link" data-page="search">🔍 Search</a>
             <button class="nav-signout-btn" id="signOutBtnHouse" title="Sign out">Sign Out</button>
         </nav>
         <!-- Hamburger menu for mobile -->
@@ -84,6 +86,7 @@
             <a href="#chemicals" class="nav-link" data-page="chemicals">Chemicals</a>
             <a href="#actions" class="nav-link" data-page="actions">Actions</a>
             <a href="#house" class="nav-link" data-page="house">House</a>
+            <a href="#search" class="nav-link" data-page="search">🔍 Search</a>
             <a href="#settings" class="nav-link" data-page="settings">Settings</a>
             <button class="nav-signout-btn" id="signOutBtnMobile">Sign Out</button>
         </div>
@@ -95,6 +98,7 @@
             <a href="#home" class="nav-link" data-page="yard">Yard</a>
             <a href="#settings" class="nav-link" data-page="settings">Settings</a>
             <a href="#things" class="nav-link" data-page="things">Things</a>
+            <a href="#search" class="nav-link" data-page="search">🔍 Search</a>
             <button class="nav-signout-btn" id="signOutBtnMobileHouse">Sign Out</button>
         </div>
     </nav>
@@ -122,6 +126,22 @@
                     <span class="landing-tile-soon">Coming soon</span>
                 </div>
             </div>
+        </section>
+
+        <!-- Page: Search -->
+        <section class="page hidden" id="page-search">
+            <div class="page-header">
+                <h2>Search</h2>
+            </div>
+            <!-- Large search input -->
+            <div class="search-input-wrap">
+                <input type="search" id="searchInput" class="search-main-input"
+                       placeholder="Search plants, zones, chemicals, things…"
+                       autocomplete="off" spellcheck="false">
+            </div>
+            <!-- Results area — filled dynamically by search.js -->
+            <div id="searchResults" class="search-results"></div>
+            <p class="empty-state hidden" id="searchEmptyState"></p>
         </section>
 
         <!-- Page: Home / Zones list -->
@@ -2265,23 +2285,24 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=148"></script>
-    <script src="js/auth.js?v=148"></script>
-    <script src="js/zones.js?v=148"></script>
-    <script src="js/plants.js?v=148"></script>
-    <script src="js/problems.js?v=148"></script>
-    <script src="js/facts.js?v=148"></script>
-    <script src="js/projects.js?v=148"></script>
-    <script src="js/chemicals.js?v=148"></script>
-    <script src="js/activities.js?v=148"></script>
-    <script src="js/photos.js?v=148"></script>
-    <script src="js/weeds.js?v=148"></script>
-    <script src="js/calendar.js?v=148"></script>
-    <script src="js/gps.js?v=148"></script>
-    <script src="js/settings.js?v=148"></script>
-    <script src="js/house.js?v=148"></script>
-    <script src="js/floorplan.js?v=148"></script>
-    <script src="js/app.js?v=148"></script>
+    <script src="js/firebase-config.js?v=149"></script>
+    <script src="js/auth.js?v=149"></script>
+    <script src="js/zones.js?v=149"></script>
+    <script src="js/plants.js?v=149"></script>
+    <script src="js/problems.js?v=149"></script>
+    <script src="js/facts.js?v=149"></script>
+    <script src="js/projects.js?v=149"></script>
+    <script src="js/chemicals.js?v=149"></script>
+    <script src="js/activities.js?v=149"></script>
+    <script src="js/photos.js?v=149"></script>
+    <script src="js/weeds.js?v=149"></script>
+    <script src="js/calendar.js?v=149"></script>
+    <script src="js/gps.js?v=149"></script>
+    <script src="js/settings.js?v=149"></script>
+    <script src="js/house.js?v=149"></script>
+    <script src="js/floorplan.js?v=149"></script>
+    <script src="js/search.js?v=149"></script>
+    <script src="js/app.js?v=149"></script>
 
 </body>
 </html>

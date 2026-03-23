@@ -8,6 +8,11 @@
 var currentFloor = null;   // Floor document currently being viewed
 var currentRoom  = null;   // Room document currently being viewed
 var currentThing = null;   // Thing document currently being viewed
+var currentPanel = null;   // Breaker panel document currently being viewed
+
+// Breaker-modal edit state (which slot is open)
+var bpEditSlot = null;     // Slot number (1-based) being edited
+var bpEditId   = null;     // breaker.id of the existing entry, or null if new
 
 // ============================================================
 // HOUSE CONTEXT LABEL  (used by calendar.js for event cards)
@@ -83,6 +88,9 @@ function loadHousePage() {
     container.innerHTML    = '';
     emptyState.textContent = 'Loading…';
     statsEl.innerHTML      = '';
+
+    // Load the breaker panels list independently (different DOM container)
+    loadPanelList();
 
     // Build the date range for "upcoming in next 30 days"
     var today   = new Date();
@@ -1337,3 +1345,486 @@ document.getElementById('roomCalendarRangeSelect').addEventListener('change', fu
             'roomCalendarEventsContainer', 'roomCalendarEventsEmptyState', months);
     }
 });
+
+// ============================================================
+// BREAKER PANEL LIST  (Phase H12 — shown on House home page)
+// ============================================================
+
+/**
+ * Load and render the breaker panels list for the House home page.
+ * Runs independently from the floors query — different DOM container.
+ */
+function loadPanelList() {
+    var container  = document.getElementById('panelListContainer');
+    var emptyState = document.getElementById('panelEmptyState');
+
+    container.innerHTML    = '';
+    emptyState.textContent = 'Loading…';
+
+    db.collection('breakerPanels').get()
+        .then(function(snap) {
+            emptyState.textContent = '';
+
+            if (snap.empty) {
+                emptyState.textContent = 'No breaker panels yet.';
+                return;
+            }
+
+            // Sort client-side by createdAt ascending
+            var docs = [];
+            snap.forEach(function(doc) { docs.push(doc); });
+            docs.sort(function(a, b) {
+                var ta = a.data().createdAt ? a.data().createdAt.toMillis() : 0;
+                var tb = b.data().createdAt ? b.data().createdAt.toMillis() : 0;
+                return ta - tb;
+            });
+
+            docs.forEach(function(doc) {
+                container.appendChild(buildPanelCard(doc.id, doc.data()));
+            });
+        })
+        .catch(function(err) {
+            console.error('loadPanelList error:', err);
+            emptyState.textContent = 'Error loading panels.';
+        });
+}
+
+/**
+ * Build a clickable card for a breaker panel.
+ * @param {string} id    - Firestore document ID
+ * @param {object} data  - Panel document data
+ */
+function buildPanelCard(id, data) {
+    var card = document.createElement('div');
+    card.className = 'card card--clickable';
+
+    var label      = escapeHtml(data.name || 'Unnamed Panel');
+    var locMeta    = data.location
+        ? '<span class="house-floor-meta">' + escapeHtml(data.location) + '</span>'
+        : '';
+    var assigned   = (data.breakers || []).length;
+    var total      = data.totalSlots || 0;
+    var slotsMeta  = '<span class="house-floor-meta">' + assigned + ' of ' + total + ' slots assigned</span>';
+
+    card.innerHTML =
+        '<div class="card-main">' +
+            '<span class="card-title">' + label + '</span>' +
+            locMeta + slotsMeta +
+        '</div>' +
+        '<span class="card-arrow">›</span>';
+
+    card.addEventListener('click', function() {
+        window.location.hash = '#panel/' + id;
+    });
+
+    return card;
+}
+
+// ============================================================
+// PANEL DETAIL PAGE  (#panel/{panelId})
+// ============================================================
+
+/**
+ * Load the Breaker Panel detail page.
+ * Called by app.js when the route is #panel/{id}.
+ * @param {string} panelId
+ */
+function loadPanelDetail(panelId) {
+    db.collection('breakerPanels').doc(panelId).get()
+        .then(function(doc) {
+            if (!doc.exists) {
+                window.location.hash = '#house';
+                return;
+            }
+            currentPanel = Object.assign({ id: doc.id }, doc.data());
+            renderPanelDetail(currentPanel);
+        })
+        .catch(function(err) { console.error('loadPanelDetail error:', err); });
+}
+
+/**
+ * Render the panel header, breadcrumb, grid, and all feature sections.
+ * @param {object} panel  - Panel doc data merged with { id }
+ */
+function renderPanelDetail(panel) {
+    document.getElementById('panelTitle').textContent = panel.name || 'Breaker Panel';
+
+    var locEl = document.getElementById('panelLocation');
+    locEl.textContent   = panel.location || '';
+    locEl.style.display = panel.location ? '' : 'none';
+
+    var notesEl = document.getElementById('panelNotes');
+    notesEl.textContent   = panel.notes || '';
+    notesEl.style.display = panel.notes ? '' : 'none';
+
+    buildHouseBreadcrumb([
+        { label: 'House',                  hash: '#house' },
+        { label: panel.name || 'Panel',    hash: null }
+    ]);
+
+    // Render the 2-column breaker grid
+    renderPanelGrid(panel);
+
+    // Standard cross-entity sections
+    loadProblems(  'panel', panel.id, 'panelProblemsContainer', 'panelProblemsEmptyState');
+    loadFacts(     'panel', panel.id, 'panelFactsContainer',    'panelFactsEmptyState');
+    loadActivities('panel', panel.id, 'panelActivityContainer', 'panelActivityEmptyState');
+    loadPhotos(    'panel', panel.id, 'panelPhotoContainer',    'panelPhotoEmptyState');
+}
+
+// ============================================================
+// PANEL GRID RENDERER
+// ============================================================
+
+/**
+ * Render the 2-column breaker grid.
+ * Slots are paired left/right: (1,2), (3,4), (5,6)…
+ * Empty slots show a dashed placeholder that can still be clicked to assign.
+ * @param {object} panel
+ */
+function renderPanelGrid(panel) {
+    var container  = document.getElementById('panelGridContainer');
+    var emptyState = document.getElementById('panelGridEmptyState');
+
+    container.innerHTML    = '';
+    emptyState.textContent = '';
+
+    var total = panel.totalSlots || 0;
+    if (total === 0) {
+        emptyState.textContent = 'No slots configured. Edit the panel to set the number of slots.';
+        return;
+    }
+
+    // Build a lookup map: slot number → breaker data
+    var breakerMap = {};
+    (panel.breakers || []).forEach(function(b) {
+        breakerMap[b.slot] = b;
+    });
+
+    // Render pairs of slots as rows
+    for (var i = 1; i <= total; i += 2) {
+        var row = document.createElement('div');
+        row.className = 'breaker-row';
+
+        row.appendChild(buildBreakerSlotEl(i,     breakerMap[i]     || null));
+        // Right column: only render if within total slots
+        if (i + 1 <= total) {
+            row.appendChild(buildBreakerSlotEl(i + 1, breakerMap[i + 1] || null));
+        } else {
+            // Spacer to keep grid symmetrical on odd totals
+            var spacer = document.createElement('div');
+            row.appendChild(spacer);
+        }
+
+        container.appendChild(row);
+    }
+}
+
+/**
+ * Build one breaker slot cell element.
+ * @param {number}      slotNum  - 1-based slot position
+ * @param {object|null} breaker  - Breaker data object or null if empty
+ * @returns {HTMLElement}
+ */
+function buildBreakerSlotEl(slotNum, breaker) {
+    var cell = document.createElement('div');
+
+    if (!breaker) {
+        cell.className = 'breaker-slot breaker-slot--empty';
+        cell.innerHTML =
+            '<span class="breaker-slot-num">' + slotNum + '</span>' +
+            '<span class="breaker-slot-label">(empty)</span>';
+    } else {
+        var status = breaker.status || 'on';
+        cell.className = 'breaker-slot breaker-slot--' + escapeHtml(status);
+
+        var ampsHtml   = breaker.amps
+            ? '<span class="breaker-amps">' + breaker.amps + 'A</span>'
+            : '';
+        var statusText = status.charAt(0).toUpperCase() + status.slice(1);
+
+        cell.innerHTML =
+            '<span class="breaker-slot-num">' + slotNum + '</span>' +
+            '<span class="breaker-slot-label">' + escapeHtml(breaker.label || '(unlabeled)') + '</span>' +
+            '<div class="breaker-slot-meta">' +
+                ampsHtml +
+                '<span class="breaker-status breaker-status--' + escapeHtml(status) + '">' +
+                    statusText +
+                '</span>' +
+            '</div>';
+    }
+
+    cell.addEventListener('click', function() {
+        openBreakerModal(slotNum, breaker);
+    });
+
+    return cell;
+}
+
+// ============================================================
+// PANEL MODAL  (Add / Edit)
+// ============================================================
+
+/**
+ * Open the add/edit modal for a breaker panel.
+ * @param {string|null} editId  - Firestore document ID when editing; null for add
+ * @param {object|null} data    - Existing panel data when editing
+ */
+function openPanelModal(editId, data) {
+    var modal     = document.getElementById('panelModal');
+    var deleteBtn = document.getElementById('panelModalDeleteBtn');
+
+    document.getElementById('panelNameInput').value       = (editId && data) ? (data.name      || '') : '';
+    document.getElementById('panelLocationInput').value   = (editId && data) ? (data.location  || '') : '';
+    document.getElementById('panelNotesInput').value      = (editId && data) ? (data.notes     || '') : '';
+    document.getElementById('panelTotalSlotsInput').value = (editId && data) ? (data.totalSlots || 20) : 20;
+
+    if (editId) {
+        document.getElementById('panelModalTitle').textContent = 'Edit Panel';
+        deleteBtn.style.display = '';
+        modal.dataset.mode   = 'edit';
+        modal.dataset.editId = editId;
+    } else {
+        document.getElementById('panelModalTitle').textContent = 'Add Breaker Panel';
+        deleteBtn.style.display = 'none';
+        modal.dataset.mode   = 'add';
+        modal.dataset.editId = '';
+    }
+
+    openModal('panelModal');
+    document.getElementById('panelNameInput').focus();
+}
+
+document.getElementById('panelModalSaveBtn').addEventListener('click', function() {
+    var modal    = document.getElementById('panelModal');
+    var nameVal  = document.getElementById('panelNameInput').value.trim();
+    var locVal   = document.getElementById('panelLocationInput').value.trim();
+    var notesVal = document.getElementById('panelNotesInput').value.trim();
+    var slotsVal = parseInt(document.getElementById('panelTotalSlotsInput').value, 10);
+
+    if (!nameVal)                          { alert('Please enter a panel name.'); return; }
+    if (isNaN(slotsVal) || slotsVal < 2)  { alert('Total slots must be at least 2.'); return; }
+
+    // Round up to nearest even number (breaker panels always have pairs)
+    if (slotsVal % 2 !== 0) slotsVal += 1;
+
+    var panelData = { name: nameVal, location: locVal, notes: notesVal, totalSlots: slotsVal };
+
+    var mode   = modal.dataset.mode;
+    var editId = modal.dataset.editId;
+
+    if (mode === 'edit' && editId) {
+        db.collection('breakerPanels').doc(editId).update(panelData)
+            .then(function() {
+                closeModal('panelModal');
+                loadPanelDetail(editId);
+            })
+            .catch(function(err) { console.error('Update panel error:', err); });
+    } else {
+        panelData.breakers  = [];
+        panelData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        db.collection('breakerPanels').add(panelData)
+            .then(function(ref) {
+                closeModal('panelModal');
+                window.location.hash = '#panel/' + ref.id;
+            })
+            .catch(function(err) { console.error('Add panel error:', err); });
+    }
+});
+
+document.getElementById('panelModalCancelBtn').addEventListener('click', function() {
+    closeModal('panelModal');
+});
+
+document.getElementById('panelModalDeleteBtn').addEventListener('click', function() {
+    var editId = document.getElementById('panelModal').dataset.editId;
+    if (!editId) return;
+    if (!confirm('Delete this panel and all its breaker data? This cannot be undone.')) return;
+    db.collection('breakerPanels').doc(editId).delete()
+        .then(function() {
+            closeModal('panelModal');
+            window.location.hash = '#house';
+        })
+        .catch(function(err) { console.error('Delete panel error:', err); });
+});
+
+// ============================================================
+// BREAKER MODAL  (Edit a single slot)
+// ============================================================
+
+/**
+ * Open the edit modal for one breaker slot.
+ * @param {number}      slotNum  - Slot position (1-based)
+ * @param {object|null} breaker  - Existing breaker data, or null if the slot is empty
+ */
+function openBreakerModal(slotNum, breaker) {
+    bpEditSlot = slotNum;
+    bpEditId   = breaker ? (breaker.id || null) : null;
+
+    document.getElementById('breakerModalTitle').textContent = 'Breaker — Slot ' + slotNum;
+    document.getElementById('breakerLabelInput').value   = breaker ? (breaker.label  || '') : '';
+    document.getElementById('breakerAmpsSelect').value   = breaker ? (breaker.amps   || '') : '';
+    document.getElementById('breakerStatusSelect').value = breaker ? (breaker.status || 'on') : 'on';
+    document.getElementById('breakerNotesInput').value   = breaker ? (breaker.notes  || '') : '';
+
+    // Problems section — only visible when editing an already-assigned slot
+    var probSection = document.getElementById('breakerProblemsSection');
+    if (breaker && breaker.id) {
+        probSection.style.display = '';
+        loadProblems('breaker', breaker.id,
+            'breakerProblemsContainer', 'breakerProblemsEmptyState');
+    } else {
+        probSection.style.display = 'none';
+        document.getElementById('breakerProblemsContainer').innerHTML = '';
+    }
+
+    // "Clear Slot" button only appears when editing an assigned slot
+    document.getElementById('breakerClearBtn').style.display = (breaker && breaker.id) ? '' : 'none';
+
+    openModal('breakerModal');
+    document.getElementById('breakerLabelInput').focus();
+}
+
+document.getElementById('breakerModalSaveBtn').addEventListener('click', function() {
+    if (!currentPanel || bpEditSlot === null) return;
+
+    var labelVal  = document.getElementById('breakerLabelInput').value.trim();
+    var ampsRaw   = document.getElementById('breakerAmpsSelect').value;
+    var statusVal = document.getElementById('breakerStatusSelect').value;
+    var notesVal  = document.getElementById('breakerNotesInput').value.trim();
+
+    // Build the updated breakers array (copy so we don't mutate state before save)
+    var breakers = (currentPanel.breakers || []).slice();
+
+    // Find if an entry already exists for this slot
+    var existingIdx = -1;
+    for (var i = 0; i < breakers.length; i++) {
+        if (breakers[i].slot === bpEditSlot) { existingIdx = i; break; }
+    }
+
+    var breakerEntry = {
+        id:     bpEditId || bpUUID(),
+        slot:   bpEditSlot,
+        label:  labelVal,
+        amps:   ampsRaw ? parseInt(ampsRaw, 10) : null,
+        status: statusVal,
+        notes:  notesVal
+    };
+
+    if (existingIdx >= 0) {
+        // Preserve the original id so existing problem links stay intact
+        breakerEntry.id = breakers[existingIdx].id;
+        breakers[existingIdx] = breakerEntry;
+    } else {
+        breakers.push(breakerEntry);
+    }
+
+    // Keep array sorted by slot for readability in Firestore
+    breakers.sort(function(a, b) { return a.slot - b.slot; });
+
+    db.collection('breakerPanels').doc(currentPanel.id).update({ breakers: breakers })
+        .then(function() {
+            currentPanel.breakers = breakers;
+            closeModal('breakerModal');
+            renderPanelGrid(currentPanel);
+        })
+        .catch(function(err) { console.error('Save breaker error:', err); });
+});
+
+document.getElementById('breakerModalCancelBtn').addEventListener('click', function() {
+    closeModal('breakerModal');
+});
+
+// "Clear Slot" — removes the breaker assignment, leaving the slot empty
+document.getElementById('breakerClearBtn').addEventListener('click', function() {
+    if (!currentPanel || bpEditSlot === null) return;
+    if (!confirm('Clear slot ' + bpEditSlot + '? The label and settings will be removed.')) return;
+
+    var breakers = (currentPanel.breakers || []).filter(function(b) {
+        return b.slot !== bpEditSlot;
+    });
+
+    db.collection('breakerPanels').doc(currentPanel.id).update({ breakers: breakers })
+        .then(function() {
+            currentPanel.breakers = breakers;
+            closeModal('breakerModal');
+            renderPanelGrid(currentPanel);
+        })
+        .catch(function(err) { console.error('Clear breaker error:', err); });
+});
+
+// "+ Add Problem" button inside the breaker modal
+document.getElementById('breakerAddProblemBtn').addEventListener('click', function() {
+    if (!bpEditId) return;
+    openAddProblemModal('breaker', bpEditId);
+});
+
+// ============================================================
+// PANEL PAGE BUTTON WIRING
+// ============================================================
+
+// House home — Add Panel
+document.getElementById('addPanelBtn').addEventListener('click', function() {
+    openPanelModal(null, null);
+});
+
+// Panel detail — Edit Panel
+document.getElementById('editPanelBtn').addEventListener('click', function() {
+    if (!currentPanel) return;
+    openPanelModal(currentPanel.id, currentPanel);
+});
+
+// Panel detail — Delete Panel
+document.getElementById('deletePanelBtn').addEventListener('click', function() {
+    if (!currentPanel) return;
+    if (!confirm('Delete "' + (currentPanel.name || 'this panel') + '"? This cannot be undone.')) return;
+    db.collection('breakerPanels').doc(currentPanel.id).delete()
+        .then(function() { window.location.hash = '#house'; })
+        .catch(function(err) { console.error('Delete panel error:', err); });
+});
+
+// Panel detail — "+ 2 Slots" button expands the grid by two positions
+document.getElementById('addBreakerSlotBtn').addEventListener('click', function() {
+    if (!currentPanel) return;
+    var newTotal = (currentPanel.totalSlots || 0) + 2;
+    db.collection('breakerPanels').doc(currentPanel.id).update({ totalSlots: newTotal })
+        .then(function() {
+            currentPanel.totalSlots = newTotal;
+            renderPanelGrid(currentPanel);
+        })
+        .catch(function(err) { console.error('Add slot error:', err); });
+});
+
+// Panel detail — Problems / Facts / Activities / Photos
+document.getElementById('addPanelProblemBtn').addEventListener('click', function() {
+    if (currentPanel) openAddProblemModal('panel', currentPanel.id);
+});
+
+document.getElementById('addPanelFactBtn').addEventListener('click', function() {
+    if (currentPanel) openAddFactModal('panel', currentPanel.id);
+});
+
+document.getElementById('logPanelActivityBtn').addEventListener('click', function() {
+    if (currentPanel) openLogActivityModal('panel', currentPanel.id);
+});
+
+document.getElementById('addPanelPhotoBtn').addEventListener('click', function() {
+    if (currentPanel) triggerPhotoUpload('panel', currentPanel.id);
+});
+
+// ============================================================
+// UUID HELPER  (generates stable IDs for individual breakers)
+// ============================================================
+
+/**
+ * Generate a random UUID v4 string.
+ * Used to assign a stable, unique id to each breaker entry
+ * so that problems.js can link problems to individual breakers.
+ * @returns {string}
+ */
+function bpUUID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random() * 16 | 0;
+        return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+    });
+}

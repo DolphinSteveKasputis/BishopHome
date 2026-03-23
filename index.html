@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=122">
+    <link rel="stylesheet" href="css/styles.css?v=123">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -392,6 +392,67 @@
             </div>
             <div class="card-list" id="floorListContainer"></div>
             <p class="empty-state" id="floorEmptyState"></p>
+
+            <!-- Breaker Panels section (Phase H12) -->
+            <div class="section-header">
+                <h3 class="section-heading">Breaker Panels</h3>
+                <button class="btn btn-primary btn-small" id="addPanelBtn">+ Add Panel</button>
+            </div>
+            <div class="card-list" id="panelListContainer"></div>
+            <p class="empty-state" id="panelEmptyState"></p>
+        </section>
+
+        <!-- Page: Breaker Panel Detail (Phase H12) -->
+        <section class="page hidden" id="page-panel">
+            <div class="page-header">
+                <h2 id="panelTitle">Breaker Panel</h2>
+                <div class="page-header-actions">
+                    <button class="btn btn-secondary btn-small" id="editPanelBtn">Edit</button>
+                    <button class="btn btn-danger btn-small" id="deletePanelBtn">Delete</button>
+                </div>
+            </div>
+            <p class="house-floor-meta" id="panelLocation"></p>
+            <p class="house-floor-meta" id="panelNotes"></p>
+
+            <!-- Breaker grid -->
+            <div class="section-header">
+                <h3 class="section-heading">Breaker Slots</h3>
+                <button class="btn btn-secondary btn-small" id="addBreakerSlotBtn">+ 2 Slots</button>
+            </div>
+            <div id="panelGridContainer" class="breaker-panel-grid"></div>
+            <p class="empty-state" id="panelGridEmptyState"></p>
+
+            <!-- Problems / Concerns -->
+            <div class="section-header">
+                <h3 class="section-heading">Problems / Concerns</h3>
+                <button class="btn btn-primary btn-small" id="addPanelProblemBtn">+ Add</button>
+            </div>
+            <div id="panelProblemsContainer"></div>
+            <p class="empty-state" id="panelProblemsEmptyState"></p>
+
+            <!-- Facts -->
+            <div class="section-header">
+                <h3 class="section-heading">Facts</h3>
+                <button class="btn btn-primary btn-small" id="addPanelFactBtn">+ Add</button>
+            </div>
+            <div id="panelFactsContainer"></div>
+            <p class="empty-state" id="panelFactsEmptyState"></p>
+
+            <!-- Activity History -->
+            <div class="section-header">
+                <h3 class="section-heading">Activity History</h3>
+                <button class="btn btn-primary btn-small" id="logPanelActivityBtn">+ Log Activity</button>
+            </div>
+            <div id="panelActivityContainer"></div>
+            <p class="empty-state" id="panelActivityEmptyState">No activities logged yet.</p>
+
+            <!-- Photos -->
+            <div class="section-header">
+                <h3 class="section-heading">Photos</h3>
+                <button class="btn btn-primary btn-small" id="addPanelPhotoBtn">+ Add Photo</button>
+            </div>
+            <div id="panelPhotoContainer"></div>
+            <p class="empty-state" id="panelPhotoEmptyState">No photos yet.</p>
         </section>
 
         <!-- Page: Floor Detail -->
@@ -1766,27 +1827,109 @@
         </div>
     </div>
 
+    <!-- Panel Modal (Phase H12) — Add or edit a breaker panel -->
+    <div class="modal-overlay" id="panelModal">
+        <div class="modal">
+            <h3 id="panelModalTitle">Add Breaker Panel</h3>
+            <div class="form-group">
+                <label for="panelNameInput">Panel name <span class="label-required">*</span></label>
+                <input type="text" id="panelNameInput" placeholder="e.g. Main Panel, Sub-Panel (Garage)">
+            </div>
+            <div class="form-group">
+                <label for="panelLocationInput">Location</label>
+                <input type="text" id="panelLocationInput" placeholder="e.g. Basement utility room">
+            </div>
+            <div class="form-group">
+                <label for="panelTotalSlotsInput">Total slots <span class="label-hint">(number of breaker positions — must be even)</span></label>
+                <input type="number" id="panelTotalSlotsInput" min="2" max="200" step="2" value="20">
+            </div>
+            <div class="form-group">
+                <label for="panelNotesInput">Notes</label>
+                <textarea id="panelNotesInput" rows="2" placeholder="Optional notes"></textarea>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-danger" id="panelModalDeleteBtn" style="display:none">Delete</button>
+                <button class="btn btn-secondary" id="panelModalCancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="panelModalSaveBtn">Save Panel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Breaker Modal (Phase H12) — Edit a single breaker slot -->
+    <div class="modal-overlay" id="breakerModal">
+        <div class="modal">
+            <h3 id="breakerModalTitle">Breaker — Slot #</h3>
+            <div class="form-group">
+                <label for="breakerLabelInput">Label / Circuit name</label>
+                <input type="text" id="breakerLabelInput" placeholder="e.g. Kitchen Outlets, Master Bedroom">
+            </div>
+            <div class="form-row">
+                <div class="form-group" style="flex:1">
+                    <label for="breakerAmpsSelect">Amperage</label>
+                    <select id="breakerAmpsSelect">
+                        <option value="">— Not set —</option>
+                        <option value="15">15A</option>
+                        <option value="20">20A</option>
+                        <option value="30">30A</option>
+                        <option value="40">40A</option>
+                        <option value="50">50A</option>
+                        <option value="60">60A</option>
+                        <option value="100">100A</option>
+                        <option value="150">150A</option>
+                        <option value="200">200A</option>
+                    </select>
+                </div>
+                <div class="form-group" style="flex:1">
+                    <label for="breakerStatusSelect">Status</label>
+                    <select id="breakerStatusSelect">
+                        <option value="on">On</option>
+                        <option value="off">Off</option>
+                        <option value="tripped">Tripped</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="breakerNotesInput">Notes</label>
+                <textarea id="breakerNotesInput" rows="2" placeholder="Optional notes about this circuit"></textarea>
+            </div>
+            <!-- Problems section — shown only when editing an assigned breaker -->
+            <div id="breakerProblemsSection" style="display:none">
+                <div class="section-header" style="margin-top:12px">
+                    <h4 class="section-heading" style="font-size:0.95rem">Problems / Concerns</h4>
+                    <button class="btn btn-primary btn-small" id="breakerAddProblemBtn">+ Add</button>
+                </div>
+                <div id="breakerProblemsContainer"></div>
+                <p class="empty-state" id="breakerProblemsEmptyState"></p>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="breakerClearBtn" style="margin-right:auto;display:none">Clear Slot</button>
+                <button class="btn btn-secondary" id="breakerModalCancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="breakerModalSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
     </div><!-- end #appWrapper -->
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=122"></script>
-    <script src="js/auth.js?v=122"></script>
-    <script src="js/zones.js?v=122"></script>
-    <script src="js/plants.js?v=122"></script>
-    <script src="js/problems.js?v=122"></script>
-    <script src="js/facts.js?v=122"></script>
-    <script src="js/projects.js?v=122"></script>
-    <script src="js/chemicals.js?v=122"></script>
-    <script src="js/activities.js?v=122"></script>
-    <script src="js/photos.js?v=122"></script>
-    <script src="js/weeds.js?v=122"></script>
-    <script src="js/calendar.js?v=122"></script>
-    <script src="js/gps.js?v=122"></script>
-    <script src="js/settings.js?v=122"></script>
-    <script src="js/house.js?v=122"></script>
-    <script src="js/floorplan.js?v=122"></script>
-    <script src="js/app.js?v=122"></script>
+    <script src="js/firebase-config.js?v=123"></script>
+    <script src="js/auth.js?v=123"></script>
+    <script src="js/zones.js?v=123"></script>
+    <script src="js/plants.js?v=123"></script>
+    <script src="js/problems.js?v=123"></script>
+    <script src="js/facts.js?v=123"></script>
+    <script src="js/projects.js?v=123"></script>
+    <script src="js/chemicals.js?v=123"></script>
+    <script src="js/activities.js?v=123"></script>
+    <script src="js/photos.js?v=123"></script>
+    <script src="js/weeds.js?v=123"></script>
+    <script src="js/calendar.js?v=123"></script>
+    <script src="js/gps.js?v=123"></script>
+    <script src="js/settings.js?v=123"></script>
+    <script src="js/house.js?v=123"></script>
+    <script src="js/floorplan.js?v=123"></script>
+    <script src="js/app.js?v=123"></script>
 
 </body>
 </html>

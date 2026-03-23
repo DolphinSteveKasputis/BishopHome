@@ -170,7 +170,7 @@ When you have multiple identical plants (e.g., 5 azalea bushes in the same bed),
 ---
 
 ## NF-9 — Bulk Activity Logging
-**Status:** PLANNED
+**Status:** COMPLETE
 
 **What it does:**
 Allows logging a single activity against **multiple plants or zones at once**. For example: "I fertilized all 8 rose bushes today" — instead of opening each plant and logging individually, you select all 8 and log once.
@@ -243,7 +243,7 @@ When you land on the House page, you can immediately see if anything is coming u
 | NF-6  | Application Rate on Activities   | Small      | COMPLETE |
 | NF-7  | Reschedule Overdue Events        | Small      | COMPLETE |
 | NF-8  | Clone a Plant                    | Small      | COMPLETE |
-| NF-9  | Bulk Activity Logging            | Medium     | PLANNED |
+| NF-9  | Bulk Activity Logging            | Medium     | COMPLETE |
 | NF-10 | Purchase Date on Things          | Very Small | PLANNED |
 | NF-11 | Calendar Rollup on House Page    | Small      | PLANNED |
 

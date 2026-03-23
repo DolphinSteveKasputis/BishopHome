@@ -540,6 +540,11 @@ button {
     max-width: 640px;
 }
 
+/* Bulk activity modal needs more width for the two-column plant list */
+.modal-wide {
+    max-width: 600px;
+}
+
 .modal {
     background: white;
     border-radius: 12px;
@@ -979,6 +984,30 @@ button {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+/* ---------- Bulk Activity Modal ---------- */
+
+/* Header row above the plant checkbox list: label left, controls right */
+.bulk-plant-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.bulk-plant-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* Plant checklist — taller than the default checkbox list */
+.bulk-plant-list {
+    max-height: 220px;
 }
 
 /* ---------- View Activity Modal Fields ---------- */

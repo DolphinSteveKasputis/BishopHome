@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=156">
+    <link rel="stylesheet" href="css/styles.css?v=157">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -321,7 +321,10 @@
             <!-- Zone Activity History -->
             <div class="section-header">
                 <h3 class="section-heading">Activity History</h3>
-                <button class="btn btn-primary btn-small" id="logZoneActivityBtn">+ Log Activity</button>
+                <div class="section-header-actions">
+                    <button class="btn btn-secondary btn-small" id="logBulkActivityBtn">Log Bulk</button>
+                    <button class="btn btn-primary btn-small" id="logZoneActivityBtn">+ Log Activity</button>
+                </div>
             </div>
             <div id="zoneActivityContainer"></div>
             <p class="empty-state" id="zoneActivityEmptyState"></p>
@@ -1609,6 +1612,67 @@
         </div>
     </div>
 
+    <!-- Bulk Activity Modal -->
+    <div class="modal-overlay" id="bulkActivityModal">
+        <div class="modal modal-wide">
+            <h3>Log Bulk Activity</h3>
+
+            <div class="form-group">
+                <label for="bulkSavedActionSelect">Use Saved Action <span class="label-hint">(optional)</span></label>
+                <select id="bulkSavedActionSelect">
+                    <option value="">-- Start from scratch --</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="bulkDescInput">Description <span class="required">*</span></label>
+                <input type="text" id="bulkDescInput" placeholder="e.g., Applied fertilizer to all roses">
+            </div>
+            <div class="form-group">
+                <label for="bulkDateInput">Date <span class="required">*</span></label>
+                <input type="date" id="bulkDateInput">
+            </div>
+            <div class="form-group">
+                <label>Chemical / Product <span class="label-hint">(optional)</span></label>
+                <div class="zone-checkbox-list" id="bulkChemicalList"></div>
+            </div>
+            <!-- Amount Used — only shown when at least one chemical is checked -->
+            <div class="form-group" id="bulkAmountUsedRow" style="display:none;">
+                <label for="bulkAmountUsedInput">Amount Used <span class="label-hint">(optional)</span></label>
+                <input type="text" id="bulkAmountUsedInput"
+                       placeholder="e.g., 2 oz per gallon, 1 gallon applied">
+            </div>
+            <div class="form-group">
+                <label for="bulkNotesInput">Notes <span class="label-hint">(optional)</span></label>
+                <textarea id="bulkNotesInput" placeholder="Additional details..."></textarea>
+            </div>
+
+            <!-- Target plant selection -->
+            <div class="form-group">
+                <div class="bulk-plant-header">
+                    <label>Plants to log against:</label>
+                    <div class="bulk-plant-controls">
+                        <label class="show-toggle"><input type="checkbox" id="bulkIncludeSubZones"> Include sub-zones</label>
+                        <button class="btn btn-small btn-secondary" id="bulkSelectAllBtn">Deselect All</button>
+                    </div>
+                </div>
+                <div class="zone-checkbox-list bulk-plant-list" id="bulkPlantList"></div>
+            </div>
+
+            <!-- Also log against the zone itself -->
+            <div class="form-group">
+                <label class="zone-checkbox-item">
+                    <input type="checkbox" id="bulkIncludeZone">
+                    Also log this activity against the zone itself
+                </label>
+            </div>
+
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="bulkCancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="bulkSaveBtn">Log Activities</button>
+            </div>
+        </div>
+    </div>
+
     <!-- View Activity Detail Modal -->
     <div class="modal-overlay" id="viewActivityModal">
         <div class="modal">
@@ -2426,26 +2490,27 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=156"></script>
-    <script src="js/auth.js?v=156"></script>
-    <script src="js/zones.js?v=156"></script>
-    <script src="js/plants.js?v=156"></script>
-    <script src="js/problems.js?v=156"></script>
-    <script src="js/facts.js?v=156"></script>
-    <script src="js/projects.js?v=156"></script>
-    <script src="js/chemicals.js?v=156"></script>
-    <script src="js/activities.js?v=156"></script>
-    <script src="js/photos.js?v=156"></script>
-    <script src="js/weeds.js?v=156"></script>
-    <script src="js/calendar.js?v=156"></script>
-    <script src="js/gps.js?v=156"></script>
-    <script src="js/settings.js?v=156"></script>
-    <script src="js/house.js?v=156"></script>
-    <script src="js/floorplan.js?v=156"></script>
-    <script src="js/search.js?v=156"></script>
-    <script src="js/activityreport.js?v=156"></script>
-    <script src="js/checklists.js?v=156"></script>
-    <script src="js/app.js?v=156"></script>
+    <script src="js/firebase-config.js?v=157"></script>
+    <script src="js/auth.js?v=157"></script>
+    <script src="js/zones.js?v=157"></script>
+    <script src="js/plants.js?v=157"></script>
+    <script src="js/problems.js?v=157"></script>
+    <script src="js/facts.js?v=157"></script>
+    <script src="js/projects.js?v=157"></script>
+    <script src="js/chemicals.js?v=157"></script>
+    <script src="js/activities.js?v=157"></script>
+    <script src="js/photos.js?v=157"></script>
+    <script src="js/weeds.js?v=157"></script>
+    <script src="js/calendar.js?v=157"></script>
+    <script src="js/gps.js?v=157"></script>
+    <script src="js/settings.js?v=157"></script>
+    <script src="js/house.js?v=157"></script>
+    <script src="js/floorplan.js?v=157"></script>
+    <script src="js/search.js?v=157"></script>
+    <script src="js/activityreport.js?v=157"></script>
+    <script src="js/checklists.js?v=157"></script>
+    <script src="js/bulkactivity.js?v=157"></script>
+    <script src="js/app.js?v=157"></script>
 
 </body>
 </html>

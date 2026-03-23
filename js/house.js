@@ -130,7 +130,6 @@ function loadRoomsList(floorId) {
 
     db.collection('rooms')
         .where('floorId', '==', floorId)
-        .orderBy('createdAt', 'asc')
         .get()
         .then(function(snapshot) {
             emptyState.textContent = '';
@@ -140,7 +139,15 @@ function loadRoomsList(floorId) {
                 return;
             }
 
-            snapshot.forEach(function(doc) {
+            // Sort client-side by createdAt to avoid needing a composite index
+            var docs = [];
+            snapshot.forEach(function(doc) { docs.push(doc); });
+            docs.sort(function(a, b) {
+                var ta = a.data().createdAt ? a.data().createdAt.toMillis() : 0;
+                var tb = b.data().createdAt ? b.data().createdAt.toMillis() : 0;
+                return ta - tb;
+            });
+            docs.forEach(function(doc) {
                 container.appendChild(buildRoomCard(doc.id, doc.data()));
             });
         })

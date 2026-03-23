@@ -3412,8 +3412,15 @@ async function houseHandleFromPicture(files, targetType) {
         var llm = LLM_PROVIDERS[cfg.provider];
         if (!llm) { statusEl.textContent = 'Unknown LLM provider.'; return; }
 
+        // Build prompt — append personal comment if the user filled it in
+        var commentInput = document.getElementById(isThing ? 'thingCommentInput' : 'stCommentInput');
+        var comment      = commentInput ? commentInput.value.trim() : '';
+        var prompt       = comment
+            ? THING_ID_PROMPT + '\n\nAdditional context from the owner: ' + comment
+            : THING_ID_PROMPT;
+
         // Build content: prompt + images
-        var content = [{ type: 'text', text: THING_ID_PROMPT }];
+        var content = [{ type: 'text', text: prompt }];
         images.forEach(function(url) {
             content.push({ type: 'image_url', image_url: { url: url } });
         });
@@ -3427,7 +3434,7 @@ async function houseHandleFromPicture(files, targetType) {
             statusEl.textContent = '';
             statusEl.classList.add('hidden');
             closeModal(modalId);
-            houseShowReviewModal(THING_ID_PROMPT, responseText, parsed);
+            houseShowReviewModal(prompt, responseText, parsed);
         } else {
             if (!parsed.name && parsed.additionalMessage) {
                 statusEl.textContent = '\u26a0 ' + parsed.additionalMessage;

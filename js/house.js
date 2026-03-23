@@ -7,6 +7,17 @@
 // ---- State ----
 var currentFloor = null;   // Floor document currently being viewed
 var currentRoom  = null;   // Room document currently being viewed
+var currentThing = null;   // Thing document currently being viewed
+
+// ---- Category helpers ----
+var THING_CATEGORIES = {
+    'furniture':     'Furniture',
+    'appliance':     'Appliance',
+    'ceiling-fan':   'Ceiling Fan',
+    'ceiling-light': 'Ceiling Light',
+    'electronics':   'Electronics',
+    'other':         'Other'
+};
 
 // ============================================================
 // HOUSE HOME PAGE  (#house)
@@ -216,6 +227,7 @@ function loadRoomDetail(roomId) {
                         ? Object.assign({ id: floorDoc.id }, floorDoc.data())
                         : { id: currentRoom.floorId, name: 'Unknown Floor' };
                     renderRoomDetail(currentRoom, currentFloor);
+                    loadThingsList(currentRoom.id);
                 });
         })
         .catch(function(err) { console.error('loadRoomDetail error:', err); });
@@ -593,4 +605,345 @@ document.getElementById('deleteRoomBtn').addEventListener('click', function() {
             }
         })
         .catch(function(err) { console.error('Delete room error:', err); });
+});
+
+// ============================================================
+// THINGS LIST  (shown on the Room detail page)
+// ============================================================
+
+/**
+ * Load and render the things list for a given room.
+ * @param {string} roomId
+ */
+function loadThingsList(roomId) {
+    var container  = document.getElementById('thingListContainer');
+    var emptyState = document.getElementById('thingListEmptyState');
+
+    container.innerHTML    = '';
+    emptyState.textContent = 'Loading…';
+
+    db.collection('things')
+        .where('roomId', '==', roomId)
+        .get()
+        .then(function(snapshot) {
+            emptyState.textContent = '';
+
+            if (snapshot.empty) {
+                emptyState.textContent = 'No things yet. Add furniture, appliances, or fixtures.';
+                return;
+            }
+
+            // Sort client-side by createdAt (avoids composite index requirement)
+            var docs = [];
+            snapshot.forEach(function(doc) { docs.push(doc); });
+            docs.sort(function(a, b) {
+                var ta = a.data().createdAt ? a.data().createdAt.toMillis() : 0;
+                var tb = b.data().createdAt ? b.data().createdAt.toMillis() : 0;
+                return ta - tb;
+            });
+            docs.forEach(function(doc) {
+                container.appendChild(buildThingCard(doc.id, doc.data()));
+            });
+        })
+        .catch(function(err) {
+            console.error('loadThingsList error:', err);
+            emptyState.textContent = 'Error loading things.';
+        });
+}
+
+/**
+ * Build a clickable card for a thing.
+ */
+function buildThingCard(id, data) {
+    var card = document.createElement('div');
+    card.className = 'card card--clickable';
+
+    var label    = escapeHtml(data.name || 'Unnamed Thing');
+    var catBadge = buildThingCategoryBadge(data.category);
+
+    card.innerHTML =
+        '<div class="card-main">' +
+            '<span class="card-title">' + label + '</span>' +
+            catBadge +
+        '</div>' +
+        '<span class="card-arrow">›</span>';
+
+    card.addEventListener('click', function() {
+        window.location.hash = '#thing/' + id;
+    });
+
+    return card;
+}
+
+/**
+ * Return an HTML badge string for a thing category.
+ */
+function buildThingCategoryBadge(category) {
+    if (!category) return '';
+    var label = THING_CATEGORIES[category] || category;
+    return '<span class="house-thing-cat-badge house-thing-cat-badge--' +
+           escapeHtml(category) + '">' + escapeHtml(label) + '</span>';
+}
+
+// ============================================================
+// THING DETAIL PAGE  (#thing/{thingId})
+// ============================================================
+
+/**
+ * Load the Thing detail page.
+ * Called by app.js when the route is #thing/{id}.
+ */
+function loadThingDetail(thingId) {
+    db.collection('things').doc(thingId).get()
+        .then(function(doc) {
+            if (!doc.exists) {
+                window.location.hash = '#house';
+                return;
+            }
+            currentThing = Object.assign({ id: doc.id }, doc.data());
+
+            // Load parent room, then parent floor for breadcrumb
+            return db.collection('rooms').doc(currentThing.roomId).get()
+                .then(function(roomDoc) {
+                    currentRoom = roomDoc.exists
+                        ? Object.assign({ id: roomDoc.id }, roomDoc.data())
+                        : { id: currentThing.roomId, name: 'Unknown Room', floorId: null };
+
+                    var floorId = currentRoom.floorId;
+                    if (!floorId) {
+                        currentFloor = { id: '', name: 'Unknown Floor' };
+                        renderThingDetail(currentThing, currentRoom, currentFloor);
+                        return;
+                    }
+
+                    return db.collection('floors').doc(floorId).get()
+                        .then(function(floorDoc) {
+                            currentFloor = floorDoc.exists
+                                ? Object.assign({ id: floorDoc.id }, floorDoc.data())
+                                : { id: floorId, name: 'Unknown Floor' };
+                            renderThingDetail(currentThing, currentRoom, currentFloor);
+                        });
+                });
+        })
+        .catch(function(err) { console.error('loadThingDetail error:', err); });
+}
+
+/**
+ * Render thing header / meta / breadcrumb.
+ */
+function renderThingDetail(thing, room, floor) {
+    document.getElementById('thingTitle').textContent = thing.name || 'Thing';
+
+    var meta     = document.getElementById('thingMeta');
+    var catLabel = THING_CATEGORIES[thing.category] || thing.category || '';
+    meta.textContent = (floor.name || '') + ' \u203a ' + (room.name || '') +
+                       (catLabel ? ' \u00b7 ' + catLabel : '');
+
+    // Breadcrumb: House > Floor > Room > Thing
+    buildHouseBreadcrumb([
+        { label: 'House',               hash: '#house' },
+        { label: floor.name || 'Floor', hash: '#floor/' + floor.id },
+        { label: room.name  || 'Room',  hash: '#room/'  + room.id },
+        { label: thing.name || 'Thing', hash: null }
+    ]);
+}
+
+// ============================================================
+// THING MODAL  (Add / Edit)
+// ============================================================
+
+function openThingModal(editId, data) {
+    var modal     = document.getElementById('thingModal');
+    var nameInput = document.getElementById('thingNameInput');
+    var catSelect = document.getElementById('thingCategorySelect');
+    var deleteBtn = document.getElementById('thingModalDeleteBtn');
+
+    if (editId) {
+        document.getElementById('thingModalTitle').textContent = 'Edit Thing';
+        nameInput.value         = data.name || '';
+        catSelect.value         = data.category || 'furniture';
+        deleteBtn.style.display = '';
+        modal.dataset.mode      = 'edit';
+        modal.dataset.editId    = editId;
+    } else {
+        document.getElementById('thingModalTitle').textContent = 'Add Thing';
+        nameInput.value         = '';
+        catSelect.value         = 'furniture';
+        deleteBtn.style.display = 'none';
+        modal.dataset.mode      = 'add';
+        modal.dataset.editId    = '';
+    }
+
+    openModal('thingModal');
+    nameInput.focus();
+}
+
+document.getElementById('thingModalSaveBtn').addEventListener('click', function() {
+    var modal   = document.getElementById('thingModal');
+    var nameVal = document.getElementById('thingNameInput').value.trim();
+    var catVal  = document.getElementById('thingCategorySelect').value;
+
+    if (!nameVal) { alert('Please enter a name.'); return; }
+
+    var mode   = modal.dataset.mode;
+    var editId = modal.dataset.editId;
+
+    if (mode === 'edit' && editId) {
+        db.collection('things').doc(editId).update({ name: nameVal, category: catVal })
+            .then(function() {
+                closeModal('thingModal');
+                loadThingDetail(editId);
+            })
+            .catch(function(err) { console.error('Update thing error:', err); });
+    } else {
+        if (!currentRoom) { alert('No room selected.'); return; }
+        var thingData = {
+            name:      nameVal,
+            category:  catVal,
+            roomId:    currentRoom.id,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        db.collection('things').add(thingData)
+            .then(function() {
+                closeModal('thingModal');
+                loadThingsList(currentRoom.id);
+            })
+            .catch(function(err) { console.error('Add thing error:', err); });
+    }
+});
+
+document.getElementById('thingModalCancelBtn').addEventListener('click', function() {
+    closeModal('thingModal');
+});
+
+document.getElementById('thingModalDeleteBtn').addEventListener('click', function() {
+    var editId = document.getElementById('thingModal').dataset.editId;
+    if (!editId) return;
+
+    if (!confirm('Delete this thing? This cannot be undone.')) return;
+
+    db.collection('things').doc(editId).delete()
+        .then(function() {
+            closeModal('thingModal');
+            if (currentRoom) {
+                window.location.hash = '#room/' + currentRoom.id;
+            } else {
+                window.location.hash = '#house';
+            }
+        })
+        .catch(function(err) { console.error('Delete thing error:', err); });
+});
+
+// ============================================================
+// MOVE THING MODAL
+// ============================================================
+
+/**
+ * Open the move-thing modal, showing all rooms grouped by floor.
+ */
+function openMoveThingModal() {
+    var select = document.getElementById('moveThingRoomSelect');
+    select.innerHTML = '<option value="">Loading rooms…</option>';
+
+    // Load all floors then all rooms, grouped by floor for the dropdown
+    db.collection('floors').orderBy('floorNumber', 'asc').get()
+        .then(function(floorSnap) {
+            var floorMap   = {};
+            var floorOrder = [];
+            floorSnap.forEach(function(doc) {
+                floorMap[doc.id] = doc.data().name || 'Floor';
+                floorOrder.push(doc.id);
+            });
+
+            return db.collection('rooms').get().then(function(roomSnap) {
+                var byFloor = {};
+                roomSnap.forEach(function(doc) {
+                    var d = doc.data();
+                    if (!byFloor[d.floorId]) byFloor[d.floorId] = [];
+                    byFloor[d.floorId].push({ id: doc.id, name: d.name || 'Room' });
+                });
+
+                select.innerHTML = '';
+                floorOrder.forEach(function(floorId) {
+                    var rooms = byFloor[floorId] || [];
+                    if (!rooms.length) return;
+
+                    var group = document.createElement('optgroup');
+                    group.label = floorMap[floorId] || 'Floor';
+                    rooms.forEach(function(r) {
+                        var opt = document.createElement('option');
+                        opt.value = r.id;
+                        opt.textContent = r.name;
+                        if (currentThing && r.id === currentThing.roomId) opt.selected = true;
+                        group.appendChild(opt);
+                    });
+                    select.appendChild(group);
+                });
+
+                if (!select.options.length) {
+                    select.innerHTML = '<option value="">No rooms available</option>';
+                }
+            });
+        });
+
+    openModal('moveThingModal');
+}
+
+document.getElementById('moveThingSaveBtn').addEventListener('click', function() {
+    var newRoomId = document.getElementById('moveThingRoomSelect').value;
+    if (!newRoomId || !currentThing) return;
+
+    if (newRoomId === currentThing.roomId) {
+        closeModal('moveThingModal');
+        return;
+    }
+
+    db.collection('things').doc(currentThing.id).update({ roomId: newRoomId })
+        .then(function() {
+            closeModal('moveThingModal');
+            window.location.hash = '#room/' + newRoomId;
+        })
+        .catch(function(err) { console.error('Move thing error:', err); });
+});
+
+document.getElementById('moveThingCancelBtn').addEventListener('click', function() {
+    closeModal('moveThingModal');
+});
+
+// ============================================================
+// THING PAGE BUTTON WIRING
+// ============================================================
+
+// Room detail — Add Thing
+document.getElementById('addThingBtn').addEventListener('click', function() {
+    openThingModal(null, null);
+});
+
+// Thing detail — Edit
+document.getElementById('editThingBtn').addEventListener('click', function() {
+    if (!currentThing) return;
+    openThingModal(currentThing.id, currentThing);
+});
+
+// Thing detail — Move
+document.getElementById('moveThingBtn').addEventListener('click', function() {
+    if (!currentThing) return;
+    openMoveThingModal();
+});
+
+// Thing detail — Delete
+document.getElementById('deleteThingBtn').addEventListener('click', function() {
+    if (!currentThing) return;
+
+    if (!confirm('Delete "' + (currentThing.name || 'this thing') + '"? This cannot be undone.')) return;
+
+    db.collection('things').doc(currentThing.id).delete()
+        .then(function() {
+            if (currentRoom) {
+                window.location.hash = '#room/' + currentRoom.id;
+            } else {
+                window.location.hash = '#house';
+            }
+        })
+        .catch(function(err) { console.error('Delete thing error:', err); });
 });

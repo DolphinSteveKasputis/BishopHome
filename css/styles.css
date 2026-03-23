@@ -1875,6 +1875,33 @@ button {
     color: #e65100;
 }
 
+/* Meta line on the thing detail page (floor › room · category) */
+.house-thing-meta {
+    color: #666;
+    font-size: 0.9rem;
+    margin: -6px 0 12px 0;
+}
+
+/* Thing category badge shown on thing cards */
+.house-thing-cat-badge {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 10px;
+    margin-left: 8px;
+    vertical-align: middle;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    background: #f3f4f6;
+    color: #555;
+}
+.house-thing-cat-badge--furniture     { background: #e8f5e9; color: #2e7d32; }
+.house-thing-cat-badge--appliance     { background: #e3f2fd; color: #1565c0; }
+.house-thing-cat-badge--ceiling-fan   { background: #ede7f6; color: #4527a0; }
+.house-thing-cat-badge--ceiling-light { background: #fff8e1; color: #f57f17; }
+.house-thing-cat-badge--electronics   { background: #fce4ec; color: #880e4f; }
+
 /* Hint text inside modal labels */
 .label-hint {
     font-size: 0.8rem;

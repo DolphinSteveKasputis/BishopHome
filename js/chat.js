@@ -258,8 +258,20 @@ document.getElementById('chatAttachBtn').addEventListener('click', function() {
     document.getElementById('chatImageInput').click();
 });
 
+// Camera button opens the live camera (falls back to file picker on desktop)
+document.getElementById('chatCameraBtn').addEventListener('click', function() {
+    document.getElementById('chatCameraInput').click();
+});
+
 // File picker selection triggers compression + preview
 document.getElementById('chatImageInput').addEventListener('change', function() {
+    if (this.files && this.files.length > 0) {
+        chatAttachImages(this.files);
+    }
+});
+
+// Camera capture triggers compression + preview
+document.getElementById('chatCameraInput').addEventListener('change', function() {
     if (this.files && this.files.length > 0) {
         chatAttachImages(this.files);
     }

@@ -611,8 +611,9 @@
                     <label for="chatQuestion" class="chat-input-label">Your question</label>
                     <textarea id="chatQuestion" class="chat-textarea" placeholder="Type your question here&#8230;" rows="5"></textarea>
 
-                    <!-- Hidden file input — triggered by the attach button -->
+                    <!-- Hidden file inputs — triggered by the buttons below -->
                     <input type="file" id="chatImageInput" accept="image/*" multiple style="display:none">
+                    <input type="file" id="chatCameraInput" accept="image/*" capture="environment" style="display:none">
 
                     <!-- Thumbnail strip — shown when images are attached -->
                     <div id="chatImagePreview" class="chat-image-preview hidden"></div>
@@ -620,6 +621,7 @@
                     <div class="chat-send-row">
                         <button class="btn btn-primary" id="chatSendBtn">Send</button>
                         <button class="btn btn-secondary" id="chatAttachBtn" type="button">📎 Add Photo</button>
+                        <button class="btn btn-secondary" id="chatCameraBtn" type="button">📷 Camera</button>
                         <span class="chat-status" id="chatStatus"></span>
                         <span class="chat-hint">Ctrl+Enter to send</span>
                     </div>
@@ -2640,7 +2642,7 @@
     <script src="js/bulkactivity.js?v=164"></script>
     <script src="js/devnotes.js?v=164"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=167"></script>
+    <script src="js/chat.js?v=168"></script>
     <script src="js/app.js?v=164"></script>
 
 </body>

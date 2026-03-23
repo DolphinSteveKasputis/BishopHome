@@ -2688,3 +2688,19 @@ button {
     padding: 10px 12px;
     margin-top: 8px;
 }
+
+/* Give the scanner div an explicit size so the video feed is visible */
+#barcodeScannerDiv {
+    width: 100%;
+    min-height: 260px;
+    background: #000;
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+}
+
+#barcodeScannerDiv video {
+    width: 100% !important;
+    height: auto !important;
+    display: block !important;
+}

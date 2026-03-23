@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=120">
+    <link rel="stylesheet" href="css/styles.css?v=121">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -665,6 +665,7 @@
                 <button class="fp-tool-btn fp-tool-electrical" id="fpToolOutlet" data-tool="outlet">⚡ Outlet</button>
                 <button class="fp-tool-btn fp-tool-electrical" id="fpToolSwitch" data-tool="switch">💡 Switch</button>
                 <button class="fp-tool-btn fp-tool-plumbing" id="fpToolPlumbing" data-tool="plumbing">🚿 Plumbing</button>
+                <button class="fp-tool-btn fp-tool-ceiling" id="fpToolCeiling" data-tool="ceiling">🔆 Ceiling</button>
                 <span class="fp-tool-sep"></span>
                 <button id="fpEditRoomBtn" class="btn btn-secondary btn-small" style="display:none">Edit Room</button>
                 <button id="fpDeleteRoomBtn" class="btn btn-danger btn-small" style="display:none">Remove</button>
@@ -1720,27 +1721,65 @@
         </div>
     </div>
 
+    <!-- Ceiling Fixture Modal (Phase H10) -->
+    <div class="modal-overlay" id="fpCeilingModal">
+        <div class="modal">
+            <h3 id="fpCeilingModalTitle">Add Ceiling Fixture</h3>
+            <p class="label-hint">Place a ceiling fan or light linked to a Thing record. Double-click the symbol on the floor plan to go to the Thing's detail page.</p>
+            <div class="form-group">
+                <label for="fpCeilingCategorySelect">Fixture type</label>
+                <select id="fpCeilingCategorySelect">
+                    <option value="ceiling-fan">Ceiling Fan</option>
+                    <option value="ceiling-light">Ceiling Light</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="fpCeilingThingSelect">Link to existing ceiling Thing in this room</label>
+                <select id="fpCeilingThingSelect">
+                    <option value="">— Link to an existing ceiling Thing —</option>
+                </select>
+            </div>
+            <div class="form-group" id="fpCeilingNewNameGroup">
+                <label for="fpCeilingNewName">Or create a new Thing (enter name)</label>
+                <input type="text" id="fpCeilingNewName" placeholder="e.g. Master Bedroom Ceiling Fan">
+            </div>
+            <!-- Problems section (shown in edit mode) -->
+            <div id="fpCeilingProblemsSection" style="display:none">
+                <div class="section-header" style="margin-top:12px">
+                    <h4 class="section-heading" style="font-size:0.95rem">Problems / Concerns</h4>
+                    <button class="btn btn-primary btn-small" id="fpCeilingAddProblemBtn">+ Add</button>
+                </div>
+                <div id="fpCeilingProblemsContainer"></div>
+                <p class="empty-state" id="fpCeilingProblemsEmptyState"></p>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="fpCeilingCancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="fpCeilingSaveBtn">Place Fixture</button>
+            </div>
+        </div>
+    </div>
+
     </div><!-- end #appWrapper -->
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=120"></script>
-    <script src="js/auth.js?v=120"></script>
-    <script src="js/zones.js?v=120"></script>
-    <script src="js/plants.js?v=120"></script>
-    <script src="js/problems.js?v=120"></script>
-    <script src="js/facts.js?v=120"></script>
-    <script src="js/projects.js?v=120"></script>
-    <script src="js/chemicals.js?v=120"></script>
-    <script src="js/activities.js?v=120"></script>
-    <script src="js/photos.js?v=120"></script>
-    <script src="js/weeds.js?v=120"></script>
-    <script src="js/calendar.js?v=120"></script>
-    <script src="js/gps.js?v=120"></script>
-    <script src="js/settings.js?v=120"></script>
-    <script src="js/house.js?v=120"></script>
-    <script src="js/floorplan.js?v=120"></script>
-    <script src="js/app.js?v=120"></script>
+    <script src="js/firebase-config.js?v=121"></script>
+    <script src="js/auth.js?v=121"></script>
+    <script src="js/zones.js?v=121"></script>
+    <script src="js/plants.js?v=121"></script>
+    <script src="js/problems.js?v=121"></script>
+    <script src="js/facts.js?v=121"></script>
+    <script src="js/projects.js?v=121"></script>
+    <script src="js/chemicals.js?v=121"></script>
+    <script src="js/activities.js?v=121"></script>
+    <script src="js/photos.js?v=121"></script>
+    <script src="js/weeds.js?v=121"></script>
+    <script src="js/calendar.js?v=121"></script>
+    <script src="js/gps.js?v=121"></script>
+    <script src="js/settings.js?v=121"></script>
+    <script src="js/house.js?v=121"></script>
+    <script src="js/floorplan.js?v=121"></script>
+    <script src="js/app.js?v=121"></script>
 
 </body>
 </html>

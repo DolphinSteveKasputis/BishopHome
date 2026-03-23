@@ -2164,6 +2164,18 @@ button {
     background: #0055aa;
     color: white;
 }
+.fp-tool-ceiling {
+    border-color: #aa6600;
+    color: #5a3300;
+}
+.fp-tool-ceiling:hover, .fp-tool-ceiling.active {
+    background: #fff0cc;
+    border-color: #884400;
+}
+.fp-tool-ceiling.active {
+    background: #884400;
+    color: white;
+}
 
 /* Corner position table inside the room edit modal */
 .fp-corner-table {

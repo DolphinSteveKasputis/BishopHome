@@ -90,12 +90,13 @@ function loadFloorPlanPage(floorId) {
                 if (!fpPlan.rooms)    fpPlan.rooms    = [];
                 if (!fpPlan.doors)    fpPlan.doors    = [];
                 if (!fpPlan.windows)  fpPlan.windows  = [];
-                if (!fpPlan.outlets)  fpPlan.outlets  = [];
-                if (!fpPlan.switches) fpPlan.switches = [];
-                if (!fpPlan.plumbing) fpPlan.plumbing = [];
+                if (!fpPlan.outlets)          fpPlan.outlets          = [];
+                if (!fpPlan.switches)         fpPlan.switches         = [];
+                if (!fpPlan.plumbing)         fpPlan.plumbing         = [];
+                if (!fpPlan.ceilingFixtures)  fpPlan.ceilingFixtures  = [];
             } else {
                 // First time — show dimensions dialog, init with defaults
-                fpPlan = { widthFt: 40, heightFt: 30, rooms: [], doors: [], windows: [], outlets: [], switches: [], plumbing: [] };
+                fpPlan = { widthFt: 40, heightFt: 30, rooms: [], doors: [], windows: [], outlets: [], switches: [], plumbing: [], ceilingFixtures: [] };
                 document.getElementById('fpWidthInput').value  = 40;
                 document.getElementById('fpHeightInput').value = 30;
                 openModal('fpDimensionsModal');
@@ -171,6 +172,9 @@ function fpRender() {
     (fpPlan.outlets  || []).forEach(function(m) { fpRenderOutlet(svg, m); });
     (fpPlan.switches || []).forEach(function(m) { fpRenderSwitch(svg, m); });
     (fpPlan.plumbing || []).forEach(function(m) { fpRenderPlumbing(svg, m); });
+
+    // Ceiling fixtures (Phase H10)
+    (fpPlan.ceilingFixtures || []).forEach(function(m) { fpRenderCeilingFixture(svg, m); });
 
     // In-progress drawing preview
     if (fpDrawing && fpDrawPoints.length > 0) {
@@ -274,6 +278,8 @@ function fpRenderRoom(svg, room) {
             fpPlaceMarkerOnWall(e, room, 'switch');
         } else if (fpActiveTool === 'plumbing') {
             fpPlacePlumbingInRoom(e, room);
+        } else if (fpActiveTool === 'ceiling') {
+            fpPlaceCeilingFixtureInRoom(e, room);
         }
     });
 
@@ -781,9 +787,10 @@ function fpDeleteSelected() {
         fpPlan.rooms    = (fpPlan.rooms    || []).filter(function(r) { return r.id !== fpSelectedId; });
         fpPlan.doors    = (fpPlan.doors    || []).filter(function(d) { return d.roomId !== fpSelectedId; });
         fpPlan.windows  = (fpPlan.windows  || []).filter(function(w) { return w.roomId !== fpSelectedId; });
-        fpPlan.outlets  = (fpPlan.outlets  || []).filter(function(m) { return m.roomId !== fpSelectedId; });
-        fpPlan.switches = (fpPlan.switches || []).filter(function(m) { return m.roomId !== fpSelectedId; });
-        fpPlan.plumbing = (fpPlan.plumbing || []).filter(function(m) { return m.roomId !== fpSelectedId; });
+        fpPlan.outlets          = (fpPlan.outlets          || []).filter(function(m) { return m.roomId !== fpSelectedId; });
+        fpPlan.switches         = (fpPlan.switches         || []).filter(function(m) { return m.roomId !== fpSelectedId; });
+        fpPlan.plumbing         = (fpPlan.plumbing         || []).filter(function(m) { return m.roomId !== fpSelectedId; });
+        fpPlan.ceilingFixtures  = (fpPlan.ceilingFixtures  || []).filter(function(m) { return m.roomId !== fpSelectedId; });
         fpSetStatus('Room removed from floor plan.');
     } else if (fpSelectedType === 'outlet') {
         if (!confirm('Delete this outlet marker?')) return;
@@ -797,6 +804,10 @@ function fpDeleteSelected() {
         if (!confirm('Delete this plumbing fixture?')) return;
         fpPlan.plumbing = (fpPlan.plumbing || []).filter(function(m) { return m.id !== fpSelectedId; });
         fpSetStatus('Plumbing fixture removed.');
+    } else if (fpSelectedType === 'ceiling') {
+        if (!confirm('Remove this ceiling fixture from the floor plan?\n(The Thing record is NOT deleted.)')) return;
+        fpPlan.ceilingFixtures = (fpPlan.ceilingFixtures || []).filter(function(m) { return m.id !== fpSelectedId; });
+        fpSetStatus('Ceiling fixture removed from floor plan.');
     }
 
     fpSelectedId = null;
@@ -941,7 +952,7 @@ document.getElementById('fpDimensionsCancelBtn').addEventListener('click', funct
 // TOOL SELECTION
 // ============================================================
 
-var FP_ALL_TOOLS = ['fpToolSelect','fpToolRoom','fpToolDoor','fpToolWindow','fpToolOutlet','fpToolSwitch','fpToolPlumbing'];
+var FP_ALL_TOOLS = ['fpToolSelect','fpToolRoom','fpToolDoor','fpToolWindow','fpToolOutlet','fpToolSwitch','fpToolPlumbing','fpToolCeiling'];
 
 FP_ALL_TOOLS.forEach(function(id) {
     var btn = document.getElementById(id);
@@ -973,7 +984,8 @@ function fpSetTool(tool) {
         window:   'Click on any wall edge to place a window.',
         outlet:   'Click on any wall edge to place an outlet.',
         switch:   'Click on any wall edge to place a switch.',
-        plumbing: 'Click inside a room to place a plumbing fixture (toilet, sink, etc.).'
+        plumbing: 'Click inside a room to place a plumbing fixture (toilet, sink, etc.).',
+        ceiling:  'Click inside a room to place a ceiling fixture (fan or light), linked to a Thing record.'
     };
     fpSetStatus(hints[tool] || '');
     fpRender();
@@ -1014,15 +1026,16 @@ function fpSave() {
     btn.disabled    = true;
 
     db.collection('floorPlans').doc(fpFloorId).set({
-        widthFt:   fpPlan.widthFt,
-        heightFt:  fpPlan.heightFt,
-        rooms:     fpPlan.rooms    || [],
-        doors:     fpPlan.doors    || [],
-        windows:   fpPlan.windows  || [],
-        outlets:   fpPlan.outlets  || [],
-        switches:  fpPlan.switches || [],
-        plumbing:  fpPlan.plumbing || [],
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        widthFt:          fpPlan.widthFt,
+        heightFt:         fpPlan.heightFt,
+        rooms:            fpPlan.rooms            || [],
+        doors:            fpPlan.doors            || [],
+        windows:          fpPlan.windows          || [],
+        outlets:          fpPlan.outlets          || [],
+        switches:         fpPlan.switches         || [],
+        plumbing:         fpPlan.plumbing         || [],
+        ceilingFixtures:  fpPlan.ceilingFixtures  || [],
+        updatedAt:        firebase.firestore.FieldValue.serverTimestamp()
     })
     .then(function() {
         fpDirty         = false;
@@ -1589,6 +1602,10 @@ function fpOpenMarkerEditModal(type, id) {
         var fix = (fpPlan.plumbing || []).find(function(m) { return m.id === id; });
         if (!fix) return;
         fpOpenPlumbingEditModal(id, fix);
+    } else if (type === 'ceiling') {
+        var cf = (fpPlan.ceilingFixtures || []).find(function(m) { return m.id === id; });
+        if (!cf) return;
+        fpOpenCeilingModal(id, cf);
     }
 }
 
@@ -1820,6 +1837,297 @@ document.getElementById('fpPlumbingAddProblemBtn').addEventListener('click', fun
     if (typeof openAddProblemModal === 'function') {
         openAddProblemModal('plumbing', editId, function() {
             loadProblems('plumbing', editId, 'fpPlumbingProblemsContainer', 'fpPlumbingProblemsEmptyState');
+        });
+    }
+});
+
+// ============================================================
+// PHASE H10 — CEILING FIXTURE MARKERS
+// ============================================================
+// Ceiling fans and ceiling lights are placed inside room shapes.
+// Each is linked to a Thing record (category: ceiling-fan or ceiling-light).
+// Clicking the symbol in Select mode selects it; double-click navigates
+// to the Thing's detail page.
+// ============================================================
+
+// ---- Rendering ----
+
+/**
+ * Draw a ceiling fixture symbol inside the floor plan.
+ * Fan: circle + 4 blade lines radiating at 45° angles.
+ * Light: circle + 8 short ray lines (starburst).
+ */
+function fpRenderCeilingFixture(svg, fix) {
+    var cx = fp2px(fix.x);
+    var cy = fp2px(fix.y);
+    var isSelected = (fpSelectedId === fix.id && fpSelectedType === 'ceiling');
+    var isFan      = fix.category === 'ceiling-fan';
+
+    var strokeColor = isSelected ? '#cc8800' : (isFan ? '#005599' : '#884400');
+    var fillColor   = isSelected ? '#fffacc' : (isFan ? '#ddeeff' : '#fff5dd');
+    var strokeW     = isSelected ? 2.5 : 1.5;
+
+    var g = fpSvgG(svg, 'fp-ceiling-fixture');
+    g.style.cursor = 'pointer';
+
+    // Outer circle
+    fpSvgEl(g, 'circle', {
+        cx: cx, cy: cy, r: 14,
+        fill: fillColor,
+        stroke: strokeColor, 'stroke-width': strokeW
+    });
+
+    if (isFan) {
+        // 4 blade lines at 0°, 45°, 90°, 135° (and their opposites)
+        [0, 45, 90, 135].forEach(function(deg) {
+            var rad = deg * Math.PI / 180;
+            var bx  = Math.cos(rad) * 12;
+            var by  = Math.sin(rad) * 12;
+            fpSvgEl(g, 'line', {
+                x1: cx - bx, y1: cy - by,
+                x2: cx + bx, y2: cy + by,
+                stroke: strokeColor, 'stroke-width': strokeW,
+                'pointer-events': 'none'
+            });
+        });
+    } else {
+        // 8 short rays (ceiling light starburst)
+        for (var i = 0; i < 8; i++) {
+            var rad2 = i * Math.PI / 4;
+            var rx1  = Math.cos(rad2) * 7;
+            var ry1  = Math.sin(rad2) * 7;
+            var rx2  = Math.cos(rad2) * 13;
+            var ry2  = Math.sin(rad2) * 13;
+            fpSvgEl(g, 'line', {
+                x1: cx + rx1, y1: cy + ry1,
+                x2: cx + rx2, y2: cy + ry2,
+                stroke: strokeColor, 'stroke-width': strokeW,
+                'pointer-events': 'none'
+            });
+        }
+        // Inner filled circle (bulb)
+        fpSvgEl(g, 'circle', {
+            cx: cx, cy: cy, r: 5,
+            fill: strokeColor, 'pointer-events': 'none'
+        });
+    }
+
+    // Label below
+    var lbl = fpSvgEl(g, 'text', {
+        x: cx, y: cy + 20,
+        'text-anchor': 'middle', 'font-size': 8,
+        fill: strokeColor, 'pointer-events': 'none'
+    });
+    lbl.textContent = fix.label || (isFan ? 'Fan' : 'Light');
+
+    // Click — select (single) or navigate to Thing (double via dblclick on svg)
+    g.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (fpActiveTool === 'select') {
+            fpSelectMarker('ceiling', fix.id);
+        }
+    });
+
+    g.addEventListener('dblclick', function(e) {
+        e.stopPropagation();
+        if (fix.thingId) {
+            window.location.hash = '#thing/' + fix.thingId;
+        }
+    });
+}
+
+// ---- Placement — click inside a room ----
+
+/**
+ * Open the ceiling fixture modal to place a new fixture.
+ * @param {MouseEvent} e    - the click event
+ * @param {object}     room - the room shape object (from fpPlan.rooms)
+ */
+function fpPlaceCeilingFixtureInRoom(e, room) {
+    var pt = fpMouseToFeet(e);
+
+    if (!fpPointInPolygon(pt, room.points)) {
+        fpSetStatus('Click inside a room to place a ceiling fixture.');
+        return;
+    }
+
+    // Get the Firestore room ID from the shape so we can list Things in it
+    var firestoreRoomId = room.roomId;
+
+    fpOpenCeilingModal(null, {
+        roomId:          room.id,          // shape ID (for rendering)
+        firestoreRoomId: firestoreRoomId,  // Firestore room ID (for querying Things)
+        x:               pt.x,
+        y:               pt.y,
+        category:        'ceiling-fan',
+        label:           '',
+        thingId:         null
+    });
+}
+
+// ---- Ceiling Fixture Modal ----
+
+/**
+ * Open the ceiling fixture add/edit modal.
+ * @param {string|null} editId   - existing fixture ID when editing, null when adding
+ * @param {object}      data     - existing fixture data or pending position data
+ */
+function fpOpenCeilingModal(editId, data) {
+    var modal = document.getElementById('fpCeilingModal');
+    modal.dataset.editId         = editId || '';
+    modal.dataset.roomId         = data.roomId         || '';
+    modal.dataset.firestoreRoomId = data.firestoreRoomId || (function() {
+        // Derive from shape if not provided (edit mode)
+        var shape = (fpPlan.rooms || []).find(function(r) { return r.id === data.roomId; });
+        return shape ? (shape.roomId || '') : '';
+    }());
+    modal.dataset.x              = data.x || 0;
+    modal.dataset.y              = data.y || 0;
+
+    var title = editId ? 'Edit Ceiling Fixture' : 'Add Ceiling Fixture';
+    document.getElementById('fpCeilingModalTitle').textContent = title;
+    document.getElementById('fpCeilingCategorySelect').value   = data.category || 'ceiling-fan';
+    document.getElementById('fpCeilingNewName').value          = '';
+
+    // Populate the "link to existing Thing" dropdown
+    var select = document.getElementById('fpCeilingThingSelect');
+    select.innerHTML = '<option value="">— Link to an existing ceiling Thing —</option>';
+
+    // Always show new name group initially
+    document.getElementById('fpCeilingNewNameGroup').style.display = '';
+    select.onchange = function() {
+        document.getElementById('fpCeilingNewNameGroup').style.display =
+            select.value ? 'none' : '';
+    };
+
+    // In edit mode, pre-select the current Thing if any
+    if (editId && data.thingId) {
+        var preOpt = document.createElement('option');
+        preOpt.value       = data.thingId;
+        preOpt.textContent = data.label || 'Current fixture';
+        preOpt.selected    = true;
+        select.appendChild(preOpt);
+        document.getElementById('fpCeilingNewNameGroup').style.display = 'none';
+    }
+
+    // Also load problems section in edit mode
+    if (editId) {
+        document.getElementById('fpCeilingProblemsSection').style.display = '';
+        loadProblems('ceiling-fixture', editId,
+            'fpCeilingProblemsContainer', 'fpCeilingProblemsEmptyState');
+    } else {
+        document.getElementById('fpCeilingProblemsSection').style.display = 'none';
+    }
+
+    // Async: load ceiling-fan/ceiling-light Things in this room
+    var firestoreRoomId = modal.dataset.firestoreRoomId;
+    if (firestoreRoomId) {
+        db.collection('things')
+            .where('roomId', '==', firestoreRoomId)
+            .get()
+            .then(function(snap) {
+                snap.forEach(function(d) {
+                    var t = d.data();
+                    if (t.category !== 'ceiling-fan' && t.category !== 'ceiling-light') return;
+                    // Skip if already placed on this floor plan
+                    var alreadyPlaced = (fpPlan.ceilingFixtures || []).some(function(cf) {
+                        return cf.thingId === d.id && cf.id !== editId;
+                    });
+                    if (alreadyPlaced) return;
+                    var opt = document.createElement('option');
+                    opt.value       = d.id;
+                    opt.textContent = t.name + ' (' + t.category + ')';
+                    if (editId && data.thingId === d.id) opt.selected = true;
+                    select.appendChild(opt);
+                });
+                // Refresh the new-name group visibility
+                document.getElementById('fpCeilingNewNameGroup').style.display =
+                    select.value ? 'none' : '';
+            })
+            .catch(function(err) {
+                console.error('fpOpenCeilingModal: error loading Things:', err);
+            });
+    }
+
+    openModal('fpCeilingModal');
+}
+
+document.getElementById('fpCeilingSaveBtn').addEventListener('click', function() {
+    var modal           = document.getElementById('fpCeilingModal');
+    var editId          = modal.dataset.editId;
+    var roomId          = modal.dataset.roomId;
+    var firestoreRoomId = modal.dataset.firestoreRoomId;
+    var x               = parseFloat(modal.dataset.x);
+    var y               = parseFloat(modal.dataset.y);
+    var category        = document.getElementById('fpCeilingCategorySelect').value;
+    var select          = document.getElementById('fpCeilingThingSelect');
+    var newName         = document.getElementById('fpCeilingNewName').value.trim();
+
+    if (!select.value && !newName) {
+        alert('Enter a name for the new fixture, or pick an existing ceiling Thing.');
+        return;
+    }
+
+    function addFixture(thingId, label, cat) {
+        if (editId) {
+            // Update existing
+            var cf = (fpPlan.ceilingFixtures || []).find(function(m) { return m.id === editId; });
+            if (cf) {
+                cf.thingId  = thingId;
+                cf.label    = label;
+                cf.category = cat;
+            }
+        } else {
+            // Add new
+            if (!fpPlan.ceilingFixtures) fpPlan.ceilingFixtures = [];
+            fpPlan.ceilingFixtures.push({
+                id:       fpGenId(),
+                roomId:   roomId,
+                thingId:  thingId,
+                label:    label,
+                category: cat,
+                x:        x,
+                y:        y
+            });
+        }
+        fpDirty = true;
+        closeModal('fpCeilingModal');
+        fpRender();
+        fpSetStatus('"' + label + '" placed. Double-click the symbol to go to the Thing page.');
+    }
+
+    if (select.value) {
+        // Link to existing Thing
+        var opt = select.options[select.selectedIndex];
+        addFixture(select.value, opt.textContent.replace(/ \(ceiling-[a-z]+\)$/, ''), category);
+    } else {
+        // Create a new Thing record then link
+        var newCat = category;
+        db.collection('things').add({
+            name:      newName,
+            category:  newCat,
+            roomId:    firestoreRoomId,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).then(function(ref) {
+            addFixture(ref.id, newName, newCat);
+        }).catch(function(err) {
+            console.error('fpCeilingSaveBtn: error creating Thing:', err);
+            alert('Failed to create Thing record: ' + err.message);
+        });
+    }
+});
+
+document.getElementById('fpCeilingCancelBtn').addEventListener('click', function() {
+    closeModal('fpCeilingModal');
+});
+
+document.getElementById('fpCeilingAddProblemBtn').addEventListener('click', function() {
+    var editId = document.getElementById('fpCeilingModal').dataset.editId;
+    if (!editId) return;
+    if (typeof openAddProblemModal === 'function') {
+        openAddProblemModal('ceiling-fixture', editId, function() {
+            loadProblems('ceiling-fixture', editId,
+                'fpCeilingProblemsContainer', 'fpCeilingProblemsEmptyState');
         });
     }
 });

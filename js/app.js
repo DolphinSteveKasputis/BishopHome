@@ -55,9 +55,10 @@ function showPage(page) {
     // Close mobile nav if open
     closeMobileNav();
 
-    // Clear breadcrumbs for top-level pages
+    // Clear breadcrumbs and header zone name for top-level pages
     if (TOP_LEVEL_PAGES.includes(page)) {
         document.getElementById('breadcrumbBar').innerHTML = '';
+        document.getElementById('headerTitle').innerHTML = '<a href="#home" class="home-link">Bishop</a>';
     }
 }
 

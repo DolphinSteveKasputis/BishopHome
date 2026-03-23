@@ -66,6 +66,22 @@ button {
     letter-spacing: 0.5px;
 }
 
+.header-zone-sep {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 1rem;
+    margin: 0 5px;
+}
+
+.header-zone-name {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.95rem;
+    font-weight: 400;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 160px;
+}
+
 /* Desktop nav links in header */
 .header-nav {
     display: none;

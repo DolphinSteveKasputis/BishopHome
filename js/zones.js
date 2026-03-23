@@ -245,6 +245,19 @@ async function buildBreadcrumbs(zoneId) {
     });
 
     breadcrumbBar.innerHTML = html;
+
+    // Also show the current zone name next to "Bishop" in the sticky header
+    // so it stays visible when scrolled down and the breadcrumb bar is out of view
+    var currentZoneName = crumbs.length > 0 ? crumbs[crumbs.length - 1].name : '';
+    var headerTitle = document.getElementById('headerTitle');
+    if (currentZoneName) {
+        headerTitle.innerHTML =
+            '<a href="#home" class="home-link">Bishop</a>' +
+            '<span class="header-zone-sep">›</span>' +
+            '<span class="header-zone-name">' + escapeHtml(currentZoneName) + '</span>';
+    } else {
+        headerTitle.innerHTML = '<a href="#home" class="home-link">Bishop</a>';
+    }
 }
 
 // ---------- Add Zone ----------

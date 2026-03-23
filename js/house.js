@@ -2869,18 +2869,18 @@ function thingsHandleToggle() {
 
     if (on) {
         tagsSection.classList.remove('hidden');
-        // If results are already showing, reload to include sub-things
-        if (!document.getElementById('thingsResultsContainer').classList.contains('hidden')) {
-            thingsEnsureDataLoaded(true).then(function() {
-                thingsApplyFilters();
-                if (thingsActiveCategory) thingsNarrowTagChips();
-            });
-        }
+        // Always load sub-things and reapply filters immediately.
+        // If no filter is active this is equivalent to clicking "All" — every
+        // thing and sub-thing will be shown.
+        thingsEnsureDataLoaded(true).then(function() {
+            thingsApplyFilters();
+            if (thingsActiveCategory) thingsNarrowTagChips();
+        });
     } else {
         tagsSection.classList.add('hidden');
         thingsActiveTag = null;
         if (thingsTagsCache) thingsRenderTagChips(thingsTagsCache);
-        // If results are showing, refilter without sub-things
+        // Refilter to remove sub-things from whatever is currently showing
         if (!document.getElementById('thingsResultsContainer').classList.contains('hidden')) {
             thingsApplyFilters();
         }
@@ -2939,6 +2939,10 @@ function thingsApplyFilters() {
         filteredThings = filteredThings.filter(function(t) {
             return t.category === thingsActiveCategory;
         });
+    } else if (thingsActiveTag) {
+        // Tag filter targets sub-things only (things have no tags).
+        // Hide the things list so only tag-matched sub-things are shown.
+        filteredThings = [];
     }
     // No filter = "All" — show every thing
 

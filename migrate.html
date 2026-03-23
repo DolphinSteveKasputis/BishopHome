@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bishop — Data Migration</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 720px;
+            margin: 40px auto;
+            padding: 0 20px;
+            background: #f5f5f5;
+            color: #333;
+        }
+        h1 { color: #2e7d32; }
+        .card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+        }
+        .warning {
+            background: #fff8e1;
+            border-left: 4px solid #f9a825;
+            padding: 12px 16px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 12px 28px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        #runBtn   { background: #2e7d32; color: #fff; }
+        #runBtn:disabled { background: #aaa; cursor: not-allowed; }
+        #log {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            font-family: monospace;
+            font-size: 0.85rem;
+            padding: 16px;
+            border-radius: 6px;
+            height: 360px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin-top: 16px;
+        }
+        .ok   { color: #69f0ae; }
+        .err  { color: #ff5252; }
+        .info { color: #82b1ff; }
+        .done { color: #ffd740; font-weight: bold; }
+        #statusBar {
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-weight: 600;
+            margin-top: 12px;
+            display: none;
+        }
+        .status-running { background: #e3f2fd; color: #1565c0; display: block !important; }
+        .status-done    { background: #e8f5e9; color: #2e7d32; display: block !important; }
+        .status-error   { background: #ffebee; color: #c62828; display: block !important; }
+        #loginSection { display: none; }
+        #migrateSection { display: none; }
+    </style>
+</head>
+<body>
+
+<h1>Bishop — Data Migration</h1>
+<p>One-time script to copy all data from flat Firestore collections into
+   your personal user namespace (<code>/users/{uid}/...</code>).</p>
+
+<div class="warning">
+    ⚠️ <strong>Run this only once</strong>, before the multi-user app code
+    is deployed (MU-5). Your original data is <strong>never deleted</strong>
+    — this only copies. Safe to re-run if anything goes wrong.
+</div>
+
+<!-- Login Section -->
+<div class="card" id="loginSection">
+    <h2>Sign In First</h2>
+    <p>You must be signed in as yourself so the migration copies data to
+       your user ID.</p>
+    <div style="margin-bottom:12px;">
+        <label style="display:block;margin-bottom:4px;">Email</label>
+        <input type="email" id="emailInput" style="width:100%;padding:8px;font-size:1rem;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;">
+    </div>
+    <div style="margin-bottom:16px;">
+        <label style="display:block;margin-bottom:4px;">Password</label>
+        <input type="password" id="passwordInput" style="width:100%;padding:8px;font-size:1rem;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;">
+    </div>
+    <button id="loginBtn" style="background:#1565c0;color:#fff;">Sign In</button>
+    <p id="loginError" style="color:#c62828;margin-top:8px;"></p>
+</div>
+
+<!-- Migration Section -->
+<div class="card" id="migrateSection">
+    <h2>Ready to Migrate</h2>
+    <p>Signed in as: <strong id="signedInAs"></strong></p>
+    <p>Target path: <code id="targetPath"></code></p>
+    <p>Collections to migrate (20 total):<br>
+       <small style="color:#666;">activities, breakerPanels, calendarEvents, chemicals,
+       facts, floorPlans, floors, gpsShapes, photos, plants, problems, projects,
+       rooms, savedActions, settings, subThings, tags, things, weeds, zones</small>
+    </p>
+    <button id="runBtn">▶ Run Migration</button>
+    <div id="statusBar"></div>
+    <div id="log">Waiting to start…</div>
+</div>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
+
+<script>
+// ---- Firebase init (same config as the app) ----
+const firebaseConfig = {
+    apiKey            : "AIzaSyAcgyLNK1yzbZEm9hf6FJi-T1U5O1Kwi7k",
+    authDomain        : "bishop-62d43.firebaseapp.com",
+    projectId         : "bishop-62d43",
+    storageBucket     : "bishop-62d43.firebasestorage.app",
+    messagingSenderId : "1067248723493",
+    appId             : "1:1067248723493:web:b8c0bc4bae883407ce81cc"
+};
+firebase.initializeApp(firebaseConfig);
+const db   = firebase.firestore();
+const auth = firebase.auth();
+
+// ---- Collections to migrate ----
+const COLLECTIONS = [
+    'activities', 'breakerPanels', 'calendarEvents', 'chemicals',
+    'facts', 'floorPlans', 'floors', 'gpsShapes', 'photos', 'plants',
+    'problems', 'projects', 'rooms', 'savedActions', 'settings',
+    'subThings', 'tags', 'things', 'weeds', 'zones'
+];
+
+// ---- UI helpers ----
+const logEl      = document.getElementById('log');
+const statusBar  = document.getElementById('statusBar');
+
+function log(msg, cls) {
+    var line = document.createElement('span');
+    if (cls) line.className = cls;
+    line.textContent = msg + '\n';
+    logEl.appendChild(line);
+    logEl.scrollTop = logEl.scrollHeight;
+}
+
+function setStatus(msg, cls) {
+    statusBar.textContent = msg;
+    statusBar.className   = cls;
+}
+
+// ---- Auth state ----
+auth.onAuthStateChanged(function(user) {
+    if (user) {
+        document.getElementById('loginSection').style.display  = 'none';
+        document.getElementById('migrateSection').style.display = 'block';
+        document.getElementById('signedInAs').textContent = user.email;
+        document.getElementById('targetPath').textContent =
+            '/users/' + user.uid + '/{collection}/{docId}';
+        logEl.textContent = '';
+        log('Signed in as ' + user.email, 'info');
+        log('UID: ' + user.uid, 'info');
+        log('Ready — click "Run Migration" to begin.', 'info');
+    } else {
+        document.getElementById('loginSection').style.display   = 'block';
+        document.getElementById('migrateSection').style.display = 'none';
+    }
+});
+
+// ---- Login ----
+document.getElementById('loginBtn').addEventListener('click', function() {
+    var email    = document.getElementById('emailInput').value.trim();
+    var password = document.getElementById('passwordInput').value;
+    var errEl    = document.getElementById('loginError');
+    errEl.textContent = '';
+    if (!email || !password) { errEl.textContent = 'Enter email and password.'; return; }
+    auth.signInWithEmailAndPassword(email, password)
+        .catch(function(e) { errEl.textContent = 'Sign-in failed: ' + e.message; });
+});
+
+// ---- Migration ----
+document.getElementById('runBtn').addEventListener('click', async function() {
+    var user = auth.currentUser;
+    if (!user) { alert('Not signed in.'); return; }
+
+    var runBtn = document.getElementById('runBtn');
+    runBtn.disabled = true;
+    logEl.textContent = '';
+    setStatus('Running migration…', 'status-running');
+
+    var totalRead    = 0;
+    var totalWritten = 0;
+    var totalSkipped = 0;
+    var errors       = [];
+
+    log('=== Migration started at ' + new Date().toLocaleTimeString() + ' ===\n', 'info');
+
+    for (var i = 0; i < COLLECTIONS.length; i++) {
+        var colName = COLLECTIONS[i];
+        log('── ' + colName + ' …', 'info');
+
+        try {
+            var snap = await db.collection(colName).get();
+
+            if (snap.empty) {
+                log('   (empty — skipped)', null);
+                totalSkipped++;
+                continue;
+            }
+
+            var count = 0;
+            // Write in batches of 400 (Firestore limit is 500 per batch)
+            var batch     = db.batch();
+            var batchSize = 0;
+
+            for (var j = 0; j < snap.docs.length; j++) {
+                var docSnap = snap.docs[j];
+                var destRef = db.collection('users')
+                                .doc(user.uid)
+                                .collection(colName)
+                                .doc(docSnap.id);
+                batch.set(destRef, docSnap.data());
+                batchSize++;
+                count++;
+                totalRead++;
+
+                if (batchSize === 400) {
+                    await batch.commit();
+                    totalWritten += batchSize;
+                    batch     = db.batch();
+                    batchSize = 0;
+                }
+            }
+
+            // Commit any remaining docs in the last partial batch
+            if (batchSize > 0) {
+                await batch.commit();
+                totalWritten += batchSize;
+            }
+
+            log('   ✓ ' + count + ' document(s) copied', 'ok');
+
+        } catch (err) {
+            var msg = '   ✗ ERROR: ' + err.message;
+            log(msg, 'err');
+            errors.push(colName + ': ' + err.message);
+        }
+    }
+
+    log('\n=== Migration complete at ' + new Date().toLocaleTimeString() + ' ===', 'info');
+    log('Documents read:    ' + totalRead,    'info');
+    log('Documents written: ' + totalWritten, 'info');
+    log('Collections empty: ' + totalSkipped, 'info');
+
+    if (errors.length === 0) {
+        log('\n✅ All done — no errors!', 'done');
+        log('You can now close this page.', 'done');
+        log('\nNext step: verify your data in the Firebase console:', 'done');
+        log('  Firestore → Data → users → ' + user.uid, 'done');
+        setStatus('✅ Migration complete — ' + totalWritten + ' documents copied successfully', 'status-done');
+    } else {
+        log('\n⚠️ Completed with ' + errors.length + ' error(s):', 'err');
+        errors.forEach(function(e) { log('  • ' + e, 'err'); });
+        log('\nFix the errors above and run again — it is safe to re-run.', 'err');
+        setStatus('⚠️ Completed with errors — see log above', 'status-error');
+        runBtn.disabled = false;
+    }
+});
+</script>
+</body>
+</html>

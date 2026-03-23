@@ -304,29 +304,38 @@ async function getAllChemicals() {
 var barcodeScanner = null;  // Html5Qrcode instance
 
 /**
- * Open the scanner modal and start the rear camera.
+ * Build a fullscreen overlay directly on <body> and start the rear camera.
+ * Using a fullscreen overlay (not the modal system) avoids CSS conflicts
+ * that prevent the video element from rendering on mobile browsers.
  */
 function openBarcodeScanner() {
-    var scannerDiv = document.getElementById('barcodeScannerDiv');
-    var statusEl   = document.getElementById('barcodeScanStatus');
-
-    // Clean up any previous broken instance before creating a new one
+    // Kill any leftover scanner
     if (barcodeScanner) {
         barcodeScanner.stop().catch(function() {});
         barcodeScanner = null;
     }
-    scannerDiv.innerHTML = '';
-    statusEl.className   = 'barcode-scan-status';
-    statusEl.textContent = 'Point camera at a barcode\u2026';
 
-    openModal('barcodeScanModal');
+    // Remove any leftover overlay from a previous attempt
+    var old = document.getElementById('barcodeScanOverlay');
+    if (old) old.remove();
+
+    // Build fullscreen overlay
+    var overlay = document.createElement('div');
+    overlay.id = 'barcodeScanOverlay';
+    overlay.innerHTML =
+        '<div id="barcodeScannerDiv"></div>' +
+        '<p id="barcodeScanStatus" class="barcode-scan-status">Point camera at a barcode\u2026</p>' +
+        '<button id="barcodeCancelBtn2" class="btn btn-secondary" ' +
+        'style="display:block;margin:12px auto;">Cancel</button>';
+    document.body.appendChild(overlay);
+
+    document.getElementById('barcodeCancelBtn2').addEventListener('click', closeBarcodeScanner);
 
     barcodeScanner = new Html5Qrcode('barcodeScannerDiv');
     barcodeScanner.start(
-        { facingMode: 'environment' },          // use rear/back camera
+        { facingMode: 'environment' },
         { fps: 10, qrbox: { width: 260, height: 120 } },
         function onSuccess(decodedText) {
-            // Stop immediately on first successful scan
             barcodeScanner.stop().then(function() {
                 barcodeScanner = null;
                 lookupBarcode(decodedText);
@@ -335,40 +344,34 @@ function openBarcodeScanner() {
                 lookupBarcode(decodedText);
             });
         },
-        function onFailure() { /* ignore per-frame misses while scanning */ }
+        function onFailure() { /* ignore per-frame misses */ }
     ).catch(function(err) {
-        // Always null out so the next button press starts fresh
         barcodeScanner = null;
-
         var msg = String(err).toLowerCase();
         var isPermission = msg.includes('notallowed') || msg.includes('permission') ||
                            msg.includes('denied') || msg.includes('dismissed');
-
-        statusEl.className = 'barcode-scan-status barcode-scan-error';
-        if (isPermission) {
-            statusEl.innerHTML =
-                '<strong>Camera permission was denied.</strong><br><br>' +
-                'To fix it:<br>' +
-                '1. Tap the \uD83D\uDD12 lock icon in your browser\u2019s address bar<br>' +
-                '2. Tap <em>Site settings</em> (or <em>Permissions</em>)<br>' +
-                '3. Set <em>Camera</em> to <em>Allow</em><br>' +
-                '4. Reload the page and try again';
-        } else {
-            statusEl.textContent = 'Camera error: ' + err +
-                '\u2014 try reloading the page.';
+        var statusEl = document.getElementById('barcodeScanStatus');
+        if (statusEl) {
+            statusEl.className = 'barcode-scan-status barcode-scan-error';
+            statusEl.innerHTML = isPermission
+                ? '<strong>Camera permission denied.</strong><br><br>' +
+                  'Tap the \uD83D\uDD12 lock icon in your browser address bar \u2192 ' +
+                  'Site settings \u2192 Camera \u2192 Allow. Then reload and try again.'
+                : 'Camera error: ' + err + ' \u2014 try reloading the page.';
         }
     });
 }
 
 /**
- * Stop camera and close the scanner modal.
+ * Stop camera and remove the fullscreen overlay.
  */
 function closeBarcodeScanner() {
     if (barcodeScanner) {
         barcodeScanner.stop().catch(function() {});
         barcodeScanner = null;
     }
-    closeModal('barcodeScanModal');
+    var overlay = document.getElementById('barcodeScanOverlay');
+    if (overlay) overlay.remove();
 }
 
 /**

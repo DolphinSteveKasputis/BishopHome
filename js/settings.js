@@ -434,7 +434,21 @@ function handleRestoreFile(file, expectType) {
 // ============================================================
 
 /**
- * Load LLM provider + API key from Firestore and populate the form.
+ * Show or hide the model picker depending on the selected provider.
+ * Only OpenAI has a model choice right now.
+ */
+function updateLlmModelVisibility() {
+    var provider = document.getElementById('llmProvider').value;
+    var modelGroup = document.getElementById('llmModelGroup');
+    if (provider === 'openai') {
+        modelGroup.classList.remove('hidden');
+    } else {
+        modelGroup.classList.add('hidden');
+    }
+}
+
+/**
+ * Load LLM provider + API key + model from Firestore and populate the form.
  */
 async function loadLlmSettings() {
     try {
@@ -443,6 +457,10 @@ async function loadLlmSettings() {
             var d = doc.data();
             document.getElementById('llmProvider').value = d.provider || '';
             document.getElementById('llmApiKey').value   = d.apiKey   || '';
+            if (d.model) {
+                document.getElementById('llmModel').value = d.model;
+            }
+            updateLlmModelVisibility();
         }
     } catch (err) {
         console.error('Error loading LLM settings:', err);
@@ -457,6 +475,9 @@ async function saveLlmSettings() {
     var savedMsg  = document.getElementById('llmSavedMsg');
     var provider  = document.getElementById('llmProvider').value;
     var apiKey    = document.getElementById('llmApiKey').value.trim();
+    var model     = (provider === 'openai')
+                        ? document.getElementById('llmModel').value
+                        : '';   // Grok has only one model; leave blank to use default
 
     if (!provider) {
         alert('Please select an LLM provider.');
@@ -475,6 +496,7 @@ async function saveLlmSettings() {
         await userCol('settings').doc('llm').set({
             provider  : provider,
             apiKey    : apiKey,
+            model     : model,
             updatedAt : firebase.firestore.FieldValue.serverTimestamp()
         });
 
@@ -496,6 +518,7 @@ async function saveLlmSettings() {
 document.getElementById('settingsSaveBtn').addEventListener('click', saveSettings);
 document.getElementById('backupBtn').addEventListener('click', runBackup);
 document.getElementById('llmSaveBtn').addEventListener('click', saveLlmSettings);
+document.getElementById('llmProvider').addEventListener('change', updateLlmModelVisibility);
 
 // Show/hide toggle for the API key field
 document.getElementById('llmApiKeyToggle').addEventListener('click', function() {

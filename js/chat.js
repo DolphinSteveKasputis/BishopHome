@@ -42,9 +42,10 @@ async function loadChatPage() {
         document.getElementById('chatInterface').classList.remove('hidden');
 
         // Show which provider and model is active
-        var provider = LLM_PROVIDERS[config.provider];
+        var provider   = LLM_PROVIDERS[config.provider];
+        var modelLabel = config.model || (provider ? provider.model : '');
         document.getElementById('chatProviderLabel').textContent =
-            provider ? (provider.name + ' — ' + provider.model) : config.provider;
+            provider ? (provider.name + ' — ' + modelLabel) : config.provider;
 
         // Clear any previous state
         document.getElementById('chatQuestion').value = '';
@@ -66,7 +67,9 @@ async function chatLoadConfig() {
         var doc = await userCol('settings').doc('llm').get();
         if (doc.exists) {
             var d = doc.data();
-            if (d.provider && d.apiKey) return { provider: d.provider, apiKey: d.apiKey };
+            if (d.provider && d.apiKey) {
+                return { provider: d.provider, apiKey: d.apiKey, model: d.model || '' };
+            }
         }
     } catch (e) {
         console.error('Error loading LLM config:', e);
@@ -123,7 +126,8 @@ async function sendChatMessage() {
             });
         }
 
-        var responseText = await chatCallOpenAICompat(llm, config.apiKey, content);
+        var activeModel  = config.model || llm.model;
+        var responseText = await chatCallOpenAICompat(llm, config.apiKey, content, activeModel);
 
         // Render markdown so bold, headers, bullet lists, code blocks, etc. display properly
         responseEl.innerHTML = marked.parse(responseText);
@@ -145,7 +149,7 @@ async function sendChatMessage() {
  * Call an OpenAI-compatible API (OpenAI or xAI/Grok).
  * content can be a plain string (text only) or an array (text + images).
  */
-async function chatCallOpenAICompat(llm, apiKey, content) {
+async function chatCallOpenAICompat(llm, apiKey, content, model) {
     var res = await fetch(llm.endpoint, {
         method  : 'POST',
         headers : {
@@ -153,7 +157,7 @@ async function chatCallOpenAICompat(llm, apiKey, content) {
             'Authorization' : 'Bearer ' + apiKey
         },
         body: JSON.stringify({
-            model    : llm.model,
+            model    : model || llm.model,
             messages : [{ role: 'user', content: content }]
         })
     });

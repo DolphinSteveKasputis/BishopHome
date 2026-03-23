@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=160">
+    <link rel="stylesheet" href="css/styles.css?v=164">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -56,6 +56,7 @@
             <a href="#actions" class="nav-link" data-page="actions">Actions</a>
             <a href="#house" class="nav-link" data-page="house">House</a>
             <a href="#search" class="nav-link" data-page="search">🔍 Search</a>
+            <a href="#chat" class="nav-link" data-page="chat">Chat</a>
             <a href="#settings" class="nav-link" data-page="settings">Settings</a>
             <button class="nav-signout-btn" id="signOutBtn" title="Sign out">Sign Out</button>
         </nav>
@@ -68,6 +69,7 @@
             <a href="#settings" class="nav-link" data-page="settings">Settings</a>
             <a href="#things" class="nav-link" data-page="things">Things</a>
             <a href="#search" class="nav-link" data-page="search">🔍 Search</a>
+            <a href="#chat" class="nav-link" data-page="chat">Chat</a>
             <button class="nav-signout-btn" id="signOutBtnHouse" title="Sign out">Sign Out</button>
         </nav>
         <!-- Hamburger menu for mobile -->
@@ -91,6 +93,7 @@
             <a href="#actions" class="nav-link" data-page="actions">Actions</a>
             <a href="#house" class="nav-link" data-page="house">House</a>
             <a href="#search" class="nav-link" data-page="search">🔍 Search</a>
+            <a href="#chat" class="nav-link" data-page="chat">Chat</a>
             <a href="#settings" class="nav-link" data-page="settings">Settings</a>
             <button class="nav-signout-btn" id="signOutBtnMobile">Sign Out</button>
         </div>
@@ -103,6 +106,7 @@
             <a href="#settings" class="nav-link" data-page="settings">Settings</a>
             <a href="#things" class="nav-link" data-page="things">Things</a>
             <a href="#search" class="nav-link" data-page="search">🔍 Search</a>
+            <a href="#chat" class="nav-link" data-page="chat">Chat</a>
             <button class="nav-signout-btn" id="signOutBtnMobileHouse">Sign Out</button>
         </div>
     </nav>
@@ -541,12 +545,81 @@
                 </div>
             </div>
 
+            <!-- ===== AI Chat Section ===== -->
+            <div class="settings-card">
+                <h3 class="settings-section-title">AI Chat</h3>
+                <p class="settings-section-desc">
+                    Configure your LLM provider for the Chat feature.
+                    Get an API key from your provider's website and paste it here.
+                </p>
+                <div class="form-group">
+                    <label for="llmProvider">LLM Provider</label>
+                    <select id="llmProvider" class="settings-select">
+                        <option value="">— Select a provider —</option>
+                        <option value="openai">ChatGPT (OpenAI)</option>
+                        <option value="grok">Grok (xAI)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="llmApiKey">API Key</label>
+                    <div class="api-key-row">
+                        <input type="password" id="llmApiKey" placeholder="Paste your API key here" class="api-key-input">
+                        <button type="button" class="btn btn-secondary btn-sm" id="llmApiKeyToggle">Show</button>
+                    </div>
+                </div>
+                <div class="settings-save-row">
+                    <button class="btn btn-primary" id="llmSaveBtn">Save AI Settings</button>
+                    <span class="settings-saved-msg hidden" id="llmSavedMsg">&#10003; Saved</span>
+                </div>
+            </div>
+
             <!-- ===== Dev Notes Section ===== -->
             <div class="settings-card">
                 <h3 class="settings-section-title">Dev Notes</h3>
                 <p class="settings-section-desc">Personal scratchpad for tracking issues and ideas while testing the app.</p>
                 <div class="settings-save-row">
                     <a href="#notes" class="btn btn-secondary">&#128221; Notes</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Page: Chat -->
+        <section class="page hidden" id="page-chat">
+            <div class="page-header">
+                <h2>Chat</h2>
+            </div>
+
+            <!-- Shown when no LLM is configured -->
+            <div id="chatNoConfig" class="chat-no-config hidden">
+                <p>No AI provider configured.</p>
+                <p><a href="#settings" class="btn btn-secondary">Go to Settings</a></p>
+            </div>
+
+            <!-- Main chat interface -->
+            <div id="chatInterface" class="chat-interface hidden">
+                <p class="chat-provider-label">Provider: <strong id="chatProviderLabel"></strong></p>
+
+                <div class="chat-input-area">
+                    <label for="chatQuestion" class="chat-input-label">Your question</label>
+                    <textarea id="chatQuestion" class="chat-textarea" placeholder="Type your question here&#8230;" rows="5"></textarea>
+
+                    <!-- Hidden file input — triggered by the attach button -->
+                    <input type="file" id="chatImageInput" accept="image/*" multiple style="display:none">
+
+                    <!-- Thumbnail strip — shown when images are attached -->
+                    <div id="chatImagePreview" class="chat-image-preview hidden"></div>
+
+                    <div class="chat-send-row">
+                        <button class="btn btn-primary" id="chatSendBtn">Send</button>
+                        <button class="btn btn-secondary" id="chatAttachBtn" type="button">📎 Add Photo</button>
+                        <span class="chat-status" id="chatStatus"></span>
+                        <span class="chat-hint">Ctrl+Enter to send</span>
+                    </div>
+                </div>
+
+                <div id="chatResponseArea" class="chat-response-area hidden">
+                    <div class="chat-response-label">Response</div>
+                    <div id="chatResponse" class="chat-response"></div>
                 </div>
             </div>
         </section>
@@ -2537,28 +2610,30 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=160"></script>
-    <script src="js/auth.js?v=160"></script>
-    <script src="js/zones.js?v=160"></script>
-    <script src="js/plants.js?v=160"></script>
-    <script src="js/problems.js?v=160"></script>
-    <script src="js/facts.js?v=160"></script>
-    <script src="js/projects.js?v=160"></script>
-    <script src="js/chemicals.js?v=160"></script>
-    <script src="js/activities.js?v=160"></script>
-    <script src="js/photos.js?v=160"></script>
-    <script src="js/weeds.js?v=160"></script>
-    <script src="js/calendar.js?v=160"></script>
-    <script src="js/gps.js?v=160"></script>
-    <script src="js/settings.js?v=160"></script>
-    <script src="js/house.js?v=160"></script>
-    <script src="js/floorplan.js?v=160"></script>
-    <script src="js/search.js?v=160"></script>
-    <script src="js/activityreport.js?v=160"></script>
-    <script src="js/checklists.js?v=160"></script>
-    <script src="js/bulkactivity.js?v=160"></script>
-    <script src="js/devnotes.js?v=160"></script>
-    <script src="js/app.js?v=160"></script>
+    <script src="js/firebase-config.js?v=164"></script>
+    <script src="js/auth.js?v=164"></script>
+    <script src="js/zones.js?v=164"></script>
+    <script src="js/plants.js?v=164"></script>
+    <script src="js/problems.js?v=164"></script>
+    <script src="js/facts.js?v=164"></script>
+    <script src="js/projects.js?v=164"></script>
+    <script src="js/chemicals.js?v=164"></script>
+    <script src="js/activities.js?v=164"></script>
+    <script src="js/photos.js?v=164"></script>
+    <script src="js/weeds.js?v=164"></script>
+    <script src="js/calendar.js?v=164"></script>
+    <script src="js/gps.js?v=164"></script>
+    <script src="js/settings.js?v=164"></script>
+    <script src="js/house.js?v=164"></script>
+    <script src="js/floorplan.js?v=164"></script>
+    <script src="js/search.js?v=164"></script>
+    <script src="js/activityreport.js?v=164"></script>
+    <script src="js/checklists.js?v=164"></script>
+    <script src="js/bulkactivity.js?v=164"></script>
+    <script src="js/devnotes.js?v=164"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="js/chat.js?v=164"></script>
+    <script src="js/app.js?v=164"></script>
 
 </body>
 </html>

@@ -10,7 +10,7 @@
  * List of top-level pages that map to nav links.
  * These pages clear the breadcrumb bar when shown.
  */
-const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'house', 'settings', 'main', 'search', 'activityreport', 'checklists', 'notes'];
+const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'house', 'settings', 'main', 'search', 'activityreport', 'checklists', 'notes', 'chat'];
 
 /**
  * All pages that can be shown (includes detail pages not in the nav).
@@ -185,6 +185,9 @@ function handleRoute() {
     } else if (page === 'notes') {
         showPage('notes');
         loadNotesPage();
+    } else if (page === 'chat') {
+        showPage('chat');
+        loadChatPage();
     } else if (TOP_LEVEL_PAGES.includes(page)) {
         showPage(page);
     } else {

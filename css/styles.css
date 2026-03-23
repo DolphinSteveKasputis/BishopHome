@@ -3474,3 +3474,151 @@ a.ar-target-link:hover {
     color: #777;
     font-style: italic;
 }
+
+/* ===== Settings — API Key row ===== */
+.api-key-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.api-key-input {
+    flex: 1;
+    min-width: 0;  /* prevents overflow in flex containers */
+}
+.settings-select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    background: #fff;
+}
+
+/* ===== Chat Page ===== */
+.chat-no-config {
+    padding: 24px;
+    text-align: center;
+    color: #555;
+    font-size: 1rem;
+}
+.chat-no-config p {
+    margin-bottom: 12px;
+}
+.chat-interface {
+    max-width: 720px;
+}
+.chat-provider-label {
+    font-size: 0.88rem;
+    color: #666;
+    margin-bottom: 16px;
+}
+.chat-input-area {
+    margin-bottom: 20px;
+}
+.chat-input-label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 6px;
+    font-size: 0.9rem;
+    color: #333;
+}
+.chat-textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    resize: vertical;
+    box-sizing: border-box;
+}
+.chat-textarea:focus {
+    outline: none;
+    border-color: #388e3c;
+    box-shadow: 0 0 0 2px rgba(56,142,60,0.15);
+}
+.chat-send-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 10px;
+}
+.chat-status {
+    font-size: 0.9rem;
+    color: #c62828;
+}
+.chat-hint {
+    font-size: 0.8rem;
+    color: #aaa;
+    margin-left: auto;
+}
+.chat-response-area {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background: #fafafa;
+    padding: 16px;
+}
+.chat-response-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #777;
+    margin-bottom: 10px;
+}
+.chat-response {
+    font-size: 0.95rem;
+    color: #222;
+    line-height: 1.65;
+    white-space: pre-wrap;  /* preserve line breaks in LLM output */
+    word-wrap: break-word;
+}
+
+/* Chat — image attachment thumbnail strip */
+.chat-image-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+    margin-bottom: 4px;
+}
+.chat-thumb-wrap {
+    position: relative;
+    width: 72px;
+    height: 72px;
+    flex-shrink: 0;
+}
+.chat-thumb {
+    width: 72px;
+    height: 72px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    display: block;
+}
+.chat-thumb-remove {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #c62828;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 0.85rem;
+    line-height: 1;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.chat-thumb-remove:hover {
+    background: #b71c1c;
+}
+
+@media (max-width: 600px) {
+    .chat-hint { display: none; }
+    .chat-interface { max-width: 100%; }
+}

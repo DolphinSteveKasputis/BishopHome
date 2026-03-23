@@ -32,6 +32,8 @@ async function loadSettingsPage() {
     } catch (err) {
         console.error('Error loading settings:', err);
     }
+
+    loadLlmSettings();
 }
 
 /**
@@ -427,10 +429,85 @@ function handleRestoreFile(file, expectType) {
     reader.readAsText(file);
 }
 
+// ============================================================
+// LLM Settings
+// ============================================================
+
+/**
+ * Load LLM provider + API key from Firestore and populate the form.
+ */
+async function loadLlmSettings() {
+    try {
+        var doc = await userCol('settings').doc('llm').get();
+        if (doc.exists) {
+            var d = doc.data();
+            document.getElementById('llmProvider').value = d.provider || '';
+            document.getElementById('llmApiKey').value   = d.apiKey   || '';
+        }
+    } catch (err) {
+        console.error('Error loading LLM settings:', err);
+    }
+}
+
+/**
+ * Save LLM provider + API key to Firestore.
+ */
+async function saveLlmSettings() {
+    var saveBtn   = document.getElementById('llmSaveBtn');
+    var savedMsg  = document.getElementById('llmSavedMsg');
+    var provider  = document.getElementById('llmProvider').value;
+    var apiKey    = document.getElementById('llmApiKey').value.trim();
+
+    if (!provider) {
+        alert('Please select an LLM provider.');
+        return;
+    }
+    if (!apiKey) {
+        alert('Please enter your API key.');
+        return;
+    }
+
+    saveBtn.disabled    = true;
+    saveBtn.textContent = 'Saving\u2026';
+    savedMsg.classList.add('hidden');
+
+    try {
+        await userCol('settings').doc('llm').set({
+            provider  : provider,
+            apiKey    : apiKey,
+            updatedAt : firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        saveBtn.disabled    = false;
+        saveBtn.textContent = 'Save AI Settings';
+        savedMsg.classList.remove('hidden');
+        setTimeout(function() { savedMsg.classList.add('hidden'); }, 2000);
+
+    } catch (err) {
+        console.error('Error saving LLM settings:', err);
+        alert('Error saving AI settings — please try again.');
+        saveBtn.disabled    = false;
+        saveBtn.textContent = 'Save AI Settings';
+    }
+}
+
 // ---------- Button Wire-Up ----------
 
 document.getElementById('settingsSaveBtn').addEventListener('click', saveSettings);
 document.getElementById('backupBtn').addEventListener('click', runBackup);
+document.getElementById('llmSaveBtn').addEventListener('click', saveLlmSettings);
+
+// Show/hide toggle for the API key field
+document.getElementById('llmApiKeyToggle').addEventListener('click', function() {
+    var input = document.getElementById('llmApiKey');
+    if (input.type === 'password') {
+        input.type        = 'text';
+        this.textContent  = 'Hide';
+    } else {
+        input.type        = 'password';
+        this.textContent  = 'Show';
+    }
+});
 
 // Restore — data
 document.getElementById('restoreDataBtn').addEventListener('click', function() {

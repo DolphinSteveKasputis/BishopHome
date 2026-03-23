@@ -1690,6 +1690,64 @@ function fpOpenMarkerEditModal(type, id) {
 }
 
 // ============================================================
+// BREAKER DROPDOWN HELPER  (Phase H13)
+// ============================================================
+
+/**
+ * Populate a <select> element with all breakers from all panels.
+ * Groups by panel name using <optgroup>. Sets the current selection
+ * if currentBreakerId is provided.
+ *
+ * @param {string}      selectId         - id of the <select> element to populate
+ * @param {string|null} currentBreakerId - breaker.id to pre-select, or null/empty for none
+ */
+function fpLoadBreakerOptions(selectId, currentBreakerId) {
+    var select = document.getElementById(selectId);
+    select.innerHTML = '<option value="">— No breaker linked —</option>';
+
+    db.collection('breakerPanels').get()
+        .then(function(snap) {
+            if (snap.empty) return;  // No panels configured yet — leave just the default option
+
+            var panelDocs = [];
+            snap.forEach(function(d) { panelDocs.push(d); });
+            // Sort panels alphabetically so the dropdown is predictable
+            panelDocs.sort(function(a, b) {
+                return (a.data().name || '').localeCompare(b.data().name || '');
+            });
+
+            panelDocs.forEach(function(panelDoc) {
+                var panel    = panelDoc.data();
+                var breakers = (panel.breakers || []).slice().sort(function(a, b) {
+                    return a.slot - b.slot;
+                });
+                if (!breakers.length) return;  // Panel exists but has no assigned slots yet
+
+                var group = document.createElement('optgroup');
+                group.label = panel.name || 'Panel';
+
+                breakers.forEach(function(b) {
+                    var opt = document.createElement('option');
+                    opt.value           = b.id;
+                    opt.dataset.panelId = panelDoc.id;
+                    opt.dataset.slot    = b.slot;
+                    opt.textContent =
+                        'Slot ' + b.slot +
+                        (b.label ? ' \u2013 ' + b.label : '') +
+                        (b.amps  ? ' (' + b.amps + 'A)' : '');
+                    if (currentBreakerId && b.id === currentBreakerId) opt.selected = true;
+                    group.appendChild(opt);
+                });
+
+                select.appendChild(group);
+            });
+        })
+        .catch(function(err) {
+            console.error('fpLoadBreakerOptions error:', err);
+        });
+}
+
+// ============================================================
 // OUTLET MODAL
 // ============================================================
 
@@ -1705,9 +1763,8 @@ function fpOpenOutletModal(editId, data) {
     if (editId) {
         // Edit mode
         document.getElementById('fpOutletModalTitle').textContent = 'Edit Outlet';
-        document.getElementById('fpOutletTypeSelect').value    = data.type    || 'standard';
-        document.getElementById('fpOutletCircuitInput').value  = data.circuit || '';
-        document.getElementById('fpOutletNotesInput').value    = data.notes   || '';
+        document.getElementById('fpOutletTypeSelect').value  = data.type  || 'standard';
+        document.getElementById('fpOutletNotesInput').value  = data.notes || '';
         // Store wall position from existing marker
         modal.dataset.roomId     = data.roomId;
         modal.dataset.segIndex   = data.segmentIndex;
@@ -1719,14 +1776,16 @@ function fpOpenOutletModal(editId, data) {
     } else {
         // Add mode
         document.getElementById('fpOutletModalTitle').textContent = 'Add Outlet';
-        document.getElementById('fpOutletTypeSelect').value   = 'standard';
-        document.getElementById('fpOutletCircuitInput').value = '';
-        document.getElementById('fpOutletNotesInput').value   = '';
+        document.getElementById('fpOutletTypeSelect').value  = 'standard';
+        document.getElementById('fpOutletNotesInput').value  = '';
         modal.dataset.roomId   = data.roomId;
         modal.dataset.segIndex = data.segmentIndex;
         modal.dataset.position = data.position;
         document.getElementById('fpOutletProblemsSection').style.display = 'none';
     }
+
+    // Populate breaker dropdown (async — loads after modal opens)
+    fpLoadBreakerOptions('fpOutletBreakerSelect', data.breakerId || '');
 
     openModal('fpOutletModal');
 }
@@ -1735,9 +1794,16 @@ document.getElementById('fpOutletSaveBtn').addEventListener('click', function() 
     var modal   = document.getElementById('fpOutletModal');
     var editId  = modal.dataset.editId;
 
+    // Read the breaker selection — value is breakerId, data-panel-id is panelId
+    var bkrSel  = document.getElementById('fpOutletBreakerSelect');
+    var bkrId   = bkrSel.value || '';
+    var panelId = bkrId && bkrSel.selectedIndex >= 0
+        ? (bkrSel.options[bkrSel.selectedIndex].dataset.panelId || '') : '';
+
     var props = {
         type:         document.getElementById('fpOutletTypeSelect').value,
-        circuit:      document.getElementById('fpOutletCircuitInput').value.trim(),
+        breakerId:    bkrId,
+        panelId:      panelId,
         notes:        document.getElementById('fpOutletNotesInput').value.trim(),
         roomId:       modal.dataset.roomId,
         segmentIndex: parseInt(modal.dataset.segIndex, 10),
@@ -1785,10 +1851,9 @@ function fpOpenSwitchModal(editId, data) {
 
     if (editId) {
         document.getElementById('fpSwitchModalTitle').textContent = 'Edit Switch';
-        document.getElementById('fpSwitchTypeSelect').value    = data.type    || 'single-pole';
-        document.getElementById('fpSwitchControlsInput').value = data.controls || '';
-        document.getElementById('fpSwitchCircuitInput').value  = data.circuit  || '';
-        document.getElementById('fpSwitchNotesInput').value    = data.notes    || '';
+        document.getElementById('fpSwitchTypeSelect').value     = data.type     || 'single-pole';
+        document.getElementById('fpSwitchControlsInput').value  = data.controls || '';
+        document.getElementById('fpSwitchNotesInput').value     = data.notes    || '';
         modal.dataset.roomId   = data.roomId;
         modal.dataset.segIndex = data.segmentIndex;
         modal.dataset.position = data.position;
@@ -1797,15 +1862,17 @@ function fpOpenSwitchModal(editId, data) {
             'fpSwitchProblemsContainer', 'fpSwitchProblemsEmptyState');
     } else {
         document.getElementById('fpSwitchModalTitle').textContent = 'Add Switch';
-        document.getElementById('fpSwitchTypeSelect').value   = 'single-pole';
+        document.getElementById('fpSwitchTypeSelect').value    = 'single-pole';
         document.getElementById('fpSwitchControlsInput').value = '';
-        document.getElementById('fpSwitchCircuitInput').value = '';
-        document.getElementById('fpSwitchNotesInput').value   = '';
+        document.getElementById('fpSwitchNotesInput').value    = '';
         modal.dataset.roomId   = data.roomId;
         modal.dataset.segIndex = data.segmentIndex;
         modal.dataset.position = data.position;
         document.getElementById('fpSwitchProblemsSection').style.display = 'none';
     }
+
+    // Populate breaker dropdown (async)
+    fpLoadBreakerOptions('fpSwitchBreakerSelect', data.breakerId || '');
 
     openModal('fpSwitchModal');
 }
@@ -1814,10 +1881,16 @@ document.getElementById('fpSwitchSaveBtn').addEventListener('click', function() 
     var modal  = document.getElementById('fpSwitchModal');
     var editId = modal.dataset.editId;
 
+    var bkrSel  = document.getElementById('fpSwitchBreakerSelect');
+    var bkrId   = bkrSel.value || '';
+    var panelId = bkrId && bkrSel.selectedIndex >= 0
+        ? (bkrSel.options[bkrSel.selectedIndex].dataset.panelId || '') : '';
+
     var props = {
         type:         document.getElementById('fpSwitchTypeSelect').value,
         controls:     document.getElementById('fpSwitchControlsInput').value.trim(),
-        circuit:      document.getElementById('fpSwitchCircuitInput').value.trim(),
+        breakerId:    bkrId,
+        panelId:      panelId,
         notes:        document.getElementById('fpSwitchNotesInput').value.trim(),
         roomId:       modal.dataset.roomId,
         segmentIndex: parseInt(modal.dataset.segIndex, 10),
@@ -2069,6 +2142,9 @@ function fpOpenCeilingModal(editId, data) {
     document.getElementById('fpCeilingCategorySelect').value   = data.category || 'ceiling-fan';
     document.getElementById('fpCeilingNewName').value          = '';
 
+    // Populate breaker dropdown (async)
+    fpLoadBreakerOptions('fpCeilingBreakerSelect', data.breakerId || '');
+
     // Populate the "link to existing Thing" dropdown
     var select = document.getElementById('fpCeilingThingSelect');
     select.innerHTML = '<option value="">— Link to an existing ceiling Thing —</option>';
@@ -2143,6 +2219,12 @@ document.getElementById('fpCeilingSaveBtn').addEventListener('click', function()
     var select          = document.getElementById('fpCeilingThingSelect');
     var newName         = document.getElementById('fpCeilingNewName').value.trim();
 
+    // Read breaker linkage
+    var bkrSel  = document.getElementById('fpCeilingBreakerSelect');
+    var bkrId   = bkrSel.value || '';
+    var panelId = bkrId && bkrSel.selectedIndex >= 0
+        ? (bkrSel.options[bkrSel.selectedIndex].dataset.panelId || '') : '';
+
     if (!select.value && !newName) {
         alert('Enter a name for the new fixture, or pick an existing ceiling Thing.');
         return;
@@ -2153,21 +2235,25 @@ document.getElementById('fpCeilingSaveBtn').addEventListener('click', function()
             // Update existing
             var cf = (fpPlan.ceilingFixtures || []).find(function(m) { return m.id === editId; });
             if (cf) {
-                cf.thingId  = thingId;
-                cf.label    = label;
-                cf.category = cat;
+                cf.thingId   = thingId;
+                cf.label     = label;
+                cf.category  = cat;
+                cf.breakerId = bkrId;
+                cf.panelId   = panelId;
             }
         } else {
             // Add new
             if (!fpPlan.ceilingFixtures) fpPlan.ceilingFixtures = [];
             fpPlan.ceilingFixtures.push({
-                id:       fpGenId(),
-                roomId:   roomId,
-                thingId:  thingId,
-                label:    label,
-                category: cat,
-                x:        x,
-                y:        y
+                id:        fpGenId(),
+                roomId:    roomId,
+                thingId:   thingId,
+                label:     label,
+                category:  cat,
+                breakerId: bkrId,
+                panelId:   panelId,
+                x:         x,
+                y:         y
             });
         }
         fpDirty = true;

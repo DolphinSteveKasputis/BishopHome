@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=123">
+    <link rel="stylesheet" href="css/styles.css?v=124">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -1669,8 +1669,10 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="fpOutletCircuitInput">Circuit / Breaker #</label>
-                    <input type="text" id="fpOutletCircuitInput" placeholder="e.g. 12">
+                    <label for="fpOutletBreakerSelect">Breaker / Circuit</label>
+                    <select id="fpOutletBreakerSelect">
+                        <option value="">— No breaker linked —</option>
+                    </select>
                 </div>
             </div>
             <div class="form-group">
@@ -1708,8 +1710,10 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="fpSwitchCircuitInput">Circuit / Breaker #</label>
-                    <input type="text" id="fpSwitchCircuitInput" placeholder="e.g. 12">
+                    <label for="fpSwitchBreakerSelect">Breaker / Circuit</label>
+                    <select id="fpSwitchBreakerSelect">
+                        <option value="">— No breaker linked —</option>
+                    </select>
                 </div>
             </div>
             <div class="form-group">
@@ -1811,6 +1815,12 @@
                 <label for="fpCeilingNewName">Or create a new Thing (enter name)</label>
                 <input type="text" id="fpCeilingNewName" placeholder="e.g. Master Bedroom Ceiling Fan">
             </div>
+            <div class="form-group">
+                <label for="fpCeilingBreakerSelect">Breaker / Circuit</label>
+                <select id="fpCeilingBreakerSelect">
+                    <option value="">— No breaker linked —</option>
+                </select>
+            </div>
             <!-- Problems section (shown in edit mode) -->
             <div id="fpCeilingProblemsSection" style="display:none">
                 <div class="section-header" style="margin-top:12px">
@@ -1892,6 +1902,14 @@
                 <label for="breakerNotesInput">Notes</label>
                 <textarea id="breakerNotesInput" rows="2" placeholder="Optional notes about this circuit"></textarea>
             </div>
+            <!-- Connected devices section — shown when editing an assigned breaker (Phase H13) -->
+            <div id="breakerDevicesSection" style="display:none">
+                <div class="section-header" style="margin-top:12px">
+                    <h4 class="section-heading" style="font-size:0.95rem">Connected Devices</h4>
+                </div>
+                <div id="breakerDevicesContainer"></div>
+                <p class="empty-state" id="breakerDevicesEmptyState"></p>
+            </div>
             <!-- Problems section — shown only when editing an assigned breaker -->
             <div id="breakerProblemsSection" style="display:none">
                 <div class="section-header" style="margin-top:12px">
@@ -1913,23 +1931,23 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=123"></script>
-    <script src="js/auth.js?v=123"></script>
-    <script src="js/zones.js?v=123"></script>
-    <script src="js/plants.js?v=123"></script>
-    <script src="js/problems.js?v=123"></script>
-    <script src="js/facts.js?v=123"></script>
-    <script src="js/projects.js?v=123"></script>
-    <script src="js/chemicals.js?v=123"></script>
-    <script src="js/activities.js?v=123"></script>
-    <script src="js/photos.js?v=123"></script>
-    <script src="js/weeds.js?v=123"></script>
-    <script src="js/calendar.js?v=123"></script>
-    <script src="js/gps.js?v=123"></script>
-    <script src="js/settings.js?v=123"></script>
-    <script src="js/house.js?v=123"></script>
-    <script src="js/floorplan.js?v=123"></script>
-    <script src="js/app.js?v=123"></script>
+    <script src="js/firebase-config.js?v=124"></script>
+    <script src="js/auth.js?v=124"></script>
+    <script src="js/zones.js?v=124"></script>
+    <script src="js/plants.js?v=124"></script>
+    <script src="js/problems.js?v=124"></script>
+    <script src="js/facts.js?v=124"></script>
+    <script src="js/projects.js?v=124"></script>
+    <script src="js/chemicals.js?v=124"></script>
+    <script src="js/activities.js?v=124"></script>
+    <script src="js/photos.js?v=124"></script>
+    <script src="js/weeds.js?v=124"></script>
+    <script src="js/calendar.js?v=124"></script>
+    <script src="js/gps.js?v=124"></script>
+    <script src="js/settings.js?v=124"></script>
+    <script src="js/house.js?v=124"></script>
+    <script src="js/floorplan.js?v=124"></script>
+    <script src="js/app.js?v=124"></script>
 
 </body>
 </html>

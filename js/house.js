@@ -1667,6 +1667,16 @@ function openBreakerModal(slotNum, breaker) {
     document.getElementById('breakerStatusSelect').value = breaker ? (breaker.status || 'on') : 'on';
     document.getElementById('breakerNotesInput').value   = breaker ? (breaker.notes  || '') : '';
 
+    // Connected devices section — only visible when editing an assigned slot (Phase H13)
+    var devSection = document.getElementById('breakerDevicesSection');
+    if (breaker && breaker.id) {
+        devSection.style.display = '';
+        loadBreakerDevices(breaker.id, 'breakerDevicesContainer', 'breakerDevicesEmptyState');
+    } else {
+        devSection.style.display = 'none';
+        document.getElementById('breakerDevicesContainer').innerHTML = '';
+    }
+
     // Problems section — only visible when editing an already-assigned slot
     var probSection = document.getElementById('breakerProblemsSection');
     if (breaker && breaker.id) {
@@ -1811,6 +1821,109 @@ document.getElementById('logPanelActivityBtn').addEventListener('click', functio
 document.getElementById('addPanelPhotoBtn').addEventListener('click', function() {
     if (currentPanel) triggerPhotoUpload('panel', currentPanel.id);
 });
+
+// ============================================================
+// CIRCUIT LINKAGE  (Phase H13)
+// Scan all floor plan documents to find markers linked to a breaker.
+// ============================================================
+
+/**
+ * Load and render all floor plan markers (outlets, switches, ceiling fixtures)
+ * that have a matching breakerId.  Renders a compact list inside the breakerModal.
+ *
+ * @param {string} breakerId   - The breaker's stable UUID to search for
+ * @param {string} containerId - id of the <div> to render into
+ * @param {string} emptyId     - id of the <p class="empty-state"> element
+ */
+function loadBreakerDevices(breakerId, containerId, emptyId) {
+    var container = document.getElementById(containerId);
+    var emptyEl   = document.getElementById(emptyId);
+
+    container.innerHTML    = '';
+    emptyEl.textContent    = 'Loading…';
+
+    // Scan all floorPlans documents for markers with this breakerId
+    db.collection('floorPlans').get()
+        .then(function(snap) {
+            var devices = [];
+
+            snap.forEach(function(planDoc) {
+                var plan    = planDoc.data();
+                var floorId = planDoc.id;
+
+                // Check outlets, switches, and ceiling fixtures
+                var markerArrays = {
+                    outlets:         '⚡ Outlet',
+                    switches:        '💡 Switch',
+                    ceilingFixtures: '🔆 Ceiling Fixture'
+                };
+
+                Object.keys(markerArrays).forEach(function(key) {
+                    (plan[key] || []).forEach(function(marker) {
+                        if (marker.breakerId === breakerId) {
+                            devices.push({
+                                floorId:   floorId,
+                                typeLabel: markerArrays[key],
+                                marker:    marker
+                            });
+                        }
+                    });
+                });
+            });
+
+            emptyEl.textContent = '';
+
+            if (!devices.length) {
+                emptyEl.textContent =
+                    'No devices linked yet. Edit outlets, switches, or ceiling fixtures ' +
+                    'on a floor plan to link them to this circuit.';
+                return;
+            }
+
+            // Collect unique floorIds so we can look up names
+            var uniqueFloorIds = [];
+            devices.forEach(function(d) {
+                if (uniqueFloorIds.indexOf(d.floorId) === -1) {
+                    uniqueFloorIds.push(d.floorId);
+                }
+            });
+
+            // Fetch floor names, then render
+            return Promise.all(uniqueFloorIds.map(function(fid) {
+                return db.collection('floors').doc(fid).get();
+            })).then(function(floorDocs) {
+                var floorNames = {};
+                floorDocs.forEach(function(d) {
+                    floorNames[d.id] = d.exists ? (d.data().name || 'Floor') : 'Floor';
+                });
+
+                devices.forEach(function(d) {
+                    var floorName = floorNames[d.floorId] || 'Floor';
+                    var label     = d.marker.label || d.marker.type || '(unlabeled)';
+
+                    var item = document.createElement('div');
+                    item.className = 'breaker-device-item';
+                    item.title     = 'Go to floor plan';
+                    item.innerHTML =
+                        '<span class="breaker-device-type">' + d.typeLabel + '</span>' +
+                        '<span class="breaker-device-label">' + escapeHtml(label) + '</span>' +
+                        '<span class="breaker-device-floor">' + escapeHtml(floorName) + '</span>';
+
+                    // Clicking navigates to the floor plan for that floor
+                    item.addEventListener('click', function() {
+                        closeModal('breakerModal');
+                        window.location.hash = '#floorplan/' + d.floorId;
+                    });
+
+                    container.appendChild(item);
+                });
+            });
+        })
+        .catch(function(err) {
+            console.error('loadBreakerDevices error:', err);
+            emptyEl.textContent = 'Error loading devices.';
+        });
+}
 
 // ============================================================
 // UUID HELPER  (generates stable IDs for individual breakers)

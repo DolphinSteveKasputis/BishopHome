@@ -2278,6 +2278,39 @@ button {
 .breaker-status--off     { color: #6b7280; }
 .breaker-status--tripped { color: #dc2626; }
 
+/* Connected devices list inside the breaker modal (Phase H13) */
+.breaker-device-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    background: #f3f4f6;
+    margin-bottom: 5px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.breaker-device-item:hover {
+    background: #e5e7eb;
+}
+.breaker-device-type {
+    font-size: 0.78rem;
+    white-space: nowrap;
+    color: #6b7280;
+}
+.breaker-device-label {
+    flex: 1;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #1f2937;
+    word-break: break-word;
+}
+.breaker-device-floor {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    white-space: nowrap;
+}
+
 /* Corner position table inside the room edit modal */
 .fp-corner-table {
     width: 100%;

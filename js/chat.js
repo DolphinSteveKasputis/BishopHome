@@ -41,10 +41,10 @@ async function loadChatPage() {
         document.getElementById('chatNoConfig').classList.add('hidden');
         document.getElementById('chatInterface').classList.remove('hidden');
 
-        // Show which provider is active
+        // Show which provider and model is active
         var provider = LLM_PROVIDERS[config.provider];
         document.getElementById('chatProviderLabel').textContent =
-            provider ? provider.name : config.provider;
+            provider ? (provider.name + ' — ' + provider.model) : config.provider;
 
         // Clear any previous state
         document.getElementById('chatQuestion').value = '';

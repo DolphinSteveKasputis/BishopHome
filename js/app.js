@@ -10,7 +10,7 @@
  * List of top-level pages that map to nav links.
  * These pages clear the breadcrumb bar when shown.
  */
-const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'house', 'settings', 'main', 'search', 'activityreport'];
+const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'house', 'settings', 'main', 'search', 'activityreport', 'checklists'];
 
 /**
  * All pages that can be shown (includes detail pages not in the nav).
@@ -27,7 +27,7 @@ const ALL_PAGES = [
  * Shared pages (calendar, settings) keep whichever context was last active.
  */
 const HOUSE_PAGES = ['house', 'floor', 'room', 'thing', 'subthing', 'floorplan', 'panel', 'rooms', 'things'];
-const YARD_PAGES  = ['main', 'home', 'zone', 'plant', 'weeds', 'weed', 'chemicals', 'chemical', 'actions', 'gpsmap', 'yardmap', 'activityreport'];
+const YARD_PAGES  = ['main', 'home', 'zone', 'plant', 'weeds', 'weed', 'chemicals', 'chemical', 'actions', 'gpsmap', 'yardmap', 'activityreport', 'checklists'];
 
 /** Tracks which nav context is currently active ('yard' or 'house'). */
 var currentNavContext = 'yard';
@@ -170,6 +170,9 @@ function handleRoute() {
     } else if (page === 'subthing' && id) {
         showPage('subthing');
         loadSubThingDetail(id);
+    } else if (page === 'checklists') {
+        showPage('checklists');
+        loadChecklistsPage();
     } else if (page === 'activityreport') {
         showPage('activityreport');
         loadActivityReportPage();

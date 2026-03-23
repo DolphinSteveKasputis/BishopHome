@@ -91,7 +91,7 @@ Right now you'd have to read each plant's problems list to understand its curren
 ---
 
 ## NF-5 — Seasonal Care Checklists
-**Status:** PLANNED
+**Status:** COMPLETE
 
 **What it does:**
 A reusable checklist system for recurring seasonal tasks. User creates named checklist templates (e.g., "Spring Startup", "Fall Winterization") with a list of task items. Each season, they "run" a checklist — which creates a fresh instance that can be checked off item by item. Completed runs are saved as history.
@@ -239,7 +239,7 @@ When you land on the House page, you can immediately see if anything is coming u
 | NF-2  | Activity History Report          | Medium     | COMPLETE |
 | NF-3  | Chemical Usage Log               | Small      | COMPLETE |
 | NF-4  | Plant Health Status              | Small      | COMPLETE |
-| NF-5  | Seasonal Care Checklists         | Large      | PLANNED |
+| NF-5  | Seasonal Care Checklists         | Large      | COMPLETE |
 | NF-6  | Application Rate on Activities   | Small      | PLANNED |
 | NF-7  | Reschedule Overdue Events        | Small      | PLANNED |
 | NF-8  | Clone a Plant                    | Small      | PLANNED |

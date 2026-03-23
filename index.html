@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=169">
+    <link rel="stylesheet" href="css/styles.css?v=170">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -2099,6 +2099,22 @@
                 <label for="thingCommentInput">Personal comment</label>
                 <textarea id="thingCommentInput" rows="2" placeholder="Something personal about this item…"></textarea>
             </div>
+            <!-- From Picture section — only shown in add mode when LLM is configured -->
+            <div id="thingFromPictureSection" class="plant-from-pic-section hidden">
+                <div class="plant-from-pic-divider">— or identify from a photo —</div>
+                <input type="file" id="thingPicInput" accept="image/*" multiple style="display:none">
+                <input type="file" id="thingCamInput" accept="image/*" capture="environment" style="display:none">
+                <div class="plant-from-pic-buttons">
+                    <button type="button" class="btn btn-secondary btn-sm" id="thingPicGalleryBtn">📎 Gallery</button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="thingPicCameraBtn">📷 Camera</button>
+                </div>
+                <label class="plant-from-pic-toggle">
+                    <input type="checkbox" id="thingShowResponseToggle">
+                    Show response before adding
+                </label>
+                <div id="thingPicStatus" class="plant-pic-status hidden"></div>
+            </div>
+
             <div class="modal-buttons">
                 <button class="btn btn-danger" id="thingModalDeleteBtn" style="display:none;">Delete</button>
                 <div style="flex:1;"></div>
@@ -2146,6 +2162,22 @@
                 </div>
                 <div class="tag-suggestions hidden" id="stTagSuggestions"></div>
             </div>
+            <!-- From Picture section — only shown in add mode when LLM is configured -->
+            <div id="stFromPictureSection" class="plant-from-pic-section hidden">
+                <div class="plant-from-pic-divider">— or identify from a photo —</div>
+                <input type="file" id="stPicInput" accept="image/*" multiple style="display:none">
+                <input type="file" id="stCamInput" accept="image/*" capture="environment" style="display:none">
+                <div class="plant-from-pic-buttons">
+                    <button type="button" class="btn btn-secondary btn-sm" id="stPicGalleryBtn">📎 Gallery</button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="stPicCameraBtn">📷 Camera</button>
+                </div>
+                <label class="plant-from-pic-toggle">
+                    <input type="checkbox" id="stShowResponseToggle">
+                    Show response before adding
+                </label>
+                <div id="stPicStatus" class="plant-pic-status hidden"></div>
+            </div>
+
             <div id="stScanRow" style="display:none;text-align:center;margin:8px 0;">
                 <button class="btn btn-secondary" id="stModalScanBtn" type="button">&#128247; Scan Barcode &#8594; Save as Facts</button>
                 <p id="stScanResult" style="margin:6px 0 0;font-size:0.85rem;display:none;"></p>
@@ -2170,6 +2202,34 @@
             <div class="modal-buttons">
                 <button class="btn btn-secondary" id="moveThingCancelBtn">Cancel</button>
                 <button class="btn btn-primary" id="moveThingSaveBtn">Move</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Thing / SubThing LLM Review Modal -->
+    <div class="modal-overlay" id="thingLlmReviewModal">
+        <div class="modal modal-wide">
+            <h3>Item Identified</h3>
+            <div class="form-group">
+                <label for="thingReviewName">Name (editable)</label>
+                <input type="text" id="thingReviewName" class="plant-review-name-input">
+            </div>
+            <div class="plant-review-fields">
+                <div class="plant-review-row"><span class="plant-review-label">Description</span><span id="reviewThingDescription"></span></div>
+                <div class="plant-review-row"><span class="plant-review-label">Worth / Value</span><span id="reviewThingWorth"></span></div>
+            </div>
+            <div id="thingReviewMessage" class="plant-review-message hidden"></div>
+            <details class="plant-review-debug">
+                <summary>Prompt sent to LLM</summary>
+                <pre id="thingReviewPromptText" class="plant-review-pre"></pre>
+            </details>
+            <details class="plant-review-debug">
+                <summary>Raw LLM response</summary>
+                <pre id="thingReviewResponseText" class="plant-review-pre"></pre>
+            </details>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="thingReviewCancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="thingReviewAddBtn">Add It</button>
             </div>
         </div>
     </div>
@@ -2670,30 +2730,30 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=169"></script>
-    <script src="js/auth.js?v=169"></script>
-    <script src="js/zones.js?v=169"></script>
-    <script src="js/plants.js?v=169"></script>
-    <script src="js/problems.js?v=169"></script>
-    <script src="js/facts.js?v=169"></script>
-    <script src="js/projects.js?v=169"></script>
-    <script src="js/chemicals.js?v=169"></script>
-    <script src="js/activities.js?v=169"></script>
-    <script src="js/photos.js?v=169"></script>
-    <script src="js/weeds.js?v=169"></script>
-    <script src="js/calendar.js?v=169"></script>
-    <script src="js/gps.js?v=169"></script>
-    <script src="js/settings.js?v=169"></script>
-    <script src="js/house.js?v=169"></script>
-    <script src="js/floorplan.js?v=169"></script>
-    <script src="js/search.js?v=169"></script>
-    <script src="js/activityreport.js?v=169"></script>
-    <script src="js/checklists.js?v=169"></script>
-    <script src="js/bulkactivity.js?v=169"></script>
-    <script src="js/devnotes.js?v=169"></script>
+    <script src="js/firebase-config.js?v=170"></script>
+    <script src="js/auth.js?v=170"></script>
+    <script src="js/zones.js?v=170"></script>
+    <script src="js/plants.js?v=170"></script>
+    <script src="js/problems.js?v=170"></script>
+    <script src="js/facts.js?v=170"></script>
+    <script src="js/projects.js?v=170"></script>
+    <script src="js/chemicals.js?v=170"></script>
+    <script src="js/activities.js?v=170"></script>
+    <script src="js/photos.js?v=170"></script>
+    <script src="js/weeds.js?v=170"></script>
+    <script src="js/calendar.js?v=170"></script>
+    <script src="js/gps.js?v=170"></script>
+    <script src="js/settings.js?v=170"></script>
+    <script src="js/house.js?v=170"></script>
+    <script src="js/floorplan.js?v=170"></script>
+    <script src="js/search.js?v=170"></script>
+    <script src="js/activityreport.js?v=170"></script>
+    <script src="js/checklists.js?v=170"></script>
+    <script src="js/bulkactivity.js?v=170"></script>
+    <script src="js/devnotes.js?v=170"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=169"></script>
-    <script src="js/app.js?v=169"></script>
+    <script src="js/chat.js?v=170"></script>
+    <script src="js/app.js?v=170"></script>
 
 </body>
 </html>

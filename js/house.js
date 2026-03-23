@@ -1167,6 +1167,19 @@ function openThingModal(editId, data) {
         modal.dataset.editId    = '';
     }
 
+    // Show/hide From Picture only in add mode
+    var picSection = document.getElementById('thingFromPictureSection');
+    if (editId) {
+        picSection.classList.add('hidden');
+    } else {
+        picSection.classList.add('hidden');
+        document.getElementById('thingPicStatus').classList.add('hidden');
+        document.getElementById('thingPicStatus').textContent = '';
+        document.getElementById('thingPicInput').value = '';
+        document.getElementById('thingCamInput').value = '';
+        houseCheckLlmForModal('thingFromPictureSection');
+    }
+
     openModal('thingModal');
     nameInput.focus();
 }
@@ -2401,6 +2414,19 @@ function openSubThingModal(editId, data) {
     // Load known tags from Firestore for autocomplete
     stLoadTags();
 
+    // Show/hide From Picture only in add mode
+    var stPicSection = document.getElementById('stFromPictureSection');
+    if (editId) {
+        stPicSection.classList.add('hidden');
+    } else {
+        stPicSection.classList.add('hidden');
+        document.getElementById('stPicStatus').classList.add('hidden');
+        document.getElementById('stPicStatus').textContent = '';
+        document.getElementById('stPicInput').value = '';
+        document.getElementById('stCamInput').value = '';
+        houseCheckLlmForModal('stFromPictureSection');
+    }
+
     openModal('subThingModal');
     nameInput.focus();
 }
@@ -3305,3 +3331,277 @@ function thingsBuildResultItem(item, isSubThing, thingById) {
 
     return card;
 }
+
+// ============================================================
+// THING / SUB-THING — IDENTIFICATION FROM PICTURE
+// ============================================================
+
+var THING_ID_PROMPT = [
+    'You are a household item identification assistant. Analyze the provided image(s) and return ONLY a valid JSON object.',
+    'No explanation, no markdown, no code blocks, no extra text of any kind.',
+    'Your entire response must be parseable by JSON.parse().',
+    '',
+    'Return this exact structure:',
+    '{',
+    '  "name": "",',
+    '  "description": "",',
+    '  "worth": "",',
+    '  "additionalMessage": ""',
+    '}',
+    '',
+    'Field rules:',
+    '- name: a concise descriptive name, e.g. "Samsung 65-inch QLED TV", "Queen Sleigh Bed Frame", "KitchenAid Stand Mixer"',
+    '- description: what it is, approximate age/condition if visible, notable features. 100 words or less.',
+    '- worth: your best estimate of current used market value in US dollars as a plain number with no symbols (e.g. "250"). Leave "" if you truly cannot estimate.',
+    '- additionalMessage: use for issues such as unclear image or item not recognized. Leave "" if no issues.',
+    '',
+    'If you cannot identify the item at all, return all fields as "" and explain in additionalMessage.'
+].join('\n');
+
+// Pending data while the review modal is open
+var houseLlmPending = null;  // { parsed, images, targetType ('thing'|'subthing') }
+
+/**
+ * Check if an LLM is configured and show the From Picture section if so.
+ * @param {string} sectionId - the element ID of the From Picture section to show
+ */
+async function houseCheckLlmForModal(sectionId) {
+    try {
+        var doc = await userCol('settings').doc('llm').get();
+        var ok  = doc.exists && doc.data().provider && doc.data().apiKey;
+        document.getElementById(sectionId).classList.toggle('hidden', !ok);
+    } catch (e) { /* leave hidden */ }
+}
+
+/**
+ * Handle file selection for Thing or SubThing identification.
+ * @param {FileList} files
+ * @param {string}   targetType  'thing' or 'subthing'
+ */
+async function houseHandleFromPicture(files, targetType) {
+    if (!files || files.length === 0) return;
+
+    var isThing    = targetType === 'thing';
+    var statusEl   = document.getElementById(isThing ? 'thingPicStatus'    : 'stPicStatus');
+    var saveBtn    = document.getElementById(isThing ? 'thingModalSaveBtn' : 'stModalSaveBtn');
+    var galleryBtn = document.getElementById(isThing ? 'thingPicGalleryBtn': 'stPicGalleryBtn');
+    var cameraBtn  = document.getElementById(isThing ? 'thingPicCameraBtn' : 'stPicCameraBtn');
+    var toggleEl   = document.getElementById(isThing ? 'thingShowResponseToggle' : 'stShowResponseToggle');
+    var modalId    = isThing ? 'thingModal' : 'subThingModal';
+
+    statusEl.textContent = 'Identifying item\u2026';
+    statusEl.classList.remove('hidden');
+    saveBtn.disabled    = true;
+    galleryBtn.disabled = true;
+    cameraBtn.disabled  = true;
+
+    try {
+        // Compress images (up to 4)
+        var images = [];
+        for (var i = 0; i < Math.min(files.length, 4); i++) {
+            images.push(await compressImage(files[i]));
+        }
+
+        // Load LLM config
+        var cfgDoc = await userCol('settings').doc('llm').get();
+        var cfg    = cfgDoc.exists ? cfgDoc.data() : null;
+        if (!cfg || !cfg.provider || !cfg.apiKey) {
+            statusEl.textContent = 'No LLM configured. Go to Settings.';
+            return;
+        }
+        var llm = LLM_PROVIDERS[cfg.provider];
+        if (!llm) { statusEl.textContent = 'Unknown LLM provider.'; return; }
+
+        // Build content: prompt + images
+        var content = [{ type: 'text', text: THING_ID_PROMPT }];
+        images.forEach(function(url) {
+            content.push({ type: 'image_url', image_url: { url: url } });
+        });
+
+        var activeModel  = cfg.model || llm.model;
+        var responseText = await chatCallOpenAICompat(llm, cfg.apiKey, content, activeModel);
+        var parsed       = houseParseLlmResponse(responseText);
+
+        if (toggleEl.checked) {
+            houseLlmPending = { parsed: parsed, images: images, targetType: targetType };
+            statusEl.textContent = '';
+            statusEl.classList.add('hidden');
+            closeModal(modalId);
+            houseShowReviewModal(THING_ID_PROMPT, responseText, parsed);
+        } else {
+            if (!parsed.name && parsed.additionalMessage) {
+                statusEl.textContent = '\u26a0 ' + parsed.additionalMessage;
+                return;
+            }
+            await houseSaveFromLlm(parsed, images, targetType, '');
+            statusEl.textContent = '';
+            statusEl.classList.add('hidden');
+            closeModal(modalId);
+            // Refresh the appropriate list
+            if (isThing && currentRoom)  loadThingsList(currentRoom.id);
+            if (!isThing && currentThing) loadSubThingsList(currentThing.id);
+        }
+
+    } catch (err) {
+        console.error('House item ID error:', err);
+        statusEl.textContent = 'Error: ' + err.message;
+    } finally {
+        saveBtn.disabled    = false;
+        galleryBtn.disabled = false;
+        cameraBtn.disabled  = false;
+        document.getElementById(isThing ? 'thingPicInput' : 'stPicInput').value = '';
+        document.getElementById(isThing ? 'thingCamInput' : 'stCamInput').value = '';
+    }
+}
+
+/**
+ * Parse the LLM's JSON response, stripping accidental markdown fences.
+ */
+function houseParseLlmResponse(text) {
+    try {
+        var clean = text.trim()
+            .replace(/^```json\s*/i, '')
+            .replace(/^```\s*/,      '')
+            .replace(/```\s*$/,      '');
+        return JSON.parse(clean);
+    } catch (e) {
+        return {
+            name: '', description: '', worth: '',
+            additionalMessage: 'Could not parse response: ' + text.substring(0, 120)
+        };
+    }
+}
+
+/**
+ * Show the review modal with prompt, raw response, and parsed fields.
+ */
+function houseShowReviewModal(prompt, rawResponse, parsed) {
+    document.getElementById('thingReviewPromptText').textContent   = prompt;
+    document.getElementById('thingReviewResponseText').textContent = rawResponse;
+    document.getElementById('thingReviewName').value               = parsed.name || '';
+    document.getElementById('reviewThingDescription').textContent  = parsed.description || '—';
+    document.getElementById('reviewThingWorth').textContent        = parsed.worth ? ('$' + parsed.worth) : '—';
+
+    var msgEl = document.getElementById('thingReviewMessage');
+    if (parsed.additionalMessage) {
+        msgEl.textContent = '\u26a0 ' + parsed.additionalMessage;
+        msgEl.classList.remove('hidden');
+    } else {
+        msgEl.classList.add('hidden');
+    }
+
+    openModal('thingLlmReviewModal');
+}
+
+/**
+ * Save the item and photos from the LLM response.
+ * @param {object} parsed       - parsed LLM JSON
+ * @param {string[]} images     - compressed base64 data URLs
+ * @param {string} targetType   - 'thing' or 'subthing'
+ * @param {string} nameOverride - name typed by user in review modal (may be '')
+ */
+async function houseSaveFromLlm(parsed, images, targetType, nameOverride) {
+    var isThing   = targetType === 'thing';
+    var itemName  = (nameOverride || parsed.name || 'Unknown Item').trim();
+    var itemData  = {
+        name        : itemName,
+        description : parsed.description || '',
+        worth       : parsed.worth       || null,
+        createdAt   : firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    var newRef;
+    if (isThing) {
+        if (!currentRoom) throw new Error('No room selected.');
+        itemData.category = 'other';
+        itemData.roomId   = currentRoom.id;
+        newRef = await userCol('things').add(itemData);
+    } else {
+        if (!currentThing) throw new Error('No parent item selected.');
+        itemData.thingId = currentThing.id;
+        itemData.tags    = [];
+        newRef = await userCol('subThings').add(itemData);
+    }
+
+    // Save photos only when identification produced a name
+    var identified = !!(parsed.name || nameOverride);
+    if (identified) {
+        var photoTargetType = isThing ? 'thing' : 'subthing';
+        for (var i = 0; i < images.length; i++) {
+            await userCol('photos').add({
+                targetType : photoTargetType,
+                targetId   : newRef.id,
+                imageData  : images[i],
+                caption    : '',
+                createdAt  : firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+    }
+
+    return newRef.id;
+}
+
+// ---------- Wire-ups ----------
+
+// Thing modal — Gallery / Camera
+document.getElementById('thingPicGalleryBtn').addEventListener('click', function() {
+    document.getElementById('thingPicInput').click();
+});
+document.getElementById('thingPicCameraBtn').addEventListener('click', function() {
+    document.getElementById('thingCamInput').click();
+});
+document.getElementById('thingPicInput').addEventListener('change', function() {
+    if (this.files && this.files.length > 0) houseHandleFromPicture(this.files, 'thing');
+});
+document.getElementById('thingCamInput').addEventListener('change', function() {
+    if (this.files && this.files.length > 0) houseHandleFromPicture(this.files, 'thing');
+});
+
+// SubThing modal — Gallery / Camera
+document.getElementById('stPicGalleryBtn').addEventListener('click', function() {
+    document.getElementById('stPicInput').click();
+});
+document.getElementById('stPicCameraBtn').addEventListener('click', function() {
+    document.getElementById('stCamInput').click();
+});
+document.getElementById('stPicInput').addEventListener('change', function() {
+    if (this.files && this.files.length > 0) houseHandleFromPicture(this.files, 'subthing');
+});
+document.getElementById('stCamInput').addEventListener('change', function() {
+    if (this.files && this.files.length > 0) houseHandleFromPicture(this.files, 'subthing');
+});
+
+// Review modal — Add It
+document.getElementById('thingReviewAddBtn').addEventListener('click', async function() {
+    if (!houseLlmPending) return;
+    var btn          = this;
+    var nameOverride = document.getElementById('thingReviewName').value.trim();
+    btn.disabled     = true;
+    btn.textContent  = 'Saving\u2026';
+    try {
+        await houseSaveFromLlm(houseLlmPending.parsed, houseLlmPending.images,
+                               houseLlmPending.targetType, nameOverride);
+        var isThing = houseLlmPending.targetType === 'thing';
+        houseLlmPending = null;
+        closeModal('thingLlmReviewModal');
+        if (isThing && currentRoom)   loadThingsList(currentRoom.id);
+        if (!isThing && currentThing) loadSubThingsList(currentThing.id);
+    } catch (err) {
+        console.error('Error saving item from LLM:', err);
+        alert('Error saving item. Please try again.');
+        btn.disabled    = false;
+        btn.textContent = 'Add It';
+    }
+});
+
+// Review modal — Cancel
+document.getElementById('thingReviewCancelBtn').addEventListener('click', function() {
+    houseLlmPending = null;
+    closeModal('thingLlmReviewModal');
+});
+document.getElementById('thingLlmReviewModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        houseLlmPending = null;
+        closeModal('thingLlmReviewModal');
+    }
+});

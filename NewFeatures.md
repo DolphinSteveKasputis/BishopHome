@@ -191,7 +191,7 @@ Batch care events (watering a bed, treating all plants in a zone) are common but
 ---
 
 ## NF-10 — Purchase Date on Things
-**Status:** PLANNED
+**Status:** COMPLETE
 
 **What it does:**
 Adds an optional **Purchase Date** field to Thing records in the House section. Displayed on the Thing detail page so you have a simple reference for when an appliance, fixture, or item was acquired.
@@ -244,7 +244,7 @@ When you land on the House page, you can immediately see if anything is coming u
 | NF-7  | Reschedule Overdue Events        | Small      | COMPLETE |
 | NF-8  | Clone a Plant                    | Small      | COMPLETE |
 | NF-9  | Bulk Activity Logging            | Medium     | COMPLETE |
-| NF-10 | Purchase Date on Things          | Very Small | PLANNED |
+| NF-10 | Purchase Date on Things          | Very Small | COMPLETE |
 | NF-11 | Calendar Rollup on House Page    | Small      | PLANNED |
 
 ---

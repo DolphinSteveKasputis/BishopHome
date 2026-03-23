@@ -1059,11 +1059,12 @@ function openThingModal(editId, data) {
         document.getElementById('thingModalTitle').textContent = 'Edit Thing';
         nameInput.value         = data.name || '';
         catSelect.value         = data.category || 'furniture';
-        document.getElementById('thingPricePaidInput').value   = data.pricePaid   || '';
-        document.getElementById('thingWorthInput').value       = data.worth       || '';
-        document.getElementById('thingYearBoughtInput').value  = data.yearBought  || '';
-        document.getElementById('thingDescriptionInput').value = data.description || '';
-        document.getElementById('thingCommentInput').value     = data.comment     || '';
+        document.getElementById('thingPricePaidInput').value    = data.pricePaid    || '';
+        document.getElementById('thingWorthInput').value        = data.worth        || '';
+        document.getElementById('thingYearBoughtInput').value   = data.yearBought   || '';
+        document.getElementById('thingPurchaseDateInput').value = data.purchaseDate || '';
+        document.getElementById('thingDescriptionInput').value  = data.description  || '';
+        document.getElementById('thingCommentInput').value      = data.comment      || '';
         deleteBtn.style.display = '';
         modal.dataset.mode      = 'edit';
         modal.dataset.editId    = editId;
@@ -1071,11 +1072,12 @@ function openThingModal(editId, data) {
         document.getElementById('thingModalTitle').textContent = 'Add Thing';
         nameInput.value         = '';
         catSelect.value         = 'furniture';
-        document.getElementById('thingPricePaidInput').value   = '';
-        document.getElementById('thingWorthInput').value       = '';
-        document.getElementById('thingYearBoughtInput').value  = '';
-        document.getElementById('thingDescriptionInput').value = '';
-        document.getElementById('thingCommentInput').value     = '';
+        document.getElementById('thingPricePaidInput').value    = '';
+        document.getElementById('thingWorthInput').value        = '';
+        document.getElementById('thingYearBoughtInput').value   = '';
+        document.getElementById('thingPurchaseDateInput').value = '';
+        document.getElementById('thingDescriptionInput').value  = '';
+        document.getElementById('thingCommentInput').value      = '';
         deleteBtn.style.display = 'none';
         modal.dataset.mode      = 'add';
         modal.dataset.editId    = '';
@@ -1096,11 +1098,12 @@ document.getElementById('thingModalSaveBtn').addEventListener('click', function(
     var editId = modal.dataset.editId;
 
     var extraFields = {
-        pricePaid:   document.getElementById('thingPricePaidInput').value.trim()   || null,
-        worth:       document.getElementById('thingWorthInput').value.trim()       || null,
-        yearBought:  document.getElementById('thingYearBoughtInput').value.trim()  || null,
-        description: document.getElementById('thingDescriptionInput').value.trim(),
-        comment:     document.getElementById('thingCommentInput').value.trim()
+        pricePaid:    document.getElementById('thingPricePaidInput').value.trim()    || null,
+        worth:        document.getElementById('thingWorthInput').value.trim()        || null,
+        yearBought:   document.getElementById('thingYearBoughtInput').value.trim()   || null,
+        purchaseDate: document.getElementById('thingPurchaseDateInput').value.trim() || null,
+        description:  document.getElementById('thingDescriptionInput').value.trim(),
+        comment:      document.getElementById('thingCommentInput').value.trim()
     };
 
     if (mode === 'edit' && editId) {
@@ -2095,6 +2098,12 @@ function renderInventoryDetails(data, sectionId) {
         rows.push(['Worth',       '$' + data.worth]);
     if (data.yearBought !== null && data.yearBought !== undefined && data.yearBought !== '')
         rows.push(['Year Bought', data.yearBought]);
+    if (data.purchaseDate) {
+        // Format ISO date string as "Month D, YYYY" for readability
+        var pd = new Date(data.purchaseDate + 'T00:00:00');
+        var pdStr = pd.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        rows.push(['Purchased', pdStr]);
+    }
     if (data.description)
         rows.push(['Description', data.description]);
     if (data.comment)

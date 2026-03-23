@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=157">
+    <link rel="stylesheet" href="css/styles.css?v=158">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -1907,9 +1907,15 @@
                     <input type="number" id="thingWorthInput" min="0" step="0.01" placeholder="e.g. 199.99">
                 </div>
             </div>
-            <div class="form-group">
-                <label for="thingYearBoughtInput">Year Bought</label>
-                <input type="number" id="thingYearBoughtInput" min="1900" max="2100" placeholder="e.g. 2022">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="thingYearBoughtInput">Year Bought</label>
+                    <input type="number" id="thingYearBoughtInput" min="1900" max="2100" placeholder="e.g. 2022">
+                </div>
+                <div class="form-group">
+                    <label for="thingPurchaseDateInput">Purchase Date <span class="label-hint">(optional)</span></label>
+                    <input type="date" id="thingPurchaseDateInput">
+                </div>
             </div>
             <div class="form-group">
                 <label for="thingDescriptionInput">Description</label>
@@ -2490,27 +2496,27 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=157"></script>
-    <script src="js/auth.js?v=157"></script>
-    <script src="js/zones.js?v=157"></script>
-    <script src="js/plants.js?v=157"></script>
-    <script src="js/problems.js?v=157"></script>
-    <script src="js/facts.js?v=157"></script>
-    <script src="js/projects.js?v=157"></script>
-    <script src="js/chemicals.js?v=157"></script>
-    <script src="js/activities.js?v=157"></script>
-    <script src="js/photos.js?v=157"></script>
-    <script src="js/weeds.js?v=157"></script>
-    <script src="js/calendar.js?v=157"></script>
-    <script src="js/gps.js?v=157"></script>
-    <script src="js/settings.js?v=157"></script>
-    <script src="js/house.js?v=157"></script>
-    <script src="js/floorplan.js?v=157"></script>
-    <script src="js/search.js?v=157"></script>
-    <script src="js/activityreport.js?v=157"></script>
-    <script src="js/checklists.js?v=157"></script>
-    <script src="js/bulkactivity.js?v=157"></script>
-    <script src="js/app.js?v=157"></script>
+    <script src="js/firebase-config.js?v=158"></script>
+    <script src="js/auth.js?v=158"></script>
+    <script src="js/zones.js?v=158"></script>
+    <script src="js/plants.js?v=158"></script>
+    <script src="js/problems.js?v=158"></script>
+    <script src="js/facts.js?v=158"></script>
+    <script src="js/projects.js?v=158"></script>
+    <script src="js/chemicals.js?v=158"></script>
+    <script src="js/activities.js?v=158"></script>
+    <script src="js/photos.js?v=158"></script>
+    <script src="js/weeds.js?v=158"></script>
+    <script src="js/calendar.js?v=158"></script>
+    <script src="js/gps.js?v=158"></script>
+    <script src="js/settings.js?v=158"></script>
+    <script src="js/house.js?v=158"></script>
+    <script src="js/floorplan.js?v=158"></script>
+    <script src="js/search.js?v=158"></script>
+    <script src="js/activityreport.js?v=158"></script>
+    <script src="js/checklists.js?v=158"></script>
+    <script src="js/bulkactivity.js?v=158"></script>
+    <script src="js/app.js?v=158"></script>
 
 </body>
 </html>

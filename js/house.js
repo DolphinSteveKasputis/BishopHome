@@ -3513,7 +3513,7 @@ async function houseSaveFromLlm(parsed, images, targetType, nameOverride) {
     var newRef;
     if (isThing) {
         if (!currentRoom) throw new Error('No room selected.');
-        itemData.category = 'other';
+        itemData.category = document.getElementById('thingCategorySelect').value || 'other';
         itemData.roomId   = currentRoom.id;
         newRef = await userCol('things').add(itemData);
     } else {

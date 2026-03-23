@@ -2139,6 +2139,32 @@ button {
     height: auto;
 }
 
+/* Electrical & Plumbing tool buttons — tinted to distinguish from structural tools */
+.fp-tool-electrical {
+    border-color: #f0a000;
+    color: #7a4800;
+}
+.fp-tool-electrical:hover, .fp-tool-electrical.active {
+    background: #fff3cc;
+    border-color: #cc8800;
+}
+.fp-tool-electrical.active {
+    background: #cc8800;
+    color: white;
+}
+.fp-tool-plumbing {
+    border-color: #0088cc;
+    color: #004466;
+}
+.fp-tool-plumbing:hover, .fp-tool-plumbing.active {
+    background: #ddeeff;
+    border-color: #0055aa;
+}
+.fp-tool-plumbing.active {
+    background: #0055aa;
+    color: white;
+}
+
 /* Corner position table inside the room edit modal */
 .fp-corner-table {
     width: 100%;

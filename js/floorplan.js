@@ -33,7 +33,8 @@ var fpDrawPoints   = [];     // [{x,y}] in feet — corners placed so far
 var fpPreviewPoint = null;   // {x,y} — live cursor position (snapped, constrained)
 
 // Selection state
-var fpSelectedId   = null;   // ID of selected room shape
+var fpSelectedId   = null;   // ID of selected room shape or marker
+var fpSelectedType = 'room'; // 'room' | 'outlet' | 'switch' | 'plumbing'
 
 // Computed display scale
 var fpPixPerFoot   = 20;
@@ -86,12 +87,15 @@ function loadFloorPlanPage(floorId) {
             if (planDoc.exists) {
                 fpPlan = planDoc.data();
                 // Ensure all arrays exist (backwards compat)
-                if (!fpPlan.rooms)   fpPlan.rooms   = [];
-                if (!fpPlan.doors)   fpPlan.doors   = [];
-                if (!fpPlan.windows) fpPlan.windows = [];
+                if (!fpPlan.rooms)    fpPlan.rooms    = [];
+                if (!fpPlan.doors)    fpPlan.doors    = [];
+                if (!fpPlan.windows)  fpPlan.windows  = [];
+                if (!fpPlan.outlets)  fpPlan.outlets  = [];
+                if (!fpPlan.switches) fpPlan.switches = [];
+                if (!fpPlan.plumbing) fpPlan.plumbing = [];
             } else {
                 // First time — show dimensions dialog, init with defaults
-                fpPlan = { widthFt: 40, heightFt: 30, rooms: [], doors: [], windows: [] };
+                fpPlan = { widthFt: 40, heightFt: 30, rooms: [], doors: [], windows: [], outlets: [], switches: [], plumbing: [] };
                 document.getElementById('fpWidthInput').value  = 40;
                 document.getElementById('fpHeightInput').value = 30;
                 openModal('fpDimensionsModal');
@@ -163,15 +167,24 @@ function fpRender() {
     // Windows
     (fpPlan.windows || []).forEach(function(win) { fpRenderWindow(svg, win); });
 
+    // Electrical & Plumbing markers (Phase H9)
+    (fpPlan.outlets  || []).forEach(function(m) { fpRenderOutlet(svg, m); });
+    (fpPlan.switches || []).forEach(function(m) { fpRenderSwitch(svg, m); });
+    (fpPlan.plumbing || []).forEach(function(m) { fpRenderPlumbing(svg, m); });
+
     // In-progress drawing preview
     if (fpDrawing && fpDrawPoints.length > 0) {
         fpRenderDrawPreview(svg);
     }
 
-    // Update Edit/Delete button visibility
+    // Update Edit/Delete button visibility and labels
     var showSel = !!(fpSelectedId && fpActiveTool === 'select');
     document.getElementById('fpEditRoomBtn').style.display   = showSel ? '' : 'none';
     document.getElementById('fpDeleteRoomBtn').style.display = showSel ? '' : 'none';
+    if (showSel) {
+        document.getElementById('fpEditRoomBtn').textContent =
+            fpSelectedType === 'room' ? 'Edit Room' : 'Edit Marker';
+    }
 }
 
 // ============================================================
@@ -255,6 +268,12 @@ function fpRenderRoom(svg, room) {
             fpPlaceMarkerOnWall(e, room, 'door');
         } else if (fpActiveTool === 'window') {
             fpPlaceMarkerOnWall(e, room, 'window');
+        } else if (fpActiveTool === 'outlet') {
+            fpPlaceMarkerOnWall(e, room, 'outlet');
+        } else if (fpActiveTool === 'switch') {
+            fpPlaceMarkerOnWall(e, room, 'switch');
+        } else if (fpActiveTool === 'plumbing') {
+            fpPlacePlumbingInRoom(e, room);
         }
     });
 
@@ -681,7 +700,8 @@ document.getElementById('fpRoomLinkCancelBtn').addEventListener('click', functio
 // ============================================================
 
 function fpSelectShape(shapeId) {
-    fpSelectedId = (fpSelectedId === shapeId) ? null : shapeId;
+    fpSelectedId   = (fpSelectedId === shapeId && fpSelectedType === 'room') ? null : shapeId;
+    fpSelectedType = 'room';
     fpRender();
     if (fpSelectedId) {
         var room = (fpPlan.rooms || []).find(function(r) { return r.id === fpSelectedId; });
@@ -753,19 +773,35 @@ document.getElementById('fpRoomEditCancelBtn').addEventListener('click', functio
 
 function fpDeleteSelected() {
     if (!fpSelectedId) return;
-    var room = (fpPlan.rooms || []).find(function(r) { return r.id === fpSelectedId; });
-    var name = room ? '"' + room.label + '"' : 'this room';
-    if (!confirm('Remove ' + name + ' from the floor plan?\n(The room record in the database is NOT deleted — only the drawing is removed.)')) return;
 
-    fpPlan.rooms   = (fpPlan.rooms   || []).filter(function(r) { return r.id !== fpSelectedId; });
-    // Remove doors/windows associated with this room shape
-    fpPlan.doors   = (fpPlan.doors   || []).filter(function(d) { return d.roomId !== fpSelectedId; });
-    fpPlan.windows = (fpPlan.windows || []).filter(function(w) { return w.roomId !== fpSelectedId; });
+    if (fpSelectedType === 'room') {
+        var room = (fpPlan.rooms || []).find(function(r) { return r.id === fpSelectedId; });
+        var name = room ? '"' + room.label + '"' : 'this room';
+        if (!confirm('Remove ' + name + ' from the floor plan?\n(The room record is NOT deleted — only the drawing is removed.)')) return;
+        fpPlan.rooms    = (fpPlan.rooms    || []).filter(function(r) { return r.id !== fpSelectedId; });
+        fpPlan.doors    = (fpPlan.doors    || []).filter(function(d) { return d.roomId !== fpSelectedId; });
+        fpPlan.windows  = (fpPlan.windows  || []).filter(function(w) { return w.roomId !== fpSelectedId; });
+        fpPlan.outlets  = (fpPlan.outlets  || []).filter(function(m) { return m.roomId !== fpSelectedId; });
+        fpPlan.switches = (fpPlan.switches || []).filter(function(m) { return m.roomId !== fpSelectedId; });
+        fpPlan.plumbing = (fpPlan.plumbing || []).filter(function(m) { return m.roomId !== fpSelectedId; });
+        fpSetStatus('Room removed from floor plan.');
+    } else if (fpSelectedType === 'outlet') {
+        if (!confirm('Delete this outlet marker?')) return;
+        fpPlan.outlets = (fpPlan.outlets || []).filter(function(m) { return m.id !== fpSelectedId; });
+        fpSetStatus('Outlet removed.');
+    } else if (fpSelectedType === 'switch') {
+        if (!confirm('Delete this switch marker?')) return;
+        fpPlan.switches = (fpPlan.switches || []).filter(function(m) { return m.id !== fpSelectedId; });
+        fpSetStatus('Switch removed.');
+    } else if (fpSelectedType === 'plumbing') {
+        if (!confirm('Delete this plumbing fixture?')) return;
+        fpPlan.plumbing = (fpPlan.plumbing || []).filter(function(m) { return m.id !== fpSelectedId; });
+        fpSetStatus('Plumbing fixture removed.');
+    }
 
     fpSelectedId = null;
     fpDirty = true;
     fpRender();
-    fpSetStatus('Room removed from floor plan.');
 }
 
 // ============================================================
@@ -808,13 +844,17 @@ function fpPlaceMarkerOnWall(e, room, markerType) {
         document.getElementById('fpDoorWidthInput').value = 3;
         document.getElementById('fpDoorSwingSelect').value = 'inward-left';
         openModal('fpDoorModal');
-    } else {
+    } else if (markerType === 'window') {
         var wModal = document.getElementById('fpWindowModal');
         wModal.dataset.roomId   = room.id;
         wModal.dataset.segIndex = bestSeg;
         wModal.dataset.position = bestT.toFixed(3);
         document.getElementById('fpWindowWidthInput').value = 3;
         openModal('fpWindowModal');
+    } else if (markerType === 'outlet') {
+        fpOpenOutletModal(null, { roomId: room.id, segmentIndex: bestSeg, position: bestT });
+    } else if (markerType === 'switch') {
+        fpOpenSwitchModal(null, { roomId: room.id, segmentIndex: bestSeg, position: bestT });
     }
 }
 
@@ -901,7 +941,9 @@ document.getElementById('fpDimensionsCancelBtn').addEventListener('click', funct
 // TOOL SELECTION
 // ============================================================
 
-['fpToolSelect', 'fpToolRoom', 'fpToolDoor', 'fpToolWindow'].forEach(function(id) {
+var FP_ALL_TOOLS = ['fpToolSelect','fpToolRoom','fpToolDoor','fpToolWindow','fpToolOutlet','fpToolSwitch','fpToolPlumbing'];
+
+FP_ALL_TOOLS.forEach(function(id) {
     var btn = document.getElementById(id);
     if (btn) btn.addEventListener('click', function() { fpSetTool(btn.dataset.tool); });
 });
@@ -916,7 +958,7 @@ function fpSetTool(tool) {
     }
 
     // Update button active states
-    ['fpToolSelect', 'fpToolRoom', 'fpToolDoor', 'fpToolWindow'].forEach(function(id) {
+    FP_ALL_TOOLS.forEach(function(id) {
         var btn = document.getElementById(id);
         if (btn) btn.classList.toggle('active', btn.dataset.tool === tool);
     });
@@ -925,10 +967,13 @@ function fpSetTool(tool) {
     svg.style.cursor = (tool === 'select') ? 'default' : 'crosshair';
 
     var hints = {
-        select:  'Click a room to select it.  Double-click to go to the room page.  Drag corner handles to reshape.',
-        room:    'Click to place corners.  Segments auto-snap to horizontal/vertical.  Double-click to finish.',
-        door:    'Click on any wall edge to place a door.',
-        window:  'Click on any wall edge to place a window.'
+        select:   'Click a room or marker to select it.  Double-click room to go to room page.  Drag corner handles to reshape.',
+        room:     'Click to place corners.  Segments auto-snap to horizontal/vertical.  Double-click to finish.',
+        door:     'Click on any wall edge to place a door.',
+        window:   'Click on any wall edge to place a window.',
+        outlet:   'Click on any wall edge to place an outlet.',
+        switch:   'Click on any wall edge to place a switch.',
+        plumbing: 'Click inside a room to place a plumbing fixture (toilet, sink, etc.).'
     };
     fpSetStatus(hints[tool] || '');
     fpRender();
@@ -943,7 +988,11 @@ document.getElementById('fpGridToggle').addEventListener('change', function() {
 });
 
 document.getElementById('fpEditRoomBtn').addEventListener('click', function() {
-    fpOpenRoomEditModal();
+    if (fpSelectedType === 'room') {
+        fpOpenRoomEditModal();
+    } else {
+        fpOpenMarkerEditModal(fpSelectedType, fpSelectedId);
+    }
 });
 
 document.getElementById('fpDeleteRoomBtn').addEventListener('click', function() {
@@ -967,9 +1016,12 @@ function fpSave() {
     db.collection('floorPlans').doc(fpFloorId).set({
         widthFt:   fpPlan.widthFt,
         heightFt:  fpPlan.heightFt,
-        rooms:     fpPlan.rooms   || [],
-        doors:     fpPlan.doors   || [],
-        windows:   fpPlan.windows || [],
+        rooms:     fpPlan.rooms    || [],
+        doors:     fpPlan.doors    || [],
+        windows:   fpPlan.windows  || [],
+        outlets:   fpPlan.outlets  || [],
+        switches:  fpPlan.switches || [],
+        plumbing:  fpPlan.plumbing || [],
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     })
     .then(function() {
@@ -1259,3 +1311,515 @@ function fpSvgG(parent, className) {
     parent.appendChild(g);
     return g;
 }
+
+// ============================================================
+// PHASE H9 — ELECTRICAL & PLUMBING MARKERS
+// ============================================================
+
+// ---- Outlet Rendering ----
+// Symbol: small filled circle on the wall + two short parallel tick marks
+// GFCI outlets get an extra small rectangle label below.
+
+function fpRenderOutlet(svg, outlet) {
+    var room = (fpPlan.rooms || []).find(function(r) { return r.id === outlet.roomId; });
+    if (!room || !room.points) return;
+    var seg = fpGetSegment(room.points, outlet.segmentIndex);
+    if (!seg) return;
+
+    var info = fpWallMetrics(seg, outlet.position, 0);
+    if (!info) return;
+
+    var cx = info.hinge.x;
+    var cy = info.hinge.y;
+    var isSelected = (fpSelectedId === outlet.id && fpSelectedType === 'outlet');
+    var r = 6;
+
+    // Circle body
+    fpSvgEl(svg, 'circle', {
+        cx: cx, cy: cy, r: r,
+        fill: isSelected ? '#ffcc00' : 'white',
+        stroke: isSelected ? '#cc8800' : '#333',
+        'stroke-width': isSelected ? 2.5 : 1.5,
+        style: 'cursor:pointer'
+    }).addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (fpActiveTool === 'select') fpSelectMarker('outlet', outlet.id);
+    });
+
+    // Two small slots (horizontal ticks across the wall direction)
+    var ox = info.nx * r * 0.5;
+    var oy = info.ny * r * 0.5;
+    [-1, 1].forEach(function(sign) {
+        fpSvgEl(svg, 'line', {
+            x1: cx + sign * ox - info.ny * 2,
+            y1: cy + sign * oy + info.nx * 2,
+            x2: cx + sign * ox + info.ny * 2,
+            y2: cy + sign * oy - info.nx * 2,
+            stroke: '#333', 'stroke-width': 1.5, 'pointer-events': 'none'
+        });
+    });
+
+    // Type label for non-standard outlets
+    if (outlet.type && outlet.type !== 'standard') {
+        var abbr = { gfci: 'GFI', '220v': '220', usb: 'USB', combo: 'CO' };
+        var lbl  = (abbr[outlet.type] || outlet.type.substring(0, 3).toUpperCase());
+        var txt  = fpSvgEl(svg, 'text', {
+            x: cx, y: cy + r + 8,
+            'text-anchor': 'middle', 'font-size': 7, fill: '#0044aa',
+            'pointer-events': 'none'
+        });
+        txt.textContent = lbl;
+    }
+
+    // Circuit badge
+    if (outlet.circuit) {
+        var cb = fpSvgEl(svg, 'text', {
+            x: cx, y: cy - r - 3,
+            'text-anchor': 'middle', 'font-size': 7, fill: '#666',
+            'pointer-events': 'none'
+        });
+        cb.textContent = outlet.circuit;
+    }
+}
+
+// ---- Switch Rendering ----
+// Symbol: small rectangle with an 'S' inside, placed on the wall
+
+function fpRenderSwitch(svg, sw) {
+    var room = (fpPlan.rooms || []).find(function(r) { return r.id === sw.roomId; });
+    if (!room || !room.points) return;
+    var seg = fpGetSegment(room.points, sw.segmentIndex);
+    if (!seg) return;
+
+    var info = fpWallMetrics(seg, sw.position, 0);
+    if (!info) return;
+
+    var cx = info.hinge.x;
+    var cy = info.hinge.y;
+    var isSelected = (fpSelectedId === sw.id && fpSelectedType === 'switch');
+    var hw = 7, hh = 9;  // half-width, half-height of the rectangle
+
+    // Rectangle
+    fpSvgEl(svg, 'rect', {
+        x: cx - hw, y: cy - hh,
+        width: hw * 2, height: hh * 2,
+        fill: isSelected ? '#ffcc00' : 'white',
+        stroke: isSelected ? '#cc8800' : '#333',
+        'stroke-width': isSelected ? 2 : 1.5,
+        rx: 1, style: 'cursor:pointer'
+    }).addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (fpActiveTool === 'select') fpSelectMarker('switch', sw.id);
+    });
+
+    // 'S' label
+    var stxt = fpSvgEl(svg, 'text', {
+        x: cx, y: cy + 1,
+        'text-anchor': 'middle', 'dominant-baseline': 'middle',
+        'font-size': 9, 'font-weight': 'bold', fill: '#333',
+        'pointer-events': 'none'
+    });
+    stxt.textContent = 'S';
+
+    // Dimmer indicator
+    if (sw.type === 'dimmer') {
+        fpSvgEl(svg, 'line', {
+            x1: cx - hw + 2, y1: cy + hh + 3,
+            x2: cx + hw - 2, y2: cy + hh + 3,
+            stroke: '#666', 'stroke-width': 1, 'pointer-events': 'none'
+        });
+    }
+
+    // Circuit badge
+    if (sw.circuit) {
+        var cb = fpSvgEl(svg, 'text', {
+            x: cx, y: cy - hh - 3,
+            'text-anchor': 'middle', 'font-size': 7, fill: '#666',
+            'pointer-events': 'none'
+        });
+        cb.textContent = sw.circuit;
+    }
+}
+
+// ---- Plumbing Rendering ----
+// Each fixture type has its own shape drawn at (x, y) in feet.
+
+var FP_PLUMBING_LABELS = {
+    toilet:    'WC',
+    sink:      'Sink',
+    bathtub:   'Tub',
+    shower:    'Shwr',
+    drain:     'Dr',
+    waterheater: 'WH',
+    washer:    'W',
+    dryer:     'D'
+};
+
+function fpRenderPlumbing(svg, fix) {
+    var cx = fp2px(fix.x);
+    var cy = fp2px(fix.y);
+    var isSelected = (fpSelectedId === fix.id && fpSelectedType === 'plumbing');
+    var stroke = isSelected ? '#cc8800' : '#0055aa';
+    var fill   = isSelected ? '#fff3cc' : '#ddeeff';
+    var sw     = isSelected ? 2.5 : 1.5;
+
+    var g = fpSvgG(svg, 'fp-plumbing');
+    g.style.cursor = 'pointer';
+    g.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (fpActiveTool === 'select') fpSelectMarker('plumbing', fix.id);
+    });
+
+    var type = fix.fixtureType || 'sink';
+
+    if (type === 'toilet') {
+        // Oval (bowl) + small rect (tank)
+        fpSvgEl(g, 'ellipse', { cx: cx, cy: cy + 6, rx: 9, ry: 12, fill: fill, stroke: stroke, 'stroke-width': sw });
+        fpSvgEl(g, 'rect', { x: cx - 8, y: cy - 16, width: 16, height: 10, rx: 2, fill: fill, stroke: stroke, 'stroke-width': sw });
+
+    } else if (type === 'sink') {
+        fpSvgEl(g, 'rect', { x: cx - 10, y: cy - 8, width: 20, height: 16, rx: 3, fill: fill, stroke: stroke, 'stroke-width': sw });
+        fpSvgEl(g, 'circle', { cx: cx, cy: cy, r: 3, fill: stroke, 'stroke-width': 0 }); // drain
+
+    } else if (type === 'bathtub') {
+        fpSvgEl(g, 'rect', { x: cx - 10, y: cy - 20, width: 20, height: 38, rx: 8, fill: fill, stroke: stroke, 'stroke-width': sw });
+
+    } else if (type === 'shower') {
+        fpSvgEl(g, 'rect', { x: cx - 12, y: cy - 12, width: 24, height: 24, fill: fill, stroke: stroke, 'stroke-width': sw });
+        // Diagonal corner cuts
+        fpSvgEl(g, 'line', { x1: cx - 12, y1: cy - 4, x2: cx - 4, y2: cy - 12, stroke: stroke, 'stroke-width': sw });
+        fpSvgEl(g, 'line', { x1: cx + 4,  y1: cy - 12, x2: cx + 12, y2: cy - 4, stroke: stroke, 'stroke-width': sw });
+
+    } else if (type === 'drain') {
+        fpSvgEl(g, 'circle', { cx: cx, cy: cy, r: 7, fill: fill, stroke: stroke, 'stroke-width': sw });
+        fpSvgEl(g, 'line', { x1: cx - 5, y1: cy - 5, x2: cx + 5, y2: cy + 5, stroke: stroke, 'stroke-width': sw });
+        fpSvgEl(g, 'line', { x1: cx + 5, y1: cy - 5, x2: cx - 5, y2: cy + 5, stroke: stroke, 'stroke-width': sw });
+
+    } else if (type === 'waterheater') {
+        fpSvgEl(g, 'circle', { cx: cx, cy: cy, r: 13, fill: fill, stroke: stroke, 'stroke-width': sw });
+
+    } else if (type === 'washer' || type === 'dryer') {
+        fpSvgEl(g, 'rect', { x: cx - 12, y: cy - 12, width: 24, height: 24, rx: 2, fill: fill, stroke: stroke, 'stroke-width': sw });
+        fpSvgEl(g, 'circle', { cx: cx, cy: cy, r: 8, fill: 'none', stroke: stroke, 'stroke-width': sw });
+
+    } else {
+        // Generic square
+        fpSvgEl(g, 'rect', { x: cx - 10, y: cy - 10, width: 20, height: 20, fill: fill, stroke: stroke, 'stroke-width': sw });
+    }
+
+    // Label below fixture
+    var lbl = fpSvgEl(g, 'text', {
+        x: cx, y: cy + 22,
+        'text-anchor': 'middle', 'font-size': 8, fill: '#0044aa',
+        'pointer-events': 'none'
+    });
+    lbl.textContent = FP_PLUMBING_LABELS[type] || type;
+}
+
+// ---- Marker Selection ----
+
+function fpSelectMarker(type, id) {
+    if (fpSelectedId === id && fpSelectedType === type) {
+        fpSelectedId   = null;
+        fpSelectedType = 'room';
+        fpSetStatus('Ready.');
+    } else {
+        fpSelectedId   = id;
+        fpSelectedType = type;
+        fpSetStatus(type.charAt(0).toUpperCase() + type.slice(1) + ' selected. Edit Marker to view/edit properties. Delete or Remove to delete.');
+    }
+    fpRender();
+}
+
+// ---- Plumbing floor-placement (click inside room) ----
+
+function fpPlacePlumbingInRoom(e, room) {
+    var pt = fpMouseToFeet(e);
+
+    // Verify the click is inside the room polygon
+    if (!fpPointInPolygon(pt, room.points)) {
+        fpSetStatus('Click inside a room to place a plumbing fixture.');
+        return;
+    }
+
+    var modal = document.getElementById('fpPlumbingModal');
+    modal.dataset.mode   = 'add';
+    modal.dataset.roomId = room.id;
+    modal.dataset.x      = pt.x.toFixed(3);
+    modal.dataset.y      = pt.y.toFixed(3);
+    modal.dataset.editId = '';
+
+    // Reset form
+    document.getElementById('fpPlumbingTypeSelect').value   = 'toilet';
+    document.getElementById('fpPlumbingShutoffInput').value = '';
+    document.getElementById('fpPlumbingSupplySelect').value = '';
+    document.getElementById('fpPlumbingNotesInput').value   = '';
+    document.getElementById('fpPlumbingProblemsSection').style.display = 'none';
+
+    openModal('fpPlumbingModal');
+}
+
+// ---- Point-in-polygon test (ray casting) ----
+
+function fpPointInPolygon(pt, points) {
+    var x = pt.x, y = pt.y;
+    var inside = false;
+    for (var i = 0, j = points.length - 1; i < points.length; j = i++) {
+        var xi = points[i].x, yi = points[i].y;
+        var xj = points[j].x, yj = points[j].y;
+        if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) {
+            inside = !inside;
+        }
+    }
+    return inside;
+}
+
+// ---- Open marker edit modal ----
+
+function fpOpenMarkerEditModal(type, id) {
+    if (type === 'outlet') {
+        var outlet = (fpPlan.outlets || []).find(function(m) { return m.id === id; });
+        if (!outlet) return;
+        fpOpenOutletModal(id, outlet);
+    } else if (type === 'switch') {
+        var sw = (fpPlan.switches || []).find(function(m) { return m.id === id; });
+        if (!sw) return;
+        fpOpenSwitchModal(id, sw);
+    } else if (type === 'plumbing') {
+        var fix = (fpPlan.plumbing || []).find(function(m) { return m.id === id; });
+        if (!fix) return;
+        fpOpenPlumbingEditModal(id, fix);
+    }
+}
+
+// ============================================================
+// OUTLET MODAL
+// ============================================================
+
+/**
+ * Open the outlet add/edit modal.
+ * @param {string|null} editId   - existing outlet ID, or null for new
+ * @param {object}      data     - existing data (or pending wall position for new)
+ */
+function fpOpenOutletModal(editId, data) {
+    var modal = document.getElementById('fpOutletModal');
+    modal.dataset.editId = editId || '';
+
+    if (editId) {
+        // Edit mode
+        document.getElementById('fpOutletModalTitle').textContent = 'Edit Outlet';
+        document.getElementById('fpOutletTypeSelect').value    = data.type    || 'standard';
+        document.getElementById('fpOutletCircuitInput').value  = data.circuit || '';
+        document.getElementById('fpOutletNotesInput').value    = data.notes   || '';
+        // Store wall position from existing marker
+        modal.dataset.roomId     = data.roomId;
+        modal.dataset.segIndex   = data.segmentIndex;
+        modal.dataset.position   = data.position;
+        // Show problems section
+        document.getElementById('fpOutletProblemsSection').style.display = '';
+        loadProblems('outlet', editId,
+            'fpOutletProblemsContainer', 'fpOutletProblemsEmptyState');
+    } else {
+        // Add mode
+        document.getElementById('fpOutletModalTitle').textContent = 'Add Outlet';
+        document.getElementById('fpOutletTypeSelect').value   = 'standard';
+        document.getElementById('fpOutletCircuitInput').value = '';
+        document.getElementById('fpOutletNotesInput').value   = '';
+        modal.dataset.roomId   = data.roomId;
+        modal.dataset.segIndex = data.segmentIndex;
+        modal.dataset.position = data.position;
+        document.getElementById('fpOutletProblemsSection').style.display = 'none';
+    }
+
+    openModal('fpOutletModal');
+}
+
+document.getElementById('fpOutletSaveBtn').addEventListener('click', function() {
+    var modal   = document.getElementById('fpOutletModal');
+    var editId  = modal.dataset.editId;
+
+    var props = {
+        type:         document.getElementById('fpOutletTypeSelect').value,
+        circuit:      document.getElementById('fpOutletCircuitInput').value.trim(),
+        notes:        document.getElementById('fpOutletNotesInput').value.trim(),
+        roomId:       modal.dataset.roomId,
+        segmentIndex: parseInt(modal.dataset.segIndex, 10),
+        position:     parseFloat(modal.dataset.position)
+    };
+
+    if (editId) {
+        // Update existing
+        var outlet = (fpPlan.outlets || []).find(function(m) { return m.id === editId; });
+        if (outlet) Object.assign(outlet, props);
+    } else {
+        // Add new
+        props.id = fpGenId();
+        if (!fpPlan.outlets) fpPlan.outlets = [];
+        fpPlan.outlets.push(props);
+    }
+
+    fpDirty = true;
+    closeModal('fpOutletModal');
+    fpRender();
+    fpSetStatus('Outlet saved.');
+});
+
+document.getElementById('fpOutletCancelBtn').addEventListener('click', function() {
+    closeModal('fpOutletModal');
+});
+
+document.getElementById('fpOutletAddProblemBtn').addEventListener('click', function() {
+    var editId = document.getElementById('fpOutletModal').dataset.editId;
+    if (!editId) return;
+    if (typeof openAddProblemModal === 'function') {
+        openAddProblemModal('outlet', editId, function() {
+            loadProblems('outlet', editId, 'fpOutletProblemsContainer', 'fpOutletProblemsEmptyState');
+        });
+    }
+});
+
+// ============================================================
+// SWITCH MODAL
+// ============================================================
+
+function fpOpenSwitchModal(editId, data) {
+    var modal = document.getElementById('fpSwitchModal');
+    modal.dataset.editId = editId || '';
+
+    if (editId) {
+        document.getElementById('fpSwitchModalTitle').textContent = 'Edit Switch';
+        document.getElementById('fpSwitchTypeSelect').value    = data.type    || 'single-pole';
+        document.getElementById('fpSwitchControlsInput').value = data.controls || '';
+        document.getElementById('fpSwitchCircuitInput').value  = data.circuit  || '';
+        document.getElementById('fpSwitchNotesInput').value    = data.notes    || '';
+        modal.dataset.roomId   = data.roomId;
+        modal.dataset.segIndex = data.segmentIndex;
+        modal.dataset.position = data.position;
+        document.getElementById('fpSwitchProblemsSection').style.display = '';
+        loadProblems('switch', editId,
+            'fpSwitchProblemsContainer', 'fpSwitchProblemsEmptyState');
+    } else {
+        document.getElementById('fpSwitchModalTitle').textContent = 'Add Switch';
+        document.getElementById('fpSwitchTypeSelect').value   = 'single-pole';
+        document.getElementById('fpSwitchControlsInput').value = '';
+        document.getElementById('fpSwitchCircuitInput').value = '';
+        document.getElementById('fpSwitchNotesInput').value   = '';
+        modal.dataset.roomId   = data.roomId;
+        modal.dataset.segIndex = data.segmentIndex;
+        modal.dataset.position = data.position;
+        document.getElementById('fpSwitchProblemsSection').style.display = 'none';
+    }
+
+    openModal('fpSwitchModal');
+}
+
+document.getElementById('fpSwitchSaveBtn').addEventListener('click', function() {
+    var modal  = document.getElementById('fpSwitchModal');
+    var editId = modal.dataset.editId;
+
+    var props = {
+        type:         document.getElementById('fpSwitchTypeSelect').value,
+        controls:     document.getElementById('fpSwitchControlsInput').value.trim(),
+        circuit:      document.getElementById('fpSwitchCircuitInput').value.trim(),
+        notes:        document.getElementById('fpSwitchNotesInput').value.trim(),
+        roomId:       modal.dataset.roomId,
+        segmentIndex: parseInt(modal.dataset.segIndex, 10),
+        position:     parseFloat(modal.dataset.position)
+    };
+
+    if (editId) {
+        var sw = (fpPlan.switches || []).find(function(m) { return m.id === editId; });
+        if (sw) Object.assign(sw, props);
+    } else {
+        props.id = fpGenId();
+        if (!fpPlan.switches) fpPlan.switches = [];
+        fpPlan.switches.push(props);
+    }
+
+    fpDirty = true;
+    closeModal('fpSwitchModal');
+    fpRender();
+    fpSetStatus('Switch saved.');
+});
+
+document.getElementById('fpSwitchCancelBtn').addEventListener('click', function() {
+    closeModal('fpSwitchModal');
+});
+
+document.getElementById('fpSwitchAddProblemBtn').addEventListener('click', function() {
+    var editId = document.getElementById('fpSwitchModal').dataset.editId;
+    if (!editId) return;
+    if (typeof openAddProblemModal === 'function') {
+        openAddProblemModal('switch', editId, function() {
+            loadProblems('switch', editId, 'fpSwitchProblemsContainer', 'fpSwitchProblemsEmptyState');
+        });
+    }
+});
+
+// ============================================================
+// PLUMBING MODAL
+// ============================================================
+
+function fpOpenPlumbingEditModal(editId, data) {
+    var modal = document.getElementById('fpPlumbingModal');
+    modal.dataset.mode   = 'edit';
+    modal.dataset.editId = editId;
+    modal.dataset.roomId = data.roomId;
+    modal.dataset.x      = data.x;
+    modal.dataset.y      = data.y;
+
+    document.getElementById('fpPlumbingTypeSelect').value   = data.fixtureType  || 'sink';
+    document.getElementById('fpPlumbingShutoffInput').value = data.shutoff      || '';
+    document.getElementById('fpPlumbingSupplySelect').value = data.supplyLine   || '';
+    document.getElementById('fpPlumbingNotesInput').value   = data.notes        || '';
+    document.getElementById('fpPlumbingProblemsSection').style.display = '';
+    loadProblems('plumbing', editId,
+        'fpPlumbingProblemsContainer', 'fpPlumbingProblemsEmptyState');
+
+    openModal('fpPlumbingModal');
+}
+
+document.getElementById('fpPlumbingSaveBtn').addEventListener('click', function() {
+    var modal  = document.getElementById('fpPlumbingModal');
+    var editId = modal.dataset.editId;
+    var mode   = modal.dataset.mode;
+
+    var props = {
+        fixtureType: document.getElementById('fpPlumbingTypeSelect').value,
+        shutoff:     document.getElementById('fpPlumbingShutoffInput').value.trim(),
+        supplyLine:  document.getElementById('fpPlumbingSupplySelect').value,
+        notes:       document.getElementById('fpPlumbingNotesInput').value.trim(),
+        roomId:      modal.dataset.roomId,
+        x:           parseFloat(modal.dataset.x),
+        y:           parseFloat(modal.dataset.y)
+    };
+
+    if (mode === 'edit' && editId) {
+        var fix = (fpPlan.plumbing || []).find(function(m) { return m.id === editId; });
+        if (fix) Object.assign(fix, props);
+    } else {
+        props.id = fpGenId();
+        if (!fpPlan.plumbing) fpPlan.plumbing = [];
+        fpPlan.plumbing.push(props);
+    }
+
+    fpDirty = true;
+    closeModal('fpPlumbingModal');
+    fpRender();
+    fpSetStatus('Plumbing fixture saved.');
+});
+
+document.getElementById('fpPlumbingCancelBtn').addEventListener('click', function() {
+    closeModal('fpPlumbingModal');
+});
+
+document.getElementById('fpPlumbingAddProblemBtn').addEventListener('click', function() {
+    var modal  = document.getElementById('fpPlumbingModal');
+    var editId = modal.dataset.editId;
+    if (!editId) return;
+    if (typeof openAddProblemModal === 'function') {
+        openAddProblemModal('plumbing', editId, function() {
+            loadProblems('plumbing', editId, 'fpPlumbingProblemsContainer', 'fpPlumbingProblemsEmptyState');
+        });
+    }
+});

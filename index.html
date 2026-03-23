@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=119">
+    <link rel="stylesheet" href="css/styles.css?v=120">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -661,6 +661,10 @@
                 <button class="fp-tool-btn" id="fpToolRoom" data-tool="room">⬜ Room</button>
                 <button class="fp-tool-btn" id="fpToolDoor" data-tool="door">🚪 Door</button>
                 <button class="fp-tool-btn" id="fpToolWindow" data-tool="window">🪟 Window</button>
+                <span class="fp-tool-sep"></span>
+                <button class="fp-tool-btn fp-tool-electrical" id="fpToolOutlet" data-tool="outlet">⚡ Outlet</button>
+                <button class="fp-tool-btn fp-tool-electrical" id="fpToolSwitch" data-tool="switch">💡 Switch</button>
+                <button class="fp-tool-btn fp-tool-plumbing" id="fpToolPlumbing" data-tool="plumbing">🚿 Plumbing</button>
                 <span class="fp-tool-sep"></span>
                 <button id="fpEditRoomBtn" class="btn btn-secondary btn-small" style="display:none">Edit Room</button>
                 <button id="fpDeleteRoomBtn" class="btn btn-danger btn-small" style="display:none">Remove</button>
@@ -1580,27 +1584,163 @@
         </div>
     </div>
 
+    <!-- Outlet Modal (Phase H9) -->
+    <div class="modal-overlay" id="fpOutletModal">
+        <div class="modal">
+            <h3 id="fpOutletModalTitle">Add Outlet</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="fpOutletTypeSelect">Type</label>
+                    <select id="fpOutletTypeSelect">
+                        <option value="standard">Standard</option>
+                        <option value="gfci">GFCI</option>
+                        <option value="220v">220V</option>
+                        <option value="usb">USB</option>
+                        <option value="combo">Combination</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="fpOutletCircuitInput">Circuit / Breaker #</label>
+                    <input type="text" id="fpOutletCircuitInput" placeholder="e.g. 12">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="fpOutletNotesInput">Notes</label>
+                <textarea id="fpOutletNotesInput" rows="2" placeholder="Optional notes"></textarea>
+            </div>
+            <!-- Problems section (shown in edit mode) -->
+            <div id="fpOutletProblemsSection" style="display:none">
+                <div class="section-header" style="margin-top:12px">
+                    <h4 class="section-heading" style="font-size:0.95rem">Problems / Concerns</h4>
+                    <button class="btn btn-primary btn-small" id="fpOutletAddProblemBtn">+ Add</button>
+                </div>
+                <div id="fpOutletProblemsContainer"></div>
+                <p class="empty-state" id="fpOutletProblemsEmptyState"></p>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="fpOutletCancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="fpOutletSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Switch Modal (Phase H9) -->
+    <div class="modal-overlay" id="fpSwitchModal">
+        <div class="modal">
+            <h3 id="fpSwitchModalTitle">Add Switch</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="fpSwitchTypeSelect">Type</label>
+                    <select id="fpSwitchTypeSelect">
+                        <option value="single-pole">Single-pole</option>
+                        <option value="3-way">3-Way</option>
+                        <option value="dimmer">Dimmer</option>
+                        <option value="smart">Smart</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="fpSwitchCircuitInput">Circuit / Breaker #</label>
+                    <input type="text" id="fpSwitchCircuitInput" placeholder="e.g. 12">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="fpSwitchControlsInput">Controls (what it operates)</label>
+                <input type="text" id="fpSwitchControlsInput" placeholder="e.g. Ceiling fan, Hallway lights">
+            </div>
+            <div class="form-group">
+                <label for="fpSwitchNotesInput">Notes</label>
+                <textarea id="fpSwitchNotesInput" rows="2" placeholder="Optional notes"></textarea>
+            </div>
+            <!-- Problems section (shown in edit mode) -->
+            <div id="fpSwitchProblemsSection" style="display:none">
+                <div class="section-header" style="margin-top:12px">
+                    <h4 class="section-heading" style="font-size:0.95rem">Problems / Concerns</h4>
+                    <button class="btn btn-primary btn-small" id="fpSwitchAddProblemBtn">+ Add</button>
+                </div>
+                <div id="fpSwitchProblemsContainer"></div>
+                <p class="empty-state" id="fpSwitchProblemsEmptyState"></p>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="fpSwitchCancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="fpSwitchSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Plumbing Modal (Phase H9) -->
+    <div class="modal-overlay" id="fpPlumbingModal">
+        <div class="modal">
+            <h3>Plumbing Fixture</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="fpPlumbingTypeSelect">Fixture Type</label>
+                    <select id="fpPlumbingTypeSelect">
+                        <option value="toilet">Toilet</option>
+                        <option value="sink">Sink / Vanity</option>
+                        <option value="bathtub">Bathtub</option>
+                        <option value="shower">Shower</option>
+                        <option value="drain">Floor Drain</option>
+                        <option value="waterheater">Water Heater</option>
+                        <option value="washer">Washer hookup</option>
+                        <option value="dryer">Dryer hookup</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="fpPlumbingSupplySelect">Supply Line Type</label>
+                    <select id="fpPlumbingSupplySelect">
+                        <option value="">Unknown</option>
+                        <option value="copper">Copper</option>
+                        <option value="pex">PEX</option>
+                        <option value="cpvc">CPVC</option>
+                        <option value="galvanized">Galvanized</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="fpPlumbingShutoffInput">Shut-off valve location</label>
+                <input type="text" id="fpPlumbingShutoffInput" placeholder="e.g. Under sink, right side">
+            </div>
+            <div class="form-group">
+                <label for="fpPlumbingNotesInput">Notes</label>
+                <textarea id="fpPlumbingNotesInput" rows="2" placeholder="Optional notes"></textarea>
+            </div>
+            <!-- Problems section (shown in edit mode) -->
+            <div id="fpPlumbingProblemsSection" style="display:none">
+                <div class="section-header" style="margin-top:12px">
+                    <h4 class="section-heading" style="font-size:0.95rem">Problems / Concerns</h4>
+                    <button class="btn btn-primary btn-small" id="fpPlumbingAddProblemBtn">+ Add</button>
+                </div>
+                <div id="fpPlumbingProblemsContainer"></div>
+                <p class="empty-state" id="fpPlumbingProblemsEmptyState"></p>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="fpPlumbingCancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="fpPlumbingSaveBtn">Save Fixture</button>
+            </div>
+        </div>
+    </div>
+
     </div><!-- end #appWrapper -->
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=119"></script>
-    <script src="js/auth.js?v=119"></script>
-    <script src="js/zones.js?v=119"></script>
-    <script src="js/plants.js?v=119"></script>
-    <script src="js/problems.js?v=119"></script>
-    <script src="js/facts.js?v=119"></script>
-    <script src="js/projects.js?v=119"></script>
-    <script src="js/chemicals.js?v=119"></script>
-    <script src="js/activities.js?v=119"></script>
-    <script src="js/photos.js?v=119"></script>
-    <script src="js/weeds.js?v=119"></script>
-    <script src="js/calendar.js?v=119"></script>
-    <script src="js/gps.js?v=119"></script>
-    <script src="js/settings.js?v=119"></script>
-    <script src="js/house.js?v=119"></script>
-    <script src="js/floorplan.js?v=119"></script>
-    <script src="js/app.js?v=119"></script>
+    <script src="js/firebase-config.js?v=120"></script>
+    <script src="js/auth.js?v=120"></script>
+    <script src="js/zones.js?v=120"></script>
+    <script src="js/plants.js?v=120"></script>
+    <script src="js/problems.js?v=120"></script>
+    <script src="js/facts.js?v=120"></script>
+    <script src="js/projects.js?v=120"></script>
+    <script src="js/chemicals.js?v=120"></script>
+    <script src="js/activities.js?v=120"></script>
+    <script src="js/photos.js?v=120"></script>
+    <script src="js/weeds.js?v=120"></script>
+    <script src="js/calendar.js?v=120"></script>
+    <script src="js/gps.js?v=120"></script>
+    <script src="js/settings.js?v=120"></script>
+    <script src="js/house.js?v=120"></script>
+    <script src="js/floorplan.js?v=120"></script>
+    <script src="js/app.js?v=120"></script>
 
 </body>
 </html>

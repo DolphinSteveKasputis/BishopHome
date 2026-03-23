@@ -23,7 +23,8 @@ var FP_ROOM_COLORS = [
 var fpFloorId     = null;   // Firestore floor document ID
 var fpFloor       = null;   // floor data {name, floorNumber, ...}
 var fpPlan        = null;   // floorPlans doc: {widthFt, heightFt, rooms[], doors[], windows[]}
-var fpRoomList    = [];     // rooms on this floor (for linking new shapes)
+var fpRoomList    = [];     // rooms on this floor (for linking new shapes + stairs detection)
+var fpAllFloors   = {};     // floorId → {name, floorNumber} — for stairs "connects to" labels
 var fpDirty       = false;  // unsaved changes?
 
 // Drawing tool state
@@ -65,8 +66,8 @@ function loadFloorPlanPage(floorId) {
                 (fpFloor.name || 'Floor') + ' — Floor Plan';
             document.getElementById('fpBackBtn').href = '#floor/' + floorId;
 
-            // Load rooms list (for linking shapes to room records)
-            return db.collection('rooms').where('floorId', '==', floorId).get()
+            // Load rooms list (for linking shapes + stairs detection)
+            var roomsPromise = db.collection('rooms').where('floorId', '==', floorId).get()
                 .then(function(snap) {
                     fpRoomList = [];
                     snap.forEach(function(d) {
@@ -78,6 +79,16 @@ function loadFloorPlanPage(floorId) {
                         return ta - tb;
                     });
                 });
+
+            // Load all floors so stair labels can show the connected floor name
+            var floorsPromise = db.collection('floors').get().then(function(snap) {
+                fpAllFloors = {};
+                snap.forEach(function(d) {
+                    fpAllFloors[d.id] = d.data();
+                });
+            });
+
+            return Promise.all([roomsPromise, floorsPromise]);
         })
         .then(function() {
             // Load or initialize the floor plan document
@@ -147,6 +158,25 @@ function fpInitSvg() {
 function fpRender() {
     var svg = document.getElementById('fpSvg');
     svg.innerHTML = '';
+
+    // --- SVG Defs (patterns, markers) ---
+    var defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    svg.appendChild(defs);
+
+    // Stair hatch pattern: diagonal lines at 45° (Phase H11)
+    var hatchPat = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
+    hatchPat.setAttribute('id', 'fp-stair-hatch');
+    hatchPat.setAttribute('width', '10'); hatchPat.setAttribute('height', '10');
+    hatchPat.setAttribute('patternUnits', 'userSpaceOnUse');
+    // Three diagonal line segments that tile seamlessly
+    [[-2, 12, 12, -2], [0, 10, 10, 0], [8, 12, 12, 8]].forEach(function(seg) {
+        var ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        ln.setAttribute('x1', seg[0]); ln.setAttribute('y1', seg[1]);
+        ln.setAttribute('x2', seg[2]); ln.setAttribute('y2', seg[3]);
+        ln.setAttribute('stroke', '#999'); ln.setAttribute('stroke-width', '1');
+        hatchPat.appendChild(ln);
+    });
+    defs.appendChild(hatchPat);
 
     // Background rectangle
     fpSvgEl(svg, 'rect', {
@@ -244,17 +274,24 @@ function fpRenderGrid(svg) {
 function fpRenderRoom(svg, room) {
     if (!room.points || room.points.length < 3) return;
 
-    var isSelected = (room.id === fpSelectedId);
+    // Look up the linked Firestore room record to detect type (stairs, hallway)
+    var roomRecord  = fpRoomList.find(function(r) { return r.id === room.roomId; });
+    var isStairs    = roomRecord && roomRecord.type === 'stairs';
+    var isSelected  = (room.id === fpSelectedId && fpSelectedType === 'room');
+
     var ptsStr = room.points.map(function(p) {
         return fp2px(p.x) + ',' + fp2px(p.y);
     }).join(' ');
 
-    // Filled polygon
+    // Fill: stair rooms use the hatch pattern; normal rooms use solid color
+    var fillAttr = isStairs ? 'url(#fp-stair-hatch)' : (room.color || FP_ROOM_COLORS[0]);
+
+    // Polygon
     var poly = fpSvgEl(svg, 'polygon', {
         points: ptsStr,
-        fill: room.color || FP_ROOM_COLORS[0],
-        'fill-opacity': 0.45,
-        stroke: isSelected ? '#0066cc' : '#333',
+        fill: fillAttr,
+        'fill-opacity': isStairs ? 1 : 0.45,
+        stroke: isSelected ? '#0066cc' : (isStairs ? '#555' : '#333'),
         'stroke-width': isSelected ? 3 : 2,
         style: 'cursor:pointer'
     });
@@ -264,7 +301,6 @@ function fpRenderRoom(svg, room) {
     poly.addEventListener('click', function(e) {
         e.stopPropagation();
         if (fpActiveTool === 'room') {
-            // In draw mode, treat as canvas click (add a point)
             fpHandleRoomClick(e);
         } else if (fpActiveTool === 'select') {
             fpSelectShape(room.id);
@@ -283,28 +319,66 @@ function fpRenderRoom(svg, room) {
         }
     });
 
-    // Room name label (centered)
-    var c = fpCentroid(room.points);
+    // Double-click: navigate to connected floor (stairs) or room detail
+    poly.addEventListener('dblclick', function(e) {
+        e.stopPropagation();
+        if (fpActiveTool !== 'select') return;
+        if (isStairs && roomRecord && roomRecord.connectsToFloorId) {
+            if (confirm('Go to "' + fpConnectedFloorName(roomRecord.connectsToFloorId) + '"?')) {
+                window.location.hash = '#floor/' + roomRecord.connectsToFloorId;
+            }
+        } else if (room.roomId) {
+            if (confirm('Go to room detail page for "' + (room.label || 'this room') + '"?')) {
+                window.location.hash = '#room/' + room.roomId;
+            }
+        }
+    });
+
+    // Labels
+    var c        = fpCentroid(room.points);
     var fontSize = Math.max(10, Math.min(14, fpPixPerFoot * 0.65));
+    var labelFill = isStairs ? '#333' : '#222';
 
-    var nameText = fpSvgEl(svg, 'text', {
-        x: fp2px(c.x), y: fp2px(c.y) - fontSize * 0.6,
-        'text-anchor': 'middle', 'dominant-baseline': 'middle',
-        'font-size': fontSize, 'font-weight': 'bold',
-        fill: '#222', 'pointer-events': 'none'
-    });
-    nameText.textContent = room.label || '?';
+    if (isStairs) {
+        // Stairs: show "Stairs ↕" + connected floor name if available
+        var stairsLabel = fpSvgEl(svg, 'text', {
+            x: fp2px(c.x), y: fp2px(c.y) - fontSize * 0.6,
+            'text-anchor': 'middle', 'dominant-baseline': 'middle',
+            'font-size': fontSize, 'font-weight': 'bold',
+            fill: labelFill, 'pointer-events': 'none'
+        });
+        stairsLabel.textContent = '↕ Stairs';
 
-    // Dimension sub-label (bounding box)
-    var bbox = fpBBox(room.points);
-    var areaFt = fpPolygonArea(room.points);
-    var dimText = fpSvgEl(svg, 'text', {
-        x: fp2px(c.x), y: fp2px(c.y) + fontSize * 0.8,
-        'text-anchor': 'middle', 'dominant-baseline': 'middle',
-        'font-size': Math.max(8, fontSize * 0.75),
-        fill: '#555', 'pointer-events': 'none'
-    });
-    dimText.textContent = bbox.w.toFixed(0) + '\xd7' + bbox.h.toFixed(0) + ' ft  (' + areaFt.toFixed(0) + ' sq ft)';
+        if (roomRecord && roomRecord.connectsToFloorId) {
+            var toName = fpConnectedFloorName(roomRecord.connectsToFloorId);
+            var toText = fpSvgEl(svg, 'text', {
+                x: fp2px(c.x), y: fp2px(c.y) + fontSize * 0.8,
+                'text-anchor': 'middle', 'dominant-baseline': 'middle',
+                'font-size': Math.max(8, fontSize * 0.75),
+                fill: '#0055aa', 'pointer-events': 'none'
+            });
+            toText.textContent = '→ ' + toName;
+        }
+    } else {
+        // Normal room: name + dimensions
+        var nameText = fpSvgEl(svg, 'text', {
+            x: fp2px(c.x), y: fp2px(c.y) - fontSize * 0.6,
+            'text-anchor': 'middle', 'dominant-baseline': 'middle',
+            'font-size': fontSize, 'font-weight': 'bold',
+            fill: labelFill, 'pointer-events': 'none'
+        });
+        nameText.textContent = room.label || '?';
+
+        var bbox   = fpBBox(room.points);
+        var areaFt = fpPolygonArea(room.points);
+        var dimText = fpSvgEl(svg, 'text', {
+            x: fp2px(c.x), y: fp2px(c.y) + fontSize * 0.8,
+            'text-anchor': 'middle', 'dominant-baseline': 'middle',
+            'font-size': Math.max(8, fontSize * 0.75),
+            fill: '#555', 'pointer-events': 'none'
+        });
+        dimText.textContent = bbox.w.toFixed(0) + '\xd7' + bbox.h.toFixed(0) + ' ft  (' + areaFt.toFixed(0) + ' sq ft)';
+    }
 
     // Corner drag handles when selected
     if (isSelected) {
@@ -314,11 +388,17 @@ function fpRenderRoom(svg, room) {
                 fill: 'white', stroke: '#0066cc', 'stroke-width': 2,
                 style: 'cursor:move'
             });
-            handle.dataset.roomId    = room.id;
-            handle.dataset.ptIndex   = i;
+            handle.dataset.roomId  = room.id;
+            handle.dataset.ptIndex = i;
             fpMakeDraggableHandle(handle, room, i);
         });
     }
+}
+
+/** Return the name of a connected floor from fpAllFloors, or a fallback */
+function fpConnectedFloorName(floorId) {
+    var floor = fpAllFloors[floorId];
+    return floor ? floor.name : 'Floor';
 }
 
 /**

@@ -619,22 +619,45 @@ function openRoomModal(editId, data) {
     var nameInput  = document.getElementById('roomNameInput');
     var typeSelect = document.getElementById('roomTypeSelect');
     var deleteBtn  = document.getElementById('roomModalDeleteBtn');
+    var stairsGrp  = document.getElementById('roomStairsConnectGroup');
+    var connectSel = document.getElementById('roomConnectsToFloorSelect');
 
     if (editId) {
         document.getElementById('roomModalTitle').textContent = 'Edit Room';
-        nameInput.value          = data.name || '';
-        typeSelect.value         = data.type || 'standard';
-        deleteBtn.style.display  = '';
-        modal.dataset.mode       = 'edit';
-        modal.dataset.editId     = editId;
+        nameInput.value         = data.name || '';
+        typeSelect.value        = data.type || 'standard';
+        deleteBtn.style.display = '';
+        modal.dataset.mode      = 'edit';
+        modal.dataset.editId    = editId;
     } else {
         document.getElementById('roomModalTitle').textContent = 'Add Room';
-        nameInput.value          = '';
-        typeSelect.value         = 'standard';
-        deleteBtn.style.display  = 'none';
-        modal.dataset.mode       = 'add';
-        modal.dataset.editId     = '';
+        nameInput.value         = '';
+        typeSelect.value        = 'standard';
+        deleteBtn.style.display = 'none';
+        modal.dataset.mode      = 'add';
+        modal.dataset.editId    = '';
     }
+
+    // Load all floors into the "connects to" dropdown (exclude the current floor)
+    connectSel.innerHTML = '<option value="">— Not specified —</option>';
+    db.collection('floors').orderBy('floorNumber', 'asc').get()
+        .then(function(snap) {
+            snap.forEach(function(doc) {
+                if (currentFloor && doc.id === currentFloor.id) return; // skip current floor
+                var opt = document.createElement('option');
+                opt.value       = doc.id;
+                opt.textContent = doc.data().name || 'Floor';
+                if (editId && data.connectsToFloorId === doc.id) opt.selected = true;
+                connectSel.appendChild(opt);
+            });
+        });
+
+    // Show/hide the "connects to floor" group based on type
+    function toggleStairsGroup() {
+        stairsGrp.style.display = typeSelect.value === 'stairs' ? '' : 'none';
+    }
+    toggleStairsGroup();
+    typeSelect.onchange = toggleStairsGroup;
 
     openModal('roomModal');
     nameInput.focus();
@@ -650,8 +673,17 @@ document.getElementById('roomModalSaveBtn').addEventListener('click', function()
     var mode   = modal.dataset.mode;
     var editId = modal.dataset.editId;
 
+    var connectsToFloorId = '';
+    if (typeVal === 'stairs') {
+        connectsToFloorId = document.getElementById('roomConnectsToFloorSelect').value || '';
+    }
+
     if (mode === 'edit' && editId) {
-        db.collection('rooms').doc(editId).update({ name: nameVal, type: typeVal })
+        db.collection('rooms').doc(editId).update({
+            name:               nameVal,
+            type:               typeVal,
+            connectsToFloorId:  connectsToFloorId
+        })
             .then(function() {
                 closeModal('roomModal');
                 loadRoomDetail(editId);
@@ -661,10 +693,11 @@ document.getElementById('roomModalSaveBtn').addEventListener('click', function()
         // Add — floorId comes from the currently viewed floor
         if (!currentFloor) { alert('No floor selected.'); return; }
         var roomData = {
-            name:      nameVal,
-            type:      typeVal,
-            floorId:   currentFloor.id,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            name:               nameVal,
+            type:               typeVal,
+            connectsToFloorId:  connectsToFloorId,
+            floorId:            currentFloor.id,
+            createdAt:          firebase.firestore.FieldValue.serverTimestamp()
         };
         db.collection('rooms').add(roomData)
             .then(function() {

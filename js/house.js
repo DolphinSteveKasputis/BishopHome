@@ -2527,6 +2527,124 @@ document.getElementById('editStBtn').addEventListener('click', function() {
     openSubThingModal(currentSubThing.id, currentSubThing);
 });
 
+// ---- Move Sub-Thing ----
+
+// Cache for move modal (things + room/floor context)
+var stMoveAllThings = null; // loaded once per modal open
+
+/**
+ * Open the Move Sub-Thing modal.
+ * Loads all things with room/floor labels, renders the full list, wires search.
+ */
+function openStMoveModal() {
+    document.getElementById('stMoveSearchInput').value = '';
+    openModal('stMoveModal');
+
+    // Load things + rooms + floors in parallel (or reuse if already cached)
+    Promise.all([
+        db.collection('things').orderBy('name').get(),
+        db.collection('rooms').get(),
+        db.collection('floors').get()
+    ]).then(function(results) {
+        var thingsSnap = results[0];
+        var roomsSnap  = results[1];
+        var floorsSnap = results[2];
+
+        // Build lookup maps
+        var roomMap  = {};
+        var floorMap = {};
+        floorsSnap.forEach(function(d) { floorMap[d.id] = d.data().name || 'Floor'; });
+        roomsSnap.forEach(function(d) {
+            var r = d.data();
+            roomMap[d.id] = {
+                name  : r.name || 'Room',
+                floor : floorMap[r.floorId] || ''
+            };
+        });
+
+        stMoveAllThings = [];
+        thingsSnap.forEach(function(d) {
+            var t    = Object.assign({ id: d.id }, d.data());
+            var room = roomMap[t.roomId];
+            t._label = room ? (room.name + (room.floor ? ' / ' + room.floor : '')) : '';
+            stMoveAllThings.push(t);
+        });
+
+        stMoveRenderList('');
+    }).catch(function(err) {
+        document.getElementById('stMoveEmptyState').textContent = 'Error loading things: ' + err.message;
+    });
+}
+
+/**
+ * Render the things list in the move modal, filtered by query string.
+ */
+function stMoveRenderList(query) {
+    var list     = document.getElementById('stMoveResultsList');
+    var empty    = document.getElementById('stMoveEmptyState');
+    var q        = query.trim().toLowerCase();
+    var filtered = (stMoveAllThings || []).filter(function(t) {
+        // Exclude the current parent thing
+        if (currentSubThing && t.id === currentSubThing.thingId) return false;
+        return !q || t.name.toLowerCase().includes(q);
+    });
+
+    list.innerHTML = '';
+    if (filtered.length === 0) {
+        empty.style.display = 'block';
+        empty.textContent   = q ? 'No things match "' + query + '"' : 'No things found';
+        return;
+    }
+    empty.style.display = 'none';
+
+    filtered.forEach(function(t) {
+        var item = document.createElement('div');
+        item.style.cssText = 'padding:10px 14px;cursor:pointer;border-bottom:1px solid #f0f0f0;';
+        item.innerHTML =
+            '<div style="font-weight:600;">' + escapeHtml(t.name) + '</div>' +
+            (t._label ? '<div style="font-size:0.82rem;color:#777;">' + escapeHtml(t._label) + '</div>' : '');
+        item.addEventListener('mouseover',  function() { item.style.background = '#f5f5f5'; });
+        item.addEventListener('mouseout',   function() { item.style.background = ''; });
+        item.addEventListener('click', function() { stMoveConfirm(t); });
+        list.appendChild(item);
+    });
+}
+
+/**
+ * User selected a target thing — confirm and update Firestore.
+ */
+function stMoveConfirm(targetThing) {
+    if (!currentSubThing) return;
+    var stName = currentSubThing.name || 'this item';
+    if (!confirm('Move "' + stName + '" to "' + targetThing.name + '"?')) return;
+
+    db.collection('subThings').doc(currentSubThing.id)
+        .update({ thingId: targetThing.id })
+        .then(function() {
+            closeModal('stMoveModal');
+            // Update local state and reload the page so breadcrumb/meta refresh
+            currentSubThing.thingId = targetThing.id;
+            window.location.hash = '#subthing/' + currentSubThing.id;
+        })
+        .catch(function(err) {
+            alert('Move failed: ' + err.message);
+        });
+}
+
+document.getElementById('moveStBtn').addEventListener('click', function() {
+    if (!currentSubThing) return;
+    stMoveAllThings = null; // force fresh load each time
+    openStMoveModal();
+});
+
+document.getElementById('stMoveCancelBtn').addEventListener('click', function() {
+    closeModal('stMoveModal');
+});
+
+document.getElementById('stMoveSearchInput').addEventListener('input', function() {
+    stMoveRenderList(this.value);
+});
+
 // Sub-thing detail — Delete
 document.getElementById('deleteStBtn').addEventListener('click', function() {
     if (!currentSubThing) return;

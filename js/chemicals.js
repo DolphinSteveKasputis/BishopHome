@@ -733,7 +733,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Barcode scanner — Scan Barcode button on chemicals list page
-    document.getElementById('scanBarcodeBtn').addEventListener('click', openBarcodeScanner);
+    // scanBarcodeBtn removed from chemicals list — scan is now in the edit modal only
 
     // Barcode scanner — Cancel button inside scanner modal
     document.getElementById('barcodeCancelBtn').addEventListener('click', closeBarcodeScanner);

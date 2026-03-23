@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=139">
+    <link rel="stylesheet" href="css/styles.css?v=140">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -764,6 +764,7 @@
             <div class="page-header">
                 <h2 id="stTitle">Item</h2>
                 <div class="page-header-actions">
+                    <button class="btn btn-secondary btn-small" id="moveStBtn">Move</button>
                     <button class="btn btn-secondary btn-small" id="editStBtn">Edit</button>
                     <button class="btn btn-danger btn-small" id="deleteStBtn">Delete</button>
                 </div>
@@ -1179,7 +1180,6 @@
             <div class="page-header">
                 <h2>Chemicals & Products</h2>
                 <div class="page-header-actions">
-                    <button class="btn btn-secondary btn-small" id="scanBarcodeBtn">&#128269; Scan Barcode</button>
                     <button class="btn btn-primary btn-small" id="addChemicalBtn">+ Add</button>
                 </div>
             </div>
@@ -2199,27 +2199,42 @@
         </div>
     </div>
 
+    <!-- ===== Move Sub-Thing Modal ===== -->
+    <div class="modal-overlay hidden" id="stMoveModal">
+        <div class="modal">
+            <h3 class="modal-title">Move to Another Thing</h3>
+            <div class="form-group">
+                <input type="text" id="stMoveSearchInput" placeholder="Search things by name&#8230;" autocomplete="off">
+            </div>
+            <div id="stMoveResultsList" style="max-height:300px;overflow-y:auto;border:1px solid #e0e0e0;border-radius:6px;"></div>
+            <p class="empty-state" id="stMoveEmptyState" style="padding:12px 0;">Type a name to search, or scroll to browse all</p>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="stMoveCancelBtn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     </div><!-- end #appWrapper -->
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=139"></script>
-    <script src="js/auth.js?v=139"></script>
-    <script src="js/zones.js?v=139"></script>
-    <script src="js/plants.js?v=139"></script>
-    <script src="js/problems.js?v=139"></script>
-    <script src="js/facts.js?v=139"></script>
-    <script src="js/projects.js?v=139"></script>
-    <script src="js/chemicals.js?v=139"></script>
-    <script src="js/activities.js?v=139"></script>
-    <script src="js/photos.js?v=139"></script>
-    <script src="js/weeds.js?v=139"></script>
-    <script src="js/calendar.js?v=139"></script>
-    <script src="js/gps.js?v=139"></script>
-    <script src="js/settings.js?v=139"></script>
-    <script src="js/house.js?v=139"></script>
-    <script src="js/floorplan.js?v=139"></script>
-    <script src="js/app.js?v=139"></script>
+    <script src="js/firebase-config.js?v=140"></script>
+    <script src="js/auth.js?v=140"></script>
+    <script src="js/zones.js?v=140"></script>
+    <script src="js/plants.js?v=140"></script>
+    <script src="js/problems.js?v=140"></script>
+    <script src="js/facts.js?v=140"></script>
+    <script src="js/projects.js?v=140"></script>
+    <script src="js/chemicals.js?v=140"></script>
+    <script src="js/activities.js?v=140"></script>
+    <script src="js/photos.js?v=140"></script>
+    <script src="js/weeds.js?v=140"></script>
+    <script src="js/calendar.js?v=140"></script>
+    <script src="js/gps.js?v=140"></script>
+    <script src="js/settings.js?v=140"></script>
+    <script src="js/house.js?v=140"></script>
+    <script src="js/floorplan.js?v=140"></script>
+    <script src="js/app.js?v=140"></script>
 
 </body>
 </html>

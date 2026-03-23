@@ -226,6 +226,14 @@ function openAddWeedModal() {
 
     modal.dataset.mode = 'add';
 
+    // Reset and conditionally show From Picture section
+    document.getElementById('weedFromPictureSection').classList.add('hidden');
+    document.getElementById('weedPicStatus').classList.add('hidden');
+    document.getElementById('weedPicStatus').textContent = '';
+    document.getElementById('weedPicInput').value = '';
+    document.getElementById('weedCamInput').value = '';
+    weedCheckLlmForModal();
+
     openModal('weedModal');
     nameInput.focus();
 }
@@ -526,4 +534,235 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('weedZoneModal').addEventListener('click', function(e) {
         if (e.target === this) closeModal('weedZoneModal');
     });
+
+    // From Picture — gallery and camera buttons
+    document.getElementById('weedPicGalleryBtn').addEventListener('click', function() {
+        document.getElementById('weedPicInput').click();
+    });
+    document.getElementById('weedPicCameraBtn').addEventListener('click', function() {
+        document.getElementById('weedCamInput').click();
+    });
+    document.getElementById('weedPicInput').addEventListener('change', function() {
+        if (this.files && this.files.length > 0) weedHandleFromPicture(this.files);
+    });
+    document.getElementById('weedCamInput').addEventListener('change', function() {
+        if (this.files && this.files.length > 0) weedHandleFromPicture(this.files);
+    });
+
+    // Review modal — Add It
+    document.getElementById('weedReviewAddBtn').addEventListener('click', async function() {
+        if (!weedLlmPending) return;
+        var btn          = this;
+        var nameOverride = document.getElementById('weedReviewName').value.trim();
+        btn.disabled     = true;
+        btn.textContent  = 'Saving\u2026';
+        try {
+            await weedSaveFromLlm(weedLlmPending.parsed, weedLlmPending.images, nameOverride);
+            weedLlmPending = null;
+            closeModal('weedLlmReviewModal');
+            loadWeedsList();
+        } catch (err) {
+            console.error('Error saving weed from LLM:', err);
+            alert('Error saving weed. Please try again.');
+            btn.disabled    = false;
+            btn.textContent = 'Add It';
+        }
+    });
+
+    // Review modal — Cancel
+    document.getElementById('weedReviewCancelBtn').addEventListener('click', function() {
+        weedLlmPending = null;
+        closeModal('weedLlmReviewModal');
+    });
+    document.getElementById('weedLlmReviewModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            weedLlmPending = null;
+            closeModal('weedLlmReviewModal');
+        }
+    });
 });
+
+// ============================================================
+// WEED IDENTIFICATION FROM PICTURE
+// ============================================================
+
+var WEED_ID_PROMPT = [
+    'You are a weed identification assistant. Analyze the provided image(s) and return ONLY a valid JSON object.',
+    'No explanation, no markdown, no code blocks, no extra text of any kind.',
+    'Your entire response must be parseable by JSON.parse().',
+    '',
+    'Return this exact structure:',
+    '{',
+    '  "name": "",',
+    '  "treatmentMethod": "",',
+    '  "applicationTiming": "",',
+    '  "additionalMessage": ""',
+    '}',
+    '',
+    'Field rules:',
+    '- name: the most recognizable common name, e.g. "Crabgrass", "Wild Onion", "Dandelion"',
+    '- treatmentMethod: how to treat or eliminate this weed. 100 words or less.',
+    '- applicationTiming: when to apply the treatment, e.g. "Pre-emergent in early spring", "As-needed", "Fall application"',
+    '- additionalMessage: use for issues such as unclear image or weed not recognized. Leave "" if no issues.',
+    '',
+    'If you cannot identify the weed, return all fields as "" and explain in additionalMessage.'
+].join('\n');
+
+// Pending data while the review modal is open
+var weedLlmPending = null;
+
+/**
+ * Check if an LLM is configured and show the From Picture section if so.
+ */
+async function weedCheckLlmForModal() {
+    try {
+        var doc = await userCol('settings').doc('llm').get();
+        var ok  = doc.exists && doc.data().provider && doc.data().apiKey;
+        document.getElementById('weedFromPictureSection').classList.toggle('hidden', !ok);
+    } catch (e) { /* leave hidden */ }
+}
+
+/**
+ * Handle file selection for weed identification.
+ */
+async function weedHandleFromPicture(files) {
+    if (!files || files.length === 0) return;
+
+    var statusEl   = document.getElementById('weedPicStatus');
+    var saveBtn    = document.getElementById('weedModalSaveBtn');
+    var galleryBtn = document.getElementById('weedPicGalleryBtn');
+    var cameraBtn  = document.getElementById('weedPicCameraBtn');
+
+    statusEl.textContent = 'Identifying weed\u2026';
+    statusEl.classList.remove('hidden');
+    saveBtn.disabled    = true;
+    galleryBtn.disabled = true;
+    cameraBtn.disabled  = true;
+
+    try {
+        // Compress images (up to 4)
+        var images = [];
+        for (var i = 0; i < Math.min(files.length, 4); i++) {
+            images.push(await compressImage(files[i]));
+        }
+
+        // Load LLM config
+        var cfgDoc = await userCol('settings').doc('llm').get();
+        var cfg    = cfgDoc.exists ? cfgDoc.data() : null;
+        if (!cfg || !cfg.provider || !cfg.apiKey) {
+            statusEl.textContent = 'No LLM configured. Go to Settings.';
+            return;
+        }
+        var llm = LLM_PROVIDERS[cfg.provider];
+        if (!llm) { statusEl.textContent = 'Unknown LLM provider.'; return; }
+
+        // Build content: prompt + images
+        var content = [{ type: 'text', text: WEED_ID_PROMPT }];
+        images.forEach(function(url) {
+            content.push({ type: 'image_url', image_url: { url: url } });
+        });
+
+        var activeModel  = cfg.model || llm.model;
+        var responseText = await chatCallOpenAICompat(llm, cfg.apiKey, content, activeModel);
+        var parsed       = weedParseLlmResponse(responseText);
+
+        if (document.getElementById('weedShowResponseToggle').checked) {
+            weedLlmPending = { parsed: parsed, images: images };
+            statusEl.textContent = '';
+            statusEl.classList.add('hidden');
+            closeModal('weedModal');
+            weedShowReviewModal(WEED_ID_PROMPT, responseText, parsed);
+        } else {
+            if (!parsed.name && parsed.additionalMessage) {
+                statusEl.textContent = '\u26a0 ' + parsed.additionalMessage;
+                return;
+            }
+            await weedSaveFromLlm(parsed, images, '');
+            statusEl.textContent = '';
+            statusEl.classList.add('hidden');
+            closeModal('weedModal');
+            loadWeedsList();
+        }
+
+    } catch (err) {
+        console.error('Weed ID error:', err);
+        statusEl.textContent = 'Error: ' + err.message;
+    } finally {
+        saveBtn.disabled    = false;
+        galleryBtn.disabled = false;
+        cameraBtn.disabled  = false;
+        document.getElementById('weedPicInput').value = '';
+        document.getElementById('weedCamInput').value = '';
+    }
+}
+
+/**
+ * Parse the LLM's JSON response, stripping accidental markdown fences.
+ */
+function weedParseLlmResponse(text) {
+    try {
+        var clean = text.trim()
+            .replace(/^```json\s*/i, '')
+            .replace(/^```\s*/,      '')
+            .replace(/```\s*$/,      '');
+        return JSON.parse(clean);
+    } catch (e) {
+        return {
+            name: '', treatmentMethod: '', applicationTiming: '',
+            additionalMessage: 'Could not parse response: ' + text.substring(0, 120)
+        };
+    }
+}
+
+/**
+ * Show the review modal with prompt, raw response, and parsed fields.
+ */
+function weedShowReviewModal(prompt, rawResponse, parsed) {
+    document.getElementById('weedReviewPromptText').textContent  = prompt;
+    document.getElementById('weedReviewResponseText').textContent = rawResponse;
+    document.getElementById('weedReviewName').value              = parsed.name || '';
+    document.getElementById('reviewWeedTreatment').textContent   = parsed.treatmentMethod   || '—';
+    document.getElementById('reviewWeedTiming').textContent      = parsed.applicationTiming || '—';
+
+    var msgEl = document.getElementById('weedReviewMessage');
+    if (parsed.additionalMessage) {
+        msgEl.textContent = '\u26a0 ' + parsed.additionalMessage;
+        msgEl.classList.remove('hidden');
+    } else {
+        msgEl.classList.add('hidden');
+    }
+
+    openModal('weedLlmReviewModal');
+}
+
+/**
+ * Save the weed record and photos from the LLM response.
+ */
+async function weedSaveFromLlm(parsed, images, nameOverride) {
+    var weedName = (nameOverride || parsed.name || 'Unknown Weed').trim();
+
+    var newRef = await userCol('weeds').add({
+        name              : weedName,
+        treatmentMethod   : parsed.treatmentMethod   || '',
+        applicationTiming : parsed.applicationTiming || '',
+        notes             : '',
+        zoneIds           : [],
+        createdAt         : firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    // Save photos only when identification succeeded
+    var identified = !!(parsed.name || nameOverride);
+    if (identified) {
+        for (var i = 0; i < images.length; i++) {
+            await userCol('photos').add({
+                targetType : 'weed',
+                targetId   : newRef.id,
+                imageData  : images[i],
+                caption    : '',
+                createdAt  : firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+    }
+
+    return newRef.id;
+}

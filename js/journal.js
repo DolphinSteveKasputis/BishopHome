@@ -615,6 +615,49 @@ async function deleteJournalEntry(id) {
  * @param {string} textareaId - ID of the textarea to append text to
  * @param {string} btnId      - ID of the mic button to toggle
  */
+/**
+ * Convert spoken punctuation words into their symbol equivalents.
+ * Applied to voice-to-text transcripts so saying "period" inserts "."
+ * just like the phone's SMS keyboard does.
+ *
+ * Rules are applied in order — longer phrases first to avoid partial matches.
+ * Each replacement trims any leading/trailing space around the word so the
+ * result reads naturally (e.g. "Hello period" → "Hello.")
+ */
+function applySpokenPunctuation(text) {
+    var rules = [
+        // New line / paragraph first (multi-word)
+        [/\s*new paragraph\s*/gi,      '\n\n'],
+        [/\s*new line\s*/gi,           '\n'],
+        // Multi-word punctuation
+        [/\s*open parenthesis\s*/gi,   ' ('],
+        [/\s*close parenthesis\s*/gi,  ') '],
+        [/\s*open paren\s*/gi,         ' ('],
+        [/\s*close paren\s*/gi,        ') '],
+        [/\s*question mark\s*/gi,      '? '],
+        [/\s*exclamation point\s*/gi,  '! '],
+        [/\s*exclamation mark\s*/gi,   '! '],
+        [/\s*dot dot dot\s*/gi,        '... '],
+        // Single-word punctuation
+        [/\s*period\s*/gi,             '. '],
+        [/\s*comma\s*/gi,              ', '],
+        [/\s*semicolon\s*/gi,          '; '],
+        [/\s*colon\s*/gi,             ': '],
+        [/\s*hyphen\s*/gi,             '-'],
+        [/\s*dash\s*/gi,              ' — '],
+        [/\s*ellipsis\s*/gi,           '... '],
+    ];
+
+    rules.forEach(function(rule) {
+        text = text.replace(rule[0], rule[1]);
+    });
+
+    // Clean up any double spaces created by substitutions
+    text = text.replace(/  +/g, ' ').trim();
+
+    return text;
+}
+
 function initVoiceToText(textareaId, btnId) {
     var btn = document.getElementById(btnId);
     if (!btn) return;
@@ -670,6 +713,9 @@ function initVoiceToText(textareaId, btnId) {
         }
 
         if (transcript) {
+            // Convert spoken punctuation words to symbols (e.g. "period" → ".")
+            transcript = applySpokenPunctuation(transcript);
+
             // Append to existing text with a space separator if needed
             var existing = textarea.value;
             if (existing && !existing.endsWith(' ') && !existing.endsWith('\n')) {

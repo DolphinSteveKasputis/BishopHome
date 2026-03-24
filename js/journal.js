@@ -356,14 +356,14 @@ function _renderEntryCard(id, data) {
     var text    = data.entryText || '';
 
     return '<div class="journal-item journal-item--entry">' +
-               '<div class="journal-item-header">' +
+               '<div class="journal-item-row">' +
                    '<span class="journal-item-time">📝 ' + journalEscape(timeStr) + '</span>' +
+                   '<div class="journal-item-text">' + journalEscape(text) + '</div>' +
                    '<div class="journal-item-actions">' +
                        '<button class="btn btn-secondary btn-small" ' +
                                'onclick="openEditJournalEntry(\'' + id + '\')">Edit</button>' +
                    '</div>' +
                '</div>' +
-               '<div class="journal-item-text">' + journalEscape(text) + '</div>' +
            '</div>';
 }
 
@@ -376,16 +376,14 @@ function _renderTrackingCard(id, data) {
     var value     = data.value || '';
 
     return '<div class="journal-item journal-item--tracking">' +
-               '<div class="journal-item-header">' +
+               '<div class="journal-item-row">' +
                    '<span class="journal-item-time">⚖️ ' + journalEscape(timeStr) + '</span>' +
+                   '<span class="journal-tracking-category">' + journalEscape(category) + '</span>' +
+                   '<span class="journal-tracking-value">' + journalEscape(value) + '</span>' +
                    '<div class="journal-item-actions">' +
                        '<button class="btn btn-secondary btn-small" ' +
                                'onclick="openEditTrackingItem(\'' + id + '\')">Edit</button>' +
                    '</div>' +
-               '</div>' +
-               '<div>' +
-                   '<span class="journal-tracking-category">' + journalEscape(category) + '</span>' +
-                   '<span class="journal-tracking-value">' + journalEscape(value) + '</span>' +
                '</div>' +
            '</div>';
 }

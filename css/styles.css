@@ -4103,23 +4103,27 @@ a.ar-target-link:hover {
 .journal-item--entry    { border-left: 4px solid #2e7d32; }
 .journal-item--tracking { border-left: 4px solid #f59e0b; }
 
-/* Row with time on the left, action buttons on the right */
-.journal-item-header {
+/* Single row: time | content | actions */
+.journal-item-row {
     display: flex;
-    justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 6px;
+    gap: 10px;
 }
 
 .journal-item-time {
     font-size: 0.78rem;
     color: var(--text-muted, #888);
     font-weight: 600;
+    white-space: nowrap;
+    padding-top: 2px;
+    flex-shrink: 0;
 }
 
 .journal-item-actions {
     display: flex;
     gap: 6px;
+    margin-left: auto;
+    flex-shrink: 0;
 }
 
 /* Journal entry body text */
@@ -4128,6 +4132,7 @@ a.ar-target-link:hover {
     line-height: 1.5;
     white-space: pre-wrap;   /* Preserve line breaks */
     word-break: break-word;
+    flex: 1;
 }
 
 /* Category pill badge on tracking items */

@@ -140,9 +140,9 @@ function loadBackupPage() {
 // Collections included in the DATA backup (everything except photos)
 var BACKUP_DATA_COLLECTIONS = [
     'activities', 'breakerPanels', 'calendarEvents', 'chemicals',
-    'facts', 'floorPlans', 'floors', 'gpsShapes', 'plants',
+    'facts', 'floorPlans', 'floors', 'gpsShapes', 'mileageLogs', 'plants',
     'problems', 'projects', 'rooms', 'savedActions', 'settings',
-    'subThings', 'tags', 'things', 'weeds', 'zones'
+    'subThings', 'tags', 'things', 'vehicles', 'weeds', 'zones'
 ];
 
 /**

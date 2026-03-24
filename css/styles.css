@@ -3720,3 +3720,145 @@ a.ar-target-link:hover {
     .chat-hint { display: none; }
     .chat-interface { max-width: 100%; }
 }
+
+/* ============================================================
+   VEHICLES FEATURE
+   ============================================================ */
+
+/* Landing tile — steel blue / automotive tone */
+.landing-tile--vehicles {
+    background: #e0f2fe;
+    border-color: #7dd3fc;
+    color: #0c4a6e;
+}
+.landing-tile--vehicles:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+}
+
+/* Vehicle list card */
+.vehicle-card {
+    background: white;
+    border-radius: 10px;
+    padding: 14px 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.10);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: box-shadow 0.2s, transform 0.1s;
+    margin-bottom: 10px;
+}
+.vehicle-card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    transform: translateY(-1px);
+}
+.vehicle-card-title {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #333;
+    display: block;
+}
+.vehicle-card-subtitle {
+    font-size: 0.85rem;
+    color: #888;
+    margin-top: 2px;
+    display: block;
+}
+
+/* Archived vehicle — grayed out */
+.vehicle-archived {
+    opacity: 0.55;
+    background: #f3f4f6;
+}
+.vehicle-archived:hover {
+    opacity: 0.75;
+}
+
+/* Archive banner on detail page */
+.vehicle-archive-banner {
+    background: #fef3c7;
+    border: 1px solid #fcd34d;
+    border-radius: 8px;
+    padding: 10px 16px;
+    margin-bottom: 16px;
+    font-size: 0.9rem;
+    color: #78350f;
+    font-weight: 500;
+}
+
+/* Mileage log — inline add form */
+.mileage-add-form {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+}
+.mileage-add-form .btn {
+    margin-top: 6px;
+}
+
+/* Mileage log list container */
+.mileage-log-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+/* Individual mileage entry row */
+.mileage-entry {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+.mileage-entry-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+}
+.mileage-entry-odometer {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #1e40af;
+}
+.mileage-entry-date {
+    font-size: 0.85rem;
+    color: #555;
+}
+.mileage-entry-notes {
+    font-size: 0.8rem;
+    color: #888;
+    font-style: italic;
+}
+
+/* Show Archived toggle area */
+.vehicles-archived-toggle {
+    margin-top: 18px;
+    padding: 10px 0;
+    font-size: 0.9rem;
+    color: #555;
+}
+.vehicles-archived-toggle label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+/* Archive / Unarchive buttons row at bottom of detail page */
+.vehicle-bottom-actions {
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}

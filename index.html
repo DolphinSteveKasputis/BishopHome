@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=175">
+    <link rel="stylesheet" href="css/styles.css?v=176">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -133,6 +133,10 @@
                     <span class="landing-tile-label">Garage</span>
                     <span class="landing-tile-soon">Coming soon</span>
                 </div>
+                <a href="#vehicles" class="landing-tile landing-tile--vehicles">
+                    <span class="landing-tile-icon">🚙</span>
+                    <span class="landing-tile-label">Vehicles</span>
+                </a>
             </div>
         </section>
 
@@ -1532,6 +1536,179 @@
             <p class="empty-state" id="savedActionsEmptyState">Loading...</p>
         </section>
 
+        <!-- Page: Vehicles List (#vehicles) -->
+        <section class="page hidden" id="page-vehicles">
+            <div class="page-header">
+                <h2>Vehicles</h2>
+                <button class="btn btn-primary btn-small" id="addVehicleBtn">+ Add Vehicle</button>
+            </div>
+            <div id="vehiclesList"></div>
+            <div class="vehicles-archived-toggle">
+                <label><input type="checkbox" id="showArchivedToggle"> Show Archived</label>
+            </div>
+            <div id="archivedVehiclesList" class="hidden"></div>
+        </section>
+
+        <!-- Page: Vehicle Detail (#vehicle/:id) -->
+        <section class="page hidden" id="page-vehicle">
+
+            <!-- Page header -->
+            <div class="page-header">
+                <h2 id="vehicleDetailTitle">Vehicle</h2>
+            </div>
+
+            <!-- Archive banner — shown only when vehicle is archived -->
+            <div class="vehicle-archive-banner hidden" id="vehicleArchiveBanner">
+                <span id="vehicleArchiveBannerText"></span>
+            </div>
+
+            <!-- Vehicle Info card — editable fields + Save button -->
+            <div class="card" style="flex-direction:column; align-items:stretch; cursor:default;">
+                <h3 class="section-heading" style="margin-top:0; margin-bottom:12px;">Vehicle Info</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="vehicleInfoYear">Year</label>
+                        <input type="text" id="vehicleInfoYear" placeholder="e.g. 2021" maxlength="10">
+                    </div>
+                    <div class="form-group">
+                        <label for="vehicleInfoMake">Make</label>
+                        <input type="text" id="vehicleInfoMake" placeholder="e.g. Toyota" maxlength="80">
+                    </div>
+                    <div class="form-group">
+                        <label for="vehicleInfoModel">Model</label>
+                        <input type="text" id="vehicleInfoModel" placeholder="e.g. Tacoma" maxlength="80">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="vehicleInfoTrim">Trim</label>
+                        <input type="text" id="vehicleInfoTrim" placeholder="e.g. TRD Off-Road" maxlength="80">
+                    </div>
+                    <div class="form-group">
+                        <label for="vehicleInfoColor">Color</label>
+                        <input type="text" id="vehicleInfoColor" placeholder="e.g. Cement Gray" maxlength="80">
+                    </div>
+                    <div class="form-group">
+                        <label for="vehicleInfoLicensePlate">License Plate</label>
+                        <input type="text" id="vehicleInfoLicensePlate" placeholder="e.g. ABC-1234" maxlength="20">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="vehicleInfoVin">VIN</label>
+                        <input type="text" id="vehicleInfoVin" placeholder="17-character VIN" maxlength="17">
+                    </div>
+                    <div class="form-group">
+                        <label for="vehicleInfoPurchaseDate">Purchase Date</label>
+                        <input type="date" id="vehicleInfoPurchaseDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="vehicleInfoPurchasePrice">Purchase Price</label>
+                        <input type="text" id="vehicleInfoPurchasePrice" placeholder="e.g. $32,500" maxlength="40">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="vehicleInfoNotes">Notes</label>
+                    <textarea id="vehicleInfoNotes" rows="3" placeholder="General notes about this vehicle"></textarea>
+                </div>
+                <div class="settings-save-row">
+                    <button class="btn btn-primary" id="vehicleInfoSaveBtn">Save Info</button>
+                    <span class="settings-saved-msg hidden" id="vehicleInfoSavedMsg">&#10003; Saved</span>
+                </div>
+            </div>
+
+            <!-- Mileage Log section -->
+            <div class="section-header">
+                <h3 class="section-heading">Mileage Log</h3>
+            </div>
+            <!-- Inline add form -->
+            <div class="mileage-add-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="mileageDate">Date</label>
+                        <input type="date" id="mileageDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="mileageOdometer">Odometer (miles)</label>
+                        <input type="number" id="mileageOdometer" placeholder="e.g. 45230" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="mileageNotes">Notes (optional)</label>
+                        <input type="text" id="mileageNotes" placeholder="e.g. Oil change, trip to mountains">
+                    </div>
+                </div>
+                <button class="btn btn-primary btn-small" id="vehicleMileageAddBtn">+ Add Entry</button>
+            </div>
+            <div class="mileage-log-list" id="mileageLogList"></div>
+            <p class="empty-state" id="mileageLogEmptyState"></p>
+
+            <!-- Photos -->
+            <div class="section-header">
+                <h3 class="section-heading">Photos</h3>
+                <button class="btn btn-primary btn-small" id="addVehiclePhotoBtn">+ Add Photo</button>
+            </div>
+            <div id="vehiclePhotoContainer"></div>
+            <p class="empty-state" id="vehiclePhotoEmptyState">No photos yet.</p>
+
+            <!-- Activity History -->
+            <div class="section-header">
+                <h3 class="section-heading">Activity History</h3>
+                <button class="btn btn-primary btn-small" id="logVehicleActivityBtn">+ Log Activity</button>
+            </div>
+            <div id="vehicleActivitiesContainer"></div>
+            <p class="empty-state" id="vehicleActivitiesEmptyState">No activities logged yet.</p>
+
+            <!-- Calendar Events -->
+            <div class="section-header">
+                <h3 class="section-heading">Calendar Events</h3>
+                <div class="section-header-actions">
+                    <div class="calendar-range-picker">
+                        <label>Next</label>
+                        <select id="vehicleCalendarRangeSelect" class="range-select">
+                            <option value="1">1 mo</option>
+                            <option value="3" selected>3 mo</option>
+                            <option value="6">6 mo</option>
+                            <option value="12">12 mo</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary btn-small" id="addVehicleCalendarEventBtn">+ Add Event</button>
+                </div>
+            </div>
+            <div id="vehicleCalendarEventsContainer"></div>
+            <p class="empty-state" id="vehicleCalendarEventsEmptyState"></p>
+
+            <!-- Problems / Concerns -->
+            <div class="section-header">
+                <h3 class="section-heading">Problems / Concerns</h3>
+                <button class="btn btn-primary btn-small" id="addVehicleProblemBtn">+ Add</button>
+            </div>
+            <div id="vehicleProblemsContainer"></div>
+            <p class="empty-state" id="vehicleProblemsEmptyState"></p>
+
+            <!-- Facts -->
+            <div class="section-header">
+                <h3 class="section-heading">Facts</h3>
+                <button class="btn btn-primary btn-small" id="addVehicleFactBtn">+ Add</button>
+            </div>
+            <div id="vehicleFactsContainer"></div>
+            <p class="empty-state" id="vehicleFactsEmptyState"></p>
+
+            <!-- Future Projects -->
+            <div class="section-header">
+                <h3 class="section-heading">Future Projects</h3>
+                <button class="btn btn-primary btn-small" id="addVehicleProjectBtn">+ Add</button>
+            </div>
+            <div id="vehicleProjectsContainer"></div>
+            <p class="empty-state" id="vehicleProjectsEmptyState"></p>
+
+            <!-- Archive / Unarchive buttons -->
+            <div class="vehicle-bottom-actions">
+                <button class="btn btn-danger" id="vehicleArchiveBtn">Archive Vehicle</button>
+                <button class="btn btn-secondary hidden" id="vehicleUnarchiveBtn">Unarchive Vehicle</button>
+            </div>
+
+        </section>
+
     </main>
 
     <!-- ========== MODALS ========== -->
@@ -2792,34 +2969,108 @@
         </div>
     </div>
 
+    <!-- ===== Add Vehicle Modal ===== -->
+    <div class="modal-overlay" id="vehicleModal">
+        <div class="modal">
+            <h3 class="modal-title">Add Vehicle</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="vehicleModalYear">Year <span class="required-star">*</span></label>
+                    <input type="text" id="vehicleModalYear" placeholder="e.g. 2021" maxlength="10">
+                </div>
+                <div class="form-group">
+                    <label for="vehicleModalMake">Make <span class="required-star">*</span></label>
+                    <input type="text" id="vehicleModalMake" placeholder="e.g. Toyota" maxlength="80">
+                </div>
+                <div class="form-group">
+                    <label for="vehicleModalModel">Model <span class="required-star">*</span></label>
+                    <input type="text" id="vehicleModalModel" placeholder="e.g. Tacoma" maxlength="80">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="vehicleModalTrim">Trim</label>
+                    <input type="text" id="vehicleModalTrim" placeholder="e.g. TRD Off-Road" maxlength="80">
+                </div>
+                <div class="form-group">
+                    <label for="vehicleModalColor">Color</label>
+                    <input type="text" id="vehicleModalColor" placeholder="e.g. Cement Gray" maxlength="80">
+                </div>
+                <div class="form-group">
+                    <label for="vehicleModalLicensePlate">License Plate</label>
+                    <input type="text" id="vehicleModalLicensePlate" placeholder="e.g. ABC-1234" maxlength="20">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="vehicleModalVin">VIN</label>
+                    <input type="text" id="vehicleModalVin" placeholder="17-character VIN" maxlength="17">
+                </div>
+                <div class="form-group">
+                    <label for="vehicleModalPurchaseDate">Purchase Date</label>
+                    <input type="date" id="vehicleModalPurchaseDate">
+                </div>
+                <div class="form-group">
+                    <label for="vehicleModalPurchasePrice">Purchase Price</label>
+                    <input type="text" id="vehicleModalPurchasePrice" placeholder="e.g. $32,500" maxlength="40">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="vehicleModalNotes">Notes</label>
+                <textarea id="vehicleModalNotes" rows="3" placeholder="General notes about this vehicle"></textarea>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-primary" id="vehicleModalSaveBtn">Save</button>
+                <button class="btn btn-secondary" id="vehicleModalCancelBtn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Archive Vehicle Modal ===== -->
+    <div class="modal-overlay" id="vehicleArchiveModal">
+        <div class="modal">
+            <h3 class="modal-title">Archive Vehicle</h3>
+            <p style="margin-bottom:12px;">This vehicle will be removed from the active list. You can unarchive it at any time.</p>
+            <div class="form-group">
+                <label for="vehicleArchiveReason">Reason (optional)</label>
+                <input type="text" id="vehicleArchiveReason" placeholder="e.g. Sold, Traded in, Totaled" maxlength="120">
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-danger" id="vehicleArchiveConfirmBtn">Archive</button>
+                <button class="btn btn-secondary" id="vehicleArchiveCancelBtn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     </div><!-- end #appWrapper -->
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=175"></script>
-    <script src="js/auth.js?v=175"></script>
-    <script src="js/zones.js?v=175"></script>
-    <script src="js/plants.js?v=175"></script>
-    <script src="js/problems.js?v=175"></script>
-    <script src="js/facts.js?v=175"></script>
-    <script src="js/projects.js?v=175"></script>
-    <script src="js/chemicals.js?v=175"></script>
-    <script src="js/activities.js?v=175"></script>
-    <script src="js/photos.js?v=175"></script>
-    <script src="js/weeds.js?v=175"></script>
-    <script src="js/calendar.js?v=175"></script>
-    <script src="js/gps.js?v=175"></script>
-    <script src="js/settings.js?v=175"></script>
-    <script src="js/house.js?v=175"></script>
-    <script src="js/floorplan.js?v=175"></script>
-    <script src="js/search.js?v=175"></script>
-    <script src="js/activityreport.js?v=175"></script>
-    <script src="js/checklists.js?v=175"></script>
-    <script src="js/bulkactivity.js?v=175"></script>
-    <script src="js/devnotes.js?v=175"></script>
+    <script src="js/firebase-config.js?v=176"></script>
+    <script src="js/auth.js?v=176"></script>
+    <script src="js/zones.js?v=176"></script>
+    <script src="js/plants.js?v=176"></script>
+    <script src="js/problems.js?v=176"></script>
+    <script src="js/facts.js?v=176"></script>
+    <script src="js/projects.js?v=176"></script>
+    <script src="js/chemicals.js?v=176"></script>
+    <script src="js/activities.js?v=176"></script>
+    <script src="js/photos.js?v=176"></script>
+    <script src="js/weeds.js?v=176"></script>
+    <script src="js/calendar.js?v=176"></script>
+    <script src="js/gps.js?v=176"></script>
+    <script src="js/settings.js?v=176"></script>
+    <script src="js/house.js?v=176"></script>
+    <script src="js/floorplan.js?v=176"></script>
+    <script src="js/search.js?v=176"></script>
+    <script src="js/activityreport.js?v=176"></script>
+    <script src="js/checklists.js?v=176"></script>
+    <script src="js/bulkactivity.js?v=176"></script>
+    <script src="js/devnotes.js?v=176"></script>
+    <script src="js/vehicles.js?v=176"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=175"></script>
-    <script src="js/app.js?v=175"></script>
+    <script src="js/chat.js?v=176"></script>
+    <script src="js/app.js?v=176"></script>
 
 </body>
 </html>

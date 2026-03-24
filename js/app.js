@@ -10,7 +10,7 @@
  * List of top-level pages that map to nav links.
  * These pages clear the breadcrumb bar when shown.
  */
-const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'house', 'settings', 'main', 'search', 'activityreport', 'checklists', 'notes', 'chat'];
+const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'house', 'settings', 'main', 'search', 'activityreport', 'checklists', 'notes', 'chat', 'vehicles'];
 
 /**
  * All pages that can be shown (includes detail pages not in the nav).
@@ -19,7 +19,7 @@ const ALL_PAGES = [
     ...TOP_LEVEL_PAGES,
     'zone', 'plant', 'weed', 'chemical', 'gpsmap', 'yardmap',
     'floor', 'room', 'thing', 'subthing', 'floorplan', 'panel', 'rooms', 'things',
-    'backup'
+    'backup', 'vehicle'
 ];
 
 /**
@@ -192,6 +192,12 @@ function handleRoute() {
     } else if (page === 'chat') {
         showPage('chat');
         loadChatPage();
+    } else if (page === 'vehicles') {
+        showPage('vehicles');
+        loadVehiclesPage();
+    } else if (page === 'vehicle' && id) {
+        showPage('vehicle');
+        loadVehiclePage(id);
     } else if (TOP_LEVEL_PAGES.includes(page)) {
         showPage(page);
     } else {

@@ -141,7 +141,8 @@ function loadBackupPage() {
 var BACKUP_DATA_COLLECTIONS = [
     'activities', 'breakerPanels', 'calendarEvents', 'chemicals',
     'facts', 'floorPlans', 'floors', 'garageRooms', 'garageSubThings', 'garageThings',
-    'gpsShapes', 'mileageLogs', 'plants',
+    'gpsShapes', 'journalCategories', 'journalEntries', 'journalTrackingItems',
+    'mileageLogs', 'plants',
     'problems', 'projects', 'rooms', 'savedActions', 'settings',
     'structures', 'structureSubThings', 'structureThings',
     'subThings', 'tags', 'things', 'vehicles', 'weeds', 'zones'

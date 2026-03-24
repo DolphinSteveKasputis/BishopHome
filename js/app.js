@@ -10,7 +10,7 @@
  * List of top-level pages that map to nav links.
  * These pages clear the breadcrumb bar when shown.
  */
-const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'house', 'settings', 'main', 'search', 'activityreport', 'checklists', 'notes', 'chat', 'vehicles', 'garage', 'structures'];
+const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'house', 'settings', 'main', 'search', 'activityreport', 'checklists', 'notes', 'chat', 'vehicles', 'garage', 'structures', 'life', 'journal'];
 
 /**
  * All pages that can be shown (includes detail pages not in the nav).
@@ -21,7 +21,8 @@ const ALL_PAGES = [
     'floor', 'room', 'thing', 'subthing', 'floorplan', 'panel', 'rooms', 'things',
     'backup', 'vehicle',
     'garageroom', 'garagething', 'garagesubthing',
-    'structure', 'structurething', 'structuresubthing'
+    'structure', 'structurething', 'structuresubthing',
+    'journal-entry', 'journal-tracking', 'journal-categories'
 ];
 
 /**
@@ -226,6 +227,23 @@ function handleRoute() {
     } else if (page === 'structuresubthing' && id) {
         showPage('structuresubthing');
         loadStructureSubThingPage(id);
+    // ---------- Life / Journal routes ----------
+    } else if (page === 'life') {
+        showPage('life');
+        loadLifePage();
+    } else if (page === 'journal') {
+        showPage('journal');
+        loadJournalPage();
+    } else if (page === 'journal-entry') {
+        showPage('journal-entry');
+        // Form state is managed by openAddJournalEntry() or openEditJournalEntry().
+        // If the user navigates here directly (e.g. back button) just show the page.
+    } else if (page === 'journal-tracking') {
+        showPage('journal-tracking');
+        // Form state is managed by openAddTracking() or openEditTrackingItem().
+    } else if (page === 'journal-categories') {
+        showPage('journal-categories');
+        loadJournalCategoriesPage();
     } else if (TOP_LEVEL_PAGES.includes(page)) {
         showPage(page);
     } else {

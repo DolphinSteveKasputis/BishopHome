@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=178">
+    <link rel="stylesheet" href="css/styles.css?v=179">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -3656,13 +3656,14 @@
                 <input type="text" id="structureNameInput" placeholder="e.g., Garden Shed, Firepit, Playhouse">
             </div>
             <div class="form-group">
-                <label class="checkbox-label">
+                <label class="checkbox-label" style="display:flex;align-items:center;gap:8px;">
                     <input type="checkbox" id="structureIsStorageToggle">
-                    This structure stores things (enables Things &amp; Sub-Items tracking)
+                    This structure stores things
                 </label>
                 <p class="label-hint hidden" id="structureStorageNote">Remove all items first to disable storage.</p>
             </div>
             <div class="modal-buttons">
+                <button class="btn btn-danger hidden" id="structureModalDeleteBtn">Delete</button>
                 <button class="btn btn-secondary" id="structureModalCancelBtn">Cancel</button>
                 <button class="btn btn-primary"   id="structureModalSaveBtn">Save</button>
             </div>
@@ -3843,34 +3844,34 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=178"></script>
-    <script src="js/auth.js?v=178"></script>
-    <script src="js/zones.js?v=178"></script>
-    <script src="js/plants.js?v=178"></script>
-    <script src="js/problems.js?v=178"></script>
-    <script src="js/facts.js?v=178"></script>
-    <script src="js/projects.js?v=178"></script>
-    <script src="js/chemicals.js?v=178"></script>
-    <script src="js/activities.js?v=178"></script>
-    <script src="js/photos.js?v=178"></script>
-    <script src="js/weeds.js?v=178"></script>
-    <script src="js/calendar.js?v=178"></script>
-    <script src="js/gps.js?v=178"></script>
-    <script src="js/settings.js?v=178"></script>
-    <script src="js/house.js?v=178"></script>
-    <script src="js/floorplan.js?v=178"></script>
-    <script src="js/search.js?v=178"></script>
-    <script src="js/activityreport.js?v=178"></script>
-    <script src="js/checklists.js?v=178"></script>
-    <script src="js/bulkactivity.js?v=178"></script>
-    <script src="js/devnotes.js?v=178"></script>
-    <script src="js/vehicles.js?v=178"></script>
-    <script src="js/garage.js?v=178"></script>
-    <script src="js/structures.js?v=178"></script>
-    <script src="js/moveThings.js?v=178"></script>
+    <script src="js/firebase-config.js?v=179"></script>
+    <script src="js/auth.js?v=179"></script>
+    <script src="js/zones.js?v=179"></script>
+    <script src="js/plants.js?v=179"></script>
+    <script src="js/problems.js?v=179"></script>
+    <script src="js/facts.js?v=179"></script>
+    <script src="js/projects.js?v=179"></script>
+    <script src="js/chemicals.js?v=179"></script>
+    <script src="js/activities.js?v=179"></script>
+    <script src="js/photos.js?v=179"></script>
+    <script src="js/weeds.js?v=179"></script>
+    <script src="js/calendar.js?v=179"></script>
+    <script src="js/gps.js?v=179"></script>
+    <script src="js/settings.js?v=179"></script>
+    <script src="js/house.js?v=179"></script>
+    <script src="js/floorplan.js?v=179"></script>
+    <script src="js/search.js?v=179"></script>
+    <script src="js/activityreport.js?v=179"></script>
+    <script src="js/checklists.js?v=179"></script>
+    <script src="js/bulkactivity.js?v=179"></script>
+    <script src="js/devnotes.js?v=179"></script>
+    <script src="js/vehicles.js?v=179"></script>
+    <script src="js/garage.js?v=179"></script>
+    <script src="js/structures.js?v=179"></script>
+    <script src="js/moveThings.js?v=179"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=178"></script>
-    <script src="js/app.js?v=178"></script>
+    <script src="js/chat.js?v=179"></script>
+    <script src="js/app.js?v=179"></script>
 
 </body>
 </html>

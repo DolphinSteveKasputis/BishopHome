@@ -84,8 +84,7 @@ function buildStructureCard(id, data) {
             storageBadge +
         '</div>' +
         '<div class="card-actions">' +
-            '<button class="btn btn-secondary btn-small" data-id="' + id + '" data-action="edit-structure">Edit</button>' +
-            '<button class="btn btn-danger btn-small"    data-id="' + id + '" data-action="delete-structure">Delete</button>' +
+            '<button class="btn btn-secondary btn-small" data-id="' + id + '" data-action="edit-structure">Edit Name</button>' +
         '</div>';
 
     // Clicking the main area navigates to the structure detail page
@@ -96,11 +95,6 @@ function buildStructureCard(id, data) {
     card.querySelector('[data-action="edit-structure"]').addEventListener('click', function(e) {
         e.stopPropagation();
         openEditStructureModal(id);
-    });
-
-    card.querySelector('[data-action="delete-structure"]').addEventListener('click', function(e) {
-        e.stopPropagation();
-        deleteStructure(id, data.name || 'this structure');
     });
 
     return card;
@@ -118,7 +112,9 @@ function openAddStructureModal() {
     document.getElementById('structureModalTitle').textContent   = 'Add Structure';
     document.getElementById('structureNameInput').value          = '';
     document.getElementById('structureIsStorageToggle').checked  = false;
+    document.getElementById('structureIsStorageToggle').disabled = false;
     document.getElementById('structureStorageNote').classList.add('hidden');
+    document.getElementById('structureModalDeleteBtn').classList.add('hidden');
 
     modal.dataset.mode   = 'add';
     modal.dataset.editId = '';
@@ -162,6 +158,8 @@ function openEditStructureModal(id) {
                     } else {
                         noteEl.classList.add('hidden');
                     }
+                    // Show Delete button in edit mode
+                    document.getElementById('structureModalDeleteBtn').classList.remove('hidden');
                     openModal('structureModal');
                     document.getElementById('structureNameInput').focus();
                 });
@@ -1175,6 +1173,15 @@ document.getElementById('structureModalSaveBtn').addEventListener('click', funct
 
 document.getElementById('structureModalCancelBtn').addEventListener('click', function() {
     closeModal('structureModal');
+});
+
+document.getElementById('structureModalDeleteBtn').addEventListener('click', function() {
+    var modal = document.getElementById('structureModal');
+    var id    = modal.dataset.editId;
+    var name  = document.getElementById('structureNameInput').value || 'this structure';
+    if (!id) return;
+    closeModal('structureModal');
+    deleteStructure(id, name);
 });
 
 // ---- Structure detail page buttons ----

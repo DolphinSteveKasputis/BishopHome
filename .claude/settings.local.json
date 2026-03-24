@@ -1,11 +1,41 @@
 {
   "permissions": {
     "allow": [
+      "Bash(cd \"C:/personal/Bishop\":*)",
+      "Bash(git:*)",
+      "Bash(gh:*)",
+      "Bash(curl:*)",
+      "Bash(sed:*)",
+      "Bash(python:*)",
+      "Bash(node:*)",
+      "Bash(sleep:*)",
+      "Bash(timeout:*)",
+      "Bash(cat:*)",
+      "Bash(echo:*)",
+      "Bash(netstat:*)",
+      "Bash(tasklist:*)",
+      "Bash(powershell:*)",
+      "Bash(TOKEN=*)",
+      "Bash(GIT_ASKPASS=*)",
+      "WebSearch",
+      "WebFetch(domain:dolphinstevekasputis.github.io)",
+      "WebFetch(domain:app.regrid.com)",
+      "WebFetch(domain:qpublic.schneidercorp.com)",
+      "WebFetch(domain:opendata-ocga-gis.hub.arcgis.com)",
+      "WebFetch(domain:www.oconeecountyga.gov)",
+      "WebFetch(domain:www.arcgis.com)",
+      "WebFetch(domain:oconeesc.maps.arcgis.com)",
+      "WebFetch(domain:ocgis.oconee.ga.us)",
+      "WebFetch(domain:gis.oconeecounty.com)",
+      "WebFetch(domain:maps.oconeecounty.com)",
+      "WebFetch(domain:support.regrid.com)",
+      "WebFetch(domain:epsg.io)",
       "mcp__Claude_Preview__preview_start",
-      "Bash(netstat -ano)",
-      "Bash(tasklist /FI \"PID eq 347372\")",
-      "Bash(powershell -Command \"Get-Process -Id 347372 | Select-Object Name, Id, Path\")",
-      "Bash(powershell -Command \"Stop-Process -Id 347372 -Force\")"
+      "Skill(update-config)",
+      "Skill(update-config:*)",
+      "Bash(/c/personal/Bishop/css/styles.css:*)",
+      "Bash(grep -h \"db\\\\.collection\\(\" /c/personal/Bishop/js/*.js)",
+      "Bash(grep -oh \"db\\\\.collection\\(''''[^'''']*''''\\)\" /c/personal/Bishop/js/*.js)"
     ]
   }
 }

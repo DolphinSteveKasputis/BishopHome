@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=196">
+    <link rel="stylesheet" href="css/styles.css?v=197">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -69,6 +69,7 @@
             <a href="#home" class="nav-link" data-page="yard">Yard</a>
             <a href="#settings" class="nav-link" data-page="settings">Settings</a>
             <a href="#things" class="nav-link" data-page="things">Things</a>
+            <a href="#collections" class="nav-link" data-page="collections">Collections</a>
             <a href="#search" class="nav-link" data-page="search">🔍 Search</a>
             <a href="#chat" class="nav-link" data-page="chat">Chat</a>
             <button class="nav-signout-btn" id="signOutBtnHouse" title="Sign out">Sign Out</button>
@@ -121,6 +122,7 @@
             <a href="#home" class="nav-link" data-page="yard">Yard</a>
             <a href="#settings" class="nav-link" data-page="settings">Settings</a>
             <a href="#things" class="nav-link" data-page="things">Things</a>
+            <a href="#collections" class="nav-link" data-page="collections">Collections</a>
             <a href="#search" class="nav-link" data-page="search">🔍 Search</a>
             <a href="#chat" class="nav-link" data-page="chat">Chat</a>
             <button class="nav-signout-btn" id="signOutBtnMobileHouse">Sign Out</button>
@@ -155,6 +157,10 @@
                 <a href="#life" class="landing-tile landing-tile--life">
                     <span class="landing-tile-icon">🧠</span>
                     <span class="landing-tile-label">Life</span>
+                </a>
+                <a href="#collections" class="landing-tile landing-tile--collections">
+                    <span class="landing-tile-icon">📦</span>
+                    <span class="landing-tile-label">Collections</span>
                 </a>
             </div>
         </section>
@@ -4079,39 +4085,194 @@
             <div id="journalCategoriesList"></div>
         </section>
 
+        <!-- =====================================================
+             COLLECTIONS PAGES
+             ===================================================== -->
+
+        <!-- Page: Collections List (#collections) -->
+        <section class="page hidden" id="page-collections">
+            <div class="page-header">
+                <h2>Collections</h2>
+                <button class="btn btn-primary btn-small" id="addCollectionBtn">+ Add Collection</button>
+            </div>
+            <div id="collectionsListContainer"></div>
+        </section>
+
+        <!-- Page: Collection Detail (#collection/:id) -->
+        <section class="page hidden" id="page-collection">
+            <div class="page-header">
+                <div id="collectionBreadcrumb" class="breadcrumb-bar"></div>
+                <h2 id="collectionDetailName"></h2>
+                <div id="collectionDetailStats" class="collection-card-stats" style="margin-top:4px;"></div>
+            </div>
+            <div class="section-header">
+                <input type="text" id="collectionFilterInput" placeholder="Filter…" class="filter-input">
+                <button class="btn btn-primary btn-small" id="addCollectionItemBtn">+ Add Item</button>
+            </div>
+            <div id="collectionItemsList"></div>
+        </section>
+
+        <!-- Page: Collection Item Detail (#collectionitem/:id) -->
+        <section class="page hidden" id="page-collectionitem">
+            <div class="page-header">
+                <div id="collectionItemBreadcrumb" class="breadcrumb-bar"></div>
+                <h2 id="collectionItemDetailName"></h2>
+            </div>
+
+            <!-- Info card -->
+            <div class="detail-card" id="collectionItemInfoCard"></div>
+
+            <!-- Location section -->
+            <div class="section-header">
+                <h3 class="section-heading">Location</h3>
+                <button class="btn btn-primary btn-small" id="collectionItemLocationBtn">Assign Location</button>
+            </div>
+            <div id="collectionItemLocationDisplay"></div>
+
+            <!-- Photos section -->
+            <div class="section-header">
+                <h3 class="section-heading">Photos</h3>
+                <button class="btn btn-primary btn-small" id="collectionItemCameraBtn">+ Camera</button>
+                <button class="btn btn-primary btn-small" id="collectionItemGalleryBtn">+ Gallery</button>
+            </div>
+            <div id="collectionItemPhotoContainer"></div>
+            <p class="empty-state" id="collectionItemPhotoEmpty">No photos yet.</p>
+
+            <!-- Edit / Delete -->
+            <div class="detail-actions">
+                <button class="btn btn-primary" id="editCollectionItemBtn">Edit Item</button>
+                <button class="btn btn-danger"  id="deleteCollectionItemBtn">Delete Item</button>
+            </div>
+        </section>
+
     </div><!-- end #appWrapper -->
+
+    <!-- ========== COLLECTIONS MODALS ========== -->
+
+    <!-- Add / Edit Collection Modal -->
+    <div class="modal-overlay" id="collectionModal">
+        <div class="modal">
+            <h3 id="collectionModalTitle">Add Collection</h3>
+            <div class="form-group">
+                <label for="collectionNameInput">Name <span class="label-required">*</span></label>
+                <input type="text" id="collectionNameInput" placeholder="e.g., My Comics, Record Collection">
+            </div>
+            <div class="form-group">
+                <label for="collectionTypeSelect">Type</label>
+                <select id="collectionTypeSelect">
+                    <option value="Comics">Comics</option>
+                    <option value="Records/Albums">Records/Albums</option>
+                    <option value="Hat Pins">Hat Pins</option>
+                    <option value="Beanie Babies">Beanie Babies</option>
+                    <option value="Ceramic Stadiums">Ceramic Stadiums</option>
+                    <option value="Generic">Generic</option>
+                </select>
+            </div>
+            <!-- Generic label names — shown only when Generic is selected -->
+            <div id="collectionGenericLabels" class="hidden">
+                <div class="form-group">
+                    <label for="collectionLabel1Input">Label 1 Name <span class="label-hint">(e.g., Brand)</span></label>
+                    <input type="text" id="collectionLabel1Input" placeholder="Label 1">
+                </div>
+                <div class="form-group">
+                    <label for="collectionLabel2Input">Label 2 Name <span class="label-hint">(e.g., Model)</span></label>
+                    <input type="text" id="collectionLabel2Input" placeholder="Label 2">
+                </div>
+                <div class="form-group">
+                    <label for="collectionLabel3Input">Label 3 Name <span class="label-hint">(e.g., Color)</span></label>
+                    <input type="text" id="collectionLabel3Input" placeholder="Label 3">
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-danger hidden" id="collectionDeleteBtn">Delete Collection</button>
+                <button class="btn btn-secondary" id="collectionModalCancelBtn">Cancel</button>
+                <button class="btn btn-primary"   id="collectionModalSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add / Edit Collection Item Modal -->
+    <div class="modal-overlay" id="collectionItemModal">
+        <div class="modal">
+            <h3 id="collectionItemModalTitle">Add Item</h3>
+            <div class="form-group">
+                <label for="ciName">Name <span class="label-required">*</span></label>
+                <input type="text" id="ciName" placeholder="Item name">
+            </div>
+            <!-- Type-specific fields injected here by JS -->
+            <div id="collectionItemTypeFields"></div>
+            <!-- Base fields -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="ciAcquiredDate">Acquired Date <span class="label-hint">(optional)</span></label>
+                    <input type="date" id="ciAcquiredDate">
+                </div>
+                <div class="form-group">
+                    <label for="ciPricePaid">Price Paid ($)</label>
+                    <input type="number" id="ciPricePaid" min="0" step="0.01" placeholder="e.g. 12.50">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="ciEstValue">Estimated Value ($)</label>
+                <input type="number" id="ciEstValue" min="0" step="0.01" placeholder="e.g. 25.00">
+            </div>
+            <div class="form-group">
+                <label for="ciNotes">Notes</label>
+                <textarea id="ciNotes" rows="2" placeholder="Any additional notes…"></textarea>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="collectionItemModalCancelBtn">Cancel</button>
+                <button class="btn btn-primary"   id="collectionItemModalSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Collection Location Picker Modal -->
+    <div class="modal-overlay" id="collectionLocationModal">
+        <div class="modal">
+            <h3>Assign Location</h3>
+            <p class="form-hint">Select where this item is stored:</p>
+            <div id="collectionLocationList"></div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="collectionLocationClearBtn">Clear Location</button>
+                <button class="btn btn-secondary" id="collectionLocationCancelBtn">Cancel</button>
+                <button class="btn btn-primary"   id="collectionLocationAssignBtn">Assign</button>
+            </div>
+        </div>
+    </div>
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=196"></script>
-    <script src="js/auth.js?v=196"></script>
-    <script src="js/zones.js?v=196"></script>
-    <script src="js/plants.js?v=196"></script>
-    <script src="js/problems.js?v=196"></script>
-    <script src="js/facts.js?v=196"></script>
-    <script src="js/projects.js?v=196"></script>
-    <script src="js/chemicals.js?v=196"></script>
-    <script src="js/activities.js?v=196"></script>
-    <script src="js/photos.js?v=196"></script>
-    <script src="js/weeds.js?v=196"></script>
-    <script src="js/calendar.js?v=196"></script>
-    <script src="js/gps.js?v=196"></script>
-    <script src="js/settings.js?v=196"></script>
-    <script src="js/house.js?v=196"></script>
-    <script src="js/floorplan.js?v=196"></script>
-    <script src="js/search.js?v=196"></script>
-    <script src="js/activityreport.js?v=196"></script>
-    <script src="js/checklists.js?v=196"></script>
-    <script src="js/bulkactivity.js?v=196"></script>
-    <script src="js/devnotes.js?v=196"></script>
-    <script src="js/vehicles.js?v=196"></script>
-    <script src="js/garage.js?v=196"></script>
-    <script src="js/structures.js?v=196"></script>
-    <script src="js/moveThings.js?v=196"></script>
-    <script src="js/journal.js?v=196"></script>
+    <script src="js/firebase-config.js?v=197"></script>
+    <script src="js/auth.js?v=197"></script>
+    <script src="js/zones.js?v=197"></script>
+    <script src="js/plants.js?v=197"></script>
+    <script src="js/problems.js?v=197"></script>
+    <script src="js/facts.js?v=197"></script>
+    <script src="js/projects.js?v=197"></script>
+    <script src="js/chemicals.js?v=197"></script>
+    <script src="js/activities.js?v=197"></script>
+    <script src="js/photos.js?v=197"></script>
+    <script src="js/weeds.js?v=197"></script>
+    <script src="js/calendar.js?v=197"></script>
+    <script src="js/gps.js?v=197"></script>
+    <script src="js/settings.js?v=197"></script>
+    <script src="js/house.js?v=197"></script>
+    <script src="js/floorplan.js?v=197"></script>
+    <script src="js/search.js?v=197"></script>
+    <script src="js/activityreport.js?v=197"></script>
+    <script src="js/checklists.js?v=197"></script>
+    <script src="js/bulkactivity.js?v=197"></script>
+    <script src="js/devnotes.js?v=197"></script>
+    <script src="js/vehicles.js?v=197"></script>
+    <script src="js/garage.js?v=197"></script>
+    <script src="js/structures.js?v=197"></script>
+    <script src="js/moveThings.js?v=197"></script>
+    <script src="js/journal.js?v=197"></script>
+    <script src="js/collections.js?v=197"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=196"></script>
-    <script src="js/app.js?v=196"></script>
+    <script src="js/chat.js?v=197"></script>
+    <script src="js/app.js?v=197"></script>
 
 </body>
 </html>

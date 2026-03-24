@@ -33,6 +33,7 @@ var PHOTO_CONTAINERS = {
     structure:          ['structurePhotosSection',       'structurePhotosEmpty'],
     structurething:     ['structureThingPhotosSection',  'structureThingPhotosEmpty'],
     structuresubthing:  ['structureSubThingPhotosSection','structureSubThingPhotosEmpty'],
+    collectionitem:     ['collectionItemPhotoContainer',  'collectionItemPhotoEmpty'],
 };
 
 // ---------- Load & Display Photos ----------
@@ -453,6 +454,7 @@ async function handleDeletePhoto(photoId, targetType) {
             structure:          window.currentStructure,
             structurething:     window.currentStructureThing,
             structuresubthing:  window.currentStructureSubThing,
+            collectionitem:     window.currentCollectionItem,
         };
         var current = currentMap[targetType];
         if (current && current.id) {

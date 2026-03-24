@@ -10,7 +10,7 @@
  * List of top-level pages that map to nav links.
  * These pages clear the breadcrumb bar when shown.
  */
-const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'house', 'settings', 'main', 'search', 'activityreport', 'checklists', 'notes', 'chat', 'vehicles', 'garage', 'structures', 'life', 'journal'];
+const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'house', 'settings', 'main', 'search', 'activityreport', 'checklists', 'notes', 'chat', 'vehicles', 'garage', 'structures', 'life', 'journal', 'collections'];
 
 /**
  * All pages that can be shown (includes detail pages not in the nav).
@@ -22,7 +22,8 @@ const ALL_PAGES = [
     'backup', 'vehicle',
     'garageroom', 'garagething', 'garagesubthing',
     'structure', 'structurething', 'structuresubthing',
-    'journal-entry', 'journal-tracking', 'journal-categories'
+    'journal-entry', 'journal-tracking', 'journal-categories',
+    'collection', 'collectionitem'
 ];
 
 /**
@@ -234,6 +235,16 @@ function handleRoute() {
     } else if (page === 'structuresubthing' && id) {
         showPage('structuresubthing');
         loadStructureSubThingPage(id);
+    // ---------- Collections routes ----------
+    } else if (page === 'collections') {
+        showPage('collections');
+        loadCollectionsPage();
+    } else if (page === 'collection' && id) {
+        showPage('collection');
+        loadCollectionPage(id);
+    } else if (page === 'collectionitem' && id) {
+        showPage('collectionitem');
+        loadCollectionItemPage(id);
     // ---------- Life / Journal routes ----------
     } else if (page === 'life') {
         showPage('life');

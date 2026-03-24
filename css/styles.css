@@ -4257,3 +4257,245 @@ a.ar-target-link:hover {
 .journal-category-edit-input {
     flex: 1;
 }
+
+/* ============================================================
+   COLLECTIONS SECTION
+   ============================================================ */
+
+/* Landing tile — warm amber/gold tone */
+.landing-tile--collections {
+    background: #fef3c7;
+    border-color: #fbbf24;
+    color: #78350f;
+}
+.landing-tile--collections:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(251, 191, 36, 0.3);
+}
+
+/* ---- Collections list page ---- */
+
+/* Card for each collection on the list page */
+.collection-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface, #fff);
+    border: 1px solid var(--border, #e0e0e0);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    gap: 12px;
+}
+
+.collection-card-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.collection-card-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+}
+
+.collection-card-name {
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--text-primary, #111);
+    text-decoration: none;
+}
+.collection-card-name:hover {
+    text-decoration: underline;
+}
+
+/* Small colored badge showing the collection type */
+.collection-type-badge {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 10px;
+    background: #fef3c7;
+    color: #78350f;
+    border: 1px solid #fbbf24;
+    white-space: nowrap;
+}
+
+.collection-card-stats {
+    display: flex;
+    gap: 12px;
+    font-size: 0.82rem;
+    color: var(--text-muted, #666);
+}
+
+.collection-card-worth {
+    font-weight: 600;
+    color: #065f46;
+}
+
+.collection-card-actions {
+    flex-shrink: 0;
+}
+
+/* ---- Collection detail page filter bar ---- */
+.filter-input {
+    width: 100%;
+    max-width: 320px;
+    padding: 7px 10px;
+    border: 1px solid var(--border, #e0e0e0);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    background: var(--surface, #fff);
+}
+
+/* ---- Collection item rows ---- */
+
+/* Clickable row in the item list */
+.collection-item-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: var(--surface, #fff);
+    border: 1px solid var(--border, #e0e0e0);
+    border-radius: 6px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: background 0.12s;
+    gap: 10px;
+}
+.collection-item-row:hover {
+    background: #f8f9fb;
+    border-color: #c7d2e0;
+}
+
+.collection-item-row-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.collection-item-row-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text-primary, #111);
+}
+
+.collection-item-row-key {
+    font-size: 0.8rem;
+    color: var(--text-muted, #666);
+}
+
+.collection-item-row-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.collection-item-row-worth {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #065f46;
+}
+
+/* ---- Collection item detail info card ---- */
+.collection-info-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+}
+
+.ci-label {
+    width: 36%;
+    padding: 6px 10px 6px 0;
+    font-weight: 600;
+    color: var(--text-muted, #666);
+    vertical-align: top;
+    white-space: nowrap;
+}
+
+.ci-value {
+    padding: 6px 0;
+    color: var(--text-primary, #111);
+    word-break: break-word;
+}
+
+/* ---- Location section on item detail ---- */
+.collection-location-display {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 8px 0;
+}
+
+.collection-location-type {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted, #666);
+    background: #f1f5f9;
+    border-radius: 4px;
+    padding: 2px 7px;
+}
+
+.collection-location-name {
+    font-weight: 600;
+    color: var(--text-primary, #111);
+    flex: 1;
+}
+
+/* ---- Location picker modal ---- */
+.location-group-header {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted, #666);
+    padding: 10px 0 4px 0;
+    border-bottom: 1px solid var(--border, #e0e0e0);
+    margin-bottom: 4px;
+}
+.location-group-header:first-child {
+    padding-top: 0;
+}
+
+.location-item-row {
+    padding: 9px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--text-primary, #111);
+    transition: background 0.1s;
+    margin-bottom: 2px;
+}
+.location-item-row:hover {
+    background: #f1f5f9;
+}
+.location-item-row.selected {
+    background: #dbeafe;
+    color: #1e3a8a;
+    font-weight: 600;
+}
+
+/* Scrollable area inside location modal */
+#collectionLocationList {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 8px;
+    padding-right: 4px;
+}
+
+/* ---- Detail page action row ---- */
+.detail-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 24px;
+    flex-wrap: wrap;
+}

@@ -1133,6 +1133,21 @@ async function loadJournalCategoriesPage() {
         };
     }
 
+    // Enter = save, Escape = cancel on the new category input
+    var newCatInput = document.getElementById('journalNewCategoryInput');
+    if (newCatInput) {
+        newCatInput.onkeydown = function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                var name = newCatInput.value.trim();
+                if (name) addJournalCategory(name);
+            } else if (e.key === 'Escape') {
+                var form = document.getElementById('journalAddCategoryForm');
+                if (form) { form.style.display = 'none'; }
+            }
+        };
+    }
+
     // Load and render category list
     try {
         var snap = await userCol('journalCategories').orderBy('name').get();

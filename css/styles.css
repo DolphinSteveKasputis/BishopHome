@@ -205,6 +205,14 @@ button {
     margin-bottom: 0;
 }
 
+/* Journal full-page forms: stack breadcrumb above title, both left-aligned */
+#page-journal-entry .page-header,
+#page-journal-tracking .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    padding-left: 16px;
+}
+
 .page-header-actions {
     display: flex;
     gap: 6px;

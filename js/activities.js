@@ -216,7 +216,7 @@ function createActivityItem(activity, chemicalNames, targetType, targetId) {
     editBtn.className = 'btn btn-small btn-secondary';
     editBtn.textContent = 'Edit';
     editBtn.addEventListener('click', function() {
-        openViewActivityModal(activity, chemicalNames, targetType, targetId);
+        openEditActivityModal(activity, targetType, targetId);
     });
     item.appendChild(editBtn);
 

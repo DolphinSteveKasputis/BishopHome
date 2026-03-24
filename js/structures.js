@@ -1186,9 +1186,105 @@ document.getElementById('structureModalDeleteBtn').addEventListener('click', fun
 
 // ---- Structure detail page buttons ----
 
+// ---------- Quick-Add Structure Thing from Photo ----------
+
+/**
+ * Quick-add a structure thing from camera without showing the review modal.
+ * Reads window.currentStructure for structureId.
+ * @param {FileList} files
+ * @param {string}   btnId   - button element ID to show loading state
+ * @param {string}   inputId - file input element ID to reset after use
+ */
+async function structureQuickAddThingFromPhoto(files, btnId, inputId) {
+    if (!files || files.length === 0) return;
+    var btn = document.getElementById(btnId);
+    var origText = btn ? btn.textContent : '+Photo';
+    if (btn) { btn.textContent = 'Identifying\u2026'; btn.disabled = true; }
+
+    try {
+        // Compress images (up to 4)
+        var images = [];
+        for (var i = 0; i < Math.min(files.length, 4); i++) {
+            images.push(await compressImage(files[i]));
+        }
+
+        // Load LLM config
+        var cfgDoc = await userCol('settings').doc('llm').get();
+        var cfg = cfgDoc.exists ? cfgDoc.data() : null;
+        if (!cfg || !cfg.provider || !cfg.apiKey) { alert('No LLM configured. Go to Settings.'); return; }
+        var llm = LLM_PROVIDERS[cfg.provider];
+        if (!llm) { alert('Unknown LLM provider.'); return; }
+
+        // Build content: prompt + images
+        // THING_ID_PROMPT is defined in house.js (loaded before structures.js)
+        var content = [{ type: 'text', text: THING_ID_PROMPT }];
+        images.forEach(function(url) {
+            content.push({ type: 'image_url', image_url: { url: url } });
+        });
+        var activeModel = cfg.model || llm.model;
+        var responseText = await chatCallOpenAICompat(llm, cfg.apiKey, content, activeModel);
+        // houseParseLlmResponse is globally accessible (defined in house.js)
+        var parsed = houseParseLlmResponse(responseText);
+
+        if (!parsed.name && parsed.additionalMessage) {
+            alert('Could not identify item: ' + parsed.additionalMessage);
+            return;
+        }
+        if (!parsed.name) {
+            alert('Could not identify item. Try a clearer photo.');
+            return;
+        }
+
+        if (!window.currentStructure) { alert('No structure selected.'); return; }
+        var structureId = window.currentStructure.id;
+
+        // Save to structureThings collection
+        var itemData = {
+            name:        parsed.name.trim(),
+            category:    parsed.category    || 'other',
+            description: parsed.description || '',
+            worth:       parsed.worth       || null,
+            structureId: structureId,
+            createdAt:   firebase.firestore.FieldValue.serverTimestamp()
+        };
+        var newRef = await userCol('structureThings').add(itemData);
+
+        // Save photos
+        for (var j = 0; j < images.length; j++) {
+            await userCol('photos').add({
+                targetType : 'structurething',
+                targetId   : newRef.id,
+                imageData  : images[j],
+                caption    : '',
+                createdAt  : firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+
+        loadStructureThings(structureId);
+
+    } catch (err) {
+        console.error('Quick structure thing photo error:', err);
+        alert('Error: ' + err.message);
+    } finally {
+        if (btn) { btn.textContent = origText; btn.disabled = false; }
+        var input = document.getElementById(inputId);
+        if (input) input.value = '';
+    }
+}
+
 document.getElementById('structureAddThingBtn').addEventListener('click', function() {
     if (window.currentStructure) {
         openAddStructureThingModal(window.currentStructure.id);
+    }
+});
+
+// "+Photo" quick-add button for structure things
+document.getElementById('quickAddStructureThingPhotoBtn').addEventListener('click', function() {
+    document.getElementById('quickStructureThingCamInput').click();
+});
+document.getElementById('quickStructureThingCamInput').addEventListener('change', function() {
+    if (this.files && this.files.length > 0) {
+        structureQuickAddThingFromPhoto(this.files, 'quickAddStructureThingPhotoBtn', 'quickStructureThingCamInput');
     }
 });
 

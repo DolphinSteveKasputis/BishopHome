@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=194">
+    <link rel="stylesheet" href="css/styles.css?v=195">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -271,7 +271,9 @@
                 <h3 class="section-heading">Plants</h3>
                 <div class="section-header-actions">
                     <button class="btn btn-primary btn-small" id="viewAllPlantsBtn" style="display:none;">View All Plants</button>
-                    <button class="btn btn-primary btn-small" id="addPlantBtn" style="display:none;">+ Add Plant</button>
+                    <button class="btn btn-primary btn-small" id="addPlantBtn" style="display:none;">+Plant</button>
+                    <button class="btn btn-primary btn-small" id="quickAddPlantPhotoBtn" style="display:none;">+Photo</button>
+                    <input type="file" id="quickPlantCamInput" accept="image/*" capture="environment" style="display:none;">
                 </div>
             </div>
             <div class="card-list" id="zonePlantListContainer"></div>
@@ -892,7 +894,9 @@
             <!-- Things section -->
             <div class="section-header">
                 <h3 class="section-heading">Things</h3>
-                <button class="btn btn-primary btn-small" id="addThingBtn">+ Add Thing</button>
+                <button class="btn btn-primary btn-small" id="addThingBtn">+Item</button>
+                <button class="btn btn-primary btn-small" id="quickAddThingPhotoBtn">+Photo</button>
+                <input type="file" id="quickThingCamInput" accept="image/*" capture="environment" style="display:none;">
             </div>
             <div class="card-list" id="thingListContainer"></div>
             <p class="empty-state" id="thingListEmptyState"></p>
@@ -980,7 +984,9 @@
             <!-- Sub-things / Items section -->
             <div class="section-header">
                 <h3 class="section-heading">Items</h3>
-                <button class="btn btn-primary btn-small" id="addSubThingBtn">+ Add Item</button>
+                <button class="btn btn-primary btn-small" id="addSubThingBtn">+Item</button>
+                <button class="btn btn-primary btn-small" id="quickAddSubThingPhotoBtn">+Photo</button>
+                <input type="file" id="quickSubThingCamInput" accept="image/*" capture="environment" style="display:none;">
             </div>
             <div class="card-list" id="subThingListContainer"></div>
             <p class="empty-state" id="subThingListEmptyState"></p>
@@ -1778,7 +1784,9 @@
             <!-- Things section -->
             <div class="section-header">
                 <h3 class="section-heading">Things</h3>
-                <button class="btn btn-primary btn-small" id="garageAddThingBtn">+ Add Thing</button>
+                <button class="btn btn-primary btn-small" id="garageAddThingBtn">+Item</button>
+                <button class="btn btn-primary btn-small" id="quickAddGarageThingPhotoBtn">+Photo</button>
+                <input type="file" id="quickGarageThingCamInput" accept="image/*" capture="environment" style="display:none;">
             </div>
             <div class="card-list" id="garageThingsList"></div>
             <p class="empty-state" id="garageThingsEmpty"></p>
@@ -2039,7 +2047,9 @@
             <div id="structureThingsSection" class="hidden">
                 <div class="section-header">
                     <h3 class="section-heading">Things</h3>
-                    <button class="btn btn-primary btn-small" id="structureAddThingBtn">+ Add Thing</button>
+                    <button class="btn btn-primary btn-small" id="structureAddThingBtn">+Item</button>
+                    <button class="btn btn-primary btn-small" id="quickAddStructureThingPhotoBtn">+Photo</button>
+                    <input type="file" id="quickStructureThingCamInput" accept="image/*" capture="environment" style="display:none;">
                 </div>
                 <div class="card-list" id="structureThingsList"></div>
                 <p class="empty-state" id="structureThingsEmpty"></p>
@@ -4058,35 +4068,35 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=194"></script>
-    <script src="js/auth.js?v=194"></script>
-    <script src="js/zones.js?v=194"></script>
-    <script src="js/plants.js?v=194"></script>
-    <script src="js/problems.js?v=194"></script>
-    <script src="js/facts.js?v=194"></script>
-    <script src="js/projects.js?v=194"></script>
-    <script src="js/chemicals.js?v=194"></script>
-    <script src="js/activities.js?v=194"></script>
-    <script src="js/photos.js?v=194"></script>
-    <script src="js/weeds.js?v=194"></script>
-    <script src="js/calendar.js?v=194"></script>
-    <script src="js/gps.js?v=194"></script>
-    <script src="js/settings.js?v=194"></script>
-    <script src="js/house.js?v=194"></script>
-    <script src="js/floorplan.js?v=194"></script>
-    <script src="js/search.js?v=194"></script>
-    <script src="js/activityreport.js?v=194"></script>
-    <script src="js/checklists.js?v=194"></script>
-    <script src="js/bulkactivity.js?v=194"></script>
-    <script src="js/devnotes.js?v=194"></script>
-    <script src="js/vehicles.js?v=194"></script>
-    <script src="js/garage.js?v=194"></script>
-    <script src="js/structures.js?v=194"></script>
-    <script src="js/moveThings.js?v=194"></script>
-    <script src="js/journal.js?v=194"></script>
+    <script src="js/firebase-config.js?v=195"></script>
+    <script src="js/auth.js?v=195"></script>
+    <script src="js/zones.js?v=195"></script>
+    <script src="js/plants.js?v=195"></script>
+    <script src="js/problems.js?v=195"></script>
+    <script src="js/facts.js?v=195"></script>
+    <script src="js/projects.js?v=195"></script>
+    <script src="js/chemicals.js?v=195"></script>
+    <script src="js/activities.js?v=195"></script>
+    <script src="js/photos.js?v=195"></script>
+    <script src="js/weeds.js?v=195"></script>
+    <script src="js/calendar.js?v=195"></script>
+    <script src="js/gps.js?v=195"></script>
+    <script src="js/settings.js?v=195"></script>
+    <script src="js/house.js?v=195"></script>
+    <script src="js/floorplan.js?v=195"></script>
+    <script src="js/search.js?v=195"></script>
+    <script src="js/activityreport.js?v=195"></script>
+    <script src="js/checklists.js?v=195"></script>
+    <script src="js/bulkactivity.js?v=195"></script>
+    <script src="js/devnotes.js?v=195"></script>
+    <script src="js/vehicles.js?v=195"></script>
+    <script src="js/garage.js?v=195"></script>
+    <script src="js/structures.js?v=195"></script>
+    <script src="js/moveThings.js?v=195"></script>
+    <script src="js/journal.js?v=195"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=194"></script>
-    <script src="js/app.js?v=194"></script>
+    <script src="js/chat.js?v=195"></script>
+    <script src="js/app.js?v=195"></script>
 
 </body>
 </html>

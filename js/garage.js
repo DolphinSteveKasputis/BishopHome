@@ -867,9 +867,105 @@ document.getElementById('garageRenameRoomCancelBtn').addEventListener('click', f
     closeModal('garageRenameRoomModal');
 });
 
+// ---------- Quick-Add Garage Thing from Photo ----------
+
+/**
+ * Quick-add a garage thing from camera without showing the review modal.
+ * Reads window.currentGarageRoom for roomId.
+ * @param {FileList} files
+ * @param {string}   btnId   - button element ID to show loading state
+ * @param {string}   inputId - file input element ID to reset after use
+ */
+async function garageQuickAddThingFromPhoto(files, btnId, inputId) {
+    if (!files || files.length === 0) return;
+    var btn = document.getElementById(btnId);
+    var origText = btn ? btn.textContent : '+Photo';
+    if (btn) { btn.textContent = 'Identifying\u2026'; btn.disabled = true; }
+
+    try {
+        // Compress images (up to 4)
+        var images = [];
+        for (var i = 0; i < Math.min(files.length, 4); i++) {
+            images.push(await compressImage(files[i]));
+        }
+
+        // Load LLM config
+        var cfgDoc = await userCol('settings').doc('llm').get();
+        var cfg = cfgDoc.exists ? cfgDoc.data() : null;
+        if (!cfg || !cfg.provider || !cfg.apiKey) { alert('No LLM configured. Go to Settings.'); return; }
+        var llm = LLM_PROVIDERS[cfg.provider];
+        if (!llm) { alert('Unknown LLM provider.'); return; }
+
+        // Build content: prompt + images
+        var content = [{ type: 'text', text: THING_ID_PROMPT }];
+        images.forEach(function(url) {
+            content.push({ type: 'image_url', image_url: { url: url } });
+        });
+        var activeModel = cfg.model || llm.model;
+        var responseText = await chatCallOpenAICompat(llm, cfg.apiKey, content, activeModel);
+        // houseParseLlmResponse is globally accessible (defined in house.js, loaded before garage.js)
+        var parsed = houseParseLlmResponse(responseText);
+
+        if (!parsed.name && parsed.additionalMessage) {
+            alert('Could not identify item: ' + parsed.additionalMessage);
+            return;
+        }
+        if (!parsed.name) {
+            alert('Could not identify item. Try a clearer photo.');
+            return;
+        }
+
+        if (!window.currentGarageRoom) { alert('No garage room selected.'); return; }
+        var roomId = window.currentGarageRoom.id;
+
+        // Save to garageThings collection
+        var thingData = {
+            name:        parsed.name.trim(),
+            description: parsed.description || '',
+            worth:       parsed.worth       || null,
+            notes:       '',
+            category:    parsed.category    || 'other',
+            roomId:      roomId,
+            createdAt:   firebase.firestore.FieldValue.serverTimestamp()
+        };
+        var newRef = await userCol('garageThings').add(thingData);
+
+        // Save photos
+        for (var j = 0; j < images.length; j++) {
+            await userCol('photos').add({
+                targetType : 'garagething',
+                targetId   : newRef.id,
+                imageData  : images[j],
+                caption    : '',
+                createdAt  : firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+
+        loadGarageThings(roomId);
+
+    } catch (err) {
+        console.error('Quick garage thing photo error:', err);
+        alert('Error: ' + err.message);
+    } finally {
+        if (btn) { btn.textContent = origText; btn.disabled = false; }
+        var input = document.getElementById(inputId);
+        if (input) input.value = '';
+    }
+}
+
 document.getElementById('garageAddThingBtn').addEventListener('click', function() {
     if (window.currentGarageRoom) {
         openAddGarageThingModal(window.currentGarageRoom.id);
+    }
+});
+
+// "+Photo" quick-add button for garage things
+document.getElementById('quickAddGarageThingPhotoBtn').addEventListener('click', function() {
+    document.getElementById('quickGarageThingCamInput').click();
+});
+document.getElementById('quickGarageThingCamInput').addEventListener('change', function() {
+    if (this.files && this.files.length > 0) {
+        garageQuickAddThingFromPhoto(this.files, 'quickAddGarageThingPhotoBtn', 'quickGarageThingCamInput');
     }
 });
 

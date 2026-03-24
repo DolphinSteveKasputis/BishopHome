@@ -89,9 +89,13 @@ async function loadPlantsInZone(zoneId) {
     const emptyState = document.getElementById('zonePlantEmptyState');
     const addPlantBtn = document.getElementById('addPlantBtn');
 
-    // Show the add plant button
+    // Show the add plant button and quick photo button
     if (addPlantBtn) {
         addPlantBtn.style.display = 'inline-flex';
+    }
+    var quickPhotoBtn = document.getElementById('quickAddPlantPhotoBtn');
+    if (quickPhotoBtn) {
+        quickPhotoBtn.style.display = 'inline-flex';
     }
 
     try {
@@ -1085,6 +1089,76 @@ async function plantSaveFromLlm(parsed, images, zoneId, nameOverride) {
     return newRef.id;
 }
 
+// ---------- Quick-Add Plant from Photo ----------
+
+/**
+ * Quick-add a plant from camera without showing the review modal.
+ * Triggered by the "+Photo" button on the zone page.
+ * Compresses the image, calls the LLM, and saves directly — no review step.
+ * @param {FileList} files - The image files from the camera input.
+ * @param {string} zoneId - The zone to add the plant to.
+ */
+async function plantQuickAddFromPhoto(files, zoneId) {
+    if (!files || files.length === 0) return;
+
+    var btn = document.getElementById('quickAddPlantPhotoBtn');
+    var origText = btn ? btn.textContent : '+Photo';
+    if (btn) { btn.textContent = 'Identifying\u2026'; btn.disabled = true; }
+
+    try {
+        // Compress images (up to 4)
+        var images = [];
+        for (var i = 0; i < Math.min(files.length, 4); i++) {
+            images.push(await compressImage(files[i]));
+        }
+
+        // Load LLM config
+        var cfgDoc = await userCol('settings').doc('llm').get();
+        var cfg = cfgDoc.exists ? cfgDoc.data() : null;
+        if (!cfg || !cfg.provider || !cfg.apiKey) {
+            alert('No LLM configured. Go to Settings.');
+            return;
+        }
+        var llm = LLM_PROVIDERS[cfg.provider];
+        if (!llm) { alert('Unknown LLM provider.'); return; }
+
+        // Optionally append city/state location context to the prompt
+        var mainDoc = await userCol('settings').doc('main').get();
+        var cityState = (mainDoc.exists && mainDoc.data().cityState) ? mainDoc.data().cityState.trim() : '';
+        var prompt = cityState ? PLANT_ID_PROMPT + '\n\nLocation: ' + cityState : PLANT_ID_PROMPT;
+
+        // Build content: prompt text + images
+        var content = [{ type: 'text', text: prompt }];
+        images.forEach(function(url) {
+            content.push({ type: 'image_url', image_url: { url: url } });
+        });
+
+        var activeModel = cfg.model || llm.model;
+        var responseText = await chatCallOpenAICompat(llm, cfg.apiKey, content, activeModel);
+        var parsed = plantParseLlmResponse(responseText);
+
+        if (!parsed.name && parsed.additionalMessage) {
+            alert('Could not identify plant: ' + parsed.additionalMessage);
+            return;
+        }
+        if (!parsed.name) {
+            alert('Could not identify plant. Try a clearer photo.');
+            return;
+        }
+
+        await plantSaveFromLlm(parsed, images, zoneId, '');
+        refreshCurrentView();
+
+    } catch (err) {
+        console.error('Quick plant photo error:', err);
+        alert('Error: ' + err.message);
+    } finally {
+        if (btn) { btn.textContent = origText; btn.disabled = false; }
+        var input = document.getElementById('quickPlantCamInput');
+        if (input) input.value = '';
+    }
+}
+
 // ---------- Event Listeners ----------
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -1093,6 +1167,18 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('addPlantBtn').addEventListener('click', function() {
         if (window.currentZone) {
             openAddPlantModal(window.currentZone.id);
+        }
+    });
+
+    // "+Photo" quick-add button on zone detail page
+    document.getElementById('quickAddPlantPhotoBtn').addEventListener('click', function() {
+        document.getElementById('quickPlantCamInput').click();
+    });
+    document.getElementById('quickPlantCamInput').addEventListener('change', function() {
+        if (this.files && this.files.length > 0) {
+            var zoneId = window.currentZone ? window.currentZone.id : null;
+            if (!zoneId) { alert('No zone selected.'); return; }
+            plantQuickAddFromPhoto(this.files, zoneId);
         }
     });
 

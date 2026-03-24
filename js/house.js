@@ -1344,6 +1344,16 @@ document.getElementById('addThingBtn').addEventListener('click', function() {
     openThingModal(null, null);
 });
 
+// Room detail — "+Photo" quick-add for things
+document.getElementById('quickAddThingPhotoBtn').addEventListener('click', function() {
+    document.getElementById('quickThingCamInput').click();
+});
+document.getElementById('quickThingCamInput').addEventListener('change', function() {
+    if (this.files && this.files.length > 0) {
+        houseQuickAddThingFromPhoto(this.files, 'quickAddThingPhotoBtn', 'quickThingCamInput');
+    }
+});
+
 // Thing detail — Edit
 document.getElementById('editThingBtn').addEventListener('click', function() {
     if (!currentThing) return;
@@ -2640,6 +2650,16 @@ document.getElementById('addSubThingBtn').addEventListener('click', function() {
     openSubThingModal(null, null);
 });
 
+// Thing detail — "+Photo" quick-add for sub-things
+document.getElementById('quickAddSubThingPhotoBtn').addEventListener('click', function() {
+    document.getElementById('quickSubThingCamInput').click();
+});
+document.getElementById('quickSubThingCamInput').addEventListener('change', function() {
+    if (this.files && this.files.length > 0) {
+        houseQuickAddSubThingFromPhoto(this.files, 'quickAddSubThingPhotoBtn', 'quickSubThingCamInput');
+    }
+});
+
 // Sub-thing detail — Edit
 document.getElementById('editStBtn').addEventListener('click', function() {
     if (!currentSubThing) return;
@@ -3546,6 +3566,126 @@ async function houseSaveFromLlm(parsed, images, targetType, nameOverride) {
     }
 
     return newRef.id;
+}
+
+// ---------- Quick-Add Thing from Photo ----------
+
+/**
+ * Quick-add a house thing from camera without showing the review modal.
+ * Reads window.currentRoom for the roomId (set when on a room detail page).
+ * @param {FileList} files
+ * @param {string}   btnId   - button element ID to show loading state
+ * @param {string}   inputId - file input element ID to reset after use
+ */
+async function houseQuickAddThingFromPhoto(files, btnId, inputId) {
+    if (!files || files.length === 0) return;
+    var btn = document.getElementById(btnId);
+    var origText = btn ? btn.textContent : '+Photo';
+    if (btn) { btn.textContent = 'Identifying\u2026'; btn.disabled = true; }
+
+    try {
+        // Compress images (up to 4)
+        var images = [];
+        for (var i = 0; i < Math.min(files.length, 4); i++) {
+            images.push(await compressImage(files[i]));
+        }
+
+        // Load LLM config
+        var cfgDoc = await userCol('settings').doc('llm').get();
+        var cfg = cfgDoc.exists ? cfgDoc.data() : null;
+        if (!cfg || !cfg.provider || !cfg.apiKey) { alert('No LLM configured. Go to Settings.'); return; }
+        var llm = LLM_PROVIDERS[cfg.provider];
+        if (!llm) { alert('Unknown LLM provider.'); return; }
+
+        // Build content: prompt + images
+        var content = [{ type: 'text', text: THING_ID_PROMPT }];
+        images.forEach(function(url) {
+            content.push({ type: 'image_url', image_url: { url: url } });
+        });
+        var activeModel = cfg.model || llm.model;
+        var responseText = await chatCallOpenAICompat(llm, cfg.apiKey, content, activeModel);
+        var parsed = houseParseLlmResponse(responseText);
+
+        if (!parsed.name && parsed.additionalMessage) {
+            alert('Could not identify item: ' + parsed.additionalMessage);
+            return;
+        }
+        if (!parsed.name) {
+            alert('Could not identify item. Try a clearer photo.');
+            return;
+        }
+
+        // houseSaveFromLlm reads currentRoom.id for things
+        await houseSaveFromLlm(parsed, images, 'thing', '');
+        if (currentRoom) loadThingsList(currentRoom.id);
+
+    } catch (err) {
+        console.error('Quick thing photo error:', err);
+        alert('Error: ' + err.message);
+    } finally {
+        if (btn) { btn.textContent = origText; btn.disabled = false; }
+        var input = document.getElementById(inputId);
+        if (input) input.value = '';
+    }
+}
+
+/**
+ * Quick-add a house sub-thing (item) from camera without showing the review modal.
+ * Reads window.currentThing for the parent thingId.
+ * @param {FileList} files
+ * @param {string}   btnId   - button element ID to show loading state
+ * @param {string}   inputId - file input element ID to reset after use
+ */
+async function houseQuickAddSubThingFromPhoto(files, btnId, inputId) {
+    if (!files || files.length === 0) return;
+    var btn = document.getElementById(btnId);
+    var origText = btn ? btn.textContent : '+Photo';
+    if (btn) { btn.textContent = 'Identifying\u2026'; btn.disabled = true; }
+
+    try {
+        // Compress images (up to 4)
+        var images = [];
+        for (var i = 0; i < Math.min(files.length, 4); i++) {
+            images.push(await compressImage(files[i]));
+        }
+
+        // Load LLM config
+        var cfgDoc = await userCol('settings').doc('llm').get();
+        var cfg = cfgDoc.exists ? cfgDoc.data() : null;
+        if (!cfg || !cfg.provider || !cfg.apiKey) { alert('No LLM configured. Go to Settings.'); return; }
+        var llm = LLM_PROVIDERS[cfg.provider];
+        if (!llm) { alert('Unknown LLM provider.'); return; }
+
+        // Build content: prompt + images
+        var content = [{ type: 'text', text: THING_ID_PROMPT }];
+        images.forEach(function(url) {
+            content.push({ type: 'image_url', image_url: { url: url } });
+        });
+        var activeModel = cfg.model || llm.model;
+        var responseText = await chatCallOpenAICompat(llm, cfg.apiKey, content, activeModel);
+        var parsed = houseParseLlmResponse(responseText);
+
+        if (!parsed.name && parsed.additionalMessage) {
+            alert('Could not identify item: ' + parsed.additionalMessage);
+            return;
+        }
+        if (!parsed.name) {
+            alert('Could not identify item. Try a clearer photo.');
+            return;
+        }
+
+        // houseSaveFromLlm reads currentThing.id for subthings
+        await houseSaveFromLlm(parsed, images, 'subthing', '');
+        if (currentThing) loadSubThingsList(currentThing.id);
+
+    } catch (err) {
+        console.error('Quick sub-thing photo error:', err);
+        alert('Error: ' + err.message);
+    } finally {
+        if (btn) { btn.textContent = origText; btn.disabled = false; }
+        var input = document.getElementById(inputId);
+        if (input) input.value = '';
+    }
 }
 
 // ---------- Wire-ups ----------

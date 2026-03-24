@@ -105,7 +105,16 @@ function renderPhotoViewer(targetType, containerId) {
     img.alt = photo.caption || 'Photo';
     viewer.appendChild(img);
 
-    // Navigation bar: [< Newer]  [date + counter]  [Older >]
+    // Standalone date stamp below the image (more visible than inside the nav bar)
+    var rawDate = photo.takenAt || (photo.createdAt && photo.createdAt.toDate ? photo.createdAt.toDate().toISOString() : null);
+    if (rawDate) {
+        var stampEl = document.createElement('div');
+        stampEl.className = 'photo-taken-date';
+        stampEl.textContent = formatDateTime(rawDate);
+        viewer.appendChild(stampEl);
+    }
+
+    // Navigation bar: [< Newer]  [counter]  [Older >]
     var navBar = document.createElement('div');
     navBar.className = 'photo-nav-bar';
 
@@ -119,14 +128,9 @@ function renderPhotoViewer(targetType, containerId) {
     });
     navBar.appendChild(newerBtn);
 
-    // Center info: date + counter
+    // Center info: counter only (date is now shown as a standalone stamp above)
     var centerInfo = document.createElement('div');
     centerInfo.className = 'photo-nav-info';
-
-    var dateText = document.createElement('div');
-    dateText.className = 'photo-date';
-    dateText.textContent = formatDateTime(photo.takenAt);
-    centerInfo.appendChild(dateText);
 
     var counter = document.createElement('div');
     counter.className = 'photo-counter';

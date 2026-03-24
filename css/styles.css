@@ -1064,6 +1064,13 @@ button {
     display: block;
 }
 
+.photo-taken-date {
+    text-align: center;
+    font-size: 0.78rem;
+    color: #666;
+    margin: 4px 0 2px;
+}
+
 .photo-nav-bar {
     display: flex;
     align-items: center;

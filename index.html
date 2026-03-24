@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=180">
+    <link rel="stylesheet" href="css/styles.css?v=181">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -73,6 +73,13 @@
             <a href="#chat" class="nav-link" data-page="chat">Chat</a>
             <button class="nav-signout-btn" id="signOutBtnHouse" title="Sign out">Sign Out</button>
         </nav>
+        <!-- Life nav (shown when on life-context pages) -->
+        <nav class="header-nav hidden" id="lifeNav">
+            <a href="#journal" class="nav-link" data-page="journal">Journal</a>
+            <a href="#chat" class="nav-link" data-page="chat">Chat</a>
+            <a href="#settings" class="nav-link" data-page="settings">Settings</a>
+            <button class="nav-signout-btn" id="signOutBtnLife" title="Sign out">Sign Out</button>
+        </nav>
         <!-- Hamburger menu for mobile -->
         <button class="hamburger" id="hamburgerBtn" aria-label="Toggle menu">
             <span></span>
@@ -98,6 +105,13 @@
             <a href="#chat" class="nav-link" data-page="chat">Chat</a>
             <a href="#settings" class="nav-link" data-page="settings">Settings</a>
             <button class="nav-signout-btn" id="signOutBtnMobile">Sign Out</button>
+        </div>
+        <!-- Life context links -->
+        <div id="mobileNavLife" class="hidden">
+            <a href="#journal" class="nav-link" data-page="journal">Journal</a>
+            <a href="#chat" class="nav-link" data-page="chat">Chat</a>
+            <a href="#settings" class="nav-link" data-page="settings">Settings</a>
+            <button class="nav-signout-btn" id="signOutBtnMobileLife">Sign Out</button>
         </div>
         <!-- House context links -->
         <div id="mobileNavHouse" class="hidden">
@@ -3864,6 +3878,7 @@
         <!-- Page: Journal Main View (#journal) -->
         <section class="page hidden" id="page-journal">
             <div class="page-header">
+                <div class="breadcrumb-bar"><a href="#life">Life</a> › Journal</div>
                 <h2>Journal</h2>
             </div>
 
@@ -3903,6 +3918,7 @@
         <!-- Page: Journal Entry Add/Edit (#journal-entry) — full-page form -->
         <section class="page hidden" id="page-journal-entry">
             <div class="page-header">
+                <div class="breadcrumb-bar"><a href="#life">Life</a> › <a href="#journal">Journal</a> › Entry</div>
                 <h2 id="journalEntryPageTitle">New Journal Entry</h2>
             </div>
             <div class="journal-entry-form">
@@ -3929,6 +3945,7 @@
         <!-- Page: Tracking Item Add/Edit (#journal-tracking) — full-page form -->
         <section class="page hidden" id="page-journal-tracking">
             <div class="page-header">
+                <div class="breadcrumb-bar"><a href="#life">Life</a> › <a href="#journal">Journal</a> › Tracking</div>
                 <h2 id="journalTrackingPageTitle">Add Tracking</h2>
             </div>
             <div class="journal-tracking-form">
@@ -3952,6 +3969,7 @@
         <!-- Page: Journal Categories Management (#journal-categories) -->
         <section class="page hidden" id="page-journal-categories">
             <div class="page-header">
+                <div class="breadcrumb-bar"><a href="#life">Life</a> › <a href="#journal">Journal</a> › Categories</div>
                 <h2>Manage Categories</h2>
             </div>
             <div class="section-header">
@@ -3972,35 +3990,35 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=180"></script>
-    <script src="js/auth.js?v=180"></script>
-    <script src="js/zones.js?v=180"></script>
-    <script src="js/plants.js?v=180"></script>
-    <script src="js/problems.js?v=180"></script>
-    <script src="js/facts.js?v=180"></script>
-    <script src="js/projects.js?v=180"></script>
-    <script src="js/chemicals.js?v=180"></script>
-    <script src="js/activities.js?v=180"></script>
-    <script src="js/photos.js?v=180"></script>
-    <script src="js/weeds.js?v=180"></script>
-    <script src="js/calendar.js?v=180"></script>
-    <script src="js/gps.js?v=180"></script>
-    <script src="js/settings.js?v=180"></script>
-    <script src="js/house.js?v=180"></script>
-    <script src="js/floorplan.js?v=180"></script>
-    <script src="js/search.js?v=180"></script>
-    <script src="js/activityreport.js?v=180"></script>
-    <script src="js/checklists.js?v=180"></script>
-    <script src="js/bulkactivity.js?v=180"></script>
-    <script src="js/devnotes.js?v=180"></script>
-    <script src="js/vehicles.js?v=180"></script>
-    <script src="js/garage.js?v=180"></script>
-    <script src="js/structures.js?v=180"></script>
-    <script src="js/moveThings.js?v=180"></script>
-    <script src="js/journal.js?v=180"></script>
+    <script src="js/firebase-config.js?v=181"></script>
+    <script src="js/auth.js?v=181"></script>
+    <script src="js/zones.js?v=181"></script>
+    <script src="js/plants.js?v=181"></script>
+    <script src="js/problems.js?v=181"></script>
+    <script src="js/facts.js?v=181"></script>
+    <script src="js/projects.js?v=181"></script>
+    <script src="js/chemicals.js?v=181"></script>
+    <script src="js/activities.js?v=181"></script>
+    <script src="js/photos.js?v=181"></script>
+    <script src="js/weeds.js?v=181"></script>
+    <script src="js/calendar.js?v=181"></script>
+    <script src="js/gps.js?v=181"></script>
+    <script src="js/settings.js?v=181"></script>
+    <script src="js/house.js?v=181"></script>
+    <script src="js/floorplan.js?v=181"></script>
+    <script src="js/search.js?v=181"></script>
+    <script src="js/activityreport.js?v=181"></script>
+    <script src="js/checklists.js?v=181"></script>
+    <script src="js/bulkactivity.js?v=181"></script>
+    <script src="js/devnotes.js?v=181"></script>
+    <script src="js/vehicles.js?v=181"></script>
+    <script src="js/garage.js?v=181"></script>
+    <script src="js/structures.js?v=181"></script>
+    <script src="js/moveThings.js?v=181"></script>
+    <script src="js/journal.js?v=181"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=180"></script>
-    <script src="js/app.js?v=180"></script>
+    <script src="js/chat.js?v=181"></script>
+    <script src="js/app.js?v=181"></script>
 
 </body>
 </html>

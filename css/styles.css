@@ -4053,6 +4053,9 @@ a.ar-target-link:hover {
     border-bottom: 2px solid #c8e6c9;
 }
 
+/* Feed container — left padding for breathing room */
+#journalFeed { padding-left: 16px; }
+
 /* Individual item card in the feed */
 .journal-item {
     background: var(--surface, #fff);

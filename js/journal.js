@@ -361,8 +361,6 @@ function _renderEntryCard(id, data) {
                    '<div class="journal-item-actions">' +
                        '<button class="btn btn-secondary btn-small" ' +
                                'onclick="openEditJournalEntry(\'' + id + '\')">Edit</button>' +
-                       '<button class="btn btn-danger btn-small" ' +
-                               'onclick="deleteJournalEntry(\'' + id + '\')">Delete</button>' +
                    '</div>' +
                '</div>' +
                '<div class="journal-item-text">' + journalEscape(text) + '</div>' +
@@ -383,8 +381,6 @@ function _renderTrackingCard(id, data) {
                    '<div class="journal-item-actions">' +
                        '<button class="btn btn-secondary btn-small" ' +
                                'onclick="openEditTrackingItem(\'' + id + '\')">Edit</button>' +
-                       '<button class="btn btn-danger btn-small" ' +
-                               'onclick="deleteTrackingItem(\'' + id + '\')">Delete</button>' +
                    '</div>' +
                '</div>' +
                '<div>' +

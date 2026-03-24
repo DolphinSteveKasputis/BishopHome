@@ -33,8 +33,9 @@ const ALL_PAGES = [
 const HOUSE_PAGES = ['house', 'floor', 'room', 'thing', 'subthing', 'floorplan', 'panel', 'rooms', 'things'];
 const YARD_PAGES  = ['main', 'home', 'zone', 'plant', 'weeds', 'weed', 'chemicals', 'chemical', 'actions', 'gpsmap', 'yardmap', 'activityreport', 'checklists',
                      'structures', 'structure', 'structurething', 'structuresubthing'];
+const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'journal-categories'];
 
-/** Tracks which nav context is currently active ('yard' or 'house'). */
+/** Tracks which nav context is currently active ('yard', 'house', or 'life'). */
 var currentNavContext = 'yard';
 
 /**
@@ -56,17 +57,23 @@ function showPage(page) {
     // Update nav context (shared pages keep the current context)
     if (HOUSE_PAGES.indexOf(page) !== -1)     currentNavContext = 'house';
     else if (YARD_PAGES.indexOf(page) !== -1) currentNavContext = 'yard';
+    else if (LIFE_PAGES.indexOf(page) !== -1) currentNavContext = 'life';
 
-    // Toggle yard vs house nav bars (desktop + mobile sections)
+    // Toggle yard / house / life nav bars (desktop + mobile sections)
     var isHouse = currentNavContext === 'house';
+    var isLife  = currentNavContext === 'life';
     var yardNavEl        = document.getElementById('yardNav');
     var houseNavEl       = document.getElementById('houseNav');
+    var lifeNavEl        = document.getElementById('lifeNav');
     var mobileYardNavEl  = document.getElementById('mobileNavYard');
     var mobileHouseNavEl = document.getElementById('mobileNavHouse');
-    if (yardNavEl)        yardNavEl.classList.toggle('hidden', isHouse);
-    if (houseNavEl)       houseNavEl.classList.toggle('hidden', !isHouse);
-    if (mobileYardNavEl)  mobileYardNavEl.classList.toggle('hidden', isHouse);
-    if (mobileHouseNavEl) mobileHouseNavEl.classList.toggle('hidden', !isHouse);
+    var mobileLifeNavEl  = document.getElementById('mobileNavLife');
+    if (yardNavEl)        yardNavEl.classList.toggle('hidden',  isHouse || isLife);
+    if (houseNavEl)       houseNavEl.classList.toggle('hidden', !isHouse || isLife);
+    if (lifeNavEl)        lifeNavEl.classList.toggle('hidden',  !isLife);
+    if (mobileYardNavEl)  mobileYardNavEl.classList.toggle('hidden',  isHouse || isLife);
+    if (mobileHouseNavEl) mobileHouseNavEl.classList.toggle('hidden', !isHouse || isLife);
+    if (mobileLifeNavEl)  mobileLifeNavEl.classList.toggle('hidden',  !isLife);
 
     // Determine which nav link should be highlighted
     var navPage = page;
@@ -282,6 +289,20 @@ if (signOutBtnHouse) {
 }
 if (signOutBtnMobileHouse) {
     signOutBtnMobileHouse.addEventListener('click', function() {
+        document.getElementById('signOutBtnMobile').click();
+    });
+}
+
+// Wire life-context sign-out buttons
+var signOutBtnLife       = document.getElementById('signOutBtnLife');
+var signOutBtnMobileLife = document.getElementById('signOutBtnMobileLife');
+if (signOutBtnLife) {
+    signOutBtnLife.addEventListener('click', function() {
+        document.getElementById('signOutBtn').click();
+    });
+}
+if (signOutBtnMobileLife) {
+    signOutBtnMobileLife.addEventListener('click', function() {
         document.getElementById('signOutBtnMobile').click();
     });
 }

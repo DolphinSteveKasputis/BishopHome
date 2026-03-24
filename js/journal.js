@@ -449,6 +449,10 @@ function openAddJournalEntry() {
     if (textEl)   textEl.value = '';
     if (deleteBtn) deleteBtn.classList.add('hidden');
 
+    // Reset save button in case it was left in "Saving..." state from a previous save
+    var saveBtn = document.getElementById('journalEntrySaveBtn');
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save'; }
+
     // Wire buttons
     _journalWireEntryPage();
 
@@ -487,6 +491,10 @@ async function openEditJournalEntry(id) {
         if (dateEl)   dateEl.value = data.date || '';
         if (textEl)   textEl.value = data.entryText || '';
         if (deleteBtn) deleteBtn.classList.remove('hidden');
+
+        // Reset save button in case it was left in "Saving..." state
+        var saveBtn = document.getElementById('journalEntrySaveBtn');
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save'; }
 
         // Wire buttons
         _journalWireEntryPage();
@@ -741,6 +749,10 @@ async function openAddTracking() {
     if (container) container.innerHTML = '';
     if (deleteBtn) deleteBtn.classList.add('hidden');
 
+    // Reset save button in case it was left in "Saving..." state
+    var saveBtn = document.getElementById('trackingSaveBtn');
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save'; }
+
     // Add one blank row to start
     addTrackingRow();
 
@@ -778,6 +790,10 @@ async function openEditTrackingItem(id) {
         if (dateEl)    dateEl.value = data.date || journalFormatDate(new Date());
         if (container) container.innerHTML = '';
         if (deleteBtn) deleteBtn.classList.remove('hidden');
+
+        // Reset save button in case it was left in "Saving..." state
+        var saveBtn = document.getElementById('trackingSaveBtn');
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save'; }
 
         // Add a single pre-filled row
         addTrackingRow(data.category, data.value);

@@ -4112,10 +4112,11 @@ a.ar-target-link:hover {
 
 /* ---- Journal Entry Full-Page Form (#page-journal-entry) ---- */
 
-/* Constrain form width on wide screens */
+/* Constrain form width on wide screens, add breathing room on left */
 .journal-entry-form,
 .journal-tracking-form {
     max-width: 700px;
+    padding-left: 16px;
 }
 
 /* Row above the textarea with label on left, mic button on right */

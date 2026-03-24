@@ -55,6 +55,11 @@ async function loadChatPage() {
         document.getElementById('chatSendBtn').disabled = false;
         chatAttachedImages = [];
         chatUpdateImagePreview();
+
+        // Initialize voice-to-text (reuses journal.js helper — hides button if unsupported)
+        if (typeof initVoiceToText === 'function') {
+            initVoiceToText('chatQuestion', 'chatVoiceBtn');
+        }
     }
 }
 

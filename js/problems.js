@@ -383,10 +383,31 @@ async function handleDeleteProblem(problemId, targetType, targetId) {
  * @param {string} targetId - The target's Firestore document ID.
  */
 function reloadProblemsForCurrentTarget(targetType, targetId) {
-    if (targetType === 'plant') {
-        loadProblems('plant', targetId, 'plantProblemsContainer', 'plantProblemsEmptyState');
-    } else if (targetType === 'zone') {
-        loadProblems('zone', targetId, 'zoneProblemsContainer', 'zoneProblemsEmptyState');
+    var map = {
+        'plant':            ['plantProblemsContainer',               'plantProblemsEmptyState'],
+        'zone':             ['zoneProblemsContainer',                'zoneProblemsEmptyState'],
+        'vehicle':          ['vehicleProblemsContainer',             'vehicleProblemsEmptyState'],
+        'panel':            ['panelProblemsContainer',               'panelProblemsEmptyState'],
+        'floor':            ['floorProblemsContainer',               'floorProblemsEmptyState'],
+        'room':             ['roomProblemsContainer',                'roomProblemsEmptyState'],
+        'thing':            ['thingProblemsContainer',               'thingProblemsEmptyState'],
+        'subthing':         ['stProblemsContainer',                  'stProblemsEmptyState'],
+        'garageroom':       ['garageRoomProblemsContainer',          'garageRoomProblemsEmpty'],
+        'garagething':      ['garageThingProblemsContainer',         'garageThingProblemsEmpty'],
+        'garagesubthing':   ['garageSubThingProblemsContainer',      'garageSubThingProblemsEmpty'],
+        'structure':        ['structureProblemsContainer',           'structureProblemsEmpty'],
+        'structurething':   ['structureThingProblemsContainer',      'structureThingProblemsEmpty'],
+        'structuresubthing':['structureSubThingProblemsContainer',   'structureSubThingProblemsEmpty'],
+        'fpOutlet':         ['fpOutletProblemsContainer',            'fpOutletProblemsEmptyState'],
+        'fpSwitch':         ['fpSwitchProblemsContainer',            'fpSwitchProblemsEmptyState'],
+        'fpPlumbing':       ['fpPlumbingProblemsContainer',          'fpPlumbingProblemsEmptyState'],
+        'fpCeiling':        ['fpCeilingProblemsContainer',           'fpCeilingProblemsEmptyState'],
+        'breaker':          ['breakerProblemsContainer',             'breakerProblemsEmptyState'],
+        'weed':             ['weedProblemsContainer',                'weedProblemsEmptyState'],
+    };
+    var ids = map[targetType];
+    if (ids) {
+        loadProblems(targetType, targetId, ids[0], ids[1]);
     }
 }
 

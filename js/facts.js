@@ -258,22 +258,38 @@ async function handleDeleteFact(factId, targetType, targetId) {
  * @param {string} targetId - The target's Firestore document ID.
  */
 function reloadFactsForCurrentTarget(targetType, targetId) {
-    if (targetType === 'plant') {
-        loadFacts('plant', targetId, 'plantFactsContainer', 'plantFactsEmptyState');
-    } else if (targetType === 'zone') {
-        loadFacts('zone', targetId, 'zoneFactsContainer', 'zoneFactsEmptyState');
-    } else if (targetType === 'chemical') {
-        // If the edit modal is open, reload there; otherwise reload the detail page container
+    // Chemical is special: different container depending on whether modal is open
+    if (targetType === 'chemical') {
         var chemModal = document.getElementById('chemicalModal');
         if (chemModal && chemModal.classList.contains('open')) {
             loadFacts('chemical', targetId, 'chemicalModalFactsContainer', 'chemicalModalFactsEmptyState');
         } else {
             loadFacts('chemical', targetId, 'chemicalFactsContainer', 'chemicalFactsEmptyState');
         }
-    } else if (targetType === 'weed') {
-        loadFacts('weed', targetId, 'weedFactsContainer', 'weedFactsEmptyState');
-    } else if (targetType === 'problem') {
-        loadFacts('problem', targetId, 'problemFactsContainer', 'problemFactsEmptyState');
+        return;
+    }
+
+    var map = {
+        'plant':            ['plantFactsContainer',              'plantFactsEmptyState'],
+        'zone':             ['zoneFactsContainer',               'zoneFactsEmptyState'],
+        'weed':             ['weedFactsContainer',               'weedFactsEmptyState'],
+        'problem':          ['problemFactsContainer',            'problemFactsEmptyState'],
+        'vehicle':          ['vehicleFactsContainer',            'vehicleFactsEmptyState'],
+        'panel':            ['panelFactsContainer',              'panelFactsEmptyState'],
+        'floor':            ['floorFactsContainer',              'floorFactsEmptyState'],
+        'room':             ['roomFactsContainer',               'roomFactsEmptyState'],
+        'thing':            ['thingFactsContainer',              'thingFactsEmptyState'],
+        'subthing':         ['stFactsContainer',                 'stFactsEmptyState'],
+        'garageroom':       ['garageRoomFactsContainer',         'garageRoomFactsEmpty'],
+        'garagething':      ['garageThingFactsContainer',        'garageThingFactsEmpty'],
+        'garagesubthing':   ['garageSubThingFactsContainer',     'garageSubThingFactsEmpty'],
+        'structure':        ['structureFactsContainer',          'structureFactsEmpty'],
+        'structurething':   ['structureThingFactsContainer',     'structureThingFactsEmpty'],
+        'structuresubthing':['structureSubThingFactsContainer',  'structureSubThingFactsEmpty'],
+    };
+    var ids = map[targetType];
+    if (ids) {
+        loadFacts(targetType, targetId, ids[0], ids[1]);
     }
 }
 

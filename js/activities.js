@@ -271,6 +271,12 @@ function openViewActivityModal(activity, chemicalNames, targetType, targetId) {
         openSaveAsActionModal(activity);
     };
 
+    // Wire up Edit button — open the activity modal pre-filled for editing
+    document.getElementById('viewActivityEditBtn').onclick = function() {
+        closeModal('viewActivityModal');
+        openEditActivityModal(activity, targetType, targetId);
+    };
+
     // Wire up Delete button — confirm before closing modal
     document.getElementById('viewActivityDeleteBtn').onclick = function() {
         if (!confirm('Are you sure you want to delete this activity?')) return;
@@ -279,6 +285,53 @@ function openViewActivityModal(activity, chemicalNames, targetType, targetId) {
     };
 
     openModal('viewActivityModal');
+}
+
+/**
+ * Opens the activity modal pre-filled for editing an existing activity.
+ * @param {Object} activity - The existing activity data (including id).
+ * @param {string} targetType - The target type.
+ * @param {string} targetId - The target ID.
+ */
+async function openEditActivityModal(activity, targetType, targetId) {
+    const modal = document.getElementById('activityModal');
+    const descInput = document.getElementById('activityDescInput');
+    const dateInput = document.getElementById('activityDateInput');
+    const notesInput = document.getElementById('activityNotesInput');
+    const savedActionRow = document.getElementById('activitySavedActionSelect').closest('.form-group');
+
+    // Set edit mode
+    modal.dataset.mode = 'edit';
+    modal.dataset.editId = activity.id;
+    modal.dataset.targetType = targetType;
+    modal.dataset.targetId = targetId;
+
+    // Update title and hide saved-action picker (not relevant when editing)
+    document.getElementById('activityModalTitle').textContent = 'Edit Activity';
+    document.getElementById('activityModalSaveBtn').textContent = 'Save Changes';
+    if (savedActionRow) savedActionRow.style.display = 'none';
+
+    // Pre-fill fields
+    descInput.value = activity.description || '';
+    dateInput.value = activity.date || '';
+    notesInput.value = activity.notes || '';
+    document.getElementById('activityAmountUsedInput').value = activity.amountUsed || '';
+
+    // Hide chemical section for vehicle; otherwise build with pre-checked items
+    var hideChemicals = (targetType === 'vehicle');
+    var chemicalGroup = document.getElementById('activityChemicalList').closest('.form-group');
+    if (chemicalGroup) chemicalGroup.style.display = hideChemicals ? 'none' : '';
+
+    if (!hideChemicals) {
+        var existingIds = normalizeChemicalIds(activity);
+        await buildChemicalCheckboxList('activityChemicalList', existingIds);
+        updateAmountUsedVisibility();
+    } else {
+        document.getElementById('activityAmountUsedRow').style.display = 'none';
+    }
+
+    openModal('activityModal');
+    descInput.focus();
 }
 
 // ---------- Log Activity Modal ----------
@@ -367,6 +420,20 @@ async function handleSavedActionSelect() {
 // ---------- Save Activity ----------
 
 /**
+ * Resets the activity modal back to "add" mode defaults.
+ * Called after save or cancel so the next open starts fresh.
+ */
+function _resetActivityModal() {
+    var modal = document.getElementById('activityModal');
+    modal.dataset.mode = 'add';
+    delete modal.dataset.editId;
+    document.getElementById('activityModalTitle').textContent = 'Log Activity';
+    document.getElementById('activityModalSaveBtn').textContent = 'Log Activity';
+    var savedActionRow = document.getElementById('activitySavedActionSelect').closest('.form-group');
+    if (savedActionRow) savedActionRow.style.display = '';
+}
+
+/**
  * Handles the save button in the log-activity modal.
  */
 async function handleActivityModalSave() {
@@ -395,8 +462,21 @@ async function handleActivityModalSave() {
 
     const targetType = modal.dataset.targetType;
     const targetId = modal.dataset.targetId;
+    const isEdit = modal.dataset.mode === 'edit';
+    const editId = modal.dataset.editId;
 
     try {
+        if (isEdit && editId) {
+            // Update existing activity
+            await userCol('activities').doc(editId).update({
+                description: description,
+                date:        date,
+                notes:       notes,
+                amountUsed:  amountUsed || '',
+                chemicalIds: chemicalIds,
+                updatedAt:   firebase.firestore.FieldValue.serverTimestamp()
+            });
+        } else {
         await userCol('activities').add({
             targetType:  targetType,
             targetId:    targetId,
@@ -408,8 +488,10 @@ async function handleActivityModalSave() {
             savedActionId: savedActionId,
             createdAt:   firebase.firestore.FieldValue.serverTimestamp()
         });
+        }
 
         console.log('Activity logged:', description);
+        _resetActivityModal();
         closeModal('activityModal');
         reloadActivitiesForCurrentTarget(targetType, targetId);
 
@@ -874,6 +956,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Activity modal — Cancel button
     document.getElementById('activityModalCancelBtn').addEventListener('click', function() {
+        _resetActivityModal();
         closeModal('activityModal');
     });
 

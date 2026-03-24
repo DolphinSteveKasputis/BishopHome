@@ -47,9 +47,26 @@ async function loadProblems(targetType, targetId, containerId, emptyStateId) {
     const container = document.getElementById(containerId);
     const emptyState = document.getElementById(emptyStateId);
 
-    // Check if "show resolved" checkbox is checked
-    const checkboxId = targetType === 'plant' ? 'showResolvedPlantProblems' : 'showResolvedZoneProblems';
-    const checkbox = document.getElementById(checkboxId);
+    // Check if "show resolved" checkbox is checked — map every targetType to its checkbox ID
+    const checkboxMap = {
+        'plant':            'showResolvedPlantProblems',
+        'zone':             'showResolvedZoneProblems',
+        'vehicle':          'showResolvedVehicleProblems',
+        'garageroom':       'showResolvedGarageRoomProblems',
+        'garagething':      'showResolvedGarageThingProblems',
+        'garagesubthing':   'showResolvedGarageSubThingProblems',
+        'structure':        'showResolvedStructureProblems',
+        'structurething':   'showResolvedStructureThingProblems',
+        'structuresubthing':'showResolvedStructureSubThingProblems',
+        'floor':            'showResolvedFloorProblems',
+        'room':             'showResolvedRoomProblems',
+        'thing':            'showResolvedThingProblems',
+        'subthing':         'showResolvedSubThingProblems',
+        'panel':            'showResolvedPanelProblems',
+        'weed':             'showResolvedWeedProblems',
+    };
+    const checkboxId = checkboxMap[targetType];
+    const checkbox = checkboxId ? document.getElementById(checkboxId) : null;
     const showResolved = checkbox ? checkbox.checked : false;
 
     try {
@@ -329,6 +346,11 @@ async function handleProblemModalSave() {
 async function toggleProblemStatus(problemId, currentStatus, targetType, targetId) {
     const newStatus = currentStatus === 'open' ? 'resolved' : 'open';
 
+    // Confirm before resolving (not needed for reopening)
+    if (newStatus === 'resolved') {
+        if (!confirm('Mark this problem as resolved?')) return;
+    }
+
     try {
         const updateData = { status: newStatus };
 
@@ -487,17 +509,30 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // "Show resolved" checkboxes — reload list when toggled
-    document.getElementById('showResolvedZoneProblems').addEventListener('change', function() {
-        if (window.currentZone) {
-            loadProblems('zone', window.currentZone.id, 'zoneProblemsContainer', 'zoneProblemsEmptyState');
-        }
-    });
+    // Uses a helper to avoid repetition across all target types
+    function wireShowResolved(checkboxId, getTargetFn, containerId, emptyId, targetType) {
+        var cb = document.getElementById(checkboxId);
+        if (!cb) return;
+        cb.addEventListener('change', function() {
+            var target = getTargetFn();
+            if (target) loadProblems(targetType, target.id, containerId, emptyId);
+        });
+    }
 
-    document.getElementById('showResolvedPlantProblems').addEventListener('change', function() {
-        if (window.currentPlant) {
-            loadProblems('plant', window.currentPlant.id, 'plantProblemsContainer', 'plantProblemsEmptyState');
-        }
-    });
+    wireShowResolved('showResolvedZoneProblems',             function(){ return window.currentZone; },           'zoneProblemsContainer',               'zoneProblemsEmptyState',           'zone');
+    wireShowResolved('showResolvedPlantProblems',            function(){ return window.currentPlant; },          'plantProblemsContainer',              'plantProblemsEmptyState',          'plant');
+    wireShowResolved('showResolvedVehicleProblems',          function(){ return window.currentVehicle; },        'vehicleProblemsContainer',            'vehicleProblemsEmptyState',        'vehicle');
+    wireShowResolved('showResolvedGarageRoomProblems',       function(){ return window.currentGarageRoom; },     'garageRoomProblemsContainer',         'garageRoomProblemsEmpty',          'garageroom');
+    wireShowResolved('showResolvedGarageThingProblems',      function(){ return window.currentGarageThing; },    'garageThingProblemsContainer',        'garageThingProblemsEmpty',         'garagething');
+    wireShowResolved('showResolvedGarageSubThingProblems',   function(){ return window.currentGarageSubThing; }, 'garageSubThingProblemsContainer',     'garageSubThingProblemsEmpty',      'garagesubthing');
+    wireShowResolved('showResolvedStructureProblems',        function(){ return window.currentStructure; },      'structureProblemsContainer',          'structureProblemsEmpty',           'structure');
+    wireShowResolved('showResolvedStructureThingProblems',   function(){ return window.currentStructureThing; }, 'structureThingProblemsContainer',     'structureThingProblemsEmpty',      'structurething');
+    wireShowResolved('showResolvedStructureSubThingProblems',function(){ return window.currentStructureSubThing;},'structureSubThingProblemsContainer', 'structureSubThingProblemsEmpty',   'structuresubthing');
+    wireShowResolved('showResolvedFloorProblems',            function(){ return window.currentFloor; },          'floorProblemsContainer',              'floorProblemsEmptyState',          'floor');
+    wireShowResolved('showResolvedRoomProblems',             function(){ return window.currentRoom; },           'roomProblemsContainer',               'roomProblemsEmptyState',           'room');
+    wireShowResolved('showResolvedThingProblems',            function(){ return window.currentThing; },          'thingProblemsContainer',              'thingProblemsEmptyState',          'thing');
+    wireShowResolved('showResolvedSubThingProblems',         function(){ return window.currentSubThing; },       'stProblemsContainer',                 'stProblemsEmptyState',             'subthing');
+    wireShowResolved('showResolvedPanelProblems',            function(){ return window.currentPanel; },          'panelProblemsContainer',              'panelProblemsEmptyState',          'panel');
 
     // Problem modal — Save button
     document.getElementById('problemModalSaveBtn').addEventListener('click', handleProblemModalSave);

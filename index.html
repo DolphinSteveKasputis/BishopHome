@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=192">
+    <link rel="stylesheet" href="css/styles.css?v=193">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -750,7 +750,10 @@
             <!-- Problems / Concerns -->
             <div class="section-header">
                 <h3 class="section-heading">Problems / Concerns</h3>
-                <button class="btn btn-primary btn-small" id="addPanelProblemBtn">+ Add</button>
+                <div class="section-header-actions">
+                    <label class="show-toggle"><input type="checkbox" id="showResolvedPanelProblems"> Show resolved</label>
+                    <button class="btn btn-primary btn-small" id="addPanelProblemBtn">+ Add</button>
+                </div>
             </div>
             <div id="panelProblemsContainer"></div>
             <p class="empty-state" id="panelProblemsEmptyState"></p>
@@ -812,7 +815,10 @@
             <!-- Problems / Concerns -->
             <div class="section-header">
                 <h3 class="section-heading">Problems / Concerns</h3>
-                <button class="btn btn-primary btn-small" id="addFloorProblemBtn">+ Add</button>
+                <div class="section-header-actions">
+                    <label class="show-toggle"><input type="checkbox" id="showResolvedFloorProblems"> Show resolved</label>
+                    <button class="btn btn-primary btn-small" id="addFloorProblemBtn">+ Add</button>
+                </div>
             </div>
             <div id="floorProblemsContainer"></div>
             <p class="empty-state" id="floorProblemsEmptyState"></p>
@@ -894,7 +900,10 @@
             <!-- Problems / Concerns -->
             <div class="section-header">
                 <h3 class="section-heading">Problems / Concerns</h3>
-                <button class="btn btn-primary btn-small" id="addRoomProblemBtn">+ Add</button>
+                <div class="section-header-actions">
+                    <label class="show-toggle"><input type="checkbox" id="showResolvedRoomProblems"> Show resolved</label>
+                    <button class="btn btn-primary btn-small" id="addRoomProblemBtn">+ Add</button>
+                </div>
             </div>
             <div id="roomProblemsContainer"></div>
             <p class="empty-state" id="roomProblemsEmptyState"></p>
@@ -979,7 +988,10 @@
             <!-- Problems / Concerns -->
             <div class="section-header">
                 <h3 class="section-heading">Problems / Concerns</h3>
-                <button class="btn btn-primary btn-small" id="addThingProblemBtn">+ Add</button>
+                <div class="section-header-actions">
+                    <label class="show-toggle"><input type="checkbox" id="showResolvedThingProblems"> Show resolved</label>
+                    <button class="btn btn-primary btn-small" id="addThingProblemBtn">+ Add</button>
+                </div>
             </div>
             <div id="thingProblemsContainer"></div>
             <p class="empty-state" id="thingProblemsEmptyState"></p>
@@ -1052,7 +1064,10 @@
             <!-- Problems -->
             <div class="section-header">
                 <h3 class="section-heading">Problems / Concerns</h3>
-                <button class="btn btn-primary btn-small" id="addStProblemBtn">+ Add</button>
+                <div class="section-header-actions">
+                    <label class="show-toggle"><input type="checkbox" id="showResolvedSubThingProblems"> Show resolved</label>
+                    <button class="btn btn-primary btn-small" id="addStProblemBtn">+ Add</button>
+                </div>
             </div>
             <div id="stProblemsContainer"></div>
             <p class="empty-state" id="stProblemsEmptyState"></p>
@@ -1701,7 +1716,10 @@
             <!-- Problems / Concerns -->
             <div class="section-header">
                 <h3 class="section-heading">Problems / Concerns</h3>
-                <button class="btn btn-primary btn-small" id="addVehicleProblemBtn">+ Add</button>
+                <div class="section-header-actions">
+                    <label class="show-toggle"><input type="checkbox" id="showResolvedVehicleProblems"> Show resolved</label>
+                    <button class="btn btn-primary btn-small" id="addVehicleProblemBtn">+ Add</button>
+                </div>
             </div>
             <div id="vehicleProblemsContainer"></div>
             <p class="empty-state" id="vehicleProblemsEmptyState"></p>
@@ -1795,7 +1813,10 @@
             <!-- Problems / Concerns -->
             <div class="section-header">
                 <h3 class="section-heading">Problems / Concerns</h3>
-                <button class="btn btn-primary btn-small" id="garageRoomAddProblemBtn">+ Add</button>
+                <div class="section-header-actions">
+                    <label class="show-toggle"><input type="checkbox" id="showResolvedGarageRoomProblems"> Show resolved</label>
+                    <button class="btn btn-primary btn-small" id="garageRoomAddProblemBtn">+ Add</button>
+                </div>
             </div>
             <div id="garageRoomProblemsContainer"></div>
             <p class="empty-state" id="garageRoomProblemsEmpty"></p>
@@ -1880,7 +1901,10 @@
             <!-- Problems / Concerns -->
             <div class="section-header">
                 <h3 class="section-heading">Problems / Concerns</h3>
-                <button class="btn btn-primary btn-small" id="garageThingAddProblemBtn">+ Add</button>
+                <div class="section-header-actions">
+                    <label class="show-toggle"><input type="checkbox" id="showResolvedGarageThingProblems"> Show resolved</label>
+                    <button class="btn btn-primary btn-small" id="garageThingAddProblemBtn">+ Add</button>
+                </div>
             </div>
             <div id="garageThingProblemsContainer"></div>
             <p class="empty-state" id="garageThingProblemsEmpty"></p>
@@ -1957,7 +1981,10 @@
             <!-- Problems / Concerns -->
             <div class="section-header">
                 <h3 class="section-heading">Problems / Concerns</h3>
-                <button class="btn btn-primary btn-small" id="garageSubThingAddProblemBtn">+ Add</button>
+                <div class="section-header-actions">
+                    <label class="show-toggle"><input type="checkbox" id="showResolvedGarageSubThingProblems"> Show resolved</label>
+                    <button class="btn btn-primary btn-small" id="garageSubThingAddProblemBtn">+ Add</button>
+                </div>
             </div>
             <div id="garageSubThingProblemsContainer"></div>
             <p class="empty-state" id="garageSubThingProblemsEmpty"></p>
@@ -2048,7 +2075,10 @@
             <!-- Problems / Concerns -->
             <div class="section-header">
                 <h3 class="section-heading">Problems / Concerns</h3>
-                <button class="btn btn-primary btn-small" id="structureAddProblemBtn">+ Add</button>
+                <div class="section-header-actions">
+                    <label class="show-toggle"><input type="checkbox" id="showResolvedStructureProblems"> Show resolved</label>
+                    <button class="btn btn-primary btn-small" id="structureAddProblemBtn">+ Add</button>
+                </div>
             </div>
             <div id="structureProblemsContainer"></div>
             <p class="empty-state" id="structureProblemsEmpty"></p>
@@ -2133,7 +2163,10 @@
             <!-- Problems / Concerns -->
             <div class="section-header">
                 <h3 class="section-heading">Problems / Concerns</h3>
-                <button class="btn btn-primary btn-small" id="structureThingAddProblemBtn">+ Add</button>
+                <div class="section-header-actions">
+                    <label class="show-toggle"><input type="checkbox" id="showResolvedStructureThingProblems"> Show resolved</label>
+                    <button class="btn btn-primary btn-small" id="structureThingAddProblemBtn">+ Add</button>
+                </div>
             </div>
             <div id="structureThingProblemsContainer"></div>
             <p class="empty-state" id="structureThingProblemsEmpty"></p>
@@ -2210,7 +2243,10 @@
             <!-- Problems / Concerns -->
             <div class="section-header">
                 <h3 class="section-heading">Problems / Concerns</h3>
-                <button class="btn btn-primary btn-small" id="structureSubThingAddProblemBtn">+ Add</button>
+                <div class="section-header-actions">
+                    <label class="show-toggle"><input type="checkbox" id="showResolvedStructureSubThingProblems"> Show resolved</label>
+                    <button class="btn btn-primary btn-small" id="structureSubThingAddProblemBtn">+ Add</button>
+                </div>
             </div>
             <div id="structureSubThingProblemsContainer"></div>
             <p class="empty-state" id="structureSubThingProblemsEmpty"></p>
@@ -4022,35 +4058,35 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=192"></script>
-    <script src="js/auth.js?v=192"></script>
-    <script src="js/zones.js?v=192"></script>
-    <script src="js/plants.js?v=192"></script>
-    <script src="js/problems.js?v=192"></script>
-    <script src="js/facts.js?v=192"></script>
-    <script src="js/projects.js?v=192"></script>
-    <script src="js/chemicals.js?v=192"></script>
-    <script src="js/activities.js?v=192"></script>
-    <script src="js/photos.js?v=192"></script>
-    <script src="js/weeds.js?v=192"></script>
-    <script src="js/calendar.js?v=192"></script>
-    <script src="js/gps.js?v=192"></script>
-    <script src="js/settings.js?v=192"></script>
-    <script src="js/house.js?v=192"></script>
-    <script src="js/floorplan.js?v=192"></script>
-    <script src="js/search.js?v=192"></script>
-    <script src="js/activityreport.js?v=192"></script>
-    <script src="js/checklists.js?v=192"></script>
-    <script src="js/bulkactivity.js?v=192"></script>
-    <script src="js/devnotes.js?v=192"></script>
-    <script src="js/vehicles.js?v=192"></script>
-    <script src="js/garage.js?v=192"></script>
-    <script src="js/structures.js?v=192"></script>
-    <script src="js/moveThings.js?v=192"></script>
-    <script src="js/journal.js?v=192"></script>
+    <script src="js/firebase-config.js?v=193"></script>
+    <script src="js/auth.js?v=193"></script>
+    <script src="js/zones.js?v=193"></script>
+    <script src="js/plants.js?v=193"></script>
+    <script src="js/problems.js?v=193"></script>
+    <script src="js/facts.js?v=193"></script>
+    <script src="js/projects.js?v=193"></script>
+    <script src="js/chemicals.js?v=193"></script>
+    <script src="js/activities.js?v=193"></script>
+    <script src="js/photos.js?v=193"></script>
+    <script src="js/weeds.js?v=193"></script>
+    <script src="js/calendar.js?v=193"></script>
+    <script src="js/gps.js?v=193"></script>
+    <script src="js/settings.js?v=193"></script>
+    <script src="js/house.js?v=193"></script>
+    <script src="js/floorplan.js?v=193"></script>
+    <script src="js/search.js?v=193"></script>
+    <script src="js/activityreport.js?v=193"></script>
+    <script src="js/checklists.js?v=193"></script>
+    <script src="js/bulkactivity.js?v=193"></script>
+    <script src="js/devnotes.js?v=193"></script>
+    <script src="js/vehicles.js?v=193"></script>
+    <script src="js/garage.js?v=193"></script>
+    <script src="js/structures.js?v=193"></script>
+    <script src="js/moveThings.js?v=193"></script>
+    <script src="js/journal.js?v=193"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=192"></script>
-    <script src="js/app.js?v=192"></script>
+    <script src="js/chat.js?v=193"></script>
+    <script src="js/app.js?v=193"></script>
 
 </body>
 </html>

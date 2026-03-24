@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=176">
+    <link rel="stylesheet" href="css/styles.css?v=177">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -128,11 +128,10 @@
                     <span class="landing-tile-icon">🏠</span>
                     <span class="landing-tile-label">House</span>
                 </a>
-                <div class="landing-tile landing-tile--disabled">
+                <a href="#garage" class="landing-tile landing-tile--garage">
                     <span class="landing-tile-icon">🚗</span>
                     <span class="landing-tile-label">Garage</span>
-                    <span class="landing-tile-soon">Coming soon</span>
-                </div>
+                </a>
                 <a href="#vehicles" class="landing-tile landing-tile--vehicles">
                     <span class="landing-tile-icon">🚙</span>
                     <span class="landing-tile-label">Vehicles</span>
@@ -1709,6 +1708,253 @@
 
         </section>
 
+        <!-- ========== GARAGE PAGES ========== -->
+
+        <!-- Page: Garage Home (#garage) -->
+        <section class="page hidden" id="page-garage">
+            <div class="page-header">
+                <h2>Garage</h2>
+            </div>
+            <div id="garageRoomsList"></div>
+        </section>
+
+        <!-- Page: Garage Room Detail (#garageroom/:id) -->
+        <section class="page hidden" id="page-garageroom">
+            <div class="page-header">
+                <h2 id="garageRoomName">Room</h2>
+                <div class="page-header-actions">
+                    <button class="btn btn-secondary btn-small" id="garageRoomRenameBtn">Rename</button>
+                </div>
+            </div>
+
+            <!-- Photos section -->
+            <div class="section-header">
+                <h3 class="section-heading">Photos</h3>
+                <button class="btn btn-primary btn-small" id="garageRoomAddPhotoBtn">+ Add Photo</button>
+            </div>
+            <div id="garageRoomPhotosSection"></div>
+            <p class="empty-state" id="garageRoomPhotosEmpty">No photos yet.</p>
+
+            <!-- Things section -->
+            <div class="section-header">
+                <h3 class="section-heading">Things</h3>
+                <button class="btn btn-primary btn-small" id="garageAddThingBtn">+ Add Thing</button>
+            </div>
+            <div class="card-list" id="garageThingsList"></div>
+            <p class="empty-state" id="garageThingsEmpty"></p>
+
+            <!-- Activity History -->
+            <div class="section-header">
+                <h3 class="section-heading">Activity History</h3>
+                <button class="btn btn-primary btn-small" id="garageRoomLogActivityBtn">+ Log Activity</button>
+            </div>
+            <div id="garageRoomActivitiesContainer"></div>
+            <p class="empty-state" id="garageRoomActivitiesEmpty">No activities logged yet.</p>
+
+            <!-- Calendar Events -->
+            <div class="section-header">
+                <h3 class="section-heading">Calendar Events</h3>
+                <div class="section-header-actions">
+                    <div class="calendar-range-picker">
+                        <label>Next</label>
+                        <select id="garageRoomCalendarRangeSelect" class="range-select">
+                            <option value="1">1 mo</option>
+                            <option value="3" selected>3 mo</option>
+                            <option value="6">6 mo</option>
+                            <option value="12">12 mo</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary btn-small" id="garageRoomAddCalendarEventBtn">+ Add Event</button>
+                </div>
+            </div>
+            <div id="garageRoomCalendarEventsContainer"></div>
+            <p class="empty-state" id="garageRoomCalendarEventsEmpty"></p>
+
+            <!-- Problems / Concerns -->
+            <div class="section-header">
+                <h3 class="section-heading">Problems / Concerns</h3>
+                <button class="btn btn-primary btn-small" id="garageRoomAddProblemBtn">+ Add</button>
+            </div>
+            <div id="garageRoomProblemsContainer"></div>
+            <p class="empty-state" id="garageRoomProblemsEmpty"></p>
+
+            <!-- Facts -->
+            <div class="section-header">
+                <h3 class="section-heading">Facts</h3>
+                <button class="btn btn-primary btn-small" id="garageRoomAddFactBtn">+ Add</button>
+            </div>
+            <div id="garageRoomFactsContainer"></div>
+            <p class="empty-state" id="garageRoomFactsEmpty"></p>
+
+            <!-- Future Projects -->
+            <div class="section-header">
+                <h3 class="section-heading">Future Projects</h3>
+                <button class="btn btn-primary btn-small" id="garageRoomAddProjectBtn">+ Add</button>
+            </div>
+            <div id="garageRoomProjectsContainer"></div>
+            <p class="empty-state" id="garageRoomProjectsEmpty"></p>
+        </section>
+
+        <!-- Page: Garage Thing Detail (#garagething/:id) -->
+        <section class="page hidden" id="page-garagething">
+            <div class="page-header">
+                <h2 id="garageThingName">Thing</h2>
+                <div class="page-header-actions">
+                    <button class="btn btn-secondary btn-small" id="garageThingEditBtn">Edit</button>
+                    <button class="btn btn-danger btn-small"   id="garageThingDeleteBtn">Delete</button>
+                </div>
+            </div>
+
+            <!-- Context: room name + category -->
+            <p class="house-thing-meta" id="garageThingMeta"></p>
+
+            <!-- Inventory details (purchaseDate, worth, description, notes) -->
+            <div id="garageThingDetailsSection" class="thing-details-section" style="display:none"></div>
+
+            <!-- Photos -->
+            <div class="section-header">
+                <h3 class="section-heading">Photos</h3>
+                <button class="btn btn-primary btn-small" id="garageThingAddPhotoBtn">+ Add Photo</button>
+            </div>
+            <div id="garageThingPhotosSection"></div>
+            <p class="empty-state" id="garageThingPhotosEmpty">No photos yet.</p>
+
+            <!-- SubThings section -->
+            <div class="section-header">
+                <h3 class="section-heading">Sub-Items</h3>
+                <button class="btn btn-primary btn-small" id="garageAddSubThingBtn">+ Add Sub-Item</button>
+            </div>
+            <div class="card-list" id="garageSubThingsList"></div>
+            <p class="empty-state" id="garageSubThingsEmpty"></p>
+
+            <!-- Activity History -->
+            <div class="section-header">
+                <h3 class="section-heading">Activity History</h3>
+                <button class="btn btn-primary btn-small" id="garageThingLogActivityBtn">+ Log Activity</button>
+            </div>
+            <div id="garageThingActivitiesContainer"></div>
+            <p class="empty-state" id="garageThingActivitiesEmpty">No activities logged yet.</p>
+
+            <!-- Calendar Events -->
+            <div class="section-header">
+                <h3 class="section-heading">Calendar Events</h3>
+                <div class="section-header-actions">
+                    <div class="calendar-range-picker">
+                        <label>Next</label>
+                        <select id="garageThingCalendarRangeSelect" class="range-select">
+                            <option value="1">1 mo</option>
+                            <option value="3" selected>3 mo</option>
+                            <option value="6">6 mo</option>
+                            <option value="12">12 mo</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary btn-small" id="garageThingAddCalendarEventBtn">+ Add Event</button>
+                </div>
+            </div>
+            <div id="garageThingCalendarEventsContainer"></div>
+            <p class="empty-state" id="garageThingCalendarEventsEmpty"></p>
+
+            <!-- Problems / Concerns -->
+            <div class="section-header">
+                <h3 class="section-heading">Problems / Concerns</h3>
+                <button class="btn btn-primary btn-small" id="garageThingAddProblemBtn">+ Add</button>
+            </div>
+            <div id="garageThingProblemsContainer"></div>
+            <p class="empty-state" id="garageThingProblemsEmpty"></p>
+
+            <!-- Facts -->
+            <div class="section-header">
+                <h3 class="section-heading">Facts</h3>
+                <button class="btn btn-primary btn-small" id="garageThingAddFactBtn">+ Add</button>
+            </div>
+            <div id="garageThingFactsContainer"></div>
+            <p class="empty-state" id="garageThingFactsEmpty"></p>
+
+            <!-- Future Projects -->
+            <div class="section-header">
+                <h3 class="section-heading">Future Projects</h3>
+                <button class="btn btn-primary btn-small" id="garageThingAddProjectBtn">+ Add</button>
+            </div>
+            <div id="garageThingProjectsContainer"></div>
+            <p class="empty-state" id="garageThingProjectsEmpty"></p>
+        </section>
+
+        <!-- Page: Garage SubThing Detail (#garagesubthing/:id) -->
+        <section class="page hidden" id="page-garagesubthing">
+            <div class="page-header">
+                <h2 id="garageSubThingName">Item</h2>
+                <div class="page-header-actions">
+                    <button class="btn btn-secondary btn-small" id="garageSubThingEditBtn">Edit</button>
+                    <button class="btn btn-danger btn-small"   id="garageSubThingDeleteBtn">Delete</button>
+                </div>
+            </div>
+
+            <!-- Context: room › thing -->
+            <p class="house-thing-meta" id="garageSubThingMeta"></p>
+
+            <!-- Inventory details (purchaseDate, worth, description, notes) -->
+            <div id="garageSubThingDetailsSection" class="thing-details-section" style="display:none"></div>
+
+            <!-- Photos -->
+            <div class="section-header">
+                <h3 class="section-heading">Photos</h3>
+                <button class="btn btn-primary btn-small" id="garageSubThingAddPhotoBtn">+ Add Photo</button>
+            </div>
+            <div id="garageSubThingPhotosSection"></div>
+            <p class="empty-state" id="garageSubThingPhotosEmpty">No photos yet.</p>
+
+            <!-- Activity History -->
+            <div class="section-header">
+                <h3 class="section-heading">Activity History</h3>
+                <button class="btn btn-primary btn-small" id="garageSubThingLogActivityBtn">+ Log Activity</button>
+            </div>
+            <div id="garageSubThingActivitiesContainer"></div>
+            <p class="empty-state" id="garageSubThingActivitiesEmpty">No activities logged yet.</p>
+
+            <!-- Calendar Events -->
+            <div class="section-header">
+                <h3 class="section-heading">Calendar Events</h3>
+                <div class="section-header-actions">
+                    <div class="calendar-range-picker">
+                        <label>Next</label>
+                        <select id="garageSubThingCalendarRangeSelect" class="range-select">
+                            <option value="1">1 mo</option>
+                            <option value="3" selected>3 mo</option>
+                            <option value="6">6 mo</option>
+                            <option value="12">12 mo</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary btn-small" id="garageSubThingAddCalendarEventBtn">+ Add Event</button>
+                </div>
+            </div>
+            <div id="garageSubThingCalendarEventsContainer"></div>
+            <p class="empty-state" id="garageSubThingCalendarEventsEmpty"></p>
+
+            <!-- Problems / Concerns -->
+            <div class="section-header">
+                <h3 class="section-heading">Problems / Concerns</h3>
+                <button class="btn btn-primary btn-small" id="garageSubThingAddProblemBtn">+ Add</button>
+            </div>
+            <div id="garageSubThingProblemsContainer"></div>
+            <p class="empty-state" id="garageSubThingProblemsEmpty"></p>
+
+            <!-- Facts -->
+            <div class="section-header">
+                <h3 class="section-heading">Facts</h3>
+                <button class="btn btn-primary btn-small" id="garageSubThingAddFactBtn">+ Add</button>
+            </div>
+            <div id="garageSubThingFactsContainer"></div>
+            <p class="empty-state" id="garageSubThingFactsEmpty"></p>
+
+            <!-- Future Projects -->
+            <div class="section-header">
+                <h3 class="section-heading">Future Projects</h3>
+                <button class="btn btn-primary btn-small" id="garageSubThingAddProjectBtn">+ Add</button>
+            </div>
+            <div id="garageSubThingProjectsContainer"></div>
+            <p class="empty-state" id="garageSubThingProjectsEmpty"></p>
+        </section>
+
     </main>
 
     <!-- ========== MODALS ========== -->
@@ -1731,6 +1977,98 @@
             <div class="modal-buttons">
                 <button class="btn btn-secondary" id="clTemplateModalCancelBtn">Cancel</button>
                 <button class="btn btn-primary"   id="clTemplateModalSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Garage: Rename Room Modal -->
+    <div class="modal-overlay" id="garageRenameRoomModal">
+        <div class="modal">
+            <h3>Rename Room</h3>
+            <div class="form-group">
+                <label for="garageRenameRoomInput">Room Name <span class="label-required">*</span></label>
+                <input type="text" id="garageRenameRoomInput" placeholder="e.g., Garage, Attic">
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="garageRenameRoomCancelBtn">Cancel</button>
+                <button class="btn btn-primary"   id="garageRenameRoomSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Garage: Add / Edit Thing Modal -->
+    <div class="modal-overlay" id="garageThingModal">
+        <div class="modal">
+            <h3 id="garageThingModalTitle">Add Thing</h3>
+            <div class="form-group">
+                <label for="garageThingNameInput">Name <span class="label-required">*</span></label>
+                <input type="text" id="garageThingNameInput" placeholder="e.g., Lawnmower, Tool Cabinet">
+            </div>
+            <div class="form-group">
+                <label for="garageThingCategorySelect">Category</label>
+                <select id="garageThingCategorySelect">
+                    <option value="furniture">Furniture</option>
+                    <option value="appliance">Appliance</option>
+                    <option value="ceiling-fan">Ceiling Fan</option>
+                    <option value="ceiling-light">Ceiling Light</option>
+                    <option value="electronics">Electronics</option>
+                    <option value="other" selected>Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="garageThingDescriptionInput">Description</label>
+                <textarea id="garageThingDescriptionInput" rows="2" placeholder="Brief description of this item…"></textarea>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="garageThingPurchaseDateInput">Purchase Date <span class="label-hint">(optional)</span></label>
+                    <input type="date" id="garageThingPurchaseDateInput">
+                </div>
+                <div class="form-group">
+                    <label for="garageThingWorthInput">Worth / Value ($)</label>
+                    <input type="number" id="garageThingWorthInput" min="0" step="0.01" placeholder="e.g. 199.99">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="garageThingNotesInput">Notes</label>
+                <textarea id="garageThingNotesInput" rows="2" placeholder="Any notes about this item…"></textarea>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="garageThingModalCancelBtn">Cancel</button>
+                <button class="btn btn-primary"   id="garageThingModalSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Garage: Add / Edit SubThing Modal -->
+    <div class="modal-overlay" id="garageSubThingModal">
+        <div class="modal">
+            <h3 id="garageSubThingModalTitle">Add Sub-Item</h3>
+            <div class="form-group">
+                <label for="garageSubThingNameInput">Name <span class="label-required">*</span></label>
+                <input type="text" id="garageSubThingNameInput" placeholder="e.g., Socket Set, Extension Cord">
+            </div>
+            <div class="form-group">
+                <label for="garageSubThingDescriptionInput">Description</label>
+                <textarea id="garageSubThingDescriptionInput" rows="2" placeholder="Brief description…"></textarea>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="garageSubThingPurchaseDateInput">Purchase Date <span class="label-hint">(optional)</span></label>
+                    <input type="date" id="garageSubThingPurchaseDateInput">
+                </div>
+                <div class="form-group">
+                    <label for="garageSubThingWorthInput">Worth / Value ($)</label>
+                    <input type="number" id="garageSubThingWorthInput" min="0" step="0.01" placeholder="e.g. 49.99">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="garageSubThingNotesInput">Notes</label>
+                <textarea id="garageSubThingNotesInput" rows="2" placeholder="Any notes about this item…"></textarea>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="garageSubThingModalCancelBtn">Cancel</button>
+                <button class="btn btn-primary"   id="garageSubThingModalSaveBtn">Save</button>
             </div>
         </div>
     </div>
@@ -3046,31 +3384,32 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=176"></script>
-    <script src="js/auth.js?v=176"></script>
-    <script src="js/zones.js?v=176"></script>
-    <script src="js/plants.js?v=176"></script>
-    <script src="js/problems.js?v=176"></script>
-    <script src="js/facts.js?v=176"></script>
-    <script src="js/projects.js?v=176"></script>
-    <script src="js/chemicals.js?v=176"></script>
-    <script src="js/activities.js?v=176"></script>
-    <script src="js/photos.js?v=176"></script>
-    <script src="js/weeds.js?v=176"></script>
-    <script src="js/calendar.js?v=176"></script>
-    <script src="js/gps.js?v=176"></script>
-    <script src="js/settings.js?v=176"></script>
-    <script src="js/house.js?v=176"></script>
-    <script src="js/floorplan.js?v=176"></script>
-    <script src="js/search.js?v=176"></script>
-    <script src="js/activityreport.js?v=176"></script>
-    <script src="js/checklists.js?v=176"></script>
-    <script src="js/bulkactivity.js?v=176"></script>
-    <script src="js/devnotes.js?v=176"></script>
-    <script src="js/vehicles.js?v=176"></script>
+    <script src="js/firebase-config.js?v=177"></script>
+    <script src="js/auth.js?v=177"></script>
+    <script src="js/zones.js?v=177"></script>
+    <script src="js/plants.js?v=177"></script>
+    <script src="js/problems.js?v=177"></script>
+    <script src="js/facts.js?v=177"></script>
+    <script src="js/projects.js?v=177"></script>
+    <script src="js/chemicals.js?v=177"></script>
+    <script src="js/activities.js?v=177"></script>
+    <script src="js/photos.js?v=177"></script>
+    <script src="js/weeds.js?v=177"></script>
+    <script src="js/calendar.js?v=177"></script>
+    <script src="js/gps.js?v=177"></script>
+    <script src="js/settings.js?v=177"></script>
+    <script src="js/house.js?v=177"></script>
+    <script src="js/floorplan.js?v=177"></script>
+    <script src="js/search.js?v=177"></script>
+    <script src="js/activityreport.js?v=177"></script>
+    <script src="js/checklists.js?v=177"></script>
+    <script src="js/bulkactivity.js?v=177"></script>
+    <script src="js/devnotes.js?v=177"></script>
+    <script src="js/vehicles.js?v=177"></script>
+    <script src="js/garage.js?v=177"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=176"></script>
-    <script src="js/app.js?v=176"></script>
+    <script src="js/chat.js?v=177"></script>
+    <script src="js/app.js?v=177"></script>
 
 </body>
 </html>

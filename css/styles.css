@@ -3862,3 +3862,28 @@ a.ar-target-link:hover {
     gap: 12px;
     flex-wrap: wrap;
 }
+
+/* ============================================================
+   GARAGE FEATURE
+   ============================================================ */
+
+/* Landing tile — Garage (warm slate/gray color scheme) */
+.landing-tile--garage {
+    background: #f1f5f9;
+    border-color: #94a3b8;
+    color: #1e293b;
+}
+.landing-tile--garage:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+}
+
+/* Garage room cards on the home page — 2 large clickable tiles */
+.garage-room-card {
+    padding: 20px 16px;
+    font-size: 1.05rem;
+}
+.garage-room-card .card-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+}

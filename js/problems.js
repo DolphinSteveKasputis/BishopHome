@@ -343,6 +343,15 @@ async function handleProblemModalSave() {
  * @param {string} targetType - "plant" or "zone"
  * @param {string} targetId - The target's Firestore document ID.
  */
+// Target types that have an activity history section.
+// When a problem is resolved for one of these, an activity is auto-created.
+var ACTIVITY_SUPPORTED_TARGETS = [
+    'plant', 'zone', 'vehicle',
+    'garageroom', 'garagething', 'garagesubthing',
+    'structure', 'structurething', 'structuresubthing',
+    'floor', 'room', 'thing', 'subthing'
+];
+
 async function toggleProblemStatus(problemId, currentStatus, targetType, targetId) {
     const newStatus = currentStatus === 'open' ? 'resolved' : 'open';
 
@@ -364,7 +373,30 @@ async function toggleProblemStatus(problemId, currentStatus, targetType, targetI
 
         await userCol('problems').doc(problemId).update(updateData);
         console.log('Problem status changed to:', newStatus);
+
+        // When resolving, auto-create an activity so it appears in history.
+        // Only applies to target types that have an activity history section.
+        if (newStatus === 'resolved' && ACTIVITY_SUPPORTED_TARGETS.indexOf(targetType) >= 0) {
+            const problemDoc = await userCol('problems').doc(problemId).get();
+            if (problemDoc.exists) {
+                const p = problemDoc.data();
+                const today = new Date().toISOString().split('T')[0];
+                await userCol('activities').add({
+                    targetType:    targetType,
+                    targetId:      targetId,
+                    description:   'Resolved: ' + (p.description || 'Problem'),
+                    notes:         p.notes || '',
+                    date:          today,
+                    chemicalIds:   [],
+                    createdAt:     firebase.firestore.FieldValue.serverTimestamp()
+                });
+                console.log('Auto-created activity for resolved problem:', p.description);
+            }
+        }
+
         reloadProblemsForCurrentTarget(targetType, targetId);
+        // Also refresh the activity list if it's visible on the same page
+        reloadActivitiesForCurrentTarget(targetType, targetId);
 
     } catch (error) {
         console.error('Error toggling problem status:', error);

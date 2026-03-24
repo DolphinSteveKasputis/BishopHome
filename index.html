@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=183">
+    <link rel="stylesheet" href="css/styles.css?v=184">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -665,6 +665,7 @@
                     <div class="chat-send-row">
                         <button class="btn btn-primary" id="chatSendBtn">Send</button>
                         <button class="btn btn-secondary" id="chatVoiceBtn" type="button">🎤 Speak</button>
+                        <button class="btn btn-secondary" id="chatVoiceHelpBtn" type="button">Help</button>
                         <button class="btn btn-secondary" id="chatAttachBtn" type="button">📎 Add Photo</button>
                         <button class="btn btn-secondary" id="chatCameraBtn" type="button">📷 Camera</button>
                         <span class="chat-status" id="chatStatus"></span>
@@ -3860,6 +3861,32 @@
     </div>
 
 
+    <!-- ===== Voice Punctuation Help Modal (shared by Journal + Chat) ===== -->
+    <div class="modal-overlay" id="voiceHelpModal">
+        <div class="modal">
+            <h3>🎤 Voice Punctuation Guide</h3>
+            <p style="font-size:0.85rem;color:#666;margin-bottom:12px;">Say these words while speaking to insert punctuation:</p>
+            <table class="voice-help-table">
+                <thead>
+                    <tr><th>Say</th><th>Inserts</th><th>Say</th><th>Inserts</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>"period"</td><td>.</td><td>"comma"</td><td>,</td></tr>
+                    <tr><td>"question mark"</td><td>?</td><td>"exclamation point"</td><td>!</td></tr>
+                    <tr><td>"colon"</td><td>:</td><td>"semicolon"</td><td>;</td></tr>
+                    <tr><td>"dash"</td><td>—</td><td>"hyphen"</td><td>-</td></tr>
+                    <tr><td>"ellipsis"</td><td>...</td><td>"dot dot dot"</td><td>...</td></tr>
+                    <tr><td>"open paren"</td><td>(</td><td>"close paren"</td><td>)</td></tr>
+                    <tr><td>"new line"</td><td>↵</td><td>"new paragraph"</td><td>↵↵</td></tr>
+                </tbody>
+            </table>
+            <p style="font-size:0.82rem;color:#666;margin-top:10px;">The first word after a period, question mark, or exclamation point is automatically capitalized.</p>
+            <div class="modal-buttons">
+                <button class="btn btn-primary" id="voiceHelpCloseBtn">Close</button>
+            </div>
+        </div>
+    </div>
+
         <!-- ================================================================
              LIFE SECTION — pages: life, journal, journal-entry,
                             journal-tracking, journal-categories
@@ -3930,7 +3957,10 @@
                 <div class="form-group">
                     <div class="journal-textarea-header">
                         <label for="journalEntryText">Entry</label>
-                        <button class="btn btn-secondary btn-small" id="journalVoiceBtn" title="Voice to text">🎤 Speak</button>
+                        <div style="display:flex;gap:6px;">
+                            <button class="btn btn-secondary btn-small" id="journalVoiceBtn" title="Voice to text">🎤 Speak</button>
+                            <button class="btn btn-secondary btn-small" id="journalVoiceHelpBtn" title="Voice punctuation help">Help</button>
+                        </div>
                     </div>
                     <textarea id="journalEntryText" rows="16" spellcheck="true"
                               placeholder="Write your journal entry here..."></textarea>
@@ -3991,35 +4021,35 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=183"></script>
-    <script src="js/auth.js?v=183"></script>
-    <script src="js/zones.js?v=183"></script>
-    <script src="js/plants.js?v=183"></script>
-    <script src="js/problems.js?v=183"></script>
-    <script src="js/facts.js?v=183"></script>
-    <script src="js/projects.js?v=183"></script>
-    <script src="js/chemicals.js?v=183"></script>
-    <script src="js/activities.js?v=183"></script>
-    <script src="js/photos.js?v=183"></script>
-    <script src="js/weeds.js?v=183"></script>
-    <script src="js/calendar.js?v=183"></script>
-    <script src="js/gps.js?v=183"></script>
-    <script src="js/settings.js?v=183"></script>
-    <script src="js/house.js?v=183"></script>
-    <script src="js/floorplan.js?v=183"></script>
-    <script src="js/search.js?v=183"></script>
-    <script src="js/activityreport.js?v=183"></script>
-    <script src="js/checklists.js?v=183"></script>
-    <script src="js/bulkactivity.js?v=183"></script>
-    <script src="js/devnotes.js?v=183"></script>
-    <script src="js/vehicles.js?v=183"></script>
-    <script src="js/garage.js?v=183"></script>
-    <script src="js/structures.js?v=183"></script>
-    <script src="js/moveThings.js?v=183"></script>
-    <script src="js/journal.js?v=183"></script>
+    <script src="js/firebase-config.js?v=184"></script>
+    <script src="js/auth.js?v=184"></script>
+    <script src="js/zones.js?v=184"></script>
+    <script src="js/plants.js?v=184"></script>
+    <script src="js/problems.js?v=184"></script>
+    <script src="js/facts.js?v=184"></script>
+    <script src="js/projects.js?v=184"></script>
+    <script src="js/chemicals.js?v=184"></script>
+    <script src="js/activities.js?v=184"></script>
+    <script src="js/photos.js?v=184"></script>
+    <script src="js/weeds.js?v=184"></script>
+    <script src="js/calendar.js?v=184"></script>
+    <script src="js/gps.js?v=184"></script>
+    <script src="js/settings.js?v=184"></script>
+    <script src="js/house.js?v=184"></script>
+    <script src="js/floorplan.js?v=184"></script>
+    <script src="js/search.js?v=184"></script>
+    <script src="js/activityreport.js?v=184"></script>
+    <script src="js/checklists.js?v=184"></script>
+    <script src="js/bulkactivity.js?v=184"></script>
+    <script src="js/devnotes.js?v=184"></script>
+    <script src="js/vehicles.js?v=184"></script>
+    <script src="js/garage.js?v=184"></script>
+    <script src="js/structures.js?v=184"></script>
+    <script src="js/moveThings.js?v=184"></script>
+    <script src="js/journal.js?v=184"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=183"></script>
-    <script src="js/app.js?v=183"></script>
+    <script src="js/chat.js?v=184"></script>
+    <script src="js/app.js?v=184"></script>
 
 </body>
 </html>

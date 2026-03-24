@@ -655,6 +655,17 @@ function applySpokenPunctuation(text) {
     // Clean up any double spaces created by substitutions
     text = text.replace(/  +/g, ' ').trim();
 
+    // Capitalize the first letter of the transcript itself
+    if (text.length > 0) {
+        text = text.charAt(0).toUpperCase() + text.slice(1);
+    }
+
+    // Capitalize the first letter of each new sentence
+    // (after ". ", "? ", "! " followed by a lowercase letter)
+    text = text.replace(/([.?!]\s+)([a-z])/g, function(match, punct, letter) {
+        return punct + letter.toUpperCase();
+    });
+
     return text;
 }
 
@@ -1243,6 +1254,30 @@ async function renameJournalCategory(id, newName) {
  * Delete a tracking category after confirmation.
  * @param {string} id - Category document ID
  */
+// ============================================================
+// VOICE HELP MODAL  (shared by journal entry + chat pages)
+// ============================================================
+
+(function() {
+    // Wire Help buttons on journal entry and chat pages to open the shared modal
+    var helpBtns = ['journalVoiceHelpBtn', 'chatVoiceHelpBtn'];
+    helpBtns.forEach(function(btnId) {
+        var btn = document.getElementById(btnId);
+        if (btn) {
+            btn.addEventListener('click', function() {
+                openModal('voiceHelpModal');
+            });
+        }
+    });
+
+    var closeBtn = document.getElementById('voiceHelpCloseBtn');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', function() {
+            closeModal('voiceHelpModal');
+        });
+    }
+}());
+
 async function deleteJournalCategory(id) {
     if (!confirm('Delete this category? This will not delete existing tracking items that used it.')) return;
 

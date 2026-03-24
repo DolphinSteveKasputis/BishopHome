@@ -305,9 +305,17 @@ async function openLogActivityModal(targetType, targetId) {
     modal.dataset.targetType = targetType;
     modal.dataset.targetId = targetId;
 
+    // Hide chemical/product section for target types that don't use chemicals
+    var hideChemicals = (targetType === 'vehicle');
+    var chemicalGroup = document.getElementById('activityChemicalList').closest('.form-group');
+    if (chemicalGroup) chemicalGroup.style.display = hideChemicals ? 'none' : '';
+    document.getElementById('activityAmountUsedRow').style.display = 'none';
+
     // Build chemical checkbox list (none pre-checked)
-    await buildChemicalCheckboxList('activityChemicalList', []);
-    updateAmountUsedVisibility();
+    if (!hideChemicals) {
+        await buildChemicalCheckboxList('activityChemicalList', []);
+        updateAmountUsedVisibility();
+    }
 
     // Populate saved actions dropdown
     savedActionSelect.innerHTML = '<option value="">-- Start from scratch --</option>';
@@ -439,12 +447,26 @@ async function handleDeleteActivity(activityId, targetType, targetId) {
  * @param {string} targetId - The target's Firestore document ID.
  */
 function reloadActivitiesForCurrentTarget(targetType, targetId) {
-    if (targetType === 'plant') {
-        loadActivities('plant', targetId, 'plantActivityContainer', 'plantActivityEmptyState');
-    } else if (targetType === 'zone') {
-        loadActivities('zone', targetId, 'zoneActivityContainer', 'zoneActivityEmptyState');
-    } else if (targetType === 'weed') {
-        loadActivities('weed', targetId, 'weedActivityContainer', 'weedActivityEmptyState');
+    var map = {
+        'plant':            ['plantActivityContainer',               'plantActivityEmptyState'],
+        'zone':             ['zoneActivityContainer',                'zoneActivityEmptyState'],
+        'weed':             ['weedActivityContainer',                'weedActivityEmptyState'],
+        'vehicle':          ['vehicleActivitiesContainer',           'vehicleActivitiesEmptyState'],
+        'panel':            ['panelActivityContainer',               'panelActivityEmptyState'],
+        'floor':            ['floorActivityContainer',               'floorActivityEmptyState'],
+        'room':             ['roomActivityContainer',                'roomActivityEmptyState'],
+        'thing':            ['thingActivityContainer',               'thingActivityEmptyState'],
+        'subthing':         ['stActivityContainer',                  'stActivityEmptyState'],
+        'garageroom':       ['garageRoomActivitiesContainer',        'garageRoomActivitiesEmpty'],
+        'garagething':      ['garageThingActivitiesContainer',       'garageThingActivitiesEmpty'],
+        'garagesubthing':   ['garageSubThingActivitiesContainer',    'garageSubThingActivitiesEmpty'],
+        'structure':        ['structureActivitiesContainer',         'structureActivitiesEmpty'],
+        'structurething':   ['structureThingActivitiesContainer',    'structureThingActivitiesEmpty'],
+        'structuresubthing':['structureSubThingActivitiesContainer', 'structureSubThingActivitiesEmpty'],
+    };
+    var ids = map[targetType];
+    if (ids) {
+        loadActivities(targetType, targetId, ids[0], ids[1]);
     }
 }
 

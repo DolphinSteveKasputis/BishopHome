@@ -1043,3 +1043,17 @@ document.getElementById('garageSubThingCalendarRangeSelect').addEventListener('c
             'garageSubThingCalendarEventsContainer', 'garageSubThingCalendarEventsEmpty', months);
     }
 });
+
+// ---- Move buttons (wired to shared moveThings.js modal) ----
+
+document.getElementById('garageThingMoveBtn').addEventListener('click', function() {
+    if (window.currentGarageThing && typeof openMoveModal === 'function') {
+        openMoveModal('thing', window.currentGarageThing.id, 'garagething');
+    }
+});
+
+document.getElementById('garageSubThingMoveBtn').addEventListener('click', function() {
+    if (window.currentGarageSubThing && typeof openMoveModal === 'function') {
+        openMoveModal('subthing', window.currentGarageSubThing.id, 'garagesubthing');
+    }
+});

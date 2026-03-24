@@ -3887,3 +3887,108 @@ a.ar-target-link:hover {
     font-size: 1.1rem;
     font-weight: 600;
 }
+
+/* ============================================================
+   STRUCTURES FEATURE
+   ============================================================ */
+
+/* Structure card — shows name + optional storage badge + edit/delete buttons */
+.structure-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+}
+
+.structure-card .card-main {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    cursor: pointer;
+}
+
+.structure-card .card-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+/* Storage badge — small pill shown when isStorage = true */
+.structure-storage-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    background: #d1fae5;
+    color: #065f46;
+    border: 1px solid #6ee7b7;
+    white-space: nowrap;
+}
+
+/* ============================================================
+   MOVE THINGS MODAL
+   ============================================================ */
+
+/* Grouped section inside the destination picker */
+.move-destination-group {
+    margin-bottom: 12px;
+}
+
+/* Section header label (House / Garage / Structures) */
+.move-destination-group-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+    padding: 0 2px;
+}
+
+/* Individual destination button inside a group */
+.move-dest-btn {
+    display: block;
+    width: 100%;
+    text-align: left;
+    margin-bottom: 4px;
+    padding: 8px 12px;
+}
+
+/* Highlighted selection */
+.move-dest-btn--selected {
+    background: #dbeafe;
+    border-color: #3b82f6;
+    color: #1d4ed8;
+}
+
+/* Context badge inside the thing list (House / Garage / Structure) */
+.move-thing-context-badge {
+    font-size: 0.72rem;
+    font-weight: 600;
+    background: #f3f4f6;
+    color: #6b7280;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 1px 6px;
+    margin-left: 6px;
+    white-space: nowrap;
+}
+
+/* Radio button row for subthing move type selection */
+.move-type-radio {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 6px 0;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: #374151;
+}
+
+.move-type-radio input[type="radio"] {
+    margin-top: 2px;
+    flex-shrink: 0;
+}

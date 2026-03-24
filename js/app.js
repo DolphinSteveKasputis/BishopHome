@@ -10,7 +10,7 @@
  * List of top-level pages that map to nav links.
  * These pages clear the breadcrumb bar when shown.
  */
-const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'house', 'settings', 'main', 'search', 'activityreport', 'checklists', 'notes', 'chat', 'vehicles', 'garage'];
+const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'house', 'settings', 'main', 'search', 'activityreport', 'checklists', 'notes', 'chat', 'vehicles', 'garage', 'structures'];
 
 /**
  * All pages that can be shown (includes detail pages not in the nav).
@@ -20,7 +20,8 @@ const ALL_PAGES = [
     'zone', 'plant', 'weed', 'chemical', 'gpsmap', 'yardmap',
     'floor', 'room', 'thing', 'subthing', 'floorplan', 'panel', 'rooms', 'things',
     'backup', 'vehicle',
-    'garageroom', 'garagething', 'garagesubthing'
+    'garageroom', 'garagething', 'garagesubthing',
+    'structure', 'structurething', 'structuresubthing'
 ];
 
 /**
@@ -29,7 +30,8 @@ const ALL_PAGES = [
  * Shared pages (calendar, settings) keep whichever context was last active.
  */
 const HOUSE_PAGES = ['house', 'floor', 'room', 'thing', 'subthing', 'floorplan', 'panel', 'rooms', 'things'];
-const YARD_PAGES  = ['main', 'home', 'zone', 'plant', 'weeds', 'weed', 'chemicals', 'chemical', 'actions', 'gpsmap', 'yardmap', 'activityreport', 'checklists'];
+const YARD_PAGES  = ['main', 'home', 'zone', 'plant', 'weeds', 'weed', 'chemicals', 'chemical', 'actions', 'gpsmap', 'yardmap', 'activityreport', 'checklists',
+                     'structures', 'structure', 'structurething', 'structuresubthing'];
 
 /** Tracks which nav context is currently active ('yard' or 'house'). */
 var currentNavContext = 'yard';
@@ -68,6 +70,7 @@ function showPage(page) {
     // Determine which nav link should be highlighted
     var navPage = page;
     if (page === 'zone' || page === 'plant' || page === 'gpsmap' || page === 'yardmap') navPage = 'home';
+    if (page === 'structure' || page === 'structurething' || page === 'structuresubthing') navPage = 'structures';
     if (page === 'weed')       navPage = 'weeds';
     if (page === 'chemical')   navPage = 'chemicals';
     if (page === 'floor')      navPage = 'house';
@@ -211,6 +214,18 @@ function handleRoute() {
     } else if (page === 'garagesubthing' && id) {
         showPage('garagesubthing');
         loadGarageSubThingPage(id);
+    } else if (page === 'structures') {
+        showPage('structures');
+        loadStructuresPage();
+    } else if (page === 'structure' && id) {
+        showPage('structure');
+        loadStructurePage(id);
+    } else if (page === 'structurething' && id) {
+        showPage('structurething');
+        loadStructureThingPage(id);
+    } else if (page === 'structuresubthing' && id) {
+        showPage('structuresubthing');
+        loadStructureSubThingPage(id);
     } else if (TOP_LEVEL_PAGES.includes(page)) {
         showPage(page);
     } else {

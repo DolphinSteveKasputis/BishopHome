@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=177">
+    <link rel="stylesheet" href="css/styles.css?v=178">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -55,6 +55,7 @@
             <a href="#chemicals" class="nav-link" data-page="chemicals">Chemicals</a>
             <a href="#actions" class="nav-link" data-page="actions">Actions</a>
             <a href="#house" class="nav-link" data-page="house">House</a>
+            <a href="#structures" class="nav-link" data-page="structures">Structures</a>
             <a href="#search" class="nav-link" data-page="search">🔍 Search</a>
             <a href="#chat" class="nav-link" data-page="chat">Chat</a>
             <a href="#settings" class="nav-link" data-page="settings">Settings</a>
@@ -92,6 +93,7 @@
             <a href="#chemicals" class="nav-link" data-page="chemicals">Chemicals</a>
             <a href="#actions" class="nav-link" data-page="actions">Actions</a>
             <a href="#house" class="nav-link" data-page="house">House</a>
+            <a href="#structures" class="nav-link" data-page="structures">Structures</a>
             <a href="#search" class="nav-link" data-page="search">🔍 Search</a>
             <a href="#chat" class="nav-link" data-page="chat">Chat</a>
             <a href="#settings" class="nav-link" data-page="settings">Settings</a>
@@ -1801,6 +1803,7 @@
                 <h2 id="garageThingName">Thing</h2>
                 <div class="page-header-actions">
                     <button class="btn btn-secondary btn-small" id="garageThingEditBtn">Edit</button>
+                    <button class="btn btn-secondary btn-small" id="garageThingMoveBtn">Move</button>
                     <button class="btn btn-danger btn-small"   id="garageThingDeleteBtn">Delete</button>
                 </div>
             </div>
@@ -1885,6 +1888,7 @@
                 <h2 id="garageSubThingName">Item</h2>
                 <div class="page-header-actions">
                     <button class="btn btn-secondary btn-small" id="garageSubThingEditBtn">Edit</button>
+                    <button class="btn btn-secondary btn-small" id="garageSubThingMoveBtn">Move</button>
                     <button class="btn btn-danger btn-small"   id="garageSubThingDeleteBtn">Delete</button>
                 </div>
             </div>
@@ -1955,6 +1959,259 @@
             <p class="empty-state" id="garageSubThingProjectsEmpty"></p>
         </section>
 
+        <!-- =====================================================
+             STRUCTURES PAGES
+             ===================================================== -->
+
+        <!-- Page: Structures List (#structures) -->
+        <section class="page hidden" id="page-structures">
+            <div class="page-header">
+                <h2>Structures</h2>
+                <div class="page-header-actions">
+                    <button class="btn btn-primary btn-small" id="structureAddBtn">+ Add Structure</button>
+                </div>
+            </div>
+            <div id="structuresList"></div>
+        </section>
+
+        <!-- Page: Structure Detail (#structure/:id) -->
+        <section class="page hidden" id="page-structure">
+            <div class="page-header">
+                <h2 id="structureName">Structure</h2>
+            </div>
+
+            <!-- Photos section -->
+            <div class="section-header">
+                <h3 class="section-heading">Photos</h3>
+                <button class="btn btn-primary btn-small" id="structureAddPhotoBtn">+ Add Photo</button>
+            </div>
+            <div id="structurePhotosSection"></div>
+            <p class="empty-state" id="structurePhotosEmpty">No photos yet.</p>
+
+            <!-- Things section — only shown when isStorage = true -->
+            <div id="structureThingsSection" class="hidden">
+                <div class="section-header">
+                    <h3 class="section-heading">Things</h3>
+                    <button class="btn btn-primary btn-small" id="structureAddThingBtn">+ Add Thing</button>
+                </div>
+                <div class="card-list" id="structureThingsList"></div>
+                <p class="empty-state" id="structureThingsEmpty"></p>
+            </div>
+
+            <!-- Activity History -->
+            <div class="section-header">
+                <h3 class="section-heading">Activity History</h3>
+                <button class="btn btn-primary btn-small" id="structureLogActivityBtn">+ Log Activity</button>
+            </div>
+            <div id="structureActivitiesContainer"></div>
+            <p class="empty-state" id="structureActivitiesEmpty">No activities logged yet.</p>
+
+            <!-- Calendar Events -->
+            <div class="section-header">
+                <h3 class="section-heading">Calendar Events</h3>
+                <div class="section-header-actions">
+                    <div class="calendar-range-picker">
+                        <label>Next</label>
+                        <select id="structureCalendarRangeSelect" class="range-select">
+                            <option value="1">1 mo</option>
+                            <option value="3" selected>3 mo</option>
+                            <option value="6">6 mo</option>
+                            <option value="12">12 mo</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary btn-small" id="structureAddCalendarEventBtn">+ Add Event</button>
+                </div>
+            </div>
+            <div id="structureCalendarEventsContainer"></div>
+            <p class="empty-state" id="structureCalendarEventsEmpty"></p>
+
+            <!-- Problems / Concerns -->
+            <div class="section-header">
+                <h3 class="section-heading">Problems / Concerns</h3>
+                <button class="btn btn-primary btn-small" id="structureAddProblemBtn">+ Add</button>
+            </div>
+            <div id="structureProblemsContainer"></div>
+            <p class="empty-state" id="structureProblemsEmpty"></p>
+
+            <!-- Facts -->
+            <div class="section-header">
+                <h3 class="section-heading">Facts</h3>
+                <button class="btn btn-primary btn-small" id="structureAddFactBtn">+ Add</button>
+            </div>
+            <div id="structureFactsContainer"></div>
+            <p class="empty-state" id="structureFactsEmpty"></p>
+
+            <!-- Future Projects -->
+            <div class="section-header">
+                <h3 class="section-heading">Future Projects</h3>
+                <button class="btn btn-primary btn-small" id="structureAddProjectBtn">+ Add</button>
+            </div>
+            <div id="structureProjectsContainer"></div>
+            <p class="empty-state" id="structureProjectsEmpty"></p>
+        </section>
+
+        <!-- Page: Structure Thing Detail (#structurething/:id) -->
+        <section class="page hidden" id="page-structurething">
+            <div class="page-header">
+                <h2 id="structureThingName">Thing</h2>
+                <div class="page-header-actions">
+                    <button class="btn btn-secondary btn-small" id="structureThingEditBtn">Edit</button>
+                    <button class="btn btn-secondary btn-small" id="structureThingMoveBtn">Move</button>
+                    <button class="btn btn-danger btn-small"   id="structureThingDeleteBtn">Delete</button>
+                </div>
+            </div>
+
+            <!-- Context: structure name + category -->
+            <p class="house-thing-meta" id="structureThingMeta"></p>
+
+            <!-- Inventory details (purchaseDate, worth, description, notes) -->
+            <div id="structureThingDetailsSection" class="thing-details-section" style="display:none"></div>
+
+            <!-- Photos -->
+            <div class="section-header">
+                <h3 class="section-heading">Photos</h3>
+                <button class="btn btn-primary btn-small" id="structureThingAddPhotoBtn">+ Add Photo</button>
+            </div>
+            <div id="structureThingPhotosSection"></div>
+            <p class="empty-state" id="structureThingPhotosEmpty">No photos yet.</p>
+
+            <!-- SubThings section -->
+            <div class="section-header">
+                <h3 class="section-heading">Sub-Items</h3>
+                <button class="btn btn-primary btn-small" id="structureAddSubThingBtn">+ Add Sub-Item</button>
+            </div>
+            <div class="card-list" id="structureSubThingsList"></div>
+            <p class="empty-state" id="structureSubThingsEmpty"></p>
+
+            <!-- Activity History -->
+            <div class="section-header">
+                <h3 class="section-heading">Activity History</h3>
+                <button class="btn btn-primary btn-small" id="structureThingLogActivityBtn">+ Log Activity</button>
+            </div>
+            <div id="structureThingActivitiesContainer"></div>
+            <p class="empty-state" id="structureThingActivitiesEmpty">No activities logged yet.</p>
+
+            <!-- Calendar Events -->
+            <div class="section-header">
+                <h3 class="section-heading">Calendar Events</h3>
+                <div class="section-header-actions">
+                    <div class="calendar-range-picker">
+                        <label>Next</label>
+                        <select id="structureThingCalendarRangeSelect" class="range-select">
+                            <option value="1">1 mo</option>
+                            <option value="3" selected>3 mo</option>
+                            <option value="6">6 mo</option>
+                            <option value="12">12 mo</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary btn-small" id="structureThingAddCalendarEventBtn">+ Add Event</button>
+                </div>
+            </div>
+            <div id="structureThingCalendarEventsContainer"></div>
+            <p class="empty-state" id="structureThingCalendarEventsEmpty"></p>
+
+            <!-- Problems / Concerns -->
+            <div class="section-header">
+                <h3 class="section-heading">Problems / Concerns</h3>
+                <button class="btn btn-primary btn-small" id="structureThingAddProblemBtn">+ Add</button>
+            </div>
+            <div id="structureThingProblemsContainer"></div>
+            <p class="empty-state" id="structureThingProblemsEmpty"></p>
+
+            <!-- Facts -->
+            <div class="section-header">
+                <h3 class="section-heading">Facts</h3>
+                <button class="btn btn-primary btn-small" id="structureThingAddFactBtn">+ Add</button>
+            </div>
+            <div id="structureThingFactsContainer"></div>
+            <p class="empty-state" id="structureThingFactsEmpty"></p>
+
+            <!-- Future Projects -->
+            <div class="section-header">
+                <h3 class="section-heading">Future Projects</h3>
+                <button class="btn btn-primary btn-small" id="structureThingAddProjectBtn">+ Add</button>
+            </div>
+            <div id="structureThingProjectsContainer"></div>
+            <p class="empty-state" id="structureThingProjectsEmpty"></p>
+        </section>
+
+        <!-- Page: Structure SubThing Detail (#structuresubthing/:id) -->
+        <section class="page hidden" id="page-structuresubthing">
+            <div class="page-header">
+                <h2 id="structureSubThingName">Item</h2>
+                <div class="page-header-actions">
+                    <button class="btn btn-secondary btn-small" id="structureSubThingEditBtn">Edit</button>
+                    <button class="btn btn-secondary btn-small" id="structureSubThingMoveBtn">Move</button>
+                    <button class="btn btn-danger btn-small"   id="structureSubThingDeleteBtn">Delete</button>
+                </div>
+            </div>
+
+            <!-- Context: structure › thing -->
+            <p class="house-thing-meta" id="structureSubThingMeta"></p>
+
+            <!-- Inventory details (purchaseDate, worth, description, notes) -->
+            <div id="structureSubThingDetailsSection" class="thing-details-section" style="display:none"></div>
+
+            <!-- Photos -->
+            <div class="section-header">
+                <h3 class="section-heading">Photos</h3>
+                <button class="btn btn-primary btn-small" id="structureSubThingAddPhotoBtn">+ Add Photo</button>
+            </div>
+            <div id="structureSubThingPhotosSection"></div>
+            <p class="empty-state" id="structureSubThingPhotosEmpty">No photos yet.</p>
+
+            <!-- Activity History -->
+            <div class="section-header">
+                <h3 class="section-heading">Activity History</h3>
+                <button class="btn btn-primary btn-small" id="structureSubThingLogActivityBtn">+ Log Activity</button>
+            </div>
+            <div id="structureSubThingActivitiesContainer"></div>
+            <p class="empty-state" id="structureSubThingActivitiesEmpty">No activities logged yet.</p>
+
+            <!-- Calendar Events -->
+            <div class="section-header">
+                <h3 class="section-heading">Calendar Events</h3>
+                <div class="section-header-actions">
+                    <div class="calendar-range-picker">
+                        <label>Next</label>
+                        <select id="structureSubThingCalendarRangeSelect" class="range-select">
+                            <option value="1">1 mo</option>
+                            <option value="3" selected>3 mo</option>
+                            <option value="6">6 mo</option>
+                            <option value="12">12 mo</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary btn-small" id="structureSubThingAddCalendarEventBtn">+ Add Event</button>
+                </div>
+            </div>
+            <div id="structureSubThingCalendarEventsContainer"></div>
+            <p class="empty-state" id="structureSubThingCalendarEventsEmpty"></p>
+
+            <!-- Problems / Concerns -->
+            <div class="section-header">
+                <h3 class="section-heading">Problems / Concerns</h3>
+                <button class="btn btn-primary btn-small" id="structureSubThingAddProblemBtn">+ Add</button>
+            </div>
+            <div id="structureSubThingProblemsContainer"></div>
+            <p class="empty-state" id="structureSubThingProblemsEmpty"></p>
+
+            <!-- Facts -->
+            <div class="section-header">
+                <h3 class="section-heading">Facts</h3>
+                <button class="btn btn-primary btn-small" id="structureSubThingAddFactBtn">+ Add</button>
+            </div>
+            <div id="structureSubThingFactsContainer"></div>
+            <p class="empty-state" id="structureSubThingFactsEmpty"></p>
+
+            <!-- Future Projects -->
+            <div class="section-header">
+                <h3 class="section-heading">Future Projects</h3>
+                <button class="btn btn-primary btn-small" id="structureSubThingAddProjectBtn">+ Add</button>
+            </div>
+            <div id="structureSubThingProjectsContainer"></div>
+            <p class="empty-state" id="structureSubThingProjectsEmpty"></p>
+        </section>
+
     </main>
 
     <!-- ========== MODALS ========== -->
@@ -2007,11 +2264,15 @@
             <div class="form-group">
                 <label for="garageThingCategorySelect">Category</label>
                 <select id="garageThingCategorySelect">
-                    <option value="furniture">Furniture</option>
+                    <option value="">-- Select Category --</option>
                     <option value="appliance">Appliance</option>
-                    <option value="ceiling-fan">Ceiling Fan</option>
-                    <option value="ceiling-light">Ceiling Light</option>
+                    <option value="auto">Auto</option>
+                    <option value="chemical">Chemical</option>
                     <option value="electronics">Electronics</option>
+                    <option value="fixture">Fixture</option>
+                    <option value="furniture">Furniture</option>
+                    <option value="power-tools">Power Tools</option>
+                    <option value="tools">Tools</option>
                     <option value="other" selected>Other</option>
                 </select>
             </div>
@@ -2644,11 +2905,17 @@
             <div class="form-group">
                 <label for="thingCategorySelect">Category</label>
                 <select id="thingCategorySelect">
-                    <option value="furniture">Furniture</option>
+                    <option value="">-- Select Category --</option>
                     <option value="appliance">Appliance</option>
+                    <option value="auto">Auto</option>
                     <option value="ceiling-fan">Ceiling Fan</option>
                     <option value="ceiling-light">Ceiling Light</option>
+                    <option value="chemical">Chemical</option>
                     <option value="electronics">Electronics</option>
+                    <option value="fixture">Fixture</option>
+                    <option value="furniture">Furniture</option>
+                    <option value="power-tools">Power Tools</option>
+                    <option value="tools">Tools</option>
                     <option value="other">Other</option>
                 </select>
             </div>
@@ -3380,36 +3647,230 @@
         </div>
     </div>
 
+    <!-- ===== Structure: Add / Edit Structure Modal ===== -->
+    <div class="modal-overlay" id="structureModal">
+        <div class="modal">
+            <h3 id="structureModalTitle">Add Structure</h3>
+            <div class="form-group">
+                <label for="structureNameInput">Name <span class="label-required">*</span></label>
+                <input type="text" id="structureNameInput" placeholder="e.g., Garden Shed, Firepit, Playhouse">
+            </div>
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="structureIsStorageToggle">
+                    This structure stores things (enables Things &amp; Sub-Items tracking)
+                </label>
+                <p class="label-hint hidden" id="structureStorageNote">Remove all items first to disable storage.</p>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="structureModalCancelBtn">Cancel</button>
+                <button class="btn btn-primary"   id="structureModalSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Structure: Add / Edit Thing Modal ===== -->
+    <div class="modal-overlay" id="structureThingModal">
+        <div class="modal">
+            <h3 id="structureThingModalTitle">Add Thing</h3>
+            <div class="form-group">
+                <label for="structureThingNameInput">Name <span class="label-required">*</span></label>
+                <input type="text" id="structureThingNameInput" placeholder="e.g., Honda Mower, Garden Hose Reel, Tool Cabinet">
+            </div>
+            <div class="form-group">
+                <label for="structureThingCategorySelect">Category</label>
+                <select id="structureThingCategorySelect">
+                    <option value="">-- Select Category --</option>
+                    <option value="appliance">Appliance</option>
+                    <option value="auto">Auto</option>
+                    <option value="chemical">Chemical</option>
+                    <option value="electronics">Electronics</option>
+                    <option value="fixture">Fixture</option>
+                    <option value="furniture">Furniture</option>
+                    <option value="power-tools">Power Tools</option>
+                    <option value="tools">Tools</option>
+                    <option value="other" selected>Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="structureThingDescriptionInput">Description</label>
+                <textarea id="structureThingDescriptionInput" rows="2" placeholder="Brief description of this item…"></textarea>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="structureThingPurchaseDateInput">Purchase Date <span class="label-hint">(optional)</span></label>
+                    <input type="date" id="structureThingPurchaseDateInput">
+                </div>
+                <div class="form-group">
+                    <label for="structureThingWorthInput">Worth / Value ($)</label>
+                    <input type="number" id="structureThingWorthInput" min="0" step="0.01" placeholder="e.g. 199.99">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="structureThingNotesInput">Notes</label>
+                <textarea id="structureThingNotesInput" rows="2" placeholder="Any notes about this item…"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="structureThingCommentInput">Personal comment <span class="label-hint">(sent to LLM for context)</span></label>
+                <textarea id="structureThingCommentInput" rows="1" placeholder="e.g., Bright red with rust on the handle"></textarea>
+            </div>
+            <!-- From Picture section — only shown in add mode when LLM is configured -->
+            <div id="structureThingFromPictureSection" class="plant-from-pic-section hidden">
+                <div class="plant-from-pic-divider">— or identify from a photo —</div>
+                <input type="file" id="structureThingPicInput" accept="image/*" multiple style="display:none">
+                <input type="file" id="structureThingCamInput" accept="image/*" capture="environment" style="display:none">
+                <div class="plant-from-pic-buttons">
+                    <button type="button" class="btn btn-secondary btn-sm" id="structureThingPicGalleryBtn">📎 Gallery</button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="structureThingPicCameraBtn">📷 Camera</button>
+                </div>
+                <label class="plant-from-pic-toggle">
+                    <input type="checkbox" id="structureThingShowResponseToggle">
+                    Show response before adding
+                </label>
+                <div id="structureThingPicStatus" class="plant-pic-status hidden"></div>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="structureThingModalCancelBtn">Cancel</button>
+                <button class="btn btn-primary"   id="structureThingModalSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Structure: Add / Edit SubThing Modal ===== -->
+    <div class="modal-overlay" id="structureSubThingModal">
+        <div class="modal">
+            <h3 id="structureSubThingModalTitle">Add Sub-Item</h3>
+            <div class="form-group">
+                <label for="structureSubThingNameInput">Name <span class="label-required">*</span></label>
+                <input type="text" id="structureSubThingNameInput" placeholder="e.g., Blade Sharpener, Extension Cord">
+            </div>
+            <div class="form-group">
+                <label for="structureSubThingDescriptionInput">Description</label>
+                <textarea id="structureSubThingDescriptionInput" rows="2" placeholder="Brief description…"></textarea>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="structureSubThingPurchaseDateInput">Purchase Date <span class="label-hint">(optional)</span></label>
+                    <input type="date" id="structureSubThingPurchaseDateInput">
+                </div>
+                <div class="form-group">
+                    <label for="structureSubThingWorthInput">Worth / Value ($)</label>
+                    <input type="number" id="structureSubThingWorthInput" min="0" step="0.01" placeholder="e.g. 49.99">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="structureSubThingNotesInput">Notes</label>
+                <textarea id="structureSubThingNotesInput" rows="2" placeholder="Any notes about this item…"></textarea>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="structureSubThingModalCancelBtn">Cancel</button>
+                <button class="btn btn-primary"   id="structureSubThingModalSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Structure Thing: LLM Review Modal ===== -->
+    <div class="modal-overlay" id="structureThingLlmReviewModal">
+        <div class="modal modal-wide">
+            <h3>Item Identified</h3>
+            <div class="form-group">
+                <label for="structureThingReviewName">Name (editable)</label>
+                <input type="text" id="structureThingReviewName" class="plant-review-name-input">
+            </div>
+            <div class="plant-review-fields">
+                <div class="plant-review-row"><span class="plant-review-label">Description</span><span id="reviewStructureThingDescription"></span></div>
+                <div class="plant-review-row"><span class="plant-review-label">Worth / Value</span><span id="reviewStructureThingWorth"></span></div>
+            </div>
+            <div id="structureThingReviewMessage" class="plant-review-message hidden"></div>
+            <details class="plant-review-debug">
+                <summary>Prompt sent to LLM</summary>
+                <pre id="structureThingReviewPromptText" class="plant-review-pre"></pre>
+            </details>
+            <details class="plant-review-debug">
+                <summary>Raw LLM response</summary>
+                <pre id="structureThingReviewResponseText" class="plant-review-pre"></pre>
+            </details>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="structureThingReviewCancelBtn">Cancel</button>
+                <button class="btn btn-primary"   id="structureThingReviewAddBtn">Add It</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Move Thing / SubThing Modal (shared across House, Garage, Structures) ===== -->
+    <div class="modal-overlay" id="moveThingModal">
+        <div class="modal modal-wide">
+            <h3 id="moveThingModalTitle">Move Thing</h3>
+
+            <!-- SubThing-only: choose move type -->
+            <div id="moveSubThingTypeGroup" class="hidden">
+                <div class="form-group">
+                    <label class="move-type-radio">
+                        <input type="radio" name="moveSubThingType" id="moveSubThingToThingRadio" value="toThing" checked>
+                        Move to another Thing (stays a sub-item)
+                    </label>
+                    <label class="move-type-radio">
+                        <input type="radio" name="moveSubThingType" id="moveSubThingPromoteRadio" value="promote">
+                        Promote to standalone Thing (pick a destination room / structure)
+                    </label>
+                </div>
+            </div>
+
+            <!-- "Move to another Thing" picker — shown for subthings in toThing mode -->
+            <div id="moveThingToThingSection" class="hidden">
+                <div class="form-group">
+                    <label for="moveThingToThingSearch">Search Things</label>
+                    <input type="text" id="moveThingToThingSearch" placeholder="Filter by name…" autocomplete="off">
+                </div>
+                <div id="moveThingToThingList" style="max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;"></div>
+                <p class="empty-state" id="moveThingToThingEmpty"></p>
+            </div>
+
+            <!-- Destination picker — for things (always) and subthings in promote mode -->
+            <div id="moveThingDestSection">
+                <p class="label-hint" style="margin-bottom:8px;">Select a destination:</p>
+                <div id="moveThingDestList" style="max-height:320px;overflow-y:auto;"></div>
+            </div>
+
+            <div class="modal-buttons" style="margin-top:16px;">
+                <button class="btn btn-secondary" id="moveThingCancelBtn">Cancel</button>
+                <button class="btn btn-primary"   id="moveThingConfirmBtn">Move</button>
+            </div>
+        </div>
+    </div>
+
     </div><!-- end #appWrapper -->
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=177"></script>
-    <script src="js/auth.js?v=177"></script>
-    <script src="js/zones.js?v=177"></script>
-    <script src="js/plants.js?v=177"></script>
-    <script src="js/problems.js?v=177"></script>
-    <script src="js/facts.js?v=177"></script>
-    <script src="js/projects.js?v=177"></script>
-    <script src="js/chemicals.js?v=177"></script>
-    <script src="js/activities.js?v=177"></script>
-    <script src="js/photos.js?v=177"></script>
-    <script src="js/weeds.js?v=177"></script>
-    <script src="js/calendar.js?v=177"></script>
-    <script src="js/gps.js?v=177"></script>
-    <script src="js/settings.js?v=177"></script>
-    <script src="js/house.js?v=177"></script>
-    <script src="js/floorplan.js?v=177"></script>
-    <script src="js/search.js?v=177"></script>
-    <script src="js/activityreport.js?v=177"></script>
-    <script src="js/checklists.js?v=177"></script>
-    <script src="js/bulkactivity.js?v=177"></script>
-    <script src="js/devnotes.js?v=177"></script>
-    <script src="js/vehicles.js?v=177"></script>
-    <script src="js/garage.js?v=177"></script>
+    <script src="js/firebase-config.js?v=178"></script>
+    <script src="js/auth.js?v=178"></script>
+    <script src="js/zones.js?v=178"></script>
+    <script src="js/plants.js?v=178"></script>
+    <script src="js/problems.js?v=178"></script>
+    <script src="js/facts.js?v=178"></script>
+    <script src="js/projects.js?v=178"></script>
+    <script src="js/chemicals.js?v=178"></script>
+    <script src="js/activities.js?v=178"></script>
+    <script src="js/photos.js?v=178"></script>
+    <script src="js/weeds.js?v=178"></script>
+    <script src="js/calendar.js?v=178"></script>
+    <script src="js/gps.js?v=178"></script>
+    <script src="js/settings.js?v=178"></script>
+    <script src="js/house.js?v=178"></script>
+    <script src="js/floorplan.js?v=178"></script>
+    <script src="js/search.js?v=178"></script>
+    <script src="js/activityreport.js?v=178"></script>
+    <script src="js/checklists.js?v=178"></script>
+    <script src="js/bulkactivity.js?v=178"></script>
+    <script src="js/devnotes.js?v=178"></script>
+    <script src="js/vehicles.js?v=178"></script>
+    <script src="js/garage.js?v=178"></script>
+    <script src="js/structures.js?v=178"></script>
+    <script src="js/moveThings.js?v=178"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=177"></script>
-    <script src="js/app.js?v=177"></script>
+    <script src="js/chat.js?v=178"></script>
+    <script src="js/app.js?v=178"></script>
 
 </body>
 </html>

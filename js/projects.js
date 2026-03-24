@@ -887,10 +887,26 @@ async function loadSubZoneProjects(zoneId) {
  * @param {string} targetId - The target's Firestore document ID.
  */
 function reloadProjectsForCurrentTarget(targetType, targetId) {
-    if (targetType === 'plant') {
-        loadProjects('plant', targetId, 'plantProjectsContainer', 'plantProjectsEmptyState');
-    } else if (targetType === 'zone') {
-        loadProjects('zone', targetId, 'zoneProjectsContainer', 'zoneProjectsEmptyState');
+    // Map every targetType to its container and empty-state element IDs
+    var map = {
+        'plant':            ['plantProjectsContainer',              'plantProjectsEmptyState'],
+        'zone':             ['zoneProjectsContainer',               'zoneProjectsEmptyState'],
+        'vehicle':          ['vehicleProjectsContainer',            'vehicleProjectsEmptyState'],
+        'floor':            ['floorProjectsContainer',              'floorProjectsEmptyState'],
+        'room':             ['roomProjectsContainer',               'roomProjectsEmptyState'],
+        'thing':            ['thingProjectsContainer',              'thingProjectsEmptyState'],
+        'subthing':         ['stProjectsContainer',                 'stProjectsEmptyState'],
+        'garageroom':       ['garageRoomProjectsContainer',         'garageRoomProjectsEmpty'],
+        'garagething':      ['garageThingProjectsContainer',        'garageThingProjectsEmpty'],
+        'garagesubthing':   ['garageSubThingProjectsContainer',     'garageSubThingProjectsEmpty'],
+        'structure':        ['structureProjectsContainer',          'structureProjectsEmpty'],
+        'structurething':   ['structureThingProjectsContainer',     'structureThingProjectsEmpty'],
+        'structuresubthing':['structureSubThingProjectsContainer',  'structureSubThingProjectsEmpty'],
+    };
+
+    var ids = map[targetType];
+    if (ids) {
+        loadProjects(targetType, targetId, ids[0], ids[1]);
     }
 
     // Also refresh home page "All Projects" if it's visible

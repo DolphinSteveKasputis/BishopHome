@@ -973,8 +973,11 @@ document.getElementById('garageRoomLogActivityBtn').addEventListener('click', fu
     if (window.currentGarageRoom) openLogActivityModal('garageroom', window.currentGarageRoom.id);
 });
 
-document.getElementById('garageRoomAddPhotoBtn').addEventListener('click', function() {
-    if (window.currentGarageRoom) triggerPhotoUpload('garageroom', window.currentGarageRoom.id);
+document.getElementById('garageRoomCameraBtn').addEventListener('click', function() {
+    if (window.currentGarageRoom) triggerCameraUpload('garageroom', window.currentGarageRoom.id);
+});
+document.getElementById('garageRoomGalleryBtn').addEventListener('click', function() {
+    if (window.currentGarageRoom) triggerGalleryUpload('garageroom', window.currentGarageRoom.id);
 });
 
 document.getElementById('garageRoomAddProblemBtn').addEventListener('click', function() {
@@ -1042,8 +1045,11 @@ document.getElementById('garageThingLogActivityBtn').addEventListener('click', f
     if (window.currentGarageThing) openLogActivityModal('garagething', window.currentGarageThing.id);
 });
 
-document.getElementById('garageThingAddPhotoBtn').addEventListener('click', function() {
-    if (window.currentGarageThing) triggerPhotoUpload('garagething', window.currentGarageThing.id);
+document.getElementById('garageThingCameraBtn').addEventListener('click', function() {
+    if (window.currentGarageThing) triggerCameraUpload('garagething', window.currentGarageThing.id);
+});
+document.getElementById('garageThingGalleryBtn').addEventListener('click', function() {
+    if (window.currentGarageThing) triggerGalleryUpload('garagething', window.currentGarageThing.id);
 });
 
 document.getElementById('garageThingAddProblemBtn').addEventListener('click', function() {
@@ -1105,8 +1111,11 @@ document.getElementById('garageSubThingLogActivityBtn').addEventListener('click'
     if (window.currentGarageSubThing) openLogActivityModal('garagesubthing', window.currentGarageSubThing.id);
 });
 
-document.getElementById('garageSubThingAddPhotoBtn').addEventListener('click', function() {
-    if (window.currentGarageSubThing) triggerPhotoUpload('garagesubthing', window.currentGarageSubThing.id);
+document.getElementById('garageSubThingCameraBtn').addEventListener('click', function() {
+    if (window.currentGarageSubThing) triggerCameraUpload('garagesubthing', window.currentGarageSubThing.id);
+});
+document.getElementById('garageSubThingGalleryBtn').addEventListener('click', function() {
+    if (window.currentGarageSubThing) triggerGalleryUpload('garagesubthing', window.currentGarageSubThing.id);
 });
 
 document.getElementById('garageSubThingAddProblemBtn').addEventListener('click', function() {

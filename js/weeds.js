@@ -497,11 +497,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // "Add Photo" button on weed detail page
-    document.getElementById('addWeedPhotoBtn').addEventListener('click', function() {
-        if (window.currentWeed) {
-            triggerPhotoUpload('weed', window.currentWeed.id);
-        }
+    document.getElementById('addWeedCameraBtn').addEventListener('click', function() {
+        if (window.currentWeed) triggerCameraUpload('weed', window.currentWeed.id);
+    });
+    document.getElementById('addWeedGalleryBtn').addEventListener('click', function() {
+        if (window.currentWeed) triggerGalleryUpload('weed', window.currentWeed.id);
     });
 
     // Weed modal — Save button

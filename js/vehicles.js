@@ -612,8 +612,11 @@ document.getElementById('vehicleInfoSaveBtn').addEventListener('click', saveVehi
 
 document.getElementById('vehicleMileageAddBtn').addEventListener('click', addMileageEntry);
 
-document.getElementById('addVehiclePhotoBtn').addEventListener('click', function() {
-    if (window.currentVehicle) triggerPhotoUpload('vehicle', window.currentVehicle.id);
+document.getElementById('addVehicleCameraBtn').addEventListener('click', function() {
+    if (window.currentVehicle) triggerCameraUpload('vehicle', window.currentVehicle.id);
+});
+document.getElementById('addVehicleGalleryBtn').addEventListener('click', function() {
+    if (window.currentVehicle) triggerGalleryUpload('vehicle', window.currentVehicle.id);
 });
 
 document.getElementById('logVehicleActivityBtn').addEventListener('click', function() {

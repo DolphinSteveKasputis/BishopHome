@@ -9,13 +9,30 @@
 // ---------- Module State ----------
 
 /**
- * Cache of loaded photos for each viewer type (plant, zone, or weed).
- * Each entry holds an array of photos and the current display index.
+ * Cache of loaded photos per targetType. Entries are created on demand.
  */
-var photoViewerState = {
-    plant: { photos: [], currentIndex: 0 },
-    zone:  { photos: [], currentIndex: 0 },
-    weed:  { photos: [], currentIndex: 0 }
+var photoViewerState = {};
+
+/**
+ * Maps every targetType to its photo container and empty-state element IDs.
+ * Used by handlePhotoFile, reloadPhotosForCurrentTarget, and handleDeletePhoto.
+ */
+var PHOTO_CONTAINERS = {
+    plant:              ['plantPhotoContainer',          'plantPhotoEmptyState'],
+    zone:               ['zonePhotoContainer',           'zonePhotoEmptyState'],
+    weed:               ['weedPhotoContainer',           'weedPhotoEmptyState'],
+    vehicle:            ['vehiclePhotoContainer',        'vehiclePhotoEmptyState'],
+    panel:              ['panelPhotoContainer',          'panelPhotoEmptyState'],
+    floor:              ['floorPhotoContainer',          'floorPhotoEmptyState'],
+    room:               ['roomPhotoContainer',           'roomPhotoEmptyState'],
+    thing:              ['thingPhotoContainer',          'thingPhotoEmptyState'],
+    subthing:           ['stPhotoContainer',             'stPhotoEmptyState'],
+    garageroom:         ['garageRoomPhotosSection',      'garageRoomPhotosEmpty'],
+    garagething:        ['garageThingPhotosSection',     'garageThingPhotosEmpty'],
+    garagesubthing:     ['garageSubThingPhotosSection',  'garageSubThingPhotosEmpty'],
+    structure:          ['structurePhotosSection',       'structurePhotosEmpty'],
+    structurething:     ['structureThingPhotosSection',  'structureThingPhotosEmpty'],
+    structuresubthing:  ['structureSubThingPhotosSection','structureSubThingPhotosEmpty'],
 };
 
 // ---------- Load & Display Photos ----------
@@ -44,6 +61,7 @@ async function loadPhotos(targetType, targetId, containerId, emptyStateId) {
             emptyState.textContent = 'No photos yet.';
             emptyState.style.display = 'block';
             photoViewerState[targetType] = { photos: [], currentIndex: 0 };
+            container.innerHTML = '';
             return;
         }
 
@@ -59,7 +77,9 @@ async function loadPhotos(targetType, targetId, containerId, emptyStateId) {
         });
 
         // Store in state — start at index 0 (newest photo)
-        photoViewerState[targetType] = { photos: photos, currentIndex: 0 };
+        photoViewerState[targetType] = photoViewerState[targetType] || { photos: [], currentIndex: 0 };
+        photoViewerState[targetType].photos = photos;
+        photoViewerState[targetType].currentIndex = 0;
 
         // Build the photo viewer
         renderPhotoViewer(targetType, containerId);
@@ -204,38 +224,54 @@ function navigatePhoto(targetType, containerId, direction) {
 // ---------- Upload Photo ----------
 
 /**
- * Triggers the file input for photo upload.
- * On mobile: offers camera or file picker.
- * On desktop: opens file picker.
- * @param {string} targetType - "plant" or "zone"
- * @param {string} targetId - The target's Firestore document ID.
+ * Opens the rear camera directly for photo capture.
+ * @param {string} targetType
+ * @param {string} targetId
  */
-function triggerPhotoUpload(targetType, targetId) {
+function triggerCameraUpload(targetType, targetId) {
     var input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
-    input.capture = 'environment'; // Prefer rear camera on mobile
-
+    input.capture = 'environment'; // Forces camera on mobile
     input.addEventListener('change', function() {
-        if (input.files && input.files[0]) {
-            handlePhotoFile(input.files[0], targetType, targetId);
-        }
+        if (input.files && input.files[0]) handlePhotoFile(input.files[0], targetType, targetId);
     });
+    input.click();
+}
 
+/**
+ * Opens the device gallery/file picker (no camera forced).
+ * @param {string} targetType
+ * @param {string} targetId
+ */
+function triggerGalleryUpload(targetType, targetId) {
+    var input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    // No capture attribute — lets user pick from gallery or files
+    input.addEventListener('change', function() {
+        if (input.files && input.files[0]) handlePhotoFile(input.files[0], targetType, targetId);
+    });
     input.click();
 }
 
 /**
  * Processes a selected file: compresses, prompts for caption, and saves to Firestore.
+ * Works for all targetTypes via the PHOTO_CONTAINERS map.
  * @param {File} file - The image file selected by the user.
- * @param {string} targetType - "plant" or "zone"
- * @param {string} targetId - The target's Firestore document ID.
+ * @param {string} targetType
+ * @param {string} targetId
  */
 async function handlePhotoFile(file, targetType, targetId) {
-    var containerId = targetType === 'plant' ? 'plantPhotoContainer' : 'zonePhotoContainer';
-    var emptyStateId = targetType === 'plant' ? 'plantPhotoEmptyState' : 'zonePhotoEmptyState';
-    var container = document.getElementById(containerId);
+    var ids = PHOTO_CONTAINERS[targetType] || ['plantPhotoContainer', 'plantPhotoEmptyState'];
+    var containerId  = ids[0];
+    var emptyStateId = ids[1];
+    var container  = document.getElementById(containerId);
     var emptyState = document.getElementById(emptyStateId);
+    if (!container || !emptyState) {
+        console.error('Photo container not found for targetType:', targetType);
+        return;
+    }
 
     // Show loading indicator
     var loadingMsg = document.createElement('p');
@@ -400,18 +436,27 @@ async function handleDeletePhoto(photoId, targetType) {
         await userCol('photos').doc(photoId).delete();
         console.log('Photo deleted:', photoId);
 
-        // Determine current target ID and reload
-        var targetId;
-        if (targetType === 'plant' && window.currentPlant) {
-            targetId = window.currentPlant.id;
-        } else if (targetType === 'zone' && window.currentZone) {
-            targetId = window.currentZone.id;
-        } else if (targetType === 'weed' && window.currentWeed) {
-            targetId = window.currentWeed.id;
-        }
-
-        if (targetId) {
-            reloadPhotosForCurrentTarget(targetType, targetId);
+        // Determine current target ID from global state and reload
+        var currentMap = {
+            plant:              window.currentPlant,
+            zone:               window.currentZone,
+            weed:               window.currentWeed,
+            vehicle:            window.currentVehicle,
+            panel:              window.currentPanel,
+            floor:              window.currentFloor,
+            room:               window.currentRoom,
+            thing:              window.currentThing,
+            subthing:           window.currentSubThing,
+            garageroom:         window.currentGarageRoom,
+            garagething:        window.currentGarageThing,
+            garagesubthing:     window.currentGarageSubThing,
+            structure:          window.currentStructure,
+            structurething:     window.currentStructureThing,
+            structuresubthing:  window.currentStructureSubThing,
+        };
+        var current = currentMap[targetType];
+        if (current && current.id) {
+            reloadPhotosForCurrentTarget(targetType, current.id);
         }
 
     } catch (error) {
@@ -423,17 +468,14 @@ async function handleDeletePhoto(photoId, targetType) {
 // ---------- Reload Helper ----------
 
 /**
- * Reloads the photo gallery for the current target.
- * @param {string} targetType - "plant" or "zone"
- * @param {string} targetId - The target's Firestore document ID.
+ * Reloads the photo gallery for any targetType using the PHOTO_CONTAINERS map.
+ * @param {string} targetType
+ * @param {string} targetId
  */
 function reloadPhotosForCurrentTarget(targetType, targetId) {
-    if (targetType === 'plant') {
-        loadPhotos('plant', targetId, 'plantPhotoContainer', 'plantPhotoEmptyState');
-    } else if (targetType === 'zone') {
-        loadPhotos('zone', targetId, 'zonePhotoContainer', 'zonePhotoEmptyState');
-    } else if (targetType === 'weed') {
-        loadPhotos('weed', targetId, 'weedPhotoContainer', 'weedPhotoEmptyState');
+    var ids = PHOTO_CONTAINERS[targetType];
+    if (ids) {
+        loadPhotos(targetType, targetId, ids[0], ids[1]);
     }
 }
 
@@ -441,17 +483,17 @@ function reloadPhotosForCurrentTarget(targetType, targetId) {
 
 document.addEventListener('DOMContentLoaded', function() {
 
-    // "Add Photo" button on plant detail page
-    document.getElementById('addPlantPhotoBtn').addEventListener('click', function() {
-        if (window.currentPlant) {
-            triggerPhotoUpload('plant', window.currentPlant.id);
-        }
+    document.getElementById('addPlantCameraBtn').addEventListener('click', function() {
+        if (window.currentPlant) triggerCameraUpload('plant', window.currentPlant.id);
+    });
+    document.getElementById('addPlantGalleryBtn').addEventListener('click', function() {
+        if (window.currentPlant) triggerGalleryUpload('plant', window.currentPlant.id);
     });
 
-    // "Add Photo" button on zone detail page
-    document.getElementById('addZonePhotoBtn').addEventListener('click', function() {
-        if (window.currentZone) {
-            triggerPhotoUpload('zone', window.currentZone.id);
-        }
+    document.getElementById('addZoneCameraBtn').addEventListener('click', function() {
+        if (window.currentZone) triggerCameraUpload('zone', window.currentZone.id);
+    });
+    document.getElementById('addZoneGalleryBtn').addEventListener('click', function() {
+        if (window.currentZone) triggerGalleryUpload('zone', window.currentZone.id);
     });
 });

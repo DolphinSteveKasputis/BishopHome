@@ -1404,8 +1404,11 @@ document.getElementById('logThingActivityBtn').addEventListener('click', functio
     if (currentThing) openLogActivityModal('thing', currentThing.id);
 });
 
-document.getElementById('addThingPhotoBtn').addEventListener('click', function() {
-    if (currentThing) triggerPhotoUpload('thing', currentThing.id);
+document.getElementById('addThingCameraBtn').addEventListener('click', function() {
+    if (currentThing) triggerCameraUpload('thing', currentThing.id);
+});
+document.getElementById('addThingGalleryBtn').addEventListener('click', function() {
+    if (currentThing) triggerGalleryUpload('thing', currentThing.id);
 });
 
 document.getElementById('addThingCalendarEventBtn').addEventListener('click', function() {
@@ -1448,8 +1451,11 @@ document.getElementById('logFloorActivityBtn').addEventListener('click', functio
     if (currentFloor) openLogActivityModal('floor', currentFloor.id);
 });
 
-document.getElementById('addFloorPhotoBtn').addEventListener('click', function() {
-    if (currentFloor) triggerPhotoUpload('floor', currentFloor.id);
+document.getElementById('addFloorCameraBtn').addEventListener('click', function() {
+    if (currentFloor) triggerCameraUpload('floor', currentFloor.id);
+});
+document.getElementById('addFloorGalleryBtn').addEventListener('click', function() {
+    if (currentFloor) triggerGalleryUpload('floor', currentFloor.id);
 });
 
 document.getElementById('addFloorCalendarEventBtn').addEventListener('click', function() {
@@ -1492,8 +1498,11 @@ document.getElementById('logRoomActivityBtn').addEventListener('click', function
     if (currentRoom) openLogActivityModal('room', currentRoom.id);
 });
 
-document.getElementById('addRoomPhotoBtn').addEventListener('click', function() {
-    if (currentRoom) triggerPhotoUpload('room', currentRoom.id);
+document.getElementById('addRoomCameraBtn').addEventListener('click', function() {
+    if (currentRoom) triggerCameraUpload('room', currentRoom.id);
+});
+document.getElementById('addRoomGalleryBtn').addEventListener('click', function() {
+    if (currentRoom) triggerGalleryUpload('room', currentRoom.id);
 });
 
 document.getElementById('addRoomCalendarEventBtn').addEventListener('click', function() {
@@ -1987,8 +1996,11 @@ document.getElementById('logPanelActivityBtn').addEventListener('click', functio
     if (currentPanel) openLogActivityModal('panel', currentPanel.id);
 });
 
-document.getElementById('addPanelPhotoBtn').addEventListener('click', function() {
-    if (currentPanel) triggerPhotoUpload('panel', currentPanel.id);
+document.getElementById('addPanelCameraBtn').addEventListener('click', function() {
+    if (currentPanel) triggerCameraUpload('panel', currentPanel.id);
+});
+document.getElementById('addPanelGalleryBtn').addEventListener('click', function() {
+    if (currentPanel) triggerGalleryUpload('panel', currentPanel.id);
 });
 
 // ============================================================
@@ -2816,8 +2828,11 @@ document.getElementById('logStActivityBtn').addEventListener('click', function()
     if (currentSubThing) openLogActivityModal('subthing', currentSubThing.id);
 });
 
-document.getElementById('addStPhotoBtn').addEventListener('click', function() {
-    if (currentSubThing) triggerPhotoUpload('subthing', currentSubThing.id);
+document.getElementById('addStCameraBtn').addEventListener('click', function() {
+    if (currentSubThing) triggerCameraUpload('subthing', currentSubThing.id);
+});
+document.getElementById('addStGalleryBtn').addEventListener('click', function() {
+    if (currentSubThing) triggerGalleryUpload('subthing', currentSubThing.id);
 });
 
 document.getElementById('addStCalendarEventBtn').addEventListener('click', function() {

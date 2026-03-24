@@ -1292,8 +1292,11 @@ document.getElementById('structureLogActivityBtn').addEventListener('click', fun
     if (window.currentStructure) openLogActivityModal('structure', window.currentStructure.id);
 });
 
-document.getElementById('structureAddPhotoBtn').addEventListener('click', function() {
-    if (window.currentStructure) triggerPhotoUpload('structure', window.currentStructure.id);
+document.getElementById('structureCameraBtn').addEventListener('click', function() {
+    if (window.currentStructure) triggerCameraUpload('structure', window.currentStructure.id);
+});
+document.getElementById('structureGalleryBtn').addEventListener('click', function() {
+    if (window.currentStructure) triggerGalleryUpload('structure', window.currentStructure.id);
 });
 
 document.getElementById('structureAddProblemBtn').addEventListener('click', function() {
@@ -1419,8 +1422,11 @@ document.getElementById('structureThingLogActivityBtn').addEventListener('click'
     if (window.currentStructureThing) openLogActivityModal('structurething', window.currentStructureThing.id);
 });
 
-document.getElementById('structureThingAddPhotoBtn').addEventListener('click', function() {
-    if (window.currentStructureThing) triggerPhotoUpload('structurething', window.currentStructureThing.id);
+document.getElementById('structureThingCameraBtn').addEventListener('click', function() {
+    if (window.currentStructureThing) triggerCameraUpload('structurething', window.currentStructureThing.id);
+});
+document.getElementById('structureThingGalleryBtn').addEventListener('click', function() {
+    if (window.currentStructureThing) triggerGalleryUpload('structurething', window.currentStructureThing.id);
 });
 
 document.getElementById('structureThingAddProblemBtn').addEventListener('click', function() {
@@ -1488,8 +1494,11 @@ document.getElementById('structureSubThingLogActivityBtn').addEventListener('cli
     if (window.currentStructureSubThing) openLogActivityModal('structuresubthing', window.currentStructureSubThing.id);
 });
 
-document.getElementById('structureSubThingAddPhotoBtn').addEventListener('click', function() {
-    if (window.currentStructureSubThing) triggerPhotoUpload('structuresubthing', window.currentStructureSubThing.id);
+document.getElementById('structureSubThingCameraBtn').addEventListener('click', function() {
+    if (window.currentStructureSubThing) triggerCameraUpload('structuresubthing', window.currentStructureSubThing.id);
+});
+document.getElementById('structureSubThingGalleryBtn').addEventListener('click', function() {
+    if (window.currentStructureSubThing) triggerGalleryUpload('structuresubthing', window.currentStructureSubThing.id);
 });
 
 document.getElementById('structureSubThingAddProblemBtn').addEventListener('click', function() {

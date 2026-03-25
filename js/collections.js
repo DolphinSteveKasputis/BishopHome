@@ -353,6 +353,19 @@ function loadCollectionPage(id) {
                 });
             }
 
+            // Wire up +Photo button and check LLM config
+            collectionCheckLlmForPhotoBtn();
+            var photoBtn = document.getElementById('collectionFromPicBtn');
+            if (photoBtn) {
+                var newPhotoBtn = photoBtn.cloneNode(true);
+                photoBtn.parentNode.replaceChild(newPhotoBtn, photoBtn);
+                newPhotoBtn.addEventListener('click', function() {
+                    _collPicContext = { collectionId: id, collType: data.type || '' };
+                    var camInput = document.getElementById('collectionCamInput');
+                    if (camInput) { camInput.value = ''; camInput.click(); }
+                });
+            }
+
             // Load items
             return userCol('collectionItems')
                 .where('collectionId', '==', id)
@@ -1200,4 +1213,365 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // ---- Collection +Photo camera input ----
+    var collCamInput = document.getElementById('collectionCamInput');
+    if (collCamInput) {
+        collCamInput.addEventListener('change', function() {
+            if (this.files && this.files.length > 0) {
+                collectionHandleFromPicture(Array.from(this.files));
+            }
+        });
+    }
+
+    // ---- From-pic result modal buttons ----
+    var collPicDoneBtn = document.getElementById('collPicResultDoneBtn');
+    if (collPicDoneBtn) {
+        collPicDoneBtn.addEventListener('click', function() {
+            closeModal('collectionFromPicResultModal');
+            _collPicContext = null;
+        });
+    }
+
+    var collPicAnotherBtn = document.getElementById('collPicResultAnotherBtn');
+    if (collPicAnotherBtn) {
+        collPicAnotherBtn.addEventListener('click', function() {
+            closeModal('collectionFromPicResultModal');
+            var camInput = document.getElementById('collectionCamInput');
+            if (camInput) { camInput.value = ''; camInput.click(); }
+        });
+    }
 });
+
+// ============================================================
+// COLLECTION FROM PICTURE  — LLM Quick-Add
+// ============================================================
+
+/** Context for the active +Photo session (set when user clicks +Photo). */
+var _collPicContext = null;
+
+/**
+ * Check Firestore for LLM config; show/hide the +Photo button accordingly.
+ */
+async function collectionCheckLlmForPhotoBtn() {
+    try {
+        var doc = await userCol('settings').doc('llm').get();
+        var ok  = doc.exists && doc.data().provider && doc.data().apiKey;
+        var btn = document.getElementById('collectionFromPicBtn');
+        if (btn) btn.classList.toggle('hidden', !ok);
+    } catch (e) { /* leave hidden */ }
+}
+
+/**
+ * Returns the LLM prompt string for the given collection type.
+ */
+function getCollectionIdPrompt(collType) {
+    var base = [
+        'Return ONLY a valid JSON object. No explanation, no markdown, no code blocks.',
+        'Your entire response must be parseable by JSON.parse().',
+        'If a field cannot be determined from the image, return "" for that field.',
+        ''
+    ];
+
+    if (collType === 'Comics') {
+        return base.concat([
+            'You are a comic book identification assistant. Analyze the comic cover image.',
+            'Return this exact JSON:',
+            '{ "name": "", "series": "", "issueNumber": "", "publisher": "", "year": "", "estimatedValue": "", "additionalMessage": "" }',
+            '',
+            '- name: series + issue combined, e.g. "Amazing Spider-Man #223"',
+            '- series: the comic series name, e.g. "Amazing Spider-Man"',
+            '- issueNumber: the issue number as a string, e.g. "223"',
+            '- publisher: e.g. "Marvel", "DC", or "" if unknown',
+            '- year: 4-digit publication year string, or "" if unknown',
+            '- estimatedValue: estimated collector value as a number string e.g. "12.50", or "" if unknown',
+            '- additionalMessage: note any issues (unclear image, etc). Leave "" if none.'
+        ]).join('\n');
+    }
+
+    if (collType === 'Records/Albums') {
+        return base.concat([
+            'You are a music record identification assistant. Analyze the record or album cover.',
+            'Return this exact JSON:',
+            '{ "name": "", "artist": "", "label": "", "format": "", "year": "", "estimatedValue": "", "additionalMessage": "" }',
+            '',
+            '- name: the album or record title',
+            '- artist: the performing artist or band',
+            '- label: the record label, or "" if unknown',
+            '- format: one of exactly: "LP", "45", "Cassette", "CD", "8-Track", or "" if unknown',
+            '- year: 4-digit release year string, or "" if unknown',
+            '- estimatedValue: estimated collector value as a number string, or "" if unknown',
+            '- additionalMessage: note any issues. Leave "" if none.'
+        ]).join('\n');
+    }
+
+    if (collType === 'Hat Pins') {
+        return base.concat([
+            'You are a hat pin collectible identification assistant. Analyze the pin image.',
+            'Return this exact JSON:',
+            '{ "name": "", "notes": "", "estimatedValue": "", "additionalMessage": "" }',
+            '',
+            '- name: descriptive name of what the pin depicts, e.g. "US Navy Eagle Pin"',
+            '- notes: brief description of the pin, under 100 characters',
+            '- estimatedValue: estimated collector value as a number string, or "" if unknown',
+            '- additionalMessage: note any issues. Leave "" if none.'
+        ]).join('\n');
+    }
+
+    if (collType === 'Beanie Babies') {
+        return base.concat([
+            'You are a Beanie Baby collectible identification assistant. Analyze the image.',
+            'Return this exact JSON:',
+            '{ "name": "", "style": "", "year": "", "hasTags": "", "estimatedValue": "", "additionalMessage": "" }',
+            '',
+            '- name: the Beanie Baby\'s official name, e.g. "Peanut the Elephant"',
+            '- style: the animal or character type, e.g. "Elephant", "Bear"',
+            '- year: birth year from the tag as a string, or "" if unknown',
+            '- hasTags: "yes" if you can see a hang tag or tush tag, "no" if clearly absent, "" if unclear',
+            '- estimatedValue: estimated collector value as a number string, or "" if unknown',
+            '- additionalMessage: note any issues. Leave "" if none.'
+        ]).join('\n');
+    }
+
+    if (collType === 'Ceramic Stadiums') {
+        return base.concat([
+            'You are a ceramic baseball stadium collectible identification assistant. Analyze the image.',
+            'Return this exact JSON:',
+            '{ "name": "", "team": "", "estimatedValue": "", "additionalMessage": "" }',
+            '',
+            '- name: the stadium name, e.g. "Fenway Park", "Wrigley Field"',
+            '- team: the MLB team, e.g. "Boston Red Sox", or "" if not determinable',
+            '- estimatedValue: estimated collector value as a number string, or "" if unknown',
+            '- additionalMessage: note any issues. Leave "" if none.'
+        ]).join('\n');
+    }
+
+    // Generic (default)
+    return base.concat([
+        'You are a collectible item identification assistant. Analyze the image.',
+        'Return this exact JSON:',
+        '{ "name": "", "notes": "", "estimatedValue": "", "additionalMessage": "" }',
+        '',
+        '- name: a clear descriptive name for this item',
+        '- notes: a brief description of the item, under 150 characters',
+        '- estimatedValue: estimated value in USD as a number string, or "" if unknown',
+        '- additionalMessage: note any issues. Leave "" if none.'
+    ]).join('\n');
+}
+
+/**
+ * Main handler: compress photo, call LLM, auto-save if identified, show result modal.
+ */
+async function collectionHandleFromPicture(files) {
+    if (!files || files.length === 0) return;
+    if (!_collPicContext) return;
+
+    var collectionId = _collPicContext.collectionId;
+    var collType     = _collPicContext.collType;
+
+    var titleEl    = document.getElementById('collPicResultTitle');
+    var bodyEl     = document.getElementById('collPicResultBody');
+    var anotherBtn = document.getElementById('collPicResultAnotherBtn');
+    var doneBtn    = document.getElementById('collPicResultDoneBtn');
+
+    if (titleEl) titleEl.textContent = 'Identifying\u2026';
+    if (titleEl) titleEl.style.color = '';
+    if (bodyEl)  bodyEl.innerHTML    = '<p class="empty-state">Please wait\u2026</p>';
+    if (anotherBtn) anotherBtn.disabled = true;
+    if (doneBtn)    doneBtn.disabled    = true;
+    openModal('collectionFromPicResultModal');
+
+    try {
+        // Compress image (one at a time for rapid scanning)
+        var images = [];
+        images.push(await compressImage(files[0]));
+
+        // Load LLM config
+        var cfgDoc = await userCol('settings').doc('llm').get();
+        var cfg    = cfgDoc.exists ? cfgDoc.data() : null;
+        if (!cfg || !cfg.provider || !cfg.apiKey) {
+            if (titleEl) { titleEl.textContent = 'Not Configured'; titleEl.style.color = '#c62828'; }
+            if (bodyEl)  bodyEl.innerHTML = '<p>LLM not configured. Go to Settings.</p>';
+            return;
+        }
+        var llm = LLM_PROVIDERS[cfg.provider];
+        if (!llm) {
+            if (titleEl) { titleEl.textContent = 'Error'; titleEl.style.color = '#c62828'; }
+            if (bodyEl)  bodyEl.innerHTML = '<p>Unknown LLM provider.</p>';
+            return;
+        }
+
+        var prompt  = getCollectionIdPrompt(collType);
+        var content = [{ type: 'text', text: prompt }];
+        images.forEach(function(url) {
+            content.push({ type: 'image_url', image_url: { url: url } });
+        });
+
+        var activeModel  = cfg.model || llm.model;
+        var responseText = await chatCallOpenAICompat(llm, cfg.apiKey, content, activeModel);
+        var parsed       = collectionParseLlmResponse(responseText);
+        var identified   = !!(parsed.name && parsed.name.trim());
+
+        if (identified) {
+            await collectionAutoSaveFromLlm(parsed, images, collectionId, collType);
+            // Refresh item list in background
+            if (window.currentCollection && window.currentCollection.id === collectionId) {
+                loadCollectionPage(collectionId);
+            }
+        }
+
+        collectionShowResultModal(parsed, collType, identified);
+
+    } catch (err) {
+        console.error('Collection pic error:', err);
+        if (titleEl) { titleEl.textContent = 'Error'; titleEl.style.color = '#c62828'; }
+        if (bodyEl)  bodyEl.innerHTML = '<p>Error: ' + escapeHtml(err.message || String(err)) + '</p>';
+    } finally {
+        if (anotherBtn) anotherBtn.disabled = false;
+        if (doneBtn)    doneBtn.disabled    = false;
+        var camInput = document.getElementById('collectionCamInput');
+        if (camInput) camInput.value = '';
+    }
+}
+
+/**
+ * Parse the LLM's JSON response, stripping any markdown fences.
+ */
+function collectionParseLlmResponse(text) {
+    try {
+        var clean = text.trim()
+            .replace(/^```json\s*/i, '')
+            .replace(/^```\s*/i,     '')
+            .replace(/```\s*$/i,     '');
+        return JSON.parse(clean);
+    } catch (e) {
+        return { name: '', additionalMessage: 'Could not parse LLM response.' };
+    }
+}
+
+/**
+ * Save a collection item built from LLM-parsed data, including its photo.
+ */
+async function collectionAutoSaveFromLlm(parsed, images, collectionId, collType) {
+    var name           = (parsed.name           || '').trim();
+    var notes          = (parsed.notes          || '').trim();
+    var estimatedValue = parsed.estimatedValue ? parseFloat(parsed.estimatedValue) : null;
+    if (isNaN(estimatedValue)) estimatedValue = null;
+
+    var typeData = {};
+
+    if (collType === 'Comics') {
+        typeData = {
+            series:      (parsed.series      || '').trim(),
+            issueNumber: (parsed.issueNumber || '').trim(),
+            publisher:   (parsed.publisher   || '').trim(),
+            year:        String(parsed.year  || '').trim()
+        };
+        // Build name from series + issue if LLM didn't provide it
+        if (!name && typeData.series) {
+            name = typeData.series + (typeData.issueNumber ? ' #' + typeData.issueNumber : '');
+        }
+    } else if (collType === 'Records/Albums') {
+        typeData = {
+            artist: (parsed.artist || '').trim(),
+            label:  (parsed.label  || '').trim(),
+            format: (parsed.format || '').trim(),
+            year:   String(parsed.year || '').trim()
+        };
+    } else if (collType === 'Beanie Babies') {
+        typeData = {
+            style:   (parsed.style || '').trim(),
+            year:    String(parsed.year || '').trim(),
+            hasTags: (parsed.hasTags === 'yes' || parsed.hasTags === true)
+        };
+    } else if (collType === 'Ceramic Stadiums') {
+        typeData = {
+            team: (parsed.team || '').trim(),
+            year: ''
+        };
+    }
+    // Hat Pins and Generic: typeData stays {}
+
+    var docRef = await userCol('collectionItems').add({
+        collectionId:   collectionId,
+        name:           name || 'Unknown Item',
+        typeData:       typeData,
+        acquiredDate:   '',
+        pricePaid:      null,
+        estimatedValue: estimatedValue,
+        notes:          notes,
+        locationRef:    null,
+        createdAt:      firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    // Save the photo
+    for (var i = 0; i < images.length; i++) {
+        await userCol('photos').add({
+            targetType: 'collectionitem',
+            targetId:   docRef.id,
+            imageData:  images[i],
+            caption:    '',
+            createdAt:  firebase.firestore.FieldValue.serverTimestamp()
+        });
+    }
+
+    return docRef.id;
+}
+
+/**
+ * Populate the result modal with identified (or failed) info.
+ */
+function collectionShowResultModal(parsed, collType, identified) {
+    var titleEl = document.getElementById('collPicResultTitle');
+    var bodyEl  = document.getElementById('collPicResultBody');
+    if (!titleEl || !bodyEl) return;
+
+    if (identified) {
+        titleEl.textContent = '\u2713 Saved!';
+        titleEl.style.color = '#2e7d32';
+    } else {
+        titleEl.textContent = '\u26a0 Could Not Identify';
+        titleEl.style.color = '#e65100';
+    }
+
+    var rows = [];
+    if (parsed.name) rows.push(['Name', parsed.name]);
+
+    if (collType === 'Comics') {
+        if (parsed.series)      rows.push(['Series',    parsed.series]);
+        if (parsed.issueNumber) rows.push(['Issue #',   String(parsed.issueNumber)]);
+        if (parsed.publisher)   rows.push(['Publisher', parsed.publisher]);
+        if (parsed.year)        rows.push(['Year',      String(parsed.year)]);
+    } else if (collType === 'Records/Albums') {
+        if (parsed.artist)  rows.push(['Artist',  parsed.artist]);
+        if (parsed.format)  rows.push(['Format',  parsed.format]);
+        if (parsed.label)   rows.push(['Label',   parsed.label]);
+        if (parsed.year)    rows.push(['Year',    String(parsed.year)]);
+    } else if (collType === 'Beanie Babies') {
+        if (parsed.style)   rows.push(['Style',    parsed.style]);
+        if (parsed.year)    rows.push(['Year',     String(parsed.year)]);
+        if (parsed.hasTags) rows.push(['Has Tags', parsed.hasTags]);
+    } else if (collType === 'Ceramic Stadiums') {
+        if (parsed.team) rows.push(['Team', parsed.team]);
+    } else {
+        // Hat Pins and Generic
+        if (parsed.notes) rows.push(['Notes', parsed.notes]);
+    }
+
+    if (parsed.estimatedValue) rows.push(['Est. Value', '$' + parsed.estimatedValue]);
+    if (parsed.additionalMessage) rows.push(['Note', parsed.additionalMessage]);
+
+    if (rows.length > 0) {
+        var html = '<table style="width:100%;border-collapse:collapse;">';
+        rows.forEach(function(r) {
+            html += '<tr>' +
+                '<td style="font-weight:600;padding:4px 8px 4px 0;white-space:nowrap;vertical-align:top;color:#555;">' + escapeHtml(r[0]) + '</td>' +
+                '<td style="padding:4px 0;vertical-align:top;">' + escapeHtml(r[1]) + '</td>' +
+                '</tr>';
+        });
+        html += '</table>';
+        bodyEl.innerHTML = html;
+    } else {
+        bodyEl.innerHTML = '<p class="empty-state">No information could be determined from the image.</p>';
+    }
+}

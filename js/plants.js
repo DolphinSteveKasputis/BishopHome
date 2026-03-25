@@ -909,6 +909,12 @@ async function plantCheckLlmForModal() {
 async function plantHandleFromPicture(files) {
     if (!files || files.length === 0) return;
 
+    // Show crop preview for the first (primary) image before identifying
+    var processedFile;
+    try {
+        processedFile = await showCropPreview(files[0]);
+    } catch (e) { return; } // User cancelled
+
     var statusEl   = document.getElementById('plantPicStatus');
     var saveBtn    = document.getElementById('plantModalSaveBtn');
     var galleryBtn = document.getElementById('plantPicGalleryBtn');
@@ -923,9 +929,10 @@ async function plantHandleFromPicture(files) {
     cameraBtn.disabled  = true;
 
     try {
-        // Compress images (up to 4)
+        // Compress the (possibly cropped) first image plus any additional images
         var images = [];
-        for (var i = 0; i < Math.min(files.length, 4); i++) {
+        images.push(await compressImage(processedFile));
+        for (var i = 1; i < Math.min(files.length, 4); i++) {
             images.push(await compressImage(files[i]));
         }
 
@@ -1101,14 +1108,21 @@ async function plantSaveFromLlm(parsed, images, zoneId, nameOverride) {
 async function plantQuickAddFromPhoto(files, zoneId) {
     if (!files || files.length === 0) return;
 
+    // Show crop preview for the first (primary) image before identifying
+    var processedFile;
+    try {
+        processedFile = await showCropPreview(files[0]);
+    } catch (e) { return; } // User cancelled
+
     var btn = document.getElementById('quickAddPlantPhotoBtn');
     var origText = btn ? btn.textContent : '+Photo';
     if (btn) { btn.textContent = 'Identifying\u2026'; btn.disabled = true; }
 
     try {
-        // Compress images (up to 4)
+        // Compress the (possibly cropped) first image plus any additional images
         var images = [];
-        for (var i = 0; i < Math.min(files.length, 4); i++) {
+        images.push(await compressImage(processedFile));
+        for (var i = 1; i < Math.min(files.length, 4); i++) {
             images.push(await compressImage(files[i]));
         }
 

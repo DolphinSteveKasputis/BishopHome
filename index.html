@@ -4,10 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=198">
+    <link rel="stylesheet" href="css/styles.css?v=199">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+    <!-- Cropper.js — client-side image cropping -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
 
     <!-- Firebase SDK (compat version — works without a build step) -->
     <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
@@ -4255,38 +4258,63 @@
         </div>
     </div>
 
+    <!-- Crop Preview Modal — shown before saving any photo; Cropper.js optional crop -->
+    <div class="modal-overlay" id="cropPreviewModal">
+        <div class="modal modal-wide">
+            <h3>Preview Photo</h3>
+            <div id="cropPreviewContainer" style="max-height:60vh;overflow:hidden;text-align:center;background:#000;border-radius:6px;margin-bottom:12px;">
+                <img id="cropPreviewImage" style="max-width:100%;display:block;margin:0 auto;">
+            </div>
+            <!-- Shown during preview (before cropping starts) -->
+            <div class="modal-buttons" id="cropPreviewButtons">
+                <button class="btn btn-secondary" id="cropCancelBtn">Cancel</button>
+                <div style="flex:1;"></div>
+                <button class="btn btn-secondary" id="cropStartBtn">&#x2702; Crop</button>
+                <button class="btn btn-primary"   id="cropUseBtn">Use Photo</button>
+            </div>
+            <!-- Shown while Cropper.js is active -->
+            <div class="modal-buttons" id="cropApplyButtons" style="display:none;">
+                <button class="btn btn-secondary" id="cropBackBtn">&#x2190; Back</button>
+                <div style="flex:1;"></div>
+                <button class="btn btn-primary"   id="cropApplyBtn">Apply Crop</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=198"></script>
-    <script src="js/auth.js?v=198"></script>
-    <script src="js/zones.js?v=198"></script>
-    <script src="js/plants.js?v=198"></script>
-    <script src="js/problems.js?v=198"></script>
-    <script src="js/facts.js?v=198"></script>
-    <script src="js/projects.js?v=198"></script>
-    <script src="js/chemicals.js?v=198"></script>
-    <script src="js/activities.js?v=198"></script>
-    <script src="js/photos.js?v=198"></script>
-    <script src="js/weeds.js?v=198"></script>
-    <script src="js/calendar.js?v=198"></script>
-    <script src="js/gps.js?v=198"></script>
-    <script src="js/settings.js?v=198"></script>
-    <script src="js/house.js?v=198"></script>
-    <script src="js/floorplan.js?v=198"></script>
-    <script src="js/search.js?v=198"></script>
-    <script src="js/activityreport.js?v=198"></script>
-    <script src="js/checklists.js?v=198"></script>
-    <script src="js/bulkactivity.js?v=198"></script>
-    <script src="js/devnotes.js?v=198"></script>
-    <script src="js/vehicles.js?v=198"></script>
-    <script src="js/garage.js?v=198"></script>
-    <script src="js/structures.js?v=198"></script>
-    <script src="js/moveThings.js?v=198"></script>
-    <script src="js/journal.js?v=198"></script>
-    <script src="js/collections.js?v=198"></script>
+    <script src="js/firebase-config.js?v=199"></script>
+    <script src="js/auth.js?v=199"></script>
+    <script src="js/zones.js?v=199"></script>
+    <script src="js/plants.js?v=199"></script>
+    <script src="js/problems.js?v=199"></script>
+    <script src="js/facts.js?v=199"></script>
+    <script src="js/projects.js?v=199"></script>
+    <script src="js/chemicals.js?v=199"></script>
+    <script src="js/activities.js?v=199"></script>
+    <!-- Cropper.js — client-side image cropping library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+    <script src="js/photos.js?v=199"></script>
+    <script src="js/weeds.js?v=199"></script>
+    <script src="js/calendar.js?v=199"></script>
+    <script src="js/gps.js?v=199"></script>
+    <script src="js/settings.js?v=199"></script>
+    <script src="js/house.js?v=199"></script>
+    <script src="js/floorplan.js?v=199"></script>
+    <script src="js/search.js?v=199"></script>
+    <script src="js/activityreport.js?v=199"></script>
+    <script src="js/checklists.js?v=199"></script>
+    <script src="js/bulkactivity.js?v=199"></script>
+    <script src="js/devnotes.js?v=199"></script>
+    <script src="js/vehicles.js?v=199"></script>
+    <script src="js/garage.js?v=199"></script>
+    <script src="js/structures.js?v=199"></script>
+    <script src="js/moveThings.js?v=199"></script>
+    <script src="js/journal.js?v=199"></script>
+    <script src="js/collections.js?v=199"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=198"></script>
-    <script src="js/app.js?v=198"></script>
+    <script src="js/chat.js?v=199"></script>
+    <script src="js/app.js?v=199"></script>
 
 </body>
 </html>

@@ -13,6 +13,15 @@
  */
 var photoViewerState = {};
 
+// ---------- Crop Preview State ----------
+// These vars track the Promise callbacks and Cropper.js instance
+// for the crop-preview modal shown before any photo is saved.
+
+var _cropResolve      = null;  // resolve() of the pending showCropPreview Promise
+var _cropReject       = null;  // reject()  of the pending showCropPreview Promise
+var _cropperInstance  = null;  // Active Cropper.js instance (or null)
+var _cropOriginalFile = null;  // The raw File/Blob passed into showCropPreview
+
 /**
  * Maps every targetType to its photo container and empty-state element IDs.
  * Used by handlePhotoFile, reloadPhotosForCurrentTarget, and handleDeletePhoto.
@@ -256,6 +265,46 @@ function triggerGalleryUpload(targetType, targetId) {
     input.click();
 }
 
+// ---------- Crop Preview ----------
+
+/**
+ * Shows a modal preview of a captured photo. The user can either:
+ *   - "Use Photo" — accept as-is (resolves with the original File/Blob)
+ *   - "Crop" — launch Cropper.js, then "Apply Crop" (resolves with a cropped Blob)
+ *   - "Cancel" — reject with 'cancelled'
+ *
+ * @param {File|Blob} file
+ * @returns {Promise<File|Blob>} Resolves with the final image to save.
+ */
+function showCropPreview(file) {
+    return new Promise(function(resolve, reject) {
+        _cropResolve      = resolve;
+        _cropReject       = reject;
+        _cropOriginalFile = file;
+
+        // Destroy any lingering Cropper instance from a previous call
+        if (_cropperInstance) {
+            _cropperInstance.destroy();
+            _cropperInstance = null;
+        }
+
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            // Rebuild the container so Cropper.js doesn't trip over stale DOM wrappers
+            var container = document.getElementById('cropPreviewContainer');
+            container.innerHTML = '<img id="cropPreviewImage" style="max-width:100%;display:block;margin:0 auto;">';
+            document.getElementById('cropPreviewImage').src = e.target.result;
+
+            // Show the preview buttons, hide the apply-crop buttons
+            document.getElementById('cropPreviewButtons').style.display = '';
+            document.getElementById('cropApplyButtons').style.display  = 'none';
+
+            openModal('cropPreviewModal');
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
 /**
  * Processes a selected file: compresses, prompts for caption, and saves to Firestore.
  * Works for all targetTypes via the PHOTO_CONTAINERS map.
@@ -264,6 +313,14 @@ function triggerGalleryUpload(targetType, targetId) {
  * @param {string} targetId
  */
 async function handlePhotoFile(file, targetType, targetId) {
+    // Show crop preview — user can optionally crop before saving.
+    var processedFile;
+    try {
+        processedFile = await showCropPreview(file);
+    } catch (e) {
+        return; // User cancelled
+    }
+
     var ids = PHOTO_CONTAINERS[targetType] || ['plantPhotoContainer', 'plantPhotoEmptyState'];
     var containerId  = ids[0];
     var emptyStateId = ids[1];
@@ -287,7 +344,7 @@ async function handlePhotoFile(file, targetType, targetId) {
 
     try {
         // Compress the image (client-side resize + JPEG compression)
-        var imageData = await compressImage(file);
+        var imageData = await compressImage(processedFile);
 
         // Prompt for an optional caption
         var caption = prompt('Add a caption (optional):') || '';
@@ -497,5 +554,68 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     document.getElementById('addZoneGalleryBtn').addEventListener('click', function() {
         if (window.currentZone) triggerGalleryUpload('zone', window.currentZone.id);
+    });
+
+    // ---- Crop Preview Modal Buttons ----
+
+    // Cancel: dismiss modal, reject the pending Promise
+    document.getElementById('cropCancelBtn').addEventListener('click', function() {
+        if (_cropperInstance) { _cropperInstance.destroy(); _cropperInstance = null; }
+        closeModal('cropPreviewModal');
+        if (_cropReject) { _cropReject('cancelled'); }
+        _cropReject = null; _cropResolve = null;
+    });
+
+    // Use Photo: accept image as-is, resolve with original file
+    document.getElementById('cropUseBtn').addEventListener('click', function() {
+        if (_cropperInstance) { _cropperInstance.destroy(); _cropperInstance = null; }
+        closeModal('cropPreviewModal');
+        var resolve = _cropResolve;
+        _cropResolve = null; _cropReject = null;
+        if (resolve) resolve(_cropOriginalFile);
+    });
+
+    // Start Crop: launch Cropper.js on the preview image
+    document.getElementById('cropStartBtn').addEventListener('click', function() {
+        var img = document.getElementById('cropPreviewImage');
+        _cropperInstance = new Cropper(img, {
+            viewMode:      1,
+            movable:       true,
+            zoomable:      true,
+            scalable:      false,
+            autoCropArea:  0.9,
+        });
+        document.getElementById('cropPreviewButtons').style.display = 'none';
+        document.getElementById('cropApplyButtons').style.display  = '';
+    });
+
+    // Back: destroy Cropper, return to plain preview of original file
+    document.getElementById('cropBackBtn').addEventListener('click', function() {
+        if (_cropperInstance) { _cropperInstance.destroy(); _cropperInstance = null; }
+
+        // Re-render the original image (Cropper wraps the img element in extra DOM)
+        var container = document.getElementById('cropPreviewContainer');
+        container.innerHTML = '<img id="cropPreviewImage" style="max-width:100%;display:block;margin:0 auto;">';
+        var img = document.getElementById('cropPreviewImage');
+        var reader = new FileReader();
+        reader.onload = function(e) { img.src = e.target.result; };
+        reader.readAsDataURL(_cropOriginalFile);
+
+        document.getElementById('cropPreviewButtons').style.display = '';
+        document.getElementById('cropApplyButtons').style.display  = 'none';
+    });
+
+    // Apply Crop: export cropped canvas as a Blob and resolve the Promise
+    document.getElementById('cropApplyBtn').addEventListener('click', function() {
+        if (!_cropperInstance) return;
+        _cropperInstance.getCroppedCanvas({ maxWidth: 1200, maxHeight: 1200 })
+            .toBlob(function(blob) {
+                _cropperInstance.destroy();
+                _cropperInstance = null;
+                closeModal('cropPreviewModal');
+                var resolve = _cropResolve;
+                _cropResolve = null; _cropReject = null;
+                if (resolve) resolve(blob);
+            }, 'image/jpeg', 0.92);
     });
 });

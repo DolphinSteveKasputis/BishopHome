@@ -1366,6 +1366,12 @@ async function collectionHandleFromPicture(files) {
     if (!files || files.length === 0) return;
     if (!_collPicContext) return;
 
+    // Show crop preview for the image before identifying
+    var processedFile;
+    try {
+        processedFile = await showCropPreview(files[0]);
+    } catch (e) { return; } // User cancelled
+
     var collectionId = _collPicContext.collectionId;
     var collType     = _collPicContext.collType;
 
@@ -1382,9 +1388,9 @@ async function collectionHandleFromPicture(files) {
     openModal('collectionFromPicResultModal');
 
     try {
-        // Compress image (one at a time for rapid scanning)
+        // Compress the (possibly cropped) image
         var images = [];
-        images.push(await compressImage(files[0]));
+        images.push(await compressImage(processedFile));
 
         // Load LLM config
         var cfgDoc = await userCol('settings').doc('llm').get();

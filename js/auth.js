@@ -24,14 +24,26 @@ function showApp() {
 // Firebase fires this immediately on page load with the current user
 // (or null). This means returning users on a remembered device go
 // straight to the app without seeing the login screen.
+//
+// IMPORTANT: Firebase also fires this on silent token refreshes (roughly
+// every hour). We use a flag so initApp() only runs once — on the initial
+// sign-in — not on every token refresh. Without this guard, the app would
+// navigate back to the home page whenever the token refreshed in the background.
+
+var _appInitialized = false;
 
 auth.onAuthStateChanged(function(user) {
     if (user) {
-        // Signed in — show the app and start routing
+        // Signed in — show the app
         showApp();
-        initApp();
+        // Only call initApp() on the first auth event, not on token refreshes
+        if (!_appInitialized) {
+            _appInitialized = true;
+            initApp();
+        }
     } else {
-        // Not signed in — show login screen
+        // Signed out — reset flag and show login screen
+        _appInitialized = false;
         showLoginScreen();
     }
 });

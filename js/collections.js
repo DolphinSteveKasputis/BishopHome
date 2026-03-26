@@ -359,11 +359,14 @@ function loadCollectionPage(id) {
             if (photoBtn) {
                 var newPhotoBtn = photoBtn.cloneNode(true);
                 photoBtn.parentNode.replaceChild(newPhotoBtn, photoBtn);
-                newPhotoBtn.addEventListener('click', function() {
-                    _collPicContext = { collectionId: id, collType: data.type || '' };
-                    var camInput = document.getElementById('collectionCamInput');
-                    if (camInput) { camInput.value = ''; camInput.click(); }
-                });
+                newPhotoBtn.addEventListener('click', (function(collId, collTypeVal) {
+                    return function() {
+                        _collPicContext = { collectionId: collId, collType: collTypeVal };
+                        openLlmPhotoStaging('Add ' + (collTypeVal || 'Collection') + ' Photo', function(images) {
+                            collectionSendToLlm(images);
+                        });
+                    };
+                })(id, data.type || ''));
             }
 
             // Load items
@@ -1237,8 +1240,11 @@ document.addEventListener('DOMContentLoaded', function() {
     if (collPicAnotherBtn) {
         collPicAnotherBtn.addEventListener('click', function() {
             closeModal('collectionFromPicResultModal');
-            var camInput = document.getElementById('collectionCamInput');
-            if (camInput) { camInput.value = ''; camInput.click(); }
+            if (!_collPicContext) return;
+            var ctx = _collPicContext; // keep context
+            openLlmPhotoStaging('Add ' + (ctx.collType || 'Collection') + ' Photo', function(images) {
+                collectionSendToLlm(images);
+            });
         });
     }
 });
@@ -1360,17 +1366,33 @@ function getCollectionIdPrompt(collType) {
 }
 
 /**
- * Main handler: compress photo, call LLM, auto-save if identified, show result modal.
+ * Legacy handler: compress a single photo file from the camera input, then send to LLM.
+ * The +Photo button now opens the staging flow instead; this handles any legacy path.
  */
 async function collectionHandleFromPicture(files) {
     if (!files || files.length === 0) return;
     if (!_collPicContext) return;
 
-    // Show crop preview for the image before identifying
-    var processedFile;
     try {
-        processedFile = await showCropPreview(files[0]);
-    } catch (e) { return; } // User cancelled
+        var images = [];
+        images.push(await compressImage(files[0]));
+        await collectionSendToLlm(images);
+    } catch (err) {
+        console.error('Collection pic error:', err);
+    } finally {
+        var camInput = document.getElementById('collectionCamInput');
+        if (camInput) camInput.value = '';
+    }
+}
+
+/**
+ * Send already-compressed base64 images to the LLM for collection item identification.
+ * Called from both the legacy camera path and the staging (+Photo) flow.
+ * Requires _collPicContext to be set before calling.
+ * @param {string[]} images - Array of base64 data URL strings (already compressed)
+ */
+async function collectionSendToLlm(images) {
+    if (!_collPicContext) return;
 
     var collectionId = _collPicContext.collectionId;
     var collType     = _collPicContext.collType;
@@ -1380,18 +1402,13 @@ async function collectionHandleFromPicture(files) {
     var anotherBtn = document.getElementById('collPicResultAnotherBtn');
     var doneBtn    = document.getElementById('collPicResultDoneBtn');
 
-    if (titleEl) titleEl.textContent = 'Identifying\u2026';
-    if (titleEl) titleEl.style.color = '';
-    if (bodyEl)  bodyEl.innerHTML    = '<p class="empty-state">Please wait\u2026</p>';
+    if (titleEl) { titleEl.textContent = 'Identifying\u2026'; titleEl.style.color = ''; }
+    if (bodyEl)  bodyEl.innerHTML = '<p class="empty-state">Please wait\u2026</p>';
     if (anotherBtn) anotherBtn.disabled = true;
     if (doneBtn)    doneBtn.disabled    = true;
     openModal('collectionFromPicResultModal');
 
     try {
-        // Compress the (possibly cropped) image
-        var images = [];
-        images.push(await compressImage(processedFile));
-
         // Load LLM config
         var cfgDoc = await userCol('settings').doc('llm').get();
         var cfg    = cfgDoc.exists ? cfgDoc.data() : null;
@@ -1407,6 +1424,7 @@ async function collectionHandleFromPicture(files) {
             return;
         }
 
+        // Build content: prompt + already-compressed images
         var prompt  = getCollectionIdPrompt(collType);
         var content = [{ type: 'text', text: prompt }];
         images.forEach(function(url) {

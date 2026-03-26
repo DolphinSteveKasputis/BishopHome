@@ -1344,13 +1344,20 @@ document.getElementById('addThingBtn').addEventListener('click', function() {
     openThingModal(null, null);
 });
 
-// Room detail — "+Photo" quick-add for things
+// Room detail — "+Photo" quick-add for things — opens staging modal directly
 document.getElementById('quickAddThingPhotoBtn').addEventListener('click', function() {
-    document.getElementById('quickThingCamInput').click();
+    houseQuickAddThingFromPhoto('quickAddThingPhotoBtn', 'quickThingCamInput');
 });
+// Legacy camera input kept wired for any remaining direct trigger path
 document.getElementById('quickThingCamInput').addEventListener('change', function() {
     if (this.files && this.files.length > 0) {
-        houseQuickAddThingFromPhoto(this.files, 'quickAddThingPhotoBtn', 'quickThingCamInput');
+        (async function(files) {
+            var images = [];
+            for (var i = 0; i < Math.min(files.length, 4); i++) {
+                images.push(await compressImage(files[i]));
+            }
+            await _houseQuickSendToLlm(images, 'thing', 'quickAddThingPhotoBtn', 'quickThingCamInput');
+        })(this.files);
     }
 });
 
@@ -2662,13 +2669,20 @@ document.getElementById('addSubThingBtn').addEventListener('click', function() {
     openSubThingModal(null, null);
 });
 
-// Thing detail — "+Photo" quick-add for sub-things
+// Thing detail — "+Photo" quick-add for sub-things — opens staging modal directly
 document.getElementById('quickAddSubThingPhotoBtn').addEventListener('click', function() {
-    document.getElementById('quickSubThingCamInput').click();
+    houseQuickAddSubThingFromPhoto('quickAddSubThingPhotoBtn', 'quickSubThingCamInput');
 });
+// Legacy camera input kept wired for any remaining direct trigger path
 document.getElementById('quickSubThingCamInput').addEventListener('change', function() {
     if (this.files && this.files.length > 0) {
-        houseQuickAddSubThingFromPhoto(this.files, 'quickAddSubThingPhotoBtn', 'quickSubThingCamInput');
+        (async function(files) {
+            var images = [];
+            for (var i = 0; i < Math.min(files.length, 4); i++) {
+                images.push(await compressImage(files[i]));
+            }
+            await _houseQuickSendToLlm(images, 'subthing', 'quickAddSubThingPhotoBtn', 'quickSubThingCamInput');
+        })(this.files);
     }
 });
 
@@ -3409,26 +3423,19 @@ async function houseCheckLlmForModal(sectionId) {
 }
 
 /**
- * Handle file selection for Thing or SubThing identification.
+ * Legacy handler: compress selected images from in-modal inputs, then send to LLM.
+ * The gallery/camera buttons now open the staging flow instead.
  * @param {FileList} files
  * @param {string}   targetType  'thing' or 'subthing'
  */
 async function houseHandleFromPicture(files, targetType) {
     if (!files || files.length === 0) return;
 
-    // Show crop preview for the first (primary) image before identifying
-    var processedFile;
-    try {
-        processedFile = await showCropPreview(files[0]);
-    } catch (e) { return; } // User cancelled
-
     var isThing    = targetType === 'thing';
     var statusEl   = document.getElementById(isThing ? 'thingPicStatus'    : 'stPicStatus');
     var saveBtn    = document.getElementById(isThing ? 'thingModalSaveBtn' : 'stModalSaveBtn');
     var galleryBtn = document.getElementById(isThing ? 'thingPicGalleryBtn': 'stPicGalleryBtn');
     var cameraBtn  = document.getElementById(isThing ? 'thingPicCameraBtn' : 'stPicCameraBtn');
-    var toggleEl   = document.getElementById(isThing ? 'thingShowResponseToggle' : 'stShowResponseToggle');
-    var modalId    = isThing ? 'thingModal' : 'subThingModal';
 
     statusEl.textContent = 'Identifying item\u2026';
     statusEl.classList.remove('hidden');
@@ -3437,60 +3444,11 @@ async function houseHandleFromPicture(files, targetType) {
     cameraBtn.disabled  = true;
 
     try {
-        // Compress the (possibly cropped) first image plus any additional images
         var images = [];
-        images.push(await compressImage(processedFile));
-        for (var i = 1; i < Math.min(files.length, 4); i++) {
+        for (var i = 0; i < Math.min(files.length, 4); i++) {
             images.push(await compressImage(files[i]));
         }
-
-        // Load LLM config
-        var cfgDoc = await userCol('settings').doc('llm').get();
-        var cfg    = cfgDoc.exists ? cfgDoc.data() : null;
-        if (!cfg || !cfg.provider || !cfg.apiKey) {
-            statusEl.textContent = 'No LLM configured. Go to Settings.';
-            return;
-        }
-        var llm = LLM_PROVIDERS[cfg.provider];
-        if (!llm) { statusEl.textContent = 'Unknown LLM provider.'; return; }
-
-        // Build prompt — append personal comment if the user filled it in
-        var commentInput = document.getElementById(isThing ? 'thingCommentInput' : 'stCommentInput');
-        var comment      = commentInput ? commentInput.value.trim() : '';
-        var prompt       = comment
-            ? THING_ID_PROMPT + '\n\nAdditional context from the owner: ' + comment
-            : THING_ID_PROMPT;
-
-        // Build content: prompt + images
-        var content = [{ type: 'text', text: prompt }];
-        images.forEach(function(url) {
-            content.push({ type: 'image_url', image_url: { url: url } });
-        });
-
-        var activeModel  = cfg.model || llm.model;
-        var responseText = await chatCallOpenAICompat(llm, cfg.apiKey, content, activeModel);
-        var parsed       = houseParseLlmResponse(responseText);
-
-        if (toggleEl.checked) {
-            houseLlmPending = { parsed: parsed, images: images, targetType: targetType };
-            statusEl.textContent = '';
-            statusEl.classList.add('hidden');
-            closeModal(modalId);
-            houseShowReviewModal(prompt, responseText, parsed);
-        } else {
-            if (!parsed.name && parsed.additionalMessage) {
-                statusEl.textContent = '\u26a0 ' + parsed.additionalMessage;
-                return;
-            }
-            await houseSaveFromLlm(parsed, images, targetType, '');
-            statusEl.textContent = '';
-            statusEl.classList.add('hidden');
-            closeModal(modalId);
-            // Refresh the appropriate list
-            if (isThing && currentRoom)  loadThingsList(currentRoom.id);
-            if (!isThing && currentThing) loadSubThingsList(currentThing.id);
-        }
-
+        await houseSendToLlm(images, targetType);
     } catch (err) {
         console.error('House item ID error:', err);
         statusEl.textContent = 'Error: ' + err.message;
@@ -3500,6 +3458,105 @@ async function houseHandleFromPicture(files, targetType) {
         cameraBtn.disabled  = false;
         document.getElementById(isThing ? 'thingPicInput' : 'stPicInput').value = '';
         document.getElementById(isThing ? 'thingCamInput' : 'stCamInput').value = '';
+    }
+}
+
+/**
+ * Send already-compressed base64 images to the LLM for Thing/SubThing identification.
+ * Called from both the in-modal flow and the staging (+Photo) flow.
+ * @param {string[]} images     - Array of base64 data URL strings (already compressed)
+ * @param {string}   targetType - 'thing' or 'subthing'
+ */
+async function houseSendToLlm(images, targetType) {
+    var isThing    = targetType === 'thing';
+    var statusEl   = document.getElementById(isThing ? 'thingPicStatus'    : 'stPicStatus');
+    var saveBtn    = document.getElementById(isThing ? 'thingModalSaveBtn' : 'stModalSaveBtn');
+    var galleryBtn = document.getElementById(isThing ? 'thingPicGalleryBtn': 'stPicGalleryBtn');
+    var cameraBtn  = document.getElementById(isThing ? 'thingPicCameraBtn' : 'stPicCameraBtn');
+    var toggleEl   = document.getElementById(isThing ? 'thingShowResponseToggle' : 'stShowResponseToggle');
+    var modalId    = isThing ? 'thingModal' : 'subThingModal';
+    var modalEl    = document.getElementById(modalId);
+    var modalOpen  = modalEl && modalEl.classList.contains('active');
+
+    if (modalOpen && statusEl) {
+        statusEl.textContent = 'Identifying item\u2026';
+        statusEl.classList.remove('hidden');
+        if (saveBtn)    saveBtn.disabled    = true;
+        if (galleryBtn) galleryBtn.disabled = true;
+        if (cameraBtn)  cameraBtn.disabled  = true;
+    }
+
+    try {
+        // Load LLM config
+        var cfgDoc = await userCol('settings').doc('llm').get();
+        var cfg    = cfgDoc.exists ? cfgDoc.data() : null;
+        if (!cfg || !cfg.provider || !cfg.apiKey) {
+            if (modalOpen && statusEl) statusEl.textContent = 'No LLM configured. Go to Settings.';
+            else alert('No LLM configured. Go to Settings.');
+            return;
+        }
+        var llm = LLM_PROVIDERS[cfg.provider];
+        if (!llm) {
+            if (modalOpen && statusEl) statusEl.textContent = 'Unknown LLM provider.';
+            else alert('Unknown LLM provider.');
+            return;
+        }
+
+        // Build prompt — append personal comment if the user filled it in
+        var commentInput = document.getElementById(isThing ? 'thingCommentInput' : 'stCommentInput');
+        var comment      = commentInput ? commentInput.value.trim() : '';
+        var prompt       = comment
+            ? THING_ID_PROMPT + '\n\nAdditional context from the owner: ' + comment
+            : THING_ID_PROMPT;
+
+        // Build content: prompt + already-compressed images
+        var content = [{ type: 'text', text: prompt }];
+        images.forEach(function(url) {
+            content.push({ type: 'image_url', image_url: { url: url } });
+        });
+
+        var activeModel  = cfg.model || llm.model;
+        var responseText = await chatCallOpenAICompat(llm, cfg.apiKey, content, activeModel);
+        var parsed       = houseParseLlmResponse(responseText);
+
+        if (modalOpen && toggleEl && toggleEl.checked) {
+            houseLlmPending = { parsed: parsed, images: images, targetType: targetType };
+            if (statusEl) { statusEl.textContent = ''; statusEl.classList.add('hidden'); }
+            closeModal(modalId);
+            houseShowReviewModal(prompt, responseText, parsed);
+        } else {
+            if (!parsed.name && parsed.additionalMessage) {
+                if (modalOpen && statusEl) {
+                    statusEl.textContent = '\u26a0 ' + parsed.additionalMessage;
+                } else {
+                    alert('\u26a0 ' + parsed.additionalMessage);
+                }
+                return;
+            }
+            await houseSaveFromLlm(parsed, images, targetType, '');
+            if (modalOpen && statusEl) { statusEl.textContent = ''; statusEl.classList.add('hidden'); }
+            closeModal(modalId);
+            if (isThing && currentRoom)   loadThingsList(currentRoom.id);
+            if (!isThing && currentThing) loadSubThingsList(currentThing.id);
+        }
+
+    } catch (err) {
+        console.error('House item ID error:', err);
+        if (modalOpen && statusEl) {
+            statusEl.textContent = 'Error: ' + err.message;
+        } else {
+            alert('Error identifying item: ' + err.message);
+        }
+    } finally {
+        if (modalOpen) {
+            if (saveBtn)    saveBtn.disabled    = false;
+            if (galleryBtn) galleryBtn.disabled = false;
+            if (cameraBtn)  cameraBtn.disabled  = false;
+            var picIn = document.getElementById(isThing ? 'thingPicInput' : 'stPicInput');
+            var camIn = document.getElementById(isThing ? 'thingCamInput' : 'stCamInput');
+            if (picIn) picIn.value = '';
+            if (camIn) camIn.value = '';
+        }
     }
 }
 
@@ -3593,100 +3650,42 @@ async function houseSaveFromLlm(parsed, images, targetType, nameOverride) {
 // ---------- Quick-Add Thing from Photo ----------
 
 /**
- * Quick-add a house thing from camera without showing the review modal.
- * Reads window.currentRoom for the roomId (set when on a room detail page).
- * @param {FileList} files
- * @param {string}   btnId   - button element ID to show loading state
- * @param {string}   inputId - file input element ID to reset after use
+ * Quick-add a house thing from the "+Photo" button on the room detail page.
+ * Opens the shared staging modal; sends staged images to LLM; saves directly.
+ * @param {string} btnId   - button element ID (unused now, kept for signature compat)
+ * @param {string} inputId - camera input element ID (unused now, kept for compat)
  */
-async function houseQuickAddThingFromPhoto(files, btnId, inputId) {
-    if (!files || files.length === 0) return;
-
-    // Show crop preview for the first (primary) image before identifying
-    var processedFile;
-    try {
-        processedFile = await showCropPreview(files[0]);
-    } catch (e) { return; } // User cancelled
-
-    var btn = document.getElementById(btnId);
-    var origText = btn ? btn.textContent : '+Photo';
-    if (btn) { btn.textContent = 'Identifying\u2026'; btn.disabled = true; }
-
-    try {
-        // Compress the (possibly cropped) first image plus any additional images
-        var images = [];
-        images.push(await compressImage(processedFile));
-        for (var i = 1; i < Math.min(files.length, 4); i++) {
-            images.push(await compressImage(files[i]));
-        }
-
-        // Load LLM config
-        var cfgDoc = await userCol('settings').doc('llm').get();
-        var cfg = cfgDoc.exists ? cfgDoc.data() : null;
-        if (!cfg || !cfg.provider || !cfg.apiKey) { alert('No LLM configured. Go to Settings.'); return; }
-        var llm = LLM_PROVIDERS[cfg.provider];
-        if (!llm) { alert('Unknown LLM provider.'); return; }
-
-        // Build content: prompt + images
-        var content = [{ type: 'text', text: THING_ID_PROMPT }];
-        images.forEach(function(url) {
-            content.push({ type: 'image_url', image_url: { url: url } });
-        });
-        var activeModel = cfg.model || llm.model;
-        var responseText = await chatCallOpenAICompat(llm, cfg.apiKey, content, activeModel);
-        var parsed = houseParseLlmResponse(responseText);
-
-        if (!parsed.name && parsed.additionalMessage) {
-            alert('Could not identify item: ' + parsed.additionalMessage);
-            return;
-        }
-        if (!parsed.name) {
-            alert('Could not identify item. Try a clearer photo.');
-            return;
-        }
-
-        // houseSaveFromLlm reads currentRoom.id for things
-        await houseSaveFromLlm(parsed, images, 'thing', '');
-        if (currentRoom) loadThingsList(currentRoom.id);
-
-    } catch (err) {
-        console.error('Quick thing photo error:', err);
-        alert('Error: ' + err.message);
-    } finally {
-        if (btn) { btn.textContent = origText; btn.disabled = false; }
-        var input = document.getElementById(inputId);
-        if (input) input.value = '';
-    }
+function houseQuickAddThingFromPhoto(btnId, inputId) {
+    openLlmPhotoStaging('Identify Item', function(images) {
+        _houseQuickSendToLlm(images, 'thing', btnId, inputId);
+    });
 }
 
 /**
- * Quick-add a house sub-thing (item) from camera without showing the review modal.
- * Reads window.currentThing for the parent thingId.
- * @param {FileList} files
- * @param {string}   btnId   - button element ID to show loading state
- * @param {string}   inputId - file input element ID to reset after use
+ * Quick-add a house sub-thing from the "+Photo" button on a thing detail page.
+ * Opens the shared staging modal; sends staged images to LLM; saves directly.
+ * @param {string} btnId   - button element ID (unused now, kept for signature compat)
+ * @param {string} inputId - camera input element ID (unused now, kept for compat)
  */
-async function houseQuickAddSubThingFromPhoto(files, btnId, inputId) {
-    if (!files || files.length === 0) return;
+function houseQuickAddSubThingFromPhoto(btnId, inputId) {
+    openLlmPhotoStaging('Identify Item', function(images) {
+        _houseQuickSendToLlm(images, 'subthing', btnId, inputId);
+    });
+}
 
-    // Show crop preview for the first (primary) image before identifying
-    var processedFile;
-    try {
-        processedFile = await showCropPreview(files[0]);
-    } catch (e) { return; } // User cancelled
-
+/**
+ * Internal helper: send staged images to LLM and save directly (no review modal).
+ * @param {string[]} images     - Already-compressed base64 data URLs
+ * @param {string}   targetType - 'thing' or 'subthing'
+ * @param {string}   btnId      - button element ID to show loading state
+ * @param {string}   inputId    - camera input ID to reset after use
+ */
+async function _houseQuickSendToLlm(images, targetType, btnId, inputId) {
     var btn = document.getElementById(btnId);
     var origText = btn ? btn.textContent : '+Photo';
     if (btn) { btn.textContent = 'Identifying\u2026'; btn.disabled = true; }
 
     try {
-        // Compress the (possibly cropped) first image plus any additional images
-        var images = [];
-        images.push(await compressImage(processedFile));
-        for (var i = 1; i < Math.min(files.length, 4); i++) {
-            images.push(await compressImage(files[i]));
-        }
-
         // Load LLM config
         var cfgDoc = await userCol('settings').doc('llm').get();
         var cfg = cfgDoc.exists ? cfgDoc.data() : null;
@@ -3694,7 +3693,7 @@ async function houseQuickAddSubThingFromPhoto(files, btnId, inputId) {
         var llm = LLM_PROVIDERS[cfg.provider];
         if (!llm) { alert('Unknown LLM provider.'); return; }
 
-        // Build content: prompt + images
+        // Build content: prompt + already-compressed images
         var content = [{ type: 'text', text: THING_ID_PROMPT }];
         images.forEach(function(url) {
             content.push({ type: 'image_url', image_url: { url: url } });
@@ -3712,12 +3711,16 @@ async function houseQuickAddSubThingFromPhoto(files, btnId, inputId) {
             return;
         }
 
-        // houseSaveFromLlm reads currentThing.id for subthings
-        await houseSaveFromLlm(parsed, images, 'subthing', '');
-        if (currentThing) loadSubThingsList(currentThing.id);
+        if (targetType === 'thing') {
+            await houseSaveFromLlm(parsed, images, 'thing', '');
+            if (currentRoom) loadThingsList(currentRoom.id);
+        } else {
+            await houseSaveFromLlm(parsed, images, 'subthing', '');
+            if (currentThing) loadSubThingsList(currentThing.id);
+        }
 
     } catch (err) {
-        console.error('Quick sub-thing photo error:', err);
+        console.error('Quick house photo error:', err);
         alert('Error: ' + err.message);
     } finally {
         if (btn) { btn.textContent = origText; btn.disabled = false; }
@@ -3728,13 +3731,18 @@ async function houseQuickAddSubThingFromPhoto(files, btnId, inputId) {
 
 // ---------- Wire-ups ----------
 
-// Thing modal — Gallery / Camera
+// Thing modal — Gallery / Camera — now open the staging modal
 document.getElementById('thingPicGalleryBtn').addEventListener('click', function() {
-    document.getElementById('thingPicInput').click();
+    openLlmPhotoStaging('Identify Item', function(images) {
+        houseSendToLlm(images, 'thing');
+    });
 });
 document.getElementById('thingPicCameraBtn').addEventListener('click', function() {
-    document.getElementById('thingCamInput').click();
+    openLlmPhotoStaging('Identify Item', function(images) {
+        houseSendToLlm(images, 'thing');
+    });
 });
+// Legacy file inputs kept wired for any remaining direct trigger path
 document.getElementById('thingPicInput').addEventListener('change', function() {
     if (this.files && this.files.length > 0) houseHandleFromPicture(this.files, 'thing');
 });
@@ -3742,13 +3750,18 @@ document.getElementById('thingCamInput').addEventListener('change', function() {
     if (this.files && this.files.length > 0) houseHandleFromPicture(this.files, 'thing');
 });
 
-// SubThing modal — Gallery / Camera
+// SubThing modal — Gallery / Camera — now open the staging modal
 document.getElementById('stPicGalleryBtn').addEventListener('click', function() {
-    document.getElementById('stPicInput').click();
+    openLlmPhotoStaging('Identify Item', function(images) {
+        houseSendToLlm(images, 'subthing');
+    });
 });
 document.getElementById('stPicCameraBtn').addEventListener('click', function() {
-    document.getElementById('stCamInput').click();
+    openLlmPhotoStaging('Identify Item', function(images) {
+        houseSendToLlm(images, 'subthing');
+    });
 });
+// Legacy file inputs kept wired for any remaining direct trigger path
 document.getElementById('stPicInput').addEventListener('change', function() {
     if (this.files && this.files.length > 0) houseHandleFromPicture(this.files, 'subthing');
 });

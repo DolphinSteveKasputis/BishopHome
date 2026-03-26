@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=202">
+    <link rel="stylesheet" href="css/styles.css?v=203">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -1413,6 +1413,7 @@
             <div class="page-header">
                 <h2>Weeds</h2>
                 <button class="btn btn-primary btn-small" id="addWeedBtn">+ Add Weed</button>
+                <button class="btn btn-primary btn-small" id="weedQuickPhotoBtn">+Photo</button>
             </div>
             <div class="card-list" id="weedsListContainer"></div>
             <p class="empty-state" id="weedsEmptyState">Loading...</p>
@@ -4283,40 +4284,73 @@
         </div>
     </div>
 
+    <!-- Photo Staging Crop Modal — shown after each photo is taken during LLM staging -->
+    <div class="modal-overlay" id="stagingCropModal">
+        <div class="modal modal-wide">
+            <h3>Crop Photo</h3>
+            <p style="font-size:0.85rem;color:#666;margin:0 0 10px;">Drag to adjust crop area, or use as-is.</p>
+            <div class="crop-container">
+                <img id="stagingCropImage" alt="Crop preview">
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="stagingCropCancelBtn">Cancel</button>
+                <button class="btn btn-secondary" id="stagingCropSkipBtn">Use as-is</button>
+                <button class="btn btn-primary" id="stagingCropApplyBtn">&#x2713; Crop</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Photo Staging Modal — multi-photo collection before LLM send -->
+    <div class="modal-overlay" id="photoStagingModal">
+        <div class="modal modal-wide">
+            <h3 id="photoStagingTitle">Add Photos</h3>
+            <p class="staging-hint">Add up to 4 photos. All will be sent to the AI together.</p>
+            <div id="photoStagingGrid" class="staging-grid"></div>
+            <div id="photoStagingCount" class="staging-count">0 / 4 photos</div>
+            <!-- Hidden camera input shared by all staging flows -->
+            <input type="file" id="stagingCameraInput" accept="image/*" capture="environment" style="display:none;">
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="photoStagingCancelBtn">Cancel</button>
+                <button class="btn btn-secondary" id="photoStagingAddBtn">&#128247; Add Another</button>
+                <button class="btn btn-primary" id="photoStagingSendBtn" disabled>Send to AI &#x2192;</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=202"></script>
-    <script src="js/auth.js?v=202"></script>
-    <script src="js/zones.js?v=202"></script>
-    <script src="js/plants.js?v=202"></script>
-    <script src="js/problems.js?v=202"></script>
-    <script src="js/facts.js?v=202"></script>
-    <script src="js/projects.js?v=202"></script>
-    <script src="js/chemicals.js?v=202"></script>
-    <script src="js/activities.js?v=202"></script>
+    <script src="js/firebase-config.js?v=203"></script>
+    <script src="js/auth.js?v=203"></script>
+    <script src="js/zones.js?v=203"></script>
+    <script src="js/plants.js?v=203"></script>
+    <script src="js/problems.js?v=203"></script>
+    <script src="js/facts.js?v=203"></script>
+    <script src="js/projects.js?v=203"></script>
+    <script src="js/chemicals.js?v=203"></script>
+    <script src="js/activities.js?v=203"></script>
     <!-- Cropper.js — client-side image cropping library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
-    <script src="js/photos.js?v=202"></script>
-    <script src="js/weeds.js?v=202"></script>
-    <script src="js/calendar.js?v=202"></script>
-    <script src="js/gps.js?v=202"></script>
-    <script src="js/settings.js?v=202"></script>
-    <script src="js/house.js?v=202"></script>
-    <script src="js/floorplan.js?v=202"></script>
-    <script src="js/search.js?v=202"></script>
-    <script src="js/activityreport.js?v=202"></script>
-    <script src="js/checklists.js?v=202"></script>
-    <script src="js/bulkactivity.js?v=202"></script>
-    <script src="js/devnotes.js?v=202"></script>
-    <script src="js/vehicles.js?v=202"></script>
-    <script src="js/garage.js?v=202"></script>
-    <script src="js/structures.js?v=202"></script>
-    <script src="js/moveThings.js?v=202"></script>
-    <script src="js/journal.js?v=202"></script>
-    <script src="js/collections.js?v=202"></script>
+    <script src="js/photos.js?v=203"></script>
+    <script src="js/weeds.js?v=203"></script>
+    <script src="js/calendar.js?v=203"></script>
+    <script src="js/gps.js?v=203"></script>
+    <script src="js/settings.js?v=203"></script>
+    <script src="js/house.js?v=203"></script>
+    <script src="js/floorplan.js?v=203"></script>
+    <script src="js/search.js?v=203"></script>
+    <script src="js/activityreport.js?v=203"></script>
+    <script src="js/checklists.js?v=203"></script>
+    <script src="js/bulkactivity.js?v=203"></script>
+    <script src="js/devnotes.js?v=203"></script>
+    <script src="js/vehicles.js?v=203"></script>
+    <script src="js/garage.js?v=203"></script>
+    <script src="js/structures.js?v=203"></script>
+    <script src="js/moveThings.js?v=203"></script>
+    <script src="js/journal.js?v=203"></script>
+    <script src="js/collections.js?v=203"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=202"></script>
-    <script src="js/app.js?v=202"></script>
+    <script src="js/chat.js?v=203"></script>
+    <script src="js/app.js?v=203"></script>
 
 </body>
 </html>

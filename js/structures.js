@@ -986,26 +986,17 @@ async function structureCheckLlmForModal() {
 }
 
 /**
- * Handle file selection from Gallery or Camera for structure thing identification.
+ * Legacy handler: compress selected images from in-modal inputs, then send to LLM.
+ * The gallery/camera buttons now open the staging flow instead.
  * @param {FileList} files  — selected image files
  */
 async function structureThingHandleFromPicture(files) {
     if (!files || files.length === 0) return;
 
-    // Show crop preview for the first (primary) image before identifying
-    var processedFile;
-    try {
-        processedFile = await showCropPreview(files[0]);
-    } catch (e) { return; } // User cancelled
-
-    var modal       = document.getElementById('structureThingModal');
-    var structureId = modal.dataset.structureId;
-
     var statusEl   = document.getElementById('structureThingPicStatus');
     var saveBtn    = document.getElementById('structureThingModalSaveBtn');
     var galleryBtn = document.getElementById('structureThingPicGalleryBtn');
     var cameraBtn  = document.getElementById('structureThingPicCameraBtn');
-    var toggleEl   = document.getElementById('structureThingShowResponseToggle');
 
     statusEl.textContent = 'Identifying item\u2026';
     statusEl.classList.remove('hidden');
@@ -1014,60 +1005,13 @@ async function structureThingHandleFromPicture(files) {
     cameraBtn.disabled  = true;
 
     try {
-        // Compress the (possibly cropped) first image plus any additional images
         var images = [];
-        images.push(await compressImage(processedFile));
-        for (var i = 1; i < Math.min(files.length, 4); i++) {
+        for (var i = 0; i < Math.min(files.length, 4); i++) {
             images.push(await compressImage(files[i]));
         }
-
-        // Load LLM config
-        var cfgDoc = await userCol('settings').doc('llm').get();
-        var cfg    = cfgDoc.exists ? cfgDoc.data() : null;
-        if (!cfg || !cfg.provider || !cfg.apiKey) {
-            statusEl.textContent = 'No LLM configured. Go to Settings.';
-            return;
-        }
-        var llm = LLM_PROVIDERS[cfg.provider];
-        if (!llm) { statusEl.textContent = 'Unknown LLM provider.'; return; }
-
-        // Build prompt — append personal comment if user filled it in
-        var commentInput = document.getElementById('structureThingCommentInput');
-        var comment      = commentInput ? commentInput.value.trim() : '';
-        var prompt       = comment
-            ? STRUCTURE_THING_ID_PROMPT + '\n\nAdditional context from the owner: ' + comment
-            : STRUCTURE_THING_ID_PROMPT;
-
-        // Build content: text prompt + images
-        var content = [{ type: 'text', text: prompt }];
-        images.forEach(function(url) {
-            content.push({ type: 'image_url', image_url: { url: url } });
-        });
-
-        var activeModel  = cfg.model || llm.model;
-        var responseText = await chatCallOpenAICompat(llm, cfg.apiKey, content, activeModel);
-        var parsed       = structureThingParseLlmResponse(responseText);
-
-        if (toggleEl && toggleEl.checked) {
-            // Show review modal
-            structureLlmPending = { parsed: parsed, images: images, structureId: structureId };
-            statusEl.textContent = '';
-            statusEl.classList.add('hidden');
-            closeModal('structureThingModal');
-            structureThingShowReviewModal(prompt, responseText, parsed);
-        } else {
-            // Save directly without review
-            if (!parsed.name && parsed.additionalMessage) {
-                statusEl.textContent = '\u26a0 ' + parsed.additionalMessage;
-                return;
-            }
-            await structureThingLlmSaveFromLlm(parsed, images, structureId, '');
-            statusEl.textContent = '';
-            statusEl.classList.add('hidden');
-            closeModal('structureThingModal');
-            loadStructureThings(structureId);
-        }
-
+        var modal       = document.getElementById('structureThingModal');
+        var structureId = modal ? modal.dataset.structureId : null;
+        await structureThingSendToLlm(images, structureId);
     } catch (err) {
         console.error('Structure thing ID error:', err);
         statusEl.textContent = 'Error: ' + err.message;
@@ -1079,6 +1023,102 @@ async function structureThingHandleFromPicture(files) {
         var camInput = document.getElementById('structureThingCamInput');
         if (picInput) picInput.value = '';
         if (camInput) camInput.value = '';
+    }
+}
+
+/**
+ * Send already-compressed base64 images to the LLM for structure thing identification.
+ * Called from both the in-modal flow and the staging (+Photo) flow.
+ * @param {string[]} images      - Array of base64 data URL strings (already compressed)
+ * @param {string}   structureId - Parent structure ID for the new item
+ */
+async function structureThingSendToLlm(images, structureId) {
+    var statusEl   = document.getElementById('structureThingPicStatus');
+    var saveBtn    = document.getElementById('structureThingModalSaveBtn');
+    var galleryBtn = document.getElementById('structureThingPicGalleryBtn');
+    var cameraBtn  = document.getElementById('structureThingPicCameraBtn');
+    var toggleEl   = document.getElementById('structureThingShowResponseToggle');
+    var modalEl    = document.getElementById('structureThingModal');
+    var modalOpen  = modalEl && modalEl.classList.contains('active');
+
+    if (modalOpen && statusEl) {
+        statusEl.textContent = 'Identifying item\u2026';
+        statusEl.classList.remove('hidden');
+        if (saveBtn)    saveBtn.disabled    = true;
+        if (galleryBtn) galleryBtn.disabled = true;
+        if (cameraBtn)  cameraBtn.disabled  = true;
+    }
+
+    try {
+        // Load LLM config
+        var cfgDoc = await userCol('settings').doc('llm').get();
+        var cfg    = cfgDoc.exists ? cfgDoc.data() : null;
+        if (!cfg || !cfg.provider || !cfg.apiKey) {
+            if (modalOpen && statusEl) statusEl.textContent = 'No LLM configured. Go to Settings.';
+            else alert('No LLM configured. Go to Settings.');
+            return;
+        }
+        var llm = LLM_PROVIDERS[cfg.provider];
+        if (!llm) {
+            if (modalOpen && statusEl) statusEl.textContent = 'Unknown LLM provider.';
+            else alert('Unknown LLM provider.');
+            return;
+        }
+
+        // Build prompt — append personal comment if user filled it in
+        var commentInput = document.getElementById('structureThingCommentInput');
+        var comment      = commentInput ? commentInput.value.trim() : '';
+        var prompt       = comment
+            ? STRUCTURE_THING_ID_PROMPT + '\n\nAdditional context from the owner: ' + comment
+            : STRUCTURE_THING_ID_PROMPT;
+
+        // Build content: text prompt + already-compressed images
+        var content = [{ type: 'text', text: prompt }];
+        images.forEach(function(url) {
+            content.push({ type: 'image_url', image_url: { url: url } });
+        });
+
+        var activeModel  = cfg.model || llm.model;
+        var responseText = await chatCallOpenAICompat(llm, cfg.apiKey, content, activeModel);
+        var parsed       = structureThingParseLlmResponse(responseText);
+
+        if (modalOpen && toggleEl && toggleEl.checked) {
+            structureLlmPending = { parsed: parsed, images: images, structureId: structureId };
+            if (statusEl) { statusEl.textContent = ''; statusEl.classList.add('hidden'); }
+            closeModal('structureThingModal');
+            structureThingShowReviewModal(prompt, responseText, parsed);
+        } else {
+            if (!parsed.name && parsed.additionalMessage) {
+                if (modalOpen && statusEl) {
+                    statusEl.textContent = '\u26a0 ' + parsed.additionalMessage;
+                } else {
+                    alert('\u26a0 ' + parsed.additionalMessage);
+                }
+                return;
+            }
+            await structureThingLlmSaveFromLlm(parsed, images, structureId, '');
+            if (modalOpen && statusEl) { statusEl.textContent = ''; statusEl.classList.add('hidden'); }
+            closeModal('structureThingModal');
+            if (structureId) loadStructureThings(structureId);
+        }
+
+    } catch (err) {
+        console.error('Structure thing ID error:', err);
+        if (modalOpen && statusEl) {
+            statusEl.textContent = 'Error: ' + err.message;
+        } else {
+            alert('Error identifying item: ' + err.message);
+        }
+    } finally {
+        if (modalOpen) {
+            if (saveBtn)    saveBtn.disabled    = false;
+            if (galleryBtn) galleryBtn.disabled = false;
+            if (cameraBtn)  cameraBtn.disabled  = false;
+            var picInput = document.getElementById('structureThingPicInput');
+            var camInput = document.getElementById('structureThingCamInput');
+            if (picInput) picInput.value = '';
+            if (camInput) camInput.value = '';
+        }
     }
 }
 
@@ -1202,27 +1242,34 @@ document.getElementById('structureModalDeleteBtn').addEventListener('click', fun
  * @param {string}   btnId   - button element ID to show loading state
  * @param {string}   inputId - file input element ID to reset after use
  */
-async function structureQuickAddThingFromPhoto(files, btnId, inputId) {
-    if (!files || files.length === 0) return;
+/**
+ * Quick-add a structure thing from the "+Photo" button on the structure detail page.
+ * Opens the shared staging modal so the user can take up to 4 photos with crop,
+ * then sends them all to the LLM at once. Saves directly without review.
+ * @param {string} btnId   - button element ID (kept for signature compat)
+ * @param {string} inputId - camera input ID (kept for compat)
+ */
+function structureQuickAddThingFromPhoto(btnId, inputId) {
+    if (!window.currentStructure) { alert('No structure selected.'); return; }
+    var structureId = window.currentStructure.id;
+    openLlmPhotoStaging('Identify Structure Item', function(images) {
+        _structureQuickSendToLlm(images, structureId, btnId, inputId);
+    });
+}
 
-    // Show crop preview for the first (primary) image before identifying
-    var processedFile;
-    try {
-        processedFile = await showCropPreview(files[0]);
-    } catch (e) { return; } // User cancelled
-
+/**
+ * Internal helper: send staged images to LLM and save directly (no review modal).
+ * @param {string[]} images      - Already-compressed base64 data URLs
+ * @param {string}   structureId - Parent structure ID
+ * @param {string}   btnId       - button element ID to show loading state
+ * @param {string}   inputId     - camera input ID to reset after use
+ */
+async function _structureQuickSendToLlm(images, structureId, btnId, inputId) {
     var btn = document.getElementById(btnId);
     var origText = btn ? btn.textContent : '+Photo';
     if (btn) { btn.textContent = 'Identifying\u2026'; btn.disabled = true; }
 
     try {
-        // Compress the (possibly cropped) first image plus any additional images
-        var images = [];
-        images.push(await compressImage(processedFile));
-        for (var i = 1; i < Math.min(files.length, 4); i++) {
-            images.push(await compressImage(files[i]));
-        }
-
         // Load LLM config
         var cfgDoc = await userCol('settings').doc('llm').get();
         var cfg = cfgDoc.exists ? cfgDoc.data() : null;
@@ -1230,15 +1277,13 @@ async function structureQuickAddThingFromPhoto(files, btnId, inputId) {
         var llm = LLM_PROVIDERS[cfg.provider];
         if (!llm) { alert('Unknown LLM provider.'); return; }
 
-        // Build content: prompt + images
-        // THING_ID_PROMPT is defined in house.js (loaded before structures.js)
+        // Build content: THING_ID_PROMPT (from house.js) + already-compressed images
         var content = [{ type: 'text', text: THING_ID_PROMPT }];
         images.forEach(function(url) {
             content.push({ type: 'image_url', image_url: { url: url } });
         });
         var activeModel = cfg.model || llm.model;
         var responseText = await chatCallOpenAICompat(llm, cfg.apiKey, content, activeModel);
-        // houseParseLlmResponse is globally accessible (defined in house.js)
         var parsed = houseParseLlmResponse(responseText);
 
         if (!parsed.name && parsed.additionalMessage) {
@@ -1249,9 +1294,6 @@ async function structureQuickAddThingFromPhoto(files, btnId, inputId) {
             alert('Could not identify item. Try a clearer photo.');
             return;
         }
-
-        if (!window.currentStructure) { alert('No structure selected.'); return; }
-        var structureId = window.currentStructure.id;
 
         // Save to structureThings collection
         var itemData = {
@@ -1293,13 +1335,21 @@ document.getElementById('structureAddThingBtn').addEventListener('click', functi
     }
 });
 
-// "+Photo" quick-add button for structure things
+// "+Photo" quick-add button for structure things — opens staging modal directly
 document.getElementById('quickAddStructureThingPhotoBtn').addEventListener('click', function() {
-    document.getElementById('quickStructureThingCamInput').click();
+    structureQuickAddThingFromPhoto('quickAddStructureThingPhotoBtn', 'quickStructureThingCamInput');
 });
+// Legacy camera input kept wired for any remaining direct trigger path
 document.getElementById('quickStructureThingCamInput').addEventListener('change', function() {
     if (this.files && this.files.length > 0) {
-        structureQuickAddThingFromPhoto(this.files, 'quickAddStructureThingPhotoBtn', 'quickStructureThingCamInput');
+        (async function(files) {
+            var structureId = window.currentStructure ? window.currentStructure.id : null;
+            var images = [];
+            for (var i = 0; i < Math.min(files.length, 4); i++) {
+                images.push(await compressImage(files[i]));
+            }
+            await structureThingSendToLlm(images, structureId);
+        })(this.files);
     }
 });
 
@@ -1355,13 +1405,22 @@ document.getElementById('structureThingModalCancelBtn').addEventListener('click'
     closeModal('structureThingModal');
 });
 
-// Structure Thing From Picture inputs
+// Structure Thing From Picture inputs — now open the staging modal
 document.getElementById('structureThingPicGalleryBtn').addEventListener('click', function() {
-    document.getElementById('structureThingPicInput').click();
+    var modal       = document.getElementById('structureThingModal');
+    var structureId = modal ? modal.dataset.structureId : null;
+    openLlmPhotoStaging('Identify Structure Item', function(images) {
+        structureThingSendToLlm(images, structureId);
+    });
 });
 document.getElementById('structureThingPicCameraBtn').addEventListener('click', function() {
-    document.getElementById('structureThingCamInput').click();
+    var modal       = document.getElementById('structureThingModal');
+    var structureId = modal ? modal.dataset.structureId : null;
+    openLlmPhotoStaging('Identify Structure Item', function(images) {
+        structureThingSendToLlm(images, structureId);
+    });
 });
+// Legacy file inputs kept wired for any remaining direct trigger path
 document.getElementById('structureThingPicInput').addEventListener('change', function() {
     if (this.files && this.files.length > 0) structureThingHandleFromPicture(this.files);
 });

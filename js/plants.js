@@ -903,17 +903,12 @@ async function plantCheckLlmForModal() {
 }
 
 /**
- * Main handler: compress selected images, call the LLM, then either open the
- * review modal (if "Show response" is checked) or save the plant directly.
+ * Legacy handler: compress selected images from the in-modal inputs, then send to LLM.
+ * The gallery/camera buttons now open the staging flow instead, so this handles
+ * any remaining direct file-input path.
  */
 async function plantHandleFromPicture(files) {
     if (!files || files.length === 0) return;
-
-    // Show crop preview for the first (primary) image before identifying
-    var processedFile;
-    try {
-        processedFile = await showCropPreview(files[0]);
-    } catch (e) { return; } // User cancelled
 
     var statusEl   = document.getElementById('plantPicStatus');
     var saveBtn    = document.getElementById('plantModalSaveBtn');
@@ -921,7 +916,6 @@ async function plantHandleFromPicture(files) {
     var cameraBtn  = document.getElementById('plantPicCameraBtn');
     var modal      = document.getElementById('plantModal');
 
-    // Disable controls while working
     statusEl.textContent = 'Identifying plant\u2026';
     statusEl.classList.remove('hidden');
     saveBtn.disabled    = true;
@@ -929,61 +923,12 @@ async function plantHandleFromPicture(files) {
     cameraBtn.disabled  = true;
 
     try {
-        // Compress the (possibly cropped) first image plus any additional images
         var images = [];
-        images.push(await compressImage(processedFile));
-        for (var i = 1; i < Math.min(files.length, 4); i++) {
+        for (var i = 0; i < Math.min(files.length, 4); i++) {
             images.push(await compressImage(files[i]));
         }
-
-        // Load LLM config
-        var cfgDoc  = await userCol('settings').doc('llm').get();
-        var cfg     = cfgDoc.exists ? cfgDoc.data() : null;
-        if (!cfg || !cfg.provider || !cfg.apiKey) {
-            statusEl.textContent = 'No LLM configured. Go to Settings.';
-            return;
-        }
-        var llm = LLM_PROVIDERS[cfg.provider];
-        if (!llm) { statusEl.textContent = 'Unknown LLM provider.'; return; }
-
-        // Optionally append city/state location context to the prompt
-        var mainDoc   = await userCol('settings').doc('main').get();
-        var cityState = (mainDoc.exists && mainDoc.data().cityState) ? mainDoc.data().cityState.trim() : '';
-        var prompt    = cityState
-            ? PLANT_ID_PROMPT + '\n\nLocation: ' + cityState
-            : PLANT_ID_PROMPT;
-
-        // Build the message content: prompt text + images
-        var content = [{ type: 'text', text: prompt }];
-        images.forEach(function(url) {
-            content.push({ type: 'image_url', image_url: { url: url } });
-        });
-
-        var activeModel  = cfg.model || llm.model;
-        var responseText = await chatCallOpenAICompat(llm, cfg.apiKey, content, activeModel);
-        var parsed       = plantParseLlmResponse(responseText);
-        var zoneId       = modal.dataset.zoneId;
-
-        if (document.getElementById('plantShowResponseToggle').checked) {
-            // Store pending and open review modal
-            plantLlmPending = { parsed: parsed, images: images, zoneId: zoneId };
-            statusEl.textContent = '';
-            statusEl.classList.add('hidden');
-            closeModal('plantModal');
-            plantShowReviewModal(prompt, responseText, parsed);
-        } else {
-            // Check for complete identification failure
-            if (!parsed.name && parsed.additionalMessage) {
-                statusEl.textContent = '\u26a0 ' + parsed.additionalMessage;
-                return;
-            }
-            await plantSaveFromLlm(parsed, images, zoneId, '');
-            statusEl.textContent = '';
-            statusEl.classList.add('hidden');
-            closeModal('plantModal');
-            refreshCurrentView();
-        }
-
+        var zoneId = modal.dataset.zoneId;
+        await plantSendToLlm(images, zoneId);
     } catch (err) {
         console.error('Plant ID error:', err);
         statusEl.textContent = 'Error: ' + err.message;
@@ -993,6 +938,102 @@ async function plantHandleFromPicture(files) {
         cameraBtn.disabled  = false;
         document.getElementById('plantPicInput').value = '';
         document.getElementById('plantCamInput').value = '';
+    }
+}
+
+/**
+ * Send already-compressed base64 images to the LLM for plant identification.
+ * Called from both the in-modal flow and the staging (+Photo) flow.
+ * @param {string[]} images - Array of base64 data URL strings (already compressed)
+ * @param {string}   zoneId - Zone ID to assign the new plant to
+ */
+async function plantSendToLlm(images, zoneId) {
+    var statusEl   = document.getElementById('plantPicStatus');
+    var saveBtn    = document.getElementById('plantModalSaveBtn');
+    var galleryBtn = document.getElementById('plantPicGalleryBtn');
+    var cameraBtn  = document.getElementById('plantPicCameraBtn');
+    var modal      = document.getElementById('plantModal');
+
+    var modalOpen = modal && modal.classList.contains('active');
+    if (modalOpen && statusEl) {
+        statusEl.textContent = 'Identifying plant\u2026';
+        statusEl.classList.remove('hidden');
+        if (saveBtn)    saveBtn.disabled    = true;
+        if (galleryBtn) galleryBtn.disabled = true;
+        if (cameraBtn)  cameraBtn.disabled  = true;
+    }
+
+    try {
+        // Load LLM config
+        var cfgDoc  = await userCol('settings').doc('llm').get();
+        var cfg     = cfgDoc.exists ? cfgDoc.data() : null;
+        if (!cfg || !cfg.provider || !cfg.apiKey) {
+            if (modalOpen && statusEl) statusEl.textContent = 'No LLM configured. Go to Settings.';
+            else alert('No LLM configured. Go to Settings.');
+            return;
+        }
+        var llm = LLM_PROVIDERS[cfg.provider];
+        if (!llm) {
+            if (modalOpen && statusEl) statusEl.textContent = 'Unknown LLM provider.';
+            else alert('Unknown LLM provider.');
+            return;
+        }
+
+        // Optionally append city/state location context to the prompt
+        var mainDoc   = await userCol('settings').doc('main').get();
+        var cityState = (mainDoc.exists && mainDoc.data().cityState) ? mainDoc.data().cityState.trim() : '';
+        var prompt    = cityState
+            ? PLANT_ID_PROMPT + '\n\nLocation: ' + cityState
+            : PLANT_ID_PROMPT;
+
+        // Build the message content: prompt text + already-compressed images
+        var content = [{ type: 'text', text: prompt }];
+        images.forEach(function(url) {
+            content.push({ type: 'image_url', image_url: { url: url } });
+        });
+
+        var activeModel  = cfg.model || llm.model;
+        var responseText = await chatCallOpenAICompat(llm, cfg.apiKey, content, activeModel);
+        var parsed       = plantParseLlmResponse(responseText);
+
+        var showToggle = document.getElementById('plantShowResponseToggle');
+        if (modalOpen && showToggle && showToggle.checked) {
+            plantLlmPending = { parsed: parsed, images: images, zoneId: zoneId };
+            if (statusEl) { statusEl.textContent = ''; statusEl.classList.add('hidden'); }
+            closeModal('plantModal');
+            plantShowReviewModal(prompt, responseText, parsed);
+        } else {
+            if (!parsed.name && parsed.additionalMessage) {
+                if (modalOpen && statusEl) {
+                    statusEl.textContent = '\u26a0 ' + parsed.additionalMessage;
+                } else {
+                    alert('\u26a0 ' + parsed.additionalMessage);
+                }
+                return;
+            }
+            await plantSaveFromLlm(parsed, images, zoneId, '');
+            if (modalOpen && statusEl) { statusEl.textContent = ''; statusEl.classList.add('hidden'); }
+            closeModal('plantModal');
+            refreshCurrentView();
+        }
+
+    } catch (err) {
+        console.error('Plant ID error:', err);
+        if (modalOpen && statusEl) {
+            statusEl.textContent = 'Error: ' + err.message;
+        } else {
+            alert('Error identifying plant: ' + err.message);
+        }
+    } finally {
+        if (modalOpen) {
+            if (saveBtn)    saveBtn.disabled    = false;
+            if (galleryBtn) galleryBtn.disabled = false;
+            if (cameraBtn)  cameraBtn.disabled  = false;
+            var picIn = document.getElementById('plantPicInput');
+            var camIn = document.getElementById('plantCamInput');
+            if (picIn) picIn.value = '';
+            if (camIn) camIn.value = '';
+        }
     }
 }
 
@@ -1099,33 +1140,29 @@ async function plantSaveFromLlm(parsed, images, zoneId, nameOverride) {
 // ---------- Quick-Add Plant from Photo ----------
 
 /**
- * Quick-add a plant from camera without showing the review modal.
- * Triggered by the "+Photo" button on the zone page.
- * Compresses the image, calls the LLM, and saves directly — no review step.
- * @param {FileList} files - The image files from the camera input.
- * @param {string} zoneId - The zone to add the plant to.
+ * Quick-add a plant from the "+Photo" button on the zone page.
+ * Opens the shared staging modal so the user can take up to 4 photos with crop,
+ * then sends them all to the LLM at once. No separate review modal — saves directly.
+ * @param {string} zoneId - The zone ID to add the plant to.
  */
-async function plantQuickAddFromPhoto(files, zoneId) {
-    if (!files || files.length === 0) return;
+function plantQuickAddFromPhoto(zoneId) {
+    openLlmPhotoStaging('Identify Plant', function(images) {
+        // images are already-compressed base64 strings from the staging flow
+        _plantQuickSendToLlm(images, zoneId);
+    });
+}
 
-    // Show crop preview for the first (primary) image before identifying
-    var processedFile;
-    try {
-        processedFile = await showCropPreview(files[0]);
-    } catch (e) { return; } // User cancelled
-
+/**
+ * Internal helper: send staged images to LLM and save directly (no review modal).
+ * @param {string[]} images - Already-compressed base64 data URLs
+ * @param {string}   zoneId - Zone ID for the new plant
+ */
+async function _plantQuickSendToLlm(images, zoneId) {
     var btn = document.getElementById('quickAddPlantPhotoBtn');
     var origText = btn ? btn.textContent : '+Photo';
     if (btn) { btn.textContent = 'Identifying\u2026'; btn.disabled = true; }
 
     try {
-        // Compress the (possibly cropped) first image plus any additional images
-        var images = [];
-        images.push(await compressImage(processedFile));
-        for (var i = 1; i < Math.min(files.length, 4); i++) {
-            images.push(await compressImage(files[i]));
-        }
-
         // Load LLM config
         var cfgDoc = await userCol('settings').doc('llm').get();
         var cfg = cfgDoc.exists ? cfgDoc.data() : null;
@@ -1141,7 +1178,7 @@ async function plantQuickAddFromPhoto(files, zoneId) {
         var cityState = (mainDoc.exists && mainDoc.data().cityState) ? mainDoc.data().cityState.trim() : '';
         var prompt = cityState ? PLANT_ID_PROMPT + '\n\nLocation: ' + cityState : PLANT_ID_PROMPT;
 
-        // Build content: prompt text + images
+        // Build content: prompt text + already-compressed images
         var content = [{ type: 'text', text: prompt }];
         images.forEach(function(url) {
             content.push({ type: 'image_url', image_url: { url: url } });
@@ -1184,15 +1221,25 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // "+Photo" quick-add button on zone detail page
+    // "+Photo" quick-add button on zone detail page — opens staging modal directly
     document.getElementById('quickAddPlantPhotoBtn').addEventListener('click', function() {
-        document.getElementById('quickPlantCamInput').click();
+        var zoneId = window.currentZone ? window.currentZone.id : null;
+        if (!zoneId) { alert('No zone selected.'); return; }
+        plantQuickAddFromPhoto(zoneId);
     });
+    // Legacy camera input kept wired in case other paths fire it (staging replaces primary use)
     document.getElementById('quickPlantCamInput').addEventListener('change', function() {
         if (this.files && this.files.length > 0) {
             var zoneId = window.currentZone ? window.currentZone.id : null;
             if (!zoneId) { alert('No zone selected.'); return; }
-            plantQuickAddFromPhoto(this.files, zoneId);
+            // Compress and send directly for legacy path
+            (async function() {
+                var images = [];
+                for (var i = 0; i < Math.min(this.files.length, 4); i++) {
+                    images.push(await compressImage(this.files[i]));
+                }
+                await _plantQuickSendToLlm(images, zoneId);
+            }.bind(this))();
         }
     });
 
@@ -1288,13 +1335,22 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // From Picture — gallery and camera buttons open the hidden file inputs
+    // From Picture — gallery and camera buttons now open the staging modal
     document.getElementById('plantPicGalleryBtn').addEventListener('click', function() {
-        document.getElementById('plantPicInput').click();
+        var modal  = document.getElementById('plantModal');
+        var zoneId = modal ? modal.dataset.zoneId : null;
+        openLlmPhotoStaging('Identify Plant', function(images) {
+            plantSendToLlm(images, zoneId);
+        });
     });
     document.getElementById('plantPicCameraBtn').addEventListener('click', function() {
-        document.getElementById('plantCamInput').click();
+        var modal  = document.getElementById('plantModal');
+        var zoneId = modal ? modal.dataset.zoneId : null;
+        openLlmPhotoStaging('Identify Plant', function(images) {
+            plantSendToLlm(images, zoneId);
+        });
     });
+    // Legacy file inputs kept wired for any remaining direct trigger path
     document.getElementById('plantPicInput').addEventListener('change', function() {
         if (this.files && this.files.length > 0) plantHandleFromPicture(this.files);
     });

@@ -562,19 +562,45 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.target === this) closeModal('weedZoneModal');
     });
 
-    // From Picture — gallery and camera buttons
+    // From Picture — gallery and camera buttons inside the Add Weed modal
+    // These use the staging flow so the user can add up to 4 photos with crop support.
     document.getElementById('weedPicGalleryBtn').addEventListener('click', function() {
-        document.getElementById('weedPicInput').click();
+        openLlmPhotoStaging('Identify Weed', function(images) {
+            weedSendToLlm(images);
+        });
     });
     document.getElementById('weedPicCameraBtn').addEventListener('click', function() {
-        document.getElementById('weedCamInput').click();
+        openLlmPhotoStaging('Identify Weed', function(images) {
+            weedSendToLlm(images);
+        });
     });
+    // Legacy file inputs kept in HTML but no longer used as primary triggers.
+    // Kept wired for safety in case another code path fires them.
     document.getElementById('weedPicInput').addEventListener('change', function() {
         if (this.files && this.files.length > 0) weedHandleFromPicture(this.files);
     });
     document.getElementById('weedCamInput').addEventListener('change', function() {
         if (this.files && this.files.length > 0) weedHandleFromPicture(this.files);
     });
+
+    // "+Photo" button on the weeds LIST page — quick-identify without opening Add Weed modal
+    var weedQuickPhotoBtn = document.getElementById('weedQuickPhotoBtn');
+    if (weedQuickPhotoBtn) {
+        weedQuickPhotoBtn.addEventListener('click', async function() {
+            // Check LLM configured before opening staging
+            try {
+                var doc = await userCol('settings').doc('llm').get();
+                var ok  = doc.exists && doc.data().provider && doc.data().apiKey;
+                if (!ok) { alert('LLM not configured. Go to Settings.'); return; }
+            } catch (e) {
+                alert('Error checking LLM config. Please try again.');
+                return;
+            }
+            openLlmPhotoStaging('Identify Weed', function(images) {
+                weedSendToLlm(images);
+            });
+        });
+    }
 
     // Review modal — Add It
     document.getElementById('weedReviewAddBtn').addEventListener('click', async function() {
@@ -658,7 +684,10 @@ async function weedCheckLlmForModal() {
 }
 
 /**
- * Handle file selection for weed identification.
+ * Handle file selection for weed identification (from within the Add Weed modal).
+ * Images are already-compressed base64 strings (passed from the staging flow, or
+ * directly from the in-modal gallery/camera inputs for backward compatibility).
+ * @param {FileList|File[]} files - Raw files from the in-modal inputs (legacy path)
  */
 async function weedHandleFromPicture(files) {
     if (!files || files.length === 0) return;
@@ -680,53 +709,7 @@ async function weedHandleFromPicture(files) {
         for (var i = 0; i < Math.min(files.length, 4); i++) {
             images.push(await compressImage(files[i]));
         }
-
-        // Load LLM config
-        var cfgDoc = await userCol('settings').doc('llm').get();
-        var cfg    = cfgDoc.exists ? cfgDoc.data() : null;
-        if (!cfg || !cfg.provider || !cfg.apiKey) {
-            statusEl.textContent = 'No LLM configured. Go to Settings.';
-            return;
-        }
-        var llm = LLM_PROVIDERS[cfg.provider];
-        if (!llm) { statusEl.textContent = 'Unknown LLM provider.'; return; }
-
-        // Append city/state and today's date for seasonal/regional context
-        var mainDoc   = await userCol('settings').doc('main').get();
-        var cityState = (mainDoc.exists && mainDoc.data().cityState) ? mainDoc.data().cityState.trim() : '';
-        var todayStr  = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-        var prompt    = WEED_ID_PROMPT;
-        if (cityState) prompt += '\n\nLocation: ' + cityState;
-        prompt += '\nThis picture was taken ' + todayStr + '.';
-
-        // Build content: prompt + images
-        var content = [{ type: 'text', text: prompt }];
-        images.forEach(function(url) {
-            content.push({ type: 'image_url', image_url: { url: url } });
-        });
-
-        var activeModel  = cfg.model || llm.model;
-        var responseText = await chatCallOpenAICompat(llm, cfg.apiKey, content, activeModel);
-        var parsed       = weedParseLlmResponse(responseText);
-
-        if (document.getElementById('weedShowResponseToggle').checked) {
-            weedLlmPending = { parsed: parsed, images: images };
-            statusEl.textContent = '';
-            statusEl.classList.add('hidden');
-            closeModal('weedModal');
-            weedShowReviewModal(prompt, responseText, parsed);
-        } else {
-            if (!parsed.name && parsed.additionalMessage) {
-                statusEl.textContent = '\u26a0 ' + parsed.additionalMessage;
-                return;
-            }
-            await weedSaveFromLlm(parsed, images, '');
-            statusEl.textContent = '';
-            statusEl.classList.add('hidden');
-            closeModal('weedModal');
-            loadWeedsList();
-        }
-
+        await weedSendToLlm(images);
     } catch (err) {
         console.error('Weed ID error:', err);
         statusEl.textContent = 'Error: ' + err.message;
@@ -736,6 +719,103 @@ async function weedHandleFromPicture(files) {
         cameraBtn.disabled  = false;
         document.getElementById('weedPicInput').value = '';
         document.getElementById('weedCamInput').value = '';
+    }
+}
+
+/**
+ * Send already-compressed base64 images to the LLM for weed identification.
+ * Called from both the in-modal flow (weedHandleFromPicture) and the staging flow.
+ * @param {string[]} images - Array of base64 data URL strings (already compressed)
+ */
+async function weedSendToLlm(images) {
+    var statusEl   = document.getElementById('weedPicStatus');
+    var saveBtn    = document.getElementById('weedModalSaveBtn');
+    var galleryBtn = document.getElementById('weedPicGalleryBtn');
+    var cameraBtn  = document.getElementById('weedPicCameraBtn');
+
+    // Show status in modal if it's open, otherwise we run silently
+    var modalOpen = document.getElementById('weedModal') &&
+                    document.getElementById('weedModal').classList.contains('active');
+    if (modalOpen && statusEl) {
+        statusEl.textContent = 'Identifying weed\u2026';
+        statusEl.classList.remove('hidden');
+        if (saveBtn)    saveBtn.disabled    = true;
+        if (galleryBtn) galleryBtn.disabled = true;
+        if (cameraBtn)  cameraBtn.disabled  = true;
+    }
+
+    try {
+        // Load LLM config
+        var cfgDoc = await userCol('settings').doc('llm').get();
+        var cfg    = cfgDoc.exists ? cfgDoc.data() : null;
+        if (!cfg || !cfg.provider || !cfg.apiKey) {
+            if (modalOpen && statusEl) statusEl.textContent = 'No LLM configured. Go to Settings.';
+            else alert('No LLM configured. Go to Settings.');
+            return;
+        }
+        var llm = LLM_PROVIDERS[cfg.provider];
+        if (!llm) {
+            if (modalOpen && statusEl) statusEl.textContent = 'Unknown LLM provider.';
+            else alert('Unknown LLM provider.');
+            return;
+        }
+
+        // Append city/state and today's date for seasonal/regional context
+        var mainDoc   = await userCol('settings').doc('main').get();
+        var cityState = (mainDoc.exists && mainDoc.data().cityState) ? mainDoc.data().cityState.trim() : '';
+        var todayStr  = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        var prompt    = WEED_ID_PROMPT;
+        if (cityState) prompt += '\n\nLocation: ' + cityState;
+        prompt += '\nThis picture was taken ' + todayStr + '.';
+
+        // Build content: prompt + images (already compressed base64)
+        var content = [{ type: 'text', text: prompt }];
+        images.forEach(function(url) {
+            content.push({ type: 'image_url', image_url: { url: url } });
+        });
+
+        var activeModel  = cfg.model || llm.model;
+        var responseText = await chatCallOpenAICompat(llm, cfg.apiKey, content, activeModel);
+        var parsed       = weedParseLlmResponse(responseText);
+
+        var showToggle = document.getElementById('weedShowResponseToggle');
+        if (modalOpen && showToggle && showToggle.checked) {
+            weedLlmPending = { parsed: parsed, images: images };
+            if (statusEl) { statusEl.textContent = ''; statusEl.classList.add('hidden'); }
+            closeModal('weedModal');
+            weedShowReviewModal(prompt, responseText, parsed);
+        } else {
+            if (!parsed.name && parsed.additionalMessage) {
+                if (modalOpen && statusEl) {
+                    statusEl.textContent = '\u26a0 ' + parsed.additionalMessage;
+                } else {
+                    alert('\u26a0 ' + parsed.additionalMessage);
+                }
+                return;
+            }
+            await weedSaveFromLlm(parsed, images, '');
+            if (modalOpen && statusEl) { statusEl.textContent = ''; statusEl.classList.add('hidden'); }
+            closeModal('weedModal');
+            loadWeedsList();
+        }
+
+    } catch (err) {
+        console.error('Weed ID error:', err);
+        if (modalOpen && statusEl) {
+            statusEl.textContent = 'Error: ' + err.message;
+        } else {
+            alert('Error identifying weed: ' + err.message);
+        }
+    } finally {
+        if (modalOpen) {
+            if (saveBtn)    saveBtn.disabled    = false;
+            if (galleryBtn) galleryBtn.disabled = false;
+            if (cameraBtn)  cameraBtn.disabled  = false;
+            var picIn = document.getElementById('weedPicInput');
+            var camIn = document.getElementById('weedCamInput');
+            if (picIn) picIn.value = '';
+            if (camIn) camIn.value = '';
+        }
     }
 }
 

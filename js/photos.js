@@ -619,3 +619,216 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 'image/jpeg', 0.92);
     });
 });
+
+// ============================================================
+// SHARED PHOTO STAGING + CROP SYSTEM
+// Used by all LLM "from picture" flows (weeds, plants, things, etc.)
+// Each flow calls openLlmPhotoStaging(title, callback).
+// The user takes up to 4 photos, each goes through a crop step,
+// then presses "Send to AI" which fires the callback with
+// an array of already-compressed base64 data URL strings.
+// ============================================================
+
+var _stagingQueue    = [];    // Array of base64 data URLs (already compressed)
+var _stagingCallback = null;  // function(images[]) called when user taps Send
+var STAGING_MAX      = 4;
+
+var _stagingCropperInstance = null;  // Active Cropper.js instance for staging crop modal
+var _stagingCropResolve     = null;  // Resolve fn for the pending _showStagingCropModal Promise
+
+/**
+ * Opens the photo staging modal and immediately triggers the camera for the first photo.
+ * @param {string}   title  - Title shown in the staging modal (e.g. "Add Weed Photos")
+ * @param {function} onSend - Callback receiving array of base64 compressed image strings
+ */
+function openLlmPhotoStaging(title, onSend) {
+    _stagingQueue    = [];
+    _stagingCallback = onSend;
+    document.getElementById('photoStagingTitle').textContent = title || 'Add Photos';
+    _updateStagingGrid();
+    openModal('photoStagingModal');
+    // Trigger camera immediately for first photo
+    var camInput = document.getElementById('stagingCameraInput');
+    camInput.value = '';
+    camInput.click();
+}
+
+/**
+ * Called when the staging camera input fires (user took or selected a photo).
+ * Compresses the raw file, then shows the staging crop modal before adding to queue.
+ * @param {File} file - The image file captured
+ */
+async function _stagingHandleCamera(file) {
+    if (!file) return;
+    try {
+        // Compress first to keep things manageable in crop modal
+        var compressed = await compressImage(file);
+        // Show staging crop modal — user can crop or use as-is
+        var finalImage = await _showStagingCropModal(compressed);
+        if (finalImage === null) return; // user cancelled crop
+        _stagingQueue.push(finalImage);
+        _updateStagingGrid();
+    } catch (e) {
+        console.error('Staging camera error:', e);
+    }
+}
+
+/**
+ * Shows the staging crop modal for one image.
+ * Returns a Promise that resolves with the final base64 string, or null if cancelled.
+ * @param {string} imageDataUrl - Compressed base64 data URL
+ * @returns {Promise<string|null>}
+ */
+function _showStagingCropModal(imageDataUrl) {
+    return new Promise(function(resolve) {
+        _stagingCropResolve = resolve;
+        var img = document.getElementById('stagingCropImage');
+        img.src = imageDataUrl;
+
+        // Destroy any existing Cropper instance before creating a new one
+        if (_stagingCropperInstance) {
+            try { _stagingCropperInstance.destroy(); } catch (e) {}
+            _stagingCropperInstance = null;
+        }
+
+        openModal('stagingCropModal');
+
+        // Init Cropper after a short delay to let the modal render
+        setTimeout(function() {
+            try {
+                _stagingCropperInstance = new Cropper(img, {
+                    viewMode:     1,
+                    autoCropArea: 0.85,
+                    responsive:   true,
+                    movable:      true,
+                    zoomable:     true
+                });
+            } catch (e) {
+                console.error('Staging Cropper init failed:', e);
+            }
+        }, 150);
+    });
+}
+
+/** Apply the current crop selection and resolve with the cropped JPEG data URL. */
+function _stagingCropApply() {
+    if (!_stagingCropperInstance || !_stagingCropResolve) return;
+    try {
+        var canvas = _stagingCropperInstance.getCroppedCanvas({ maxWidth: 1200, maxHeight: 1200 });
+        var result = canvas.toDataURL('image/jpeg', 0.85);
+        _stagingCropCleanup();
+        _stagingCropResolve(result);
+    } catch (e) {
+        console.error('Staging crop apply error:', e);
+        _stagingCropSkip();
+    }
+}
+
+/** Use the image as-is (no crop) — resolves with the original data URL. */
+function _stagingCropSkip() {
+    if (!_stagingCropResolve) return;
+    var src = document.getElementById('stagingCropImage').src;
+    _stagingCropCleanup();
+    _stagingCropResolve(src);
+}
+
+/** Cancel — discard this photo and resolve with null. */
+function _stagingCropCancel() {
+    if (!_stagingCropResolve) return;
+    _stagingCropCleanup();
+    _stagingCropResolve(null);
+}
+
+/** Destroy the Cropper instance and close the staging crop modal. */
+function _stagingCropCleanup() {
+    if (_stagingCropperInstance) {
+        try { _stagingCropperInstance.destroy(); } catch (e) {}
+        _stagingCropperInstance = null;
+    }
+    closeModal('stagingCropModal');
+}
+
+/**
+ * Rebuilds the staging grid UI to reflect the current _stagingQueue.
+ * Updates the thumbnail list, count label, and button states.
+ */
+function _updateStagingGrid() {
+    var grid     = document.getElementById('photoStagingGrid');
+    var addBtn   = document.getElementById('photoStagingAddBtn');
+    var sendBtn  = document.getElementById('photoStagingSendBtn');
+    var countEl  = document.getElementById('photoStagingCount');
+
+    grid.innerHTML = '';
+
+    _stagingQueue.forEach(function(imgData, i) {
+        var wrap  = document.createElement('div');
+        wrap.className = 'staging-thumb-wrap';
+
+        var imgEl = document.createElement('img');
+        imgEl.src       = imgData;
+        imgEl.className = 'staging-thumb';
+
+        // Remove-photo button (×)
+        var rmBtn = document.createElement('button');
+        rmBtn.className = 'staging-thumb-remove';
+        rmBtn.innerHTML = '&times;';
+        rmBtn.title     = 'Remove';
+        rmBtn.onclick   = (function(idx) {
+            return function(e) {
+                e.stopPropagation();
+                _stagingQueue.splice(idx, 1);
+                _updateStagingGrid();
+            };
+        })(i);
+
+        wrap.appendChild(imgEl);
+        wrap.appendChild(rmBtn);
+        grid.appendChild(wrap);
+    });
+
+    addBtn.style.display = _stagingQueue.length >= STAGING_MAX ? 'none' : '';
+    sendBtn.disabled     = _stagingQueue.length === 0;
+    countEl.textContent  = _stagingQueue.length + ' / ' + STAGING_MAX + ' photos';
+}
+
+// Wire up staging + crop buttons once the DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+
+    // Staging camera input — fires after user takes/selects a photo
+    document.getElementById('stagingCameraInput').addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+            _stagingHandleCamera(this.files[0]);
+        }
+        this.value = '';
+    });
+
+    // "Add Another" button — re-triggers the camera
+    document.getElementById('photoStagingAddBtn').addEventListener('click', function() {
+        var camInput = document.getElementById('stagingCameraInput');
+        camInput.value = '';
+        camInput.click();
+    });
+
+    // "Send to AI" button — fires callback with all staged images and closes modal
+    document.getElementById('photoStagingSendBtn').addEventListener('click', function() {
+        if (_stagingQueue.length === 0 || !_stagingCallback) return;
+        var images   = _stagingQueue.slice();
+        var callback = _stagingCallback;
+        _stagingQueue    = [];
+        _stagingCallback = null;
+        closeModal('photoStagingModal');
+        callback(images);
+    });
+
+    // "Cancel" button on staging modal — discards all staged photos
+    document.getElementById('photoStagingCancelBtn').addEventListener('click', function() {
+        _stagingQueue    = [];
+        _stagingCallback = null;
+        closeModal('photoStagingModal');
+    });
+
+    // Staging crop modal buttons
+    document.getElementById('stagingCropApplyBtn').addEventListener('click', _stagingCropApply);
+    document.getElementById('stagingCropSkipBtn').addEventListener('click',  _stagingCropSkip);
+    document.getElementById('stagingCropCancelBtn').addEventListener('click', _stagingCropCancel);
+});

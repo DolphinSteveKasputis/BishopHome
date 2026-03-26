@@ -778,6 +778,12 @@ button {
     border-radius: 10px;
     flex-shrink: 0;
 }
+.project-source-label {
+    font-size: 0.72rem;
+    color: #999;
+    font-style: italic;
+    flex-shrink: 0;
+}
 
 .project-header-actions {
     display: flex;

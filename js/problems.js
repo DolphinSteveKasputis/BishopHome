@@ -309,7 +309,7 @@ function createProblemItem(problem, targetType, targetId, sourceLabel) {
 
     // Secondary info line: date · notes · source label (if rolled up)
     var secondaryParts = [];
-    if (problem.dateLogged) secondaryParts.push('Logged: ' + problem.dateLogged);
+    if (problem.dateLogged) secondaryParts.push(problem.dateLogged);
     if (problem.status === 'resolved' && problem.resolvedAt) {
         secondaryParts.push('Resolved: ' + formatDateTime(problem.resolvedAt));
     }

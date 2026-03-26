@@ -17,12 +17,130 @@
  * @param {string} containerId - The ID of the container element to render into.
  * @param {string} emptyStateId - The ID of the empty-state message element.
  */
+// ---------- Checkbox map for all entity types ----------
+var PROJECT_CHECKBOX_MAP = {
+    'plant':             'showCompletedPlantProjects',
+    'zone':              'showCompletedZoneProjects',
+    'floor':             'showCompletedFloorProjects',
+    'room':              'showCompletedRoomProjects',
+    'thing':             'showCompletedThingProjects',
+    'subthing':          'showCompletedSubThingProjects',
+    'garageroom':        'showCompletedGarageRoomProjects',
+    'garagething':       'showCompletedGarageThingProjects',
+    'garagesubthing':    'showCompletedGarageSubThingProjects',
+    'structure':         'showCompletedStructureProjects',
+    'structurething':    'showCompletedStructureThingProjects',
+    'structuresubthing': 'showCompletedStructureSubThingProjects',
+    'vehicle':           'showCompletedVehicleProjects',
+};
+
+/**
+ * Recursively gathers ALL projects for an entity and every descendant.
+ * Root entity's projects get sourceLabel=null; descendants get their own name.
+ * Uses PROBLEM_CHILD_MAP (defined in problems.js) — same hierarchy applies.
+ */
+async function _gatherProjects(entityType, entityId, sourceLabel) {
+    var items = [];
+
+    var snap = await userCol('projects')
+        .where('targetType', '==', entityType)
+        .where('targetId',   '==', entityId)
+        .get();
+    snap.forEach(function(doc) {
+        items.push({
+            project:     Object.assign({ id: doc.id }, doc.data()),
+            targetType:  entityType,
+            targetId:    entityId,
+            sourceLabel: sourceLabel
+        });
+    });
+
+    var childDef = PROBLEM_CHILD_MAP[entityType];
+    if (childDef) {
+        var childSnap = await userCol(childDef.collection)
+            .where(childDef.parentField, '==', entityId)
+            .get();
+        var childPromises = [];
+        childSnap.forEach(function(childDoc) {
+            var childName = childDoc.data().name || 'Unknown';
+            childPromises.push(
+                _gatherProjects(childDef.childType, childDoc.id, childName)
+                    .then(function(childItems) {
+                        childItems.forEach(function(ci) { items.push(ci); });
+                    })
+            );
+        });
+        await Promise.all(childPromises);
+    }
+    return items;
+}
+
+/**
+ * Load projects for a parent entity AND ALL descendants (recursive roll-up).
+ */
+async function loadProjectsWithChildren(targetType, targetId, containerId, emptyStateId) {
+    var container  = document.getElementById(containerId);
+    var emptyState = document.getElementById(emptyStateId);
+
+    var cb = document.getElementById(PROJECT_CHECKBOX_MAP[targetType]);
+    var showCompleted = cb ? cb.checked : false;
+
+    // Capture expanded state before clearing
+    var expandedIds = {};
+    container.querySelectorAll('[data-project-id]').forEach(function(el) {
+        if (el.querySelector('.project-body.expanded')) expandedIds[el.dataset.projectId] = true;
+    });
+    container.innerHTML = '';
+
+    try {
+        var allItems = await _gatherProjects(targetType, targetId, null);
+
+        var activeItems    = allItems.filter(function(i) { return i.project.status !== 'completed'; });
+        var completedItems = allItems.filter(function(i) { return i.project.status === 'completed'; });
+
+        activeItems.sort(function(a, b)    { return (a.project.title || '').localeCompare(b.project.title || ''); });
+        completedItems.sort(function(a, b) { return (a.project.title || '').localeCompare(b.project.title || ''); });
+
+        var displayItems = showCompleted ? activeItems.concat(completedItems) : activeItems;
+
+        if (displayItems.length === 0) {
+            emptyState.textContent = completedItems.length > 0
+                ? 'All projects completed! Check "Show completed" to see them.'
+                : 'No future projects yet.';
+            emptyState.style.display = 'block';
+            return;
+        }
+
+        emptyState.style.display = 'none';
+        displayItems.forEach(function(item) {
+            var card = createProjectCard(item.project, item.targetType, item.targetId, item.sourceLabel);
+            if (expandedIds[item.project.id]) {
+                var body = card.querySelector('.project-body');
+                var chevron = card.querySelector('.project-toggle');
+                if (body) body.classList.add('expanded');
+                if (chevron) chevron.textContent = '\u25BE';
+            }
+            container.appendChild(card);
+        });
+
+    } catch (err) {
+        console.error('loadProjectsWithChildren error:', err);
+        emptyState.textContent = 'Error loading projects.';
+        emptyState.style.display = 'block';
+    }
+}
+
 async function loadProjects(targetType, targetId, containerId, emptyStateId) {
+    // Types with children use recursive roll-up
+    if (PROBLEM_CHILD_MAP[targetType]) {
+        return loadProjectsWithChildren(targetType, targetId, containerId, emptyStateId);
+    }
+
     const container = document.getElementById(containerId);
     const emptyState = document.getElementById(emptyStateId);
 
     // Check if "show completed" checkbox is checked
-    const checkboxId = targetType === 'plant' ? 'showCompletedPlantProjects' : 'showCompletedZoneProjects';
+    const checkboxId = PROJECT_CHECKBOX_MAP[targetType] || 'showCompletedZoneProjects';
     const checkbox = document.getElementById(checkboxId);
     const showCompleted = checkbox ? checkbox.checked : false;
 
@@ -220,7 +338,7 @@ async function loadAllProjects() {
  * @param {string} targetId - The target's Firestore document ID.
  * @returns {HTMLElement} The project card element.
  */
-function createProjectCard(project, targetType, targetId) {
+function createProjectCard(project, targetType, targetId, sourceLabel) {
     var isCompleted = project.status === 'completed';
     var items = project.items || [];
 
@@ -246,6 +364,14 @@ function createProjectCard(project, targetType, targetId) {
     title.className = 'project-title';
     title.textContent = project.title;
     titleArea.appendChild(title);
+
+    // Roll-up source label (e.g. "from: Kitchen")
+    if (sourceLabel) {
+        var fromLabel = document.createElement('span');
+        fromLabel.className = 'project-source-label';
+        fromLabel.textContent = 'from: ' + sourceLabel;
+        titleArea.appendChild(fromLabel);
+    }
 
     // Item count badge (e.g., "2/5")
     if (items.length > 0) {

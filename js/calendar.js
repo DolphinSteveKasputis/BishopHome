@@ -142,6 +142,32 @@ async function loadCalendar() {
  * @param {string} containerId - The ID of the container element.
  * @param {string} emptyStateId - The ID of the empty-state message element.
  */
+/**
+ * Recursively collects all {type, id} pairs for an entity and its descendants.
+ * Uses PROBLEM_CHILD_MAP (defined in problems.js) — same hierarchy applies.
+ * Used by loadEventsForTarget to gather calendar events from all descendant entities.
+ */
+async function _gatherEntityRefs(entityType, entityId) {
+    var refs = [{ type: entityType, id: entityId }];
+    var childDef = PROBLEM_CHILD_MAP[entityType];
+    if (childDef) {
+        var childSnap = await userCol(childDef.collection)
+            .where(childDef.parentField, '==', entityId)
+            .get();
+        var promises = [];
+        childSnap.forEach(function(childDoc) {
+            promises.push(
+                _gatherEntityRefs(childDef.childType, childDoc.id)
+                    .then(function(childRefs) {
+                        childRefs.forEach(function(r) { refs.push(r); });
+                    })
+            );
+        });
+        await Promise.all(promises);
+    }
+    return refs;
+}
+
 async function loadEventsForTarget(targetType, targetId, containerId, emptyStateId, months) {
     months = months || 3;
     var container = document.getElementById(containerId);
@@ -201,8 +227,25 @@ async function loadEventsForTarget(targetType, targetId, containerId, emptyState
                 });
             }
 
+        } else if (PROBLEM_CHILD_MAP[targetType]) {
+            // Hierarchical entity (floor, room, thing, garageroom, etc.)
+            // Gather this entity + all descendants, then fetch events for each
+            var allRefs = await _gatherEntityRefs(targetType, targetId);
+            var refPromises = allRefs.map(function(ref) {
+                return userCol('calendarEvents')
+                    .where('targetType', '==', ref.type)
+                    .where('targetId',   '==', ref.id)
+                    .get()
+                    .then(function(snap) {
+                        snap.forEach(function(doc) {
+                            eventsMap[doc.id] = { id: doc.id, ...doc.data() };
+                        });
+                    });
+            });
+            await Promise.all(refPromises);
+
         } else {
-            // For plants: single query by targetType/targetId
+            // For plants and any other single-entity types: direct query
             var snapshot = await userCol('calendarEvents')
                 .where('targetType', '==', targetType)
                 .where('targetId', '==', targetId)

@@ -354,8 +354,8 @@ function buildFloorCard(id, data, roomCount) {
         ? ' <span class="house-floor-num">Floor ' + data.floorNumber + '</span>'
         : '';
     var roomLabel = roomCount > 0
-        ? '<span class="house-floor-meta">' + roomCount + ' room' + (roomCount !== 1 ? 's' : '') + '</span>'
-        : '<span class="house-floor-meta">No rooms yet</span>';
+        ? '<span class="house-floor-meta"> &middot; ' + roomCount + ' room' + (roomCount !== 1 ? 's' : '') + '</span>'
+        : '<span class="house-floor-meta"> &middot; No rooms yet</span>';
 
     card.innerHTML =
         '<div class="card-main">' +

@@ -670,6 +670,19 @@ button {
     gap: 6px;
     flex-shrink: 0;
 }
+.problem-item--clickable {
+    cursor: pointer;
+    transition: box-shadow 0.15s;
+}
+.problem-item--clickable:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.problem-arrow {
+    color: #aaa;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+    margin-left: 4px;
+}
 
 /* Legacy item-actions (used by other components) */
 .item-actions {

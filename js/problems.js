@@ -43,7 +43,124 @@ function formatDateTime(dateValue) {
  * @param {string} containerId - The ID of the container element to render into.
  * @param {string} emptyStateId - The ID of the empty-state message element.
  */
+/**
+ * Describes how to fetch immediate children for each parent entity type.
+ * Used by loadProblemsWithChildren() to roll up child problems to the parent page.
+ * Each entry: { collection, parentField, childType }
+ *   collection  — Firestore collection name
+ *   parentField — field on child docs that holds the parent ID
+ *   childType   — the targetType string used in the problems collection
+ */
+var PROBLEM_CHILD_MAP = {
+    'floor':         { collection: 'rooms',              parentField: 'floorId',     childType: 'room'           },
+    'room':          { collection: 'things',             parentField: 'roomId',      childType: 'thing'          },
+    'thing':         { collection: 'subThings',          parentField: 'thingId',     childType: 'subthing'       },
+    'garageroom':    { collection: 'garageThings',       parentField: 'roomId',      childType: 'garagething'    },
+    'garagething':   { collection: 'garageSubThings',    parentField: 'thingId',     childType: 'garagesubthing' },
+    'structure':     { collection: 'structureThings',    parentField: 'structureId', childType: 'structurething' },
+    'structurething':{ collection: 'structureSubThings', parentField: 'thingId',     childType: 'structuresubthing' },
+    'zone':          { collection: 'zones',              parentField: 'parentId',    childType: 'zone'           },
+};
+
+/**
+ * Load problems for a parent entity AND its immediate children.
+ * Children are identified via PROBLEM_CHILD_MAP.
+ * Child problems are labelled "from: [child name]" in the list.
+ */
+async function loadProblemsWithChildren(targetType, targetId, containerId, emptyStateId) {
+    var container  = document.getElementById(containerId);
+    var emptyState = document.getElementById(emptyStateId);
+
+    var checkboxMap = {
+        'floor':          'showResolvedFloorProblems',
+        'room':           'showResolvedRoomProblems',
+        'thing':          'showResolvedThingProblems',
+        'garageroom':     'showResolvedGarageRoomProblems',
+        'garagething':    'showResolvedGarageThingProblems',
+        'structure':      'showResolvedStructureProblems',
+        'structurething': 'showResolvedStructureThingProblems',
+        'zone':           'showResolvedZoneProblems',
+    };
+    var cb = document.getElementById(checkboxMap[targetType]);
+    var showResolved = cb ? cb.checked : false;
+
+    container.innerHTML = '';
+    emptyState.style.display = 'none';
+
+    try {
+        // Step 1: load this entity's own problems
+        var ownSnap = await userCol('problems')
+            .where('targetType', '==', targetType)
+            .where('targetId',   '==', targetId)
+            .get();
+
+        var allItems = [];  // { problem, targetType, targetId, sourceLabel }
+        ownSnap.forEach(function(doc) {
+            allItems.push({ problem: Object.assign({ id: doc.id }, doc.data()), targetType: targetType, targetId: targetId, sourceLabel: null });
+        });
+
+        // Step 2: fetch immediate children and their problems
+        var childDef = PROBLEM_CHILD_MAP[targetType];
+        if (childDef) {
+            var childrenSnap = await userCol(childDef.collection)
+                .where(childDef.parentField, '==', targetId)
+                .get();
+
+            var childPromises = [];
+            childrenSnap.forEach(function(childDoc) {
+                var childId    = childDoc.id;
+                var childLabel = childDoc.data().name || 'Unknown';
+                var childType  = childDef.childType;
+
+                childPromises.push(
+                    userCol('problems')
+                        .where('targetType', '==', childType)
+                        .where('targetId',   '==', childId)
+                        .get()
+                        .then(function(snap) {
+                            snap.forEach(function(doc) {
+                                allItems.push({ problem: Object.assign({ id: doc.id }, doc.data()), targetType: childType, targetId: childId, sourceLabel: childLabel });
+                            });
+                        })
+                );
+            });
+            await Promise.all(childPromises);
+        }
+
+        // Step 3: split open / resolved, sort newest first
+        var openItems     = allItems.filter(function(i) { return i.problem.status === 'open'; });
+        var resolvedItems = allItems.filter(function(i) { return i.problem.status === 'resolved'; });
+
+        openItems.sort(function(a, b)     { return (b.problem.dateLogged || '').localeCompare(a.problem.dateLogged || ''); });
+        resolvedItems.sort(function(a, b) { return (b.problem.dateLogged || '').localeCompare(a.problem.dateLogged || ''); });
+
+        var displayItems = showResolved ? openItems.concat(resolvedItems) : openItems;
+
+        if (displayItems.length === 0) {
+            emptyState.textContent = resolvedItems.length > 0
+                ? 'All issues resolved! Check "Show resolved" to see them.'
+                : 'No problems or concerns logged.';
+            emptyState.style.display = 'block';
+            return;
+        }
+
+        displayItems.forEach(function(item) {
+            container.appendChild(createProblemItem(item.problem, item.targetType, item.targetId, item.sourceLabel));
+        });
+
+    } catch (err) {
+        console.error('loadProblemsWithChildren error:', err);
+        emptyState.textContent = 'Error loading problems.';
+        emptyState.style.display = 'block';
+    }
+}
+
 async function loadProblems(targetType, targetId, containerId, emptyStateId) {
+    // Types that support child roll-up delegate to loadProblemsWithChildren
+    if (PROBLEM_CHILD_MAP[targetType]) {
+        return loadProblemsWithChildren(targetType, targetId, containerId, emptyStateId);
+    }
+
     const container = document.getElementById(containerId);
     const emptyState = document.getElementById(emptyStateId);
 
@@ -138,17 +255,20 @@ async function loadProblems(targetType, targetId, containerId, emptyStateId) {
 
 /**
  * Creates a DOM element representing a single problem/concern.
- * Shows a resolved timestamp when the problem has been resolved.
- * @param {Object} problem - The problem data.
- * @param {string} targetType - "plant" or "zone"
- * @param {string} targetId - The target's Firestore document ID.
+ * Clicking the item opens the edit modal (no separate Edit button).
+ * @param {Object} problem    - The problem data (including id).
+ * @param {string} targetType - The problem's own targetType (used for edit modal and reload).
+ * @param {string} targetId   - The problem's own targetId.
+ * @param {string} [sourceLabel] - Optional label shown when rolled up from a child entity
+ *                                  e.g. "Kitchen" when a thing problem appears on the room page.
  * @returns {HTMLElement} The problem item element.
  */
-function createProblemItem(problem, targetType, targetId) {
+function createProblemItem(problem, targetType, targetId, sourceLabel) {
     const item = document.createElement('div');
-    item.className = 'problem-item' + (problem.status === 'resolved' ? ' resolved' : '');
+    item.className = 'problem-item problem-item--clickable' + (problem.status === 'resolved' ? ' resolved' : '');
+    item.title = 'Click to edit';
 
-    // Left side: badge + description (and optional secondary info)
+    // Left side: badge + description + secondary info
     const leftSide = document.createElement('div');
     leftSide.className = 'problem-left';
 
@@ -168,13 +288,14 @@ function createProblemItem(problem, targetType, targetId) {
 
     leftSide.appendChild(topRow);
 
-    // Secondary info line (date + notes preview)
+    // Secondary info line: date · notes · source label (if rolled up)
     var secondaryParts = [];
     if (problem.dateLogged) secondaryParts.push('Logged: ' + problem.dateLogged);
     if (problem.status === 'resolved' && problem.resolvedAt) {
         secondaryParts.push('Resolved: ' + formatDateTime(problem.resolvedAt));
     }
     if (problem.notes) secondaryParts.push(problem.notes);
+    if (sourceLabel)   secondaryParts.push('from: ' + sourceLabel);
 
     if (secondaryParts.length > 0) {
         const secondary = document.createElement('div');
@@ -185,29 +306,16 @@ function createProblemItem(problem, targetType, targetId) {
 
     item.appendChild(leftSide);
 
-    // Right side: action buttons
-    const actions = document.createElement('div');
-    actions.className = 'problem-actions';
+    // Right side: chevron arrow (signals the item is clickable)
+    const arrow = document.createElement('span');
+    arrow.className = 'problem-arrow';
+    arrow.textContent = '›';
+    item.appendChild(arrow);
 
-    // Toggle status button (Resolve / Reopen)
-    const toggleBtn = document.createElement('button');
-    toggleBtn.className = 'btn btn-small ' + (problem.status === 'open' ? 'btn-primary' : 'btn-secondary');
-    toggleBtn.textContent = problem.status === 'open' ? 'Resolve' : 'Reopen';
-    toggleBtn.addEventListener('click', function() {
-        toggleProblemStatus(problem.id, problem.status, targetType, targetId);
-    });
-    actions.appendChild(toggleBtn);
-
-    // Edit button
-    const editBtn = document.createElement('button');
-    editBtn.className = 'btn btn-small btn-secondary';
-    editBtn.textContent = 'Edit';
-    editBtn.addEventListener('click', function() {
+    // Clicking anywhere on the item opens the edit modal
+    item.addEventListener('click', function() {
         openEditProblemModal(problem, targetType, targetId);
     });
-    actions.appendChild(editBtn);
-
-    item.appendChild(actions);
 
     return item;
 }
@@ -233,8 +341,9 @@ function openAddProblemModal(targetType, targetId) {
     modal.dataset.targetType = targetType;
     modal.dataset.targetId = targetId;
 
-    // Hide Delete button in add mode; show (empty) Facts section
+    // Hide Delete button and Status field in add mode (new problems are always Open)
     document.getElementById('problemModalDeleteBtn').style.display = 'none';
+    document.getElementById('problemStatusGroup').style.display = 'none';
     document.getElementById('problemFactsSection').style.display = 'block';
     document.getElementById('problemFactsContainer').innerHTML = '';
     document.getElementById('problemFactsEmptyState').textContent = 'Save this problem first, then add facts.';
@@ -267,8 +376,10 @@ function openEditProblemModal(problem, targetType, targetId) {
     modal.dataset.targetType = targetType;
     modal.dataset.targetId = targetId;
 
-    // Show Delete button in edit mode
+    // Show Delete button and Status field in edit mode
     document.getElementById('problemModalDeleteBtn').style.display = 'inline-flex';
+    document.getElementById('problemStatusGroup').style.display = '';
+    document.getElementById('problemStatusSelect').value = problem.status || 'open';
 
     // Show Facts section and load facts for this problem
     document.getElementById('problemFactsSection').style.display = 'block';
@@ -315,12 +426,40 @@ async function handleProblemModalSave() {
             console.log('Problem added:', description);
 
         } else if (mode === 'edit') {
-            const problemId = modal.dataset.editId;
-            await userCol('problems').doc(problemId).update({
-                description: description,
-                notes: notes
-            });
-            console.log('Problem updated:', description);
+            const problemId  = modal.dataset.editId;
+            const newStatus  = document.getElementById('problemStatusSelect').value;
+
+            // Read the current status to detect a change
+            const existing   = await userCol('problems').doc(problemId).get();
+            const oldStatus  = existing.exists ? (existing.data().status || 'open') : 'open';
+
+            const updateData = { description, notes, status: newStatus };
+
+            if (newStatus === 'resolved' && oldStatus !== 'resolved') {
+                // Newly resolving — stamp the timestamp
+                updateData.resolvedAt = new Date().toISOString();
+            } else if (newStatus === 'open' && oldStatus === 'resolved') {
+                // Reopening — clear the timestamp
+                updateData.resolvedAt = null;
+            }
+
+            await userCol('problems').doc(problemId).update(updateData);
+            console.log('Problem updated:', description, '| status:', newStatus);
+
+            // When resolving, auto-create an activity entry (same as the old Resolve button did)
+            if (newStatus === 'resolved' && oldStatus !== 'resolved' &&
+                ACTIVITY_SUPPORTED_TARGETS.indexOf(targetType) >= 0) {
+                const today = new Date().toISOString().split('T')[0];
+                await userCol('activities').add({
+                    targetType:  targetType,
+                    targetId:    targetId,
+                    description: 'Resolved: ' + description,
+                    notes:       notes,
+                    date:        today,
+                    chemicalIds: [],
+                    createdAt:   firebase.firestore.FieldValue.serverTimestamp()
+                });
+            }
         }
 
         closeModal('problemModal');

@@ -74,6 +74,37 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
     }
 });
 
+// ---------- Forgot Password ----------
+
+document.getElementById('forgotPasswordLink').addEventListener('click', function(e) {
+    e.preventDefault();
+
+    var email   = document.getElementById('loginEmail').value.trim();
+    var errorEl = document.getElementById('loginError');
+    var msgEl   = document.getElementById('forgotPasswordMsg');
+
+    // Clear any previous messages
+    errorEl.textContent  = '';
+    msgEl.style.display  = 'none';
+    msgEl.textContent    = '';
+
+    if (!email) {
+        errorEl.textContent = 'Enter your email address above, then click Forgot password.';
+        return;
+    }
+
+    auth.sendPasswordResetEmail(email)
+        .then(function() {
+            // Show confirmation regardless of whether the email exists (security best practice)
+            msgEl.textContent   = 'If that email is registered, a reset link has been sent. Check your inbox.';
+            msgEl.style.display = '';
+        })
+        .catch(function(err) {
+            console.error('Password reset error:', err);
+            errorEl.textContent = 'Could not send reset email. Please try again.';
+        });
+});
+
 // ---------- Sign Out ----------
 // Wire up both the desktop and mobile sign-out buttons.
 

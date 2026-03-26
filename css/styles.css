@@ -1510,6 +1510,19 @@ button {
     min-height: 20px;
     margin-bottom: 4px;
 }
+.login-forgot {
+    text-align: center;
+    margin-top: 12px;
+    font-size: 0.85rem;
+    color: #555;
+}
+.login-forgot a {
+    color: #388e3c;
+    text-decoration: none;
+}
+.login-forgot a:hover {
+    text-decoration: underline;
+}
 
 /* Sign Out button in nav */
 .nav-signout-btn {

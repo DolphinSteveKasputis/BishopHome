@@ -596,6 +596,8 @@ var WEED_ID_PROMPT = [
     '  "name": "",',
     '  "treatmentMethod": "",',
     '  "applicationTiming": "",',
+    '  "whatToLookFor": "",',
+    '  "urlMoreInfo": "",',
     '  "additionalMessage": ""',
     '}',
     '',
@@ -603,6 +605,12 @@ var WEED_ID_PROMPT = [
     '- name: the most recognizable common name, e.g. "Crabgrass", "Wild Onion", "Dandelion"',
     '- treatmentMethod: how to treat or eliminate this weed. 100 words or less.',
     '- applicationTiming: when to apply the treatment, e.g. "Pre-emergent in early spring", "As-needed", "Fall application"',
+    '- whatToLookFor: key visual characteristics to help identify this weed in the future. 100 words or less.',
+    '- urlMoreInfo: MUST be a real, working URL that directly corresponds to the identified weed.',
+    '  Prefer .edu, .gov, or university extension websites.',
+    '  The page MUST clearly reference the weed in the title or main content.',
+    '  Do NOT guess or fabricate URLs.',
+    '  If you are not completely certain the URL is correct, return "".',
     '- additionalMessage: use for issues such as unclear image or weed not recognized. Leave "" if no issues.',
     '',
     'If you cannot identify the weed, return all fields as "" and explain in additionalMessage.'
@@ -656,12 +664,13 @@ async function weedHandleFromPicture(files) {
         var llm = LLM_PROVIDERS[cfg.provider];
         if (!llm) { statusEl.textContent = 'Unknown LLM provider.'; return; }
 
-        // Optionally append city/state location context to the prompt
+        // Append city/state and today's date for seasonal/regional context
         var mainDoc   = await userCol('settings').doc('main').get();
         var cityState = (mainDoc.exists && mainDoc.data().cityState) ? mainDoc.data().cityState.trim() : '';
-        var prompt    = cityState
-            ? WEED_ID_PROMPT + '\n\nLocation: ' + cityState
-            : WEED_ID_PROMPT;
+        var todayStr  = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        var prompt    = WEED_ID_PROMPT;
+        if (cityState) prompt += '\n\nLocation: ' + cityState;
+        prompt += '\nThis picture was taken ' + todayStr + '.';
 
         // Build content: prompt + images
         var content = [{ type: 'text', text: prompt }];
@@ -730,6 +739,8 @@ function weedShowReviewModal(prompt, rawResponse, parsed) {
     document.getElementById('weedReviewName').value              = parsed.name || '';
     document.getElementById('reviewWeedTreatment').textContent   = parsed.treatmentMethod   || '—';
     document.getElementById('reviewWeedTiming').textContent      = parsed.applicationTiming || '—';
+    document.getElementById('reviewWeedWhatToLookFor').textContent = parsed.whatToLookFor   || '—';
+    document.getElementById('reviewWeedUrlMoreInfo').textContent   = parsed.urlMoreInfo      || '—';
 
     var msgEl = document.getElementById('weedReviewMessage');
     if (parsed.additionalMessage) {
@@ -752,13 +763,25 @@ async function weedSaveFromLlm(parsed, images, nameOverride) {
         name              : weedName,
         treatmentMethod   : parsed.treatmentMethod   || '',
         applicationTiming : parsed.applicationTiming || '',
-        notes             : '',
+        notes             : parsed.whatToLookFor     || '',   // "what to look for" goes into notes
         zoneIds           : [],
         createdAt         : firebase.firestore.FieldValue.serverTimestamp()
     });
 
-    // Save photos only when identification succeeded
     var identified = !!(parsed.name || nameOverride);
+
+    // Save a fact for the reference URL if the LLM returned one
+    if (identified && parsed.urlMoreInfo && parsed.urlMoreInfo.trim()) {
+        await userCol('facts').add({
+            targetType : 'weed',
+            targetId   : newRef.id,
+            label      : 'More Info',
+            value      : parsed.urlMoreInfo.trim(),
+            createdAt  : firebase.firestore.FieldValue.serverTimestamp()
+        });
+    }
+
+    // Save photos only when identification succeeded
     if (identified) {
         for (var i = 0; i < images.length; i++) {
             await userCol('photos').add({

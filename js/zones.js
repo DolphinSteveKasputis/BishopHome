@@ -232,7 +232,7 @@ async function buildBreadcrumbs(zoneId) {
     }
 
     // Build the breadcrumb HTML
-    let html = '<a href="#home">Yard</a>';
+    let html = '<a href="#zones">Yard</a>';
     crumbs.forEach(function(crumb, index) {
         html += '<span class="separator">&rsaquo;</span>';
         if (index < crumbs.length - 1) {
@@ -252,11 +252,11 @@ async function buildBreadcrumbs(zoneId) {
     var headerTitle = document.getElementById('headerTitle');
     if (currentZoneName) {
         headerTitle.innerHTML =
-            '<a href="#home" class="home-link">Bishop</a>' +
+            '<a href="#zones" class="home-link">Bishop</a>' +
             '<span class="header-zone-sep">›</span>' +
             '<span class="header-zone-name">' + escapeHtml(currentZoneName) + '</span>';
     } else {
-        headerTitle.innerHTML = '<a href="#home" class="home-link">Bishop</a>';
+        headerTitle.innerHTML = '<a href="#zones" class="home-link">Bishop</a>';
     }
 }
 

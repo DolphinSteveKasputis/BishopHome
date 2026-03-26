@@ -32,7 +32,7 @@ const ALL_PAGES = [
  * Shared pages (calendar, settings) keep whichever context was last active.
  */
 const HOUSE_PAGES = ['house', 'floor', 'room', 'thing', 'subthing', 'floorplan', 'panel', 'rooms', 'things'];
-const YARD_PAGES  = ['main', 'home', 'zone', 'plant', 'weeds', 'weed', 'chemicals', 'chemical', 'actions', 'gpsmap', 'yardmap', 'activityreport', 'checklists',
+const YARD_PAGES  = ['main', 'home', 'zones', 'zone', 'plant', 'weeds', 'weed', 'chemicals', 'chemical', 'actions', 'gpsmap', 'yardmap', 'activityreport', 'checklists',
                      'structures', 'structure', 'structurething', 'structuresubthing'];
 const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'journal-categories'];
 
@@ -132,6 +132,11 @@ function handleRoute() {
         showPage('weed');
         loadWeedDetail(id);
     } else if (page === 'home') {
+        // #home was the original yard zones route, now redirects to main tiles landing page.
+        // This ensures Android shortcuts and old bookmarks land on the correct screen.
+        window.location.replace('#main');
+        return;
+    } else if (page === 'zones') {
         showPage('home');
         loadZonesList();
     } else if (page === 'main') {

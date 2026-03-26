@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=204">
+    <link rel="stylesheet" href="css/styles.css?v=205">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -50,7 +50,7 @@
         </div>
         <!-- Yard nav (default context) -->
         <nav class="header-nav" id="yardNav">
-            <a href="#home" class="nav-link" data-page="home">Zones</a>
+            <a href="#zones" class="nav-link" data-page="home">Zones</a>
             <a href="#weeds" class="nav-link" data-page="weeds">Weeds</a>
             <a href="#calendar" class="nav-link" data-page="calendar">Calendar</a>
             <a href="#activityreport" class="nav-link" data-page="activityreport">History</a>
@@ -69,7 +69,7 @@
             <a href="#house" class="nav-link" data-page="house">Floors</a>
             <a href="#rooms" class="nav-link" data-page="rooms">Rooms</a>
             <a href="#calendar" class="nav-link" data-page="calendar">Calendar</a>
-            <a href="#home" class="nav-link" data-page="yard">Yard</a>
+            <a href="#zones" class="nav-link" data-page="yard">Yard</a>
             <a href="#settings" class="nav-link" data-page="settings">Settings</a>
             <a href="#things" class="nav-link" data-page="things">Things</a>
             <a href="#collections" class="nav-link" data-page="collections">Collections</a>
@@ -96,7 +96,7 @@
     <nav class="mobile-nav" id="mobileNav">
         <!-- Yard context links -->
         <div id="mobileNavYard">
-            <a href="#home" class="nav-link" data-page="home">Zones</a>
+            <a href="#zones" class="nav-link" data-page="home">Zones</a>
             <a href="#weeds" class="nav-link" data-page="weeds">Weeds</a>
             <a href="#calendar" class="nav-link" data-page="calendar">Calendar</a>
             <a href="#activityreport" class="nav-link" data-page="activityreport">History</a>
@@ -122,7 +122,7 @@
             <a href="#house" class="nav-link" data-page="house">Floors</a>
             <a href="#rooms" class="nav-link" data-page="rooms">Rooms</a>
             <a href="#calendar" class="nav-link" data-page="calendar">Calendar</a>
-            <a href="#home" class="nav-link" data-page="yard">Yard</a>
+            <a href="#zones" class="nav-link" data-page="yard">Yard</a>
             <a href="#settings" class="nav-link" data-page="settings">Settings</a>
             <a href="#things" class="nav-link" data-page="things">Things</a>
             <a href="#collections" class="nav-link" data-page="collections">Collections</a>
@@ -141,7 +141,7 @@
         <!-- Page: Main Landing Page -->
         <section class="page hidden" id="page-main">
             <div class="landing-tiles">
-                <a href="#home" class="landing-tile landing-tile--yard">
+                <a href="#zones" class="landing-tile landing-tile--yard">
                     <span class="landing-tile-icon">🌿</span>
                     <span class="landing-tile-label">Yard</span>
                 </a>
@@ -4319,38 +4319,38 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=204"></script>
-    <script src="js/auth.js?v=204"></script>
-    <script src="js/zones.js?v=204"></script>
-    <script src="js/plants.js?v=204"></script>
-    <script src="js/problems.js?v=204"></script>
-    <script src="js/facts.js?v=204"></script>
-    <script src="js/projects.js?v=204"></script>
-    <script src="js/chemicals.js?v=204"></script>
-    <script src="js/activities.js?v=204"></script>
+    <script src="js/firebase-config.js?v=205"></script>
+    <script src="js/auth.js?v=205"></script>
+    <script src="js/zones.js?v=205"></script>
+    <script src="js/plants.js?v=205"></script>
+    <script src="js/problems.js?v=205"></script>
+    <script src="js/facts.js?v=205"></script>
+    <script src="js/projects.js?v=205"></script>
+    <script src="js/chemicals.js?v=205"></script>
+    <script src="js/activities.js?v=205"></script>
     <!-- Cropper.js — client-side image cropping library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
-    <script src="js/photos.js?v=204"></script>
-    <script src="js/weeds.js?v=204"></script>
-    <script src="js/calendar.js?v=204"></script>
-    <script src="js/gps.js?v=204"></script>
-    <script src="js/settings.js?v=204"></script>
-    <script src="js/house.js?v=204"></script>
-    <script src="js/floorplan.js?v=204"></script>
-    <script src="js/search.js?v=204"></script>
-    <script src="js/activityreport.js?v=204"></script>
-    <script src="js/checklists.js?v=204"></script>
-    <script src="js/bulkactivity.js?v=204"></script>
-    <script src="js/devnotes.js?v=204"></script>
-    <script src="js/vehicles.js?v=204"></script>
-    <script src="js/garage.js?v=204"></script>
-    <script src="js/structures.js?v=204"></script>
-    <script src="js/moveThings.js?v=204"></script>
-    <script src="js/journal.js?v=204"></script>
-    <script src="js/collections.js?v=204"></script>
+    <script src="js/photos.js?v=205"></script>
+    <script src="js/weeds.js?v=205"></script>
+    <script src="js/calendar.js?v=205"></script>
+    <script src="js/gps.js?v=205"></script>
+    <script src="js/settings.js?v=205"></script>
+    <script src="js/house.js?v=205"></script>
+    <script src="js/floorplan.js?v=205"></script>
+    <script src="js/search.js?v=205"></script>
+    <script src="js/activityreport.js?v=205"></script>
+    <script src="js/checklists.js?v=205"></script>
+    <script src="js/bulkactivity.js?v=205"></script>
+    <script src="js/devnotes.js?v=205"></script>
+    <script src="js/vehicles.js?v=205"></script>
+    <script src="js/garage.js?v=205"></script>
+    <script src="js/structures.js?v=205"></script>
+    <script src="js/moveThings.js?v=205"></script>
+    <script src="js/journal.js?v=205"></script>
+    <script src="js/collections.js?v=205"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=204"></script>
-    <script src="js/app.js?v=204"></script>
+    <script src="js/chat.js?v=205"></script>
+    <script src="js/app.js?v=205"></script>
 
 </body>
 </html>

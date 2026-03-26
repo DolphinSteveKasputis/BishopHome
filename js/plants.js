@@ -282,7 +282,7 @@ async function buildPlantBreadcrumbs(plantId, plant) {
     }
 
     // Build HTML
-    let html = '<a href="#home">Yard</a>';
+    let html = '<a href="#zones">Yard</a>';
     crumbs.forEach(function(crumb) {
         html += '<span class="separator">&rsaquo;</span>';
         html += '<a href="#zone/' + crumb.id + '">' + escapeHtml(crumb.name) + '</a>';

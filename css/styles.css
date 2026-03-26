@@ -482,6 +482,20 @@ button {
     margin-left: 12px;
 }
 
+/* Drag handle for sortable lists */
+.drag-handle {
+    color: #ccc;
+    font-size: 1.1rem;
+    cursor: grab;
+    padding: 0 10px 0 2px;
+    flex-shrink: 0;
+    user-select: none;
+    touch-action: none;
+}
+.drag-handle:active {
+    cursor: grabbing;
+}
+
 /* ---------- Forms ---------- */
 .form-group {
     margin-bottom: 16px;

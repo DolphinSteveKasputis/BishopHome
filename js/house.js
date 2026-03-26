@@ -466,17 +466,36 @@ function loadRoomsList(floorId) {
                 return;
             }
 
-            // Sort client-side by createdAt to avoid needing a composite index
+            // Sort by sortOrder; fall back to createdAt for rooms that predate drag-sort
             var docs = [];
             snapshot.forEach(function(doc) { docs.push(doc); });
             docs.sort(function(a, b) {
-                var ta = a.data().createdAt ? a.data().createdAt.toMillis() : 0;
-                var tb = b.data().createdAt ? b.data().createdAt.toMillis() : 0;
-                return ta - tb;
+                var sa = a.data().sortOrder != null ? a.data().sortOrder : (a.data().createdAt ? a.data().createdAt.toMillis() : 0);
+                var sb = b.data().sortOrder != null ? b.data().sortOrder : (b.data().createdAt ? b.data().createdAt.toMillis() : 0);
+                return sa - sb;
             });
             docs.forEach(function(doc) {
                 container.appendChild(buildRoomCard(doc.id, doc.data()));
             });
+
+            // Enable drag-to-reorder via SortableJS
+            if (window.Sortable) {
+                Sortable.create(container, {
+                    handle: '.drag-handle',
+                    animation: 150,
+                    onEnd: function() {
+                        // Persist the new order — write sortOrder = position index to each room
+                        var batch = db.batch();
+                        container.querySelectorAll('[data-id]').forEach(function(card, index) {
+                            var docRef = userCol('rooms').doc(card.dataset.id);
+                            batch.update(docRef, { sortOrder: index });
+                        });
+                        batch.commit().catch(function(err) {
+                            console.error('Room reorder save error:', err);
+                        });
+                    }
+                });
+            }
         })
         .catch(function(err) {
             console.error('loadRoomsList error:', err);
@@ -490,18 +509,22 @@ function loadRoomsList(floorId) {
 function buildRoomCard(id, data) {
     var card = document.createElement('div');
     card.className = 'card card--clickable';
+    card.dataset.id = id;   // used by Sortable to identify the record
 
-    var label    = escapeHtml(data.name || 'Unnamed Room');
+    var label     = escapeHtml(data.name || 'Unnamed Room');
     var typeBadge = buildRoomTypeBadge(data.type);
 
     card.innerHTML =
+        '<span class="drag-handle" title="Drag to reorder">⠿</span>' +
         '<div class="card-main">' +
             '<span class="card-title">' + label + '</span>' +
             typeBadge +
         '</div>' +
         '<span class="card-arrow">›</span>';
 
-    card.addEventListener('click', function() {
+    // Click navigates to room — but ignore clicks that start on the drag handle
+    card.addEventListener('click', function(e) {
+        if (e.target.classList.contains('drag-handle')) return;
         window.location.hash = '#room/' + id;
     });
 
@@ -814,6 +837,7 @@ document.getElementById('roomModalSaveBtn').addEventListener('click', function()
             type:               typeVal,
             connectsToFloorId:  connectsToFloorId,
             floorId:            currentFloor.id,
+            sortOrder:          Date.now(),
             createdAt:          firebase.firestore.FieldValue.serverTimestamp()
         };
         userCol('rooms').add(roomData)

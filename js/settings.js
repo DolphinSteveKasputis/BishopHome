@@ -146,6 +146,7 @@ var BACKUP_DATA_COLLECTIONS = [
     'mileageLogs', 'plants',
     'problems', 'projects', 'rooms', 'savedActions', 'settings',
     'structures', 'structureSubThings', 'structureThings',
+    'people', 'peopleCategories', 'peopleImportantDates', 'peopleInteractions',
     'subThings', 'tags', 'things', 'vehicles', 'weeds', 'zones'
 ];
 

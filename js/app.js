@@ -10,7 +10,7 @@
  * List of top-level pages that map to nav links.
  * These pages clear the breadcrumb bar when shown.
  */
-const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'house', 'settings', 'main', 'search', 'activityreport', 'checklists', 'notes', 'chat', 'vehicles', 'garage', 'structures', 'life', 'journal', 'collections', 'changepassword'];
+const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'house', 'settings', 'main', 'search', 'activityreport', 'checklists', 'notes', 'chat', 'vehicles', 'garage', 'structures', 'life', 'journal', 'collections', 'changepassword', 'people'];
 
 /**
  * All pages that can be shown (includes detail pages not in the nav).
@@ -23,7 +23,8 @@ const ALL_PAGES = [
     'garageroom', 'garagething', 'garagesubthing',
     'structure', 'structurething', 'structuresubthing',
     'journal-entry', 'journal-tracking', 'journal-categories',
-    'collection', 'collectionitem'
+    'collection', 'collectionitem',
+    'person'
 ];
 
 /**
@@ -34,7 +35,7 @@ const ALL_PAGES = [
 const HOUSE_PAGES = ['house', 'floor', 'room', 'thing', 'subthing', 'floorplan', 'panel', 'rooms', 'things'];
 const YARD_PAGES  = ['main', 'home', 'zones', 'zone', 'plant', 'weeds', 'weed', 'chemicals', 'chemical', 'actions', 'gpsmap', 'yardmap', 'activityreport', 'checklists',
                      'structures', 'structure', 'structurething', 'structuresubthing'];
-const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'journal-categories'];
+const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'journal-categories', 'people', 'person'];
 
 /** Tracks which nav context is currently active ('yard', 'house', or 'life'). */
 var currentNavContext = 'yard';
@@ -88,6 +89,7 @@ function showPage(page) {
     if (page === 'floorplan')  navPage = 'house';
     if (page === 'panel')      navPage = 'house';
     if (page === 'subthing')   navPage = 'house';
+    if (page === 'person')     navPage = 'people'; // Sub-page of people
     if (page === 'main')       navPage = '';       // No link highlighted on the landing page
 
     document.querySelectorAll('.nav-link').forEach(function(link) {
@@ -253,6 +255,13 @@ function handleRoute() {
     } else if (page === 'collectionitem' && id) {
         showPage('collectionitem');
         loadCollectionItemPage(id);
+    // ---------- Life / People routes ----------
+    } else if (page === 'people') {
+        showPage('people');
+        loadPeoplePage();
+    } else if (page === 'person' && id) {
+        showPage('person');
+        loadPersonDetail(id);
     // ---------- Life / Journal routes ----------
     } else if (page === 'life') {
         showPage('life');

@@ -286,6 +286,7 @@ function reloadFactsForCurrentTarget(targetType, targetId) {
         'structure':        ['structureFactsContainer',          'structureFactsEmpty'],
         'structurething':   ['structureThingFactsContainer',     'structureThingFactsEmpty'],
         'structuresubthing':['structureSubThingFactsContainer',  'structureSubThingFactsEmpty'],
+        'person':           ['personFactsContainer',             'personFactsEmptyState'],
     };
     var ids = map[targetType];
     if (ids) {

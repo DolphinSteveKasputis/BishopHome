@@ -43,6 +43,7 @@ var PHOTO_CONTAINERS = {
     structurething:     ['structureThingPhotosSection',  'structureThingPhotosEmpty'],
     structuresubthing:  ['structureSubThingPhotosSection','structureSubThingPhotosEmpty'],
     collectionitem:     ['collectionItemPhotoContainer',  'collectionItemPhotoEmpty'],
+    person:             ['personPhotoContainer',          'personPhotoEmptyState'],
 };
 
 // ---------- Load & Display Photos ----------

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=215">
+    <link rel="stylesheet" href="css/styles.css?v=216">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -84,6 +84,7 @@
         <!-- Life nav (shown when on life-context pages) -->
         <nav class="header-nav hidden" id="lifeNav">
             <a href="#journal" class="nav-link" data-page="journal">Journal</a>
+            <a href="#people" class="nav-link" data-page="people">People</a>
             <a href="#chat" class="nav-link" data-page="chat">Chat</a>
             <a href="#settings" class="nav-link" data-page="settings">Settings</a>
             <button class="nav-signout-btn" id="signOutBtnLife" title="Sign out">Sign Out</button>
@@ -117,6 +118,7 @@
         <!-- Life context links -->
         <div id="mobileNavLife" class="hidden">
             <a href="#journal" class="nav-link" data-page="journal">Journal</a>
+            <a href="#people" class="nav-link" data-page="people">People</a>
             <a href="#chat" class="nav-link" data-page="chat">Chat</a>
             <a href="#settings" class="nav-link" data-page="settings">Settings</a>
             <button class="nav-signout-btn" id="signOutBtnMobileLife">Sign Out</button>
@@ -2620,6 +2622,115 @@
         </div>
     </div>
 
+    <!-- =====================================================
+         PEOPLE MODALS
+         ===================================================== -->
+
+    <!-- Person Add/Edit Modal -->
+    <div class="modal-overlay" id="personModal">
+        <div class="modal">
+            <h3 id="personModalTitle">Add Person</h3>
+            <div class="form-group">
+                <label for="personNameInput">Name *</label>
+                <input type="text" id="personNameInput" placeholder="Full name">
+            </div>
+            <div class="form-group">
+                <label for="personNicknameInput">Nickname</label>
+                <input type="text" id="personNicknameInput" placeholder="e.g., Jim (for @Jim shortcut)">
+            </div>
+            <div class="form-group">
+                <label for="personCategorySelect">Category</label>
+                <select id="personCategorySelect"></select>
+                <div id="personCategoryNewGroup" style="display:none; margin-top:6px;">
+                    <input type="text" id="personCategoryNewInput" placeholder="New category name">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="personHowKnownInput">How do you know them?</label>
+                <input type="text" id="personHowKnownInput" placeholder="e.g., college roommate, neighbor since 2019">
+            </div>
+            <div class="form-group">
+                <label for="personPhoneInput">Phone</label>
+                <input type="tel" id="personPhoneInput" placeholder="Phone number">
+            </div>
+            <div class="form-group">
+                <label for="personEmailInput">Email</label>
+                <input type="email" id="personEmailInput" placeholder="Email address">
+            </div>
+            <div class="form-group">
+                <label for="personAddressInput">Address</label>
+                <input type="text" id="personAddressInput" placeholder="Home address">
+            </div>
+            <div class="form-group">
+                <label for="personBirthdateInput">Birthdate</label>
+                <input type="date" id="personBirthdateInput">
+            </div>
+            <div class="form-group">
+                <label for="personFacebookInput">Facebook URL</label>
+                <input type="url" id="personFacebookInput" placeholder="https://facebook.com/...">
+            </div>
+            <div class="form-group">
+                <label for="personNotesInput">Notes</label>
+                <textarea id="personNotesInput" placeholder="General notes about this person…"></textarea>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-danger" id="personModalDeleteBtn" style="display:none;">Delete</button>
+                <div style="flex:1;"></div>
+                <button class="btn btn-secondary" id="personModalCancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="personModalSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Important Date Add/Edit Modal -->
+    <div class="modal-overlay" id="importantDateModal">
+        <div class="modal">
+            <h3 id="importantDateModalTitle">Add Important Date</h3>
+            <div class="form-group">
+                <label for="importantDateLabelInput">Label</label>
+                <input type="text" id="importantDateLabelInput" placeholder="e.g., Anniversary, Graduation">
+            </div>
+            <div class="form-group">
+                <label for="importantDateDateInput">Date</label>
+                <input type="date" id="importantDateDateInput">
+            </div>
+            <div class="form-group form-group--checkbox">
+                <label>
+                    <input type="checkbox" id="importantDateRollUp">
+                    Show on Life calendar
+                </label>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-danger"    id="importantDateDeleteBtn" style="display:none;">Delete</button>
+                <div style="flex:1;"></div>
+                <button class="btn btn-secondary" id="importantDateCancelBtn">Cancel</button>
+                <button class="btn btn-primary"   id="importantDateSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interaction Add/Edit Modal -->
+    <div class="modal-overlay" id="interactionModal">
+        <div class="modal">
+            <h3 id="interactionModalTitle">Log Interaction</h3>
+            <div class="form-group">
+                <label for="interactionDateInput">Date</label>
+                <input type="date" id="interactionDateInput">
+            </div>
+            <div class="form-group">
+                <label for="interactionTextInput">Notes</label>
+                <textarea id="interactionTextInput" rows="5" placeholder="What happened or what did you talk about…"></textarea>
+                <button class="btn btn-secondary btn-small" id="interactionVoiceBtn" style="margin-top:6px;">🎤 Speak</button>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-danger"    id="interactionDeleteBtn" style="display:none;">Delete</button>
+                <div style="flex:1;"></div>
+                <button class="btn btn-secondary" id="interactionCancelBtn">Cancel</button>
+                <button class="btn btn-primary"   id="interactionSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Project Add/Edit Modal -->
     <div class="modal-overlay" id="projectModal">
         <div class="modal">
@@ -4025,6 +4136,10 @@
                     <span class="landing-tile-icon">📓</span>
                     <span class="landing-tile-label">Journal</span>
                 </a>
+                <a href="#people" class="landing-tile landing-tile--people">
+                    <span class="landing-tile-icon">👥</span>
+                    <span class="landing-tile-label">People</span>
+                </a>
             </div>
         </section>
 
@@ -4140,6 +4255,101 @@
             </div>
             <!-- Category list — filled dynamically by journal.js -->
             <div id="journalCategoriesList"></div>
+        </section>
+
+        <!-- =====================================================
+             PEOPLE PAGES
+             ===================================================== -->
+
+        <!-- Page: People List (#people) -->
+        <section class="page hidden" id="page-people">
+            <div class="page-header">
+                <div class="breadcrumb-bar"><a href="#life">Life</a> › People</div>
+                <h2>People</h2>
+                <button class="btn btn-primary btn-small" id="addPersonBtn">+ Add Person</button>
+            </div>
+            <!-- Filter / search bar -->
+            <div class="people-toolbar">
+                <select id="peopleCategoryFilter">
+                    <option value="">All Categories</option>
+                </select>
+                <input type="text" id="peopleSearchInput" placeholder="Search by name or nickname…">
+            </div>
+            <!-- People list — filled dynamically -->
+            <div id="peopleListContainer"></div>
+            <p class="empty-state" id="peopleListEmpty" style="display:none;"></p>
+        </section>
+
+        <!-- Page: Person Detail (#person/{id}) -->
+        <section class="page hidden" id="page-person">
+            <div class="page-header">
+                <div class="breadcrumb-bar" id="personBreadcrumb"></div>
+                <h2 id="personDetailName"></h2>
+                <button class="btn btn-secondary btn-small" id="personEditBtn">Edit</button>
+            </div>
+
+            <!-- Avatar + identity row -->
+            <div class="person-identity-row">
+                <div id="personDetailAvatar"></div>
+                <div class="person-identity-info">
+                    <div id="personDetailNickname" class="person-nickname-display"></div>
+                    <span id="personDetailCategory" class="person-category-badge" style="display:none;"></span>
+                </div>
+                <!-- Profile photo change button -->
+                <button class="btn btn-secondary btn-small" id="personProfilePhotoBtn">📷 Profile Photo</button>
+                <input type="file" id="personProfilePhotoInput" accept="image/*" style="display:none;">
+            </div>
+
+            <!-- Contact info -->
+            <div class="section-header"><h3>Contact Info</h3></div>
+            <div id="personContactInfo" class="person-contact-block"></div>
+
+            <!-- Family Members (sub-people) — hidden for sub-people themselves -->
+            <div id="personSubPeopleSection">
+                <div class="section-header">
+                    <h3>Family Members</h3>
+                    <button class="btn btn-primary btn-small" id="addSubPersonBtn">+ Add</button>
+                </div>
+                <div id="subPeopleContainer"></div>
+                <p class="empty-state" id="subPeopleEmpty" style="display:none;"></p>
+            </div>
+
+            <!-- Important Dates -->
+            <div class="section-header">
+                <h3>Important Dates</h3>
+                <button class="btn btn-primary btn-small" id="addImportantDateBtn">+ Add</button>
+            </div>
+            <div id="importantDatesContainer"></div>
+            <p class="empty-state" id="importantDatesEmpty" style="display:none;"></p>
+
+            <!-- Facts -->
+            <div class="section-header">
+                <h3>Facts</h3>
+                <button class="btn btn-primary btn-small" id="addPersonFactBtn">+ Add Fact</button>
+            </div>
+            <div id="personFactsContainer"></div>
+            <p class="empty-state" id="personFactsEmptyState" style="display:none;"></p>
+
+            <!-- Photos -->
+            <div class="section-header">
+                <h3>Photos</h3>
+                <div class="photo-btn-group">
+                    <button class="btn btn-secondary btn-small" id="personCameraBtn">📷 Camera</button>
+                    <button class="btn btn-secondary btn-small" id="personGalleryBtn">🖼 Gallery</button>
+                </div>
+            </div>
+            <input type="file" id="personCameraInput"  accept="image/*" capture="environment" style="display:none;">
+            <input type="file" id="personGalleryInput" accept="image/*" style="display:none;">
+            <div id="personPhotoContainer" class="photo-gallery"></div>
+            <p class="empty-state" id="personPhotoEmptyState" style="display:none;">No photos yet.</p>
+
+            <!-- Interactions Log -->
+            <div class="section-header">
+                <h3>Interactions</h3>
+                <button class="btn btn-primary btn-small" id="addInteractionBtn">+ Log</button>
+            </div>
+            <div id="personInteractionsContainer"></div>
+            <p class="empty-state" id="personInteractionsEmpty" style="display:none;"></p>
         </section>
 
         <!-- =====================================================
@@ -4370,40 +4580,41 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=215"></script>
-    <script src="js/auth.js?v=215"></script>
-    <script src="js/zones.js?v=215"></script>
-    <script src="js/plants.js?v=215"></script>
-    <script src="js/problems.js?v=215"></script>
-    <script src="js/facts.js?v=215"></script>
-    <script src="js/projects.js?v=215"></script>
-    <script src="js/chemicals.js?v=215"></script>
-    <script src="js/activities.js?v=215"></script>
+    <script src="js/firebase-config.js?v=216"></script>
+    <script src="js/auth.js?v=216"></script>
+    <script src="js/zones.js?v=216"></script>
+    <script src="js/plants.js?v=216"></script>
+    <script src="js/problems.js?v=216"></script>
+    <script src="js/facts.js?v=216"></script>
+    <script src="js/projects.js?v=216"></script>
+    <script src="js/chemicals.js?v=216"></script>
+    <script src="js/activities.js?v=216"></script>
     <!-- Cropper.js — client-side image cropping library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <!-- SortableJS — drag-and-drop list reordering -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    <script src="js/photos.js?v=215"></script>
-    <script src="js/weeds.js?v=215"></script>
-    <script src="js/calendar.js?v=215"></script>
-    <script src="js/gps.js?v=215"></script>
-    <script src="js/settings.js?v=215"></script>
-    <script src="js/house.js?v=215"></script>
-    <script src="js/floorplan.js?v=215"></script>
-    <script src="js/search.js?v=215"></script>
-    <script src="js/activityreport.js?v=215"></script>
-    <script src="js/checklists.js?v=215"></script>
-    <script src="js/bulkactivity.js?v=215"></script>
-    <script src="js/devnotes.js?v=215"></script>
-    <script src="js/vehicles.js?v=215"></script>
-    <script src="js/garage.js?v=215"></script>
-    <script src="js/structures.js?v=215"></script>
-    <script src="js/moveThings.js?v=215"></script>
-    <script src="js/journal.js?v=215"></script>
-    <script src="js/collections.js?v=215"></script>
+    <script src="js/photos.js?v=216"></script>
+    <script src="js/weeds.js?v=216"></script>
+    <script src="js/calendar.js?v=216"></script>
+    <script src="js/gps.js?v=216"></script>
+    <script src="js/settings.js?v=216"></script>
+    <script src="js/house.js?v=216"></script>
+    <script src="js/floorplan.js?v=216"></script>
+    <script src="js/search.js?v=216"></script>
+    <script src="js/activityreport.js?v=216"></script>
+    <script src="js/checklists.js?v=216"></script>
+    <script src="js/bulkactivity.js?v=216"></script>
+    <script src="js/devnotes.js?v=216"></script>
+    <script src="js/vehicles.js?v=216"></script>
+    <script src="js/garage.js?v=216"></script>
+    <script src="js/structures.js?v=216"></script>
+    <script src="js/moveThings.js?v=216"></script>
+    <script src="js/journal.js?v=216"></script>
+    <script src="js/people.js?v=216"></script>
+    <script src="js/collections.js?v=216"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=215"></script>
-    <script src="js/app.js?v=215"></script>
+    <script src="js/chat.js?v=216"></script>
+    <script src="js/app.js?v=216"></script>
 
 </body>
 </html>

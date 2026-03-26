@@ -653,13 +653,10 @@ function applySpokenPunctuation(text) {
     // Clean up any double spaces created by substitutions
     text = text.replace(/  +/g, ' ').trim();
 
-    // Capitalize the first letter of the transcript itself
-    if (text.length > 0) {
-        text = text.charAt(0).toUpperCase() + text.slice(1);
-    }
-
-    // Capitalize the first letter of each new sentence
+    // Capitalize the first letter of each new sentence WITHIN this chunk
     // (after ". ", "? ", "! " followed by a lowercase letter)
+    // NOTE: We do NOT capitalize the first letter of the chunk here — that is
+    // handled at insertion time based on whether the preceding text ends a sentence.
     text = text.replace(/([.?!]\s+)([a-z])/g, function(match, punct, letter) {
         return punct + letter.toUpperCase();
     });
@@ -725,8 +722,25 @@ function initVoiceToText(textareaId, btnId) {
             // Convert spoken punctuation words to symbols (e.g. "period" → ".")
             transcript = applySpokenPunctuation(transcript);
 
-            // Append to existing text with a space separator if needed
             var existing = textarea.value;
+
+            // Decide whether the first word of this chunk should be capitalized.
+            // Capitalize only when: the textarea is empty, OR the existing text
+            // ends with sentence-closing punctuation (. ! ?).
+            // Otherwise lowercase it — the speech recognizer auto-capitalizes every
+            // new chunk it fires, causing random mid-sentence capitals.
+            var endsWithSentence = /[.!?]\s*$/.test(existing.trimEnd());
+            var shouldCapitalize = (existing.trim().length === 0) || endsWithSentence;
+
+            if (transcript.length > 0) {
+                if (shouldCapitalize) {
+                    transcript = transcript.charAt(0).toUpperCase() + transcript.slice(1);
+                } else {
+                    transcript = transcript.charAt(0).toLowerCase() + transcript.slice(1);
+                }
+            }
+
+            // Append with a space separator if needed
             if (existing && !existing.endsWith(' ') && !existing.endsWith('\n')) {
                 textarea.value = existing + ' ' + transcript;
             } else {

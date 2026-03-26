@@ -36,9 +36,27 @@ async function loadWeedsList() {
             return a.name.localeCompare(b.name);
         });
 
+        // Fetch all weed photos in one query, then find the latest per weed
+        var photoMap = {};  // weedId -> latest imageData
+        try {
+            var photoSnap = await userCol('photos').where('targetType', '==', 'weed').get();
+            photoSnap.forEach(function(doc) {
+                var p = doc.data();
+                if (!p.targetId || !p.imageData) return;
+                var existing = photoMap[p.targetId];
+                var thisTime = p.createdAt ? p.createdAt.toMillis() : 0;
+                if (!existing || thisTime > existing.time) {
+                    photoMap[p.targetId] = { imageData: p.imageData, time: thisTime };
+                }
+            });
+        } catch (e) {
+            // Photos are optional — don't block the list if query fails
+        }
+
         // Build a card for each weed
         weeds.forEach(function(weed) {
-            var card = createWeedCard(weed.id, weed);
+            var thumb = photoMap[weed.id] ? photoMap[weed.id].imageData : null;
+            var card = createWeedCard(weed.id, weed, thumb);
             container.appendChild(card);
         });
 
@@ -57,7 +75,7 @@ async function loadWeedsList() {
  * @param {Object} weed - The weed data.
  * @returns {HTMLElement} The card element.
  */
-function createWeedCard(id, weed) {
+function createWeedCard(id, weed, thumbData) {
     var card = document.createElement('div');
     card.className = 'card';
     card.addEventListener('click', function() {
@@ -70,6 +88,15 @@ function createWeedCard(id, weed) {
     title.className = 'card-title';
     title.textContent = weed.name;
     info.appendChild(title);
+
+    // Thumbnail: show latest photo between title and subtitle
+    if (thumbData) {
+        var thumb = document.createElement('img');
+        thumb.src = thumbData;
+        thumb.className = 'weed-card-thumb';
+        thumb.alt = weed.name;
+        info.appendChild(thumb);
+    }
 
     // Show treatment method as subtitle
     var subtitleParts = [];

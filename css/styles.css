@@ -1510,6 +1510,11 @@ button {
     min-height: 20px;
     margin-bottom: 4px;
 }
+.cp-success {
+    color: #2e7d32;
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+}
 .login-forgot {
     text-align: center;
     margin-top: 12px;

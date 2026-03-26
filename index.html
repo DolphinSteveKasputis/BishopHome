@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=211">
+    <link rel="stylesheet" href="css/styles.css?v=212">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -587,12 +587,48 @@
                 </div>
             </div>
 
+            <!-- ===== Change Password Link ===== -->
+            <div class="settings-card">
+                <h3 class="settings-section-title">Account</h3>
+                <p class="settings-section-desc">Change your login password.</p>
+                <div class="settings-save-row">
+                    <a href="#changepassword" class="btn btn-secondary">&#128274; Change Password</a>
+                </div>
+            </div>
+
             <!-- ===== Dev Notes Section ===== -->
             <div class="settings-card">
                 <h3 class="settings-section-title">Dev Notes</h3>
                 <p class="settings-section-desc">Personal scratchpad for tracking issues and ideas while testing the app.</p>
                 <div class="settings-save-row">
                     <a href="#notes" class="btn btn-secondary">&#128221; Notes</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Page: Change Password -->
+        <section class="page hidden" id="page-changepassword">
+            <div class="page-header">
+                <h2>Change Password</h2>
+            </div>
+            <div class="settings-card">
+                <div class="form-group">
+                    <label for="cpCurrentPassword">Current Password</label>
+                    <input type="password" id="cpCurrentPassword" placeholder="Your current password" autocomplete="current-password">
+                </div>
+                <div class="form-group">
+                    <label for="cpNewPassword">New Password</label>
+                    <input type="password" id="cpNewPassword" placeholder="At least 6 characters" autocomplete="new-password">
+                </div>
+                <div class="form-group">
+                    <label for="cpConfirmPassword">Confirm New Password</label>
+                    <input type="password" id="cpConfirmPassword" placeholder="Repeat new password" autocomplete="new-password">
+                </div>
+                <p class="login-error" id="cpError"></p>
+                <p class="cp-success hidden" id="cpSuccess">&#10003; Password updated successfully.</p>
+                <div class="settings-save-row">
+                    <button class="btn btn-primary" id="cpSaveBtn">Update Password</button>
+                    <a href="#settings" class="btn btn-secondary">Cancel</a>
                 </div>
             </div>
         </section>
@@ -4325,40 +4361,40 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=211"></script>
-    <script src="js/auth.js?v=211"></script>
-    <script src="js/zones.js?v=211"></script>
-    <script src="js/plants.js?v=211"></script>
-    <script src="js/problems.js?v=211"></script>
-    <script src="js/facts.js?v=211"></script>
-    <script src="js/projects.js?v=211"></script>
-    <script src="js/chemicals.js?v=211"></script>
-    <script src="js/activities.js?v=211"></script>
+    <script src="js/firebase-config.js?v=212"></script>
+    <script src="js/auth.js?v=212"></script>
+    <script src="js/zones.js?v=212"></script>
+    <script src="js/plants.js?v=212"></script>
+    <script src="js/problems.js?v=212"></script>
+    <script src="js/facts.js?v=212"></script>
+    <script src="js/projects.js?v=212"></script>
+    <script src="js/chemicals.js?v=212"></script>
+    <script src="js/activities.js?v=212"></script>
     <!-- Cropper.js — client-side image cropping library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <!-- SortableJS — drag-and-drop list reordering -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    <script src="js/photos.js?v=211"></script>
-    <script src="js/weeds.js?v=211"></script>
-    <script src="js/calendar.js?v=211"></script>
-    <script src="js/gps.js?v=211"></script>
-    <script src="js/settings.js?v=211"></script>
-    <script src="js/house.js?v=211"></script>
-    <script src="js/floorplan.js?v=211"></script>
-    <script src="js/search.js?v=211"></script>
-    <script src="js/activityreport.js?v=211"></script>
-    <script src="js/checklists.js?v=211"></script>
-    <script src="js/bulkactivity.js?v=211"></script>
-    <script src="js/devnotes.js?v=211"></script>
-    <script src="js/vehicles.js?v=211"></script>
-    <script src="js/garage.js?v=211"></script>
-    <script src="js/structures.js?v=211"></script>
-    <script src="js/moveThings.js?v=211"></script>
-    <script src="js/journal.js?v=211"></script>
-    <script src="js/collections.js?v=211"></script>
+    <script src="js/photos.js?v=212"></script>
+    <script src="js/weeds.js?v=212"></script>
+    <script src="js/calendar.js?v=212"></script>
+    <script src="js/gps.js?v=212"></script>
+    <script src="js/settings.js?v=212"></script>
+    <script src="js/house.js?v=212"></script>
+    <script src="js/floorplan.js?v=212"></script>
+    <script src="js/search.js?v=212"></script>
+    <script src="js/activityreport.js?v=212"></script>
+    <script src="js/checklists.js?v=212"></script>
+    <script src="js/bulkactivity.js?v=212"></script>
+    <script src="js/devnotes.js?v=212"></script>
+    <script src="js/vehicles.js?v=212"></script>
+    <script src="js/garage.js?v=212"></script>
+    <script src="js/structures.js?v=212"></script>
+    <script src="js/moveThings.js?v=212"></script>
+    <script src="js/journal.js?v=212"></script>
+    <script src="js/collections.js?v=212"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=211"></script>
-    <script src="js/app.js?v=211"></script>
+    <script src="js/chat.js?v=212"></script>
+    <script src="js/app.js?v=212"></script>
 
 </body>
 </html>

@@ -117,3 +117,84 @@ function handleSignOut() {
 
 document.getElementById('signOutBtn').addEventListener('click', handleSignOut);
 document.getElementById('signOutBtnMobile').addEventListener('click', handleSignOut);
+
+// ---------- Change Password Page ----------
+
+/**
+ * Called by app.js when navigating to #changepassword.
+ * Clears the form so it's fresh each visit.
+ */
+function loadChangePasswordPage() {
+    document.getElementById('cpCurrentPassword').value = '';
+    document.getElementById('cpNewPassword').value     = '';
+    document.getElementById('cpConfirmPassword').value = '';
+    document.getElementById('cpError').textContent     = '';
+    document.getElementById('cpSuccess').classList.add('hidden');
+    document.getElementById('cpSaveBtn').disabled      = false;
+    document.getElementById('cpSaveBtn').textContent   = 'Update Password';
+}
+
+document.getElementById('cpSaveBtn').addEventListener('click', async function() {
+    var currentPw = document.getElementById('cpCurrentPassword').value;
+    var newPw     = document.getElementById('cpNewPassword').value;
+    var confirmPw = document.getElementById('cpConfirmPassword').value;
+    var errorEl   = document.getElementById('cpError');
+    var successEl = document.getElementById('cpSuccess');
+    var saveBtn   = document.getElementById('cpSaveBtn');
+
+    // Clear previous messages
+    errorEl.textContent = '';
+    successEl.classList.add('hidden');
+
+    // Basic validation
+    if (!currentPw || !newPw || !confirmPw) {
+        errorEl.textContent = 'Please fill in all three fields.';
+        return;
+    }
+    if (newPw.length < 6) {
+        errorEl.textContent = 'New password must be at least 6 characters.';
+        return;
+    }
+    if (newPw !== confirmPw) {
+        errorEl.textContent = 'New password and confirmation do not match.';
+        return;
+    }
+
+    saveBtn.disabled    = true;
+    saveBtn.textContent = 'Updating…';
+
+    try {
+        var user = auth.currentUser;
+
+        // Firebase requires re-authentication before changing password
+        var credential = firebase.auth.EmailAuthProvider.credential(user.email, currentPw);
+        await user.reauthenticateWithCredential(credential);
+
+        // Re-auth passed — now update the password
+        await user.updatePassword(newPw);
+
+        // Success
+        successEl.classList.remove('hidden');
+        document.getElementById('cpCurrentPassword').value = '';
+        document.getElementById('cpNewPassword').value     = '';
+        document.getElementById('cpConfirmPassword').value = '';
+        saveBtn.disabled    = false;
+        saveBtn.textContent = 'Update Password';
+
+    } catch (err) {
+        saveBtn.disabled    = false;
+        saveBtn.textContent = 'Update Password';
+
+        // Give a clear message for the most common errors
+        if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+            errorEl.textContent = 'Current password is incorrect.';
+        } else if (err.code === 'auth/weak-password') {
+            errorEl.textContent = 'New password is too weak. Use at least 6 characters.';
+        } else if (err.code === 'auth/requires-recent-login') {
+            errorEl.textContent = 'Session expired. Please sign out and sign back in, then try again.';
+        } else {
+            errorEl.textContent = 'Could not update password. Please try again.';
+            console.error('Change password error:', err);
+        }
+    }
+});

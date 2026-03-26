@@ -4,6 +4,7 @@
 A personal contacts/relationship tracker. Stores people you know with contact info,
 family connections, photos, and a running log of interactions — including automatic
 linking from journal entries via @mentions.
+Lives under the **Life** module alongside Journal.
 
 ---
 
@@ -12,137 +13,156 @@ linking from journal entries via @mentions.
 | Field | Notes |
 |-------|-------|
 | Name | Full name |
-| Phone | See Q1 — one or multiple? |
-| Email | See Q1 — one or multiple? |
+| Phone | One phone number |
+| Email | One email address |
 | Address | Home address |
-| Birthdate | Optional; see Q2 re: calendar integration |
-| Facebook URL | Profile page link |
+| Birthdate | Optional; rolls up to Life page calendar |
+| Facebook URL | Profile page link (clickable) |
 | Profile photo | Selected from their photo collection; shown on list card |
-| Notes | General free-form notes about the person |
-| Category/Group | See Q3 |
+| Category | Family / Friend / Neighbor / Coworker / etc. — see Q1 |
+| Notes | General free-form notes |
+| createdAt | Firestore timestamp |
 
-**Open Question Q1 — Multiple contact methods?**
-Do you want one phone/email per person, or multiple with labels
-(e.g., "Cell", "Work", "Home")? Most people have 2-3 numbers.
+---
 
-**Open Question Q2 — Birthdays on calendar?**
-Should a person's birthdate automatically appear on the Calendar page
-as a recurring annual event?
+## Categories
+User can tag each person with a category for filtering the list.
 
-**Open Question Q3 — Categories / Groups?**
-Do you want to tag or group people — e.g., Family, Friend, Neighbor,
-Coworker, etc.? This would let you filter the list.
+**Open Question Q1 — Predefined or free-form categories?**
+- **Predefined**: Family, Friend, Neighbor, Coworker, Acquaintance (you pick from a list)
+- **Free-form**: You type whatever you want (like tags)
+- **Hybrid**: Predefined defaults + ability to add your own
 
 ---
 
 ## Social Media
-
-- Facebook page URL (clickable link)
-
-**Open Question Q4 — Other social platforms?**
-Instagram, LinkedIn, X (Twitter)? Or just Facebook for now and add others later?
+- Facebook URL — stored as a clickable link (same as URL facts elsewhere in the app)
 
 ---
 
 ## Family Members (one level deep)
 
-A person can have a sub-list of family members attached to them.
+- A main person can have sub-people linked to them (spouse, kids, etc.)
+- Sub-people are **full Person records** — same fields, photos, interactions, bdays
+- Sub-people appear under their main person and **cannot have sub-people of their own**
+- Sub-people birthdays also roll up to the Life page calendar
+- Journal entries can be @linked to sub-people directly
 
-**Open Question Q5 — Linked vs. standalone family members?**
-Two options:
-- **Linked**: Family members are other people already in your People list
-  (e.g., Jim's wife Susan is also her own full Person record you track)
-- **Standalone**: Just names/roles listed on Jim's record for reference
-  (e.g., "Wife: Susan", "Son: Tyler") — not full tracked people
-
-Which fits your use case better? Could be a mix — some family members
-are in your list, some are just reference names.
+**Open Question Q2 — @mention sub-people roll-up**
+When you @mention Susan (Jim's wife, a sub-person) in a journal entry —
+does that entry show in:
+- Susan's interactions only?
+- Susan's interactions **AND** Jim's interactions (since she's his family member)?
 
 ---
 
 ## Photos
-
 - Attach multiple photos to a person (same pattern as plants/zones)
-- Select one photo as the **profile picture**
-- Profile picture shown as thumbnail on the people list card
+- Select one as the **profile picture** — shown as thumbnail on people list cards
 - Full photo gallery viewer (newest-first, caption, delete)
+- Sub-people have their own photos too
 
 ---
 
 ## Interactions Log
 
-A chronological list of notes about a person. Two sources feed this list:
+A chronological list of entries about a person. Two sources:
 
-1. **Direct interactions** — entries logged specifically on Jim's page
-2. **Journal @mentions** — when a journal entry references @Jim,
-   that entry (or a reference to it) appears in Jim's interaction log
+1. **Direct interactions** — entered on the person's page (like a mini journal with speech-to-text)
+   - Fields: date, text — simple, no types needed
+2. **Journal @mentions** — when a journal entry references @Name, the **full entry text**
+   appears in that person's interaction log
 
-**Open Question Q6 — What does a direct interaction look like?**
-Options:
-- Simple: just a date + text note (like a mini journal entry)
-- Structured: date + type (Phone Call, Visit, Text, Email, etc.) + notes
-
-Which feels more natural for how you'd use it?
-
-**Open Question Q7 — Journal @mention display**
-When a journal entry mentions @Jim, what should show in Jim's log?
-- Option A: The **full journal entry text** shows inline in Jim's list
-- Option B: A **reference card** — "Mentioned in journal on [date]" — clickable to open the full journal entry
-- Option A is more convenient; Option B keeps journal entries private
-  if you ever share the People list with someone else
-
-**Open Question Q8 — @mention mechanics in the journal**
-When typing @Jim in a journal entry:
-- Should it **autocomplete** from your people list as you type?
-- Or just recognize @Name after the fact when saving?
-Autocomplete is slicker but more work to build.
+Both show in one unified chronological list on the person's page.
+Sub-people have their own interaction list that works the same way.
 
 ---
 
-## Navigation / Location in App
+## Journal @Mention Linking
 
-**Open Question Q9 — Where does People live?**
-- Under the **Life** module (alongside Journal) — makes sense since it's personal
-- Its own **top-level tile** on the main landing page
-- Under Life makes more sense if you want it private (same as journal);
-  top-level makes sense if family members might use it too
+When writing a journal entry, typing `@` triggers an **autocomplete dropdown**
+from the People list (both main people and sub-people).
 
----
+- Selected person is stored as a linked reference in the journal entry
+- On save, a copy/reference of the full entry text is added to that person's interaction log
+- Multiple people can be @mentioned in one journal entry (Jim, Susan, etc.)
 
-## Other Things Worth Considering
-
-These aren't in your list yet — worth a quick yes/no:
-
-- **Last contacted date** — auto-stamped when you log an interaction,
-  shown on the list card so you can see "haven't talked to Jim in 6 months"
-- **Important dates** — beyond birthday: anniversary, graduation, etc.
-- **Tags** — freeform tags beyond categories (e.g., "golf buddy", "college friend")
-- **Mailing list flag** — simple checkbox "send Christmas card" type of thing
-- **Linked to a zone or house location** — e.g., neighbor Jim lives next door;
-  link him to a zone on the map
-- **Export to contacts** — push to phone contacts? Probably overkill but worth noting
+**Note on autocomplete complexity**: This is a medium-effort feature.
+Can be built in Phase 4 — not required for the initial release.
+If autocomplete is too complex initially, Phase 1 can do plain `@Name` text
+with a manual "link to person" button instead.
 
 ---
 
-## Firestore Collections (Draft)
+## Life Page Calendar
+
+The Life page gets a calendar section (same pattern as Yard and House pages).
+This calendar shows:
+- **Birthdays** for all people (main and sub-people) as recurring annual events
+- Potentially other Life-related calendar events (TBD)
+
+**Open Question Q3 — Life calendar scope**
+Should the Life page calendar show:
+- Birthdays only?
+- Or also pull in regular calendarEvents that are linked to people/journal?
+
+---
+
+## People List (Main View)
+
+Each person card shows:
+- Profile photo thumbnail (or placeholder avatar if none)
+- Name
+- Category badge
+- Last interaction date (auto-stamped when any interaction is logged)
+
+**Open Question Q4 — What else on the card?**
+Any other quick info you'd want to see without opening the person?
+e.g., phone number, city, birthday coming up soon?
+
+---
+
+## Navigation Under Life Module
+
+Life landing page gets a **People tile** alongside Journal.
+People list → Person detail → (sub-people inline or navigable)
+
+Life nav bar gets a **People** link.
+
+---
+
+## Firestore Collections
 
 | Collection | Key Fields |
 |------------|-----------|
-| people | name, phone, email, address, birthdate, facebookUrl, profilePhotoId, notes, category, createdAt |
-| peopleFamily | personId, name, relationship (label only, not a full person link) |
-| peopleInteractions | personId, date, text, sourceType (direct/journal), journalEntryId (if from journal) |
+| people | name, phone, email, address, birthdate, facebookUrl, profilePhotoId, notes, category, parentPersonId (null for main, set for sub-people), createdAt |
+| peopleInteractions | personId, date, text, sourceType ('direct' or 'journal'), journalEntryId (if from journal), createdAt |
 | photos | targetType='person', targetId, imageData, caption, isProfile, createdAt |
 
----
-
-## Build Phases (Draft)
-
-- **Phase 1**: Person CRUD, contact info, photos, profile pic selection, list view with cards
-- **Phase 2**: Family members sub-list
-- **Phase 3**: Direct interaction log
-- **Phase 4**: Journal @mention linking (most complex — depends on Q6-Q8 answers)
-- **Phase 5**: Calendar integration for birthdays
+*Note: No separate peopleFamily collection needed — sub-people are just Person records
+with parentPersonId set. This keeps the data model simple.*
 
 ---
 
-*Status: Planning — awaiting answers to Q1–Q9 above*
+## Build Phases
+
+| Phase | What |
+|-------|------|
+| 1 | Person CRUD, contact info, categories, photos, profile pic, list view with cards |
+| 2 | Family members (sub-people) — linked Person records, one level deep |
+| 3 | Direct interaction log with speech-to-text |
+| 4 | Journal @mention linking + autocomplete |
+| 5 | Life page calendar with birthday roll-up |
+
+---
+
+## Remaining Open Questions
+
+- **Q1** — Categories: predefined list, free-form, or hybrid?
+- **Q2** — Sub-person @mention: show in sub-person's list only, or also roll up to parent?
+- **Q3** — Life calendar: birthdays only, or broader?
+- **Q4** — People list card: any other quick-info fields to show?
+
+---
+
+*Status: Planning — awaiting answers to Q1–Q4*

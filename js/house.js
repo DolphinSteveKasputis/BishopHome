@@ -513,7 +513,7 @@ function buildRoomCard(id, data) {
  */
 function buildRoomTypeBadge(type) {
     if (!type || type === 'standard') return '';
-    var labels = { hallway: 'Hallway', stairs: 'Stairs' };
+    var labels = { hallway: 'Hallway', stairs: 'Stairs', outdoors: 'Outdoors' };
     var label  = labels[type] || type;
     return '<span class="house-room-type-badge house-room-type-badge--' +
            escapeHtml(type) + '">' + escapeHtml(label) + '</span>';
@@ -559,7 +559,7 @@ function renderRoomDetail(room, floor) {
     var meta = document.getElementById('roomMeta');
     var typeLabel = '';
     if (room.type && room.type !== 'standard') {
-        var typeLabels = { hallway: 'Hallway', stairs: 'Stairs' };
+        var typeLabels = { hallway: 'Hallway', stairs: 'Stairs', outdoors: 'Outdoors' };
         typeLabel = ' · ' + (typeLabels[room.type] || room.type);
     }
     meta.textContent = (floor.name || 'Unknown Floor') + typeLabel;

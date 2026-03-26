@@ -63,9 +63,64 @@ var PROBLEM_CHILD_MAP = {
 };
 
 /**
- * Load problems for a parent entity AND its immediate children.
- * Children are identified via PROBLEM_CHILD_MAP.
- * Child problems are labelled "from: [child name]" in the list.
+ * Recursively gathers ALL problems for an entity and every descendant.
+ * The root entity's own problems get sourceLabel=null (no "from:" shown).
+ * Every descendant's problems get sourceLabel = that descendant's name.
+ *
+ * Example: calling _gatherProblems('floor', floorId, null) returns:
+ *   - floor's own problems          (sourceLabel: null)
+ *   - each room's problems          (sourceLabel: room name)
+ *   - each thing in each room       (sourceLabel: thing name)
+ *   - each subthing in each thing   (sourceLabel: subthing name)
+ *
+ * @param {string}      entityType  - targetType for this entity
+ * @param {string}      entityId    - Firestore document ID
+ * @param {string|null} sourceLabel - Label to attach to problems at this level (null = own entity)
+ * @returns {Promise<Array>} Array of { problem, targetType, targetId, sourceLabel }
+ */
+async function _gatherProblems(entityType, entityId, sourceLabel) {
+    var items = [];
+
+    // Load problems belonging directly to this entity
+    var snap = await userCol('problems')
+        .where('targetType', '==', entityType)
+        .where('targetId',   '==', entityId)
+        .get();
+    snap.forEach(function(doc) {
+        items.push({
+            problem:     Object.assign({ id: doc.id }, doc.data()),
+            targetType:  entityType,
+            targetId:    entityId,
+            sourceLabel: sourceLabel
+        });
+    });
+
+    // Recurse into children (if this type has children defined)
+    var childDef = PROBLEM_CHILD_MAP[entityType];
+    if (childDef) {
+        var childrenSnap = await userCol(childDef.collection)
+            .where(childDef.parentField, '==', entityId)
+            .get();
+
+        var childPromises = [];
+        childrenSnap.forEach(function(childDoc) {
+            var childName = childDoc.data().name || 'Unknown';
+            childPromises.push(
+                _gatherProblems(childDef.childType, childDoc.id, childName)
+                    .then(function(childItems) {
+                        childItems.forEach(function(ci) { items.push(ci); });
+                    })
+            );
+        });
+        await Promise.all(childPromises);
+    }
+
+    return items;
+}
+
+/**
+ * Load problems for a parent entity AND ALL descendants (recursive roll-up).
+ * Replaces the old single-level version — now a floor sees thing/subthing problems too.
  */
 async function loadProblemsWithChildren(targetType, targetId, containerId, emptyStateId) {
     var container  = document.getElementById(containerId);
@@ -88,46 +143,10 @@ async function loadProblemsWithChildren(targetType, targetId, containerId, empty
     emptyState.style.display = 'none';
 
     try {
-        // Step 1: load this entity's own problems
-        var ownSnap = await userCol('problems')
-            .where('targetType', '==', targetType)
-            .where('targetId',   '==', targetId)
-            .get();
+        // Gather own + all descendant problems in one recursive sweep
+        var allItems = await _gatherProblems(targetType, targetId, null);
 
-        var allItems = [];  // { problem, targetType, targetId, sourceLabel }
-        ownSnap.forEach(function(doc) {
-            allItems.push({ problem: Object.assign({ id: doc.id }, doc.data()), targetType: targetType, targetId: targetId, sourceLabel: null });
-        });
-
-        // Step 2: fetch immediate children and their problems
-        var childDef = PROBLEM_CHILD_MAP[targetType];
-        if (childDef) {
-            var childrenSnap = await userCol(childDef.collection)
-                .where(childDef.parentField, '==', targetId)
-                .get();
-
-            var childPromises = [];
-            childrenSnap.forEach(function(childDoc) {
-                var childId    = childDoc.id;
-                var childLabel = childDoc.data().name || 'Unknown';
-                var childType  = childDef.childType;
-
-                childPromises.push(
-                    userCol('problems')
-                        .where('targetType', '==', childType)
-                        .where('targetId',   '==', childId)
-                        .get()
-                        .then(function(snap) {
-                            snap.forEach(function(doc) {
-                                allItems.push({ problem: Object.assign({ id: doc.id }, doc.data()), targetType: childType, targetId: childId, sourceLabel: childLabel });
-                            });
-                        })
-                );
-            });
-            await Promise.all(childPromises);
-        }
-
-        // Step 3: split open / resolved, sort newest first
+        // Split open / resolved, sort newest first
         var openItems     = allItems.filter(function(i) { return i.problem.status === 'open'; });
         var resolvedItems = allItems.filter(function(i) { return i.problem.status === 'resolved'; });
 

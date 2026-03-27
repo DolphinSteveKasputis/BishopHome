@@ -1112,11 +1112,25 @@ function _sbRenderConfirmFields(action, payload) {
                           _sbEsc(p.categoryName || '') + '</option>';
             }
             catSel += '</select>';
+
+            // Label the value field with the category name when known (e.g. "Value (Weight)")
+            var valueLabel = p.categoryName ? 'Value (' + p.categoryName + ')' : 'Value';
+
             html += _sbFieldRow('Category', catSel);
-            html += _sbFieldRow('Value',
+            html += _sbFieldRow(valueLabel,
                 '<input type="text" class="sb-field" data-field="value" value="' + _sbEsc(p.value || '') + '">');
             html += _sbFieldRow('Date',
                 '<input type="date" class="sb-field" data-field="date" value="' + _sbEsc(p.date || _sbToday()) + '">');
+
+            // When creating a new category, let the user optionally specify a unit
+            if (p.categoryExists === false) {
+                html += '<div class="sb-new-person-section">' +
+                        '<div class="sb-new-person-heading">New category — additional details (optional)</div>' +
+                        _sbFieldRow('Unit',
+                            '<input type="text" class="sb-field" data-field="newCategoryUnit"' +
+                            ' placeholder="e.g. lbs, bpm, hours, steps, mg/dL">') +
+                        '</div>';
+            }
             break;
         }
 
@@ -1469,14 +1483,17 @@ async function _sbWrite(action, payload) {
         case 'ADD_TRACKING_ENTRY': {
             var catId   = payload.categoryId   || '';
             var catName = payload.categoryName || '';
-            // Create category if the LLM flagged it as new
+            // Create category if the LLM flagged it as new (or user typed a new name)
             if (!catId || catId === '__new__') {
-                var catRef = await userCol('journalCategories').add({
-                    name: catName, createdAt: ts
-                });
+                var catDoc = { name: catName, createdAt: ts };
+                // Save unit if the user filled it in (e.g. "lbs", "bpm")
+                if (payload.newCategoryUnit && payload.newCategoryUnit.trim()) {
+                    catDoc.unit = payload.newCategoryUnit.trim();
+                }
+                var catRef = await userCol('journalCategories').add(catDoc);
                 catId = catRef.id;
             } else {
-                // Resolve name from cached context (journal tracking reads by name, not id)
+                // Resolve name from cached context (tracking items are keyed by name, not id)
                 var ctxCat = (_sbContext && _sbContext.trackingCategories || [])
                     .find(function(c) { return c.id === catId; });
                 if (ctxCat) catName = ctxCat.name;

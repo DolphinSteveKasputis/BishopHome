@@ -217,7 +217,7 @@ function renderPersonDetail(person, parentPerson) {
     var rows = '';
     if (person.phone)       rows += _contactRow('Phone',    '<a href="tel:' + escapeHtml(person.phone) + '">' + escapeHtml(person.phone) + '</a>');
     if (person.email)       rows += _contactRow('Email',    '<a href="mailto:' + escapeHtml(person.email) + '">' + escapeHtml(person.email) + '</a>');
-    if (person.address)     rows += _contactRow('Address',  escapeHtml(person.address));
+    if (person.address)     rows += _contactRow('Address',  '<a href="https://maps.google.com/?q=' + encodeURIComponent(person.address) + '" target="_blank" rel="noopener">' + escapeHtml(person.address) + '</a>');
     if (person.facebookUrl) rows += _contactRow('Facebook', '<a href="' + escapeHtml(person.facebookUrl) + '" target="_blank" rel="noopener">View Profile ↗</a>');
     if (person.howKnown)    rows += _contactRow('How known', escapeHtml(person.howKnown));
     if (person.notes)       rows += _contactRow('Notes',    escapeHtml(person.notes));

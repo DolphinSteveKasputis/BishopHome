@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=226">
+    <link rel="stylesheet" href="css/styles.css?v=227">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -380,6 +380,7 @@
                 <h3 class="section-heading">Photos</h3>
                 <button class="btn btn-primary btn-small" id="addZoneCameraBtn">+ Camera</button>
                 <button class="btn btn-primary btn-small" id="addZoneGalleryBtn">+ Gallery</button>
+                <button class="btn btn-primary btn-small paste-photo-btn" data-entity="zone">📋 Paste</button>
             </div>
             <div id="zonePhotoContainer"></div>
             <p class="empty-state" id="zonePhotoEmptyState">No photos yet.</p>
@@ -835,6 +836,7 @@
                 <h3 class="section-heading">Photos</h3>
                 <button class="btn btn-primary btn-small" id="addPanelCameraBtn">+ Camera</button>
                 <button class="btn btn-primary btn-small" id="addPanelGalleryBtn">+ Gallery</button>
+                <button class="btn btn-primary btn-small paste-photo-btn" data-entity="panel">📋 Paste</button>
             </div>
             <div id="panelPhotoContainer"></div>
             <p class="empty-state" id="panelPhotoEmptyState">No photos yet.</p>
@@ -928,6 +930,7 @@
                 <h3 class="section-heading">Photos</h3>
                 <button class="btn btn-primary btn-small" id="addFloorCameraBtn">+ Camera</button>
                 <button class="btn btn-primary btn-small" id="addFloorGalleryBtn">+ Gallery</button>
+                <button class="btn btn-primary btn-small paste-photo-btn" data-entity="floor">📋 Paste</button>
             </div>
             <div id="floorPhotoContainer"></div>
             <p class="empty-state" id="floorPhotoEmptyState">No photos yet.</p>
@@ -1016,6 +1019,7 @@
                 <h3 class="section-heading">Photos</h3>
                 <button class="btn btn-primary btn-small" id="addRoomCameraBtn">+ Camera</button>
                 <button class="btn btn-primary btn-small" id="addRoomGalleryBtn">+ Gallery</button>
+                <button class="btn btn-primary btn-small paste-photo-btn" data-entity="room">📋 Paste</button>
             </div>
             <div id="roomPhotoContainer"></div>
             <p class="empty-state" id="roomPhotoEmptyState">No photos yet.</p>
@@ -1107,6 +1111,7 @@
                 <h3 class="section-heading">Photos</h3>
                 <button class="btn btn-primary btn-small" id="addThingCameraBtn">+ Camera</button>
                 <button class="btn btn-primary btn-small" id="addThingGalleryBtn">+ Gallery</button>
+                <button class="btn btn-primary btn-small paste-photo-btn" data-entity="thing">📋 Paste</button>
             </div>
             <div id="thingPhotoContainer"></div>
             <p class="empty-state" id="thingPhotoEmptyState">No photos yet.</p>
@@ -1179,6 +1184,7 @@
                 <h3 class="section-heading">Photos</h3>
                 <button class="btn btn-primary btn-small" id="addStCameraBtn">+ Camera</button>
                 <button class="btn btn-primary btn-small" id="addStGalleryBtn">+ Gallery</button>
+                <button class="btn btn-primary btn-small paste-photo-btn" data-entity="subthing">📋 Paste</button>
             </div>
             <div id="stPhotoContainer"></div>
             <p class="empty-state" id="stPhotoEmptyState">No photos yet.</p>
@@ -1447,6 +1453,7 @@
                 <h3 class="section-heading">Photos</h3>
                 <button class="btn btn-primary btn-small" id="addPlantCameraBtn">+ Camera</button>
                 <button class="btn btn-primary btn-small" id="addPlantGalleryBtn">+ Gallery</button>
+                <button class="btn btn-primary btn-small paste-photo-btn" data-entity="plant">📋 Paste</button>
             </div>
             <div id="plantPhotoContainer"></div>
             <p class="empty-state" id="plantPhotoEmptyState">No photos yet.</p>
@@ -1510,6 +1517,7 @@
                 <h3 class="section-heading">Photos</h3>
                 <button class="btn btn-primary btn-small" id="addWeedCameraBtn">+ Camera</button>
                 <button class="btn btn-primary btn-small" id="addWeedGalleryBtn">+ Gallery</button>
+                <button class="btn btn-primary btn-small paste-photo-btn" data-entity="weed">📋 Paste</button>
             </div>
             <div id="weedPhotoContainer"></div>
             <p class="empty-state" id="weedPhotoEmptyState">No photos yet.</p>
@@ -1756,6 +1764,7 @@
                 <h3 class="section-heading">Photos</h3>
                 <button class="btn btn-primary btn-small" id="addVehicleCameraBtn">+ Camera</button>
                 <button class="btn btn-primary btn-small" id="addVehicleGalleryBtn">+ Gallery</button>
+                <button class="btn btn-primary btn-small paste-photo-btn" data-entity="vehicle">📋 Paste</button>
             </div>
             <div id="vehiclePhotoContainer"></div>
             <p class="empty-state" id="vehiclePhotoEmptyState">No photos yet.</p>
@@ -1846,6 +1855,7 @@
                 <h3 class="section-heading">Photos</h3>
                 <button class="btn btn-primary btn-small" id="garageRoomCameraBtn">+ Camera</button>
                 <button class="btn btn-primary btn-small" id="garageRoomGalleryBtn">+ Gallery</button>
+                <button class="btn btn-primary btn-small paste-photo-btn" data-entity="garageroom">📋 Paste</button>
             </div>
             <div id="garageRoomPhotosSection"></div>
             <p class="empty-state" id="garageRoomPhotosEmpty">No photos yet.</p>
@@ -1937,6 +1947,7 @@
                 <h3 class="section-heading">Photos</h3>
                 <button class="btn btn-primary btn-small" id="garageThingCameraBtn">+ Camera</button>
                 <button class="btn btn-primary btn-small" id="garageThingGalleryBtn">+ Gallery</button>
+                <button class="btn btn-primary btn-small paste-photo-btn" data-entity="garagething">📋 Paste</button>
             </div>
             <div id="garageThingPhotosSection"></div>
             <p class="empty-state" id="garageThingPhotosEmpty">No photos yet.</p>
@@ -2026,6 +2037,7 @@
                 <h3 class="section-heading">Photos</h3>
                 <button class="btn btn-primary btn-small" id="garageSubThingCameraBtn">+ Camera</button>
                 <button class="btn btn-primary btn-small" id="garageSubThingGalleryBtn">+ Gallery</button>
+                <button class="btn btn-primary btn-small paste-photo-btn" data-entity="garagesubthing">📋 Paste</button>
             </div>
             <div id="garageSubThingPhotosSection"></div>
             <p class="empty-state" id="garageSubThingPhotosEmpty">No photos yet.</p>
@@ -2111,6 +2123,7 @@
                 <h3 class="section-heading">Photos</h3>
                 <button class="btn btn-primary btn-small" id="structureCameraBtn">+ Camera</button>
                 <button class="btn btn-primary btn-small" id="structureGalleryBtn">+ Gallery</button>
+                <button class="btn btn-primary btn-small paste-photo-btn" data-entity="structure">📋 Paste</button>
             </div>
             <div id="structurePhotosSection"></div>
             <p class="empty-state" id="structurePhotosEmpty">No photos yet.</p>
@@ -2204,6 +2217,7 @@
                 <h3 class="section-heading">Photos</h3>
                 <button class="btn btn-primary btn-small" id="structureThingCameraBtn">+ Camera</button>
                 <button class="btn btn-primary btn-small" id="structureThingGalleryBtn">+ Gallery</button>
+                <button class="btn btn-primary btn-small paste-photo-btn" data-entity="structurething">📋 Paste</button>
             </div>
             <div id="structureThingPhotosSection"></div>
             <p class="empty-state" id="structureThingPhotosEmpty">No photos yet.</p>
@@ -2293,6 +2307,7 @@
                 <h3 class="section-heading">Photos</h3>
                 <button class="btn btn-primary btn-small" id="structureSubThingCameraBtn">+ Camera</button>
                 <button class="btn btn-primary btn-small" id="structureSubThingGalleryBtn">+ Gallery</button>
+                <button class="btn btn-primary btn-small paste-photo-btn" data-entity="structuresubthing">📋 Paste</button>
             </div>
             <div id="structureSubThingPhotosSection"></div>
             <p class="empty-state" id="structureSubThingPhotosEmpty">No photos yet.</p>
@@ -4357,6 +4372,7 @@
                 <div class="photo-btn-group">
                     <button class="btn btn-secondary btn-small" id="personCameraBtn">📷 Camera</button>
                     <button class="btn btn-secondary btn-small" id="personGalleryBtn">🖼 Gallery</button>
+                    <button class="btn btn-secondary btn-small paste-photo-btn" data-entity="person">📋 Paste</button>
                 </div>
             </div>
             <input type="file" id="personCameraInput"  accept="image/*" capture="environment" style="display:none;">
@@ -4422,6 +4438,7 @@
                 <h3 class="section-heading">Photos</h3>
                 <button class="btn btn-primary btn-small" id="collectionItemCameraBtn">+ Camera</button>
                 <button class="btn btn-primary btn-small" id="collectionItemGalleryBtn">+ Gallery</button>
+                <button class="btn btn-primary btn-small paste-photo-btn" data-entity="collectionitem">📋 Paste</button>
             </div>
             <div id="collectionItemPhotoContainer"></div>
             <p class="empty-state" id="collectionItemPhotoEmpty">No photos yet.</p>
@@ -4599,41 +4616,41 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=226"></script>
-    <script src="js/auth.js?v=226"></script>
-    <script src="js/zones.js?v=226"></script>
-    <script src="js/plants.js?v=226"></script>
-    <script src="js/problems.js?v=226"></script>
-    <script src="js/facts.js?v=226"></script>
-    <script src="js/projects.js?v=226"></script>
-    <script src="js/chemicals.js?v=226"></script>
-    <script src="js/activities.js?v=226"></script>
+    <script src="js/firebase-config.js?v=227"></script>
+    <script src="js/auth.js?v=227"></script>
+    <script src="js/zones.js?v=227"></script>
+    <script src="js/plants.js?v=227"></script>
+    <script src="js/problems.js?v=227"></script>
+    <script src="js/facts.js?v=227"></script>
+    <script src="js/projects.js?v=227"></script>
+    <script src="js/chemicals.js?v=227"></script>
+    <script src="js/activities.js?v=227"></script>
     <!-- Cropper.js — client-side image cropping library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <!-- SortableJS — drag-and-drop list reordering -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    <script src="js/photos.js?v=226"></script>
-    <script src="js/weeds.js?v=226"></script>
-    <script src="js/calendar.js?v=226"></script>
-    <script src="js/gps.js?v=226"></script>
-    <script src="js/settings.js?v=226"></script>
-    <script src="js/house.js?v=226"></script>
-    <script src="js/floorplan.js?v=226"></script>
-    <script src="js/search.js?v=226"></script>
-    <script src="js/activityreport.js?v=226"></script>
-    <script src="js/checklists.js?v=226"></script>
-    <script src="js/bulkactivity.js?v=226"></script>
-    <script src="js/devnotes.js?v=226"></script>
-    <script src="js/vehicles.js?v=226"></script>
-    <script src="js/garage.js?v=226"></script>
-    <script src="js/structures.js?v=226"></script>
-    <script src="js/moveThings.js?v=226"></script>
-    <script src="js/journal.js?v=226"></script>
-    <script src="js/people.js?v=226"></script>
-    <script src="js/collections.js?v=226"></script>
+    <script src="js/photos.js?v=227"></script>
+    <script src="js/weeds.js?v=227"></script>
+    <script src="js/calendar.js?v=227"></script>
+    <script src="js/gps.js?v=227"></script>
+    <script src="js/settings.js?v=227"></script>
+    <script src="js/house.js?v=227"></script>
+    <script src="js/floorplan.js?v=227"></script>
+    <script src="js/search.js?v=227"></script>
+    <script src="js/activityreport.js?v=227"></script>
+    <script src="js/checklists.js?v=227"></script>
+    <script src="js/bulkactivity.js?v=227"></script>
+    <script src="js/devnotes.js?v=227"></script>
+    <script src="js/vehicles.js?v=227"></script>
+    <script src="js/garage.js?v=227"></script>
+    <script src="js/structures.js?v=227"></script>
+    <script src="js/moveThings.js?v=227"></script>
+    <script src="js/journal.js?v=227"></script>
+    <script src="js/people.js?v=227"></script>
+    <script src="js/collections.js?v=227"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=226"></script>
-    <script src="js/app.js?v=226"></script>
+    <script src="js/chat.js?v=227"></script>
+    <script src="js/app.js?v=227"></script>
 
 </body>
 </html>

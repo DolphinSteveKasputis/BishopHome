@@ -324,6 +324,98 @@ function triggerGalleryUpload(targetType, targetId) {
     input.click();
 }
 
+/**
+ * Reads an image from the system clipboard and uploads it to the given entity.
+ * Requires HTTPS and user permission (Chrome will prompt once).
+ * Called when the user clicks a "📋 Paste" button on any photo section.
+ *
+ * @param {string} targetType
+ * @param {string} targetId
+ */
+async function triggerPasteUpload(targetType, targetId) {
+    // navigator.clipboard.read() requires HTTPS and clipboard-read permission.
+    if (!navigator.clipboard || !navigator.clipboard.read) {
+        alert('Clipboard paste is not supported in this browser. Try Gallery instead.');
+        return;
+    }
+    try {
+        var items = await navigator.clipboard.read();
+        var imageBlob = null;
+
+        for (var i = 0; i < items.length; i++) {
+            var item = items[i];
+            // Look for any image/* MIME type on the clipboard item
+            var imageType = item.types.find(function(t) { return t.startsWith('image/'); });
+            if (imageType) {
+                imageBlob = await item.getType(imageType);
+                break;
+            }
+        }
+
+        if (!imageBlob) {
+            alert('No image on the clipboard.\n\nIn Chrome: right-click an image and choose "Copy image", then click Paste here.');
+            return;
+        }
+
+        // Wrap the Blob in a File so handlePhotoFile() receives a proper File object
+        var ext  = imageBlob.type === 'image/png' ? '.png' : '.jpg';
+        var file = new File([imageBlob], 'pasted-image' + ext, { type: imageBlob.type });
+        handlePhotoFile(file, targetType, targetId);
+
+    } catch (err) {
+        if (err.name === 'NotAllowedError') {
+            alert('Clipboard access was denied.\n\nClick "Allow" when the browser asks for clipboard permission, then try again.');
+        } else {
+            console.error('Paste upload error:', err);
+            alert('Could not read clipboard. Try the Gallery button instead.');
+        }
+    }
+}
+
+// ---------- Event Delegation: Paste Photo Buttons ----------
+//
+// All "📋 Paste" buttons in index.html use class="paste-photo-btn" and
+// data-entity="<targetType>" (e.g. data-entity="zone").
+// One listener here covers every entity type without per-file wiring.
+//
+// Entity state lookup — maps targetType → current entity object.
+// House-context vars (currentFloor, etc.) are exposed on window by house.js.
+// People-context vars are exposed on window by people.js.
+
+function _getPasteEntity(type) {
+    var entityMap = {
+        zone:              window.currentZone,
+        plant:             window.currentPlant,
+        weed:              window.currentWeed,
+        vehicle:           window.currentVehicle,
+        panel:             window.currentPanel,
+        floor:             window.currentFloor,
+        room:              window.currentRoom,
+        thing:             window.currentThing,
+        subthing:          window.currentSubThing,
+        garageroom:        window.currentGarageRoom,
+        garagething:       window.currentGarageThing,
+        garagesubthing:    window.currentGarageSubThing,
+        structure:         window.currentStructure,
+        structurething:    window.currentStructureThing,
+        structuresubthing: window.currentStructureSubThing,
+        collectionitem:    window.currentCollectionItem,
+        person:            window.currentPerson,
+    };
+    return entityMap[type] || null;
+}
+
+document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.paste-photo-btn');
+    if (!btn) return;
+    var entityType = btn.dataset.entity;
+    if (!entityType) return;
+    var entity = _getPasteEntity(entityType);
+    if (entity && entity.id) {
+        triggerPasteUpload(entityType, entity.id);
+    }
+});
+
 // ---------- Crop Preview ----------
 
 /**

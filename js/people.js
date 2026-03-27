@@ -167,7 +167,7 @@ async function loadPersonDetail(personId) {
     try {
         var doc = await userCol('people').doc(personId).get();
         if (!doc.exists) { window.location.hash = '#people'; return; }
-        currentPerson = Object.assign({ id: doc.id }, doc.data());
+        currentPerson = window.currentPerson = Object.assign({ id: doc.id }, doc.data());
 
         // Load parent for breadcrumb (sub-people only)
         var parentPerson = null;

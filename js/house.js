@@ -386,7 +386,7 @@ function loadFloorDetail(floorId) {
                 window.location.hash = '#house';
                 return;
             }
-            currentFloor = Object.assign({ id: doc.id }, doc.data());
+            currentFloor = window.currentFloor = Object.assign({ id: doc.id }, doc.data());
             renderFloorDetail(currentFloor);
             loadRoomsList(floorId);
         })
@@ -557,7 +557,7 @@ function loadRoomDetail(roomId) {
                 window.location.hash = '#house';
                 return;
             }
-            currentRoom = Object.assign({ id: doc.id }, doc.data());
+            currentRoom = window.currentRoom = Object.assign({ id: doc.id }, doc.data());
 
             // Also load the parent floor so we can show it in the breadcrumb
             return userCol('floors').doc(currentRoom.floorId).get()
@@ -1084,7 +1084,7 @@ function loadThingDetail(thingId) {
                 window.location.hash = '#house';
                 return;
             }
-            currentThing = Object.assign({ id: doc.id }, doc.data());
+            currentThing = window.currentThing = Object.assign({ id: doc.id }, doc.data());
 
             // Load parent room, then parent floor for breadcrumb
             return userCol('rooms').doc(currentThing.roomId).get()
@@ -1643,7 +1643,7 @@ function loadPanelDetail(panelId) {
                 window.location.hash = '#house';
                 return;
             }
-            currentPanel = Object.assign({ id: doc.id }, doc.data());
+            currentPanel = window.currentPanel = Object.assign({ id: doc.id }, doc.data());
             renderPanelDetail(currentPanel);
         })
         .catch(function(err) { console.error('loadPanelDetail error:', err); });
@@ -2337,7 +2337,7 @@ function loadSubThingDetail(subThingId) {
     userCol('subThings').doc(subThingId).get()
         .then(function(doc) {
             if (!doc.exists) { window.location.hash = '#house'; return; }
-            currentSubThing = Object.assign({ id: doc.id }, doc.data());
+            currentSubThing = window.currentSubThing = Object.assign({ id: doc.id }, doc.data());
 
             // Load parent chain: thing → room → floor
             return userCol('things').doc(currentSubThing.thingId).get()

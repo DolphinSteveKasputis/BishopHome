@@ -279,6 +279,9 @@ function handleRoute() {
     } else if (page === 'journal-categories') {
         showPage('journal-categories');
         loadJournalCategoriesPage();
+    } else if (page === 'sb-issues') {
+        showPage('sb-issues');
+        loadSbIssuesPage();
     } else if (TOP_LEVEL_PAGES.includes(page)) {
         showPage(page);
     } else {

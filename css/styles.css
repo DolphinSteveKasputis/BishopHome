@@ -5512,3 +5512,81 @@ textarea.sb-field { resize: vertical; min-height: 60px; }
     display: inline;
 }
 .sb-link-btn:hover { color: #1e40af; }
+
+/* ============================================================
+   SECONDBRAIN — Report Issue button + Issues page
+   ============================================================ */
+
+/* Small "Report Issue" row above the confirm action buttons */
+.sb-report-row {
+    text-align: right;
+    padding: 4px 0 2px;
+    border-top: 1px solid #f0f0f0;
+    margin-top: 10px;
+}
+.sb-report-btn {
+    background: none;
+    border: none;
+    padding: 2px 4px;
+    font-size: 0.75rem;
+    color: #9ca3af;
+    cursor: pointer;
+    text-decoration: none;
+}
+.sb-report-btn:hover { color: #ef4444; text-decoration: underline; }
+
+/* Issues list page */
+.sb-issues-list {
+    padding: 0 12px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.sb-issue-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 12px 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.sb-issue-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+.sb-issue-meta {
+    font-size: 0.8rem;
+    color: #6b7280;
+    line-height: 1.4;
+}
+.sb-issue-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+.sb-issue-section-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #9ca3af;
+    margin-bottom: 4px;
+    margin-top: 8px;
+}
+.sb-issue-pre {
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-size: 0.78rem;
+    font-family: monospace;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 200px;
+    overflow-y: auto;
+    margin: 0;
+    color: #374151;
+}

@@ -14,9 +14,10 @@ var _sbLastText   = '';     // last text sent (for Try Again)
 var _sbThinking   = false;  // true while LLM call in progress
 var _sbPageCtx    = null;   // current page context {type, id, name} or null
 
-var SB_CACHE_MS    = 5 * 60 * 1000;  // 5-minute context cache TTL
-var SB_HISTORY_KEY = '_sbHistory';   // localStorage key for command history
-var SB_HISTORY_MAX = 10;             // max history entries
+var SB_CACHE_MS       = 5 * 60 * 1000;  // 5-minute context cache TTL
+var SB_HISTORY_KEY    = '_sbHistory';   // localStorage key for command history
+var SB_HISTORY_MAX    = 10;             // max history entries
+var _sbLastRawResponse = '';            // raw LLM response string, saved for issue reporting
 
 // ---------- Which entity types are valid targets per action ----------
 var SB_TARGET_TYPES = {
@@ -766,6 +767,7 @@ async function _sbHandleSend() {
 
         var systemPrompt = _sbBuildSystemPrompt(ctx);
         var raw          = await _sbCallLLM(systemPrompt, text);
+        _sbLastRawResponse = raw;  // save for issue reporting
         var result       = _sbParseResponse(raw);
 
         _sbLastResult = result;
@@ -1972,6 +1974,37 @@ function _sbCloseHelp() {
 }
 
 // ============================================================
+// REPORT ISSUE
+// Saves the prompt, raw LLM response, and photo flag to
+// the sbIssues collection so the user can review and share.
+// ============================================================
+
+async function _sbReportIssue() {
+    var action = (_sbLastResult && _sbLastResult.action) || 'UNKNOWN';
+    var btn = document.getElementById('sbReportIssueBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+
+    try {
+        await userCol('sbIssues').add({
+            promptText:    _sbLastText        || '',
+            hasPhotos:     _sbPhotos.length   >  0,
+            rawResponse:   _sbLastRawResponse || '',
+            parsedAction:  action,
+            createdAt:     firebase.firestore.FieldValue.serverTimestamp()
+        });
+        if (btn) { btn.textContent = '✓ Reported'; }
+        setTimeout(function() {
+            if (btn) { btn.disabled = false; btn.textContent = '⚑ Report Issue'; }
+        }, 2500);
+        _sbToast('Issue reported — view in Settings → AI Issues');
+    } catch (err) {
+        console.error('SecondBrain: report issue failed', err);
+        if (btn) { btn.disabled = false; btn.textContent = '⚑ Report Issue'; }
+        alert('Could not save issue: ' + err.message);
+    }
+}
+
+// ============================================================
 // TOAST
 // ============================================================
 
@@ -2034,11 +2067,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.target === this) _sbCloseInput();
     });
 
-    // Confirm / Done / Cancel / Try Again
+    // Confirm / Done / Cancel / Try Again / Report Issue
     document.getElementById('sbConfirmGoBtn').addEventListener('click',       _sbHandleConfirmGo);
     document.getElementById('sbConfirmDoneBtn').addEventListener('click',     _sbHandleConfirmDone);
     document.getElementById('sbConfirmCancelBtn').addEventListener('click',   _sbCloseConfirm);
     document.getElementById('sbConfirmTryAgainBtn').addEventListener('click', _sbHandleTryAgain);
+    document.getElementById('sbReportIssueBtn').addEventListener('click',     _sbReportIssue);
 
     // Close confirm on overlay click
     document.getElementById('sbConfirmModal').addEventListener('click', function(e) {

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=244">
+    <link rel="stylesheet" href="css/styles.css?v=245">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -4220,12 +4220,11 @@
                 <h2>My Health</h2>
             </div>
             <div class="landing-grid" id="healthFeatureGrid">
-                <!-- Row 1 — H2 features (coming soon) -->
-                <span class="landing-tile landing-tile--disabled">
+                <!-- Row 1 — H2 active -->
+                <a href="#health-visits" class="landing-tile landing-tile--health-visits">
                     <span class="landing-tile-icon">🏥</span>
                     <span class="landing-tile-label">Health Visits</span>
-                    <span class="landing-tile-soon">Coming soon</span>
-                </span>
+                </a>
                 <span class="landing-tile landing-tile--disabled">
                     <span class="landing-tile-icon">💊</span>
                     <span class="landing-tile-label">Medications</span>
@@ -4548,6 +4547,160 @@
                 <div class="modal-buttons">
                     <button class="btn btn-secondary" onclick="closeModal('eyeModal')">Cancel</button>
                     <button class="btn btn-primary" onclick="saveEye()">Save</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Page: Health Visits list (#health-visits) -->
+        <section class="page hidden" id="page-health-visits">
+            <div class="page-header">
+                <button class="btn btn-secondary btn-small" onclick="location.hash='#health'">&#8592; My Health</button>
+                <h2>🏥 Health Visits</h2>
+                <button class="btn btn-primary btn-small" onclick="openVisitModal()">+ Add Visit</button>
+            </div>
+            <div class="health-filter-bar">
+                <select id="visitTypeFilter" onchange="renderVisitList(_healthVisitCache, this.value)">
+                    <option value="">All Provider Types</option>
+                    <option>Primary Care</option>
+                    <option>Dentist</option>
+                    <option>Optometrist</option>
+                    <option>Specialist</option>
+                    <option>Urgent Care</option>
+                    <option>ER</option>
+                    <option>Other</option>
+                </select>
+            </div>
+            <div id="visitList"></div>
+        </section>
+
+        <!-- Page: Health Visit detail (#health-visit/{id}) -->
+        <section class="page hidden" id="page-health-visit">
+            <div class="page-header">
+                <button class="btn btn-secondary btn-small" onclick="location.hash='#health-visits'">&#8592; Visits</button>
+                <h2 id="visitDetailTitle"></h2>
+                <div class="page-header-actions">
+                    <button class="btn btn-secondary btn-small" onclick="editCurrentVisit()">Edit</button>
+                    <button class="btn btn-danger btn-small" onclick="deleteCurrentVisit()">Delete</button>
+                </div>
+            </div>
+
+            <!-- Visit fields -->
+            <div class="health-detail-grid">
+                <div class="health-detail-row">
+                    <span class="health-detail-label">Provider</span>
+                    <span class="health-detail-value" id="visitDetailProvider"></span>
+                </div>
+                <div class="health-detail-row">
+                    <span class="health-detail-label">Provider Type</span>
+                    <span class="health-detail-value" id="visitDetailType"></span>
+                </div>
+                <div class="health-detail-row">
+                    <span class="health-detail-label">Reason for Visit</span>
+                    <span class="health-detail-value" id="visitDetailReason"></span>
+                </div>
+                <div class="health-detail-row">
+                    <span class="health-detail-label">What Was Done</span>
+                    <span class="health-detail-value" id="visitDetailWhatDone"></span>
+                </div>
+                <div class="health-detail-row">
+                    <span class="health-detail-label">Outcome / Next Steps</span>
+                    <span class="health-detail-value" id="visitDetailOutcome"></span>
+                </div>
+                <div class="health-detail-row">
+                    <span class="health-detail-label">Cost (out-of-pocket)</span>
+                    <span class="health-detail-value" id="visitDetailCost"></span>
+                </div>
+                <div class="health-detail-row">
+                    <span class="health-detail-label">Notes</span>
+                    <span class="health-detail-value" id="visitDetailNotes"></span>
+                </div>
+            </div>
+
+            <!-- Related concern (hidden when none) -->
+            <div id="visitDetailConcernSection" style="display:none;">
+                <div class="section-heading">Related Concern</div>
+                <div class="health-linked-item" id="visitDetailConcern"></div>
+            </div>
+
+            <!-- Linked records -->
+            <div class="section-heading">Medications Prescribed</div>
+            <div id="visitMedsContainer"></div>
+
+            <div class="section-heading">Conditions Diagnosed</div>
+            <div id="visitConditionsContainer"></div>
+
+            <div class="section-heading">Blood Work Ordered</div>
+            <div id="visitBloodWorkContainer"></div>
+
+            <!-- Photos -->
+            <div class="section-header">
+                <h3 class="section-heading">Photos</h3>
+                <button class="btn btn-primary btn-small" id="addVisitCameraBtn">+ Camera</button>
+                <button class="btn btn-primary btn-small" id="addVisitGalleryBtn">+ Gallery</button>
+            </div>
+            <div id="visitPhotoContainer"></div>
+            <p class="empty-state" id="visitPhotoEmptyState">No photos yet.</p>
+        </section>
+
+        <!-- Modal: Add / Edit Health Visit -->
+        <div class="modal-overlay" id="visitModal">
+            <div class="modal">
+                <h3 id="visitModalTitle">Add Visit</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="visitDate">Date *</label>
+                        <input type="date" id="visitDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="visitProviderType">Provider Type</label>
+                        <select id="visitProviderType">
+                            <option value="">— Select —</option>
+                            <option>Primary Care</option>
+                            <option>Dentist</option>
+                            <option>Optometrist</option>
+                            <option>Specialist</option>
+                            <option>Urgent Care</option>
+                            <option>ER</option>
+                            <option>Other</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="visitProvider">Provider / Doctor Name</label>
+                    <input type="text" id="visitProvider" placeholder="e.g. Dr. Smith, City Dental">
+                </div>
+                <div class="form-group">
+                    <label for="visitConcernId">Related Concern (optional)</label>
+                    <select id="visitConcernId">
+                        <option value="">— No concern linked —</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="visitReason">Reason for Visit</label>
+                    <input type="text" id="visitReason" placeholder="e.g. Annual physical, Follow-up on knee pain">
+                </div>
+                <div class="form-group">
+                    <label for="visitWhatDone">What Was Done</label>
+                    <textarea id="visitWhatDone" rows="3" placeholder="Procedures, diagnoses, treatments…"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="visitOutcome">Outcome / Next Steps</label>
+                    <textarea id="visitOutcome" rows="2" placeholder="Results, referrals, follow-up…"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="visitCost">Out-of-Pocket Cost ($)</label>
+                        <input type="text" id="visitCost" placeholder="e.g. 35">
+                    </div>
+                    <div class="form-group"><!-- spacer --></div>
+                </div>
+                <div class="form-group">
+                    <label for="visitNotes">Notes</label>
+                    <textarea id="visitNotes" rows="2" placeholder="Anything else worth noting…"></textarea>
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn btn-secondary" onclick="closeModal('visitModal')">Cancel</button>
+                    <button class="btn btn-primary" onclick="saveVisit()">Save</button>
                 </div>
             </div>
         </div>
@@ -5081,44 +5234,44 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=244"></script>
-    <script src="js/auth.js?v=244"></script>
-    <script src="js/zones.js?v=244"></script>
-    <script src="js/plants.js?v=244"></script>
-    <script src="js/problems.js?v=244"></script>
-    <script src="js/facts.js?v=244"></script>
-    <script src="js/projects.js?v=244"></script>
-    <script src="js/chemicals.js?v=244"></script>
-    <script src="js/activities.js?v=244"></script>
+    <script src="js/firebase-config.js?v=245"></script>
+    <script src="js/auth.js?v=245"></script>
+    <script src="js/zones.js?v=245"></script>
+    <script src="js/plants.js?v=245"></script>
+    <script src="js/problems.js?v=245"></script>
+    <script src="js/facts.js?v=245"></script>
+    <script src="js/projects.js?v=245"></script>
+    <script src="js/chemicals.js?v=245"></script>
+    <script src="js/activities.js?v=245"></script>
     <!-- Cropper.js — client-side image cropping library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <!-- SortableJS — drag-and-drop list reordering -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    <script src="js/photos.js?v=244"></script>
-    <script src="js/weeds.js?v=244"></script>
-    <script src="js/calendar.js?v=244"></script>
-    <script src="js/gps.js?v=244"></script>
-    <script src="js/settings.js?v=244"></script>
-    <script src="js/house.js?v=244"></script>
-    <script src="js/floorplan.js?v=244"></script>
-    <script src="js/search.js?v=244"></script>
-    <script src="js/activityreport.js?v=244"></script>
-    <script src="js/checklists.js?v=244"></script>
-    <script src="js/bulkactivity.js?v=244"></script>
-    <script src="js/devnotes.js?v=244"></script>
-    <script src="js/vehicles.js?v=244"></script>
-    <script src="js/garage.js?v=244"></script>
-    <script src="js/structures.js?v=244"></script>
-    <script src="js/moveThings.js?v=244"></script>
-    <script src="js/journal.js?v=244"></script>
-    <script src="js/people.js?v=244"></script>
-    <script src="js/collections.js?v=244"></script>
-    <script src="js/health.js?v=244"></script>
+    <script src="js/photos.js?v=245"></script>
+    <script src="js/weeds.js?v=245"></script>
+    <script src="js/calendar.js?v=245"></script>
+    <script src="js/gps.js?v=245"></script>
+    <script src="js/settings.js?v=245"></script>
+    <script src="js/house.js?v=245"></script>
+    <script src="js/floorplan.js?v=245"></script>
+    <script src="js/search.js?v=245"></script>
+    <script src="js/activityreport.js?v=245"></script>
+    <script src="js/checklists.js?v=245"></script>
+    <script src="js/bulkactivity.js?v=245"></script>
+    <script src="js/devnotes.js?v=245"></script>
+    <script src="js/vehicles.js?v=245"></script>
+    <script src="js/garage.js?v=245"></script>
+    <script src="js/structures.js?v=245"></script>
+    <script src="js/moveThings.js?v=245"></script>
+    <script src="js/journal.js?v=245"></script>
+    <script src="js/people.js?v=245"></script>
+    <script src="js/collections.js?v=245"></script>
+    <script src="js/health.js?v=245"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=244"></script>
-    <script src="js/secondbrain.js?v=244"></script>
-    <script src="js/sbissues.js?v=244"></script>
-    <script src="js/app.js?v=244"></script>
+    <script src="js/chat.js?v=245"></script>
+    <script src="js/secondbrain.js?v=245"></script>
+    <script src="js/sbissues.js?v=245"></script>
+    <script src="js/app.js?v=245"></script>
 
 </body>
 </html>

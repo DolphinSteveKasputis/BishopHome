@@ -1,8 +1,9 @@
 'use strict';
 
 // =================================================================
-//  health.js — My Health (H1: Allergies, Supplements,
-//              Vaccinations, Eye/Glasses Prescriptions)
+//  health.js — My Health
+//  H1: Allergies, Supplements, Vaccinations, Eye/Glasses
+//  H2: Health Visits
 // =================================================================
 
 /* ── Severity ordering for allergy sort ───────────────────────── */
@@ -567,5 +568,282 @@ function deleteEye(id) {
     if (!confirm('Delete this prescription record?')) return;
     userCol('eyePrescriptions').doc(id).delete()
         .then(function() { loadEyePage(); })
+        .catch(function(err) { alert('Error deleting: ' + err.message); });
+}
+
+// =================================================================
+//  HEALTH VISITS (H2)
+// =================================================================
+
+/** Cached visit list for client-side filter re-render. */
+var _healthVisitCache = [];
+
+function loadHealthVisitsPage() {
+    var list = document.getElementById('visitList');
+    if (!list) return;
+    list.innerHTML = '<p class="empty-state">Loading\u2026</p>';
+
+    userCol('healthVisits').orderBy('date', 'desc').get()
+        .then(function(snap) {
+            _healthVisitCache = snap.docs.map(function(d) {
+                return Object.assign({ id: d.id }, d.data());
+            });
+            var filter = document.getElementById('visitTypeFilter');
+            renderVisitList(_healthVisitCache, filter ? filter.value : '');
+        })
+        .catch(function(err) {
+            list.innerHTML = '<p class="empty-state">Error loading visits.</p>';
+            console.error('loadHealthVisitsPage:', err);
+        });
+}
+
+function renderVisitList(visits, typeFilter) {
+    var list = document.getElementById('visitList');
+    if (!list) return;
+
+    var filtered = typeFilter
+        ? visits.filter(function(v) { return v.providerType === typeFilter; })
+        : visits;
+
+    if (filtered.length === 0) {
+        list.innerHTML = '<p class="empty-state">' +
+            (typeFilter ? 'No visits with this provider type.' : 'No visits recorded yet. Tap + Add Visit.') +
+            '</p>';
+        return;
+    }
+
+    list.innerHTML = '';
+    var lastYear = null;
+    filtered.forEach(function(visit) {
+        var year = (visit.date || '').substring(0, 4) || 'Unknown';
+        if (year !== lastYear) {
+            var yearDiv = document.createElement('div');
+            yearDiv.className = 'health-year-label';
+            yearDiv.textContent = year;
+            list.appendChild(yearDiv);
+            lastYear = year;
+        }
+        list.appendChild(buildVisitCard(visit));
+    });
+}
+
+function buildVisitCard(visit) {
+    var div = document.createElement('div');
+    div.className = 'health-card health-card--clickable';
+    div.onclick = function() { location.hash = '#health-visit/' + visit.id; };
+
+    var badge = visit.providerType
+        ? '<span class="health-badge">' + escapeHtml(visit.providerType) + '</span>'
+        : '';
+    var sub = visit.reason
+        ? escapeHtml(visit.reason)
+        : '<em style="color:#aaa">No reason noted</em>';
+
+    div.innerHTML =
+        '<div class="health-card-main">' +
+            '<div class="health-card-title">' + escapeHtml(visit.date || '\u2014') + ' \u2014 ' + escapeHtml(visit.provider || 'Unknown provider') + '</div>' +
+            '<div class="health-card-meta">' + badge + '</div>' +
+            '<div class="health-card-sub">' + sub + '</div>' +
+        '</div>' +
+        '<div class="health-card-arrow">\u203a</div>';
+    return div;
+}
+
+// ── Detail page ───────────────────────────────────────────────────
+
+function loadHealthVisitDetail(id) {
+    var titleEl = document.getElementById('visitDetailTitle');
+    if (titleEl) titleEl.textContent = 'Loading\u2026';
+
+    userCol('healthVisits').doc(id).get()
+        .then(function(snap) {
+            if (!snap.exists) {
+                alert('Visit not found.');
+                location.hash = '#health-visits';
+                return;
+            }
+            window.currentHealthVisit = Object.assign({ id: snap.id }, snap.data());
+            renderVisitDetail(window.currentHealthVisit);
+        })
+        .catch(function(err) {
+            console.error('loadHealthVisitDetail:', err);
+        });
+}
+
+function renderVisitDetail(visit) {
+    document.getElementById('visitDetailTitle').textContent =
+        (visit.date || '\u2014') + ' \u2014 ' + (visit.provider || 'Unknown');
+
+    document.getElementById('visitDetailProvider').textContent = visit.provider     || '\u2014';
+    document.getElementById('visitDetailType').textContent     = visit.providerType || '\u2014';
+    document.getElementById('visitDetailReason').textContent   = visit.reason       || '\u2014';
+    document.getElementById('visitDetailWhatDone').textContent = visit.whatWasDone  || '\u2014';
+    document.getElementById('visitDetailOutcome').textContent  = visit.outcome      || '\u2014';
+    document.getElementById('visitDetailCost').textContent     = visit.cost ? '$' + visit.cost : '\u2014';
+    document.getElementById('visitDetailNotes').textContent    = visit.notes        || '\u2014';
+
+    // Linked concern (hidden when not set)
+    var concernSection = document.getElementById('visitDetailConcernSection');
+    var concernEl      = document.getElementById('visitDetailConcern');
+    if (visit.concernId) {
+        concernSection.style.display = '';
+        concernEl.textContent = 'Loading\u2026';
+        userCol('concerns').doc(visit.concernId).get().then(function(snap) {
+            concernEl.textContent = snap.exists ? (snap.data().title || visit.concernId) : 'Unknown concern';
+        }).catch(function() { concernEl.textContent = visit.concernId; });
+    } else {
+        concernSection.style.display = 'none';
+    }
+
+    // Photos
+    loadPhotos('healthVisit', visit.id, 'visitPhotoContainer', 'visitPhotoEmptyState');
+
+    // Linked records (will be empty until H3/H4 collections are populated)
+    loadVisitLinkedMeds(visit.id);
+    loadVisitLinkedConditions(visit.id);
+    loadVisitLinkedBloodWork(visit.id);
+}
+
+function loadVisitLinkedMeds(visitId) {
+    var el = document.getElementById('visitMedsContainer');
+    if (!el) return;
+    el.innerHTML = '';
+    userCol('medications').where('prescribedAtVisitId', '==', visitId).get()
+        .then(function(snap) {
+            if (snap.empty) { el.innerHTML = '<p class="empty-state">None recorded.</p>'; return; }
+            snap.docs.forEach(function(d) {
+                var m = d.data();
+                var row = document.createElement('div');
+                row.className = 'health-linked-item';
+                row.textContent = (m.name || '\u2014') + (m.dosage ? ' \u2014 ' + m.dosage : '');
+                el.appendChild(row);
+            });
+        }).catch(function() { el.innerHTML = '<p class="empty-state">\u2014</p>'; });
+}
+
+function loadVisitLinkedConditions(visitId) {
+    var el = document.getElementById('visitConditionsContainer');
+    if (!el) return;
+    el.innerHTML = '';
+    userCol('conditions').where('diagnosedAtVisitId', '==', visitId).get()
+        .then(function(snap) {
+            if (snap.empty) { el.innerHTML = '<p class="empty-state">None recorded.</p>'; return; }
+            snap.docs.forEach(function(d) {
+                var row = document.createElement('div');
+                row.className = 'health-linked-item';
+                row.textContent = d.data().name || '\u2014';
+                el.appendChild(row);
+            });
+        }).catch(function() { el.innerHTML = '<p class="empty-state">\u2014</p>'; });
+}
+
+function loadVisitLinkedBloodWork(visitId) {
+    var el = document.getElementById('visitBloodWorkContainer');
+    if (!el) return;
+    el.innerHTML = '';
+    userCol('bloodWorkRecords').where('orderedAtVisitId', '==', visitId).get()
+        .then(function(snap) {
+            if (snap.empty) { el.innerHTML = '<p class="empty-state">None recorded.</p>'; return; }
+            snap.docs.forEach(function(d) {
+                var bw = d.data();
+                var row = document.createElement('div');
+                row.className = 'health-linked-item';
+                row.textContent = (bw.date || '\u2014') + (bw.lab ? ' \u2014 ' + bw.lab : '');
+                el.appendChild(row);
+            });
+        }).catch(function() { el.innerHTML = '<p class="empty-state">\u2014</p>'; });
+}
+
+// ── Add / Edit modal ──────────────────────────────────────────────
+
+function openVisitModal(id) {
+    var modal = document.getElementById('visitModal');
+    modal.dataset.editId = id || '';
+    modal.dataset.concernRestore = '';
+    document.getElementById('visitModalTitle').textContent = id ? 'Edit Visit' : 'Add Visit';
+
+    ['visitDate','visitProvider','visitReason','visitWhatDone',
+     'visitOutcome','visitCost','visitNotes'].forEach(function(f) {
+        document.getElementById(f).value = '';
+    });
+    document.getElementById('visitProviderType').value = '';
+
+    // Populate concern dropdown (empty until H3 builds the concerns collection)
+    var select = document.getElementById('visitConcernId');
+    select.innerHTML = '<option value="">\u2014 No concern linked \u2014</option>';
+    userCol('concerns').orderBy('title').get().then(function(snap) {
+        snap.docs.forEach(function(d) {
+            var opt = document.createElement('option');
+            opt.value = d.id;
+            opt.textContent = d.data().title || d.id;
+            select.appendChild(opt);
+        });
+        if (modal.dataset.concernRestore) {
+            select.value = modal.dataset.concernRestore;
+        }
+    }).catch(function() {});
+
+    if (id) {
+        userCol('healthVisits').doc(id).get().then(function(snap) {
+            if (!snap.exists) return;
+            var d = snap.data();
+            document.getElementById('visitDate').value         = d.date         || '';
+            document.getElementById('visitProvider').value     = d.provider     || '';
+            document.getElementById('visitProviderType').value = d.providerType || '';
+            document.getElementById('visitReason').value       = d.reason       || '';
+            document.getElementById('visitWhatDone').value     = d.whatWasDone  || '';
+            document.getElementById('visitOutcome').value      = d.outcome      || '';
+            document.getElementById('visitCost').value         = d.cost         || '';
+            document.getElementById('visitNotes').value        = d.notes        || '';
+            modal.dataset.concernRestore = d.concernId || '';
+            select.value = d.concernId || '';
+        });
+    }
+    openModal('visitModal');
+}
+
+function saveVisit() {
+    var date = document.getElementById('visitDate').value;
+    if (!date) { alert('Date is required.'); return; }
+
+    var data = {
+        date:         date,
+        provider:     document.getElementById('visitProvider').value.trim(),
+        providerType: document.getElementById('visitProviderType').value,
+        concernId:    document.getElementById('visitConcernId').value || null,
+        reason:       document.getElementById('visitReason').value.trim(),
+        whatWasDone:  document.getElementById('visitWhatDone').value.trim(),
+        outcome:      document.getElementById('visitOutcome').value.trim(),
+        cost:         document.getElementById('visitCost').value.trim(),
+        notes:        document.getElementById('visitNotes').value.trim()
+    };
+
+    var modal  = document.getElementById('visitModal');
+    var editId = modal.dataset.editId;
+    var p;
+    if (editId) {
+        p = userCol('healthVisits').doc(editId).update(data).then(function() { return editId; });
+    } else {
+        data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        p = userCol('healthVisits').add(data).then(function(ref) { return ref.id; });
+    }
+
+    p.then(function(id) {
+        closeModal('visitModal');
+        location.hash = '#health-visit/' + id;
+    }).catch(function(err) {
+        alert('Error saving visit: ' + err.message);
+    });
+}
+
+function editCurrentVisit() {
+    if (window.currentHealthVisit) openVisitModal(window.currentHealthVisit.id);
+}
+
+function deleteCurrentVisit() {
+    if (!window.currentHealthVisit) return;
+    if (!confirm('Delete this visit record? Photos will not be deleted.')) return;
+    userCol('healthVisits').doc(window.currentHealthVisit.id).delete()
+        .then(function() { location.hash = '#health-visits'; })
         .catch(function(err) { alert('Error deleting: ' + err.message); });
 }

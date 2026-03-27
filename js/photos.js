@@ -61,6 +61,7 @@ var PHOTO_CONTAINERS = {
     structuresubthing:  ['structureSubThingPhotosSection','structureSubThingPhotosEmpty'],
     collectionitem:     ['collectionItemPhotoContainer',  'collectionItemPhotoEmpty'],
     person:             ['personPhotoContainer',          'personPhotoEmptyState'],
+    healthVisit:        ['visitPhotoContainer',           'visitPhotoEmptyState'],
 };
 
 // ---------- Load & Display Photos ----------
@@ -803,6 +804,13 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     document.getElementById('addZoneGalleryBtn').addEventListener('click', function() {
         if (window.currentZone) triggerGalleryUpload('zone', window.currentZone.id);
+    });
+
+    document.getElementById('addVisitCameraBtn').addEventListener('click', function() {
+        if (window.currentHealthVisit) triggerCameraUpload('healthVisit', window.currentHealthVisit.id);
+    });
+    document.getElementById('addVisitGalleryBtn').addEventListener('click', function() {
+        if (window.currentHealthVisit) triggerGalleryUpload('healthVisit', window.currentHealthVisit.id);
     });
 
     // ---- Crop Preview Modal Buttons ----

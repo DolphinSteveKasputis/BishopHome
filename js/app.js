@@ -10,7 +10,7 @@
  * List of top-level pages that map to nav links.
  * These pages clear the breadcrumb bar when shown.
  */
-const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'house', 'settings', 'main', 'search', 'activityreport', 'checklists', 'notes', 'chat', 'vehicles', 'garage', 'structures', 'life', 'journal', 'collections', 'changepassword', 'people', 'health'];
+const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'house', 'settings', 'main', 'search', 'activityreport', 'checklists', 'notes', 'chat', 'vehicles', 'garage', 'structures', 'life', 'journal', 'collections', 'changepassword', 'people', 'health', 'health-visits'];
 
 /**
  * All pages that can be shown (includes detail pages not in the nav).
@@ -25,7 +25,8 @@ const ALL_PAGES = [
     'journal-entry', 'journal-tracking', 'journal-categories',
     'collection', 'collectionitem',
     'person',
-    'health-allergies', 'health-supplements', 'health-vaccinations', 'health-eye'
+    'health-allergies', 'health-supplements', 'health-vaccinations', 'health-eye',
+    'health-visit'
 ];
 
 /**
@@ -37,7 +38,8 @@ const HOUSE_PAGES = ['house', 'floor', 'room', 'thing', 'subthing', 'floorplan',
 const YARD_PAGES  = ['main', 'home', 'zones', 'zone', 'plant', 'weeds', 'weed', 'chemicals', 'chemical', 'actions', 'gpsmap', 'yardmap', 'activityreport', 'checklists',
                      'structures', 'structure', 'structurething', 'structuresubthing'];
 const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'journal-categories', 'people', 'person',
-                     'health', 'health-allergies', 'health-supplements', 'health-vaccinations', 'health-eye'];
+                     'health', 'health-visits', 'health-visit',
+                     'health-allergies', 'health-supplements', 'health-vaccinations', 'health-eye'];
 
 /** Tracks which nav context is currently active ('yard', 'house', or 'life'). */
 var currentNavContext = 'yard';
@@ -285,6 +287,12 @@ function handleRoute() {
         showPage('sb-issues');
         loadSbIssuesPage();
     // ---------- My Health routes ----------
+    } else if (page === 'health-visits') {
+        showPage('health-visits');
+        loadHealthVisitsPage();
+    } else if (page === 'health-visit' && id) {
+        showPage('health-visit');
+        loadHealthVisitDetail(id);
     } else if (page === 'health') {
         showPage('health');
         loadHealthPage();

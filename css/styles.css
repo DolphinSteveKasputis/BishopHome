@@ -5016,3 +5016,49 @@ a.ar-target-link:hover {
     flex-shrink: 0;
     border: 1px solid #e5e7eb;
 }
+
+
+/* ============================================================
+   JOURNAL @MENTION LINKS + CHIPS
+   ============================================================ */
+
+/* Inline link in the feed view */
+.journal-mention-link {
+    color: #0d9488;
+    font-weight: 600;
+    text-decoration: none;
+    border-bottom: 1px solid #99f6e4;
+}
+.journal-mention-link:hover { border-bottom-color: #0d9488; }
+
+/* Chips row in the edit form */
+.journal-mention-chips-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 6px 8px;
+    background: #f0fdfa;
+    border: 1px solid #99f6e4;
+    border-radius: 8px;
+}
+.mention-chips-label {
+    font-size: 0.8rem;
+    color: #6b7280;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+.mention-chip {
+    display: inline-block;
+    background: #0d9488;
+    color: #fff;
+    border-radius: 12px;
+    padding: 3px 10px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+}
+.mention-chip:hover { background: #0f766e; }
+

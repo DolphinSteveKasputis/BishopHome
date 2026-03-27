@@ -307,6 +307,8 @@ async function loadJournalData() {
             return { date: date, items: dateMap[date] };
         });
 
+        // Pre-load people cache so @mention links render correctly in the feed
+        await _journalLoadPeopleCache();
         renderJournalFeed(grouped);
 
     } catch (err) {
@@ -370,7 +372,9 @@ function _renderEntryCard(id, data) {
     return '<div class="journal-item journal-item--entry">' +
                '<div class="journal-item-row">' +
                    '<span class="journal-item-time">📝 ' + journalEscape(timeStr) + '</span>' +
-                   '<div class="journal-item-text">' + journalEscape(text) + '</div>' +
+                   '<div class="journal-item-text">' +
+                       _renderEntryTextWithMentions(text, data.mentionedPersonIds) +
+                   '</div>' +
                    '<div class="journal-item-actions">' +
                        '<button class="btn btn-secondary btn-small" ' +
                                'onclick="openEditJournalEntry(\'' + id + '\')">Edit</button>' +
@@ -446,6 +450,7 @@ function openAddJournalEntry() {
     window.currentJournalEntry = null;
     _journalMentionedPersonIds = new Set();   // fresh mention set for new entry
     _journalPeopleCache = null;               // refresh people list
+    _updateMentionChips();                    // clear any chips from previous session
 
     var titleEl  = document.getElementById('journalEntryPageTitle');
     var dateEl   = document.getElementById('journalEntryDate');
@@ -489,9 +494,11 @@ async function openEditJournalEntry(id) {
         var data = doc.data();
         window.currentJournalEntry = { id: id, ...data };
         window.journalEditMode = true;
-        // Restore mention set from stored IDs
+        // Restore mention set from stored IDs, then show chips
         _journalMentionedPersonIds = new Set(data.mentionedPersonIds || []);
         _journalPeopleCache = null;
+        await _journalLoadPeopleCache();
+        _updateMentionChips();
 
         var titleEl   = document.getElementById('journalEntryPageTitle');
         var dateEl    = document.getElementById('journalEntryDate');
@@ -1403,13 +1410,15 @@ function _journalSelectMention(person) {
     var pos = ta.selectionStart;
     var before = ta.value.substring(0, pos - prefix.length - 1);
     var after  = ta.value.substring(pos);
-    var name   = person.nickname || person.name;
+    // Insert first name only (or nickname) — not the full last name
+    var name   = person.nickname || person.name.split(' ')[0];
     ta.value   = before + '@' + name + ' ' + after;
     var newPos = before.length + 1 + name.length + 1;
     ta.selectionStart = ta.selectionEnd = newPos;
     _journalMentionedPersonIds.add(person.id);
     _journalHideDropdown();
     ta.focus();
+    _updateMentionChips();   // refresh chips row immediately
 }
 
 async function _journalHandleTextareaInput() {
@@ -1463,3 +1472,59 @@ async function _syncJournalMentionInteractions(entryId, date, text, personIds) {
         await batch.commit();
     } catch(err) { console.error('_syncJournalMentionInteractions:', err); }
 }
+
+// ============================================================
+// @MENTION RENDERING IN FEED  +  CHIPS IN EDIT FORM
+// ============================================================
+
+function _renderEntryTextWithMentions(rawText, mentionedPersonIds) {
+    if (!mentionedPersonIds || !mentionedPersonIds.length ||
+            !_journalPeopleCache || !_journalPeopleCache.length) {
+        return journalEscape(rawText);
+    }
+    var cacheById = {};
+    _journalPeopleCache.forEach(function(p) { cacheById[p.id] = p; });
+    var mentionMap = {};
+    mentionedPersonIds.forEach(function(id) {
+        var p = cacheById[id];
+        if (!p) return;
+        var displayName = p.nickname || p.name.split(" ")[0];
+        if (displayName) mentionMap[displayName] = id;
+    });
+    var names = Object.keys(mentionMap);
+    if (!names.length) return journalEscape(rawText);
+    names.sort(function(a, b) { return b.length - a.length; });
+    var pattern = names.map(function(n) {
+        return "@" + n.replace(/[.*+?^${}()|[\]\]/g, "\$&");
+    }).join("|");
+    var regex = new RegExp("(" + pattern + ")(?!\w)", "g");
+    var parts = rawText.split(regex);
+    return parts.map(function(part) {
+        if (part.charAt(0) === "@") {
+            var name = part.slice(1);
+            var id = mentionMap[name];
+            if (id) {
+                return "<a href=" + "\"#person/" + id + "\"" + " class=journal-mention-link onclick=" + "\"event.stopPropagation()\"" + ">@" + journalEscape(name) + "</a>";
+            }
+        }
+        return journalEscape(part);
+    }).join("");
+}
+
+function _updateMentionChips() {
+    var container = document.getElementById("journalMentionedChips");
+    if (!container) return;
+    var ids = Array.from(_journalMentionedPersonIds);
+    if (!ids.length) { container.style.display = "none"; container.innerHTML = ""; return; }
+    var cacheById = {};
+    if (_journalPeopleCache) { _journalPeopleCache.forEach(function(p) { cacheById[p.id] = p; }); }
+    var html = "<span class=mention-chips-label>Mentioned:</span>";
+    ids.forEach(function(id) {
+        var p = cacheById[id];
+        var name = p ? (p.nickname || p.name.split(" ")[0]) : "...";
+        html += "<a href=" + "\"#person/" + id + "\"" + " class=mention-chip>@" + journalEscape(name) + "</a>";
+    });
+    container.innerHTML = html;
+    container.style.display = "";
+}
+

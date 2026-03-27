@@ -46,7 +46,8 @@ var SB_ICONS = {
     ADD_PROBLEM:        '⚠️', ADD_IMPORTANT_DATE: '🎂', LOG_MILEAGE:        '🚗',
     ADD_FACT:           '📋', ADD_PROJECT:        '🔨', LOG_INTERACTION:    '👥',
     ADD_WEED:           '🌱', ADD_TRACKING_ENTRY: '📊', ADD_THING:          '📦',
-    ATTACH_PHOTOS:      '📷', MOVE_THING:         '🚚', UNKNOWN_ACTION:     '❓'
+    ATTACH_PHOTOS:      '📷', MOVE_THING:         '🚚', ADD_PLANT:          '🪴',
+    UNKNOWN_ACTION:     '❓'
 };
 var SB_LABELS = {
     ADD_JOURNAL_ENTRY:  'Add Journal Entry',  ADD_CALENDAR_EVENT: 'Add Calendar Event',
@@ -56,7 +57,7 @@ var SB_LABELS = {
     LOG_INTERACTION:    'Log Interaction',     ADD_WEED:           'Add Weed',
     ADD_TRACKING_ENTRY: 'Add Tracking Entry',  ADD_THING:          'Add Item',
     ATTACH_PHOTOS:      'Attach Photos',       MOVE_THING:         'Move Item',
-    UNKNOWN_ACTION:     'Unknown Action'
+    ADD_PLANT:          'Add Plant',           UNKNOWN_ACTION:     'Unknown Action'
 };
 
 // ============================================================
@@ -411,7 +412,10 @@ ctxJson,
 'LOG_INTERACTION — meeting, talking to, or spending time with a person.',
 '{"action":"LOG_INTERACTION","payload":{"personId":"id or null","personName":"name","personFound":true,"date":"YYYY-MM-DD","notes":"summary"}}',
 '',
-'ADD_WEED — finding a weed; if photos attached try to identify species.',
+'ADD_PLANT — adding a new physical plant to a zone. Identify from photo if provided. Check plants list: if a plant with same/similar name already exists in that zone, set duplicateExists:true and existingPlantId/existingPlantName.',
+'{"action":"ADD_PLANT","payload":{"name":"plant name","zoneId":"id","zoneLabel":"zone name","notes":"","duplicateExists":false,"existingPlantId":"id or null","existingPlantName":"name or null","ambiguous":false}}',
+'',
+'ADD_WEED — finding/adding a weed. If photos attached try to identify species. If the weed name matches an existing weed in context, set alreadyExists:true and existingWeedId. Include zoneIds even when alreadyExists.',
 '{"action":"ADD_WEED","payload":{"name":"weed name","existingWeedId":"id or null","alreadyExists":false,"zoneIds":[],"zoneLabels":[],"treatmentMethod":"","applicationTiming":"","notes":""}}',
 '',
 'ADD_TRACKING_ENTRY — personal health/life metric (weight, BP, sleep, steps, etc.).',
@@ -868,17 +872,13 @@ function _sbRenderWarnings(action, payload) {
         html += '<div class="sb-info">ℹ New tracking category "' +
                 _sbEsc(p.categoryName || '') + '" will be created.</div>';
     }
-    if (action === 'ADD_WEED' && p.alreadyExists) {
-        html += '<div class="sb-info">ℹ "' + _sbEsc(p.name || '') +
-                '" already exists — selected zone(s) will be added to it.</div>';
-    }
     // ATTACH_PHOTOS requires at least one photo
     if (action === 'ATTACH_PHOTOS' && _sbPhotos.length === 0) {
         html += '<div class="sb-warning">⚠ No photos are attached. Cancel and add photos before confirming.</div>';
     }
-    // ADD_THING: note when item name was inferred from a photo
-    if (action === 'ADD_THING' && _sbPhotos.length > 0 && p.name) {
-        html += '<div class="sb-info">📷 Item name was identified from your photo — verify it looks right.</div>';
+    // ADD_THING / ADD_PLANT: note when item name was inferred from a photo
+    if ((action === 'ADD_THING' || action === 'ADD_PLANT') && _sbPhotos.length > 0 && p.name) {
+        html += '<div class="sb-info">📷 Name was identified from your photo — verify it looks right.</div>';
     }
     return html;
 }
@@ -889,6 +889,13 @@ function _sbFieldRow(labelText, controlHtml) {
         '<label class="sb-field-label">' + _sbEsc(labelText) + '</label>' +
         '<div class="sb-field-control">' + controlHtml + '</div>' +
         '</div>';
+}
+
+// --- Go to Existing — close confirm and navigate without writing ---
+function _sbGoToExisting(type, id) {
+    _sbCloseConfirm();
+    var hash = _sbTypeHash(type, id);
+    if (hash) window.location.hash = hash;
 }
 
 // --- Target dropdown (entity picker) ---
@@ -1090,6 +1097,35 @@ function _sbRenderConfirmFields(action, payload) {
             }
             break;
 
+        case 'ADD_PLANT': {
+            var plantZoneOpts = _sbFlattenTargets(['zone']);
+            var plantZoneSel = '<select class="sb-field' + (p.ambiguous ? ' sb-ambiguous' : '') +
+                               '" data-field="zoneId">';
+            plantZoneSel += '<option value="">— select zone —</option>';
+            plantZoneOpts.forEach(function(z) {
+                plantZoneSel += '<option value="' + _sbEsc(z.id) + '"' +
+                                (z.id === p.zoneId ? ' selected' : '') + '>' + _sbEsc(z.label) + '</option>';
+            });
+            plantZoneSel += '</select>';
+            if (p.ambiguous) {
+                plantZoneSel += '<div class="sb-ambiguous-note">⚠ Zone was uncertain — please verify</div>';
+            }
+            html += _sbFieldRow('Plant Name',
+                '<input type="text" class="sb-field" data-field="name" value="' + _sbEsc(p.name || '') + '">');
+            html += _sbFieldRow('Zone', plantZoneSel);
+            html += _sbFieldRow('Notes',
+                '<textarea class="sb-field" data-field="notes" rows="2">' + _sbEsc(p.notes || '') + '</textarea>');
+            // Duplicate warning: plant with same name already in this zone
+            if (p.duplicateExists && p.existingPlantId) {
+                html += '<div class="sb-warning">⚠ "' + _sbEsc(p.existingPlantName || p.name || '') +
+                        '" already exists in this zone. Confirming will add a second one. ' +
+                        '<button type="button" class="sb-link-btn" ' +
+                        'onclick="_sbGoToExisting(\'plant\',\'' + _sbEsc(p.existingPlantId) + '\')">' +
+                        'Go to Existing →</button></div>';
+            }
+            break;
+        }
+
         case 'ADD_WEED': {
             var zoneOpts = _sbFlattenTargets(['zone']);
             var zChecks = '<div class="sb-zone-checks">';
@@ -1100,13 +1136,25 @@ function _sbRenderConfirmFields(action, payload) {
                     _sbEsc(z.label) + '</label>';
             });
             zChecks += '</div>';
-            html += _sbFieldRow('Weed Name',
-                '<input type="text" class="sb-field" data-field="name" value="' + _sbEsc(p.name || '') + '">');
-            html += _sbFieldRow('Zone(s)', zChecks);
-            html += _sbFieldRow('Treatment',
-                '<input type="text" class="sb-field" data-field="treatmentMethod" value="' + _sbEsc(p.treatmentMethod || '') + '">');
-            html += _sbFieldRow('Timing',
-                '<input type="text" class="sb-field" data-field="applicationTiming" value="' + _sbEsc(p.applicationTiming || '') + '">');
+
+            if (p.alreadyExists && p.existingWeedId) {
+                // Weed exists — only show zone picker + go-to link; no need to re-enter name/treatment/timing
+                html += '<div class="sb-warning">⚠ "' + _sbEsc(p.name || '') + '" already exists. ' +
+                        'Confirming will add the selected zone(s) to it. ' +
+                        '<button type="button" class="sb-link-btn" ' +
+                        'onclick="_sbGoToExisting(\'weed\',\'' + _sbEsc(p.existingWeedId) + '\')">' +
+                        'Go to Existing →</button></div>';
+                html += _sbFieldRow('Add to Zone(s)', zChecks);
+            } else {
+                // New weed — show all fields
+                html += _sbFieldRow('Weed Name',
+                    '<input type="text" class="sb-field" data-field="name" value="' + _sbEsc(p.name || '') + '">');
+                html += _sbFieldRow('Zone(s)', zChecks);
+                html += _sbFieldRow('Treatment',
+                    '<input type="text" class="sb-field" data-field="treatmentMethod" value="' + _sbEsc(p.treatmentMethod || '') + '">');
+                html += _sbFieldRow('Timing',
+                    '<input type="text" class="sb-field" data-field="applicationTiming" value="' + _sbEsc(p.applicationTiming || '') + '">');
+            }
             break;
         }
 
@@ -1482,6 +1530,20 @@ async function _sbWrite(action, payload) {
             return newId;
         }
 
+        // ---- Add Plant --------------------------------------
+        case 'ADD_PLANT': {
+            ref = await userCol('plants').add({
+                name:      payload.name   || '',
+                zoneId:    payload.zoneId || '',
+                notes:     payload.notes  || '',
+                metadata:  {},
+                createdAt: ts
+            });
+            newId = ref.id;
+            await _sbSavePhotos('plant', newId, payload.name || '');
+            return newId;
+        }
+
         // ---- Add Weed ---------------------------------------
         case 'ADD_WEED': {
             var weedId;
@@ -1668,6 +1730,9 @@ function _sbNavigateTo(action, payload, newId) {
         case 'ADD_JOURNAL_ENTRY':   hash = '#journal';           break;
         case 'ADD_CALENDAR_EVENT':  hash = '#calendar';          break;
         case 'ADD_TRACKING_ENTRY':  hash = '#journal-tracking';  break;
+        case 'ADD_PLANT':
+            hash = id ? '#plant/' + id : '#home';
+            break;
         case 'ADD_WEED':
             hash = id ? '#weed/' + id : '#weeds';
             break;
@@ -1815,11 +1880,23 @@ var SB_HELP_ACTIONS = [
     {
         action: 'ADD_WEED',
         icon: '🌱', label: 'Add Weed',
-        desc: 'Record a weed found in the yard. Attach a photo and the AI will try to identify it.',
+        desc: 'Record a weed found in the yard. Attach a photo and the AI will try to identify it. If the weed already exists, you\'ll be offered to add the zone to it or go to the existing record.',
         examples: [
             'There\'s crabgrass showing up along the back fence',
             'Found some wild onions near the mailbox',
-            'attach a photo and say "add this weed to the front yard"'
+            'attach a photo and say "add this weed to the front yard"',
+            'I see crabgrass in the back yard again'
+        ]
+    },
+    {
+        action: 'ADD_PLANT',
+        icon: '🪴', label: 'Add Plant',
+        desc: 'Add a new plant to a zone. Attach a photo and the AI will try to identify it. If the same plant already exists in that zone, you\'ll have the option to go to the existing one or add a second.',
+        examples: [
+            'I planted a new azalea in the front yard',
+            'Add this hosta to the bed by the mailbox',
+            'attach a photo and say "add this plant to the right side of the porch"',
+            'Put 3 mums in the back garden bed'
         ]
     },
     {

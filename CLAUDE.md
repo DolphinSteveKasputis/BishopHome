@@ -188,8 +188,8 @@ Bishop/
 - **Phase 7.5**: UI Refinements ✅ COMPLETE (10 mods — see plan for details)
 - **Phase 7.6**: Feature Enhancements ✅ COMPLETE (clickable URL facts, chemical detail page, multi-chemical checkboxes, calendar events on zone/plant, complete event→activity, overdue section)
 - **Phase 7.7**: Ad-hoc Fixes ✅ COMPLETE (home screen calendar buttons, delete in edit modal, confirm-before-close, multi-zone calendar events, show completed on calendar)
-- **Phase 8**: Polish & Responsive Design — NOT STARTED
-- **Phase 9**: Deployment — NOT STARTED
+- **Phase 8**: Polish & Responsive Design ✅ COMPLETE (verified across all pages at 375px mobile)
+- **Phase 9**: Deployment ✅ COMPLETE (live on GitHub Pages at https://dolphinstevekasputis.github.io/BishopHome)
 
 ## Development Notes
 - Claude is writing the entire app under user direction

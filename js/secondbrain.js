@@ -991,14 +991,308 @@ async function _sbExecuteAction(navigate) {
 }
 
 // ============================================================
-// WRITE LIBRARY  — Phase A stubs (no Firestore writes yet)
-// Phase B+ replaces each case with real writes.
+// WRITE LIBRARY  — Phase B: real Firestore writes
+// Each case saves to the correct collection(s), auto-creates
+// related records as needed (new person, new chemical, etc.),
+// and calls _sbSavePhotos() when photos are attached.
 // ============================================================
 
 async function _sbWrite(action, payload) {
-    console.log('[SecondBrain Phase A — no write]', action, payload);
-    _sbToast('✓ ' + (SB_LABELS[action] || action) + ' — Phase A (no writes yet)');
-    return '__phase_a__';
+    var ts    = firebase.firestore.FieldValue.serverTimestamp();
+    var newId = null;
+    var ref;
+
+    switch (action) {
+
+        // ---- Journal Entry -----------------------------------
+        case 'ADD_JOURNAL_ENTRY': {
+            ref = await userCol('journalEntries').add({
+                date:               payload.date      || _sbToday(),
+                entryTime:          payload.entryTime || _sbNow(),
+                entryText:          payload.entryText || '',
+                mentionedPersonIds: Array.isArray(payload.mentionedPersonIds)
+                                        ? payload.mentionedPersonIds : [],
+                createdAt:          ts
+            });
+            newId = ref.id;
+            // Photos: journalEntries don't have a photo targetType — skip
+            break;
+        }
+
+        // ---- Calendar Event ----------------------------------
+        case 'ADD_CALENDAR_EVENT': {
+            ref = await userCol('calendarEvents').add({
+                title:          payload.title       || '',
+                description:    payload.description || '',
+                date:           payload.date        || _sbToday(),
+                recurring:      payload.recurring   || null,
+                completed:      false,
+                completedDates: [],
+                cancelledDates: [],
+                createdAt:      ts
+            });
+            newId = ref.id;
+            // Photos not applicable to calendar events
+            break;
+        }
+
+        // ---- Log Activity ------------------------------------
+        case 'LOG_ACTIVITY': {
+            // Auto-create any chemicals the LLM named but couldn't find
+            var chemIds = Array.isArray(payload.chemicalIds) ? payload.chemicalIds.slice() : [];
+            if (Array.isArray(payload.unknownChemicals)) {
+                for (var i = 0; i < payload.unknownChemicals.length; i++) {
+                    var uName = (payload.unknownChemicals[i] || '').trim();
+                    if (uName) {
+                        var cRef = await userCol('chemicals').add({ name: uName, notes: '', createdAt: ts });
+                        chemIds.push(cRef.id);
+                    }
+                }
+            }
+            ref = await userCol('activities').add({
+                targetType:  payload.targetType  || '',
+                targetId:    payload.targetId    || '',
+                description: payload.description || '',
+                date:        payload.date        || _sbToday(),
+                notes:       payload.notes       || '',
+                chemicalIds: chemIds,
+                createdAt:   ts
+            });
+            newId = ref.id;
+            // Attach photos to the target entity (plant, zone, etc.)
+            await _sbSavePhotos(payload.targetType, payload.targetId, '');
+            return newId;
+        }
+
+        // ---- Add Problem ------------------------------------
+        case 'ADD_PROBLEM': {
+            ref = await userCol('problems').add({
+                targetType:  payload.targetType  || '',
+                targetId:    payload.targetId    || '',
+                description: payload.description || '',
+                notes:       payload.notes       || '',
+                status:      'open',
+                dateLogged:  payload.dateLogged  || _sbToday(),
+                resolvedAt:  null,
+                createdAt:   ts
+            });
+            newId = ref.id;
+            // Attach photos to the target entity
+            await _sbSavePhotos(payload.targetType, payload.targetId, '');
+            return newId;
+        }
+
+        // ---- Add Important Date -----------------------------
+        case 'ADD_IMPORTANT_DATE': {
+            var personId = payload.personId;
+            // Create person if not found in People list
+            if (!personId || personId === '__new__') {
+                var pRef = await userCol('people').add({
+                    name: payload.personName || 'Unknown Person', createdAt: ts
+                });
+                personId = pRef.id;
+            }
+            await userCol('peopleImportantDates').add({
+                personId:  personId,
+                label:     payload.label || '',
+                month:     parseInt(payload.month, 10) || 1,
+                day:       parseInt(payload.day,   10) || 1,
+                year:      payload.year ? parseInt(payload.year, 10) : null,
+                notes:     payload.notes || '',
+                createdAt: ts
+            });
+            newId = personId;  // navigate to the person's page
+            await _sbSavePhotos('person', personId, '');
+            return newId;
+        }
+
+        // ---- Log Mileage ------------------------------------
+        case 'LOG_MILEAGE': {
+            ref = await userCol('mileageLogs').add({
+                vehicleId: payload.vehicleId || '',
+                date:      payload.date      || _sbToday(),
+                mileage:   parseFloat(payload.mileage) || 0,
+                notes:     payload.notes     || '',
+                createdAt: ts
+            });
+            newId = ref.id;
+            // No photo target for mileage logs
+            break;
+        }
+
+        // ---- Add Fact ---------------------------------------
+        case 'ADD_FACT': {
+            ref = await userCol('facts').add({
+                targetType: payload.targetType || '',
+                targetId:   payload.targetId   || '',
+                label:      payload.label      || '',
+                value:      payload.value      || '',
+                createdAt:  ts
+            });
+            newId = ref.id;
+            // Attach photos to the target entity
+            await _sbSavePhotos(payload.targetType, payload.targetId, '');
+            return newId;
+        }
+
+        // ---- Add Project ------------------------------------
+        case 'ADD_PROJECT': {
+            ref = await userCol('projects').add({
+                targetType:  payload.targetType || '',
+                targetId:    payload.targetId   || '',
+                title:       payload.title      || '',
+                notes:       payload.notes      || '',
+                status:      'active',
+                items:       [],
+                completedAt: null,
+                createdAt:   ts
+            });
+            newId = ref.id;
+            break;
+        }
+
+        // ---- Log Interaction --------------------------------
+        case 'LOG_INTERACTION': {
+            var personId = payload.personId;
+            if (!personId || personId === '__new__') {
+                var pRef = await userCol('people').add({
+                    name: payload.personName || 'Unknown Person', createdAt: ts
+                });
+                personId = pRef.id;
+            }
+            await userCol('peopleInteractions').add({
+                personId:  personId,
+                date:      payload.date  || _sbToday(),
+                text:      payload.notes || '',
+                createdAt: ts
+            });
+            newId = personId;  // navigate to person's page
+            await _sbSavePhotos('person', personId, '');
+            return newId;
+        }
+
+        // ---- Add Weed ---------------------------------------
+        case 'ADD_WEED': {
+            var weedId;
+            if (payload.alreadyExists && payload.existingWeedId) {
+                // Weed exists — merge any new zones into its zoneIds array
+                weedId = payload.existingWeedId;
+                var wSnap = await userCol('weeds').doc(weedId).get();
+                var existingZones = (wSnap.exists && Array.isArray(wSnap.data().zoneIds))
+                    ? wSnap.data().zoneIds : [];
+                var merged = Array.from(new Set(existingZones.concat(payload.zoneIds || [])));
+                await userCol('weeds').doc(weedId).update({ zoneIds: merged });
+            } else {
+                // New weed record
+                var wRef = await userCol('weeds').add({
+                    name:              payload.name              || '',
+                    treatmentMethod:   payload.treatmentMethod   || '',
+                    applicationTiming: payload.applicationTiming || '',
+                    notes:             payload.notes             || '',
+                    zoneIds:           Array.isArray(payload.zoneIds) ? payload.zoneIds : [],
+                    createdAt:         ts
+                });
+                weedId = wRef.id;
+            }
+            newId = weedId;
+            // Photos go directly to the weed record
+            await _sbSavePhotos('weed', weedId, '');
+            return newId;
+        }
+
+        // ---- Add Tracking Entry -----------------------------
+        case 'ADD_TRACKING_ENTRY': {
+            var catId   = payload.categoryId   || '';
+            var catName = payload.categoryName || '';
+            // Create category if the LLM flagged it as new
+            if (!catId || catId === '__new__') {
+                var catRef = await userCol('journalCategories').add({
+                    name: catName, createdAt: ts
+                });
+                catId = catRef.id;
+            } else {
+                // Resolve name from cached context (journal tracking reads by name, not id)
+                var ctxCat = (_sbContext && _sbContext.trackingCategories || [])
+                    .find(function(c) { return c.id === catId; });
+                if (ctxCat) catName = ctxCat.name;
+            }
+            ref = await userCol('journalTrackingItems').add({
+                date:      payload.date  || _sbToday(),
+                category:  catName,
+                value:     payload.value || '',
+                createdAt: ts,
+                updatedAt: ts
+            });
+            newId = ref.id;
+            break;
+        }
+
+        // ---- Add Thing (room/thing/garageroom/etc.) ---------
+        case 'ADD_THING': {
+            // Map parent entity type → which collection to write and what parent field to use
+            var thingColMap = {
+                'room':           { col: 'things',             parentField: 'roomId'      },
+                'thing':          { col: 'subThings',          parentField: 'thingId'     },
+                'garageroom':     { col: 'garageThings',       parentField: 'roomId'      },
+                'garagething':    { col: 'garageSubThings',    parentField: 'thingId'     },
+                'structure':      { col: 'structureThings',    parentField: 'structureId' },
+                'structurething': { col: 'structureSubThings', parentField: 'thingId'     }
+            };
+            var parentType = payload.parentType || '';
+            var mapping    = thingColMap[parentType];
+            if (!mapping) throw new Error('SecondBrain ADD_THING: unknown parentType "' + parentType + '"');
+
+            var newDoc = { name: payload.name || '', notes: payload.notes || '', createdAt: ts };
+            newDoc[mapping.parentField] = payload.parentId || '';
+
+            ref = await userCol(mapping.col).add(newDoc);
+            newId = ref.id;
+
+            // Resolve photo targetType for the new entity
+            var thingPhotoTypeMap = {
+                'room':           'thing',
+                'thing':          'subthing',
+                'garageroom':     'garagething',
+                'garagething':    'garagesubthing',
+                'structure':      'structurething',
+                'structurething': 'structuresubthing'
+            };
+            await _sbSavePhotos(thingPhotoTypeMap[parentType] || 'thing', newId, payload.name || '');
+            return newId;
+        }
+
+        // ---- Attach Photos ----------------------------------
+        case 'ATTACH_PHOTOS': {
+            await _sbSavePhotos(payload.targetType, payload.targetId, payload.caption || '');
+            newId = payload.targetId;
+            return newId;
+        }
+
+        default:
+            throw new Error('SecondBrain: unhandled action "' + action + '"');
+    }
+
+    return newId;
+}
+
+// ============================================================
+// PHOTO SAVE HELPER
+// Saves all currently attached _sbPhotos to the photos
+// collection, linked to the given targetType / targetId.
+// ============================================================
+
+async function _sbSavePhotos(targetType, targetId, caption) {
+    if (!_sbPhotos.length || !targetType || !targetId) return;
+    var ts = firebase.firestore.FieldValue.serverTimestamp();
+    for (var i = 0; i < _sbPhotos.length; i++) {
+        await userCol('photos').add({
+            targetType: targetType,
+            targetId:   targetId,
+            imageData:  _sbPhotos[i].dataUrl,
+            caption:    caption || '',
+            createdAt:  ts
+        });
+    }
 }
 
 // ============================================================

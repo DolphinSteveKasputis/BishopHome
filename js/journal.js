@@ -1495,9 +1495,11 @@ function _renderEntryTextWithMentions(rawText, mentionedPersonIds) {
     if (!names.length) return journalEscape(rawText);
     names.sort(function(a, b) { return b.length - a.length; });
     var pattern = names.map(function(n) {
-        return "@" + n.replace(/[.*+?^${}()|[\]\]/g, "\$&");
-    }).join("|");
-    var regex = new RegExp("(" + pattern + ")(?!\w)", "g");
+        // Escape all regex special characters in the person's display name
+        return '@' + n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }).join('|');
+    // Negative lookahead (?!\w) prevents matching @Steve inside @Steven
+    var regex = new RegExp('(' + pattern + ')(?!\\w)', 'g');
     var parts = rawText.split(regex);
     return parts.map(function(part) {
         if (part.charAt(0) === "@") {

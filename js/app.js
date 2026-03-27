@@ -11,7 +11,8 @@
  * These pages clear the breadcrumb bar when shown.
  */
 const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'house', 'settings', 'main', 'search', 'activityreport', 'checklists', 'notes', 'chat', 'vehicles', 'garage', 'structures', 'life', 'journal', 'collections', 'changepassword', 'people',
-                         'health', 'health-visits', 'health-medications', 'health-conditions', 'health-concerns', 'health-bloodwork'];
+                         'health', 'health-visits', 'health-medications', 'health-conditions', 'health-concerns', 'health-bloodwork',
+                         'health-vitals', 'health-insurance', 'health-emergency'];
 
 /**
  * All pages that can be shown (includes detail pages not in the nav).
@@ -28,7 +29,7 @@ const ALL_PAGES = [
     'person',
     'health-allergies', 'health-supplements', 'health-vaccinations', 'health-eye',
     'health-visit', 'health-medications', 'health-conditions', 'health-concerns', 'health-concern',
-    'health-bloodwork-detail'
+    'health-bloodwork-detail', 'health-insurance-detail'
 ];
 
 /**
@@ -43,7 +44,8 @@ const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'jo
                      'health', 'health-visits', 'health-visit',
                      'health-medications', 'health-conditions', 'health-concerns', 'health-concern',
                      'health-allergies', 'health-supplements', 'health-vaccinations', 'health-eye',
-                     'health-bloodwork', 'health-bloodwork-detail'];
+                     'health-bloodwork', 'health-bloodwork-detail',
+                     'health-vitals', 'health-insurance', 'health-insurance-detail', 'health-emergency'];
 
 /** Tracks which nav context is currently active ('yard', 'house', or 'life'). */
 var currentNavContext = 'yard';
@@ -287,6 +289,21 @@ function handleRoute() {
     } else if (page === 'journal-categories') {
         showPage('journal-categories');
         loadJournalCategoriesPage();
+    // ---------- Vitals routes ----------
+    } else if (page === 'health-vitals') {
+        showPage('health-vitals');
+        loadVitalsPage();
+    // ---------- Insurance routes ----------
+    } else if (page === 'health-insurance' && id) {
+        showPage('health-insurance-detail');
+        loadInsuranceDetailPage(id);
+    } else if (page === 'health-insurance') {
+        showPage('health-insurance');
+        loadInsurancePage();
+    // ---------- Emergency Info route ----------
+    } else if (page === 'health-emergency') {
+        showPage('health-emergency');
+        loadEmergencyPage();
     // ---------- Blood Work routes ----------
     } else if (page === 'health-bloodwork' && id) {
         showPage('health-bloodwork-detail');

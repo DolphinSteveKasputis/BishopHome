@@ -831,8 +831,9 @@ function saveVisit() {
     }
 
     p.then(function(id) {
-        closeModal('visitModal');
-        location.hash = '#health-visit/' + id;
+        document.getElementById('visitModal').classList.remove('open');
+        history.replaceState(null, '', '#health-visit/' + id);
+        handleRoute();
     }).catch(function(err) {
         alert('Error saving visit: ' + err.message);
     });
@@ -1367,10 +1368,11 @@ function saveConcern() {
         op = userCol('concerns').add(data);
     }
     op.then(function(ref) {
-        closeModal('concernModal');
+        document.getElementById('concernModal').classList.remove('open');
         var id = editId || (ref && ref.id);
-        if (id) location.hash = '#health-concern/' + id;
-        else location.hash = '#health-concerns';
+        var dest = id ? '#health-concern/' + id : '#health-concerns';
+        history.replaceState(null, '', dest);
+        handleRoute();
     }).catch(function(err) { alert('Error saving: ' + err.message); });
 }
 
@@ -1856,4 +1858,619 @@ function renderTrendTable(markerName) {
 
     html += '</tbody></table></div>';
     tableDiv.innerHTML = html;
+}
+
+// =================================================================
+//  VITALS (H5)
+// =================================================================
+
+var VITAL_UNITS = {
+    'Blood Pressure': 'mmHg',
+    'Heart Rate':     'bpm',
+    'O2 Sat':         '%',
+    'Blood Glucose':  'mg/dL',
+    'Temperature':    '\u00b0F',
+    'Other':          ''
+};
+
+// ── List page ────────────────────────────────────────────────────
+
+function loadVitalsPage(filterType) {
+    var sel  = document.getElementById('vitalTypeFilter');
+    var list = document.getElementById('vitalsList');
+    if (!list) return;
+    // Sync filter select to the value passed in (e.g. on first load)
+    if (filterType !== undefined && sel) sel.value = filterType || '';
+    var activeFilter = sel ? sel.value : (filterType || '');
+    list.innerHTML = '<p class="empty-state">Loading\u2026</p>';
+
+    userCol('vitals').get()
+        .then(function(snap) {
+            var all = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
+            all.sort(function(a, b) {
+                return ((b.date || '') + ' ' + (b.time || '')).localeCompare((a.date || '') + ' ' + (a.time || ''));
+            });
+            window._vitalsAllRecords = all;
+
+            var filtered = activeFilter ? all.filter(function(v) { return v.type === activeFilter; }) : all;
+
+            if (filtered.length === 0) {
+                list.innerHTML = '<p class="empty-state">' +
+                    (activeFilter ? 'No ' + escapeHtml(activeFilter) + ' readings recorded.' : 'No vitals recorded yet. Tap + Add to add one.') +
+                    '</p>';
+                return;
+            }
+            list.innerHTML = '';
+            filtered.forEach(function(v) { list.appendChild(buildVitalCard(v)); });
+        })
+        .catch(function(err) {
+            list.innerHTML = '<p class="empty-state">Error loading vitals.</p>';
+            console.error('loadVitalsPage:', err);
+        });
+}
+
+function buildVitalCard(v) {
+    var div = document.createElement('div');
+    div.className = 'health-card';
+    div.innerHTML =
+        '<div class="health-card-main">' +
+            '<div class="health-card-title">' + escapeHtml(_vitalDisplayValue(v)) + '</div>' +
+            '<div class="health-card-meta"><span class="health-badge">' + escapeHtml(v.type || '') + '</span></div>' +
+            '<div class="health-card-sub">' + escapeHtml(v.date || '') + (v.time ? ' \u2014 ' + escapeHtml(v.time) : '') + '</div>' +
+            (v.notes ? '<div class="health-card-sub">' + escapeHtml(v.notes) + '</div>' : '') +
+        '</div>' +
+        '<div class="health-card-actions">' +
+            '<button class="btn btn-secondary btn-small" onclick="openVitalModal(\'' + v.id + '\')">Edit</button>' +
+            '<button class="btn btn-danger btn-small" onclick="deleteVital(\'' + v.id + '\')">Delete</button>' +
+        '</div>';
+    return div;
+}
+
+function _vitalDisplayValue(v) {
+    if (v.type === 'Blood Pressure') return (v.value1 || '?') + '/' + (v.value2 || '?') + ' mmHg';
+    var val  = v.value1 || '?';
+    var unit = v.unit   || '';
+    if (unit === '%')       return val + '%';
+    if (unit === '\u00b0F') return val + '\u00b0F';
+    return val + (unit ? ' ' + unit : '');
+}
+
+// ── Add/Edit modal ───────────────────────────────────────────────
+
+function openVitalModal(id) {
+    var modal = document.getElementById('vitalModal');
+    modal.dataset.editId = id || '';
+    document.getElementById('vitalModalTitle').textContent = id ? 'Edit Vital' : 'Add Vital';
+
+    document.getElementById('vitalDate').value   = new Date().toISOString().slice(0, 10);
+    document.getElementById('vitalTime').value   = '';
+    document.getElementById('vitalType').value   = '';
+    document.getElementById('vitalValue1').value = '';
+    document.getElementById('vitalValue2').value = '';
+    document.getElementById('vitalUnit').value   = '';
+    document.getElementById('vitalNotes').value  = '';
+    _vitalToggleValue2(false);
+
+    if (id) {
+        userCol('vitals').doc(id).get().then(function(snap) {
+            if (!snap.exists) return;
+            var d = snap.data();
+            document.getElementById('vitalDate').value   = d.date    || '';
+            document.getElementById('vitalTime').value   = d.time    || '';
+            document.getElementById('vitalType').value   = d.type    || '';
+            document.getElementById('vitalValue1').value = d.value1  || '';
+            document.getElementById('vitalValue2').value = d.value2  || '';
+            document.getElementById('vitalUnit').value   = d.unit    || '';
+            document.getElementById('vitalNotes').value  = d.notes   || '';
+            _vitalToggleValue2(d.type === 'Blood Pressure');
+        });
+    }
+    openModal('vitalModal');
+}
+
+function _vitalOnTypeChange() {
+    var type = document.getElementById('vitalType').value;
+    document.getElementById('vitalUnit').value = VITAL_UNITS[type] !== undefined ? VITAL_UNITS[type] : '';
+    _vitalToggleValue2(type === 'Blood Pressure');
+}
+
+function _vitalToggleValue2(show) {
+    var row = document.getElementById('vitalValue2Row');
+    if (row) row.style.display = show ? '' : 'none';
+}
+
+function saveVital() {
+    var date = document.getElementById('vitalDate').value;
+    var type = document.getElementById('vitalType').value;
+    if (!date) { alert('Date is required.'); return; }
+    if (!type) { alert('Type is required.'); return; }
+
+    var data = {
+        date:   date,
+        time:   document.getElementById('vitalTime').value.trim()   || null,
+        type:   type,
+        value1: document.getElementById('vitalValue1').value.trim(),
+        value2: type === 'Blood Pressure' ? document.getElementById('vitalValue2').value.trim() : null,
+        unit:   document.getElementById('vitalUnit').value          || (VITAL_UNITS[type] || ''),
+        notes:  document.getElementById('vitalNotes').value.trim()
+    };
+
+    var modal  = document.getElementById('vitalModal');
+    var editId = modal.dataset.editId;
+    var op;
+    if (editId) {
+        op = userCol('vitals').doc(editId).update(data);
+    } else {
+        data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        op = userCol('vitals').add(data);
+    }
+    op.then(function() {
+        closeModal('vitalModal');
+        loadVitalsPage();
+    }).catch(function(err) { alert('Error saving: ' + err.message); });
+}
+
+function deleteVital(id) {
+    if (!confirm('Delete this vital reading?')) return;
+    userCol('vitals').doc(id).delete()
+        .then(function() { loadVitalsPage(); })
+        .catch(function(err) { alert('Error: ' + err.message); });
+}
+
+// ── Trend view ───────────────────────────────────────────────────
+
+function openVitalTrendModal() {
+    var sel      = document.getElementById('vitalTrendSelect');
+    var tableDiv = document.getElementById('vitalTrendTable');
+    sel.innerHTML = '<option value="">\u2014 Select a type \u2014</option>';
+    tableDiv.innerHTML = '';
+
+    var all  = window._vitalsAllRecords || [];
+    var seen = {};
+    all.forEach(function(v) { if (v.type) seen[v.type] = true; });
+    ['Blood Pressure','Heart Rate','O2 Sat','Blood Glucose','Temperature','Other'].forEach(function(t) {
+        if (!seen[t]) return;
+        var opt = document.createElement('option');
+        opt.value = t; opt.textContent = t;
+        sel.appendChild(opt);
+    });
+    if (Object.keys(seen).length === 0) {
+        tableDiv.innerHTML = '<p class="empty-state">No vitals recorded yet.</p>';
+    }
+    openModal('vitalTrendModal');
+}
+
+function renderVitalTrend(type) {
+    var tableDiv = document.getElementById('vitalTrendTable');
+    if (!type) { tableDiv.innerHTML = ''; return; }
+
+    var all  = window._vitalsAllRecords || [];
+    var rows = all.filter(function(v) { return v.type === type; });
+    rows.sort(function(a, b) {
+        return ((b.date || '') + ' ' + (b.time || '')).localeCompare((a.date || '') + ' ' + (a.time || ''));
+    });
+    if (rows.length === 0) { tableDiv.innerHTML = '<p class="empty-state">No data for this type.</p>'; return; }
+
+    var isBP = type === 'Blood Pressure';
+    var html = '<div class="bw-table-wrap"><table class="bw-marker-table"><thead><tr>' +
+        '<th>Date</th><th>Time</th>' +
+        (isBP ? '<th>Systolic</th><th>Diastolic</th>' : '<th>Value</th>') +
+        '<th>Unit</th><th>Notes</th></tr></thead><tbody>';
+
+    rows.forEach(function(r) {
+        html += '<tr>' +
+            '<td>' + escapeHtml(r.date  || '') + '</td>' +
+            '<td>' + escapeHtml(r.time  || '') + '</td>' +
+            (isBP
+                ? '<td><strong>' + escapeHtml(r.value1 || '') + '</strong></td><td><strong>' + escapeHtml(r.value2 || '') + '</strong></td>'
+                : '<td><strong>' + escapeHtml(r.value1 || '') + '</strong></td>') +
+            '<td>' + escapeHtml(r.unit  || '') + '</td>' +
+            '<td>' + escapeHtml(r.notes || '') + '</td>' +
+        '</tr>';
+    });
+    html += '</tbody></table></div>';
+    tableDiv.innerHTML = html;
+}
+
+// =================================================================
+//  INSURANCE (H5)
+// =================================================================
+
+function loadInsurancePage() {
+    var list = document.getElementById('insuranceList');
+    if (!list) return;
+    list.innerHTML = '<p class="empty-state">Loading\u2026</p>';
+
+    userCol('insurancePolicies').get()
+        .then(function(snap) {
+            if (snap.empty) {
+                list.innerHTML = '<p class="empty-state">No insurance policies recorded. Tap + Add to add one.</p>';
+                return;
+            }
+            var policies = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
+            policies.sort(function(a, b) {
+                var sa = a.status === 'inactive' ? 1 : 0;
+                var sb = b.status === 'inactive' ? 1 : 0;
+                if (sa !== sb) return sa - sb;
+                if ((a.type || '') !== (b.type || '')) return (a.type || '').localeCompare(b.type || '');
+                return (a.carrier || '').localeCompare(b.carrier || '');
+            });
+
+            list.innerHTML = '';
+            var currentType = null;
+            policies.forEach(function(p) {
+                if (p.type !== currentType) {
+                    currentType = p.type;
+                    var hdr = document.createElement('div');
+                    hdr.className = 'health-year-label';
+                    hdr.textContent = currentType || 'Other';
+                    list.appendChild(hdr);
+                }
+                list.appendChild(buildInsuranceCard(p));
+            });
+        })
+        .catch(function(err) {
+            list.innerHTML = '<p class="empty-state">Error loading insurance.</p>';
+            console.error('loadInsurancePage:', err);
+        });
+}
+
+function buildInsuranceCard(p) {
+    var div = document.createElement('div');
+    div.className = 'health-card health-card--clickable' + (p.status === 'inactive' ? ' health-card--dim' : '');
+    div.onclick = function() { location.hash = '#health-insurance/' + p.id; };
+    div.innerHTML =
+        '<div class="health-card-main">' +
+            '<div class="health-card-title">' + escapeHtml(p.carrier || '\u2014') + '</div>' +
+            '<div class="health-card-meta">' +
+                (p.planName ? '<span class="health-badge">' + escapeHtml(p.planName) + '</span>' : '') +
+                (p.status === 'inactive' ? '<span class="health-badge health-badge--resolved">Inactive</span>' : '') +
+            '</div>' +
+            (p.memberId ? '<div class="health-card-sub">Member ID: ' + escapeHtml(p.memberId) + '</div>' : '') +
+        '</div>' +
+        '<div class="health-card-arrow">\u203a</div>';
+    return div;
+}
+
+// ── Detail page ──────────────────────────────────────────────────
+
+function loadInsuranceDetailPage(id) {
+    var titleEl = document.getElementById('insuranceDetailTitle');
+    if (titleEl) titleEl.textContent = 'Loading\u2026';
+    userCol('insurancePolicies').doc(id).get()
+        .then(function(snap) {
+            if (!snap.exists) { alert('Policy not found.'); location.hash = '#health-insurance'; return; }
+            window.currentInsurance = Object.assign({ id: snap.id }, snap.data());
+            renderInsuranceDetail(window.currentInsurance);
+        })
+        .catch(function(err) { console.error('loadInsuranceDetailPage:', err); });
+}
+
+function renderInsuranceDetail(p) {
+    document.getElementById('insuranceDetailTitle').textContent = p.carrier || 'Insurance Policy';
+
+    var pairs = [
+        ['insuranceDetailType',    p.type                  || '\u2014'],
+        ['insuranceDetailCarrier', p.carrier               || '\u2014'],
+        ['insuranceDetailPlan',    p.planName              || '\u2014'],
+        ['insuranceDetailMember',  p.memberId              || '\u2014'],
+        ['insuranceDetailGroup',   p.groupNumber           || '\u2014'],
+        ['insuranceDetailPolicy',  p.policyNumber          || '\u2014'],
+        ['insuranceDetailStart',   p.startDate             || '\u2014'],
+        ['insuranceDetailEnd',     p.endDate               || 'Ongoing'],
+        ['insuranceDetailPremium', p.premiumAmount ? '$' + p.premiumAmount + '/mo' : '\u2014'],
+        ['insuranceDetailDeduct',  p.deductible    ? '$' + p.deductible            : '\u2014'],
+        ['insuranceDetailOOP',     p.outOfPocketMax ? '$' + p.outOfPocketMax       : '\u2014'],
+        ['insuranceDetailBenef',   p.beneficiaries         || '\u2014'],
+        ['insuranceDetailPhone',   p.customerServicePhone  || '\u2014'],
+        ['insuranceDetailNotes',   p.notes                 || '\u2014']
+    ];
+    pairs.forEach(function(pair) {
+        var el = document.getElementById(pair[0]);
+        if (el) el.textContent = pair[1];
+    });
+
+    var websiteEl = document.getElementById('insuranceDetailWebsite');
+    if (websiteEl) {
+        if (p.website) {
+            websiteEl.innerHTML = '<a href="' + escapeHtml(p.website) + '" target="_blank" rel="noopener">' + escapeHtml(p.website) + '</a>';
+        } else {
+            websiteEl.textContent = '\u2014';
+        }
+    }
+
+    var statusEl = document.getElementById('insuranceDetailStatus');
+    if (statusEl) {
+        statusEl.textContent = p.status === 'inactive' ? 'Inactive' : 'Active';
+        statusEl.className   = 'health-badge ' + (p.status === 'inactive' ? 'health-badge--resolved' : 'health-badge--open');
+    }
+    var toggleBtn = document.getElementById('insuranceToggleBtn');
+    if (toggleBtn) toggleBtn.textContent = p.status === 'inactive' ? 'Reactivate' : 'Deactivate';
+
+    loadPhotos('insurancePolicy', p.id, 'insurancePhotoContainer', 'insurancePhotoEmptyState');
+}
+
+function editCurrentInsurance() {
+    if (window.currentInsurance) openInsuranceModal(window.currentInsurance.id);
+}
+
+function toggleInsuranceStatus() {
+    if (!window.currentInsurance) return;
+    var label     = window.currentInsurance.status === 'inactive' ? 'reactivate' : 'deactivate';
+    if (!confirm('Are you sure you want to ' + label + ' this policy?')) return;
+    var newStatus = window.currentInsurance.status === 'inactive' ? 'active' : 'inactive';
+    userCol('insurancePolicies').doc(window.currentInsurance.id).update({ status: newStatus })
+        .then(function() { loadInsuranceDetailPage(window.currentInsurance.id); })
+        .catch(function(err) { alert('Error: ' + err.message); });
+}
+
+// ── Add/Edit modal ───────────────────────────────────────────────
+
+function openInsuranceModal(id) {
+    var modal = document.getElementById('insuranceModal');
+    modal.dataset.editId = id || '';
+    document.getElementById('insuranceModalTitle').textContent = id ? 'Edit Policy' : 'Add Policy';
+
+    ['insuranceCarrier','insurancePlanName','insuranceMemberId','insuranceGroupNumber',
+     'insurancePolicyNumber','insuranceStartDate','insuranceEndDate','insurancePremium',
+     'insuranceDeductible','insuranceOOPMax','insuranceBeneficiaries',
+     'insurancePhone','insuranceWebsite','insuranceNotes'].forEach(function(fid) {
+        var el = document.getElementById(fid);
+        if (el) el.value = '';
+    });
+    document.getElementById('insuranceType').value   = '';
+    document.getElementById('insuranceStatus').value = 'active';
+
+    if (id) {
+        userCol('insurancePolicies').doc(id).get().then(function(snap) {
+            if (!snap.exists) return;
+            var d = snap.data();
+            document.getElementById('insuranceType').value            = d.type                 || '';
+            document.getElementById('insuranceCarrier').value         = d.carrier              || '';
+            document.getElementById('insurancePlanName').value        = d.planName             || '';
+            document.getElementById('insuranceMemberId').value        = d.memberId             || '';
+            document.getElementById('insuranceGroupNumber').value     = d.groupNumber          || '';
+            document.getElementById('insurancePolicyNumber').value    = d.policyNumber         || '';
+            document.getElementById('insuranceStartDate').value       = d.startDate            || '';
+            document.getElementById('insuranceEndDate').value         = d.endDate              || '';
+            document.getElementById('insurancePremium').value         = d.premiumAmount        || '';
+            document.getElementById('insuranceDeductible').value      = d.deductible           || '';
+            document.getElementById('insuranceOOPMax').value          = d.outOfPocketMax       || '';
+            document.getElementById('insuranceBeneficiaries').value   = d.beneficiaries        || '';
+            document.getElementById('insurancePhone').value           = d.customerServicePhone || '';
+            document.getElementById('insuranceWebsite').value         = d.website              || '';
+            document.getElementById('insuranceNotes').value           = d.notes                || '';
+            document.getElementById('insuranceStatus').value          = d.status               || 'active';
+        });
+    }
+    openModal('insuranceModal');
+}
+
+function saveInsurance() {
+    var carrier = document.getElementById('insuranceCarrier').value.trim();
+    if (!carrier) { alert('Carrier name is required.'); return; }
+
+    var data = {
+        type:                 document.getElementById('insuranceType').value,
+        carrier:              carrier,
+        planName:             document.getElementById('insurancePlanName').value.trim(),
+        memberId:             document.getElementById('insuranceMemberId').value.trim(),
+        groupNumber:          document.getElementById('insuranceGroupNumber').value.trim(),
+        policyNumber:         document.getElementById('insurancePolicyNumber').value.trim(),
+        startDate:            document.getElementById('insuranceStartDate').value  || null,
+        endDate:              document.getElementById('insuranceEndDate').value    || null,
+        premiumAmount:        document.getElementById('insurancePremium').value.trim(),
+        deductible:           document.getElementById('insuranceDeductible').value.trim(),
+        outOfPocketMax:       document.getElementById('insuranceOOPMax').value.trim(),
+        beneficiaries:        document.getElementById('insuranceBeneficiaries').value.trim(),
+        customerServicePhone: document.getElementById('insurancePhone').value.trim(),
+        website:              document.getElementById('insuranceWebsite').value.trim(),
+        notes:                document.getElementById('insuranceNotes').value.trim(),
+        status:               document.getElementById('insuranceStatus').value || 'active'
+    };
+
+    var editId = document.getElementById('insuranceModal').dataset.editId;
+    var op;
+    if (editId) {
+        op = userCol('insurancePolicies').doc(editId).update(data).then(function() { return editId; });
+    } else {
+        data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        op = userCol('insurancePolicies').add(data).then(function(ref) { return ref.id; });
+    }
+    op.then(function(id) {
+        document.getElementById('insuranceModal').classList.remove('open');
+        history.replaceState(null, '', '#health-insurance/' + id);
+        handleRoute();
+    }).catch(function(err) { alert('Error saving: ' + err.message); });
+}
+
+// =================================================================
+//  EMERGENCY INFO (H5)
+// =================================================================
+
+function loadEmergencyPage() {
+    var container = document.getElementById('emergencyInfoContainer');
+    if (!container) return;
+    container.innerHTML = '<p class="empty-state">Loading\u2026</p>';
+
+    userCol('emergencyInfo').doc('main').get()
+        .then(function(snap) {
+            renderEmergencyInfo(snap.exists ? snap.data() : {});
+        })
+        .catch(function(err) {
+            container.innerHTML = '<p class="empty-state">Error loading emergency info.</p>';
+            console.error('loadEmergencyPage:', err);
+        });
+}
+
+function renderEmergencyInfo(info) {
+    Promise.all([
+        userCol('conditions').get(),
+        (info.criticalMedicationIds || []).length
+            ? Promise.all((info.criticalMedicationIds).map(function(id) { return userCol('medications').doc(id).get(); }))
+            : Promise.resolve([])
+    ]).then(function(results) {
+        var activeConds = results[0].docs
+            .map(function(d) { return Object.assign({ id: d.id }, d.data()); })
+            .filter(function(c) { return c.status !== 'resolved'; })
+            .sort(function(a, b) { return (a.name || '').localeCompare(b.name || ''); });
+        var critMeds = results[1]
+            .filter(function(s) { return s.exists; })
+            .map(function(s) { return Object.assign({ id: s.id }, s.data()); });
+        _renderEmergencyCard(info, activeConds, critMeds);
+    }).catch(function() { _renderEmergencyCard(info, [], []); });
+}
+
+function _renderEmergencyCard(info, conditions, medications) {
+    var container = document.getElementById('emergencyInfoContainer');
+    if (!container) return;
+
+    var condsHtml = conditions.length
+        ? conditions.map(function(c) {
+            return '<div class="health-linked-item">' + escapeHtml(c.name || '') +
+                (c.managementNotes ? ' \u2014 ' + escapeHtml(c.managementNotes) : '') + '</div>';
+          }).join('')
+        : '<p class="empty-state">No active or managed conditions.</p>';
+
+    var medsHtml = medications.length
+        ? medications.map(function(m) {
+            return '<div class="health-linked-item">' + escapeHtml(m.name || '') +
+                (m.dosage ? ' \u2014 ' + escapeHtml(m.dosage) : '') + '</div>';
+          }).join('')
+        : '<p class="empty-state">None selected.</p>';
+
+    var contactsHtml = (info.emergencyContacts || []).length
+        ? (info.emergencyContacts || []).map(function(c) {
+            return '<div class="health-linked-item">' +
+                escapeHtml(c.name || '') +
+                (c.relationship ? ' \u2014 ' + escapeHtml(c.relationship) : '') +
+                (c.phone ? ' \u2014 ' + escapeHtml(c.phone) : '') + '</div>';
+          }).join('')
+        : '<p class="empty-state">None entered.</p>';
+
+    container.innerHTML =
+        '<div class="emergency-grid">' +
+            '<div class="emergency-field"><span class="health-detail-label">Blood Type</span>' +
+                '<span class="health-detail-value">' + escapeHtml(info.bloodType || '\u2014') + '</span></div>' +
+            '<div class="emergency-field"><span class="health-detail-label">Organ Donor</span>' +
+                '<span class="health-detail-value">' + escapeHtml(info.organDonor || '\u2014') + '</span></div>' +
+        '</div>' +
+        '<div class="section-heading">Primary Care Doctor</div>' +
+        '<div class="health-detail-card">' + escapeHtml(info.primaryCareDoctor || '\u2014') + '</div>' +
+        '<div class="section-heading">Emergency Contacts</div>' + contactsHtml +
+        '<div class="section-heading">Known Conditions <span class="health-badge">auto-pulled</span></div>' + condsHtml +
+        '<div class="section-heading">Critical Medications</div>' + medsHtml +
+        '<div class="section-heading">Critical Allergies</div>' +
+        '<div class="health-detail-card">' + escapeHtml(info.criticalAllergies || '\u2014') + '</div>' +
+        '<div class="section-heading">Additional Notes</div>' +
+        '<div class="health-detail-card">' + escapeHtml(info.notes || '\u2014') + '</div>';
+}
+
+// ── Edit modal ───────────────────────────────────────────────────
+
+async function openEmergencyModal() {
+    ['emergencyBloodType','emergencyDoctor','emergencyAllergies','emergencyNotes'].forEach(function(fid) {
+        document.getElementById(fid).value = '';
+    });
+    document.getElementById('emergencyOrganDonor').value  = '';
+    document.getElementById('emergencyContactsList').innerHTML = '';
+    document.getElementById('emergencyMedChecklist').innerHTML = '<p class="empty-state">Loading\u2026</p>';
+
+    var snap = await userCol('emergencyInfo').doc('main').get().catch(function() { return { exists: false }; });
+    var info = snap.exists ? snap.data() : {};
+
+    document.getElementById('emergencyBloodType').value  = info.bloodType         || '';
+    document.getElementById('emergencyOrganDonor').value = info.organDonor        || '';
+    document.getElementById('emergencyDoctor').value     = info.primaryCareDoctor || '';
+    document.getElementById('emergencyAllergies').value  = info.criticalAllergies || '';
+    document.getElementById('emergencyNotes').value      = info.notes             || '';
+    (info.emergencyContacts || []).forEach(function(c) { _emergencyAddContactRow(c); });
+
+    var savedIds = info.criticalMedicationIds || [];
+    userCol('medications').get()
+        .then(function(medSnap) {
+            var active = medSnap.docs
+                .map(function(d) { return Object.assign({ id: d.id }, d.data()); })
+                .filter(function(m) { return m.status !== 'completed'; })
+                .sort(function(a, b) { return (a.name || '').localeCompare(b.name || ''); });
+
+            var cl = document.getElementById('emergencyMedChecklist');
+            if (active.length === 0) {
+                cl.innerHTML = '<p class="empty-state">No active medications.</p>';
+                return;
+            }
+            cl.innerHTML = '';
+            active.forEach(function(m) {
+                var label = document.createElement('label');
+                label.className = 'emergency-med-item';
+                var cb = document.createElement('input');
+                cb.type    = 'checkbox';
+                cb.value   = m.id;
+                cb.checked = savedIds.indexOf(m.id) !== -1;
+                label.appendChild(cb);
+                label.appendChild(document.createTextNode(
+                    ' ' + (m.name || '') + (m.dosage ? ' \u2014 ' + m.dosage : '')
+                ));
+                cl.appendChild(label);
+            });
+        })
+        .catch(function() {
+            document.getElementById('emergencyMedChecklist').innerHTML =
+                '<p class="empty-state">Could not load medications.</p>';
+        });
+
+    openModal('emergencyModal');
+}
+
+function _emergencyAddContactRow(contact) {
+    contact = contact || {};
+    var list = document.getElementById('emergencyContactsList');
+    var div  = document.createElement('div');
+    div.className = 'emergency-contact-row';
+    div.innerHTML =
+        '<input type="text" class="em-input em-name"  placeholder="Name"         value="' + escapeHtml(contact.name         || '') + '">' +
+        '<input type="text" class="em-input em-rel"   placeholder="Relationship" value="' + escapeHtml(contact.relationship || '') + '">' +
+        '<input type="text" class="em-input em-phone" placeholder="Phone"        value="' + escapeHtml(contact.phone        || '') + '">' +
+        '<button type="button" class="btn btn-danger btn-small" onclick="_emergencyRemoveContactRow(this)">&times;</button>';
+    list.appendChild(div);
+}
+
+function _emergencyRemoveContactRow(btn) {
+    var row = btn.closest('.emergency-contact-row');
+    if (row) row.remove();
+}
+
+function saveEmergencyInfo() {
+    var critMedIds = [];
+    document.querySelectorAll('#emergencyMedChecklist input[type="checkbox"]:checked')
+        .forEach(function(cb) { critMedIds.push(cb.value); });
+
+    var contacts = [];
+    document.querySelectorAll('#emergencyContactsList .emergency-contact-row').forEach(function(row) {
+        var name = row.querySelector('.em-name').value.trim();
+        if (!name) return;
+        contacts.push({
+            name:         name,
+            relationship: row.querySelector('.em-rel').value.trim(),
+            phone:        row.querySelector('.em-phone').value.trim()
+        });
+    });
+
+    var data = {
+        bloodType:             document.getElementById('emergencyBloodType').value.trim(),
+        organDonor:            document.getElementById('emergencyOrganDonor').value,
+        primaryCareDoctor:     document.getElementById('emergencyDoctor').value.trim(),
+        criticalAllergies:     document.getElementById('emergencyAllergies').value.trim(),
+        notes:                 document.getElementById('emergencyNotes').value.trim(),
+        emergencyContacts:     contacts,
+        criticalMedicationIds: critMedIds,
+        updatedAt:             firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    userCol('emergencyInfo').doc('main').set(data, { merge: true })
+        .then(function() {
+            closeModal('emergencyModal');
+            loadEmergencyPage();
+        })
+        .catch(function(err) { alert('Error saving: ' + err.message); });
 }

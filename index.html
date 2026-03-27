@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=248">
+    <link rel="stylesheet" href="css/styles.css?v=249">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -4243,11 +4243,10 @@
                     <span class="landing-tile-icon">📋</span>
                     <span class="landing-tile-label">Conditions</span>
                 </a>
-                <span class="landing-tile landing-tile--disabled">
+                <a href="#health-vitals" class="landing-tile landing-tile--health-vitals">
                     <span class="landing-tile-icon">💓</span>
                     <span class="landing-tile-label">Vitals</span>
-                    <span class="landing-tile-soon">Coming soon</span>
-                </span>
+                </a>
                 <!-- Row 4 — H1 ACTIVE features -->
                 <a href="#health-supplements" class="landing-tile landing-tile--health-supplements">
                     <span class="landing-tile-icon">🌿</span>
@@ -4266,17 +4265,15 @@
                     <span class="landing-tile-icon">🚨</span>
                     <span class="landing-tile-label">Allergies</span>
                 </a>
-                <!-- Row 6 — H5 features (coming soon) -->
-                <span class="landing-tile landing-tile--disabled">
+                <!-- Row 6 — H5 ACTIVE features -->
+                <a href="#health-insurance" class="landing-tile landing-tile--health-insurance">
                     <span class="landing-tile-icon">🛡️</span>
                     <span class="landing-tile-label">Insurance</span>
-                    <span class="landing-tile-soon">Coming soon</span>
-                </span>
-                <span class="landing-tile landing-tile--disabled">
+                </a>
+                <a href="#health-emergency" class="landing-tile landing-tile--health-emergency">
                     <span class="landing-tile-icon">🆘</span>
                     <span class="landing-tile-label">Emergency Info</span>
-                    <span class="landing-tile-soon">Coming soon</span>
-                </span>
+                </a>
             </div>
         </section>
 
@@ -4789,6 +4786,373 @@
             <div id="concernPhotoContainer"></div>
             <p class="empty-state" id="concernPhotoEmptyState">No photos yet.</p>
         </section>
+
+        <!-- ─── H5: VITALS PAGE ──────────────────────────────────────── -->
+
+        <!-- Page: Vitals (#health-vitals) -->
+        <section class="page hidden" id="page-health-vitals">
+            <div class="page-header">
+                <button class="btn btn-secondary btn-small" onclick="location.hash='#health'">&#8592; My Health</button>
+                <h2>💓 Vitals</h2>
+                <div class="page-header-actions">
+                    <button class="btn btn-secondary btn-small" onclick="openVitalTrendModal()">&#128200; Trends</button>
+                    <button class="btn btn-primary btn-small" onclick="openVitalModal()">+ Add</button>
+                </div>
+            </div>
+            <div class="health-filter-bar">
+                <select id="vitalTypeFilter" onchange="loadVitalsPage()">
+                    <option value="">All Types</option>
+                    <option>Blood Pressure</option>
+                    <option>Heart Rate</option>
+                    <option>O2 Sat</option>
+                    <option>Blood Glucose</option>
+                    <option>Temperature</option>
+                    <option>Other</option>
+                </select>
+            </div>
+            <div id="vitalsList"></div>
+        </section>
+
+        <!-- ─── H5: VITALS MODALS ────────────────────────────────────── -->
+
+        <!-- Modal: Add / Edit Vital -->
+        <div class="modal-overlay" id="vitalModal">
+            <div class="modal">
+                <h3 id="vitalModalTitle">Add Vital</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="vitalDate">Date *</label>
+                        <input type="date" id="vitalDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="vitalTime">Time (optional)</label>
+                        <input type="time" id="vitalTime">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="vitalType">Type *</label>
+                        <select id="vitalType" onchange="_vitalOnTypeChange()">
+                            <option value="">— Select —</option>
+                            <option>Blood Pressure</option>
+                            <option>Heart Rate</option>
+                            <option>O2 Sat</option>
+                            <option>Blood Glucose</option>
+                            <option>Temperature</option>
+                            <option>Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="vitalUnit">Unit</label>
+                        <input type="text" id="vitalUnit" placeholder="auto-filled" readonly>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="vitalValue1">Value <span id="vitalValue1Label">(systolic / reading)</span></label>
+                        <input type="text" id="vitalValue1" placeholder="e.g. 122">
+                    </div>
+                    <div class="form-group" id="vitalValue2Row" style="display:none;">
+                        <label for="vitalValue2">Diastolic</label>
+                        <input type="text" id="vitalValue2" placeholder="e.g. 78">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="vitalNotes">Notes (optional)</label>
+                    <input type="text" id="vitalNotes" placeholder="e.g. after exercise, morning fasting">
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn btn-secondary" onclick="closeModal('vitalModal')">Cancel</button>
+                    <button class="btn btn-primary" onclick="saveVital()">Save</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal: Vital Trends -->
+        <div class="modal-overlay" id="vitalTrendModal">
+            <div class="modal modal--wide">
+                <h3>&#128200; Vital Trends</h3>
+                <div class="form-group">
+                    <label for="vitalTrendSelect">Select Type</label>
+                    <select id="vitalTrendSelect" onchange="renderVitalTrend(this.value)">
+                        <option value="">&mdash; Select a type &mdash;</option>
+                    </select>
+                </div>
+                <div id="vitalTrendTable"></div>
+                <div class="modal-buttons">
+                    <button class="btn btn-secondary" onclick="closeModal('vitalTrendModal')">Close</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── H5: INSURANCE PAGES ───────────────────────────────────── -->
+
+        <!-- Page: Insurance List (#health-insurance) -->
+        <section class="page hidden" id="page-health-insurance">
+            <div class="page-header">
+                <button class="btn btn-secondary btn-small" onclick="location.hash='#health'">&#8592; My Health</button>
+                <h2>🛡️ Insurance</h2>
+                <button class="btn btn-primary btn-small" onclick="openInsuranceModal()">+ Add</button>
+            </div>
+            <div id="insuranceList"></div>
+        </section>
+
+        <!-- Page: Insurance Detail (#health-insurance/id) -->
+        <section class="page hidden" id="page-health-insurance-detail">
+            <div class="page-header">
+                <button class="btn btn-secondary btn-small" onclick="location.hash='#health-insurance'">&#8592; Insurance</button>
+                <h2 id="insuranceDetailTitle"></h2>
+                <div class="page-header-actions">
+                    <button class="btn btn-secondary btn-small" onclick="editCurrentInsurance()">Edit</button>
+                    <button class="btn btn-secondary btn-small" id="insuranceToggleBtn" onclick="toggleInsuranceStatus()">Deactivate</button>
+                </div>
+            </div>
+
+            <div class="health-concern-meta" style="margin-bottom:12px;">
+                <span id="insuranceDetailStatus" class="health-badge"></span>
+            </div>
+
+            <div class="health-detail-grid">
+                <div class="health-detail-row">
+                    <span class="health-detail-label">Type</span>
+                    <span class="health-detail-value" id="insuranceDetailType"></span>
+                </div>
+                <div class="health-detail-row">
+                    <span class="health-detail-label">Carrier</span>
+                    <span class="health-detail-value" id="insuranceDetailCarrier"></span>
+                </div>
+                <div class="health-detail-row">
+                    <span class="health-detail-label">Plan Name</span>
+                    <span class="health-detail-value" id="insuranceDetailPlan"></span>
+                </div>
+                <div class="health-detail-row">
+                    <span class="health-detail-label">Member ID</span>
+                    <span class="health-detail-value" id="insuranceDetailMember"></span>
+                </div>
+                <div class="health-detail-row">
+                    <span class="health-detail-label">Group Number</span>
+                    <span class="health-detail-value" id="insuranceDetailGroup"></span>
+                </div>
+                <div class="health-detail-row">
+                    <span class="health-detail-label">Policy Number</span>
+                    <span class="health-detail-value" id="insuranceDetailPolicy"></span>
+                </div>
+                <div class="health-detail-row">
+                    <span class="health-detail-label">Coverage Start</span>
+                    <span class="health-detail-value" id="insuranceDetailStart"></span>
+                </div>
+                <div class="health-detail-row">
+                    <span class="health-detail-label">Coverage End</span>
+                    <span class="health-detail-value" id="insuranceDetailEnd"></span>
+                </div>
+                <div class="health-detail-row">
+                    <span class="health-detail-label">Monthly Premium</span>
+                    <span class="health-detail-value" id="insuranceDetailPremium"></span>
+                </div>
+                <div class="health-detail-row">
+                    <span class="health-detail-label">Deductible</span>
+                    <span class="health-detail-value" id="insuranceDetailDeduct"></span>
+                </div>
+                <div class="health-detail-row">
+                    <span class="health-detail-label">Out-of-Pocket Max</span>
+                    <span class="health-detail-value" id="insuranceDetailOOP"></span>
+                </div>
+                <div class="health-detail-row">
+                    <span class="health-detail-label">Beneficiaries</span>
+                    <span class="health-detail-value" id="insuranceDetailBenef"></span>
+                </div>
+                <div class="health-detail-row">
+                    <span class="health-detail-label">Customer Service</span>
+                    <span class="health-detail-value" id="insuranceDetailPhone"></span>
+                </div>
+                <div class="health-detail-row">
+                    <span class="health-detail-label">Website</span>
+                    <span class="health-detail-value" id="insuranceDetailWebsite"></span>
+                </div>
+                <div class="health-detail-row">
+                    <span class="health-detail-label">Notes</span>
+                    <span class="health-detail-value" id="insuranceDetailNotes"></span>
+                </div>
+            </div>
+
+            <!-- Insurance card photos -->
+            <div class="section-header">
+                <h3 class="section-heading">Photos (Insurance Card)</h3>
+                <button class="btn btn-primary btn-small" id="addInsuranceCameraBtn">+ Camera</button>
+                <button class="btn btn-primary btn-small" id="addInsuranceGalleryBtn">+ Gallery</button>
+            </div>
+            <div id="insurancePhotoContainer"></div>
+            <p class="empty-state" id="insurancePhotoEmptyState">No photos yet.</p>
+        </section>
+
+        <!-- ─── H5: INSURANCE MODAL ───────────────────────────────────── -->
+
+        <!-- Modal: Add / Edit Insurance Policy -->
+        <div class="modal-overlay" id="insuranceModal">
+            <div class="modal modal--wide">
+                <h3 id="insuranceModalTitle">Add Policy</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="insuranceType">Type</label>
+                        <select id="insuranceType">
+                            <option value="">— Select —</option>
+                            <option>Medical</option>
+                            <option>Dental</option>
+                            <option>Vision</option>
+                            <option>Short-term Disability</option>
+                            <option>Long-term Disability</option>
+                            <option>Life Insurance</option>
+                            <option>Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="insuranceStatus">Status</label>
+                        <select id="insuranceStatus">
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="insuranceCarrier">Carrier *</label>
+                        <input type="text" id="insuranceCarrier" placeholder="e.g. BlueCross, Aetna">
+                    </div>
+                    <div class="form-group">
+                        <label for="insurancePlanName">Plan Name</label>
+                        <input type="text" id="insurancePlanName" placeholder="e.g. PPO Gold">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="insuranceMemberId">Member ID</label>
+                        <input type="text" id="insuranceMemberId">
+                    </div>
+                    <div class="form-group">
+                        <label for="insuranceGroupNumber">Group Number</label>
+                        <input type="text" id="insuranceGroupNumber">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="insurancePolicyNumber">Policy Number</label>
+                        <input type="text" id="insurancePolicyNumber" placeholder="(life / disability)">
+                    </div>
+                    <div class="form-group">
+                        <label for="insuranceBeneficiaries">Beneficiaries</label>
+                        <input type="text" id="insuranceBeneficiaries">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="insuranceStartDate">Coverage Start</label>
+                        <input type="date" id="insuranceStartDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="insuranceEndDate">Coverage End</label>
+                        <input type="date" id="insuranceEndDate">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="insurancePremium">Monthly Premium ($)</label>
+                        <input type="text" id="insurancePremium" placeholder="e.g. 450">
+                    </div>
+                    <div class="form-group">
+                        <label for="insuranceDeductible">Annual Deductible ($)</label>
+                        <input type="text" id="insuranceDeductible" placeholder="e.g. 1500">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="insuranceOOPMax">Out-of-Pocket Max ($)</label>
+                        <input type="text" id="insuranceOOPMax" placeholder="e.g. 6000">
+                    </div>
+                    <div class="form-group">
+                        <label for="insurancePhone">Customer Service Phone</label>
+                        <input type="text" id="insurancePhone" placeholder="e.g. 1-800-555-0100">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="insuranceWebsite">Website</label>
+                    <input type="url" id="insuranceWebsite" placeholder="https://...">
+                </div>
+                <div class="form-group">
+                    <label for="insuranceNotes">Notes</label>
+                    <textarea id="insuranceNotes" rows="2" placeholder="Broker info, employer plan details, etc."></textarea>
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn btn-secondary" onclick="closeModal('insuranceModal')">Cancel</button>
+                    <button class="btn btn-primary" onclick="saveInsurance()">Save</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── H5: EMERGENCY INFO PAGE ──────────────────────────────── -->
+
+        <!-- Page: Emergency Info (#health-emergency) -->
+        <section class="page hidden" id="page-health-emergency">
+            <div class="page-header">
+                <button class="btn btn-secondary btn-small" onclick="location.hash='#health'">&#8592; My Health</button>
+                <h2>🆘 Emergency Info</h2>
+                <button class="btn btn-primary btn-small" onclick="openEmergencyModal()">Edit</button>
+            </div>
+            <div id="emergencyInfoContainer">
+                <p class="empty-state">Tap Edit to fill in your emergency information.</p>
+            </div>
+        </section>
+
+        <!-- ─── H5: EMERGENCY MODAL ──────────────────────────────────── -->
+
+        <!-- Modal: Edit Emergency Info -->
+        <div class="modal-overlay" id="emergencyModal">
+            <div class="modal modal--wide">
+                <h3>Edit Emergency Info</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="emergencyBloodType">Blood Type</label>
+                        <input type="text" id="emergencyBloodType" placeholder="e.g. O+, A-, AB+">
+                    </div>
+                    <div class="form-group">
+                        <label for="emergencyOrganDonor">Organ Donor</label>
+                        <select id="emergencyOrganDonor">
+                            <option value="">— Unknown —</option>
+                            <option value="Yes">Yes</option>
+                            <option value="No">No</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="emergencyDoctor">Primary Care Doctor</label>
+                    <textarea id="emergencyDoctor" rows="2" placeholder="Name, phone, clinic"></textarea>
+                </div>
+
+                <!-- Emergency Contacts -->
+                <div class="bw-modal-markers-header">
+                    <span class="section-heading" style="margin:0;">Emergency Contacts</span>
+                    <button type="button" class="btn btn-secondary btn-small" onclick="_emergencyAddContactRow()">+ Add Contact</button>
+                </div>
+                <div id="emergencyContactsList"></div>
+
+                <!-- Critical Medications checklist -->
+                <div class="section-heading" style="margin-top:12px;">Critical Medications</div>
+                <p class="form-hint">Check the medications that are critical for emergency responders to know about.</p>
+                <div id="emergencyMedChecklist"></div>
+
+                <div class="form-group" style="margin-top:12px;">
+                    <label for="emergencyAllergies">Critical Allergies (free text)</label>
+                    <textarea id="emergencyAllergies" rows="2" placeholder="e.g. Penicillin — anaphylaxis, Shellfish — hives"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="emergencyNotes">Additional Notes</label>
+                    <textarea id="emergencyNotes" rows="2" placeholder="Any other critical info for emergency responders"></textarea>
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn btn-secondary" onclick="closeModal('emergencyModal')">Cancel</button>
+                    <button class="btn btn-primary" onclick="saveEmergencyInfo()">Save</button>
+                </div>
+            </div>
+        </div>
 
         <!-- ─── H4: BLOOD WORK PAGES ──────────────────────────────────── -->
 
@@ -5666,44 +6030,44 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=248"></script>
-    <script src="js/auth.js?v=248"></script>
-    <script src="js/zones.js?v=248"></script>
-    <script src="js/plants.js?v=248"></script>
-    <script src="js/problems.js?v=248"></script>
-    <script src="js/facts.js?v=248"></script>
-    <script src="js/projects.js?v=248"></script>
-    <script src="js/chemicals.js?v=248"></script>
-    <script src="js/activities.js?v=248"></script>
+    <script src="js/firebase-config.js?v=249"></script>
+    <script src="js/auth.js?v=249"></script>
+    <script src="js/zones.js?v=249"></script>
+    <script src="js/plants.js?v=249"></script>
+    <script src="js/problems.js?v=249"></script>
+    <script src="js/facts.js?v=249"></script>
+    <script src="js/projects.js?v=249"></script>
+    <script src="js/chemicals.js?v=249"></script>
+    <script src="js/activities.js?v=249"></script>
     <!-- Cropper.js — client-side image cropping library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <!-- SortableJS — drag-and-drop list reordering -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    <script src="js/photos.js?v=248"></script>
-    <script src="js/weeds.js?v=248"></script>
-    <script src="js/calendar.js?v=248"></script>
-    <script src="js/gps.js?v=248"></script>
-    <script src="js/settings.js?v=248"></script>
-    <script src="js/house.js?v=248"></script>
-    <script src="js/floorplan.js?v=248"></script>
-    <script src="js/search.js?v=248"></script>
-    <script src="js/activityreport.js?v=248"></script>
-    <script src="js/checklists.js?v=248"></script>
-    <script src="js/bulkactivity.js?v=248"></script>
-    <script src="js/devnotes.js?v=248"></script>
-    <script src="js/vehicles.js?v=248"></script>
-    <script src="js/garage.js?v=248"></script>
-    <script src="js/structures.js?v=248"></script>
-    <script src="js/moveThings.js?v=248"></script>
-    <script src="js/journal.js?v=248"></script>
-    <script src="js/people.js?v=248"></script>
-    <script src="js/collections.js?v=248"></script>
-    <script src="js/health.js?v=248"></script>
+    <script src="js/photos.js?v=249"></script>
+    <script src="js/weeds.js?v=249"></script>
+    <script src="js/calendar.js?v=249"></script>
+    <script src="js/gps.js?v=249"></script>
+    <script src="js/settings.js?v=249"></script>
+    <script src="js/house.js?v=249"></script>
+    <script src="js/floorplan.js?v=249"></script>
+    <script src="js/search.js?v=249"></script>
+    <script src="js/activityreport.js?v=249"></script>
+    <script src="js/checklists.js?v=249"></script>
+    <script src="js/bulkactivity.js?v=249"></script>
+    <script src="js/devnotes.js?v=249"></script>
+    <script src="js/vehicles.js?v=249"></script>
+    <script src="js/garage.js?v=249"></script>
+    <script src="js/structures.js?v=249"></script>
+    <script src="js/moveThings.js?v=249"></script>
+    <script src="js/journal.js?v=249"></script>
+    <script src="js/people.js?v=249"></script>
+    <script src="js/collections.js?v=249"></script>
+    <script src="js/health.js?v=249"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=248"></script>
-    <script src="js/secondbrain.js?v=248"></script>
-    <script src="js/sbissues.js?v=248"></script>
-    <script src="js/app.js?v=248"></script>
+    <script src="js/chat.js?v=249"></script>
+    <script src="js/secondbrain.js?v=249"></script>
+    <script src="js/sbissues.js?v=249"></script>
+    <script src="js/app.js?v=249"></script>
 
 </body>
 </html>

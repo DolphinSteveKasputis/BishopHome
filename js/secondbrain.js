@@ -1631,6 +1631,177 @@ function _sbTypeHash(type, id) {
 }
 
 // ============================================================
+// HELP MODAL
+// ============================================================
+
+// All actions with icon, label, description, and example utterances
+var SB_HELP_ACTIONS = [
+    {
+        action: 'ADD_JOURNAL_ENTRY',
+        icon: '📓', label: 'Add Journal Entry',
+        desc: 'Log a personal diary entry, thought, or note.',
+        examples: [
+            'This morning I had a great walk around the neighborhood',
+            'Feeling tired today, stayed home and relaxed',
+            'Had a long talk with Connie about the new deck'
+        ]
+    },
+    {
+        action: 'ADD_CALENDAR_EVENT',
+        icon: '📅', label: 'Add Calendar Event',
+        desc: 'Schedule something in the future or set a reminder.',
+        examples: [
+            'Remind me to change the oil on April 15th',
+            'Schedule a fertilizer application every 6 weeks',
+            'Set a reminder to check the sump pump in the spring'
+        ]
+    },
+    {
+        action: 'LOG_ACTIVITY',
+        icon: '🌿', label: 'Log Activity',
+        desc: 'Record a task you just did on any plant, zone, vehicle, room, structure, or item.',
+        examples: [
+            'I just mowed the back yard',
+            'Painted the office walls',
+            'Cleaned out the garage',
+            'Fixed the shed roof',
+            'Washed the truck'
+        ]
+    },
+    {
+        action: 'ADD_PROBLEM',
+        icon: '⚠️', label: 'Add Problem',
+        desc: 'Flag an issue or concern with any entity.',
+        examples: [
+            'The shed roof is leaking near the back corner',
+            'The rose bush has black spots on the leaves',
+            'The garage door is sticking when it's cold',
+            'The truck is making a rattling noise'
+        ]
+    },
+    {
+        action: 'ADD_FACT',
+        icon: '📋', label: 'Add Fact',
+        desc: 'Record a factual detail about any entity — dimensions, specs, dates, preferences.',
+        examples: [
+            'The front garden bed is 120 square feet',
+            'The truck has a tow capacity of 10,000 lbs',
+            'The shed was built in 2018',
+            'The office is 14 by 12 feet'
+        ]
+    },
+    {
+        action: 'ADD_PROJECT',
+        icon: '🔨', label: 'Add Project',
+        desc: 'Track a future improvement or task (not a scheduled reminder).',
+        examples: [
+            'I want to install drip irrigation in the back yard',
+            'Need to repaint the shed door',
+            'Replace the carpet in the office',
+            'Build a raised garden bed by the mailbox'
+        ]
+    },
+    {
+        action: 'ADD_IMPORTANT_DATE',
+        icon: '🎂', label: 'Add Important Date',
+        desc: 'Record a birthday, anniversary, or other important date for a person.',
+        examples: [
+            'Jake\'s birthday is March 15th',
+            'Connie and I got married on June 3rd 2001',
+            'Mom\'s work anniversary is in October'
+        ]
+    },
+    {
+        action: 'LOG_MILEAGE',
+        icon: '🚗', label: 'Log Mileage',
+        desc: 'Record the current odometer reading on a vehicle.',
+        examples: [
+            'The truck is at 87,500 miles',
+            'Just hit 45,000 on the SUV'
+        ]
+    },
+    {
+        action: 'LOG_INTERACTION',
+        icon: '👥', label: 'Log Interaction',
+        desc: 'Log a conversation, visit, or time spent with someone.',
+        examples: [
+            'Had lunch with Jake, talked about the fishing trip',
+            'Connie stopped by today, we walked around the yard',
+            'Called my brother about Thanksgiving plans'
+        ]
+    },
+    {
+        action: 'ADD_WEED',
+        icon: '🌱', label: 'Add Weed',
+        desc: 'Record a weed found in the yard. Attach a photo and the AI will try to identify it.',
+        examples: [
+            'There\'s crabgrass showing up along the back fence',
+            'Found some wild onions near the mailbox',
+            'attach a photo and say "add this weed to the front yard"'
+        ]
+    },
+    {
+        action: 'ADD_TRACKING_ENTRY',
+        icon: '📊', label: 'Add Tracking Entry',
+        desc: 'Log a personal health or life metric.',
+        examples: [
+            'My weight today is 182',
+            'Blood pressure this morning was 118 over 76',
+            'Slept 7.5 hours last night',
+            'Walked 8,200 steps today'
+        ]
+    },
+    {
+        action: 'ADD_THING',
+        icon: '📦', label: 'Add Item',
+        desc: 'Add a tracked item to any room, garage area, or structure. Attach a photo and the AI identifies it.',
+        examples: [
+            'Add this lamp to the office',
+            'Add this to my garage workbench',
+            'Add this tool to the shed shelves',
+            'attach a photo and say "add this to the living room"'
+        ]
+    },
+    {
+        action: 'ATTACH_PHOTOS',
+        icon: '📷', label: 'Attach Photos',
+        desc: 'Attach photos to an existing record without creating anything new. Requires at least one photo.',
+        examples: [
+            'Add these photos to the back yard',
+            'Attach this to the shed',
+            'Add this picture to the truck'
+        ]
+    }
+];
+
+function _sbOpenHelp() {
+    var container = document.getElementById('sbHelpContent');
+    if (container) {
+        var html = '';
+        SB_HELP_ACTIONS.forEach(function(item) {
+            html += '<div class="sb-help-action">' +
+                '<div class="sb-help-action-header">' +
+                    '<span class="sb-help-icon">' + item.icon + '</span>' +
+                    '<span class="sb-help-label">' + _sbEsc(item.label) + '</span>' +
+                '</div>' +
+                '<div class="sb-help-desc">' + _sbEsc(item.desc) + '</div>' +
+                '<ul class="sb-help-examples">' +
+                item.examples.map(function(ex) {
+                    return '<li>"' + _sbEsc(ex) + '"</li>';
+                }).join('') +
+                '</ul>' +
+                '</div>';
+        });
+        container.innerHTML = html;
+    }
+    document.getElementById('sbHelpModal').classList.add('open');
+}
+
+function _sbCloseHelp() {
+    document.getElementById('sbHelpModal').classList.remove('open');
+}
+
+// ============================================================
 // TOAST
 // ============================================================
 
@@ -1680,6 +1851,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Cancel input
     document.getElementById('sbCancelInputBtn').addEventListener('click', _sbCloseInput);
+
+    // Help button
+    document.getElementById('sbHelpBtn').addEventListener('click', _sbOpenHelp);
+    document.getElementById('sbHelpCloseBtn').addEventListener('click', _sbCloseHelp);
+    document.getElementById('sbHelpModal').addEventListener('click', function(e) {
+        if (e.target === this) _sbCloseHelp();
+    });
 
     // Close input on overlay click
     document.getElementById('sbInputModal').addEventListener('click', function(e) {

@@ -5448,3 +5448,45 @@ textarea.sb-field { resize: vertical; min-height: 60px; }
     color: #6b7280;
     margin-bottom: 8px;
 }
+
+/* ============================================================
+   SECONDBRAIN — Help modal
+   ============================================================ */
+
+.sb-help-modal { max-width: 560px; max-height: 80vh; overflow-y: auto; }
+
+.sb-help-action {
+    border-bottom: 1px solid #f0f0f0;
+    padding: 12px 0;
+}
+.sb-help-action:last-child { border-bottom: none; }
+
+.sb-help-action-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+.sb-help-icon { font-size: 1.1rem; }
+.sb-help-label {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #111827;
+}
+.sb-help-desc {
+    font-size: 0.85rem;
+    color: #6b7280;
+    margin-bottom: 5px;
+    padding-left: 28px;
+}
+.sb-help-examples {
+    margin: 0;
+    padding-left: 44px;
+    list-style: disc;
+}
+.sb-help-examples li {
+    font-size: 0.82rem;
+    color: #374151;
+    font-style: italic;
+    margin-bottom: 2px;
+}

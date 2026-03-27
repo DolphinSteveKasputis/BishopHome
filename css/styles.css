@@ -5427,3 +5427,24 @@ textarea.sb-field { resize: vertical; min-height: 60px; }
     color: #1e40af;
     margin-bottom: 4px;
 }
+
+/* ============================================================
+   SECONDBRAIN — Phase E: new person section in confirm modal
+   ============================================================ */
+
+/* Container for optional new-person fields */
+.sb-new-person-section {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-top: 12px;
+}
+.sb-new-person-heading {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6b7280;
+    margin-bottom: 8px;
+}

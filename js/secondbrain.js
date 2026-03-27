@@ -928,6 +928,19 @@ function _sbPersonDropdown(payload) {
     return html;
 }
 
+// --- Person category dropdown (used when creating a new person) ---
+function _sbPersonCategorySelect(fieldName, selectedVal) {
+    var cats = ['Family', 'Friend', 'Coworker', 'Neighbor', 'Acquaintance', 'Other'];
+    var html = '<select class="sb-field" data-field="' + _sbEsc(fieldName) + '">';
+    html += '<option value="">— optional —</option>';
+    cats.forEach(function(c) {
+        html += '<option value="' + _sbEsc(c) + '"' +
+                (c === selectedVal ? ' selected' : '') + '>' + _sbEsc(c) + '</option>';
+    });
+    html += '</select>';
+    return html;
+}
+
 // --- Per-action field rendering ---
 function _sbRenderConfirmFields(action, payload) {
     var p = payload || {};
@@ -992,13 +1005,26 @@ function _sbRenderConfirmFields(action, payload) {
         case 'ADD_IMPORTANT_DATE':
             html += _sbFieldRow('Person', _sbPersonDropdown(p));
             html += _sbFieldRow('Label',
-                '<input type="text" class="sb-field" data-field="label" value="' + _sbEsc(p.label || '') + '">');
+                '<input type="text" class="sb-field" data-field="label" list="sbDateLabelList" value="' + _sbEsc(p.label || '') + '">' +
+                '<datalist id="sbDateLabelList">' +
+                    '<option value="Birthday"><option value="Anniversary"><option value="Work Anniversary">' +
+                    '<option value="Graduation"><option value="Memorial Day"><option value="Other">' +
+                '</datalist>');
             html += _sbFieldRow('Month',
                 '<input type="number" class="sb-field" data-field="month" min="1" max="12" value="' + _sbEsc(p.month || '') + '">');
             html += _sbFieldRow('Day',
                 '<input type="number" class="sb-field" data-field="day" min="1" max="31" value="' + _sbEsc(p.day || '') + '">');
             html += _sbFieldRow('Year',
                 '<input type="number" class="sb-field" data-field="year" placeholder="optional" value="' + _sbEsc(p.year || '') + '">');
+            // When creating a new person: show optional fields to enrich their record
+            if (p.personFound === false) {
+                html += '<div class="sb-new-person-section">' +
+                        '<div class="sb-new-person-heading">New person — additional details (optional)</div>' +
+                        _sbFieldRow('Category', _sbPersonCategorySelect('newPersonCategory', '')) +
+                        _sbFieldRow('Notes', '<input type="text" class="sb-field" data-field="newPersonNotes"' +
+                            ' placeholder="e.g. college friend, neighbor">') +
+                        '</div>';
+            }
             break;
 
         case 'LOG_MILEAGE': {
@@ -1040,8 +1066,17 @@ function _sbRenderConfirmFields(action, payload) {
             html += _sbFieldRow('Person', _sbPersonDropdown(p));
             html += _sbFieldRow('Date',
                 '<input type="date" class="sb-field" data-field="date" value="' + _sbEsc(p.date || _sbToday()) + '">');
-            html += _sbFieldRow('Notes',
+            html += _sbFieldRow('What happened',
                 '<textarea class="sb-field" data-field="notes" rows="3">' + _sbEsc(p.notes || '') + '</textarea>');
+            // When creating a new person: show optional fields to enrich their record
+            if (p.personFound === false) {
+                html += '<div class="sb-new-person-section">' +
+                        '<div class="sb-new-person-heading">New person — additional details (optional)</div>' +
+                        _sbFieldRow('Category', _sbPersonCategorySelect('newPersonCategory', '')) +
+                        _sbFieldRow('Notes', '<input type="text" class="sb-field" data-field="newPersonNotes"' +
+                            ' placeholder="e.g. college friend, neighbor">') +
+                        '</div>';
+            }
             break;
 
         case 'ADD_WEED': {
@@ -1301,9 +1336,16 @@ async function _sbWrite(action, payload) {
             var personId = payload.personId;
             // Create person if not found in People list
             if (!personId || personId === '__new__') {
-                var pRef = await userCol('people').add({
-                    name: payload.personName || 'Unknown Person', createdAt: ts
-                });
+                var newPersonDoc = {
+                    name:      payload.personName || 'Unknown Person',
+                    createdAt: ts
+                };
+                // Optional enrichment fields from the confirm screen
+                if (payload.newPersonCategory) newPersonDoc.category = payload.newPersonCategory;
+                if (payload.newPersonNotes)    newPersonDoc.notes    = payload.newPersonNotes;
+                // First attached photo becomes the profile photo
+                if (_sbPhotos.length > 0)      newPersonDoc.profilePhotoData = _sbPhotos[0].dataUrl;
+                var pRef = await userCol('people').add(newPersonDoc);
                 personId = pRef.id;
             }
             await userCol('peopleImportantDates').add({
@@ -1316,6 +1358,7 @@ async function _sbWrite(action, payload) {
                 createdAt: ts
             });
             newId = personId;  // navigate to the person's page
+            // Save all photos to the person's gallery too
             await _sbSavePhotos('person', personId, '');
             return newId;
         }
@@ -1369,9 +1412,16 @@ async function _sbWrite(action, payload) {
         case 'LOG_INTERACTION': {
             var personId = payload.personId;
             if (!personId || personId === '__new__') {
-                var pRef = await userCol('people').add({
-                    name: payload.personName || 'Unknown Person', createdAt: ts
-                });
+                var newPersonDoc = {
+                    name:      payload.personName || 'Unknown Person',
+                    createdAt: ts
+                };
+                // Optional enrichment fields from the confirm screen
+                if (payload.newPersonCategory) newPersonDoc.category = payload.newPersonCategory;
+                if (payload.newPersonNotes)    newPersonDoc.notes    = payload.newPersonNotes;
+                // First attached photo becomes the profile photo
+                if (_sbPhotos.length > 0)      newPersonDoc.profilePhotoData = _sbPhotos[0].dataUrl;
+                var pRef = await userCol('people').add(newPersonDoc);
                 personId = pRef.id;
             }
             await userCol('peopleInteractions').add({
@@ -1381,6 +1431,7 @@ async function _sbWrite(action, payload) {
                 createdAt: ts
             });
             newId = personId;  // navigate to person's page
+            // Save all photos to the person's gallery too
             await _sbSavePhotos('person', personId, '');
             return newId;
         }

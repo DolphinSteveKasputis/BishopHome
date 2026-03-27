@@ -5401,3 +5401,29 @@ textarea.sb-field { resize: vertical; min-height: 60px; }
     white-space: nowrap;
     margin-top: 2px;
 }
+
+/* ============================================================
+   SECONDBRAIN — Phase D: photo preview strip in confirm modal
+   ============================================================ */
+
+/* Thumbnail strip inside the confirmation modal */
+.sb-confirm-photo-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+.sb-confirm-thumb {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+    background: #f3f4f6;
+}
+.sb-confirm-photo-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #1e40af;
+    margin-bottom: 4px;
+}

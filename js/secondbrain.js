@@ -781,17 +781,8 @@ function _sbShowConfirmation(result) {
     document.getElementById('sbConfirmFields').innerHTML   = _sbRenderConfirmFields(action, payload);
     document.getElementById('sbConfirmWarnings').innerHTML = _sbRenderWarnings(action, payload);
 
-    // Photo count badge
-    var photoNote = document.getElementById('sbConfirmPhotoNote');
-    if (photoNote) {
-        if (_sbPhotos.length > 0) {
-            photoNote.textContent = '📷 ' + _sbPhotos.length +
-                ' photo' + (_sbPhotos.length > 1 ? 's' : '') + ' will be attached';
-            photoNote.classList.remove('hidden');
-        } else {
-            photoNote.classList.add('hidden');
-        }
-    }
+    // Photo preview strip
+    _sbRenderConfirmPhotos();
 
     // UNKNOWN_ACTION: hide confirm buttons, show Try Again
     var isUnknown = (action === 'UNKNOWN_ACTION');
@@ -800,6 +791,33 @@ function _sbShowConfirmation(result) {
     document.getElementById('sbConfirmTryAgainBtn').classList.toggle('hidden', !isUnknown);
 
     document.getElementById('sbConfirmModal').classList.add('open');
+}
+
+/**
+ * Renders actual photo thumbnails in the confirmation modal.
+ * Replaces the old text-only "N photos will be attached" badge.
+ */
+function _sbRenderConfirmPhotos() {
+    var container = document.getElementById('sbConfirmPhotoNote');
+    if (!container) return;
+
+    if (_sbPhotos.length === 0) {
+        container.innerHTML = '';
+        container.classList.add('hidden');
+        return;
+    }
+
+    var html = '<div class="sb-confirm-photo-strip">';
+    _sbPhotos.forEach(function(p) {
+        html += '<img class="sb-confirm-thumb" src="' + p.dataUrl + '" alt="attached photo">';
+    });
+    html += '</div>' +
+            '<div class="sb-confirm-photo-label">📷 ' +
+            _sbPhotos.length + ' photo' + (_sbPhotos.length > 1 ? 's' : '') +
+            ' will be attached</div>';
+
+    container.innerHTML = html;
+    container.classList.remove('hidden');
 }
 
 function _sbCloseConfirm() {
@@ -845,6 +863,14 @@ function _sbRenderWarnings(action, payload) {
     if (action === 'ADD_WEED' && p.alreadyExists) {
         html += '<div class="sb-info">ℹ "' + _sbEsc(p.name || '') +
                 '" already exists — selected zone(s) will be added to it.</div>';
+    }
+    // ATTACH_PHOTOS requires at least one photo
+    if (action === 'ATTACH_PHOTOS' && _sbPhotos.length === 0) {
+        html += '<div class="sb-warning">⚠ No photos are attached. Cancel and add photos before confirming.</div>';
+    }
+    // ADD_THING: note when item name was inferred from a photo
+    if (action === 'ADD_THING' && _sbPhotos.length > 0 && p.name) {
+        html += '<div class="sb-info">📷 Item name was identified from your photo — verify it looks right.</div>';
     }
     return html;
 }
@@ -1141,6 +1167,12 @@ async function _sbExecuteAction(navigate) {
 
     var action  = _sbLastResult.action;
     var payload = _sbReadConfirmFields();
+
+    // ATTACH_PHOTOS requires photos — hard guard before writing
+    if (action === 'ATTACH_PHOTOS' && _sbPhotos.length === 0) {
+        alert('No photos are attached. Please cancel and add photos first.');
+        return;
+    }
 
     var goBtn   = document.getElementById('sbConfirmGoBtn');
     var doneBtn = document.getElementById('sbConfirmDoneBtn');

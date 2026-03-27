@@ -23,6 +23,23 @@ var _cropperInstance  = null;  // Active Cropper.js instance (or null)
 var _cropOriginalFile = null;  // The raw File/Blob passed into showCropPreview
 
 /**
+ * Entity types that support a profile thumbnail (set from the photo viewer).
+ * The "Use as Profile" button only appears in the viewer for these types.
+ */
+var PROFILE_PHOTO_TYPES = ['plant', 'weed', 'person', 'vehicle', 'thing'];
+
+/**
+ * Maps targetType → Firestore collection name for writing profilePhotoData.
+ */
+var PROFILE_COLLECTION_MAP = {
+    plant:   'plants',
+    weed:    'weeds',
+    person:  'people',
+    vehicle: 'vehicles',
+    thing:   'things',
+};
+
+/**
  * Maps every targetType to its photo container and empty-state element IDs.
  * Used by handlePhotoFile, reloadPhotosForCurrentTarget, and handleDeletePhoto.
  */
@@ -190,9 +207,42 @@ function renderPhotoViewer(targetType, containerId) {
         viewer.appendChild(caption);
     }
 
-    // Action buttons: Crop, Edit Caption, Delete
+    // Action buttons: Use as Profile (if supported), Crop, Edit Caption, Delete
     var actions = document.createElement('div');
     actions.className = 'photo-actions';
+
+    // "Use as Profile" — only for entity types that have profile thumbnails
+    if (PROFILE_PHOTO_TYPES.indexOf(targetType) !== -1) {
+        var profileBtn = document.createElement('button');
+        profileBtn.className = 'btn btn-small btn-secondary';
+        profileBtn.textContent = '⭐ Use as Profile';
+        profileBtn.addEventListener('click', async function() {
+            var btn = this;
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+            var thumbData = await setProfilePhoto(photo, targetType);
+            if (thumbData) {
+                btn.textContent = '✓ Set!';
+                // Live-update person detail avatar without a page reload
+                if (targetType === 'person' && window.currentPerson &&
+                        window.currentPerson.id === photo.targetId) {
+                    window.currentPerson.profilePhotoData = thumbData;
+                    var avatarEl = document.getElementById('personDetailAvatar');
+                    if (avatarEl && typeof _buildAvatarHtml === 'function') {
+                        avatarEl.innerHTML = _buildAvatarHtml(window.currentPerson, 'person-detail-avatar');
+                    }
+                }
+                setTimeout(function() {
+                    btn.textContent = '⭐ Use as Profile';
+                    btn.disabled = false;
+                }, 2000);
+            } else {
+                btn.textContent = '⭐ Use as Profile';
+                btn.disabled = false;
+            }
+        });
+        actions.appendChild(profileBtn);
+    }
 
     var cropBtn = document.createElement('button');
     cropBtn.className = 'btn btn-small btn-secondary';
@@ -485,6 +535,57 @@ async function editPhotoCaption(photoId, targetType, containerId) {
     } catch (error) {
         console.error('Error updating caption:', error);
         alert('Error updating caption. Check console for details.');
+    }
+}
+
+// ---------- Profile Thumbnail ----------
+
+/**
+ * Compress a data URL to a small thumbnail (max 300px, JPEG 0.80).
+ * Stored as profilePhotoData on the entity document.
+ * @param {string} dataUrl - Existing base64 data URL from the photos collection.
+ * @returns {Promise<string>} Compressed thumbnail data URL.
+ */
+function _compressToThumb(dataUrl) {
+    return new Promise(function(resolve, reject) {
+        var img = new Image();
+        img.onload = function() {
+            var MAX = 300;
+            var w = img.width, h = img.height;
+            if (w > MAX || h > MAX) {
+                if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+                else        { w = Math.round(w * MAX / h); h = MAX; }
+            }
+            var canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            resolve(canvas.toDataURL('image/jpeg', 0.80));
+        };
+        img.onerror = reject;
+        img.src = dataUrl;
+    });
+}
+
+/**
+ * Save a gallery photo as the profile thumbnail for its entity.
+ * Compresses to thumbnail size and writes profilePhotoData to the entity doc.
+ * Returns the compressed data URL on success, null on failure.
+ *
+ * @param {Object} photo      - Photo object from photoViewerState (has .imageData, .targetId)
+ * @param {string} targetType - e.g. 'plant', 'weed', 'person', 'vehicle', 'thing'
+ * @returns {Promise<string|null>}
+ */
+async function setProfilePhoto(photo, targetType) {
+    var collection = PROFILE_COLLECTION_MAP[targetType];
+    if (!collection) return null;
+    try {
+        var thumbData = await _compressToThumb(photo.imageData);
+        await userCol(collection).doc(photo.targetId).update({ profilePhotoData: thumbData });
+        return thumbData;
+    } catch (err) {
+        console.error('setProfilePhoto error:', err);
+        alert('Error setting profile photo.');
+        return null;
     }
 }
 

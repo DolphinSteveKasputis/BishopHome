@@ -1048,11 +1048,16 @@ function buildThingCard(id, data) {
     var catBadge = buildThingCategoryBadge(data.category);
 
     card.innerHTML =
+        (data.profilePhotoData ? '<img class="entity-card-thumb" alt="">' : '') +
         '<div class="card-main">' +
             '<span class="card-title">' + label + '</span>' +
             catBadge +
         '</div>' +
         '<span class="card-arrow">›</span>';
+
+    if (data.profilePhotoData) {
+        card.querySelector('.entity-card-thumb').src = data.profilePhotoData;
+    }
 
     card.addEventListener('click', function() {
         window.location.hash = '#thing/' + id;

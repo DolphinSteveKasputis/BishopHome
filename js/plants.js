@@ -149,7 +149,17 @@ function createPlantCard(id, plant) {
         window.location.hash = 'plant/' + id;
     });
 
+    // Profile thumbnail on the left side (if set via "Use as Profile" in photo viewer)
+    if (plant.profilePhotoData) {
+        var thumb = document.createElement('img');
+        thumb.src = plant.profilePhotoData;
+        thumb.className = 'entity-card-thumb';
+        thumb.alt = plant.name;
+        card.appendChild(thumb);
+    }
+
     const info = document.createElement('div');
+    info.style.flex = '1';
 
     const title = document.createElement('div');
     title.className = 'card-title';

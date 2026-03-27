@@ -5002,3 +5002,17 @@ a.ar-target-link:hover {
     color: #0d9488;
     white-space: nowrap;
 }
+
+/* ============================================================
+   ENTITY PROFILE THUMBNAILS  (plants, weeds, things, vehicles, people)
+   Shared class for list card thumbnails set via 'Use as Profile' in photo viewer.
+   ============================================================ */
+
+.entity-card-thumb {
+    width: 52px;
+    height: 52px;
+    border-radius: 8px;
+    object-fit: cover;
+    flex-shrink: 0;
+    border: 1px solid #e5e7eb;
+}

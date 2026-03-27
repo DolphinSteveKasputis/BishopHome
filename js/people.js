@@ -885,16 +885,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (currentPerson) openAddFactModal('person', currentPerson.id);
     });
 
-    // Profile photo
-    document.getElementById('personProfilePhotoBtn').addEventListener('click', function() {
-        document.getElementById('personProfilePhotoInput').click();
-    });
-    document.getElementById('personProfilePhotoInput').addEventListener('change', function(e) {
-        if (e.target.files[0]) _handleProfilePhotoUpload(e.target.files[0]);
-        this.value = '';
-    });
-
     // Person photos — camera + gallery
+    // (Profile photo is now set via "Use as Profile" in the photo viewer)
     document.getElementById('personCameraBtn').addEventListener('click', function() {
         document.getElementById('personCameraInput').click();
     });

@@ -153,11 +153,17 @@ function buildVehicleCard(id, data, archived) {
     var subtitle = subtitleParts.join('  \u00b7  ');
 
     card.innerHTML =
+        (data.profilePhotoData ? '<img class="entity-card-thumb" alt="">' : '') +
         '<div class="card-main">' +
             '<span class="vehicle-card-title">' + escapeHtml(title) + '</span>' +
             (subtitle ? '<span class="vehicle-card-subtitle">' + escapeHtml(subtitle) + '</span>' : '') +
         '</div>' +
         '<span class="card-arrow">\u203a</span>';
+
+    // Set src via DOM (avoids any base64 content concerns with innerHTML)
+    if (data.profilePhotoData) {
+        card.querySelector('.entity-card-thumb').src = data.profilePhotoData;
+    }
 
     card.addEventListener('click', function() {
         window.location.hash = '#vehicle/' + id;

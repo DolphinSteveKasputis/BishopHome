@@ -5869,3 +5869,75 @@ textarea.sb-field { resize: vertical; min-height: 60px; }
     .health-detail-label { min-width: 110px; font-size: 0.78rem; }
     .health-detail-value { font-size: 0.85rem; }
 }
+
+/* ── H3: Medications / Conditions / Concerns tiles ─────────── */
+.landing-tile--health-medications {
+    background: linear-gradient(135deg, #6d28d9, #a78bfa);
+    color: #fff;
+}
+.landing-tile--health-medications:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(109, 40, 217, 0.35);
+}
+
+.landing-tile--health-concerns {
+    background: linear-gradient(135deg, #b45309, #fbbf24);
+    color: #fff;
+}
+.landing-tile--health-concerns:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(180, 83, 9, 0.35);
+}
+
+.landing-tile--health-conditions {
+    background: linear-gradient(135deg, #0369a1, #38bdf8);
+    color: #fff;
+}
+.landing-tile--health-conditions:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(3, 105, 161, 0.35);
+}
+
+/* ── Status badges ─────────────────────────────────────────── */
+.health-badge--status-active   { background: #fee2e2; color: #991b1b; }
+.health-badge--status-managed  { background: #d1fae5; color: #065f46; }
+.health-badge--status-resolved { background: #e5e7eb; color: #374151; }
+.health-badge--open            { background: #fef3c7; color: #92400e; }
+.health-badge--resolved        { background: #e5e7eb; color: #374151; }
+.health-badge--area            { background: #ede9fe; color: #5b21b6; }
+
+/* ── Concern detail metadata row ───────────────────────────── */
+.health-concern-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.health-concern-date {
+    font-size: 0.85rem;
+    color: #666;
+}
+
+/* ── Summary card (concern detail) ────────────────────────── */
+.health-detail-card {
+    background: #fff;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    padding: 12px 14px;
+    font-size: 0.9rem;
+    color: #374151;
+    margin-bottom: 8px;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* Clickable linked item (concern → visit link) */
+.health-linked-item--clickable {
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.health-linked-item--clickable:hover {
+    background: #f3f4f6;
+}

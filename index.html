@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=245">
+    <link rel="stylesheet" href="css/styles.css?v=246">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -4225,28 +4225,25 @@
                     <span class="landing-tile-icon">🏥</span>
                     <span class="landing-tile-label">Health Visits</span>
                 </a>
-                <span class="landing-tile landing-tile--disabled">
+                <a href="#health-medications" class="landing-tile landing-tile--health-medications">
                     <span class="landing-tile-icon">💊</span>
                     <span class="landing-tile-label">Medications</span>
-                    <span class="landing-tile-soon">Coming soon</span>
-                </span>
-                <!-- Row 2 — H4 / H3 features (coming soon) -->
+                </a>
+                <!-- Row 2 — H4 still coming soon; H3 Concerns active -->
                 <span class="landing-tile landing-tile--disabled">
                     <span class="landing-tile-icon">🩸</span>
                     <span class="landing-tile-label">Blood Work</span>
                     <span class="landing-tile-soon">Coming soon</span>
                 </span>
-                <span class="landing-tile landing-tile--disabled">
+                <a href="#health-concerns" class="landing-tile landing-tile--health-concerns">
                     <span class="landing-tile-icon">⚠️</span>
                     <span class="landing-tile-label">Concerns</span>
-                    <span class="landing-tile-soon">Coming soon</span>
-                </span>
-                <!-- Row 3 — H3 / H5 features (coming soon) -->
-                <span class="landing-tile landing-tile--disabled">
+                </a>
+                <!-- Row 3 — H3 Conditions active -->
+                <a href="#health-conditions" class="landing-tile landing-tile--health-conditions">
                     <span class="landing-tile-icon">📋</span>
                     <span class="landing-tile-label">Conditions</span>
-                    <span class="landing-tile-soon">Coming soon</span>
-                </span>
+                </a>
                 <span class="landing-tile landing-tile--disabled">
                     <span class="landing-tile-icon">💓</span>
                     <span class="landing-tile-label">Vitals</span>
@@ -4701,6 +4698,289 @@
                 <div class="modal-buttons">
                     <button class="btn btn-secondary" onclick="closeModal('visitModal')">Cancel</button>
                     <button class="btn btn-primary" onclick="saveVisit()">Save</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Page: Medications (#health-medications) -->
+        <section class="page hidden" id="page-health-medications">
+            <div class="page-header">
+                <button class="btn btn-secondary btn-small" onclick="location.hash='#health'">&#8592; My Health</button>
+                <h2>💊 Medications</h2>
+                <button class="btn btn-primary btn-small" onclick="openMedModal()">+ Add</button>
+            </div>
+            <div id="medicationActiveList"></div>
+            <div id="medicationHistSection" style="display:none;">
+                <div class="section-heading">Medication History</div>
+                <div id="medicationHistList"></div>
+            </div>
+        </section>
+
+        <!-- Page: Conditions (#health-conditions) -->
+        <section class="page hidden" id="page-health-conditions">
+            <div class="page-header">
+                <button class="btn btn-secondary btn-small" onclick="location.hash='#health'">&#8592; My Health</button>
+                <h2>📋 Conditions</h2>
+                <button class="btn btn-primary btn-small" onclick="openConditionModal()">+ Add</button>
+            </div>
+            <div id="conditionActiveList"></div>
+            <div id="conditionResolvedSection" style="display:none;">
+                <div class="section-heading">Resolved Conditions</div>
+                <div id="conditionResolvedList"></div>
+            </div>
+        </section>
+
+        <!-- Page: Concerns list (#health-concerns) -->
+        <section class="page hidden" id="page-health-concerns">
+            <div class="page-header">
+                <button class="btn btn-secondary btn-small" onclick="location.hash='#health'">&#8592; My Health</button>
+                <h2>⚠️ Concerns</h2>
+                <button class="btn btn-primary btn-small" onclick="openConcernModal()">+ Add</button>
+            </div>
+            <div id="concernOpenList"></div>
+            <div id="concernResolvedSection" style="display:none;">
+                <div class="section-heading">Resolved Concerns</div>
+                <div id="concernResolvedList"></div>
+            </div>
+        </section>
+
+        <!-- Page: Concern detail (#health-concern/{id}) -->
+        <section class="page hidden" id="page-health-concern">
+            <div class="page-header">
+                <button class="btn btn-secondary btn-small" onclick="location.hash='#health-concerns'">&#8592; Concerns</button>
+                <h2 id="concernDetailTitle"></h2>
+                <div class="page-header-actions">
+                    <button class="btn btn-secondary btn-small" onclick="editCurrentConcern()">Edit</button>
+                    <button class="btn btn-secondary btn-small" id="concernResolveBtn" onclick="toggleConcernResolved()">Mark Resolved</button>
+                    <button class="btn btn-danger btn-small" onclick="deleteCurrentConcern()">Delete</button>
+                </div>
+            </div>
+
+            <!-- Concern metadata -->
+            <div class="health-concern-meta">
+                <span id="concernDetailStatus" class="health-badge"></span>
+                <span id="concernDetailBodyArea" class="health-badge health-badge--area"></span>
+                <span id="concernDetailStartDate" class="health-concern-date"></span>
+            </div>
+            <div id="concernDetailResolvedRow" style="display:none;">
+                <span id="concernDetailResolvedDate" class="health-concern-date"></span>
+            </div>
+
+            <!-- Summary -->
+            <div class="section-heading">Summary</div>
+            <div class="health-detail-card" id="concernDetailSummary"></div>
+
+            <!-- Journal updates -->
+            <div class="section-header">
+                <h3 class="section-heading">Journal</h3>
+                <button class="btn btn-primary btn-small" onclick="openConcernUpdateModal()">+ Add Entry</button>
+            </div>
+            <div id="concernUpdatesList"></div>
+
+            <!-- Linked visits -->
+            <div class="section-heading">Linked Visits</div>
+            <div id="concernLinkedVisits"></div>
+
+            <!-- Photos -->
+            <div class="section-header">
+                <h3 class="section-heading">Photos</h3>
+                <button class="btn btn-primary btn-small" id="addConcernCameraBtn">+ Camera</button>
+                <button class="btn btn-primary btn-small" id="addConcernGalleryBtn">+ Gallery</button>
+            </div>
+            <div id="concernPhotoContainer"></div>
+            <p class="empty-state" id="concernPhotoEmptyState">No photos yet.</p>
+        </section>
+
+        <!-- ─── H3 MODALS ──────────────────────────────────────────────── -->
+
+        <!-- Modal: Add / Edit Medication -->
+        <div class="modal-overlay" id="medicationModal">
+            <div class="modal">
+                <h3 id="medicationModalTitle">Add Medication</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="medName">Name *</label>
+                        <input type="text" id="medName" placeholder="e.g. Lisinopril, Amoxicillin">
+                    </div>
+                    <div class="form-group">
+                        <label for="medDosage">Dosage</label>
+                        <input type="text" id="medDosage" placeholder="e.g. 10mg daily">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="medType">Type</label>
+                        <select id="medType">
+                            <option value="">— Select —</option>
+                            <option>Ongoing</option>
+                            <option>Short-term</option>
+                            <option>As-needed</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="medStatus">Status</label>
+                        <select id="medStatus">
+                            <option value="active">Active</option>
+                            <option value="completed">Completed</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="medPurpose">Purpose / What it's for</label>
+                    <input type="text" id="medPurpose" placeholder="e.g. Blood pressure, Infection">
+                </div>
+                <div class="form-group">
+                    <label for="medPrescribedBy">Prescribed by</label>
+                    <input type="text" id="medPrescribedBy" placeholder="Doctor name (optional)">
+                </div>
+                <div class="form-group">
+                    <label for="medVisitId">Prescribed at Visit (optional)</label>
+                    <select id="medVisitId">
+                        <option value="">— Not linked to a visit —</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="medStartDate">Start Date</label>
+                        <input type="date" id="medStartDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="medEndDate">End Date</label>
+                        <input type="date" id="medEndDate">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="medNotes">Notes</label>
+                    <textarea id="medNotes" rows="2" placeholder="Side effects, pharmacy notes…"></textarea>
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn btn-secondary" onclick="closeModal('medicationModal')">Cancel</button>
+                    <button class="btn btn-primary" onclick="saveMed()">Save</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal: Add / Edit Condition -->
+        <div class="modal-overlay" id="conditionModal">
+            <div class="modal">
+                <h3 id="conditionModalTitle">Add Condition</h3>
+                <div class="form-group">
+                    <label for="conditionName">Condition Name *</label>
+                    <input type="text" id="conditionName" placeholder="e.g. Sleep Apnea, Hypertension, GERD">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="conditionCategory">Category</label>
+                        <select id="conditionCategory">
+                            <option value="">— Select —</option>
+                            <option>Cardiovascular</option>
+                            <option>Metabolic</option>
+                            <option>Respiratory</option>
+                            <option>Neurological</option>
+                            <option>Musculoskeletal</option>
+                            <option>Mental Health</option>
+                            <option>Dental</option>
+                            <option>Sensory</option>
+                            <option>Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="conditionStatus">Status</label>
+                        <select id="conditionStatus">
+                            <option value="active">Active</option>
+                            <option value="managed">Managed</option>
+                            <option value="resolved">Resolved</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="conditionDiagnosedDate">Diagnosed Date</label>
+                        <input type="date" id="conditionDiagnosedDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="conditionDiagnosedBy">Diagnosed by</label>
+                        <input type="text" id="conditionDiagnosedBy" placeholder="Doctor name (optional)">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="conditionVisitId">Diagnosed at Visit (optional)</label>
+                    <select id="conditionVisitId">
+                        <option value="">— Not linked to a visit —</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="conditionManagementNotes">How it's managed / treated</label>
+                    <textarea id="conditionManagementNotes" rows="2" placeholder="e.g. CPAP nightly, Lisinopril 10mg"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="conditionNotes">Notes</label>
+                    <textarea id="conditionNotes" rows="2" placeholder="Any other details…"></textarea>
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn btn-secondary" onclick="closeModal('conditionModal')">Cancel</button>
+                    <button class="btn btn-primary" onclick="saveCondition()">Save</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal: Add / Edit Concern -->
+        <div class="modal-overlay" id="concernModal">
+            <div class="modal">
+                <h3 id="concernModalTitle">Add Concern</h3>
+                <div class="form-group">
+                    <label for="concernTitle">Title *</label>
+                    <input type="text" id="concernTitle" placeholder="e.g. Bump on left forearm, Lower back ache">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="concernBodyArea">Body Area</label>
+                        <input type="text" id="concernBodyArea" placeholder="e.g. Left forearm">
+                    </div>
+                    <div class="form-group">
+                        <label for="concernStartDate">First Noticed</label>
+                        <input type="date" id="concernStartDate">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="concernStatus">Status</label>
+                    <select id="concernStatus">
+                        <option value="open">Open</option>
+                        <option value="resolved">Resolved</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="concernSummary">Description / Summary</label>
+                    <textarea id="concernSummary" rows="3" placeholder="Describe the concern…"></textarea>
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn btn-secondary" onclick="closeModal('concernModal')">Cancel</button>
+                    <button class="btn btn-primary" onclick="saveConcern()">Save</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal: Add Concern Journal Entry -->
+        <div class="modal-overlay" id="concernUpdateModal">
+            <div class="modal">
+                <h3>Add Journal Entry</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="concernUpdateDate">Date</label>
+                        <input type="date" id="concernUpdateDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="concernUpdatePain">Pain Scale (1&ndash;10, optional)</label>
+                        <input type="number" id="concernUpdatePain" min="1" max="10" placeholder="e.g. 5">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="concernUpdateNote">Note *</label>
+                    <textarea id="concernUpdateNote" rows="3" placeholder="How is it today? Any changes?"></textarea>
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn btn-secondary" onclick="closeModal('concernUpdateModal')">Cancel</button>
+                    <button class="btn btn-primary" onclick="saveConcernUpdate()">Save</button>
                 </div>
             </div>
         </div>
@@ -5234,44 +5514,44 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=245"></script>
-    <script src="js/auth.js?v=245"></script>
-    <script src="js/zones.js?v=245"></script>
-    <script src="js/plants.js?v=245"></script>
-    <script src="js/problems.js?v=245"></script>
-    <script src="js/facts.js?v=245"></script>
-    <script src="js/projects.js?v=245"></script>
-    <script src="js/chemicals.js?v=245"></script>
-    <script src="js/activities.js?v=245"></script>
+    <script src="js/firebase-config.js?v=246"></script>
+    <script src="js/auth.js?v=246"></script>
+    <script src="js/zones.js?v=246"></script>
+    <script src="js/plants.js?v=246"></script>
+    <script src="js/problems.js?v=246"></script>
+    <script src="js/facts.js?v=246"></script>
+    <script src="js/projects.js?v=246"></script>
+    <script src="js/chemicals.js?v=246"></script>
+    <script src="js/activities.js?v=246"></script>
     <!-- Cropper.js — client-side image cropping library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <!-- SortableJS — drag-and-drop list reordering -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    <script src="js/photos.js?v=245"></script>
-    <script src="js/weeds.js?v=245"></script>
-    <script src="js/calendar.js?v=245"></script>
-    <script src="js/gps.js?v=245"></script>
-    <script src="js/settings.js?v=245"></script>
-    <script src="js/house.js?v=245"></script>
-    <script src="js/floorplan.js?v=245"></script>
-    <script src="js/search.js?v=245"></script>
-    <script src="js/activityreport.js?v=245"></script>
-    <script src="js/checklists.js?v=245"></script>
-    <script src="js/bulkactivity.js?v=245"></script>
-    <script src="js/devnotes.js?v=245"></script>
-    <script src="js/vehicles.js?v=245"></script>
-    <script src="js/garage.js?v=245"></script>
-    <script src="js/structures.js?v=245"></script>
-    <script src="js/moveThings.js?v=245"></script>
-    <script src="js/journal.js?v=245"></script>
-    <script src="js/people.js?v=245"></script>
-    <script src="js/collections.js?v=245"></script>
-    <script src="js/health.js?v=245"></script>
+    <script src="js/photos.js?v=246"></script>
+    <script src="js/weeds.js?v=246"></script>
+    <script src="js/calendar.js?v=246"></script>
+    <script src="js/gps.js?v=246"></script>
+    <script src="js/settings.js?v=246"></script>
+    <script src="js/house.js?v=246"></script>
+    <script src="js/floorplan.js?v=246"></script>
+    <script src="js/search.js?v=246"></script>
+    <script src="js/activityreport.js?v=246"></script>
+    <script src="js/checklists.js?v=246"></script>
+    <script src="js/bulkactivity.js?v=246"></script>
+    <script src="js/devnotes.js?v=246"></script>
+    <script src="js/vehicles.js?v=246"></script>
+    <script src="js/garage.js?v=246"></script>
+    <script src="js/structures.js?v=246"></script>
+    <script src="js/moveThings.js?v=246"></script>
+    <script src="js/journal.js?v=246"></script>
+    <script src="js/people.js?v=246"></script>
+    <script src="js/collections.js?v=246"></script>
+    <script src="js/health.js?v=246"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=245"></script>
-    <script src="js/secondbrain.js?v=245"></script>
-    <script src="js/sbissues.js?v=245"></script>
-    <script src="js/app.js?v=245"></script>
+    <script src="js/chat.js?v=246"></script>
+    <script src="js/secondbrain.js?v=246"></script>
+    <script src="js/sbissues.js?v=246"></script>
+    <script src="js/app.js?v=246"></script>
 
 </body>
 </html>

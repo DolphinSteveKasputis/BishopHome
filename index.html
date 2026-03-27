@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=231">
+    <link rel="stylesheet" href="css/styles.css?v=232">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -241,6 +241,9 @@
 
         <!-- Page: Home / Zones list -->
         <section class="page hidden" id="page-home">
+            <!-- SecondBrain natural-language command button -->
+            <button class="sb-home-btn" id="sbHomeBtn">🧠 SecondBrain — Tell me what you did</button>
+
             <div class="page-header">
                 <h2>My Yard</h2>
                 <button class="btn btn-primary btn-small" id="addZoneBtn">+ Add Zone</button>
@@ -4618,43 +4621,113 @@
         </div>
     </div>
 
+    <!-- ========== SECONDBRAIN INPUT MODAL ========== -->
+    <div class="modal-overlay" id="sbInputModal">
+        <div class="modal sb-modal">
+            <h3>🧠 SecondBrain</h3>
+
+            <!-- Normal content (hidden while thinking) -->
+            <div id="sbInputContent">
+                <p class="sb-modal-hint">Speak or type what you did, found, or want to track. Attach photos if helpful.</p>
+
+                <!-- Photo strip (hidden when empty) -->
+                <div id="sbPhotoStrip" class="sb-photo-strip hidden"></div>
+
+                <!-- Photo buttons -->
+                <div class="sb-photo-btns">
+                    <button class="btn btn-secondary btn-small" id="sbCameraBtn">📷 Camera</button>
+                    <button class="btn btn-secondary btn-small" id="sbGalleryBtn">🖼 Gallery</button>
+                </div>
+                <!-- Hidden file inputs -->
+                <input type="file" id="sbCameraInput"  accept="image/*" capture="environment" style="display:none;">
+                <input type="file" id="sbGalleryInput" accept="image/*" multiple style="display:none;">
+
+                <!-- Text input + mic -->
+                <div class="sb-input-row">
+                    <textarea id="sbTextInput" class="sb-textarea" rows="3"
+                              placeholder="Type a command… or press the mic and speak"></textarea>
+                    <button class="btn btn-secondary btn-small sb-mic-btn" id="sbMicBtn" title="Voice input">🎤</button>
+                </div>
+
+                <!-- Action buttons -->
+                <div class="modal-buttons">
+                    <button class="btn btn-secondary" id="sbCancelInputBtn">Cancel</button>
+                    <button class="btn btn-primary"   id="sbSendBtn">Send →</button>
+                </div>
+            </div><!-- /#sbInputContent -->
+
+            <!-- Thinking spinner (hidden by default) -->
+            <div id="sbInputSpinner" class="sb-thinking hidden">
+                <div class="sb-spinner"></div>
+                <p>Thinking…</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== SECONDBRAIN CONFIRMATION MODAL ========== -->
+    <div class="modal-overlay" id="sbConfirmModal">
+        <div class="modal sb-modal">
+            <h3 id="sbConfirmTitle">Confirm Action</h3>
+
+            <!-- Editable fields rendered by JS -->
+            <div id="sbConfirmFields" class="sb-confirm-fields"></div>
+
+            <!-- Warning / info banners -->
+            <div id="sbConfirmWarnings"></div>
+
+            <!-- Photo count note -->
+            <div id="sbConfirmPhotoNote" class="sb-info hidden"></div>
+
+            <!-- Action buttons -->
+            <div class="sb-confirm-actions">
+                <button class="btn btn-secondary" id="sbConfirmCancelBtn">Cancel</button>
+                <button class="btn btn-secondary" id="sbConfirmDoneBtn">✓ Confirm &amp; Done</button>
+                <button class="btn btn-primary"   id="sbConfirmGoBtn">✓ Confirm &amp; Go →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== SECONDBRAIN TOAST ========== -->
+    <div id="sbToast" class="sb-toast hidden"></div>
+
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=231"></script>
-    <script src="js/auth.js?v=231"></script>
-    <script src="js/zones.js?v=231"></script>
-    <script src="js/plants.js?v=231"></script>
-    <script src="js/problems.js?v=231"></script>
-    <script src="js/facts.js?v=231"></script>
-    <script src="js/projects.js?v=231"></script>
-    <script src="js/chemicals.js?v=231"></script>
-    <script src="js/activities.js?v=231"></script>
+    <script src="js/firebase-config.js?v=232"></script>
+    <script src="js/auth.js?v=232"></script>
+    <script src="js/zones.js?v=232"></script>
+    <script src="js/plants.js?v=232"></script>
+    <script src="js/problems.js?v=232"></script>
+    <script src="js/facts.js?v=232"></script>
+    <script src="js/projects.js?v=232"></script>
+    <script src="js/chemicals.js?v=232"></script>
+    <script src="js/activities.js?v=232"></script>
     <!-- Cropper.js — client-side image cropping library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <!-- SortableJS — drag-and-drop list reordering -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    <script src="js/photos.js?v=231"></script>
-    <script src="js/weeds.js?v=231"></script>
-    <script src="js/calendar.js?v=231"></script>
-    <script src="js/gps.js?v=231"></script>
-    <script src="js/settings.js?v=231"></script>
-    <script src="js/house.js?v=231"></script>
-    <script src="js/floorplan.js?v=231"></script>
-    <script src="js/search.js?v=231"></script>
-    <script src="js/activityreport.js?v=231"></script>
-    <script src="js/checklists.js?v=231"></script>
-    <script src="js/bulkactivity.js?v=231"></script>
-    <script src="js/devnotes.js?v=231"></script>
-    <script src="js/vehicles.js?v=231"></script>
-    <script src="js/garage.js?v=231"></script>
-    <script src="js/structures.js?v=231"></script>
-    <script src="js/moveThings.js?v=231"></script>
-    <script src="js/journal.js?v=231"></script>
-    <script src="js/people.js?v=231"></script>
-    <script src="js/collections.js?v=231"></script>
+    <script src="js/photos.js?v=232"></script>
+    <script src="js/weeds.js?v=232"></script>
+    <script src="js/calendar.js?v=232"></script>
+    <script src="js/gps.js?v=232"></script>
+    <script src="js/settings.js?v=232"></script>
+    <script src="js/house.js?v=232"></script>
+    <script src="js/floorplan.js?v=232"></script>
+    <script src="js/search.js?v=232"></script>
+    <script src="js/activityreport.js?v=232"></script>
+    <script src="js/checklists.js?v=232"></script>
+    <script src="js/bulkactivity.js?v=232"></script>
+    <script src="js/devnotes.js?v=232"></script>
+    <script src="js/vehicles.js?v=232"></script>
+    <script src="js/garage.js?v=232"></script>
+    <script src="js/structures.js?v=232"></script>
+    <script src="js/moveThings.js?v=232"></script>
+    <script src="js/journal.js?v=232"></script>
+    <script src="js/people.js?v=232"></script>
+    <script src="js/collections.js?v=232"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=231"></script>
-    <script src="js/app.js?v=231"></script>
+    <script src="js/chat.js?v=232"></script>
+    <script src="js/secondbrain.js?v=232"></script>
+    <script src="js/app.js?v=232"></script>
 
 </body>
 </html>

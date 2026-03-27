@@ -309,7 +309,7 @@ function handleCollectionDelete() {
 function loadCollectionPage(id) {
     var nameEl    = document.getElementById('collectionDetailName');
     var statsEl   = document.getElementById('collectionDetailStats');
-    var crumbEl   = document.getElementById('collectionBreadcrumb');
+    var crumbEl   = document.getElementById('breadcrumbBar');
     var listEl    = document.getElementById('collectionItemsList');
     var filterEl  = document.getElementById('collectionFilterInput');
     var addBtn    = document.getElementById('addCollectionItemBtn');
@@ -332,6 +332,14 @@ function loadCollectionPage(id) {
             window.currentCollection = { id: id, ...data };
 
             nameEl.textContent = data.name || 'Collection';
+
+            // Update breadcrumb with collection name
+            if (crumbEl) {
+                crumbEl.innerHTML =
+                    '<a href="#collections">Collections</a>' +
+                    '<span class="separator">&rsaquo;</span>' +
+                    '<span>' + escapeHtml(data.name || 'Collection') + '</span>';
+            }
 
             // Set filter placeholder based on type
             if (filterEl) {
@@ -809,7 +817,7 @@ function handleCollectionItemModalSave() {
  */
 function loadCollectionItemPage(id) {
     var nameEl     = document.getElementById('collectionItemDetailName');
-    var crumbEl    = document.getElementById('collectionItemBreadcrumb');
+    var crumbEl    = document.getElementById('breadcrumbBar');
     var infoCard   = document.getElementById('collectionItemInfoCard');
     var locationEl = document.getElementById('collectionItemLocationDisplay');
 

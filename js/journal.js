@@ -471,6 +471,10 @@ function openAddJournalEntry() {
 
     window.location.hash = '#journal-entry';
 
+    // Set sticky header breadcrumb
+    var crumb = document.getElementById('breadcrumbBar');
+    if (crumb) crumb.innerHTML = '<a href="#life">Life</a><span class="separator">&rsaquo;</span><a href="#journal">Journal</a><span class="separator">&rsaquo;</span><span>Entry</span>';
+
     // Focus the textarea after navigation settles
     setTimeout(function() {
         var ta = document.getElementById('journalEntryText');
@@ -518,6 +522,10 @@ async function openEditJournalEntry(id) {
         _journalWireEntryPage();
 
         window.location.hash = '#journal-entry';
+
+        // Set sticky header breadcrumb
+        var crumb = document.getElementById('breadcrumbBar');
+        if (crumb) crumb.innerHTML = '<a href="#life">Life</a><span class="separator">&rsaquo;</span><a href="#journal">Journal</a><span class="separator">&rsaquo;</span><span>Entry</span>';
 
         // Focus the textarea after navigation settles
         setTimeout(function() {
@@ -862,6 +870,10 @@ async function openAddTracking() {
     _journalWireTrackingPage();
 
     window.location.hash = '#journal-tracking';
+
+    // Set sticky header breadcrumb
+    var crumb = document.getElementById('breadcrumbBar');
+    if (crumb) crumb.innerHTML = '<a href="#life">Life</a><span class="separator">&rsaquo;</span><a href="#journal">Journal</a><span class="separator">&rsaquo;</span><span>Tracking</span>';
 }
 
 /**
@@ -904,6 +916,10 @@ async function openEditTrackingItem(id) {
         _journalWireTrackingPage();
 
         window.location.hash = '#journal-tracking';
+
+        // Set sticky header breadcrumb
+        var crumb = document.getElementById('breadcrumbBar');
+        if (crumb) crumb.innerHTML = '<a href="#life">Life</a><span class="separator">&rsaquo;</span><a href="#journal">Journal</a><span class="separator">&rsaquo;</span><span>Tracking</span>';
 
     } catch (err) {
         console.error('Error loading tracking item:', err);
@@ -1150,6 +1166,10 @@ async function deleteTrackingItem(id) {
 async function loadJournalCategoriesPage() {
     var listEl = document.getElementById('journalCategoriesList');
     if (listEl) listEl.innerHTML = '<p class="empty-state">Loading...</p>';
+
+    // Set sticky header breadcrumb
+    var crumb = document.getElementById('breadcrumbBar');
+    if (crumb) crumb.innerHTML = '<a href="#life">Life</a><span class="separator">&rsaquo;</span><a href="#journal">Journal</a><span class="separator">&rsaquo;</span><span>Categories</span>';
 
     // Wire the Add Category button
     var addBtn = document.getElementById('journalCategoryAddBtn');

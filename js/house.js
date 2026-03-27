@@ -617,8 +617,7 @@ function renderRoomDetail(room, floor) {
  * @param {Array} crumbs  [{label, hash}] — hash null = current page (no link)
  */
 function buildHouseBreadcrumb(crumbs) {
-    var bar    = document.getElementById('breadcrumbBar');
-    var header = document.getElementById('headerTitle');
+    var bar = document.getElementById('breadcrumbBar');
 
     bar.innerHTML = '';
 
@@ -644,12 +643,6 @@ function buildHouseBreadcrumb(crumbs) {
         }
     });
 
-    // Sticky header — "AppName › [deepest label]"
-    var deepest = crumbs[crumbs.length - 1].label;
-    header.innerHTML =
-        '<a href="#main" class="home-link">' + escapeHtml(window.appName || 'My House') + '</a>' +
-        '<span class="header-zone-sep">›</span>' +
-        '<span class="header-zone-name">' + escapeHtml(deepest) + '</span>';
 }
 
 // ============================================================

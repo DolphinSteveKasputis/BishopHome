@@ -257,6 +257,15 @@ async function loadChemicalDetail(chemicalId) {
 
         document.getElementById('chemicalDetailName').textContent = chemical.name;
 
+        // Set breadcrumb in sticky header
+        var crumb = document.getElementById('breadcrumbBar');
+        if (crumb) {
+            crumb.innerHTML =
+                '<a href="#chemicals">Chemicals</a>' +
+                '<span class="separator">&rsaquo;</span>' +
+                '<span>' + escapeHtml(chemical.name) + '</span>';
+        }
+
         // Show notes section if notes are present
         const notesSection = document.getElementById('chemicalDetailNotesSection');
         if (chemical.notes) {

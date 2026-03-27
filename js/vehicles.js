@@ -288,6 +288,15 @@ function renderVehicleDetail(vehicle) {
     var title = titleParts.length > 0 ? titleParts.join(' ') : 'Vehicle';
     document.getElementById('vehicleDetailTitle').textContent = title;
 
+    // ---- Breadcrumb ----
+    var crumb = document.getElementById('breadcrumbBar');
+    if (crumb) {
+        crumb.innerHTML =
+            '<a href="#vehicles">Vehicles</a>' +
+            '<span class="separator">&rsaquo;</span>' +
+            '<span>' + escapeHtml(title) + '</span>';
+    }
+
     // ---- Archive banner ----
     var banner = document.getElementById('vehicleArchiveBanner');
     if (vehicle.archived) {

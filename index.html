@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=224">
+    <link rel="stylesheet" href="css/styles.css?v=225">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -49,11 +49,13 @@
 
     <!-- ========== TOP NAV BAR ========== -->
     <header class="app-header">
-        <div class="header-title" id="headerTitle">
-            <a href="#main" class="home-link">Bishop</a>
-        </div>
-        <!-- Yard nav (default context) -->
-        <nav class="header-nav" id="yardNav">
+        <!-- Top row: app name + nav links + hamburger -->
+        <div class="header-row">
+            <div class="header-title" id="headerTitle">
+                <a href="#main" class="home-link">Bishop</a>
+            </div>
+            <!-- Yard nav (default context) -->
+            <nav class="header-nav" id="yardNav">
             <a href="#zones" class="nav-link" data-page="home">Zones</a>
             <a href="#weeds" class="nav-link" data-page="weeds">Weeds</a>
             <a href="#calendar" class="nav-link" data-page="calendar">Calendar</a>
@@ -95,6 +97,9 @@
             <span></span>
             <span></span>
         </button>
+        </div><!-- /.header-row -->
+        <!-- Breadcrumb bar — shows full drill-down path; empty (hidden) on top-level pages -->
+        <div class="breadcrumb-bar" id="breadcrumbBar"></div>
     </header>
 
     <!-- Mobile nav dropdown (hidden by default, wraps both context navs) -->
@@ -140,9 +145,6 @@
 
     <!-- ========== MAIN CONTENT AREA ========== -->
     <main class="app-main">
-
-        <!-- Breadcrumb bar (shown when drilling into zones) -->
-        <div class="breadcrumb-bar" id="breadcrumbBar"></div>
 
         <!-- Page: Main Landing Page -->
         <section class="page hidden" id="page-main">
@@ -4170,7 +4172,6 @@
         <!-- Page: Journal Main View (#journal) -->
         <section class="page hidden" id="page-journal">
             <div class="page-header">
-                <div class="breadcrumb-bar"><a href="#life">Life</a> › Journal</div>
                 <h2>Journal</h2>
             </div>
 
@@ -4210,7 +4211,6 @@
         <!-- Page: Journal Entry Add/Edit (#journal-entry) — full-page form -->
         <section class="page hidden" id="page-journal-entry">
             <div class="page-header">
-                <div class="breadcrumb-bar"><a href="#life">Life</a> › <a href="#journal">Journal</a> › Entry</div>
                 <h2 id="journalEntryPageTitle">New Journal Entry</h2>
             </div>
             <div class="journal-entry-form">
@@ -4244,7 +4244,6 @@
         <!-- Page: Tracking Item Add/Edit (#journal-tracking) — full-page form -->
         <section class="page hidden" id="page-journal-tracking">
             <div class="page-header">
-                <div class="breadcrumb-bar"><a href="#life">Life</a> › <a href="#journal">Journal</a> › Tracking</div>
                 <h2 id="journalTrackingPageTitle">Add Tracking</h2>
             </div>
             <div class="journal-tracking-form">
@@ -4268,7 +4267,6 @@
         <!-- Page: Journal Categories Management (#journal-categories) -->
         <section class="page hidden" id="page-journal-categories">
             <div class="page-header">
-                <div class="breadcrumb-bar"><a href="#life">Life</a> › <a href="#journal">Journal</a> › Categories</div>
                 <h2>Manage Categories</h2>
             </div>
             <div class="section-header">
@@ -4292,7 +4290,6 @@
         <!-- Page: People List (#people) -->
         <section class="page hidden" id="page-people">
             <div class="page-header">
-                <div class="breadcrumb-bar"><a href="#life">Life</a> › People</div>
                 <h2>People</h2>
                 <button class="btn btn-primary btn-small" id="addPersonBtn">+ Add Person</button>
             </div>
@@ -4311,7 +4308,6 @@
         <!-- Page: Person Detail (#person/{id}) -->
         <section class="page hidden" id="page-person">
             <div class="page-header">
-                <div class="breadcrumb-bar" id="personBreadcrumb"></div>
                 <h2 id="personDetailName"></h2>
                 <button class="btn btn-secondary btn-small" id="personEditBtn">Edit</button>
             </div>
@@ -4393,7 +4389,6 @@
         <!-- Page: Collection Detail (#collection/:id) -->
         <section class="page hidden" id="page-collection">
             <div class="page-header">
-                <div id="collectionBreadcrumb" class="breadcrumb-bar"></div>
                 <h2 id="collectionDetailName"></h2>
                 <div id="collectionDetailStats" class="collection-card-stats" style="margin-top:4px;"></div>
             </div>
@@ -4409,7 +4404,6 @@
         <!-- Page: Collection Item Detail (#collectionitem/:id) -->
         <section class="page hidden" id="page-collectionitem">
             <div class="page-header">
-                <div id="collectionItemBreadcrumb" class="breadcrumb-bar"></div>
                 <h2 id="collectionItemDetailName"></h2>
             </div>
 
@@ -4605,41 +4599,41 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=224"></script>
-    <script src="js/auth.js?v=224"></script>
-    <script src="js/zones.js?v=224"></script>
-    <script src="js/plants.js?v=224"></script>
-    <script src="js/problems.js?v=224"></script>
-    <script src="js/facts.js?v=224"></script>
-    <script src="js/projects.js?v=224"></script>
-    <script src="js/chemicals.js?v=224"></script>
-    <script src="js/activities.js?v=224"></script>
+    <script src="js/firebase-config.js?v=225"></script>
+    <script src="js/auth.js?v=225"></script>
+    <script src="js/zones.js?v=225"></script>
+    <script src="js/plants.js?v=225"></script>
+    <script src="js/problems.js?v=225"></script>
+    <script src="js/facts.js?v=225"></script>
+    <script src="js/projects.js?v=225"></script>
+    <script src="js/chemicals.js?v=225"></script>
+    <script src="js/activities.js?v=225"></script>
     <!-- Cropper.js — client-side image cropping library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <!-- SortableJS — drag-and-drop list reordering -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    <script src="js/photos.js?v=224"></script>
-    <script src="js/weeds.js?v=224"></script>
-    <script src="js/calendar.js?v=224"></script>
-    <script src="js/gps.js?v=224"></script>
-    <script src="js/settings.js?v=224"></script>
-    <script src="js/house.js?v=224"></script>
-    <script src="js/floorplan.js?v=224"></script>
-    <script src="js/search.js?v=224"></script>
-    <script src="js/activityreport.js?v=224"></script>
-    <script src="js/checklists.js?v=224"></script>
-    <script src="js/bulkactivity.js?v=224"></script>
-    <script src="js/devnotes.js?v=224"></script>
-    <script src="js/vehicles.js?v=224"></script>
-    <script src="js/garage.js?v=224"></script>
-    <script src="js/structures.js?v=224"></script>
-    <script src="js/moveThings.js?v=224"></script>
-    <script src="js/journal.js?v=224"></script>
-    <script src="js/people.js?v=224"></script>
-    <script src="js/collections.js?v=224"></script>
+    <script src="js/photos.js?v=225"></script>
+    <script src="js/weeds.js?v=225"></script>
+    <script src="js/calendar.js?v=225"></script>
+    <script src="js/gps.js?v=225"></script>
+    <script src="js/settings.js?v=225"></script>
+    <script src="js/house.js?v=225"></script>
+    <script src="js/floorplan.js?v=225"></script>
+    <script src="js/search.js?v=225"></script>
+    <script src="js/activityreport.js?v=225"></script>
+    <script src="js/checklists.js?v=225"></script>
+    <script src="js/bulkactivity.js?v=225"></script>
+    <script src="js/devnotes.js?v=225"></script>
+    <script src="js/vehicles.js?v=225"></script>
+    <script src="js/garage.js?v=225"></script>
+    <script src="js/structures.js?v=225"></script>
+    <script src="js/moveThings.js?v=225"></script>
+    <script src="js/journal.js?v=225"></script>
+    <script src="js/people.js?v=225"></script>
+    <script src="js/collections.js?v=225"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=224"></script>
-    <script src="js/app.js?v=224"></script>
+    <script src="js/chat.js?v=225"></script>
+    <script src="js/app.js?v=225"></script>
 
 </body>
 </html>

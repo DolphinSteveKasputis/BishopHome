@@ -187,18 +187,18 @@ async function loadPersonDetail(personId) {
  * @param {Object|null} parentPerson - Set when this is a sub-person
  */
 function renderPersonDetail(person, parentPerson) {
-    // Breadcrumb
-    var crumb = document.getElementById('personBreadcrumb');
+    // Breadcrumb (written to the sticky header bar)
+    var crumb = document.getElementById('breadcrumbBar');
     if (parentPerson) {
         crumb.innerHTML =
-            '<a href="#life">Life</a> &rsaquo; ' +
-            '<a href="#people">People</a> &rsaquo; ' +
-            '<a href="#person/' + parentPerson.id + '">' + escapeHtml(parentPerson.name || 'Person') + '</a> &rsaquo; ' +
+            '<a href="#life">Life</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#people">People</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#person/' + parentPerson.id + '">' + escapeHtml(parentPerson.name || 'Person') + '</a><span class="separator">&rsaquo;</span>' +
             '<span>' + escapeHtml(person.name || '') + '</span>';
     } else {
         crumb.innerHTML =
-            '<a href="#life">Life</a> &rsaquo; ' +
-            '<a href="#people">People</a> &rsaquo; ' +
+            '<a href="#life">Life</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#people">People</a><span class="separator">&rsaquo;</span>' +
             '<span>' + escapeHtml(person.name || '') + '</span>';
     }
 

@@ -900,8 +900,7 @@ function renderStructureInventoryDetails(data, sectionId) {
  * @param {Array} crumbs  — [{ label, hash }] — hash null = current page (no link)
  */
 function buildStructureBreadcrumb(crumbs) {
-    var bar    = document.getElementById('breadcrumbBar');
-    var header = document.getElementById('headerTitle');
+    var bar = document.getElementById('breadcrumbBar');
 
     bar.innerHTML = '';
 
@@ -927,12 +926,6 @@ function buildStructureBreadcrumb(crumbs) {
         }
     });
 
-    // Sticky header: "AppName › [deepest label]"
-    var deepest = crumbs[crumbs.length - 1].label;
-    header.innerHTML =
-        '<a href="#main" class="home-link">' + escapeHtml(window.appName || 'Bishop') + '</a>' +
-        '<span class="header-zone-sep">\u203a</span>' +
-        '<span class="header-zone-name">' + escapeHtml(deepest) + '</span>';
 }
 
 // ============================================================

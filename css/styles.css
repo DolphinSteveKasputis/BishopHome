@@ -46,16 +46,22 @@ button {
 /* ---------- App Header ---------- */
 .app-header {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
     background-color: #2e7d32;
     color: white;
-    padding: 0 16px;
-    height: 56px;
     position: sticky;
     top: 0;
     z-index: 100;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Top row of the header: app name + nav links + hamburger */
+.header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    padding: 0 16px;
 }
 
 .header-title .home-link {
@@ -170,25 +176,45 @@ button {
     padding: 16px;
 }
 
-/* ---------- Breadcrumb Bar ---------- */
+/* ---------- Breadcrumb Bar (inside sticky header) ---------- */
+/* The breadcrumb bar lives inside .app-header and sticks with it.
+   It's hidden when empty so the header stays at 56px on top-level pages. */
 .breadcrumb-bar {
-    font-size: 0.85rem;
-    color: #666;
-    padding: 8px 0;
-    margin-bottom: 8px;
+    background: rgba(0, 0, 0, 0.18);
+    padding: 3px 16px 5px;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.85);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .breadcrumb-bar:empty {
     display: none;
 }
 
-.breadcrumb-bar a {
-    color: #2e7d32;
+.breadcrumb-bar a,
+.breadcrumb-bar .breadcrumb-link {
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
 }
 
-.breadcrumb-bar .separator {
-    margin: 0 6px;
-    color: #999;
+.breadcrumb-bar a:hover,
+.breadcrumb-bar .breadcrumb-link:hover {
+    color: white;
+    text-decoration: underline;
+}
+
+.breadcrumb-bar .separator,
+.breadcrumb-bar .breadcrumb-sep {
+    margin: 0 5px;
+    color: rgba(255, 255, 255, 0.45);
+}
+
+/* Current page segment (last crumb â€” no link) */
+.breadcrumb-bar .breadcrumb-current,
+.breadcrumb-bar > span:not(.separator):not(.breadcrumb-sep) {
+    color: white;
 }
 
 /* ---------- Page Header (title + action buttons) ---------- */
@@ -205,15 +231,6 @@ button {
     margin-bottom: 0;
 }
 
-/* Journal pages: stack breadcrumb above title, both left-aligned */
-#page-journal .page-header,
-#page-journal-entry .page-header,
-#page-journal-tracking .page-header,
-#page-journal-categories .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-    padding-left: 16px;
-}
 
 .page-header-actions {
     display: flex;
@@ -4648,7 +4665,7 @@ a.ar-target-link:hover {
    PEOPLE FEATURE
    ============================================================ */
 
-/* Life landing — People tile (teal/green gradient) */
+/* Life landing ï¿½ People tile (teal/green gradient) */
 .landing-tile--people {
     background: linear-gradient(135deg, #0d9488, #34d399);
     color: #fff;

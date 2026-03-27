@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=218">
+    <link rel="stylesheet" href="css/styles.css?v=219">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -4161,6 +4161,10 @@
                     <span class="landing-tile-label">People</span>
                 </a>
             </div>
+            <!-- Coming Up — annual dates within the next 30 days -->
+            <div id="lifeCalendarSection" style="display:none; margin-top:24px;">
+                <div id="lifeCalendarContainer"></div>
+            </div>
         </section>
 
         <!-- Page: Journal Main View (#journal) -->
@@ -4223,7 +4227,9 @@
                         </div>
                     </div>
                     <textarea id="journalEntryText" rows="16" spellcheck="true"
-                              placeholder="Write your journal entry here..."></textarea>
+                              placeholder="Write your journal entry here... Type @ to mention a person"></textarea>
+                    <!-- @mention autocomplete dropdown -->
+                    <div id="journalMentionDropdown" class="mention-dropdown" style="display:none;"></div>
                 </div>
                 <div class="modal-buttons">
                     <button class="btn btn-danger hidden" id="journalEntryDeleteBtn">Delete</button>
@@ -4600,41 +4606,41 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=218"></script>
-    <script src="js/auth.js?v=218"></script>
-    <script src="js/zones.js?v=218"></script>
-    <script src="js/plants.js?v=218"></script>
-    <script src="js/problems.js?v=218"></script>
-    <script src="js/facts.js?v=218"></script>
-    <script src="js/projects.js?v=218"></script>
-    <script src="js/chemicals.js?v=218"></script>
-    <script src="js/activities.js?v=218"></script>
+    <script src="js/firebase-config.js?v=219"></script>
+    <script src="js/auth.js?v=219"></script>
+    <script src="js/zones.js?v=219"></script>
+    <script src="js/plants.js?v=219"></script>
+    <script src="js/problems.js?v=219"></script>
+    <script src="js/facts.js?v=219"></script>
+    <script src="js/projects.js?v=219"></script>
+    <script src="js/chemicals.js?v=219"></script>
+    <script src="js/activities.js?v=219"></script>
     <!-- Cropper.js — client-side image cropping library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <!-- SortableJS — drag-and-drop list reordering -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    <script src="js/photos.js?v=218"></script>
-    <script src="js/weeds.js?v=218"></script>
-    <script src="js/calendar.js?v=218"></script>
-    <script src="js/gps.js?v=218"></script>
-    <script src="js/settings.js?v=218"></script>
-    <script src="js/house.js?v=218"></script>
-    <script src="js/floorplan.js?v=218"></script>
-    <script src="js/search.js?v=218"></script>
-    <script src="js/activityreport.js?v=218"></script>
-    <script src="js/checklists.js?v=218"></script>
-    <script src="js/bulkactivity.js?v=218"></script>
-    <script src="js/devnotes.js?v=218"></script>
-    <script src="js/vehicles.js?v=218"></script>
-    <script src="js/garage.js?v=218"></script>
-    <script src="js/structures.js?v=218"></script>
-    <script src="js/moveThings.js?v=218"></script>
-    <script src="js/journal.js?v=218"></script>
-    <script src="js/people.js?v=218"></script>
-    <script src="js/collections.js?v=218"></script>
+    <script src="js/photos.js?v=219"></script>
+    <script src="js/weeds.js?v=219"></script>
+    <script src="js/calendar.js?v=219"></script>
+    <script src="js/gps.js?v=219"></script>
+    <script src="js/settings.js?v=219"></script>
+    <script src="js/house.js?v=219"></script>
+    <script src="js/floorplan.js?v=219"></script>
+    <script src="js/search.js?v=219"></script>
+    <script src="js/activityreport.js?v=219"></script>
+    <script src="js/checklists.js?v=219"></script>
+    <script src="js/bulkactivity.js?v=219"></script>
+    <script src="js/devnotes.js?v=219"></script>
+    <script src="js/vehicles.js?v=219"></script>
+    <script src="js/garage.js?v=219"></script>
+    <script src="js/structures.js?v=219"></script>
+    <script src="js/moveThings.js?v=219"></script>
+    <script src="js/journal.js?v=219"></script>
+    <script src="js/people.js?v=219"></script>
+    <script src="js/collections.js?v=219"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=218"></script>
-    <script src="js/app.js?v=218"></script>
+    <script src="js/chat.js?v=219"></script>
+    <script src="js/app.js?v=219"></script>
 
 </body>
 </html>

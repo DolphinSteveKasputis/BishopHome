@@ -13,6 +13,18 @@
 /** The journal entry currently being edited (or null when adding). */
 window.currentJournalEntry = null;
 
+// ---------- @Mention State ----------
+
+/** Set of person IDs @-mentioned in the entry currently being edited. */
+var _journalMentionedPersonIds = new Set();
+
+/**
+ * Cached flat list of all people (main + sub) for autocomplete.
+ * Invalidated when a new entry session begins.
+ * Format: [{id, name, nickname, parentPersonId}, ...]
+ */
+var _journalPeopleCache = null;
+
 /** The tracking item currently being edited (or null when adding). */
 window.currentTrackingItem = null;
 
@@ -432,6 +444,8 @@ function journalGoToDate() {
 function openAddJournalEntry() {
     window.journalEditMode = false;
     window.currentJournalEntry = null;
+    _journalMentionedPersonIds = new Set();   // fresh mention set for new entry
+    _journalPeopleCache = null;               // refresh people list
 
     var titleEl  = document.getElementById('journalEntryPageTitle');
     var dateEl   = document.getElementById('journalEntryDate');
@@ -475,6 +489,9 @@ async function openEditJournalEntry(id) {
         var data = doc.data();
         window.currentJournalEntry = { id: id, ...data };
         window.journalEditMode = true;
+        // Restore mention set from stored IDs
+        _journalMentionedPersonIds = new Set(data.mentionedPersonIds || []);
+        _journalPeopleCache = null;
 
         var titleEl   = document.getElementById('journalEntryPageTitle');
         var dateEl    = document.getElementById('journalEntryDate');
@@ -526,6 +543,9 @@ function _journalWireEntryPage() {
 
     // Initialize voice-to-text for the entry textarea
     initVoiceToText('journalEntryText', 'journalVoiceBtn');
+
+    // Initialize @mention autocomplete
+    _journalInitMentions();
 }
 
 /**
@@ -550,21 +570,31 @@ async function saveJournalEntry() {
 
     if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
 
+    var mentionedIds = [..._journalMentionedPersonIds];
+
     try {
         if (window.journalEditMode && window.currentJournalEntry) {
             // Update existing entry
-            await userCol('journalEntries').doc(window.currentJournalEntry.id).update({
-                date:      date,
-                entryText: text,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            var entryId = window.currentJournalEntry.id;
+            await userCol('journalEntries').doc(entryId).update({
+                date:               date,
+                entryText:          text,
+                mentionedPersonIds: mentionedIds,
+                updatedAt:          firebase.firestore.FieldValue.serverTimestamp()
             });
+            // Re-sync interactions (deletes old records, creates fresh ones)
+            await _syncJournalMentionInteractions(entryId, date, text, mentionedIds);
         } else {
-            // Add new entry
-            await userCol('journalEntries').add({
-                date:      date,
-                entryText: text,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            // Add new entry — need the generated ID to link interactions
+            var ref = await userCol('journalEntries').add({
+                date:               date,
+                entryText:          text,
+                mentionedPersonIds: mentionedIds,
+                createdAt:          firebase.firestore.FieldValue.serverTimestamp()
             });
+            if (mentionedIds.length > 0) {
+                await _syncJournalMentionInteractions(ref.id, date, text, mentionedIds);
+            }
         }
 
         window.location.hash = '#journal';
@@ -1315,4 +1345,121 @@ async function deleteJournalCategory(id) {
         console.error('Error deleting category:', err);
         alert('Error deleting category. See console for details.');
     }
+}
+
+// ============================================================
+// @MENTION AUTOCOMPLETE -- Journal entry textarea
+// ============================================================
+
+async function _journalLoadPeopleCache() {
+    if (_journalPeopleCache) return _journalPeopleCache;
+    try {
+        var snap = await userCol('people').get();
+        _journalPeopleCache = [];
+        snap.forEach(function(doc) {
+            var d = doc.data();
+            _journalPeopleCache.push({ id: doc.id, name: d.name || '', nickname: d.nickname || '', parentPersonId: d.parentPersonId || null });
+        });
+        _journalPeopleCache.sort(function(a,b){ return a.name.localeCompare(b.name); });
+    } catch(err) { console.error('_journalLoadPeopleCache:', err); _journalPeopleCache = []; }
+    return _journalPeopleCache;
+}
+
+function _journalGetMentionPrefix() {
+    var ta = document.getElementById('journalEntryText');
+    if (!ta) return null;
+    var before = ta.value.substring(0, ta.selectionStart);
+    var match  = before.match(/@(\w*)$/);
+    return match ? match[1] : null;
+}
+
+function _journalShowDropdown(matches) {
+    var drop = document.getElementById('journalMentionDropdown');
+    if (!drop) return;
+    drop.innerHTML = '';
+    if (!matches.length) { drop.style.display = 'none'; return; }
+    matches.forEach(function(person) {
+        var item = document.createElement('div');
+        item.className = 'mention-item';
+        var label = escapeHtml(person.name);
+        if (person.nickname) label += ' <span class=mention-item-nick>(' + escapeHtml(person.nickname) + ')</span>';
+        item.innerHTML = label;
+        item.addEventListener('mousedown', function(e){ e.preventDefault(); _journalSelectMention(person); });
+        item.addEventListener('touchend',  function(e){ e.preventDefault(); _journalSelectMention(person); });
+        drop.appendChild(item);
+    });
+    drop.style.display = '';
+}
+
+function _journalHideDropdown() {
+    var drop = document.getElementById('journalMentionDropdown');
+    if (drop) drop.style.display = 'none';
+}
+
+function _journalSelectMention(person) {
+    var prefix = _journalGetMentionPrefix();
+    if (prefix === null) { _journalHideDropdown(); return; }
+    var ta = document.getElementById('journalEntryText');
+    var pos = ta.selectionStart;
+    var before = ta.value.substring(0, pos - prefix.length - 1);
+    var after  = ta.value.substring(pos);
+    var name   = person.nickname || person.name;
+    ta.value   = before + '@' + name + ' ' + after;
+    var newPos = before.length + 1 + name.length + 1;
+    ta.selectionStart = ta.selectionEnd = newPos;
+    _journalMentionedPersonIds.add(person.id);
+    _journalHideDropdown();
+    ta.focus();
+}
+
+async function _journalHandleTextareaInput() {
+    var prefix = _journalGetMentionPrefix();
+    if (prefix === null) { _journalHideDropdown(); return; }
+    var people = await _journalLoadPeopleCache();
+    var lower  = prefix.toLowerCase();
+    var matches = people.filter(function(p){
+        return p.name.toLowerCase().startsWith(lower) ||
+               (p.nickname && p.nickname.toLowerCase().startsWith(lower));
+    }).slice(0, 7);
+    _journalShowDropdown(matches);
+}
+
+function _journalInitMentions() {
+    var ta = document.getElementById('journalEntryText');
+    if (!ta) return;
+    ta.removeEventListener('input',   _journalHandleTextareaInput);
+    ta.addEventListener('input',      _journalHandleTextareaInput);
+    ta.addEventListener('blur',       function(){ setTimeout(_journalHideDropdown, 180); });
+    ta.addEventListener('keydown',    function(e){ if (e.key === 'Escape') _journalHideDropdown(); });
+    _journalLoadPeopleCache();
+}
+
+// ============================================================
+// JOURNAL TO PEOPLE INTERACTION SYNC
+// ============================================================
+
+async function _syncJournalMentionInteractions(entryId, date, text, personIds) {
+    if (!entryId) return;
+    if (!personIds || !personIds.length) {
+        try {
+            var old = await userCol('peopleInteractions').where('journalEntryId','==',entryId).get();
+            if (!old.empty) { var b = db.batch(); old.forEach(function(d){ b.delete(d.ref); }); await b.commit(); }
+        } catch(err) { console.error('mention cleanup:', err); }
+        return;
+    }
+    var people = await _journalLoadPeopleCache();
+    var parentMap = {};
+    people.forEach(function(p){ if (p.parentPersonId) parentMap[p.id] = p.parentPersonId; });
+    var toWrite = new Set(personIds);
+    personIds.forEach(function(id){ if (parentMap[id]) toWrite.add(parentMap[id]); });
+    try {
+        var old = await userCol('peopleInteractions').where('journalEntryId','==',entryId).get();
+        var batch = db.batch();
+        old.forEach(function(d){ batch.delete(d.ref); });
+        toWrite.forEach(function(personId){
+            var ref = userCol('peopleInteractions').doc();
+            batch.set(ref, { personId: personId, date: date, text: text, sourceType: 'journal', journalEntryId: entryId, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+        });
+        await batch.commit();
+    } catch(err) { console.error('_syncJournalMentionInteractions:', err); }
 }

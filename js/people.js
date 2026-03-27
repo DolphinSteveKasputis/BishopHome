@@ -962,3 +962,79 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.target === this) { _pplStopVoice(); closeModal('interactionModal'); }
     });
 });
+
+// ============================================================
+// LIFE LANDING PAGE -- Coming Up section (Phase 6)
+// ============================================================
+
+/**
+ * Load the Life landing page.
+ * Renders a 'Coming Up' section showing annual important dates
+ * within the next 30 days, sorted by proximity.
+ */
+async function loadLifePage() {
+    var section   = document.getElementById('lifeCalendarSection');
+    var container = document.getElementById('lifeCalendarContainer');
+    if (!section || !container) return;
+
+    container.innerHTML = '';
+
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+    var endDate = new Date(today);
+    endDate.setDate(endDate.getDate() + 30);
+
+    try {
+        var snap = await userCol('peopleImportantDates')
+            .where('recurrence', '==', 'annual')
+            .get();
+
+        if (snap.empty) { section.style.display = 'none'; return; }
+
+        var peopleSnap = await userCol('people').get();
+        var personMap  = {};
+        peopleSnap.forEach(function(doc) { personMap[doc.id] = doc.data().name || 'Unknown'; });
+
+        var items = [];
+        snap.forEach(function(doc) {
+            var d = doc.data();
+            if (!d.month || !d.day) return;
+            var next = _nextAnnualOccurrence(d.month, d.day, today, endDate);
+            if (!next) return;
+            items.push({ label: d.label || '', personName: personMap[d.personId] || '', personId: d.personId || '', year: d.year || null, nextDate: next });
+        });
+
+        if (!items.length) { section.style.display = 'none'; return; }
+
+        items.sort(function(a, b) { return a.nextDate - b.nextDate; });
+
+        var MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        var html = '<h3 class=life-calendar-heading>Coming Up</h3>';
+        items.forEach(function(item) {
+            var msAway   = item.nextDate - today;
+            var daysAway = Math.round(msAway / 86400000);
+            var dayLabel = daysAway === 0 ? 'Today!' : daysAway === 1 ? 'Tomorrow' : 'In ' + daysAway + ' days';
+            var ageStr = '';
+            if (item.year) {
+                var age = item.nextDate.getFullYear() - item.year;
+                if (age > 0) ageStr = '<span class=life-cal-age>turns ' + age + '</span>';
+            }
+            html +=
+                '<div class=life-cal-item>' +
+                    '<div class=life-cal-info>' +
+                        '<span class=life-cal-label>' + escapeHtml(item.label) + '</span>' +
+                        '<a class=life-cal-person href=#person/' + escapeHtml(item.personId) + '>' + escapeHtml(item.personName) + '</a>' +
+                        ageStr +
+                    '</div>' +
+                    '<span class=life-cal-days>' + escapeHtml(dayLabel) + '</span>' +
+                '</div>';
+        });
+
+        container.innerHTML = html;
+        section.style.display = '';
+
+    } catch (err) {
+        console.error('loadLifePage error:', err);
+        section.style.display = 'none';
+    }
+}

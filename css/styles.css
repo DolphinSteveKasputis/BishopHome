@@ -4919,3 +4919,86 @@ a.ar-target-link:hover {
     color: #888;
     font-style: italic;
 }
+
+/* ============================================================
+   @MENTION AUTOCOMPLETE DROPDOWN
+   ============================================================ */
+
+.mention-dropdown {
+    background: #fff;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    margin-top: 4px;
+    overflow: hidden;
+    z-index: 999;
+}
+.mention-item {
+    padding: 10px 14px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.1s;
+}
+.mention-item:last-child { border-bottom: none; }
+.mention-item:hover,
+.mention-item:active { background: #f0f4ff; }
+.mention-item-nick {
+    color: #888;
+    font-size: 0.82rem;
+    font-style: italic;
+}
+
+/* ============================================================
+   LIFE LANDING PAGE -- Coming Up calendar section
+   ============================================================ */
+
+.life-calendar-heading {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #444;
+    margin: 0 0 10px 0;
+    padding-bottom: 6px;
+    border-bottom: 2px solid #e5e7eb;
+}
+.life-cal-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: #f0fdfa;
+    border: 1px solid #99f6e4;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    gap: 10px;
+}
+.life-cal-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+}
+.life-cal-label {
+    font-weight: 600;
+    color: #333;
+    font-size: 0.9rem;
+}
+.life-cal-person {
+    font-size: 0.82rem;
+    color: #0d9488;
+    text-decoration: none;
+}
+.life-cal-person:hover { text-decoration: underline; }
+.life-cal-age {
+    font-size: 0.78rem;
+    color: #888;
+    font-style: italic;
+    margin-left: 6px;
+}
+.life-cal-days {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #0d9488;
+    white-space: nowrap;
+}

@@ -1,5 +1,5 @@
 // ============================================================
-// SecondBrain Issue Tracker
+// QuickLog Issue Tracker
 // Loads and displays reported LLM issues from the sbIssues
 // Firestore collection. Allows copy-to-clipboard and delete.
 // ============================================================
@@ -77,7 +77,7 @@ function copySbIssue(id) {
     var metaText = meta ? meta.textContent.replace(/\s+/g, ' ').trim() : '';
 
     var text =
-        '--- SecondBrain Issue Report ---\n' +
+        '--- QuickLog Issue Report ---\n' +
         metaText + '\n\n' +
         'PROMPT:\n' + prompt + '\n\n' +
         'RAW LLM RESPONSE:\n' + response + '\n' +

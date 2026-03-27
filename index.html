@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=242">
+    <link rel="stylesheet" href="css/styles.css?v=243">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -148,8 +148,8 @@
 
         <!-- Page: Main Landing Page -->
         <section class="page hidden" id="page-main">
-            <!-- SecondBrain natural-language command button -->
-            <button class="sb-home-btn" id="sbHomeBtn">🧠 SecondBrain — Tell me what you did</button>
+            <!-- QuickLog natural-language command button -->
+            <button class="sb-home-btn" id="sbHomeBtn">⚡ QuickLog — Tell me what you did</button>
 
             <div class="landing-tiles">
                 <a href="#zones" class="landing-tile landing-tile--yard">
@@ -594,7 +594,7 @@
                     <span class="settings-saved-msg hidden" id="llmSavedMsg">&#10003; Saved</span>
                 </div>
                 <div class="settings-save-row" style="margin-top:8px;">
-                    <a href="#sb-issues" class="btn btn-secondary btn-sm">🐛 View AI Issues</a>
+                    <a href="#sb-issues" class="btn btn-secondary btn-sm">🐛 View QuickLog Issues</a>
                 </div>
             </div>
 
@@ -644,11 +644,11 @@
             </div>
         </section>
 
-        <!-- Page: SecondBrain AI Issues -->
+        <!-- Page: QuickLog AI Issues -->
         <section class="page hidden" id="page-sb-issues">
             <div class="page-header">
                 <button class="back-btn" onclick="history.back()">&#8592; Back</button>
-                <h2>🐛 AI Issues</h2>
+                <h2>🐛 QuickLog Issues</h2>
             </div>
             <p class="settings-section-desc" style="padding:0 16px 8px;">
                 Responses that didn't work as expected. Copy an issue to share with your developer.
@@ -4638,10 +4638,10 @@
         </div>
     </div>
 
-    <!-- ========== SECONDBRAIN INPUT MODAL ========== -->
+    <!-- ========== QUICKLOG INPUT MODAL ========== -->
     <div class="modal-overlay" id="sbInputModal">
         <div class="modal sb-modal">
-            <h3>🧠 SecondBrain</h3>
+            <h3>⚡ QuickLog</h3>
 
             <!-- Normal content (hidden while thinking) -->
             <div id="sbInputContent">
@@ -4718,10 +4718,10 @@
         </div>
     </div>
 
-    <!-- ========== SECONDBRAIN HELP MODAL ========== -->
+    <!-- ========== QUICKLOG HELP MODAL ========== -->
     <div class="modal-overlay" id="sbHelpModal">
         <div class="modal sb-modal sb-help-modal">
-            <h3>🧠 SecondBrain — What can I say?</h3>
+            <h3>⚡ QuickLog — What can I say?</h3>
             <div id="sbHelpContent"></div>
             <div class="modal-buttons">
                 <button class="btn btn-primary" id="sbHelpCloseBtn">Got it</button>
@@ -4734,43 +4734,43 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=242"></script>
-    <script src="js/auth.js?v=242"></script>
-    <script src="js/zones.js?v=242"></script>
-    <script src="js/plants.js?v=242"></script>
-    <script src="js/problems.js?v=242"></script>
-    <script src="js/facts.js?v=242"></script>
-    <script src="js/projects.js?v=242"></script>
-    <script src="js/chemicals.js?v=242"></script>
-    <script src="js/activities.js?v=242"></script>
+    <script src="js/firebase-config.js?v=243"></script>
+    <script src="js/auth.js?v=243"></script>
+    <script src="js/zones.js?v=243"></script>
+    <script src="js/plants.js?v=243"></script>
+    <script src="js/problems.js?v=243"></script>
+    <script src="js/facts.js?v=243"></script>
+    <script src="js/projects.js?v=243"></script>
+    <script src="js/chemicals.js?v=243"></script>
+    <script src="js/activities.js?v=243"></script>
     <!-- Cropper.js — client-side image cropping library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <!-- SortableJS — drag-and-drop list reordering -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    <script src="js/photos.js?v=242"></script>
-    <script src="js/weeds.js?v=242"></script>
-    <script src="js/calendar.js?v=242"></script>
-    <script src="js/gps.js?v=242"></script>
-    <script src="js/settings.js?v=242"></script>
-    <script src="js/house.js?v=242"></script>
-    <script src="js/floorplan.js?v=242"></script>
-    <script src="js/search.js?v=242"></script>
-    <script src="js/activityreport.js?v=242"></script>
-    <script src="js/checklists.js?v=242"></script>
-    <script src="js/bulkactivity.js?v=242"></script>
-    <script src="js/devnotes.js?v=242"></script>
-    <script src="js/vehicles.js?v=242"></script>
-    <script src="js/garage.js?v=242"></script>
-    <script src="js/structures.js?v=242"></script>
-    <script src="js/moveThings.js?v=242"></script>
-    <script src="js/journal.js?v=242"></script>
-    <script src="js/people.js?v=242"></script>
-    <script src="js/collections.js?v=242"></script>
+    <script src="js/photos.js?v=243"></script>
+    <script src="js/weeds.js?v=243"></script>
+    <script src="js/calendar.js?v=243"></script>
+    <script src="js/gps.js?v=243"></script>
+    <script src="js/settings.js?v=243"></script>
+    <script src="js/house.js?v=243"></script>
+    <script src="js/floorplan.js?v=243"></script>
+    <script src="js/search.js?v=243"></script>
+    <script src="js/activityreport.js?v=243"></script>
+    <script src="js/checklists.js?v=243"></script>
+    <script src="js/bulkactivity.js?v=243"></script>
+    <script src="js/devnotes.js?v=243"></script>
+    <script src="js/vehicles.js?v=243"></script>
+    <script src="js/garage.js?v=243"></script>
+    <script src="js/structures.js?v=243"></script>
+    <script src="js/moveThings.js?v=243"></script>
+    <script src="js/journal.js?v=243"></script>
+    <script src="js/people.js?v=243"></script>
+    <script src="js/collections.js?v=243"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=242"></script>
-    <script src="js/secondbrain.js?v=242"></script>
-    <script src="js/sbissues.js?v=242"></script>
-    <script src="js/app.js?v=242"></script>
+    <script src="js/chat.js?v=243"></script>
+    <script src="js/secondbrain.js?v=243"></script>
+    <script src="js/sbissues.js?v=243"></script>
+    <script src="js/app.js?v=243"></script>
 
 </body>
 </html>

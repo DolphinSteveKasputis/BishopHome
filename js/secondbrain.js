@@ -777,7 +777,7 @@ async function _sbHandleSend() {
     } catch (err) {
         console.error('SecondBrain error:', err);
         _sbSetThinking(false);
-        alert('SecondBrain error: ' + err.message);
+        alert('QuickLog error: ' + err.message);
     }
 }
 
@@ -1227,7 +1227,7 @@ function _sbRenderConfirmFields(action, payload) {
             if (p.llmNote) {
                 html += '<div class="sb-unknown-note">' + _sbEsc(p.llmNote) + '</div>';
             }
-            html += '<p class="sb-unknown-msg">SecondBrain didn\'t recognize this command. Try rephrasing or use the app directly.</p>';
+            html += '<p class="sb-unknown-msg">QuickLog didn\'t recognize this command. Try rephrasing or use the app directly.</p>';
             break;
 
         default:
@@ -1996,7 +1996,7 @@ async function _sbReportIssue() {
         setTimeout(function() {
             if (btn) { btn.disabled = false; btn.textContent = '⚑ Report Issue'; }
         }, 2500);
-        _sbToast('Issue reported — view in Settings → AI Issues');
+        _sbToast('Issue reported — view in Settings → QuickLog Issues');
     } catch (err) {
         console.error('SecondBrain: report issue failed', err);
         if (btn) { btn.disabled = false; btn.textContent = '⚑ Report Issue'; }

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=246">
+    <link rel="stylesheet" href="css/styles.css?v=247">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -4229,12 +4229,11 @@
                     <span class="landing-tile-icon">💊</span>
                     <span class="landing-tile-label">Medications</span>
                 </a>
-                <!-- Row 2 — H4 still coming soon; H3 Concerns active -->
-                <span class="landing-tile landing-tile--disabled">
+                <!-- Row 2 — H4 Blood Work active; H3 Concerns active -->
+                <a href="#health-bloodwork" class="landing-tile landing-tile--health-bloodwork">
                     <span class="landing-tile-icon">🩸</span>
                     <span class="landing-tile-label">Blood Work</span>
-                    <span class="landing-tile-soon">Coming soon</span>
-                </span>
+                </a>
                 <a href="#health-concerns" class="landing-tile landing-tile--health-concerns">
                     <span class="landing-tile-icon">⚠️</span>
                     <span class="landing-tile-label">Concerns</span>
@@ -4790,6 +4789,159 @@
             <div id="concernPhotoContainer"></div>
             <p class="empty-state" id="concernPhotoEmptyState">No photos yet.</p>
         </section>
+
+        <!-- ─── H4: BLOOD WORK PAGES ──────────────────────────────────── -->
+
+        <!-- Page: Blood Work List (#health-bloodwork) -->
+        <section class="page hidden" id="page-health-bloodwork">
+            <div class="page-header">
+                <button class="btn btn-secondary btn-small" onclick="location.hash='#health'">&#8592; My Health</button>
+                <h2>🩸 Blood Work</h2>
+                <div class="page-header-actions">
+                    <button class="btn btn-secondary btn-small" onclick="openTrendModal()">&#128200; Trends</button>
+                    <button class="btn btn-primary btn-small" onclick="openBloodWorkModal()">+ Add</button>
+                </div>
+            </div>
+            <div id="bloodWorkList"></div>
+        </section>
+
+        <!-- Page: Blood Work Detail (#health-bloodwork/id) -->
+        <section class="page hidden" id="page-health-bloodwork-detail">
+            <div class="page-header">
+                <button class="btn btn-secondary btn-small" onclick="location.hash='#health-bloodwork'">&#8592; Blood Work</button>
+                <h2 id="bwDetailTitle"></h2>
+                <div class="page-header-actions">
+                    <button class="btn btn-secondary btn-small" onclick="editCurrentBloodWork()">Edit</button>
+                    <button class="btn btn-danger btn-small" onclick="deleteCurrentBloodWork()">Delete</button>
+                </div>
+            </div>
+
+            <!-- Metadata grid -->
+            <div class="health-detail-grid">
+                <div class="health-detail-row">
+                    <span class="health-detail-label">Date</span>
+                    <span class="health-detail-value" id="bwDetailDate"></span>
+                </div>
+                <div class="health-detail-row">
+                    <span class="health-detail-label">Lab</span>
+                    <span class="health-detail-value" id="bwDetailLab"></span>
+                </div>
+                <div class="health-detail-row">
+                    <span class="health-detail-label">Ordered By</span>
+                    <span class="health-detail-value" id="bwDetailOrderedBy"></span>
+                </div>
+                <div class="health-detail-row" id="bwDetailVisitRow">
+                    <span class="health-detail-label">Ordered at Visit</span>
+                    <span class="health-detail-value" id="bwDetailVisit"></span>
+                </div>
+                <div class="health-detail-row">
+                    <span class="health-detail-label">Notes</span>
+                    <span class="health-detail-value" id="bwDetailNotes"></span>
+                </div>
+            </div>
+
+            <!-- Markers table -->
+            <div class="section-heading">Lab Results</div>
+            <div id="bwDetailMarkersContainer"></div>
+        </section>
+
+        <!-- ─── H4: BLOOD WORK MODALS ──────────────────────────────────── -->
+
+        <!-- Modal: Add / Edit Blood Work Record -->
+        <div class="modal-overlay" id="bloodWorkModal">
+            <div class="modal modal--wide">
+                <h3 id="bwModalTitle">Add Blood Work</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="bwDate">Date *</label>
+                        <input type="date" id="bwDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="bwLab">Lab / Facility</label>
+                        <input type="text" id="bwLab" placeholder="e.g. Quest Diagnostics">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="bwOrderedBy">Ordered By</label>
+                        <input type="text" id="bwOrderedBy" placeholder="Doctor who ordered it">
+                    </div>
+                    <div class="form-group">
+                        <label for="bwVisitId">Ordered at Visit (optional)</label>
+                        <select id="bwVisitId">
+                            <option value="">&mdash; Not linked to a visit &mdash;</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="bwNotes">Notes</label>
+                    <textarea id="bwNotes" rows="2" placeholder="Doctor's comments, context, etc."></textarea>
+                </div>
+
+                <!-- Markers section -->
+                <div class="bw-modal-markers-header">
+                    <span class="section-heading" style="margin:0;">Lab Markers</span>
+                    <div class="bw-modal-markers-actions">
+                        <button type="button" class="btn btn-secondary btn-small" onclick="openImportModal()">&#128202; Import from Report</button>
+                        <button type="button" class="btn btn-secondary btn-small" onclick="_bwAddMarkerRow()">+ Add Row</button>
+                    </div>
+                </div>
+                <div class="bw-table-wrap">
+                    <table class="bw-marker-table bw-modal-table">
+                        <thead>
+                            <tr>
+                                <th>Marker</th>
+                                <th>Value</th>
+                                <th>Unit</th>
+                                <th>Ref Range</th>
+                                <th>Flag</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="bwModalMarkersBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="modal-buttons">
+                    <button class="btn btn-secondary" onclick="closeModal('bloodWorkModal')">Cancel</button>
+                    <button class="btn btn-primary" onclick="saveBloodWork()">Save</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal: Import Lab Report via LLM -->
+        <div class="modal-overlay" id="bloodWorkImportModal">
+            <div class="modal modal--wide">
+                <h3>&#128202; Import from Lab Report</h3>
+                <p class="form-hint">Paste the text from your lab report below. The AI will extract all markers automatically. You can review and edit them before saving.</p>
+                <div class="form-group">
+                    <label for="bwImportText">Lab Report Text</label>
+                    <textarea id="bwImportText" rows="10" placeholder="Paste your lab report text here&#8230;"></textarea>
+                </div>
+                <div id="bwImportStatus" class="bw-import-status"></div>
+                <div class="modal-buttons">
+                    <button class="btn btn-secondary" onclick="closeModal('bloodWorkImportModal')">Cancel</button>
+                    <button class="btn btn-primary" id="bwImportBtn" onclick="parseLabReport()">Parse with AI</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal: Marker Trends -->
+        <div class="modal-overlay" id="bloodWorkTrendModal">
+            <div class="modal modal--wide">
+                <h3>&#128200; Marker Trends</h3>
+                <div class="form-group">
+                    <label for="bwTrendSelect">Select Marker</label>
+                    <select id="bwTrendSelect" onchange="renderTrendTable(this.value)">
+                        <option value="">&mdash; Select a marker &mdash;</option>
+                    </select>
+                </div>
+                <div id="bwTrendTable"></div>
+                <div class="modal-buttons">
+                    <button class="btn btn-secondary" onclick="closeModal('bloodWorkTrendModal')">Close</button>
+                </div>
+            </div>
+        </div>
 
         <!-- ─── H3 MODALS ──────────────────────────────────────────────── -->
 
@@ -5514,44 +5666,44 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=246"></script>
-    <script src="js/auth.js?v=246"></script>
-    <script src="js/zones.js?v=246"></script>
-    <script src="js/plants.js?v=246"></script>
-    <script src="js/problems.js?v=246"></script>
-    <script src="js/facts.js?v=246"></script>
-    <script src="js/projects.js?v=246"></script>
-    <script src="js/chemicals.js?v=246"></script>
-    <script src="js/activities.js?v=246"></script>
+    <script src="js/firebase-config.js?v=247"></script>
+    <script src="js/auth.js?v=247"></script>
+    <script src="js/zones.js?v=247"></script>
+    <script src="js/plants.js?v=247"></script>
+    <script src="js/problems.js?v=247"></script>
+    <script src="js/facts.js?v=247"></script>
+    <script src="js/projects.js?v=247"></script>
+    <script src="js/chemicals.js?v=247"></script>
+    <script src="js/activities.js?v=247"></script>
     <!-- Cropper.js — client-side image cropping library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <!-- SortableJS — drag-and-drop list reordering -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    <script src="js/photos.js?v=246"></script>
-    <script src="js/weeds.js?v=246"></script>
-    <script src="js/calendar.js?v=246"></script>
-    <script src="js/gps.js?v=246"></script>
-    <script src="js/settings.js?v=246"></script>
-    <script src="js/house.js?v=246"></script>
-    <script src="js/floorplan.js?v=246"></script>
-    <script src="js/search.js?v=246"></script>
-    <script src="js/activityreport.js?v=246"></script>
-    <script src="js/checklists.js?v=246"></script>
-    <script src="js/bulkactivity.js?v=246"></script>
-    <script src="js/devnotes.js?v=246"></script>
-    <script src="js/vehicles.js?v=246"></script>
-    <script src="js/garage.js?v=246"></script>
-    <script src="js/structures.js?v=246"></script>
-    <script src="js/moveThings.js?v=246"></script>
-    <script src="js/journal.js?v=246"></script>
-    <script src="js/people.js?v=246"></script>
-    <script src="js/collections.js?v=246"></script>
-    <script src="js/health.js?v=246"></script>
+    <script src="js/photos.js?v=247"></script>
+    <script src="js/weeds.js?v=247"></script>
+    <script src="js/calendar.js?v=247"></script>
+    <script src="js/gps.js?v=247"></script>
+    <script src="js/settings.js?v=247"></script>
+    <script src="js/house.js?v=247"></script>
+    <script src="js/floorplan.js?v=247"></script>
+    <script src="js/search.js?v=247"></script>
+    <script src="js/activityreport.js?v=247"></script>
+    <script src="js/checklists.js?v=247"></script>
+    <script src="js/bulkactivity.js?v=247"></script>
+    <script src="js/devnotes.js?v=247"></script>
+    <script src="js/vehicles.js?v=247"></script>
+    <script src="js/garage.js?v=247"></script>
+    <script src="js/structures.js?v=247"></script>
+    <script src="js/moveThings.js?v=247"></script>
+    <script src="js/journal.js?v=247"></script>
+    <script src="js/people.js?v=247"></script>
+    <script src="js/collections.js?v=247"></script>
+    <script src="js/health.js?v=247"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=246"></script>
-    <script src="js/secondbrain.js?v=246"></script>
-    <script src="js/sbissues.js?v=246"></script>
-    <script src="js/app.js?v=246"></script>
+    <script src="js/chat.js?v=247"></script>
+    <script src="js/secondbrain.js?v=247"></script>
+    <script src="js/sbissues.js?v=247"></script>
+    <script src="js/app.js?v=247"></script>
 
 </body>
 </html>

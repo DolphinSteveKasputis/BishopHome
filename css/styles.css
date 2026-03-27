@@ -5941,3 +5941,115 @@ textarea.sb-field { resize: vertical; min-height: 60px; }
 .health-linked-item--clickable:hover {
     background: #f3f4f6;
 }
+
+/* ══════════════════════════════════════════════════════════════
+   H4 — BLOOD WORK
+   ══════════════════════════════════════════════════════════════ */
+
+/* Hub tile */
+.landing-tile--health-bloodwork              { background: linear-gradient(135deg, #be123c, #9f1239); color: #fff; }
+.landing-tile--health-bloodwork:hover        { background: linear-gradient(135deg, #9f1239, #881337); }
+
+/* ── Marker tables (detail view + trend modal) ─────────────── */
+.bw-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 8px;
+}
+
+.bw-marker-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+.bw-marker-table th {
+    background: #f3f4f6;
+    text-align: left;
+    padding: 7px 10px;
+    font-weight: 600;
+    color: #374151;
+    border-bottom: 2px solid #e5e7eb;
+    white-space: nowrap;
+}
+.bw-marker-table td {
+    padding: 6px 10px;
+    border-bottom: 1px solid #f3f4f6;
+    vertical-align: middle;
+}
+.bw-marker-table tbody tr:last-child td {
+    border-bottom: none;
+}
+.bw-marker-flagged {
+    background: #fef2f2;
+    color: #991b1b;
+}
+.bw-marker-flagged td {
+    color: #991b1b;
+}
+.bw-flag-icon {
+    font-size: 1rem;
+}
+
+/* ── Modal: wide variant ────────────────────────────────────── */
+.modal--wide {
+    max-width: 700px;
+    width: 96vw;
+}
+
+/* ── Markers section header inside modal ────────────────────── */
+.bw-modal-markers-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 14px 0 6px;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.bw-modal-markers-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+/* ── Editable marker rows in the add/edit modal ─────────────── */
+.bw-modal-table {
+    min-width: 560px;
+}
+.bw-input {
+    width: 100%;
+    padding: 4px 6px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    box-sizing: border-box;
+    min-width: 60px;
+}
+.bw-input:focus {
+    outline: none;
+    border-color: #be123c;
+}
+.bw-flag-cell {
+    text-align: center;
+    white-space: nowrap;
+}
+.bw-flag-cell label {
+    font-size: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    cursor: pointer;
+}
+
+/* ── Import status message ──────────────────────────────────── */
+.bw-import-status {
+    font-size: 0.85rem;
+    color: #be123c;
+    min-height: 1.2em;
+    margin-bottom: 4px;
+}
+
+/* ── Trend modal table spacing ──────────────────────────────── */
+#bwTrendTable {
+    margin-top: 8px;
+}

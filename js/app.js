@@ -11,7 +11,7 @@
  * These pages clear the breadcrumb bar when shown.
  */
 const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'house', 'settings', 'main', 'search', 'activityreport', 'checklists', 'notes', 'chat', 'vehicles', 'garage', 'structures', 'life', 'journal', 'collections', 'changepassword', 'people',
-                         'health', 'health-visits', 'health-medications', 'health-conditions', 'health-concerns'];
+                         'health', 'health-visits', 'health-medications', 'health-conditions', 'health-concerns', 'health-bloodwork'];
 
 /**
  * All pages that can be shown (includes detail pages not in the nav).
@@ -27,7 +27,8 @@ const ALL_PAGES = [
     'collection', 'collectionitem',
     'person',
     'health-allergies', 'health-supplements', 'health-vaccinations', 'health-eye',
-    'health-visit', 'health-medications', 'health-conditions', 'health-concerns', 'health-concern'
+    'health-visit', 'health-medications', 'health-conditions', 'health-concerns', 'health-concern',
+    'health-bloodwork-detail'
 ];
 
 /**
@@ -41,7 +42,8 @@ const YARD_PAGES  = ['main', 'home', 'zones', 'zone', 'plant', 'weeds', 'weed', 
 const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'journal-categories', 'people', 'person',
                      'health', 'health-visits', 'health-visit',
                      'health-medications', 'health-conditions', 'health-concerns', 'health-concern',
-                     'health-allergies', 'health-supplements', 'health-vaccinations', 'health-eye'];
+                     'health-allergies', 'health-supplements', 'health-vaccinations', 'health-eye',
+                     'health-bloodwork', 'health-bloodwork-detail'];
 
 /** Tracks which nav context is currently active ('yard', 'house', or 'life'). */
 var currentNavContext = 'yard';
@@ -285,6 +287,13 @@ function handleRoute() {
     } else if (page === 'journal-categories') {
         showPage('journal-categories');
         loadJournalCategoriesPage();
+    // ---------- Blood Work routes ----------
+    } else if (page === 'health-bloodwork' && id) {
+        showPage('health-bloodwork-detail');
+        loadBloodWorkDetail(id);
+    } else if (page === 'health-bloodwork') {
+        showPage('health-bloodwork');
+        loadBloodWorkPage();
     } else if (page === 'sb-issues') {
         showPage('sb-issues');
         loadSbIssuesPage();

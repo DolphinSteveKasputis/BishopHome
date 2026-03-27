@@ -745,10 +745,12 @@ function loadVisitLinkedBloodWork(visitId) {
         .then(function(snap) {
             if (snap.empty) { el.innerHTML = '<p class="empty-state">None recorded.</p>'; return; }
             snap.docs.forEach(function(d) {
-                var bw = d.data();
+                var bw  = d.data();
                 var row = document.createElement('div');
-                row.className = 'health-linked-item';
-                row.textContent = (bw.date || '\u2014') + (bw.lab ? ' \u2014 ' + bw.lab : '');
+                row.className = 'health-linked-item health-linked-item--clickable';
+                row.onclick   = function() { location.hash = '#health-bloodwork/' + d.id; };
+                var markerCount = (bw.markers && bw.markers.length) ? ' (' + bw.markers.length + ' markers)' : '';
+                row.textContent = (bw.date || '\u2014') + (bw.lab ? ' \u2014 ' + bw.lab : '') + markerCount;
                 el.appendChild(row);
             });
         }).catch(function() { el.innerHTML = '<p class="empty-state">\u2014</p>'; });
@@ -1447,4 +1449,406 @@ function deleteConcernUpdate(updateId, concernId) {
     userCol('concernUpdates').doc(updateId).delete()
         .then(function() { loadConcernUpdates(concernId); })
         .catch(function(err) { alert('Error deleting: ' + err.message); });
+}
+
+// =================================================================
+//  BLOOD WORK (H4)
+// =================================================================
+
+/* ── Cached record list (used by both list page and trend picker) ─ */
+var _bwAllRecords = [];
+
+// ── List page ────────────────────────────────────────────────────
+
+function loadBloodWorkPage() {
+    var list = document.getElementById('bloodWorkList');
+    if (!list) return;
+    list.innerHTML = '<p class="empty-state">Loading\u2026</p>';
+
+    userCol('bloodWorkRecords').get()
+        .then(function(snap) {
+            _bwAllRecords = snap.docs.map(function(d) {
+                return Object.assign({ id: d.id }, d.data());
+            });
+            _bwAllRecords.sort(function(a, b) {
+                return (b.date || '').localeCompare(a.date || '');
+            });
+
+            if (_bwAllRecords.length === 0) {
+                list.innerHTML = '<p class="empty-state">No blood work records yet. Tap + Add to add one.</p>';
+                return;
+            }
+            list.innerHTML = '';
+            _bwAllRecords.forEach(function(bw) { list.appendChild(buildBloodWorkCard(bw)); });
+        })
+        .catch(function(err) {
+            list.innerHTML = '<p class="empty-state">Error loading records.</p>';
+            console.error('loadBloodWorkPage:', err);
+        });
+}
+
+function buildBloodWorkCard(bw) {
+    var div = document.createElement('div');
+    div.className = 'health-card health-card--clickable';
+    div.onclick = function() { location.hash = '#health-bloodwork/' + bw.id; };
+
+    var markerCount  = (bw.markers && bw.markers.length) ? bw.markers.length + ' markers' : 'No markers';
+    var flaggedCount = (bw.markers || []).filter(function(m) { return m.flagged; }).length;
+    var flaggedBadge = flaggedCount > 0
+        ? '<span class="health-badge health-badge--severity-severe">' + flaggedCount + ' flagged</span>'
+        : '';
+
+    div.innerHTML =
+        '<div class="health-card-main">' +
+            '<div class="health-card-title">' + escapeHtml(bw.date || '\u2014') + '</div>' +
+            '<div class="health-card-meta">' +
+                (bw.lab ? '<span class="health-badge">' + escapeHtml(bw.lab) + '</span>' : '') +
+                flaggedBadge +
+            '</div>' +
+            '<div class="health-card-sub">' + escapeHtml(markerCount) + (bw.orderedBy ? ' \u2014 ' + escapeHtml(bw.orderedBy) : '') + '</div>' +
+        '</div>' +
+        '<div class="health-card-arrow">\u203a</div>';
+    return div;
+}
+
+// ── Detail page ──────────────────────────────────────────────────
+
+function loadBloodWorkDetail(id) {
+    var titleEl = document.getElementById('bwDetailTitle');
+    if (titleEl) titleEl.textContent = 'Loading\u2026';
+
+    userCol('bloodWorkRecords').doc(id).get()
+        .then(function(snap) {
+            if (!snap.exists) {
+                alert('Record not found.');
+                location.hash = '#health-bloodwork';
+                return;
+            }
+            window.currentBloodWork = Object.assign({ id: snap.id }, snap.data());
+            renderBloodWorkDetail(window.currentBloodWork);
+        })
+        .catch(function(err) { console.error('loadBloodWorkDetail:', err); });
+}
+
+function renderBloodWorkDetail(bw) {
+    document.getElementById('bwDetailTitle').textContent      = bw.date || 'Blood Work';
+    document.getElementById('bwDetailDate').textContent       = bw.date      || '\u2014';
+    document.getElementById('bwDetailLab').textContent        = bw.lab       || '\u2014';
+    document.getElementById('bwDetailOrderedBy').textContent  = bw.orderedBy || '\u2014';
+    document.getElementById('bwDetailNotes').textContent      = bw.notes     || '\u2014';
+
+    // Linked visit
+    var visitRow = document.getElementById('bwDetailVisitRow');
+    var visitEl  = document.getElementById('bwDetailVisit');
+    if (bw.orderedAtVisitId) {
+        visitRow.style.display = '';
+        userCol('healthVisits').doc(bw.orderedAtVisitId).get()
+            .then(function(snap) {
+                if (snap.exists) {
+                    var v = snap.data();
+                    var label = escapeHtml((v.date || '') + (v.provider ? ' \u2014 ' + v.provider : ''));
+                    visitEl.innerHTML = '<span class="health-linked-item health-linked-item--clickable" ' +
+                        'onclick="location.hash=\'#health-visit/' + bw.orderedAtVisitId + '\'">' +
+                        label + '</span>';
+                } else {
+                    visitEl.textContent = '\u2014';
+                }
+            }).catch(function() { visitEl.textContent = '\u2014'; });
+    } else {
+        visitRow.style.display = 'none';
+    }
+
+    _bwRenderMarkerTable(bw.markers || [], 'bwDetailMarkersContainer');
+}
+
+function _bwRenderMarkerTable(markers, containerId) {
+    var container = document.getElementById(containerId);
+    if (!container) return;
+
+    if (markers.length === 0) {
+        container.innerHTML = '<p class="empty-state">No markers recorded.</p>';
+        return;
+    }
+
+    var html = '<div class="bw-table-wrap"><table class="bw-marker-table">' +
+        '<thead><tr>' +
+            '<th>Marker</th><th>Value</th><th>Unit</th><th>Reference Range</th><th></th>' +
+        '</tr></thead><tbody>';
+
+    markers.forEach(function(m) {
+        var rowClass = m.flagged ? ' class="bw-marker-flagged"' : '';
+        html += '<tr' + rowClass + '>' +
+            '<td>' + escapeHtml(m.name || '') + '</td>' +
+            '<td><strong>' + escapeHtml(m.value || '') + '</strong></td>' +
+            '<td>' + escapeHtml(m.unit || '') + '</td>' +
+            '<td>' + escapeHtml(m.referenceRange || '') + '</td>' +
+            '<td>' + (m.flagged ? '<span class="bw-flag-icon">\u26a0\ufe0f</span>' : '') + '</td>' +
+        '</tr>';
+    });
+
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+}
+
+// ── Add/Edit modal ───────────────────────────────────────────────
+
+function openBloodWorkModal(id) {
+    var modal = document.getElementById('bloodWorkModal');
+    modal.dataset.editId = id || '';
+    document.getElementById('bwModalTitle').textContent = id ? 'Edit Blood Work' : 'Add Blood Work';
+
+    ['bwLab', 'bwOrderedBy', 'bwNotes'].forEach(function(f) {
+        document.getElementById(f).value = '';
+    });
+    document.getElementById('bwDate').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('bwModalMarkersBody').innerHTML = '';
+
+    if (id) {
+        userCol('bloodWorkRecords').doc(id).get().then(function(snap) {
+            if (!snap.exists) return;
+            var d = snap.data();
+            document.getElementById('bwDate').value      = d.date      || '';
+            document.getElementById('bwLab').value       = d.lab       || '';
+            document.getElementById('bwOrderedBy').value = d.orderedBy || '';
+            document.getElementById('bwNotes').value     = d.notes     || '';
+            populateVisitDropdown('bwVisitId', d.orderedAtVisitId || '');
+            (d.markers || []).forEach(function(m) { _bwAddMarkerRow(m); });
+        });
+    } else {
+        populateVisitDropdown('bwVisitId', '');
+    }
+    openModal('bloodWorkModal');
+}
+
+function saveBloodWork() {
+    var date = document.getElementById('bwDate').value;
+    if (!date) { alert('Date is required.'); return; }
+
+    var data = {
+        date:             date,
+        lab:              document.getElementById('bwLab').value.trim(),
+        orderedBy:        document.getElementById('bwOrderedBy').value.trim(),
+        orderedAtVisitId: document.getElementById('bwVisitId').value || null,
+        notes:            document.getElementById('bwNotes').value.trim(),
+        markers:          _bwCollectMarkers()
+    };
+
+    var modal  = document.getElementById('bloodWorkModal');
+    var editId = modal.dataset.editId;
+    var op;
+    if (editId) {
+        op = userCol('bloodWorkRecords').doc(editId).update(data).then(function() { return editId; });
+    } else {
+        data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        op = userCol('bloodWorkRecords').add(data).then(function(ref) { return ref.id; });
+    }
+    op.then(function(id) {
+        closeModal('bloodWorkModal');
+        location.hash = '#health-bloodwork/' + id;
+    }).catch(function(err) { alert('Error saving: ' + err.message); });
+}
+
+function editCurrentBloodWork() {
+    if (window.currentBloodWork) openBloodWorkModal(window.currentBloodWork.id);
+}
+
+function deleteCurrentBloodWork() {
+    if (!window.currentBloodWork) return;
+    if (!confirm('Delete this blood work record?')) return;
+    userCol('bloodWorkRecords').doc(window.currentBloodWork.id).delete()
+        .then(function() { location.hash = '#health-bloodwork'; })
+        .catch(function(err) { alert('Error deleting: ' + err.message); });
+}
+
+// ── Marker row management ─────────────────────────────────────────
+
+function _bwAddMarkerRow(marker) {
+    marker = marker || {};
+    var tbody = document.getElementById('bwModalMarkersBody');
+    var tr = document.createElement('tr');
+    tr.className = 'bw-marker-row';
+    tr.innerHTML =
+        '<td><input type="text" class="bw-input bw-input-name"  value="' + escapeHtml(marker.name           || '') + '" placeholder="e.g. LDL"></td>' +
+        '<td><input type="text" class="bw-input bw-input-value" value="' + escapeHtml(marker.value          || '') + '" placeholder="112"></td>' +
+        '<td><input type="text" class="bw-input bw-input-unit"  value="' + escapeHtml(marker.unit           || '') + '" placeholder="mg/dL"></td>' +
+        '<td><input type="text" class="bw-input bw-input-range" value="' + escapeHtml(marker.referenceRange || '') + '" placeholder="&lt;100"></td>' +
+        '<td class="bw-flag-cell"><label><input type="checkbox" class="bw-input-flag"' + (marker.flagged ? ' checked' : '') + '> Flag</label></td>' +
+        '<td><button type="button" class="btn btn-danger btn-small" onclick="_bwRemoveMarkerRow(this)">&times;</button></td>';
+    tbody.appendChild(tr);
+}
+
+function _bwRemoveMarkerRow(btn) {
+    var tr = btn.closest('tr');
+    if (tr) tr.remove();
+}
+
+function _bwCollectMarkers() {
+    var rows = document.querySelectorAll('#bwModalMarkersBody .bw-marker-row');
+    var markers = [];
+    rows.forEach(function(tr) {
+        var name = tr.querySelector('.bw-input-name').value.trim();
+        if (!name) return;
+        markers.push({
+            name:           name,
+            value:          tr.querySelector('.bw-input-value').value.trim(),
+            unit:           tr.querySelector('.bw-input-unit').value.trim(),
+            referenceRange: tr.querySelector('.bw-input-range').value.trim(),
+            flagged:        tr.querySelector('.bw-input-flag').checked
+        });
+    });
+    return markers;
+}
+
+// ── LLM import ───────────────────────────────────────────────────
+
+function openImportModal() {
+    document.getElementById('bwImportText').value    = '';
+    document.getElementById('bwImportStatus').innerHTML = '';
+    document.getElementById('bwImportBtn').disabled  = false;
+    openModal('bloodWorkImportModal');
+}
+
+async function parseLabReport() {
+    var text = document.getElementById('bwImportText').value.trim();
+    if (!text) { alert('Please paste some lab report text first.'); return; }
+
+    var statusEl = document.getElementById('bwImportStatus');
+    var btn      = document.getElementById('bwImportBtn');
+    statusEl.textContent = 'Parsing with AI\u2026';
+    btn.disabled = true;
+
+    var systemPrompt =
+        'You are a medical lab report parser. Extract all lab test markers from the text provided.\n' +
+        'Return ONLY valid JSON in this exact format \u2014 no explanations, no markdown, no code fences:\n' +
+        '{"markers":[{"name":"LDL","value":"112","unit":"mg/dL","referenceRange":"<100","flagged":true}]}\n' +
+        'Rules:\n' +
+        '- name: the test name as shown in the report\n' +
+        '- value: the numeric result as a string\n' +
+        '- unit: unit of measure (e.g., mg/dL, %, g/dL) \u2014 empty string if not shown\n' +
+        '- referenceRange: the normal/reference range as shown (e.g., "<100", "3.5-5.0") \u2014 empty string if not shown\n' +
+        '- flagged: true if marked High (H), Low (L), *, or otherwise out of range; false otherwise\n' +
+        '- Include every marker that has a numeric value\n' +
+        '- Do not include markers with no value';
+
+    try {
+        var raw = await _bwCallLLM(systemPrompt, text);
+        // Strip markdown code fences if the model adds them anyway
+        var cleaned = raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '');
+        var parsed  = JSON.parse(cleaned);
+        if (!parsed.markers || !Array.isArray(parsed.markers)) throw new Error('Unexpected response format');
+        _bwApplyImportedMarkers(parsed.markers);
+        closeModal('bloodWorkImportModal');
+    } catch(err) {
+        statusEl.textContent = 'Parse failed: ' + err.message + '. Edit markers manually or try again.';
+        btn.disabled = false;
+    }
+}
+
+async function _bwCallLLM(systemPrompt, userText) {
+    var doc = await userCol('settings').doc('llm').get();
+    if (!doc.exists) throw new Error('LLM not configured. Go to Settings \u2192 QuickLog to add your API key.');
+
+    var cfg      = doc.data();
+    var provider = cfg.provider || 'openai';
+    var apiKey   = cfg.apiKey   || '';
+    var model    = cfg.model    || '';
+
+    var ENDPOINTS = {
+        openai: { url: 'https://api.openai.com/v1/chat/completions', model: 'gpt-4o' },
+        grok:   { url: 'https://api.x.ai/v1/chat/completions',       model: 'grok-3'  }
+    };
+    var ep = ENDPOINTS[provider] || ENDPOINTS.openai;
+
+    var res = await fetch(ep.url, {
+        method : 'POST',
+        headers: {
+            'Content-Type' : 'application/json',
+            'Authorization': 'Bearer ' + apiKey
+        },
+        body: JSON.stringify({
+            model   : model || ep.model,
+            messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user',   content: userText      }
+            ]
+        })
+    });
+
+    if (!res.ok) {
+        var errBody = await res.text();
+        throw new Error('LLM error ' + res.status + ': ' + errBody.slice(0, 200));
+    }
+    var json = await res.json();
+    return json.choices[0].message.content;
+}
+
+function _bwApplyImportedMarkers(markers) {
+    document.getElementById('bwModalMarkersBody').innerHTML = '';
+    markers.forEach(function(m) { _bwAddMarkerRow(m); });
+}
+
+// ── Trend view ───────────────────────────────────────────────────
+
+function openTrendModal() {
+    var sel      = document.getElementById('bwTrendSelect');
+    var tableDiv = document.getElementById('bwTrendTable');
+    sel.innerHTML = '<option value="">\u2014 Select a marker \u2014</option>';
+    tableDiv.innerHTML = '';
+
+    // Collect all unique marker names from cached list
+    var seen = {};
+    _bwAllRecords.forEach(function(bw) {
+        (bw.markers || []).forEach(function(m) {
+            if (m.name) seen[m.name] = true;
+        });
+    });
+    var names = Object.keys(seen).sort();
+    if (names.length === 0) {
+        tableDiv.innerHTML = '<p class="empty-state">No markers recorded yet.</p>';
+    }
+    names.forEach(function(name) {
+        var opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        sel.appendChild(opt);
+    });
+
+    openModal('bloodWorkTrendModal');
+}
+
+function renderTrendTable(markerName) {
+    var tableDiv = document.getElementById('bwTrendTable');
+    if (!markerName) { tableDiv.innerHTML = ''; return; }
+
+    var rows = [];
+    _bwAllRecords.forEach(function(bw) {
+        (bw.markers || []).forEach(function(m) {
+            if (m.name === markerName) {
+                rows.push({ date: bw.date, value: m.value, unit: m.unit, ref: m.referenceRange, flagged: m.flagged });
+            }
+        });
+    });
+    rows.sort(function(a, b) { return (b.date || '').localeCompare(a.date || ''); });
+
+    if (rows.length === 0) {
+        tableDiv.innerHTML = '<p class="empty-state">No data for this marker.</p>';
+        return;
+    }
+
+    var html = '<div class="bw-table-wrap"><table class="bw-marker-table">' +
+        '<thead><tr><th>Date</th><th>Value</th><th>Unit</th><th>Reference Range</th><th></th></tr></thead><tbody>';
+
+    rows.forEach(function(r) {
+        var rowClass = r.flagged ? ' class="bw-marker-flagged"' : '';
+        html += '<tr' + rowClass + '>' +
+            '<td>' + escapeHtml(r.date || '') + '</td>' +
+            '<td><strong>' + escapeHtml(r.value || '') + '</strong></td>' +
+            '<td>' + escapeHtml(r.unit || '') + '</td>' +
+            '<td>' + escapeHtml(r.ref || '') + '</td>' +
+            '<td>' + (r.flagged ? '<span class="bw-flag-icon">\u26a0\ufe0f</span>' : '') + '</td>' +
+        '</tr>';
+    });
+
+    html += '</tbody></table></div>';
+    tableDiv.innerHTML = html;
 }

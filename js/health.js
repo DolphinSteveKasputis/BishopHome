@@ -1643,8 +1643,13 @@ function saveBloodWork() {
         op = userCol('bloodWorkRecords').add(data).then(function(ref) { return ref.id; });
     }
     op.then(function(id) {
-        closeModal('bloodWorkModal');
-        location.hash = '#health-bloodwork/' + id;
+        // Use replaceState to swap the modal history entry for the detail URL,
+        // then call handleRoute() directly.  A plain location.hash assignment
+        // would push a new entry; history.back() inside closeModal would then
+        // pop that new entry instead of the modal's, sending us back to the list.
+        document.getElementById('bloodWorkModal').classList.remove('open');
+        history.replaceState(null, '', '#health-bloodwork/' + id);
+        handleRoute();
     }).catch(function(err) { alert('Error saving: ' + err.message); });
 }
 

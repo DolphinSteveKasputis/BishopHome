@@ -443,6 +443,10 @@ function escapeHtml(text) {
  */
 function openModal(modalId) {
     document.getElementById(modalId).classList.add('open');
+    // Push a history entry so the Android back button can close this modal
+    // instead of navigating away. The URL hash is unchanged — only history
+    // state changes, so hashchange / handleRoute are NOT triggered.
+    history.pushState({ modal: modalId }, '');
 }
 
 /**
@@ -451,6 +455,12 @@ function openModal(modalId) {
  */
 function closeModal(modalId) {
     document.getElementById(modalId).classList.remove('open');
+    // If the current history state belongs to this modal, pop it to keep
+    // history in sync. (When the back button triggers closeModal, history
+    // has already been popped, so history.state won't match and we skip this.)
+    if (history.state && history.state.modal === modalId) {
+        history.back();
+    }
 }
 
 // ---------- Event Listeners (set up after DOM loads) ----------

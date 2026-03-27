@@ -340,6 +340,22 @@ if (signOutBtnMobileLife) {
 window.addEventListener('hashchange', handleRoute);
 
 /**
+ * Handle the Android (and desktop) back button.
+ * If a modal is open, close it instead of letting the browser navigate away.
+ * Because our routing uses hashchange (not popstate), this listener only fires
+ * when a modal's pushState entry is being popped — the hash has NOT changed,
+ * so handleRoute is NOT called.
+ */
+window.addEventListener('popstate', function() {
+    var openOverlay = document.querySelector('.modal-overlay.open');
+    if (openOverlay) {
+        // closeModal won't call history.back() again here because popstate has
+        // already moved history.state back to the pre-modal entry.
+        closeModal(openOverlay.id);
+    }
+});
+
+/**
  * Called by auth.js once the user is confirmed signed in.
  * Loads the app name from Firestore first, then routes to the correct page.
  */

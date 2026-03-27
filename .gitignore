@@ -10,3 +10,6 @@ Thumbs.db
 .vscode/
 *.suo
 *.user
+
+# Local dev notes (never commit)
+.test-credentials.md

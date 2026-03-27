@@ -205,3 +205,20 @@ Bishop/
 - Replace `<brief summary>` with a one-line description of what was finished.
 - Do not skip this. Do not forget it. It is not optional.
 - The curl must actually be executed via the Bash tool — just mentioning it is not enough.
+
+## SecondBrain — REQUIRED BEHAVIOR
+**IMPORTANT: Any time a new LLM action is added to SecondBrain, the help screen MUST be updated in the same commit.**
+- The help screen data lives in `SB_HELP_ACTIONS` array in `js/secondbrain.js`
+- Each entry needs: `action`, `icon`, `label`, `desc`, and `examples` (2–4 example utterances)
+- The corresponding icon and label must also be added to `SB_ICONS` and `SB_LABELS` at the top of `secondbrain.js`
+- Do not add a new action without also adding it to `SB_HELP_ACTIONS`. This is not optional.
+
+## Git Push — REQUIRED BEHAVIOR
+**IMPORTANT: git push requires a Windows credential confirmation prompt. Always notify BEFORE pushing.**
+- Before every `git push`, send this curl notification first:
+  ```
+  curl -d "Ready to push — please confirm the Windows prompt" ntfy.sh/WolfLifeBishop
+  ```
+- Then immediately run `git push`.
+- This gives the user time to come to the terminal and approve the credential dialog.
+- Never push without sending this notification first. Never skip it even for quick fixes.

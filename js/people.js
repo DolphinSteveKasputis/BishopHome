@@ -903,13 +903,13 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     document.getElementById('personCameraInput').addEventListener('change', function(e) {
         if (currentPerson && e.target.files[0]) {
-            handlePhotoFile('person', currentPerson.id, e.target.files[0]);
+            handlePhotoFile(e.target.files[0], 'person', currentPerson.id);
         }
         this.value = '';
     });
     document.getElementById('personGalleryInput').addEventListener('change', function(e) {
         if (currentPerson && e.target.files[0]) {
-            handlePhotoFile('person', currentPerson.id, e.target.files[0]);
+            handlePhotoFile(e.target.files[0], 'person', currentPerson.id);
         }
         this.value = '';
     });

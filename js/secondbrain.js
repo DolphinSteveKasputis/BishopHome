@@ -1,8 +1,8 @@
 // ============================================================
 // SecondBrain — Natural Language Command Interface
-// Phase A: Full UI pipeline. Write functions are stubs —
-// they log the action but do not save to Firestore yet.
-// Phase B+ will replace each stub with real Firestore writes.
+// Phase A: Full UI pipeline + write stubs
+// Phase B: Real Firestore writes for all 13 action types
+// Phase C: Context-aware targeting, Try Again, command history
 // ============================================================
 
 // ---------- State ----------
@@ -10,9 +10,13 @@ var _sbContext    = null;   // cached context snapshot
 var _sbContextExp = 0;      // cache expiry (ms)
 var _sbPhotos     = [];     // [{dataUrl, name}] attached photos
 var _sbLastResult = null;   // last parsed LLM result {action, payload}
+var _sbLastText   = '';     // last text sent (for Try Again)
 var _sbThinking   = false;  // true while LLM call in progress
+var _sbPageCtx    = null;   // current page context {type, id, name} or null
 
-var SB_CACHE_MS = 5 * 60 * 1000;  // 5-minute context cache TTL
+var SB_CACHE_MS    = 5 * 60 * 1000;  // 5-minute context cache TTL
+var SB_HISTORY_KEY = '_sbHistory';   // localStorage key for command history
+var SB_HISTORY_MAX = 10;             // max history entries
 
 // ---------- Which entity types are valid targets per action ----------
 var SB_TARGET_TYPES = {
@@ -419,7 +423,14 @@ ctxJson,
 '',
 'Rules: 1) Return ONLY the JSON. 2) Dates default to ' + ctx.today +
 '. 3) Times default to ' + ctx.currentTime +
-'. 4) Resolve names to IDs. 5) unknownChemicals[] for LOG_ACTIVITY with unrecognized chemical names.'
+'. 4) Resolve names to IDs. 5) unknownChemicals[] for LOG_ACTIVITY with unrecognized chemical names.',
+// Inject current page context if the user opened SecondBrain while viewing a specific record
+(_sbPageCtx ? (
+    '\nCURRENT PAGE CONTEXT: The user is viewing a ' + _sbPageCtx.type +
+    ' named "' + _sbPageCtx.name + '" (id: ' + _sbPageCtx.id + '). ' +
+    'If their command refers to this entity (e.g. "it has a problem", "add a fact to it"), ' +
+    'use this as the target.'
+) : '')
     ].join('\n');
 }
 
@@ -538,6 +549,132 @@ function _sbRenderPhotoStrip() {
 }
 
 // ============================================================
+// PAGE CONTEXT — reads global state to detect current entity
+// ============================================================
+
+/**
+ * Reads the currently-viewed entity from global app state.
+ * Used to inject a "current context" hint into the system prompt
+ * so "it has aphids" targets the plant the user is viewing.
+ * Returns {type, id, name} or null.
+ */
+function _sbReadPageContext() {
+    // Check each global state variable the app sets when drilling into records
+    if (window.currentPlant && window.currentPlant.id) {
+        return { type: 'plant', id: window.currentPlant.id,
+                 name: window.currentPlant.name || 'current plant' };
+    }
+    if (window.currentZone && window.currentZone.id) {
+        return { type: 'zone', id: window.currentZone.id,
+                 name: window.currentZone.name || 'current zone' };
+    }
+    if (window.currentWeed && window.currentWeed.id) {
+        return { type: 'weed', id: window.currentWeed.id,
+                 name: window.currentWeed.name || 'current weed' };
+    }
+    if (window.currentChemical && window.currentChemical.id) {
+        return { type: 'chemical', id: window.currentChemical.id,
+                 name: window.currentChemical.name || 'current chemical' };
+    }
+    if (window.currentVehicle && window.currentVehicle.id) {
+        return { type: 'vehicle', id: window.currentVehicle.id,
+                 name: window.currentVehicle.name || 'current vehicle' };
+    }
+    if (window.currentPerson && window.currentPerson.id) {
+        return { type: 'person', id: window.currentPerson.id,
+                 name: window.currentPerson.name || 'current person' };
+    }
+    if (window.currentRoom && window.currentRoom.id) {
+        return { type: 'room', id: window.currentRoom.id,
+                 name: window.currentRoom.name || 'current room' };
+    }
+    if (window.currentThing && window.currentThing.id) {
+        return { type: 'thing', id: window.currentThing.id,
+                 name: window.currentThing.name || 'current item' };
+    }
+    if (window.currentStructure && window.currentStructure.id) {
+        return { type: 'structure', id: window.currentStructure.id,
+                 name: window.currentStructure.name || 'current structure' };
+    }
+    return null;
+}
+
+// ============================================================
+// COMMAND HISTORY — persisted in localStorage
+// ============================================================
+
+/**
+ * Saves a completed command to the history log.
+ */
+function _sbSaveHistory(action, text) {
+    try {
+        var history = JSON.parse(localStorage.getItem(SB_HISTORY_KEY) || '[]');
+        history.unshift({
+            action:    action,
+            label:     SB_LABELS[action] || action,
+            icon:      SB_ICONS[action]  || '❓',
+            text:      text,
+            timestamp: Date.now()
+        });
+        history = history.slice(0, SB_HISTORY_MAX);
+        localStorage.setItem(SB_HISTORY_KEY, JSON.stringify(history));
+    } catch (e) { /* localStorage unavailable — ignore */ }
+}
+
+/**
+ * Renders the recent command history into #sbHistoryList.
+ * Clicking a history item re-populates the text field.
+ */
+function _sbRenderHistory() {
+    var container = document.getElementById('sbHistoryList');
+    if (!container) return;
+
+    var history;
+    try {
+        history = JSON.parse(localStorage.getItem(SB_HISTORY_KEY) || '[]');
+    } catch (e) { history = []; }
+
+    if (!history.length) {
+        container.innerHTML = '';
+        container.classList.add('hidden');
+        return;
+    }
+
+    container.classList.remove('hidden');
+
+    var html = '<div class="sb-history-heading">Recent commands</div>';
+    history.forEach(function(item) {
+        var ago = _sbTimeAgo(item.timestamp);
+        html += '<div class="sb-history-item" data-text="' + _sbEsc(item.text) + '">' +
+            '<span class="sb-history-icon">' + (item.icon || '❓') + '</span>' +
+            '<span class="sb-history-body">' +
+                '<span class="sb-history-label">' + _sbEsc(item.label) + '</span>' +
+                '<span class="sb-history-text">' + _sbEsc(item.text) + '</span>' +
+            '</span>' +
+            '<span class="sb-history-ago">' + _sbEsc(ago) + '</span>' +
+            '</div>';
+    });
+    container.innerHTML = html;
+
+    // Click to re-populate text field
+    container.querySelectorAll('.sb-history-item').forEach(function(el) {
+        el.addEventListener('click', function() {
+            var t = document.getElementById('sbTextInput');
+            if (t) { t.value = el.dataset.text || ''; t.focus(); }
+        });
+    });
+}
+
+/** Returns a human-friendly "X min ago" string for a timestamp. */
+function _sbTimeAgo(ts) {
+    var diff = Math.floor((Date.now() - ts) / 1000);
+    if (diff < 60)  return diff + 's ago';
+    if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+    if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+    return Math.floor(diff / 86400) + 'd ago';
+}
+
+// ============================================================
 // INPUT MODAL
 // ============================================================
 
@@ -545,6 +682,10 @@ function _sbRenderPhotoStrip() {
  * Opens the SecondBrain input modal. Called from the home screen button.
  */
 function openSecondBrain() {
+    // Capture current page context at open time — not at send time,
+    // since user may open SecondBrain while on a plant/zone/room page.
+    _sbPageCtx = _sbReadPageContext();
+
     _sbPhotos = [];
     _sbRenderPhotoStrip();
     document.getElementById('sbTextInput').value = '';
@@ -552,11 +693,31 @@ function openSecondBrain() {
 
     document.getElementById('sbInputModal').classList.add('open');
 
+    // Show page context hint if applicable
+    _sbRenderPageCtxHint();
+
+    // Show recent command history
+    _sbRenderHistory();
+
     // Wire voice-to-text (appends to sbTextInput)
     initVoiceToText('sbTextInput', 'sbMicBtn');
 
     // Pre-warm context in background
     _sbBuildContext();
+}
+
+/**
+ * Shows or hides the "Current context" banner in the input modal.
+ */
+function _sbRenderPageCtxHint() {
+    var hint = document.getElementById('sbPageCtxHint');
+    if (!hint) return;
+    if (_sbPageCtx) {
+        hint.textContent = '📍 Context: ' + _sbPageCtx.type + ' — ' + _sbPageCtx.name;
+        hint.classList.remove('hidden');
+    } else {
+        hint.classList.add('hidden');
+    }
 }
 
 function _sbCloseInput() {
@@ -580,6 +741,7 @@ async function _sbHandleSend() {
     }
     if (_sbThinking) return;
 
+    _sbLastText = text;  // save for Try Again
     _sbSetThinking(true);
 
     try {
@@ -631,10 +793,11 @@ function _sbShowConfirmation(result) {
         }
     }
 
-    // UNKNOWN_ACTION: hide confirm buttons
+    // UNKNOWN_ACTION: hide confirm buttons, show Try Again
     var isUnknown = (action === 'UNKNOWN_ACTION');
-    document.getElementById('sbConfirmGoBtn').classList.toggle('hidden',   isUnknown);
-    document.getElementById('sbConfirmDoneBtn').classList.toggle('hidden', isUnknown);
+    document.getElementById('sbConfirmGoBtn').classList.toggle('hidden',       isUnknown);
+    document.getElementById('sbConfirmDoneBtn').classList.toggle('hidden',     isUnknown);
+    document.getElementById('sbConfirmTryAgainBtn').classList.toggle('hidden', !isUnknown);
 
     document.getElementById('sbConfirmModal').classList.add('open');
 }
@@ -642,6 +805,22 @@ function _sbShowConfirmation(result) {
 function _sbCloseConfirm() {
     document.getElementById('sbConfirmModal').classList.remove('open');
     _sbLastResult = null;
+}
+
+/**
+ * Try Again — closes the confirm modal and re-opens the input modal
+ * with the previous command text restored. User can edit and re-send.
+ */
+function _sbHandleTryAgain() {
+    _sbCloseConfirm();
+    // Re-open input with previous text
+    var inp = document.getElementById('sbTextInput');
+    if (inp) inp.value = _sbLastText || '';
+    _sbSetThinking(false);
+    _sbRenderPageCtxHint();
+    _sbRenderHistory();
+    document.getElementById('sbInputModal').classList.add('open');
+    initVoiceToText('sbTextInput', 'sbMicBtn');
 }
 
 // --- Warning banners shown above the confirm buttons ---
@@ -971,8 +1150,11 @@ async function _sbExecuteAction(navigate) {
     try {
         var newId = await _sbWrite(action, payload);
 
-        // Invalidate context cache — new data was (will be) written
+        // Invalidate context cache — new data was written
         _sbContextExp = 0;
+
+        // Save to command history
+        _sbSaveHistory(action, _sbLastText);
 
         _sbCloseConfirm();
 
@@ -1404,10 +1586,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.target === this) _sbCloseInput();
     });
 
-    // Confirm / Done / Cancel
-    document.getElementById('sbConfirmGoBtn').addEventListener('click',    _sbHandleConfirmGo);
-    document.getElementById('sbConfirmDoneBtn').addEventListener('click',  _sbHandleConfirmDone);
-    document.getElementById('sbConfirmCancelBtn').addEventListener('click', _sbCloseConfirm);
+    // Confirm / Done / Cancel / Try Again
+    document.getElementById('sbConfirmGoBtn').addEventListener('click',       _sbHandleConfirmGo);
+    document.getElementById('sbConfirmDoneBtn').addEventListener('click',     _sbHandleConfirmDone);
+    document.getElementById('sbConfirmCancelBtn').addEventListener('click',   _sbCloseConfirm);
+    document.getElementById('sbConfirmTryAgainBtn').addEventListener('click', _sbHandleTryAgain);
 
     // Close confirm on overlay click
     document.getElementById('sbConfirmModal').addEventListener('click', function(e) {

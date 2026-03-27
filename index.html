@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=234">
+    <link rel="stylesheet" href="css/styles.css?v=235">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -4630,6 +4630,9 @@
             <div id="sbInputContent">
                 <p class="sb-modal-hint">Speak or type what you did, found, or want to track. Attach photos if helpful.</p>
 
+                <!-- Page context banner: shown when viewing a specific plant/zone/room/etc. -->
+                <div id="sbPageCtxHint" class="sb-page-ctx-hint hidden"></div>
+
                 <!-- Photo strip (hidden when empty) -->
                 <div id="sbPhotoStrip" class="sb-photo-strip hidden"></div>
 
@@ -4654,6 +4657,9 @@
                     <button class="btn btn-secondary" id="sbCancelInputBtn">Cancel</button>
                     <button class="btn btn-primary"   id="sbSendBtn">Send →</button>
                 </div>
+
+                <!-- Recent command history (hidden when empty) -->
+                <div id="sbHistoryList" class="sb-history-list hidden"></div>
             </div><!-- /#sbInputContent -->
 
             <!-- Thinking spinner (hidden by default) -->
@@ -4681,6 +4687,8 @@
             <!-- Action buttons -->
             <div class="sb-confirm-actions">
                 <button class="btn btn-secondary" id="sbConfirmCancelBtn">Cancel</button>
+                <!-- Try Again: shown only for UNKNOWN_ACTION -->
+                <button class="btn btn-secondary hidden" id="sbConfirmTryAgainBtn">↩ Try Again</button>
                 <button class="btn btn-secondary" id="sbConfirmDoneBtn">✓ Confirm &amp; Done</button>
                 <button class="btn btn-primary"   id="sbConfirmGoBtn">✓ Confirm &amp; Go →</button>
             </div>
@@ -4692,42 +4700,42 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=234"></script>
-    <script src="js/auth.js?v=234"></script>
-    <script src="js/zones.js?v=234"></script>
-    <script src="js/plants.js?v=234"></script>
-    <script src="js/problems.js?v=234"></script>
-    <script src="js/facts.js?v=234"></script>
-    <script src="js/projects.js?v=234"></script>
-    <script src="js/chemicals.js?v=234"></script>
-    <script src="js/activities.js?v=234"></script>
+    <script src="js/firebase-config.js?v=235"></script>
+    <script src="js/auth.js?v=235"></script>
+    <script src="js/zones.js?v=235"></script>
+    <script src="js/plants.js?v=235"></script>
+    <script src="js/problems.js?v=235"></script>
+    <script src="js/facts.js?v=235"></script>
+    <script src="js/projects.js?v=235"></script>
+    <script src="js/chemicals.js?v=235"></script>
+    <script src="js/activities.js?v=235"></script>
     <!-- Cropper.js — client-side image cropping library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <!-- SortableJS — drag-and-drop list reordering -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    <script src="js/photos.js?v=234"></script>
-    <script src="js/weeds.js?v=234"></script>
-    <script src="js/calendar.js?v=234"></script>
-    <script src="js/gps.js?v=234"></script>
-    <script src="js/settings.js?v=234"></script>
-    <script src="js/house.js?v=234"></script>
-    <script src="js/floorplan.js?v=234"></script>
-    <script src="js/search.js?v=234"></script>
-    <script src="js/activityreport.js?v=234"></script>
-    <script src="js/checklists.js?v=234"></script>
-    <script src="js/bulkactivity.js?v=234"></script>
-    <script src="js/devnotes.js?v=234"></script>
-    <script src="js/vehicles.js?v=234"></script>
-    <script src="js/garage.js?v=234"></script>
-    <script src="js/structures.js?v=234"></script>
-    <script src="js/moveThings.js?v=234"></script>
-    <script src="js/journal.js?v=234"></script>
-    <script src="js/people.js?v=234"></script>
-    <script src="js/collections.js?v=234"></script>
+    <script src="js/photos.js?v=235"></script>
+    <script src="js/weeds.js?v=235"></script>
+    <script src="js/calendar.js?v=235"></script>
+    <script src="js/gps.js?v=235"></script>
+    <script src="js/settings.js?v=235"></script>
+    <script src="js/house.js?v=235"></script>
+    <script src="js/floorplan.js?v=235"></script>
+    <script src="js/search.js?v=235"></script>
+    <script src="js/activityreport.js?v=235"></script>
+    <script src="js/checklists.js?v=235"></script>
+    <script src="js/bulkactivity.js?v=235"></script>
+    <script src="js/devnotes.js?v=235"></script>
+    <script src="js/vehicles.js?v=235"></script>
+    <script src="js/garage.js?v=235"></script>
+    <script src="js/structures.js?v=235"></script>
+    <script src="js/moveThings.js?v=235"></script>
+    <script src="js/journal.js?v=235"></script>
+    <script src="js/people.js?v=235"></script>
+    <script src="js/collections.js?v=235"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=234"></script>
-    <script src="js/secondbrain.js?v=234"></script>
-    <script src="js/app.js?v=234"></script>
+    <script src="js/chat.js?v=235"></script>
+    <script src="js/secondbrain.js?v=235"></script>
+    <script src="js/app.js?v=235"></script>
 
 </body>
 </html>

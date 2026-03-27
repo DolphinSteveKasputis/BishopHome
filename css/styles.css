@@ -5334,3 +5334,70 @@ textarea.sb-field { resize: vertical; min-height: 60px; }
     .sb-confirm-actions { flex-direction: column; }
     .sb-confirm-actions .btn { width: 100%; }
 }
+
+/* ============================================================
+   SECONDBRAIN — Phase C additions
+   ============================================================ */
+
+/* Page context hint banner (shown when viewing a specific record) */
+.sb-page-ctx-hint {
+    background: #f0fdf4;
+    border: 1px solid #86efac;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.82rem;
+    color: #166534;
+    margin-bottom: 10px;
+}
+
+/* Recent command history list */
+.sb-history-list {
+    margin-top: 14px;
+    border-top: 1px solid #e5e7eb;
+    padding-top: 10px;
+}
+.sb-history-heading {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #9ca3af;
+    margin-bottom: 6px;
+}
+.sb-history-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 7px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.1s;
+}
+.sb-history-item:hover { background: #f3f4f6; }
+.sb-history-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+.sb-history-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+.sb-history-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #374151;
+}
+.sb-history-text {
+    font-size: 0.82rem;
+    color: #6b7280;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.sb-history-ago {
+    font-size: 0.72rem;
+    color: #9ca3af;
+    flex-shrink: 0;
+    white-space: nowrap;
+    margin-top: 2px;
+}

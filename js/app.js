@@ -10,7 +10,7 @@
  * List of top-level pages that map to nav links.
  * These pages clear the breadcrumb bar when shown.
  */
-const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'house', 'settings', 'main', 'search', 'activityreport', 'checklists', 'notes', 'chat', 'vehicles', 'garage', 'structures', 'life', 'journal', 'collections', 'changepassword', 'people'];
+const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'house', 'settings', 'main', 'search', 'activityreport', 'checklists', 'notes', 'chat', 'vehicles', 'garage', 'structures', 'life', 'journal', 'collections', 'changepassword', 'people', 'health'];
 
 /**
  * All pages that can be shown (includes detail pages not in the nav).
@@ -24,7 +24,8 @@ const ALL_PAGES = [
     'structure', 'structurething', 'structuresubthing',
     'journal-entry', 'journal-tracking', 'journal-categories',
     'collection', 'collectionitem',
-    'person'
+    'person',
+    'health-allergies', 'health-supplements', 'health-vaccinations', 'health-eye'
 ];
 
 /**
@@ -35,7 +36,8 @@ const ALL_PAGES = [
 const HOUSE_PAGES = ['house', 'floor', 'room', 'thing', 'subthing', 'floorplan', 'panel', 'rooms', 'things'];
 const YARD_PAGES  = ['main', 'home', 'zones', 'zone', 'plant', 'weeds', 'weed', 'chemicals', 'chemical', 'actions', 'gpsmap', 'yardmap', 'activityreport', 'checklists',
                      'structures', 'structure', 'structurething', 'structuresubthing'];
-const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'journal-categories', 'people', 'person'];
+const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'journal-categories', 'people', 'person',
+                     'health', 'health-allergies', 'health-supplements', 'health-vaccinations', 'health-eye'];
 
 /** Tracks which nav context is currently active ('yard', 'house', or 'life'). */
 var currentNavContext = 'yard';
@@ -282,6 +284,22 @@ function handleRoute() {
     } else if (page === 'sb-issues') {
         showPage('sb-issues');
         loadSbIssuesPage();
+    // ---------- My Health routes ----------
+    } else if (page === 'health') {
+        showPage('health');
+        loadHealthPage();
+    } else if (page === 'health-allergies') {
+        showPage('health-allergies');
+        loadAllergyPage();
+    } else if (page === 'health-supplements') {
+        showPage('health-supplements');
+        loadSupplementPage();
+    } else if (page === 'health-vaccinations') {
+        showPage('health-vaccinations');
+        loadVaccinationPage();
+    } else if (page === 'health-eye') {
+        showPage('health-eye');
+        loadEyePage();
     } else if (TOP_LEVEL_PAGES.includes(page)) {
         showPage(page);
     } else {

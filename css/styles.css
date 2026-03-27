@@ -5590,3 +5590,180 @@ textarea.sb-field { resize: vertical; min-height: 60px; }
     margin: 0;
     color: #374151;
 }
+
+/* ============================================================
+   MY HEALTH FEATURE
+   ============================================================ */
+
+/* ── Life landing: My Health tile (red/pink gradient) ──────── */
+.landing-tile--health {
+    background: linear-gradient(135deg, #dc2626, #f87171);
+    color: #fff;
+}
+.landing-tile--health:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(220, 38, 38, 0.35);
+}
+
+/* ── My Health hub: 2-column grid layout ───────────────────── */
+/* Also applies to the Life landing which already uses landing-grid */
+.landing-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    padding: 0 0 16px;
+    max-width: 520px;
+    margin: 0 auto;
+}
+
+/* Slightly more compact tiles inside the health hub grid */
+.landing-grid .landing-tile {
+    padding: 24px 12px;
+}
+
+/* ── My Health sub-feature tile colors ─────────────────────── */
+.landing-tile--health-allergies {
+    background: linear-gradient(135deg, #ea580c, #fb923c);
+    color: #fff;
+}
+.landing-tile--health-allergies:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(234, 88, 12, 0.35);
+}
+
+.landing-tile--health-supplements {
+    background: linear-gradient(135deg, #059669, #34d399);
+    color: #fff;
+}
+.landing-tile--health-supplements:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(5, 150, 105, 0.35);
+}
+
+.landing-tile--health-vaccinations {
+    background: linear-gradient(135deg, #1d4ed8, #60a5fa);
+    color: #fff;
+}
+.landing-tile--health-vaccinations:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(29, 78, 216, 0.35);
+}
+
+.landing-tile--health-eye {
+    background: linear-gradient(135deg, #7c3aed, #c4b5fd);
+    color: #fff;
+}
+.landing-tile--health-eye:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(124, 58, 237, 0.35);
+}
+
+/* ── Health cards (allergy, supplement, vaccination, eye Rx) ── */
+.health-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 14px 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.health-card--dim {
+    opacity: 0.65;
+}
+
+.health-card-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.health-card-title {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #1a1a1a;
+    margin-bottom: 4px;
+}
+
+.health-card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.health-card-sub {
+    font-size: 0.85rem;
+    color: #555;
+    margin-top: 3px;
+    word-break: break-word;
+}
+
+.health-card-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+/* ── Health badges ─────────────────────────────────────────── */
+.health-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    background: #e5e7eb;
+    color: #374151;
+}
+
+/* Severity colours */
+.health-badge--severity-severe   { background: #fee2e2; color: #991b1b; }
+.health-badge--severity-moderate { background: #ffedd5; color: #92400e; }
+.health-badge--severity-mild     { background: #d1fae5; color: #065f46; }
+
+/* Next-due badge (vaccinations) */
+.health-badge--due { background: #dbeafe; color: #1e40af; }
+
+/* ── Eye prescription layout ───────────────────────────────── */
+.health-eye-section-label {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #555;
+    margin: 12px 0 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.health-eye-rx-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.health-eye-rx {
+    font-size: 0.85rem;
+    color: #444;
+    margin-top: 4px;
+    line-height: 1.6;
+}
+
+/* ── Checkbox label in modals ──────────────────────────────── */
+.health-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+    color: #444;
+    cursor: pointer;
+}
+
+/* ── Responsive: stack eye Rx grid on mobile ───────────────── */
+@media (max-width: 480px) {
+    .health-eye-rx-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}

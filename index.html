@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=243">
+    <link rel="stylesheet" href="css/styles.css?v=244">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -4198,12 +4198,359 @@
                     <span class="landing-tile-icon">👥</span>
                     <span class="landing-tile-label">People</span>
                 </a>
+                <a href="#health" class="landing-tile landing-tile--health">
+                    <span class="landing-tile-icon">❤️</span>
+                    <span class="landing-tile-label">My Health</span>
+                </a>
             </div>
             <!-- Coming Up — annual dates within the next 30 days -->
             <div id="lifeCalendarSection" style="display:none; margin-top:24px;">
                 <div id="lifeCalendarContainer"></div>
             </div>
         </section>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             MY HEALTH PAGES
+             ═══════════════════════════════════════════════════════════ -->
+
+        <!-- Page: My Health Hub (#health) -->
+        <section class="page hidden" id="page-health">
+            <div class="page-header">
+                <button class="btn btn-secondary btn-small" onclick="location.hash='#life'">&#8592; Life</button>
+                <h2>My Health</h2>
+            </div>
+            <div class="landing-grid" id="healthFeatureGrid">
+                <!-- Row 1 — H2 features (coming soon) -->
+                <span class="landing-tile landing-tile--disabled">
+                    <span class="landing-tile-icon">🏥</span>
+                    <span class="landing-tile-label">Health Visits</span>
+                    <span class="landing-tile-soon">Coming soon</span>
+                </span>
+                <span class="landing-tile landing-tile--disabled">
+                    <span class="landing-tile-icon">💊</span>
+                    <span class="landing-tile-label">Medications</span>
+                    <span class="landing-tile-soon">Coming soon</span>
+                </span>
+                <!-- Row 2 — H4 / H3 features (coming soon) -->
+                <span class="landing-tile landing-tile--disabled">
+                    <span class="landing-tile-icon">🩸</span>
+                    <span class="landing-tile-label">Blood Work</span>
+                    <span class="landing-tile-soon">Coming soon</span>
+                </span>
+                <span class="landing-tile landing-tile--disabled">
+                    <span class="landing-tile-icon">⚠️</span>
+                    <span class="landing-tile-label">Concerns</span>
+                    <span class="landing-tile-soon">Coming soon</span>
+                </span>
+                <!-- Row 3 — H3 / H5 features (coming soon) -->
+                <span class="landing-tile landing-tile--disabled">
+                    <span class="landing-tile-icon">📋</span>
+                    <span class="landing-tile-label">Conditions</span>
+                    <span class="landing-tile-soon">Coming soon</span>
+                </span>
+                <span class="landing-tile landing-tile--disabled">
+                    <span class="landing-tile-icon">💓</span>
+                    <span class="landing-tile-label">Vitals</span>
+                    <span class="landing-tile-soon">Coming soon</span>
+                </span>
+                <!-- Row 4 — H1 ACTIVE features -->
+                <a href="#health-supplements" class="landing-tile landing-tile--health-supplements">
+                    <span class="landing-tile-icon">🌿</span>
+                    <span class="landing-tile-label">Supplements</span>
+                </a>
+                <a href="#health-vaccinations" class="landing-tile landing-tile--health-vaccinations">
+                    <span class="landing-tile-icon">💉</span>
+                    <span class="landing-tile-label">Vaccinations</span>
+                </a>
+                <!-- Row 5 — H1 ACTIVE features -->
+                <a href="#health-eye" class="landing-tile landing-tile--health-eye">
+                    <span class="landing-tile-icon">👁️</span>
+                    <span class="landing-tile-label">Eye / Glasses</span>
+                </a>
+                <a href="#health-allergies" class="landing-tile landing-tile--health-allergies">
+                    <span class="landing-tile-icon">🚨</span>
+                    <span class="landing-tile-label">Allergies</span>
+                </a>
+                <!-- Row 6 — H5 features (coming soon) -->
+                <span class="landing-tile landing-tile--disabled">
+                    <span class="landing-tile-icon">🛡️</span>
+                    <span class="landing-tile-label">Insurance</span>
+                    <span class="landing-tile-soon">Coming soon</span>
+                </span>
+                <span class="landing-tile landing-tile--disabled">
+                    <span class="landing-tile-icon">🆘</span>
+                    <span class="landing-tile-label">Emergency Info</span>
+                    <span class="landing-tile-soon">Coming soon</span>
+                </span>
+            </div>
+        </section>
+
+        <!-- Page: Allergies (#health-allergies) -->
+        <section class="page hidden" id="page-health-allergies">
+            <div class="page-header">
+                <button class="btn btn-secondary btn-small" onclick="location.hash='#health'">&#8592; My Health</button>
+                <h2>🚨 Allergies</h2>
+                <button class="btn btn-primary btn-small" onclick="openAllergyModal()">+ Add</button>
+            </div>
+            <div id="allergyList"></div>
+        </section>
+
+        <!-- Page: Supplements (#health-supplements) -->
+        <section class="page hidden" id="page-health-supplements">
+            <div class="page-header">
+                <button class="btn btn-secondary btn-small" onclick="location.hash='#health'">&#8592; My Health</button>
+                <h2>🌿 Supplements</h2>
+                <button class="btn btn-primary btn-small" onclick="openSupplementModal()">+ Add</button>
+            </div>
+            <!-- Current supplements -->
+            <div id="supplementActiveList"></div>
+            <!-- Stopped supplements (hidden when empty) -->
+            <div id="supplementStoppedSection" style="display:none;">
+                <div class="section-heading">Past Supplements</div>
+                <div id="supplementStoppedList"></div>
+            </div>
+        </section>
+
+        <!-- Page: Vaccinations (#health-vaccinations) -->
+        <section class="page hidden" id="page-health-vaccinations">
+            <div class="page-header">
+                <button class="btn btn-secondary btn-small" onclick="location.hash='#health'">&#8592; My Health</button>
+                <h2>💉 Vaccinations</h2>
+                <button class="btn btn-primary btn-small" onclick="openVaccinationModal()">+ Add</button>
+            </div>
+            <div id="vaccinationList"></div>
+        </section>
+
+        <!-- Page: Eye / Glasses Prescriptions (#health-eye) -->
+        <section class="page hidden" id="page-health-eye">
+            <div class="page-header">
+                <button class="btn btn-secondary btn-small" onclick="location.hash='#health'">&#8592; My Health</button>
+                <h2>👁️ Eye / Glasses</h2>
+                <button class="btn btn-primary btn-small" onclick="openEyeModal()">+ Add</button>
+            </div>
+            <div class="section-heading">Distance (Everyday Glasses)</div>
+            <div id="eyeDistanceList"></div>
+            <div class="section-heading" style="margin-top:24px;">Reading Glasses</div>
+            <div id="eyeReadingList"></div>
+        </section>
+
+        <!-- ─── HEALTH MODALS ────────────────────────────────────────── -->
+
+        <!-- Modal: Add / Edit Allergy -->
+        <div class="modal-overlay" id="allergyModal">
+            <div class="modal">
+                <h3 id="allergyModalTitle">Add Allergy</h3>
+                <div class="form-group">
+                    <label for="allergyAllergen">Allergen *</label>
+                    <input type="text" id="allergyAllergen" placeholder="e.g. Penicillin, Shellfish, Pollen">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="allergyType">Type</label>
+                        <select id="allergyType">
+                            <option value="">— Select —</option>
+                            <option>Medication</option>
+                            <option>Food</option>
+                            <option>Environmental</option>
+                            <option>Insect</option>
+                            <option>Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="allergySeverity">Severity</label>
+                        <select id="allergySeverity">
+                            <option value="">— Select —</option>
+                            <option>Mild</option>
+                            <option>Moderate</option>
+                            <option>Severe</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="allergyReaction">Reaction</label>
+                    <input type="text" id="allergyReaction" placeholder="e.g. Hives, Anaphylaxis, Rash">
+                </div>
+                <div class="form-group">
+                    <label for="allergyDate">Date Discovered</label>
+                    <input type="date" id="allergyDate">
+                </div>
+                <div class="form-group">
+                    <label for="allergyNotes">Notes</label>
+                    <textarea id="allergyNotes" rows="2" placeholder="Any other details…"></textarea>
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn btn-secondary" onclick="closeModal('allergyModal')">Cancel</button>
+                    <button class="btn btn-primary" onclick="saveAllergy()">Save</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal: Add / Edit Supplement -->
+        <div class="modal-overlay" id="supplementModal">
+            <div class="modal">
+                <h3 id="supplementModalTitle">Add Supplement</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="supplementName">Name *</label>
+                        <input type="text" id="supplementName" placeholder="e.g. Vitamin D3, Fish Oil">
+                    </div>
+                    <div class="form-group">
+                        <label for="supplementDosage">Dosage</label>
+                        <input type="text" id="supplementDosage" placeholder="e.g. 1000mg, 5000 IU">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="supplementBrand">Brand</label>
+                    <input type="text" id="supplementBrand" placeholder="Optional brand name">
+                </div>
+                <div class="form-group">
+                    <label for="supplementReason">Why you take it</label>
+                    <textarea id="supplementReason" rows="2" placeholder="e.g. Heart health, Low D in blood work"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="supplementFrequency">Frequency</label>
+                        <input type="text" id="supplementFrequency" placeholder="e.g. Daily, With dinner">
+                    </div>
+                    <div class="form-group">
+                        <label for="supplementStartDate">Start Date</label>
+                        <input type="date" id="supplementStartDate">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="supplementNotes">Notes</label>
+                    <textarea id="supplementNotes" rows="2" placeholder="Side effects, pharmacy info…"></textarea>
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn btn-secondary" onclick="closeModal('supplementModal')">Cancel</button>
+                    <button class="btn btn-primary" onclick="saveSupplement()">Save</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal: Add / Edit Vaccination -->
+        <div class="modal-overlay" id="vaccinationModal">
+            <div class="modal">
+                <h3 id="vaccinationModalTitle">Add Vaccination</h3>
+                <div class="form-group">
+                    <label for="vaccinationName">Vaccine Name *</label>
+                    <input type="text" id="vaccinationName" placeholder="e.g. Flu Shot, COVID-19 Booster, Shingrix">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="vaccinationDate">Date Received</label>
+                        <input type="date" id="vaccinationDate">
+                    </div>
+                    <div class="form-group" style="justify-content:flex-end; padding-top:24px;">
+                        <label class="health-checkbox-label">
+                            <input type="checkbox" id="vaccinationApprox">
+                            Approximate date
+                        </label>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="vaccinationProvider">Provider / Location</label>
+                        <input type="text" id="vaccinationProvider" placeholder="e.g. CVS, Dr. Smith">
+                    </div>
+                    <div class="form-group">
+                        <label for="vaccinationNextDue">Next Due Date</label>
+                        <input type="date" id="vaccinationNextDue">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="vaccinationLot">Lot Number</label>
+                    <input type="text" id="vaccinationLot" placeholder="Optional">
+                </div>
+                <div class="form-group">
+                    <label for="vaccinationNotes">Notes</label>
+                    <textarea id="vaccinationNotes" rows="2" placeholder="Any notes…"></textarea>
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn btn-secondary" onclick="closeModal('vaccinationModal')">Cancel</button>
+                    <button class="btn btn-primary" onclick="saveVaccination()">Save</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal: Add / Edit Eye Prescription -->
+        <div class="modal-overlay" id="eyeModal">
+            <div class="modal">
+                <h3 id="eyeModalTitle">Add Prescription</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="eyeDate">Date *</label>
+                        <input type="date" id="eyeDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="eyeType">Type</label>
+                        <select id="eyeType">
+                            <option value="Distance">Distance</option>
+                            <option value="Reading">Reading</option>
+                        </select>
+                    </div>
+                </div>
+                <!-- Right Eye (OD) -->
+                <div class="health-eye-section-label">OD — Right Eye</div>
+                <div class="health-eye-rx-grid">
+                    <div class="form-group">
+                        <label for="eyeRightSphere">SPH</label>
+                        <input type="text" id="eyeRightSphere" placeholder="-1.50">
+                    </div>
+                    <div class="form-group">
+                        <label for="eyeRightCylinder">CYL</label>
+                        <input type="text" id="eyeRightCylinder" placeholder="-0.50">
+                    </div>
+                    <div class="form-group">
+                        <label for="eyeRightAxis">Axis</label>
+                        <input type="text" id="eyeRightAxis" placeholder="180">
+                    </div>
+                    <div class="form-group">
+                        <label for="eyeRightAdd">Add</label>
+                        <input type="text" id="eyeRightAdd" placeholder="+2.00">
+                    </div>
+                </div>
+                <!-- Left Eye (OS) -->
+                <div class="health-eye-section-label">OS — Left Eye</div>
+                <div class="health-eye-rx-grid">
+                    <div class="form-group">
+                        <label for="eyeLeftSphere">SPH</label>
+                        <input type="text" id="eyeLeftSphere" placeholder="-1.50">
+                    </div>
+                    <div class="form-group">
+                        <label for="eyeLeftCylinder">CYL</label>
+                        <input type="text" id="eyeLeftCylinder" placeholder="-0.50">
+                    </div>
+                    <div class="form-group">
+                        <label for="eyeLeftAxis">Axis</label>
+                        <input type="text" id="eyeLeftAxis" placeholder="180">
+                    </div>
+                    <div class="form-group">
+                        <label for="eyeLeftAdd">Add</label>
+                        <input type="text" id="eyeLeftAdd" placeholder="+2.00">
+                    </div>
+                </div>
+                <!-- PD and provider -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="eyePD">PD (pupillary distance)</label>
+                        <input type="text" id="eyePD" placeholder="e.g. 64 or 32/32">
+                    </div>
+                    <div class="form-group">
+                        <label for="eyeProvider">Eye Doctor</label>
+                        <input type="text" id="eyeProvider" placeholder="Optional">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="eyeNotes">Notes</label>
+                    <textarea id="eyeNotes" rows="2" placeholder="e.g. Switched to progressives"></textarea>
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn btn-secondary" onclick="closeModal('eyeModal')">Cancel</button>
+                    <button class="btn btn-primary" onclick="saveEye()">Save</button>
+                </div>
+            </div>
+        </div>
 
         <!-- Page: Journal Main View (#journal) -->
         <section class="page hidden" id="page-journal">
@@ -4734,43 +5081,44 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=243"></script>
-    <script src="js/auth.js?v=243"></script>
-    <script src="js/zones.js?v=243"></script>
-    <script src="js/plants.js?v=243"></script>
-    <script src="js/problems.js?v=243"></script>
-    <script src="js/facts.js?v=243"></script>
-    <script src="js/projects.js?v=243"></script>
-    <script src="js/chemicals.js?v=243"></script>
-    <script src="js/activities.js?v=243"></script>
+    <script src="js/firebase-config.js?v=244"></script>
+    <script src="js/auth.js?v=244"></script>
+    <script src="js/zones.js?v=244"></script>
+    <script src="js/plants.js?v=244"></script>
+    <script src="js/problems.js?v=244"></script>
+    <script src="js/facts.js?v=244"></script>
+    <script src="js/projects.js?v=244"></script>
+    <script src="js/chemicals.js?v=244"></script>
+    <script src="js/activities.js?v=244"></script>
     <!-- Cropper.js — client-side image cropping library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <!-- SortableJS — drag-and-drop list reordering -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    <script src="js/photos.js?v=243"></script>
-    <script src="js/weeds.js?v=243"></script>
-    <script src="js/calendar.js?v=243"></script>
-    <script src="js/gps.js?v=243"></script>
-    <script src="js/settings.js?v=243"></script>
-    <script src="js/house.js?v=243"></script>
-    <script src="js/floorplan.js?v=243"></script>
-    <script src="js/search.js?v=243"></script>
-    <script src="js/activityreport.js?v=243"></script>
-    <script src="js/checklists.js?v=243"></script>
-    <script src="js/bulkactivity.js?v=243"></script>
-    <script src="js/devnotes.js?v=243"></script>
-    <script src="js/vehicles.js?v=243"></script>
-    <script src="js/garage.js?v=243"></script>
-    <script src="js/structures.js?v=243"></script>
-    <script src="js/moveThings.js?v=243"></script>
-    <script src="js/journal.js?v=243"></script>
-    <script src="js/people.js?v=243"></script>
-    <script src="js/collections.js?v=243"></script>
+    <script src="js/photos.js?v=244"></script>
+    <script src="js/weeds.js?v=244"></script>
+    <script src="js/calendar.js?v=244"></script>
+    <script src="js/gps.js?v=244"></script>
+    <script src="js/settings.js?v=244"></script>
+    <script src="js/house.js?v=244"></script>
+    <script src="js/floorplan.js?v=244"></script>
+    <script src="js/search.js?v=244"></script>
+    <script src="js/activityreport.js?v=244"></script>
+    <script src="js/checklists.js?v=244"></script>
+    <script src="js/bulkactivity.js?v=244"></script>
+    <script src="js/devnotes.js?v=244"></script>
+    <script src="js/vehicles.js?v=244"></script>
+    <script src="js/garage.js?v=244"></script>
+    <script src="js/structures.js?v=244"></script>
+    <script src="js/moveThings.js?v=244"></script>
+    <script src="js/journal.js?v=244"></script>
+    <script src="js/people.js?v=244"></script>
+    <script src="js/collections.js?v=244"></script>
+    <script src="js/health.js?v=244"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=243"></script>
-    <script src="js/secondbrain.js?v=243"></script>
-    <script src="js/sbissues.js?v=243"></script>
-    <script src="js/app.js?v=243"></script>
+    <script src="js/chat.js?v=244"></script>
+    <script src="js/secondbrain.js?v=244"></script>
+    <script src="js/sbissues.js?v=244"></script>
+    <script src="js/app.js?v=244"></script>
 
 </body>
 </html>

@@ -4877,3 +4877,45 @@ a.ar-target-link:hover {
     cursor: pointer;
     font-weight: normal;
 }
+
+/* ============================================================
+   DATE PARTS ROW (month / day / year inline fields)
+   ============================================================ */
+
+.date-parts-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.date-parts-row select {
+    flex: 2;
+    min-width: 0;
+}
+.date-parts-row input[type="number"] {
+    flex: 1;
+    min-width: 0;
+    text-align: center;
+}
+
+/* ============================================================
+   PEOPLE ANNUAL DATE CARDS ON CALENDAR PAGE
+   ============================================================ */
+
+.people-date-card {
+    border-left: 4px solid #0d9488;
+    background: #f0fdfa;
+}
+.people-date-person {
+    color: #0d9488;
+    text-decoration: none;
+    font-weight: 600;
+}
+.people-date-person:hover {
+    text-decoration: underline;
+}
+.people-date-age {
+    margin-left: 8px;
+    font-size: 0.8rem;
+    color: #888;
+    font-style: italic;
+}

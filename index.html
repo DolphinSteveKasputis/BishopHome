@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=216">
+    <link rel="stylesheet" href="css/styles.css?v=217">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -1544,6 +1544,11 @@
                 <h3 class="section-heading calendar-overdue-heading">Overdue</h3>
                 <div id="calendarOverdueContainer"></div>
             </div>
+            <!-- People annual dates (birthdays, anniversaries, etc.) -->
+            <div id="calendarPeopleSection" style="display:none;">
+                <h3 class="section-heading">People &amp; Annual Dates</h3>
+                <div id="calendarPeopleContainer"></div>
+            </div>
             <div id="calendarEventsContainer"></div>
             <p class="empty-state" id="calendarEmptyState">Loading...</p>
         </section>
@@ -2662,10 +2667,6 @@
                 <input type="text" id="personAddressInput" placeholder="Home address">
             </div>
             <div class="form-group">
-                <label for="personBirthdateInput">Birthdate</label>
-                <input type="date" id="personBirthdateInput">
-            </div>
-            <div class="form-group">
                 <label for="personFacebookInput">Facebook URL</label>
                 <input type="url" id="personFacebookInput" placeholder="https://facebook.com/...">
             </div>
@@ -2688,17 +2689,36 @@
             <h3 id="importantDateModalTitle">Add Important Date</h3>
             <div class="form-group">
                 <label for="importantDateLabelInput">Label</label>
-                <input type="text" id="importantDateLabelInput" placeholder="e.g., Anniversary, Graduation">
+                <input type="text" id="importantDateLabelInput" placeholder="e.g., Birthday, Anniversary, Graduation">
             </div>
             <div class="form-group">
-                <label for="importantDateDateInput">Date</label>
-                <input type="date" id="importantDateDateInput">
+                <label>Date</label>
+                <div class="date-parts-row">
+                    <select id="importantDateMonth">
+                        <option value="">Month</option>
+                        <option value="1">January</option>
+                        <option value="2">February</option>
+                        <option value="3">March</option>
+                        <option value="4">April</option>
+                        <option value="5">May</option>
+                        <option value="6">June</option>
+                        <option value="7">July</option>
+                        <option value="8">August</option>
+                        <option value="9">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+                    <input type="number" id="importantDateDay" min="1" max="31" placeholder="Day">
+                    <input type="number" id="importantDateYear" min="1900" max="2100" placeholder="Year (optional)">
+                </div>
             </div>
-            <div class="form-group form-group--checkbox">
-                <label>
-                    <input type="checkbox" id="importantDateRollUp">
-                    Show on Life calendar
-                </label>
+            <div class="form-group">
+                <label for="importantDateRecurrence">Recurrence</label>
+                <select id="importantDateRecurrence">
+                    <option value="once">One-time (stored for reference)</option>
+                    <option value="annual">Repeats every year (shows on calendar)</option>
+                </select>
             </div>
             <div class="modal-buttons">
                 <button class="btn btn-danger"    id="importantDateDeleteBtn" style="display:none;">Delete</button>
@@ -4580,41 +4600,41 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=216"></script>
-    <script src="js/auth.js?v=216"></script>
-    <script src="js/zones.js?v=216"></script>
-    <script src="js/plants.js?v=216"></script>
-    <script src="js/problems.js?v=216"></script>
-    <script src="js/facts.js?v=216"></script>
-    <script src="js/projects.js?v=216"></script>
-    <script src="js/chemicals.js?v=216"></script>
-    <script src="js/activities.js?v=216"></script>
+    <script src="js/firebase-config.js?v=217"></script>
+    <script src="js/auth.js?v=217"></script>
+    <script src="js/zones.js?v=217"></script>
+    <script src="js/plants.js?v=217"></script>
+    <script src="js/problems.js?v=217"></script>
+    <script src="js/facts.js?v=217"></script>
+    <script src="js/projects.js?v=217"></script>
+    <script src="js/chemicals.js?v=217"></script>
+    <script src="js/activities.js?v=217"></script>
     <!-- Cropper.js — client-side image cropping library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <!-- SortableJS — drag-and-drop list reordering -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    <script src="js/photos.js?v=216"></script>
-    <script src="js/weeds.js?v=216"></script>
-    <script src="js/calendar.js?v=216"></script>
-    <script src="js/gps.js?v=216"></script>
-    <script src="js/settings.js?v=216"></script>
-    <script src="js/house.js?v=216"></script>
-    <script src="js/floorplan.js?v=216"></script>
-    <script src="js/search.js?v=216"></script>
-    <script src="js/activityreport.js?v=216"></script>
-    <script src="js/checklists.js?v=216"></script>
-    <script src="js/bulkactivity.js?v=216"></script>
-    <script src="js/devnotes.js?v=216"></script>
-    <script src="js/vehicles.js?v=216"></script>
-    <script src="js/garage.js?v=216"></script>
-    <script src="js/structures.js?v=216"></script>
-    <script src="js/moveThings.js?v=216"></script>
-    <script src="js/journal.js?v=216"></script>
-    <script src="js/people.js?v=216"></script>
-    <script src="js/collections.js?v=216"></script>
+    <script src="js/photos.js?v=217"></script>
+    <script src="js/weeds.js?v=217"></script>
+    <script src="js/calendar.js?v=217"></script>
+    <script src="js/gps.js?v=217"></script>
+    <script src="js/settings.js?v=217"></script>
+    <script src="js/house.js?v=217"></script>
+    <script src="js/floorplan.js?v=217"></script>
+    <script src="js/search.js?v=217"></script>
+    <script src="js/activityreport.js?v=217"></script>
+    <script src="js/checklists.js?v=217"></script>
+    <script src="js/bulkactivity.js?v=217"></script>
+    <script src="js/devnotes.js?v=217"></script>
+    <script src="js/vehicles.js?v=217"></script>
+    <script src="js/garage.js?v=217"></script>
+    <script src="js/structures.js?v=217"></script>
+    <script src="js/moveThings.js?v=217"></script>
+    <script src="js/journal.js?v=217"></script>
+    <script src="js/people.js?v=217"></script>
+    <script src="js/collections.js?v=217"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=216"></script>
-    <script src="js/app.js?v=216"></script>
+    <script src="js/chat.js?v=217"></script>
+    <script src="js/app.js?v=217"></script>
 
 </body>
 </html>

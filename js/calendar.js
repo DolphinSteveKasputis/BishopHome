@@ -59,8 +59,9 @@ async function loadCalendar() {
     rangeEndDate.setMonth(rangeEndDate.getMonth() + calendarRangeMonths);
     var rangeEnd = formatDateISO(rangeEndDate);
 
-    // Load overdue section first
+    // Load overdue section first, then people annual dates
     await loadOverdueEvents();
+    await loadPeopleAnnualDates(today, rangeEndDate);
 
     try {
         var snapshot = await userCol('calendarEvents').get();
@@ -1602,3 +1603,133 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+// ============================================================
+// PEOPLE ANNUAL DATES — shown on the calendar from peopleImportantDates
+// ============================================================
+
+/**
+ * Query all peopleImportantDates with recurrence === 'annual',
+ * calculate the next occurrence within the current display range,
+ * and render them in the People section on the calendar page.
+ *
+ * @param {Date} rangeStart - Start of display range (today, midnight)
+ * @param {Date} rangeEnd   - End of display range
+ */
+async function loadPeopleAnnualDates(rangeStart, rangeEnd) {
+    var section   = document.getElementById('calendarPeopleSection');
+    var container = document.getElementById('calendarPeopleContainer');
+    if (!section || !container) return;
+
+    container.innerHTML = '';
+    section.style.display = 'none';
+
+    try {
+        // Fetch all annual important dates
+        var snap = await userCol('peopleImportantDates')
+            .where('recurrence', '==', 'annual')
+            .get();
+
+        if (snap.empty) return;
+
+        // Build a map of personId → person name (fetch all people once)
+        var peopleSnap = await userCol('people').get();
+        var personMap  = {};
+        peopleSnap.forEach(function(doc) {
+            personMap[doc.id] = doc.data().name || 'Unknown';
+        });
+
+        // Collect dates and their next occurrences within the range
+        var items = [];
+        snap.forEach(function(doc) {
+            var d = doc.data();
+            if (!d.month || !d.day) return;
+
+            var next = _nextAnnualOccurrence(d.month, d.day, rangeStart, rangeEnd);
+            if (!next) return;   // Falls outside the display range
+
+            items.push({
+                id:         doc.id,
+                label:      d.label    || '',
+                personId:   d.personId || '',
+                personName: personMap[d.personId] || '',
+                month:      d.month,
+                day:        d.day,
+                year:       d.year || null,    // Birth/event year for age calc
+                nextDate:   next,              // JS Date of next occurrence
+            });
+        });
+
+        if (items.length === 0) return;
+
+        // Sort by next occurrence date
+        items.sort(function(a, b) { return a.nextDate - b.nextDate; });
+
+        // Render each item
+        items.forEach(function(item) {
+            container.appendChild(_buildPeopleDateCard(item));
+        });
+
+        section.style.display = '';
+
+    } catch (err) {
+        console.error('loadPeopleAnnualDates error:', err);
+    }
+}
+
+/**
+ * Returns the next annual occurrence of month/day that falls within [rangeStart, rangeEnd].
+ * First tries the current year, then next year.
+ * Returns a JS Date, or null if no occurrence falls in range.
+ */
+function _nextAnnualOccurrence(month, day, rangeStart, rangeEnd) {
+    var thisYear = rangeStart.getFullYear();
+
+    for (var y = thisYear; y <= thisYear + 1; y++) {
+        var candidate = new Date(y, month - 1, day);
+        candidate.setHours(0, 0, 0, 0);
+        if (candidate >= rangeStart && candidate <= rangeEnd) {
+            return candidate;
+        }
+    }
+    return null;
+}
+
+/**
+ * Build a read-only calendar card for one people annual date.
+ */
+function _buildPeopleDateCard(item) {
+    var card = document.createElement('div');
+    card.className = 'calendar-event-card people-date-card';
+
+    // Date display: "March 15"
+    var monthNames = ['January','February','March','April','May','June',
+                      'July','August','September','October','November','December'];
+    var dateStr = monthNames[item.month - 1] + ' ' + item.day;
+
+    // Age line (only if we know the birth/event year)
+    var ageHtml = '';
+    if (item.year) {
+        var age = item.nextDate.getFullYear() - item.year;
+        if (age > 0) {
+            ageHtml = '<span class="people-date-age">turns ' + age + '</span>';
+        }
+    }
+
+    // Person link
+    var personHtml = item.personId
+        ? '<a class="people-date-person" href="#person/' + item.personId + '">' +
+              escapeHtml(item.personName) + '</a>'
+        : escapeHtml(item.personName);
+
+    card.innerHTML =
+        '<div class="calendar-event-date">' + escapeHtml(dateStr) + '</div>' +
+        '<div class="calendar-event-content">' +
+            '<div class="calendar-event-title">' +
+                escapeHtml(item.label) + ' — ' + personHtml + ageHtml +
+            '</div>' +
+            '<span class="calendar-event-badge">Annual</span>' +
+        '</div>';
+
+    return card;
+}

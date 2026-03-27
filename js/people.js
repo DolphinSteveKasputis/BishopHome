@@ -218,7 +218,6 @@ function renderPersonDetail(person, parentPerson) {
     if (person.phone)       rows += _contactRow('Phone',    '<a href="tel:' + escapeHtml(person.phone) + '">' + escapeHtml(person.phone) + '</a>');
     if (person.email)       rows += _contactRow('Email',    '<a href="mailto:' + escapeHtml(person.email) + '">' + escapeHtml(person.email) + '</a>');
     if (person.address)     rows += _contactRow('Address',  escapeHtml(person.address));
-    if (person.birthdate)   rows += _contactRow('Birthday', escapeHtml(person.birthdate));
     if (person.facebookUrl) rows += _contactRow('Facebook', '<a href="' + escapeHtml(person.facebookUrl) + '" target="_blank" rel="noopener">View Profile ↗</a>');
     if (person.howKnown)    rows += _contactRow('How known', escapeHtml(person.howKnown));
     if (person.notes)       rows += _contactRow('Notes',    escapeHtml(person.notes));
@@ -316,7 +315,6 @@ async function openAddPersonModal(parentPersonId) {
     document.getElementById('personPhoneInput').value      = '';
     document.getElementById('personEmailInput').value      = '';
     document.getElementById('personAddressInput').value    = '';
-    document.getElementById('personBirthdateInput').value  = '';
     document.getElementById('personFacebookInput').value   = '';
     document.getElementById('personNotesInput').value      = '';
     document.getElementById('personModalDeleteBtn').style.display  = 'none';
@@ -341,7 +339,6 @@ async function openEditPersonModal(person) {
     document.getElementById('personPhoneInput').value      = person.phone       || '';
     document.getElementById('personEmailInput').value      = person.email       || '';
     document.getElementById('personAddressInput').value    = person.address     || '';
-    document.getElementById('personBirthdateInput').value  = person.birthdate   || '';
     document.getElementById('personFacebookInput').value   = person.facebookUrl || '';
     document.getElementById('personNotesInput').value      = person.notes       || '';
     document.getElementById('personModalDeleteBtn').style.display  = '';
@@ -384,10 +381,9 @@ async function handlePersonModalSave() {
         name:        name,
         nickname:    document.getElementById('personNicknameInput').value.trim(),
         howKnown:    document.getElementById('personHowKnownInput').value.trim(),
-        phone:       document.getElementById('personPhoneInput').value.trim(),
+        phone:       formatPhoneNumber(document.getElementById('personPhoneInput').value.trim()),
         email:       document.getElementById('personEmailInput').value.trim(),
         address:     document.getElementById('personAddressInput').value.trim(),
-        birthdate:   document.getElementById('personBirthdateInput').value || '',
         facebookUrl: document.getElementById('personFacebookInput').value.trim(),
         notes:       document.getElementById('personNotesInput').value.trim(),
         category:    category,
@@ -548,13 +544,13 @@ function buildImportantDateItem(d, personId) {
     item.className = 'important-date-item';
     item.title     = 'Click to edit';
 
-    var calIcon = d.rollUpToCalendar
-        ? ' <span title="Shows on Life calendar">📅</span>' : '';
+    var annualIcon = d.recurrence === 'annual'
+        ? ' <span title="Repeats every year — shown on calendar">📅</span>' : '';
 
     item.innerHTML =
         '<div class="important-date-left">' +
-            '<span class="important-date-label">' + escapeHtml(d.label || '') + calIcon + '</span>' +
-            '<span class="important-date-value">'  + escapeHtml(d.date  || '') + '</span>' +
+            '<span class="important-date-label">' + escapeHtml(d.label || '') + annualIcon + '</span>' +
+            '<span class="important-date-value">'  + escapeHtml(formatImportantDate(d)) + '</span>' +
         '</div>' +
         '<span class="problem-arrow">›</span>';
 
@@ -565,9 +561,11 @@ function buildImportantDateItem(d, personId) {
 function openAddImportantDateModal(personId) {
     var modal = document.getElementById('importantDateModal');
     document.getElementById('importantDateModalTitle').textContent = 'Add Important Date';
-    document.getElementById('importantDateLabelInput').value = '';
-    document.getElementById('importantDateDateInput').value  = '';
-    document.getElementById('importantDateRollUp').checked   = false;
+    document.getElementById('importantDateLabelInput').value  = '';
+    document.getElementById('importantDateMonth').value       = '';
+    document.getElementById('importantDateDay').value         = '';
+    document.getElementById('importantDateYear').value        = '';
+    document.getElementById('importantDateRecurrence').value  = 'once';
     document.getElementById('importantDateDeleteBtn').style.display = 'none';
     modal.dataset.mode     = 'add';
     modal.dataset.editId   = '';
@@ -579,9 +577,11 @@ function openAddImportantDateModal(personId) {
 function openEditImportantDateModal(d, personId) {
     var modal = document.getElementById('importantDateModal');
     document.getElementById('importantDateModalTitle').textContent = 'Edit Important Date';
-    document.getElementById('importantDateLabelInput').value = d.label || '';
-    document.getElementById('importantDateDateInput').value  = d.date  || '';
-    document.getElementById('importantDateRollUp').checked   = !!d.rollUpToCalendar;
+    document.getElementById('importantDateLabelInput').value  = d.label      || '';
+    document.getElementById('importantDateMonth').value       = d.month      || '';
+    document.getElementById('importantDateDay').value         = d.day        || '';
+    document.getElementById('importantDateYear').value        = d.year       || '';
+    document.getElementById('importantDateRecurrence').value  = d.recurrence || 'once';
     document.getElementById('importantDateDeleteBtn').style.display = '';
     modal.dataset.mode     = 'edit';
     modal.dataset.editId   = d.id;
@@ -590,15 +590,19 @@ function openEditImportantDateModal(d, personId) {
 }
 
 async function handleImportantDateSave() {
-    var modal    = document.getElementById('importantDateModal');
-    var label    = document.getElementById('importantDateLabelInput').value.trim();
-    var date     = document.getElementById('importantDateDateInput').value;
-    var rollUp   = document.getElementById('importantDateRollUp').checked;
-    var personId = modal.dataset.personId;
+    var modal      = document.getElementById('importantDateModal');
+    var label      = document.getElementById('importantDateLabelInput').value.trim();
+    var month      = parseInt(document.getElementById('importantDateMonth').value) || 0;
+    var day        = parseInt(document.getElementById('importantDateDay').value)   || 0;
+    var yearVal    = document.getElementById('importantDateYear').value.trim();
+    var year       = yearVal ? parseInt(yearVal) : null;
+    var recurrence = document.getElementById('importantDateRecurrence').value || 'once';
+    var personId   = modal.dataset.personId;
 
-    if (!label || !date) { alert('Please enter both a label and a date.'); return; }
+    if (!label)        { alert('Please enter a label.');          return; }
+    if (!month || !day){ alert('Please enter at least month and day.'); return; }
 
-    var data = { personId: personId, label: label, date: date, rollUpToCalendar: rollUp };
+    var data = { personId: personId, label: label, month: month, day: day, year: year, recurrence: recurrence };
 
     try {
         if (modal.dataset.mode === 'add') {
@@ -606,7 +610,7 @@ async function handleImportantDateSave() {
             await userCol('peopleImportantDates').add(data);
         } else {
             await userCol('peopleImportantDates').doc(modal.dataset.editId).update({
-                label: label, date: date, rollUpToCalendar: rollUp
+                label: label, month: month, day: day, year: year, recurrence: recurrence
             });
         }
         closeModal('importantDateModal');
@@ -806,6 +810,42 @@ function _pplStopVoice() {
 }
 
 // ============================================================
+// DATE & PHONE HELPERS
+// ============================================================
+
+var MONTH_NAMES = [
+    'January','February','March','April','May','June',
+    'July','August','September','October','November','December'
+];
+
+/**
+ * Format an important date record into a readable string.
+ * Uses month/day/year fields (year optional).
+ * e.g. "March 15" or "March 15, 1985"
+ */
+function formatImportantDate(d) {
+    if (!d.month || !d.day) return d.date || '';   // fallback for old records
+    var s = MONTH_NAMES[d.month - 1] + ' ' + d.day;
+    if (d.year) s += ', ' + d.year;
+    return s;
+}
+
+/**
+ * Auto-format a US phone number.
+ * Strips non-digits. 10 digits → XXX-XXX-XXXX.
+ * 11 digits starting with 1 → trims the leading 1, then formats.
+ * Anything else is returned as-is.
+ */
+function formatPhoneNumber(raw) {
+    var digits = raw.replace(/\D/g, '');
+    if (digits.length === 11 && digits[0] === '1') digits = digits.slice(1);
+    if (digits.length === 10) {
+        return digits.slice(0, 3) + '-' + digits.slice(3, 6) + '-' + digits.slice(6);
+    }
+    return raw;   // Can't parse — leave unchanged
+}
+
+// ============================================================
 // RELOAD HELPERS  (called by facts.js / photos.js callbacks)
 // ============================================================
 
@@ -872,6 +912,12 @@ document.addEventListener('DOMContentLoaded', function() {
             handlePhotoFile('person', currentPerson.id, e.target.files[0]);
         }
         this.value = '';
+    });
+
+    // ---- Phone auto-format on blur ----
+    document.getElementById('personPhoneInput').addEventListener('blur', function() {
+        var formatted = formatPhoneNumber(this.value.trim());
+        if (formatted !== this.value.trim()) this.value = formatted;
     });
 
     // ---- Category select — show "add new" input when chosen ----

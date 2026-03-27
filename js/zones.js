@@ -450,6 +450,33 @@ function closeModal(modalId) {
     }
 }
 
+// ---------- Global Modal Drag-Protection ----------
+//
+// Problem: when the user clicks inside a modal (e.g. a text input) and drags
+// the mouse outside the modal card onto the overlay, the browser fires a
+// synthetic 'click' event on the overlay (nearest common ancestor of mousedown
+// and mouseup targets). Each modal's click-overlay-to-close handler then
+// triggers and unexpectedly closes the modal.
+//
+// Fix: intercept ALL clicks on modal overlays in the capture phase. If the
+// mousedown that started this gesture was NOT on the overlay itself (i.e. the
+// user was dragging, not clicking the backdrop), cancel the event so that no
+// close handler ever runs. Zero changes needed to individual modal handlers.
+
+var _modalOverlayMouseDownOnSelf = false;
+
+document.addEventListener('mousedown', function(e) {
+    _modalOverlayMouseDownOnSelf = e.target.classList.contains('modal-overlay');
+}, true);
+
+document.addEventListener('click', function(e) {
+    // If the click landed on an overlay but the drag started inside a modal,
+    // swallow the event so the modal stays open.
+    if (e.target.classList.contains('modal-overlay') && !_modalOverlayMouseDownOnSelf) {
+        e.stopPropagation();
+    }
+}, true);
+
 // ---------- Event Listeners (set up after DOM loads) ----------
 
 document.addEventListener('DOMContentLoaded', function() {

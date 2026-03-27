@@ -25,6 +25,11 @@ var PEOPLE_DEFAULT_CATEGORIES = [
  * Shows only top-level people (parentPersonId == null).
  */
 async function loadPeoplePage() {
+    // Set breadcrumb in sticky header (showPage clears it for top-level pages,
+    // so we re-set it here to show the Life context path).
+    var crumb = document.getElementById('breadcrumbBar');
+    if (crumb) crumb.innerHTML = '<a href="#life">Life</a><span class="separator">&rsaquo;</span><span>People</span>';
+
     var container  = document.getElementById('peopleListContainer');
     var emptyState = document.getElementById('peopleListEmpty');
     container.innerHTML = '';

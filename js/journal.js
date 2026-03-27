@@ -111,6 +111,10 @@ function loadLifePage() {
  * Called by app.js when routing to #journal.
  */
 async function loadJournalPage() {
+    // Set breadcrumb in sticky header (showPage clears it for top-level pages).
+    var crumb = document.getElementById('breadcrumbBar');
+    if (crumb) crumb.innerHTML = '<a href="#life">Life</a><span class="separator">&rsaquo;</span><span>Journal</span>';
+
     // Wire up toolbar buttons (safe to call each time — replaces listeners)
     _journalWireToolbar();
 

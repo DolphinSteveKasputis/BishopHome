@@ -190,9 +190,17 @@ function renderPhotoViewer(targetType, containerId) {
         viewer.appendChild(caption);
     }
 
-    // Action buttons: Edit Caption, Delete
+    // Action buttons: Crop, Edit Caption, Delete
     var actions = document.createElement('div');
     actions.className = 'photo-actions';
+
+    var cropBtn = document.createElement('button');
+    cropBtn.className = 'btn btn-small btn-secondary';
+    cropBtn.textContent = '✂ Crop';
+    cropBtn.addEventListener('click', function() {
+        cropExistingPhoto(photo, targetType, containerId);
+    });
+    actions.appendChild(cropBtn);
 
     var editCaptionBtn = document.createElement('button');
     editCaptionBtn.className = 'btn btn-small btn-secondary';
@@ -477,6 +485,53 @@ async function editPhotoCaption(photoId, targetType, containerId) {
     } catch (error) {
         console.error('Error updating caption:', error);
         alert('Error updating caption. Check console for details.');
+    }
+}
+
+// ---------- Crop Existing Photo ----------
+
+/**
+ * Opens the crop modal for a photo that is already saved in Firestore.
+ * Converts the stored base64 data URL → Blob, feeds it into the existing
+ * showCropPreview() flow, then compresses and saves the result back.
+ * Works for every targetType since renderPhotoViewer is the shared renderer.
+ *
+ * @param {Object} photo        - The photo object from photoViewerState
+ * @param {string} targetType
+ * @param {string} containerId
+ */
+async function cropExistingPhoto(photo, targetType, containerId) {
+    // Convert the stored data URL back to a Blob so showCropPreview can use it
+    var blob;
+    try {
+        var resp = await fetch(photo.imageData);
+        blob = await resp.blob();
+    } catch (err) {
+        console.error('cropExistingPhoto — failed to load image data:', err);
+        alert('Could not load photo for cropping.');
+        return;
+    }
+
+    // Open the existing crop modal; user can crop or cancel
+    var croppedBlob;
+    try {
+        croppedBlob = await showCropPreview(blob);
+    } catch (e) {
+        return; // User cancelled — nothing to do
+    }
+
+    try {
+        // Compress the cropped result and write back to the same Firestore doc
+        var newImageData = await compressImage(croppedBlob);
+        await userCol('photos').doc(photo.id).update({ imageData: newImageData });
+
+        // Update the in-memory cache so the viewer re-renders immediately
+        photo.imageData = newImageData;
+        renderPhotoViewer(targetType, containerId);
+
+    } catch (err) {
+        console.error('cropExistingPhoto — save error:', err);
+        alert('Error saving cropped photo.');
     }
 }
 

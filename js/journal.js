@@ -62,12 +62,45 @@ function journalFormatDateHeader(yyyyMmDd) {
 
 /**
  * Format a Firestore Timestamp (or JS Date) as "7:02 AM".
+ * Used as a fallback for old entries that don't have an entryTime field.
  * @param {object|Date} ts - A Firestore Timestamp or JS Date
  */
 function journalFormatTime(ts) {
     if (!ts) return '';
     var d = (ts.toDate) ? ts.toDate() : new Date(ts);
     return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+}
+
+/**
+ * Convert a stored "HH:MM" string to "7:02 AM" display format.
+ * @param {string} hhmm - 24-hour time string e.g. "14:30"
+ */
+function journalFormatTime12(hhmm) {
+    if (!hhmm) return '';
+    var parts = hhmm.split(':');
+    var h = parseInt(parts[0], 10);
+    var m = parts[1] || '00';
+    var ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    return h + ':' + m + ' ' + ampm;
+}
+
+/**
+ * Return the current local time as "HH:MM" for defaulting the time input.
+ */
+function journalCurrentTimeHHMM() {
+    var d = new Date();
+    return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+
+/**
+ * Derive an "HH:MM" string from a Firestore Timestamp, for pre-filling
+ * the time input on entries that pre-date the entryTime field.
+ */
+function journalTimestampToHHMM(ts) {
+    if (!ts) return journalCurrentTimeHHMM();
+    var d = (ts.toDate) ? ts.toDate() : new Date(ts);
+    return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
 }
 
 /**
@@ -297,9 +330,15 @@ async function loadJournalData() {
         // Sort dates descending (newest first)
         var sortedDates = Object.keys(dateMap).sort().reverse();
 
-        // Within each date, sort items by createdAt ascending (oldest time first)
+        // Within each date, sort items by entryTime (user-set) if available,
+        // falling back to createdAt for old entries without the field.
         sortedDates.forEach(function(date) {
             dateMap[date].sort(function(a, b) {
+                if (a.data.entryTime && b.data.entryTime) {
+                    // Both have user-set times — compare lexicographically (HH:MM is zero-padded)
+                    return a.data.entryTime.localeCompare(b.data.entryTime);
+                }
+                // Fall back to server createdAt millis
                 var ta = a.data.createdAt ? a.data.createdAt.toMillis() : 0;
                 var tb = b.data.createdAt ? b.data.createdAt.toMillis() : 0;
                 return ta - tb;
@@ -370,7 +409,8 @@ function renderJournalFeed(groupedData) {
  * Build the HTML for a single journal entry card.
  */
 function _renderEntryCard(id, data) {
-    var timeStr = journalFormatTime(data.createdAt);
+    // Show user-set time if stored; fall back to server createdAt for old entries
+    var timeStr = data.entryTime ? journalFormatTime12(data.entryTime) : journalFormatTime(data.createdAt);
     var text    = data.entryText || '';
 
     return '<div class="journal-item journal-item--entry">' +
@@ -461,8 +501,11 @@ function openAddJournalEntry() {
     var textEl   = document.getElementById('journalEntryText');
     var deleteBtn = document.getElementById('journalEntryDeleteBtn');
 
+    var timeEl   = document.getElementById('journalEntryTime');
+
     if (titleEl)  titleEl.textContent = 'New Journal Entry';
     if (dateEl)   dateEl.value = journalFormatDate(new Date());
+    if (timeEl)   timeEl.value = journalCurrentTimeHHMM();
     if (textEl)   textEl.value = '';
     if (deleteBtn) deleteBtn.classList.add('hidden');
 
@@ -510,11 +553,13 @@ async function openEditJournalEntry(id) {
 
         var titleEl   = document.getElementById('journalEntryPageTitle');
         var dateEl    = document.getElementById('journalEntryDate');
+        var timeEl    = document.getElementById('journalEntryTime');
         var textEl    = document.getElementById('journalEntryText');
         var deleteBtn = document.getElementById('journalEntryDeleteBtn');
 
         if (titleEl)  titleEl.textContent = 'Edit Journal Entry';
         if (dateEl)   dateEl.value = data.date || '';
+        if (timeEl)   timeEl.value = data.entryTime || journalTimestampToHHMM(data.createdAt);
         if (textEl)   textEl.value = data.entryText || '';
         if (deleteBtn) deleteBtn.classList.remove('hidden');
 
@@ -572,11 +617,13 @@ function _journalWireEntryPage() {
  */
 async function saveJournalEntry() {
     var dateEl = document.getElementById('journalEntryDate');
+    var timeEl = document.getElementById('journalEntryTime');
     var textEl = document.getElementById('journalEntryText');
     var saveBtn = document.getElementById('journalEntrySaveBtn');
 
-    var date = dateEl ? dateEl.value.trim() : '';
-    var text = textEl ? textEl.value.trim() : '';
+    var date      = dateEl ? dateEl.value.trim() : '';
+    var entryTime = timeEl ? timeEl.value.trim() : '';
+    var text      = textEl ? textEl.value.trim() : '';
 
     if (!date) {
         alert('Please select a date.');
@@ -597,6 +644,7 @@ async function saveJournalEntry() {
             var entryId = window.currentJournalEntry.id;
             await userCol('journalEntries').doc(entryId).update({
                 date:               date,
+                entryTime:          entryTime,
                 entryText:          text,
                 mentionedPersonIds: mentionedIds,
                 updatedAt:          firebase.firestore.FieldValue.serverTimestamp()
@@ -607,6 +655,7 @@ async function saveJournalEntry() {
             // Add new entry — need the generated ID to link interactions
             var ref = await userCol('journalEntries').add({
                 date:               date,
+                entryTime:          entryTime,
                 entryText:          text,
                 mentionedPersonIds: mentionedIds,
                 createdAt:          firebase.firestore.FieldValue.serverTimestamp()

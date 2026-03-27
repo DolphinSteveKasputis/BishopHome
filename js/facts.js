@@ -105,14 +105,6 @@ function createFactRow(fact, targetType, targetId) {
     });
     actions.appendChild(editBtn);
 
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'btn btn-small btn-danger';
-    deleteBtn.textContent = 'Delete';
-    deleteBtn.addEventListener('click', function() {
-        handleDeleteFact(fact.id, targetType, targetId);
-    });
-    actions.appendChild(deleteBtn);
-
     row.appendChild(actions);
 
     return row;
@@ -138,6 +130,10 @@ function openAddFactModal(targetType, targetId) {
     modal.dataset.mode = 'add';
     modal.dataset.targetType = targetType;
     modal.dataset.targetId = targetId;
+    modal.dataset.editId = '';
+
+    // Delete only applies to existing facts — hide it in add mode
+    document.getElementById('factModalDeleteBtn').classList.add('hidden');
 
     openModal('factModal');
     labelInput.focus();
@@ -165,6 +161,9 @@ function openEditFactModal(fact, targetType, targetId) {
     modal.dataset.editId = fact.id;
     modal.dataset.targetType = targetType;
     modal.dataset.targetId = targetId;
+
+    // Show Delete button in edit mode
+    document.getElementById('factModalDeleteBtn').classList.remove('hidden');
 
     openModal('factModal');
     labelInput.focus();
@@ -336,6 +335,19 @@ document.addEventListener('DOMContentLoaded', function() {
         if (chemicalId) {
             openAddFactModal('chemical', chemicalId);
         }
+    });
+
+    // Fact modal — Delete button (only visible in edit mode)
+    document.getElementById('factModalDeleteBtn').addEventListener('click', function() {
+        const modal = document.getElementById('factModal');
+        const factId = modal.dataset.editId;
+        const targetType = modal.dataset.targetType;
+        const targetId = modal.dataset.targetId;
+        if (!factId) return;
+        // Confirm before closing modal, so user can cancel without losing the modal
+        if (!confirm('Delete this fact?')) return;
+        closeModal('factModal');
+        handleDeleteFact(factId, targetType, targetId);
     });
 
     // Fact modal — Save button

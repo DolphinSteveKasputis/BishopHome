@@ -6255,3 +6255,34 @@ textarea.sb-field { resize: vertical; min-height: 60px; }
     cursor: pointer;
     flex-shrink: 0;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   H6 — Appointments
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Landing tile ───────────────────────────────────────────── */
+.landing-tile--health-appointments              { background: linear-gradient(135deg, #7c3aed, #6d28d9); color: #fff; }
+.landing-tile--health-appointments:hover        { background: linear-gradient(135deg, #6d28d9, #5b21b6); }
+
+/* ── Appointment status badges ──────────────────────────────── */
+.appt-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.appt-badge--scheduled  { background: #dbeafe; color: #1e40af; }
+.appt-badge--completed  { background: #d1fae5; color: #065f46; }
+.appt-badge--cancelled  { background: #f3f4f6; color: #6b7280; }
+.appt-badge--overdue    { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+
+/* ── Convert-to-visit modal hint text ───────────────────────── */
+.appt-convert-hint {
+    font-size: 0.85rem;
+    color: #6b7280;
+    margin: -4px 0 12px;
+    line-height: 1.4;
+}

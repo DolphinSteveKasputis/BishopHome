@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=249">
+    <link rel="stylesheet" href="css/styles.css?v=250">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -4274,6 +4274,11 @@
                     <span class="landing-tile-icon">🆘</span>
                     <span class="landing-tile-label">Emergency Info</span>
                 </a>
+                <!-- Row 7 — H6 ACTIVE features -->
+                <a href="#health-appointments" class="landing-tile landing-tile--health-appointments">
+                    <span class="landing-tile-icon">📅</span>
+                    <span class="landing-tile-label">Appointments</span>
+                </a>
             </div>
         </section>
 
@@ -5154,6 +5159,141 @@
             </div>
         </div>
 
+        <!-- ─── H6: APPOINTMENTS PAGES ───────────────────────────────── -->
+
+        <!-- Page: Appointments (#health-appointments) -->
+        <section class="page hidden" id="page-health-appointments">
+            <div class="page-header">
+                <button class="btn btn-secondary btn-small" onclick="location.hash='#health'">&larr; My Health</button>
+                <h2>&#128197; Appointments</h2>
+                <button class="btn btn-primary btn-small" onclick="openApptModal()">+ Add</button>
+            </div>
+            <div id="appointmentsList"></div>
+        </section>
+
+        <!-- ─── H6: APPOINTMENT MODALS ────────────────────────────────── -->
+
+        <!-- Modal: Add / Edit Appointment -->
+        <div class="modal-overlay" id="apptModal">
+            <div class="modal">
+                <h3 id="apptModalTitle">Add Appointment</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="apptDate">Date *</label>
+                        <input type="date" id="apptDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="apptTime">Time</label>
+                        <input type="time" id="apptTime">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="apptProvider">Provider / Location</label>
+                    <input type="text" id="apptProvider" placeholder="e.g. Dr. Smith, CVS Pharmacy">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="apptType">Type</label>
+                        <select id="apptType">
+                            <option value="">&#8212; Select type &#8212;</option>
+                            <option value="Physical">Physical</option>
+                            <option value="Follow-up">Follow-up</option>
+                            <option value="Dental Cleaning">Dental Cleaning</option>
+                            <option value="Specialist">Specialist</option>
+                            <option value="Lab Work">Lab Work</option>
+                            <option value="Eye Exam">Eye Exam</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="apptStatus">Status</label>
+                        <select id="apptStatus">
+                            <option value="scheduled">Scheduled</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="apptNotes">Notes</label>
+                    <textarea id="apptNotes" rows="3" placeholder="Prep instructions, what to bring, questions to ask..."></textarea>
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn btn-secondary" onclick="closeModal('apptModal')">Cancel</button>
+                    <button class="btn btn-primary" onclick="saveAppointment()">Save</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal: Mark Appointment Done / Convert to Visit -->
+        <div class="modal-overlay" id="apptConvertModal">
+            <div class="modal modal--wide">
+                <h3>Log Visit</h3>
+                <p class="appt-convert-hint">Fill in what happened at this appointment. This creates a Health Visit record and marks the appointment complete.</p>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="acvDate">Date *</label>
+                        <input type="date" id="acvDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="acvTime">Time</label>
+                        <input type="time" id="acvTime">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="acvProvider">Provider</label>
+                        <input type="text" id="acvProvider" placeholder="Doctor / facility name">
+                    </div>
+                    <div class="form-group">
+                        <label for="acvProviderType">Provider Type</label>
+                        <select id="acvProviderType">
+                            <option value="">&#8212; Select &#8212;</option>
+                            <option value="Primary Care">Primary Care</option>
+                            <option value="Dentist">Dentist</option>
+                            <option value="Optometrist">Optometrist</option>
+                            <option value="Specialist">Specialist</option>
+                            <option value="Urgent Care">Urgent Care</option>
+                            <option value="ER">ER</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="acvConcernId">Related Concern</label>
+                    <select id="acvConcernId">
+                        <option value="">&#8212; No concern linked &#8212;</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="acvReason">Reason for Visit</label>
+                    <input type="text" id="acvReason" placeholder="Why you went">
+                </div>
+                <div class="form-group">
+                    <label for="acvWhatDone">What Was Done</label>
+                    <textarea id="acvWhatDone" rows="2" placeholder="Procedures, diagnoses, treatments..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="acvOutcome">Outcome / Next Steps</label>
+                    <textarea id="acvOutcome" rows="2" placeholder="Results, follow-up instructions..."></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="acvCost">Out-of-Pocket Cost ($)</label>
+                        <input type="text" id="acvCost" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="acvNotes">Notes</label>
+                        <input type="text" id="acvNotes" placeholder="Anything else">
+                    </div>
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn btn-secondary" onclick="closeModal('apptConvertModal')">Cancel</button>
+                    <button class="btn btn-primary" onclick="saveConvertedVisit()">Save Visit</button>
+                </div>
+            </div>
+        </div>
+
         <!-- ─── H4: BLOOD WORK PAGES ──────────────────────────────────── -->
 
         <!-- Page: Blood Work List (#health-bloodwork) -->
@@ -6030,44 +6170,44 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=249"></script>
-    <script src="js/auth.js?v=249"></script>
-    <script src="js/zones.js?v=249"></script>
-    <script src="js/plants.js?v=249"></script>
-    <script src="js/problems.js?v=249"></script>
-    <script src="js/facts.js?v=249"></script>
-    <script src="js/projects.js?v=249"></script>
-    <script src="js/chemicals.js?v=249"></script>
-    <script src="js/activities.js?v=249"></script>
+    <script src="js/firebase-config.js?v=250"></script>
+    <script src="js/auth.js?v=250"></script>
+    <script src="js/zones.js?v=250"></script>
+    <script src="js/plants.js?v=250"></script>
+    <script src="js/problems.js?v=250"></script>
+    <script src="js/facts.js?v=250"></script>
+    <script src="js/projects.js?v=250"></script>
+    <script src="js/chemicals.js?v=250"></script>
+    <script src="js/activities.js?v=250"></script>
     <!-- Cropper.js — client-side image cropping library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <!-- SortableJS — drag-and-drop list reordering -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    <script src="js/photos.js?v=249"></script>
-    <script src="js/weeds.js?v=249"></script>
-    <script src="js/calendar.js?v=249"></script>
-    <script src="js/gps.js?v=249"></script>
-    <script src="js/settings.js?v=249"></script>
-    <script src="js/house.js?v=249"></script>
-    <script src="js/floorplan.js?v=249"></script>
-    <script src="js/search.js?v=249"></script>
-    <script src="js/activityreport.js?v=249"></script>
-    <script src="js/checklists.js?v=249"></script>
-    <script src="js/bulkactivity.js?v=249"></script>
-    <script src="js/devnotes.js?v=249"></script>
-    <script src="js/vehicles.js?v=249"></script>
-    <script src="js/garage.js?v=249"></script>
-    <script src="js/structures.js?v=249"></script>
-    <script src="js/moveThings.js?v=249"></script>
-    <script src="js/journal.js?v=249"></script>
-    <script src="js/people.js?v=249"></script>
-    <script src="js/collections.js?v=249"></script>
-    <script src="js/health.js?v=249"></script>
+    <script src="js/photos.js?v=250"></script>
+    <script src="js/weeds.js?v=250"></script>
+    <script src="js/calendar.js?v=250"></script>
+    <script src="js/gps.js?v=250"></script>
+    <script src="js/settings.js?v=250"></script>
+    <script src="js/house.js?v=250"></script>
+    <script src="js/floorplan.js?v=250"></script>
+    <script src="js/search.js?v=250"></script>
+    <script src="js/activityreport.js?v=250"></script>
+    <script src="js/checklists.js?v=250"></script>
+    <script src="js/bulkactivity.js?v=250"></script>
+    <script src="js/devnotes.js?v=250"></script>
+    <script src="js/vehicles.js?v=250"></script>
+    <script src="js/garage.js?v=250"></script>
+    <script src="js/structures.js?v=250"></script>
+    <script src="js/moveThings.js?v=250"></script>
+    <script src="js/journal.js?v=250"></script>
+    <script src="js/people.js?v=250"></script>
+    <script src="js/collections.js?v=250"></script>
+    <script src="js/health.js?v=250"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=249"></script>
-    <script src="js/secondbrain.js?v=249"></script>
-    <script src="js/sbissues.js?v=249"></script>
-    <script src="js/app.js?v=249"></script>
+    <script src="js/chat.js?v=250"></script>
+    <script src="js/secondbrain.js?v=250"></script>
+    <script src="js/sbissues.js?v=250"></script>
+    <script src="js/app.js?v=250"></script>
 
 </body>
 </html>

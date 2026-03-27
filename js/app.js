@@ -12,7 +12,7 @@
  */
 const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'house', 'settings', 'main', 'search', 'activityreport', 'checklists', 'notes', 'chat', 'vehicles', 'garage', 'structures', 'life', 'journal', 'collections', 'changepassword', 'people',
                          'health', 'health-visits', 'health-medications', 'health-conditions', 'health-concerns', 'health-bloodwork',
-                         'health-vitals', 'health-insurance', 'health-emergency'];
+                         'health-vitals', 'health-insurance', 'health-emergency', 'health-appointments'];
 
 /**
  * All pages that can be shown (includes detail pages not in the nav).
@@ -45,7 +45,8 @@ const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'jo
                      'health-medications', 'health-conditions', 'health-concerns', 'health-concern',
                      'health-allergies', 'health-supplements', 'health-vaccinations', 'health-eye',
                      'health-bloodwork', 'health-bloodwork-detail',
-                     'health-vitals', 'health-insurance', 'health-insurance-detail', 'health-emergency'];
+                     'health-vitals', 'health-insurance', 'health-insurance-detail', 'health-emergency',
+                     'health-appointments'];
 
 /** Tracks which nav context is currently active ('yard', 'house', or 'life'). */
 var currentNavContext = 'yard';
@@ -333,6 +334,10 @@ function handleRoute() {
     } else if (page === 'health-concern' && id) {
         showPage('health-concern');
         loadConcernDetail(id);
+    // ---------- Appointments route ----------
+    } else if (page === 'health-appointments') {
+        showPage('health-appointments');
+        loadAppointmentsPage();
     } else if (page === 'health') {
         showPage('health');
         loadHealthPage();

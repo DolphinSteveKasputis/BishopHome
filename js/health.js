@@ -2474,3 +2474,266 @@ function saveEmergencyInfo() {
         })
         .catch(function(err) { alert('Error saving: ' + err.message); });
 }
+
+
+// ════════════════════════════════════════════════════════════════
+// H6 — APPOINTMENTS
+// Firestore collection: healthAppointments
+// Fields: date, time, provider, type, notes, status, linkedVisitId
+// ════════════════════════════════════════════════════════════════
+
+/** Maps appointment type dropdown value to providerType for the Visit form. */
+var APPT_TYPE_TO_PROVIDER_TYPE = {
+    'Physical':        'Primary Care',
+    'Follow-up':       'Primary Care',
+    'Dental Cleaning': 'Dentist',
+    'Specialist':      'Specialist',
+    'Lab Work':        'Primary Care',
+    'Eye Exam':        'Optometrist',
+    'Other':           'Other'
+};
+
+/** Cache of appointments for the list page (used by convert modal). */
+var _apptAllRecords = [];
+
+// ── List page ────────────────────────────────────────────────────
+
+function loadAppointmentsPage() {
+    var container = document.getElementById('appointmentsList');
+    container.innerHTML = '<p class="empty-state">Loading...</p>';
+
+    userCol('healthAppointments').orderBy('date', 'asc').get().then(function(snap) {
+        _apptAllRecords = snap.docs.map(function(d) {
+            return Object.assign({ id: d.id }, d.data());
+        });
+
+        if (_apptAllRecords.length === 0) {
+            container.innerHTML = '<p class="empty-state">No appointments yet. Tap + Add to schedule one.</p>';
+            return;
+        }
+
+        var today    = new Date().toISOString().slice(0, 10);
+        var upcoming = _apptAllRecords.filter(function(a) { return a.status !== 'completed' && a.status !== 'cancelled' && a.date >= today; });
+        var overdue  = _apptAllRecords.filter(function(a) { return a.status !== 'completed' && a.status !== 'cancelled' && a.date < today; });
+        var past     = _apptAllRecords.filter(function(a) { return a.status === 'completed' || a.status === 'cancelled'; });
+
+        var html = '';
+
+        if (overdue.length > 0) {
+            html += '<div class="section-heading" style="color:#dc2626;">\u26a0\ufe0f Overdue</div>';
+            overdue.forEach(function(a) { html += buildAppointmentCard(a, true); });
+        }
+        if (upcoming.length > 0) {
+            html += '<div class="section-heading">Upcoming</div>';
+            upcoming.forEach(function(a) { html += buildAppointmentCard(a, false); });
+        }
+        if (upcoming.length === 0 && overdue.length === 0) {
+            html = '<p class="empty-state">No upcoming appointments.</p>' + html;
+        }
+        if (past.length > 0) {
+            html += '<div class="section-heading">Past Appointments</div>';
+            past.slice(0, 30).forEach(function(a) { html += buildAppointmentCard(a, false); });
+        }
+
+        container.innerHTML = html;
+    }).catch(function(err) {
+        container.innerHTML = '<p class="empty-state">Error loading: ' + escapeHtml(err.message) + '</p>';
+    });
+}
+
+function buildAppointmentCard(a, isOverdue) {
+    var statusClass = a.status === 'completed' ? 'appt-badge--completed'
+                    : a.status === 'cancelled' ? 'appt-badge--cancelled'
+                    : isOverdue                ? 'appt-badge--overdue'
+                    :                            'appt-badge--scheduled';
+    var statusLabel = a.status === 'completed' ? 'Completed'
+                    : a.status === 'cancelled' ? 'Cancelled'
+                    : isOverdue                ? 'Overdue'
+                    :                            'Scheduled';
+
+    var dateStr = a.date ? _apptFormatDate(a.date) : '—';
+    if (a.time) dateStr += ' at ' + _apptFormatTime(a.time);
+
+    var actionsHtml = '';
+    actionsHtml += '<button class="btn btn-secondary btn-small" onclick="openApptModal(\'' + a.id + '\')">Edit</button>';
+    if (a.status !== 'completed' && a.status !== 'cancelled') {
+        actionsHtml += '<button class="btn btn-primary btn-small" onclick="openConvertToVisitModal(\'' + a.id + '\')">\u2713 Mark Done</button>';
+        actionsHtml += '<button class="btn btn-secondary btn-small" onclick="cancelAppointment(\'' + a.id + '\')">Cancel</button>';
+    }
+    if (a.status === 'completed' && a.linkedVisitId) {
+        actionsHtml += '<a href="#health-visit/' + a.linkedVisitId + '" class="btn btn-secondary btn-small">View Visit</a>';
+    }
+    actionsHtml += '<button class="btn btn-danger btn-small" onclick="deleteAppointment(\'' + a.id + '\')">Delete</button>';
+
+    return '<div class="health-card">' +
+        '<div class="health-card-header">' +
+            '<div>' +
+                '<div class="health-card-title">' + escapeHtml(a.provider || 'No provider') + '</div>' +
+                '<div class="health-card-meta">' + escapeHtml(a.type || 'Appointment') + ' &bull; ' + dateStr + '</div>' +
+            '</div>' +
+            '<span class="appt-badge ' + statusClass + '">' + statusLabel + '</span>' +
+        '</div>' +
+        (a.notes ? '<div class="health-card-notes">' + escapeHtml(a.notes) + '</div>' : '') +
+        '<div class="health-card-actions">' + actionsHtml + '</div>' +
+    '</div>';
+}
+
+function _apptFormatDate(iso) {
+    var p = iso.split('-');
+    if (p.length !== 3) return iso;
+    var d = new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]));
+    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function _apptFormatTime(t) {
+    if (!t) return '';
+    var p = t.split(':');
+    var h = parseInt(p[0]), m = p[1];
+    var ampm = h >= 12 ? 'PM' : 'AM';
+    var h12 = h % 12 || 12;
+    return h12 + ':' + m + ' ' + ampm;
+}
+
+// ── Add / Edit modal ─────────────────────────────────────────────
+
+function openApptModal(id) {
+    var modal = document.getElementById('apptModal');
+    modal.dataset.editId = id || '';
+    document.getElementById('apptModalTitle').textContent = id ? 'Edit Appointment' : 'Add Appointment';
+
+    ['apptDate','apptTime','apptProvider','apptNotes'].forEach(function(f) {
+        document.getElementById(f).value = '';
+    });
+    document.getElementById('apptType').value   = '';
+    document.getElementById('apptStatus').value = 'scheduled';
+
+    if (id) {
+        userCol('healthAppointments').doc(id).get().then(function(snap) {
+            if (!snap.exists) return;
+            var d = snap.data();
+            document.getElementById('apptDate').value     = d.date     || '';
+            document.getElementById('apptTime').value     = d.time     || '';
+            document.getElementById('apptProvider').value = d.provider || '';
+            document.getElementById('apptType').value     = d.type     || '';
+            document.getElementById('apptStatus').value   = d.status   || 'scheduled';
+            document.getElementById('apptNotes').value    = d.notes    || '';
+        });
+    }
+    openModal('apptModal');
+}
+
+function saveAppointment() {
+    var date = document.getElementById('apptDate').value;
+    if (!date) { alert('Date is required.'); return; }
+
+    var data = {
+        date:     date,
+        time:     document.getElementById('apptTime').value.trim(),
+        provider: document.getElementById('apptProvider').value.trim(),
+        type:     document.getElementById('apptType').value,
+        status:   document.getElementById('apptStatus').value || 'scheduled',
+        notes:    document.getElementById('apptNotes').value.trim()
+    };
+
+    var modal  = document.getElementById('apptModal');
+    var editId = modal.dataset.editId;
+    var p;
+    if (editId) {
+        p = userCol('healthAppointments').doc(editId).update(data);
+    } else {
+        data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        p = userCol('healthAppointments').add(data);
+    }
+
+    p.then(function() {
+        document.getElementById('apptModal').classList.remove('open');
+        history.replaceState(null, '', '#health-appointments');
+        handleRoute();
+    }).catch(function(err) { alert('Error saving: ' + err.message); });
+}
+
+function deleteAppointment(id) {
+    if (!confirm('Delete this appointment?')) return;
+    userCol('healthAppointments').doc(id).delete().then(function() {
+        loadAppointmentsPage();
+    }).catch(function(err) { alert('Error: ' + err.message); });
+}
+
+function cancelAppointment(id) {
+    if (!confirm('Mark this appointment as cancelled?')) return;
+    userCol('healthAppointments').doc(id).update({ status: 'cancelled' }).then(function() {
+        loadAppointmentsPage();
+    }).catch(function(err) { alert('Error: ' + err.message); });
+}
+
+// ── Appointment to Visit conversion ──────────────────────────────
+
+/**
+ * Opens a conversion form pre-filled from the appointment.
+ * User reviews/edits the visit details, then saves — creating the visit
+ * and marking the appointment completed with linkedVisitId set.
+ */
+function openConvertToVisitModal(apptId) {
+    var appt = _apptAllRecords.find(function(a) { return a.id === apptId; });
+    if (!appt) return;
+
+    var modal = document.getElementById('apptConvertModal');
+    modal.dataset.apptId = apptId;
+
+    document.getElementById('acvDate').value         = appt.date || '';
+    document.getElementById('acvTime').value         = appt.time || '';
+    document.getElementById('acvProvider').value     = appt.provider || '';
+    document.getElementById('acvProviderType').value = APPT_TYPE_TO_PROVIDER_TYPE[appt.type] || '';
+    // Pre-visit prep notes intentionally do NOT carry over to the visit record
+    document.getElementById('acvReason').value    = '';
+    document.getElementById('acvWhatDone').value  = '';
+    document.getElementById('acvOutcome').value   = '';
+    document.getElementById('acvCost').value      = '';
+    document.getElementById('acvNotes').value     = '';
+
+    // Populate concern dropdown
+    var select = document.getElementById('acvConcernId');
+    select.innerHTML = '<option value="">\u2014 No concern linked \u2014</option>';
+    userCol('concerns').orderBy('title').get().then(function(snap) {
+        snap.docs.forEach(function(d) {
+            var opt = document.createElement('option');
+            opt.value = d.id;
+            opt.textContent = d.data().title || d.id;
+            select.appendChild(opt);
+        });
+    }).catch(function() {});
+
+    openModal('apptConvertModal');
+}
+
+function saveConvertedVisit() {
+    var date = document.getElementById('acvDate').value;
+    if (!date) { alert('Date is required.'); return; }
+
+    var visitData = {
+        date:         date,
+        provider:     document.getElementById('acvProvider').value.trim(),
+        providerType: document.getElementById('acvProviderType').value,
+        concernId:    document.getElementById('acvConcernId').value || null,
+        reason:       document.getElementById('acvReason').value.trim(),
+        whatWasDone:  document.getElementById('acvWhatDone').value.trim(),
+        outcome:      document.getElementById('acvOutcome').value.trim(),
+        cost:         document.getElementById('acvCost').value.trim(),
+        notes:        document.getElementById('acvNotes').value.trim(),
+        createdAt:    firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    var apptId = document.getElementById('apptConvertModal').dataset.apptId;
+
+    userCol('healthVisits').add(visitData).then(function(ref) {
+        // Mark appointment completed and link back to the new visit
+        return userCol('healthAppointments').doc(apptId).update({
+            status:        'completed',
+            linkedVisitId: ref.id
+        }).then(function() { return ref.id; });
+    }).then(function(visitId) {
+        document.getElementById('apptConvertModal').classList.remove('open');
+        history.replaceState(null, '', '#health-visit/' + visitId);
+        handleRoute();
+    }).catch(function(err) { alert('Error saving visit: ' + err.message); });
+}

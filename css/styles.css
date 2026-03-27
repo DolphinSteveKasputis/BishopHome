@@ -5490,3 +5490,11 @@ textarea.sb-field { resize: vertical; min-height: 60px; }
     font-style: italic;
     margin-bottom: 2px;
 }
+
+/* MOVE_THING: read-only item tag row in confirm modal */
+.sb-field-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 4px 0;
+}

@@ -33,7 +33,11 @@ var SB_TARGET_TYPES = {
     ADD_THING:     ['room','thing','garageroom','garagething','structure','structurething'],
     ATTACH_PHOTOS: ['zone','plant','weed','vehicle','person','floor','room','thing','subthing',
                     'garageroom','garagething','garagesubthing',
-                    'structure','structurething','structuresubthing']
+                    'structure','structurething','structuresubthing'],
+    // MOVE_THING — destination types for things vs subthings
+    // Things move to locations (room/garageroom/structure)
+    // SubThings move to parent things (thing/garagething/structurething)
+    MOVE_THING_DEST: ['room','garageroom','structure','thing','garagething','structurething']
 };
 
 // ---------- Display metadata ----------
@@ -42,7 +46,7 @@ var SB_ICONS = {
     ADD_PROBLEM:        '⚠️', ADD_IMPORTANT_DATE: '🎂', LOG_MILEAGE:        '🚗',
     ADD_FACT:           '📋', ADD_PROJECT:        '🔨', LOG_INTERACTION:    '👥',
     ADD_WEED:           '🌱', ADD_TRACKING_ENTRY: '📊', ADD_THING:          '📦',
-    ATTACH_PHOTOS:      '📷', UNKNOWN_ACTION:     '❓'
+    ATTACH_PHOTOS:      '📷', MOVE_THING:         '🚚', UNKNOWN_ACTION:     '❓'
 };
 var SB_LABELS = {
     ADD_JOURNAL_ENTRY:  'Add Journal Entry',  ADD_CALENDAR_EVENT: 'Add Calendar Event',
@@ -51,7 +55,8 @@ var SB_LABELS = {
     ADD_FACT:           'Add Fact',            ADD_PROJECT:        'Add Project',
     LOG_INTERACTION:    'Log Interaction',     ADD_WEED:           'Add Weed',
     ADD_TRACKING_ENTRY: 'Add Tracking Entry',  ADD_THING:          'Add Item',
-    ATTACH_PHOTOS:      'Attach Photos',       UNKNOWN_ACTION:     'Unknown Action'
+    ATTACH_PHOTOS:      'Attach Photos',       MOVE_THING:         'Move Item',
+    UNKNOWN_ACTION:     'Unknown Action'
 };
 
 // ============================================================
@@ -414,6 +419,9 @@ ctxJson,
 '',
 'ADD_THING — add a tracked item to a room/garage/structure; identify from photos if possible.',
 '{"action":"ADD_THING","payload":{"parentType":"room|thing|garageroom|garagething|structure|structurething","parentId":"id","parentLabel":"full path","name":"item name","notes":"","hasPhotos":true,"ambiguous":false}}',
+'',
+'MOVE_THING — move one or more items (things or subthings) to a new location. All items must be the same type and all move to the same destination (all-or-nothing). Things move to locations (room/garageroom/structure). SubThings move to parent things (thing/garagething/structurething).',
+'{"action":"MOVE_THING","payload":{"itemType":"thing|subthing|garagething|garagesubthing|structurething|structuresubthing","itemIds":["id"],"itemLabels":["name"],"destParentType":"room|garageroom|structure|thing|garagething|structurething","destParentId":"id","destParentLabel":"full path","ambiguous":false}}',
 '',
 'ATTACH_PHOTOS — attach photos to an existing record, no new record created.',
 '{"action":"ATTACH_PHOTOS","payload":{"targetType":"zone|plant|weed|vehicle|person|floor|room|thing|subthing|garageroom|garagething|garagesubthing|structure|structurething|structuresubthing","targetId":"id","targetLabel":"full path","caption":"optional","ambiguous":false}}',
@@ -891,6 +899,9 @@ function _sbTargetDropdown(allowedTypes, payload, fieldKey) {
     if (fieldKey === 'parent') {
         currentVal = (payload.parentType && payload.parentId)
             ? payload.parentType + '::' + payload.parentId : '';
+    } else if (fieldKey === 'dest') {
+        currentVal = (payload.destParentType && payload.destParentId)
+            ? payload.destParentType + '::' + payload.destParentId : '';
     } else {
         currentVal = (payload.targetType && payload.targetId)
             ? payload.targetType + '::' + payload.targetId : '';
@@ -1134,6 +1145,19 @@ function _sbRenderConfirmFields(action, payload) {
             break;
         }
 
+        case 'MOVE_THING': {
+            // Show read-only tags for each item being moved
+            var itemLabels = p.itemLabels || [];
+            var itemTags = itemLabels.map(function(lbl) {
+                return '<span class="sb-tag">' + _sbEsc(lbl) + '</span>';
+            }).join(' ');
+            html += _sbFieldRow('Items',
+                '<div class="sb-field-tags">' + (itemTags || '<em>No items identified</em>') + '</div>');
+            html += _sbFieldRow('Move To',
+                _sbTargetDropdown(SB_TARGET_TYPES.MOVE_THING_DEST, p, 'dest'));
+            break;
+        }
+
         case 'ADD_THING':
             html += _sbFieldRow('Parent',    _sbTargetDropdown(SB_TARGET_TYPES.ADD_THING, p, 'parent'));
             html += _sbFieldRow('Item Name',
@@ -1192,6 +1216,14 @@ function _sbReadConfirmFields() {
         var pparts = parentSel.value.split('::');
         updated.parentType = pparts[0] || null;
         updated.parentId   = pparts[1] || null;
+    }
+
+    // Dest dropdown (MOVE_THING) → destParentType + destParentId
+    var destSel = modal.querySelector('select[data-field="dest"]');
+    if (destSel && destSel.value) {
+        var dparts = destSel.value.split('::');
+        updated.destParentType = dparts[0] || null;
+        updated.destParentId   = dparts[1] || null;
     }
 
     // Zone checkboxes (ADD_WEED)
@@ -1543,6 +1575,53 @@ async function _sbWrite(action, payload) {
             return newId;
         }
 
+        // ---- Move Item (thing or subthing) ------------------
+        case 'MOVE_THING': {
+            var mvItemType = payload.itemType || '';
+            var mvItemIds  = payload.itemIds  || [];
+            var mvDestType = payload.destParentType || '';
+            var mvDestId   = payload.destParentId   || '';
+
+            if (!mvItemIds.length) throw new Error('MOVE_THING: no items to move.');
+            if (!mvDestId)         throw new Error('MOVE_THING: no destination selected.');
+
+            // Map itemType → Firestore collection
+            var mvCollMap = {
+                'thing':             'things',
+                'garagething':       'garageThings',
+                'structurething':    'structureThings',
+                'subthing':          'subThings',
+                'garagesubthing':    'garageSubThings',
+                'structuresubthing': 'structureSubThings'
+            };
+            var mvCollection = mvCollMap[mvItemType];
+            if (!mvCollection) throw new Error('MOVE_THING: unknown itemType "' + mvItemType + '"');
+
+            var mvIsSubThing = mvItemType.indexOf('subthing') !== -1;
+
+            for (var k = 0; k < mvItemIds.length; k++) {
+                var mvItemId = mvItemIds[k];
+                if (mvIsSubThing) {
+                    // SubThing: update thingId to point to the new parent thing
+                    await userCol(mvCollection).doc(mvItemId).update({ thingId: mvDestId });
+                } else {
+                    // Thing: clear old parent fields, set new one
+                    var mvUpdate = {};
+                    mvUpdate.roomId      = firebase.firestore.FieldValue.delete();
+                    mvUpdate.structureId = firebase.firestore.FieldValue.delete();
+                    if (mvDestType === 'room' || mvDestType === 'garageroom') {
+                        mvUpdate.roomId = mvDestId;
+                    } else if (mvDestType === 'structure') {
+                        mvUpdate.structureId = mvDestId;
+                    }
+                    await userCol(mvCollection).doc(mvItemId).update(mvUpdate);
+                }
+            }
+
+            newId = mvDestId;
+            return newId;
+        }
+
         // ---- Attach Photos ----------------------------------
         case 'ATTACH_PHOTOS': {
             await _sbSavePhotos(payload.targetType, payload.targetId, payload.caption || '');
@@ -1608,6 +1687,9 @@ function _sbNavigateTo(action, payload, newId) {
             break;
         case 'ADD_THING':
             hash = _sbTypeHash(payload.parentType, payload.parentId);
+            break;
+        case 'MOVE_THING':
+            hash = _sbTypeHash(payload.destParentType, payload.destParentId);
             break;
     }
 
@@ -1760,6 +1842,17 @@ var SB_HELP_ACTIONS = [
             'Add this to my garage workbench',
             'Add this tool to the shed shelves',
             'attach a photo and say "add this to the living room"'
+        ]
+    },
+    {
+        action: 'MOVE_THING',
+        icon: '🚚', label: 'Move Item',
+        desc: 'Move one or more tracked items to a new location. All items go from the same source to the same destination.',
+        examples: [
+            'I moved the chainsaw from the shed to the garage',
+            'I moved the chainsaw and ladder from the shed to the garage',
+            'Move the drill to the workbench',
+            'I moved the extension cord to the basement storage room'
         ]
     },
     {

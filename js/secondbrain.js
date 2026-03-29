@@ -1824,7 +1824,7 @@ var SB_HELP_ACTIONS = [
         examples: [
             'The shed roof is leaking near the back corner',
             'The rose bush has black spots on the leaves',
-            'The garage door is sticking when it's cold',
+            'The garage door is sticking when it\'s cold',
             'The truck is making a rattling noise'
         ]
     },

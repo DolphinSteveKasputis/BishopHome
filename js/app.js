@@ -421,6 +421,11 @@ window.addEventListener('hashchange', handleRoute);
  * so handleRoute is NOT called.
  */
 window.addEventListener('popstate', function() {
+    // If a file picker (camera/gallery) is open, the mobile browser may fire
+    // a popstate when the camera app closes. Ignore it — the SB modal should
+    // stay open so the user lands back on the QuickLog input screen.
+    if (window._sbFilePickerOpen) return;
+
     var openOverlay = document.querySelector('.modal-overlay.open');
     if (openOverlay) {
         // closeModal won't call history.back() again here because popstate has

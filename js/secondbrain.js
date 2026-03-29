@@ -2031,19 +2031,30 @@ document.addEventListener('DOMContentLoaded', function() {
     if (homeBtn) homeBtn.addEventListener('click', openSecondBrain);
 
     // Camera / Gallery
+    // Set a flag so the popstate handler in app.js knows NOT to close the modal
+    // when the camera app closes and fires a popstate event on mobile browsers.
     document.getElementById('sbCameraBtn').addEventListener('click', function() {
+        window._sbFilePickerOpen = true;
         document.getElementById('sbCameraInput').click();
     });
     document.getElementById('sbGalleryBtn').addEventListener('click', function() {
+        window._sbFilePickerOpen = true;
         document.getElementById('sbGalleryInput').click();
     });
     document.getElementById('sbCameraInput').addEventListener('change', function() {
+        window._sbFilePickerOpen = false;
         if (this.files[0]) _sbAddPhotoFromFile(this.files[0]);
         this.value = '';
     });
     document.getElementById('sbGalleryInput').addEventListener('change', function() {
+        window._sbFilePickerOpen = false;
         Array.from(this.files).forEach(function(f) { _sbAddPhotoFromFile(f); });
         this.value = '';
+    });
+    // Also clear the flag if the user cancels without selecting a file
+    // (change never fires in that case; focus returning to window is our signal).
+    window.addEventListener('focus', function() {
+        setTimeout(function() { window._sbFilePickerOpen = false; }, 500);
     });
 
     // Send (button + Enter key in textarea)

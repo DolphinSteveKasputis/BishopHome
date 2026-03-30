@@ -498,6 +498,15 @@ async function loadNotebookPage(notebookId) {
     var nameEl = document.getElementById('notebookDetailName');
     if (nameEl) nameEl.textContent = notebook.name;
 
+    // Breadcrumb: Notes › Notebook Name
+    var bar = document.getElementById('breadcrumbBar');
+    if (bar) {
+        bar.innerHTML =
+            '<a href="#notes" class="breadcrumb-link">Notes</a>' +
+            '<span class="breadcrumb-sep"> › </span>' +
+            '<span class="breadcrumb-current">' + (notebook.name || 'Notebook') + '</span>';
+    }
+
     // Clear search
     var searchInput = document.getElementById('notebookSearchInput');
     if (searchInput) searchInput.value = '';
@@ -834,6 +843,19 @@ async function loadNotePage(noteId) {
         window.currentNotebook = nbDoc.exists ? { id: nbDoc.id, ...nbDoc.data() } : null;
     }
 
+    // Breadcrumb: Notes › Notebook Name › Note
+    var bar = document.getElementById('breadcrumbBar');
+    if (bar) {
+        var nbName = (window.currentNotebook && window.currentNotebook.name) || 'Notebook';
+        var nbHash = (window.currentNotebook) ? '#notebook/' + window.currentNotebook.id : '#notes';
+        bar.innerHTML =
+            '<a href="#notes" class="breadcrumb-link">Notes</a>' +
+            '<span class="breadcrumb-sep"> › </span>' +
+            '<a href="' + nbHash + '" class="breadcrumb-link">' + nbName + '</a>' +
+            '<span class="breadcrumb-sep"> › </span>' +
+            '<span class="breadcrumb-current">Note</span>';
+    }
+
     // Populate view mode
     var timestampEl = document.getElementById('noteViewTimestamp');
     var bodyEl      = document.getElementById('noteViewBody');
@@ -862,6 +884,19 @@ async function loadNotePage(noteId) {
  */
 function loadNewNotePage() {
     window.currentNote = null;
+
+    // Breadcrumb: Notes › Notebook Name › New Note
+    var bar = document.getElementById('breadcrumbBar');
+    if (bar) {
+        var nbName = (window.currentNotebook && window.currentNotebook.name) || 'Notebook';
+        var nbHash = (window.currentNotebook) ? '#notebook/' + window.currentNotebook.id : '#notes';
+        bar.innerHTML =
+            '<a href="#notes" class="breadcrumb-link">Notes</a>' +
+            '<span class="breadcrumb-sep"> › </span>' +
+            '<a href="' + nbHash + '" class="breadcrumb-link">' + nbName + '</a>' +
+            '<span class="breadcrumb-sep"> › </span>' +
+            '<span class="breadcrumb-current">New Note</span>';
+    }
 
     // Clear the textarea
     var textarea = document.getElementById('noteBodyInput');
@@ -913,6 +948,11 @@ function _notesShowEditMode(title) {
     if (editEl) editEl.classList.remove('hidden');
     if (titleEl) titleEl.textContent = title || 'Edit Note';
     if (addPhotoSection) addPhotoSection.classList.remove('hidden');
+
+    // Initialize voice-to-text each time edit mode is shown
+    if (typeof initVoiceToText === 'function') {
+        initVoiceToText('noteBodyInput', 'noteSpeakBtn');
+    }
 }
 
 /** Switches an existing note to edit mode and pre-fills the textarea. */

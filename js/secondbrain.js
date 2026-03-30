@@ -49,7 +49,7 @@ var SB_ICONS = {
     ADD_FACT:           '📋', ADD_PROJECT:        '🔨', LOG_INTERACTION:    '👥',
     ADD_WEED:           '🌱', ADD_TRACKING_ENTRY: '📊', ADD_THING:          '📦',
     ATTACH_PHOTOS:      '📷', MOVE_THING:         '🚚', ADD_PLANT:          '🪴',
-    ADD_NOTE:           '📝', UNKNOWN_ACTION:     '❓'
+    ADD_NOTE:           '📝', FIND_THING:         '🔍', UNKNOWN_ACTION:     '❓'
 };
 var SB_LABELS = {
     ADD_JOURNAL_ENTRY:  'Add Journal Entry',  ADD_CALENDAR_EVENT: 'Add Calendar Event',
@@ -59,6 +59,7 @@ var SB_LABELS = {
     LOG_INTERACTION:    'Log Interaction',     ADD_WEED:           'Add Weed',
     ADD_TRACKING_ENTRY: 'Add Tracking Entry',  ADD_THING:          'Add Item',
     ATTACH_PHOTOS:      'Attach Photos',       MOVE_THING:         'Move Item',
+    FIND_THING:         'Find Item',
     ADD_PLANT:          'Add Plant',           ADD_NOTE:           'Add Note',
     UNKNOWN_ACTION:     'Unknown Action'
 };
@@ -455,6 +456,11 @@ ctxJson,
 'ATTACH_PHOTOS — attach photos to an existing record, no new record created.',
 '{"action":"ATTACH_PHOTOS","payload":{"targetType":"zone|plant|weed|vehicle|person|floor|room|thing|subthing|item|garageroom|garagething|garagesubthing|structure|structurething|structuresubthing","targetId":"id","targetLabel":"full path","caption":"optional","ambiguous":false}}',
 '',
+'FIND_THING — locate where something is stored or tracked. Search the full context (house, garage, structures, zones, plants, vehicles) for the closest name match.',
+'- Set found:false if nothing in the context matches.',
+'- path: human-readable breadcrumb, e.g. "1st Floor / Office / Desk / Top Drawer".',
+'{"action":"FIND_THING","payload":{"query":"user search term","found":true,"targetType":"floor|room|thing|subthing|item|garageroom|garagething|garagesubthing|structure|structurething|structuresubthing|zone|plant|vehicle|weed","targetId":"id","name":"exact matched name","path":"full path","ambiguous":false}}',
+'',
 'ADD_NOTE — add a note to a notebook. Use notebookNames from context to resolve the target notebook.',
 '- If no notebook is implied: set notebook="Default", notebookRequested=null.',
 '- If a notebook is implied and matches a name in notebookNames (case-insensitive): set notebook=<matched name>, notebookRequested=<user term>.',
@@ -828,11 +834,21 @@ function _sbShowConfirmation(result) {
     // Photo preview strip
     _sbRenderConfirmPhotos();
 
+    // Reset button text (may have been customized by a previous FIND_THING call)
+    var goBtnEl = document.getElementById('sbConfirmGoBtn');
+    if (goBtnEl) goBtnEl.textContent = '✓ Confirm & Go';
+
     // UNKNOWN_ACTION: hide confirm buttons, show Try Again
-    var isUnknown = (action === 'UNKNOWN_ACTION');
-    document.getElementById('sbConfirmGoBtn').classList.toggle('hidden',       isUnknown);
-    document.getElementById('sbConfirmDoneBtn').classList.toggle('hidden',     isUnknown);
+    var isUnknown    = (action === 'UNKNOWN_ACTION');
+    var isFindThing  = (action === 'FIND_THING');
+    document.getElementById('sbConfirmGoBtn').classList.toggle('hidden',       isUnknown || (isFindThing && !payload.found));
+    document.getElementById('sbConfirmDoneBtn').classList.toggle('hidden',     isUnknown || isFindThing);
     document.getElementById('sbConfirmTryAgainBtn').classList.toggle('hidden', !isUnknown);
+
+    // FIND_THING: rename the Go button to "Take Me There"
+    if (isFindThing && payload.found) {
+        if (goBtnEl) goBtnEl.textContent = '🗺️ Take Me There';
+    }
 
     document.getElementById('sbConfirmModal').classList.add('open');
 }
@@ -1272,6 +1288,18 @@ function _sbRenderConfirmFields(action, payload) {
             break;
         }
 
+        case 'FIND_THING':
+            if (p.found) {
+                html += '<div class="sb-find-result">' +
+                        '<div class="sb-find-name">' + _sbEsc(p.name || p.query || '') + '</div>' +
+                        '<div class="sb-find-path">📍 ' + _sbEsc(p.path || '') + '</div>' +
+                        '</div>';
+            } else {
+                html += '<div class="sb-find-notfound">Nothing found matching <strong>' +
+                        _sbEsc(p.query || '') + '</strong>.</div>';
+            }
+            break;
+
         case 'UNKNOWN_ACTION':
             html += '<div class="sb-unknown-raw"><strong>You said:</strong> ' + _sbEsc(p.raw || '') + '</div>';
             if (p.llmNote) {
@@ -1348,6 +1376,13 @@ async function _sbExecuteAction(navigate) {
 
     var action  = _sbLastResult.action;
     var payload = _sbReadConfirmFields();
+
+    // FIND_THING is read-only — navigate immediately, no write
+    if (action === 'FIND_THING') {
+        _sbCloseConfirm();
+        _sbNavigateTo(action, payload, null);
+        return;
+    }
 
     // ATTACH_PHOTOS requires photos — hard guard before writing
     if (action === 'ATTACH_PHOTOS' && _sbPhotos.length === 0) {
@@ -1789,6 +1824,10 @@ async function _sbWrite(action, payload) {
             break;
         }
 
+        case 'FIND_THING':
+            // Read-only — no write needed (short-circuited before _sbWrite in normal flow)
+            return null;
+
         default:
             throw new Error('SecondBrain: unhandled action "' + action + '"');
     }
@@ -1856,6 +1895,11 @@ function _sbNavigateTo(action, payload, newId) {
             break;
         case 'MOVE_THING':
             hash = _sbTypeHash(payload.destParentType, payload.destParentId);
+            break;
+        case 'FIND_THING':
+            hash = (payload.found && payload.targetType && payload.targetId)
+                ? _sbTypeHash(payload.targetType, payload.targetId)
+                : null;
             break;
     }
 
@@ -2053,6 +2097,17 @@ var SB_HELP_ACTIONS = [
             'Jot down — need to call the plumber about the downstairs bathroom',
             'Note that the azalea by the mailbox was blooming today',
             'Add a financial note: mortgage payment due on the 1st'
+        ]
+    },
+    {
+        action: 'FIND_THING',
+        icon: '🔍', label: 'Find Item',
+        desc: 'Locate where something is stored or tracked. Returns the full path and a "Take Me There" button.',
+        examples: [
+            'Where is my gator hat?',
+            'Find the stapler',
+            'Where did I put the router manual?',
+            'Locate the chainsaw'
         ]
     }
 ];

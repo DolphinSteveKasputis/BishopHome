@@ -406,6 +406,7 @@ function _getPasteEntity(type) {
         structuresubthing: window.currentStructureSubThing,
         collectionitem:    window.currentCollectionItem,
         person:            window.currentPerson,
+        item:              window.currentItem,
     };
     return entityMap[type] || null;
 }

@@ -1821,6 +1821,9 @@ async function _sbWrite(action, payload) {
                 noteCount: firebase.firestore.FieldValue.increment(1),
                 updatedAt: ts
             });
+
+            // Attach any QuickLog photo to the new note
+            await _sbSavePhotos('note', newId, '');
             break;
         }
 

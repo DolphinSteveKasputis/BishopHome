@@ -576,6 +576,13 @@ button {
     z-index: 300;
 }
 
+/* Crop modals must always appear on top of photo staging and other modals
+   (they sit earlier in the DOM but need to overlay photoStagingModal) */
+#cropPreviewModal,
+#stagingCropModal {
+    z-index: 400;
+}
+
 /* Chemical modal is wider to make facts/URLs easier to read */
 #chemicalModal .modal {
     max-width: 640px;

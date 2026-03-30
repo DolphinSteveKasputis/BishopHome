@@ -902,8 +902,6 @@ function loadNewNotePage() {
     var textarea = document.getElementById('noteBodyInput');
     if (textarea) {
         textarea.value = '';
-        // Focus after a tick so the page is visible
-        setTimeout(function() { textarea.focus(); }, 50);
     }
 
     // Show edit mode, hide view mode
@@ -960,7 +958,6 @@ function _notesEnterEditMode() {
     var textarea = document.getElementById('noteBodyInput');
     if (textarea && window.currentNote) {
         textarea.value = window.currentNote.body || '';
-        setTimeout(function() { textarea.focus(); }, 50);
     }
     _notesShowEditMode('Edit Note');
 }

@@ -522,11 +522,6 @@ function openAddJournalEntry() {
     var crumb = document.getElementById('breadcrumbBar');
     if (crumb) crumb.innerHTML = '<a href="#life">Life</a><span class="separator">&rsaquo;</span><a href="#journal">Journal</a><span class="separator">&rsaquo;</span><span>Entry</span>';
 
-    // Focus the textarea after navigation settles
-    setTimeout(function() {
-        var ta = document.getElementById('journalEntryText');
-        if (ta) ta.focus();
-    }, 100);
 }
 
 /**

@@ -788,6 +788,7 @@ function initVoiceToText(textareaId, btnId) {
 
     btn.onclick = function() {
         if (isListening) {
+            isListening = false;   // Set false before stop so onend doesn't auto-restart
             recognition.stop();
         } else {
             try {

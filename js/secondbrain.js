@@ -49,7 +49,8 @@ var SB_ICONS = {
     ADD_FACT:           '📋', ADD_PROJECT:        '🔨', LOG_INTERACTION:    '👥',
     ADD_WEED:           '🌱', ADD_TRACKING_ENTRY: '📊', ADD_THING:          '📦',
     ATTACH_PHOTOS:      '📷', MOVE_THING:         '🚚', ADD_PLANT:          '🪴',
-    ADD_NOTE:           '📝', FIND_THING:         '🔍', UNKNOWN_ACTION:     '❓'
+    ADD_NOTE:           '📝', FIND_THING:         '🔍', ADD_DEV_NOTE:       '🛠️',
+    UNKNOWN_ACTION:     '❓'
 };
 var SB_LABELS = {
     ADD_JOURNAL_ENTRY:  'Add Journal Entry',  ADD_CALENDAR_EVENT: 'Add Calendar Event',
@@ -59,7 +60,7 @@ var SB_LABELS = {
     LOG_INTERACTION:    'Log Interaction',     ADD_WEED:           'Add Weed',
     ADD_TRACKING_ENTRY: 'Add Tracking Entry',  ADD_THING:          'Add Item',
     ATTACH_PHOTOS:      'Attach Photos',       MOVE_THING:         'Move Item',
-    FIND_THING:         'Find Item',
+    FIND_THING:         'Find Item',            ADD_DEV_NOTE:       'Dev Note',
     ADD_PLANT:          'Add Plant',           ADD_NOTE:           'Add Note',
     UNKNOWN_ACTION:     'Unknown Action'
 };
@@ -466,6 +467,9 @@ ctxJson,
 '- If a notebook is implied and matches a name in notebookNames (case-insensitive): set notebook=<matched name>, notebookRequested=<user term>.',
 '- If a notebook is implied but no match found: set notebook="Default", notebookRequested=<user term> (fallback — the app will warn the user).',
 '{"action":"ADD_NOTE","payload":{"notebook":"Default","notebookRequested":null,"note":"the note text"}}',
+'',
+'ADD_DEV_NOTE — leave a note for the developer. Use when the user says "note to dev", "dev note", "note to developer", "tell the developer", "leave a dev note", or similar. Always routes to the "Dev Notes" notebook.',
+'{"action":"ADD_DEV_NOTE","payload":{"note":"the note text"}}',
 '',
 'UNKNOWN_ACTION — nothing above fits.',
 '{"action":"UNKNOWN_ACTION","payload":{"raw":"user text","llmNote":"reason"}}',
@@ -1288,6 +1292,12 @@ function _sbRenderConfirmFields(action, payload) {
             break;
         }
 
+        case 'ADD_DEV_NOTE':
+            html += _sbFieldRow('Note',
+                '<textarea class="sb-field" data-field="note" rows="4">' + _sbEsc(p.note || '') + '</textarea>');
+            html += '<div class="sb-info">ℹ Will be saved to the <strong>Dev Notes</strong> notebook.</div>';
+            break;
+
         case 'FIND_THING':
             if (p.found) {
                 html += '<div class="sb-find-result">' +
@@ -1827,6 +1837,46 @@ async function _sbWrite(action, payload) {
             break;
         }
 
+        // ---- Add Dev Note ----------------------------------------
+        case 'ADD_DEV_NOTE': {
+            var devNoteText = (payload.note || '').trim();
+
+            // Ensure "Dev Notes" notebook exists
+            var devNbSnap = await userCol('notebooks')
+                .where('name', '==', 'Dev Notes').limit(1).get();
+            var devNbId;
+            if (devNbSnap.empty) {
+                var devNbRef = await userCol('notebooks').add({
+                    name: 'Dev Notes',
+                    noteCount: 0,
+                    createdAt: ts
+                });
+                devNbId = devNbRef.id;
+            } else {
+                devNbId = devNbSnap.docs[0].id;
+            }
+
+            ref   = await userCol('notes').add({
+                notebookId: devNbId,
+                body:       devNoteText,
+                createdAt:  ts,
+                updatedAt:  null
+            });
+            newId = ref.id;
+
+            await userCol('notebooks').doc(devNbId).update({
+                noteCount: firebase.firestore.FieldValue.increment(1),
+                updatedAt: ts
+            });
+
+            // Attach any QuickLog photo to the new dev note
+            await _sbSavePhotos('note', newId, '');
+
+            // Store notebookId in payload so navigation can use it
+            payload._devNbId = devNbId;
+            break;
+        }
+
         case 'FIND_THING':
             // Read-only — no write needed (short-circuited before _sbWrite in normal flow)
             return null;
@@ -1871,6 +1921,9 @@ function _sbNavigateTo(action, payload, newId) {
         case 'ADD_CALENDAR_EVENT':  hash = '#calendar';          break;
         case 'ADD_NOTE':
             hash = payload.notebookId ? '#notebook/' + payload.notebookId : '#notes';
+            break;
+        case 'ADD_DEV_NOTE':
+            hash = payload._devNbId ? '#notebook/' + payload._devNbId : '#notes';
             break;
         case 'ADD_TRACKING_ENTRY':  hash = '#journal-tracking';  break;
         case 'ADD_PLANT':
@@ -2100,6 +2153,17 @@ var SB_HELP_ACTIONS = [
             'Jot down — need to call the plumber about the downstairs bathroom',
             'Note that the azalea by the mailbox was blooming today',
             'Add a financial note: mortgage payment due on the 1st'
+        ]
+    },
+    {
+        action: 'ADD_DEV_NOTE',
+        icon: '🛠️', label: 'Dev Note',
+        desc: 'Leave a note for the developer. Always saved to the "Dev Notes" notebook. Use for bug reports, ideas, or reminders to fix something.',
+        examples: [
+            'Note to developer: the speech button gets stuck sometimes',
+            'Dev note — fix the photo layout on the notes page',
+            'Tell the developer the calendar is slow to load',
+            'Leave a dev note: add dark mode'
         ]
     },
     {

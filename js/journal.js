@@ -848,24 +848,32 @@ function initVoiceToText(textareaId, btnId) {
     };
 
     recognition.onend = function() {
-        isListening = false;
-        btn.textContent = '🎤 Speak';
-        btn.classList.remove('journal-voice-active');
+        // If isListening is still true, the browser cut off due to a pause —
+        // auto-restart so the user can take their time without losing the session.
+        if (isListening) {
+            try { recognition.start(); } catch (e) { /* already starting */ }
+        } else {
+            btn.textContent = '🎤 Speak';
+            btn.classList.remove('journal-voice-active');
+        }
     };
 
     recognition.onerror = function(event) {
         console.warn('Speech recognition error:', event.error);
-        isListening = false;
-        btn.textContent = '🎤 Speak';
-        btn.classList.remove('journal-voice-active');
 
-        // Show a brief, non-intrusive error message
-        if (event.error !== 'no-speech') {
-            btn.textContent = '⚠️ Error';
-            setTimeout(function() {
-                btn.textContent = '🎤 Speak';
-            }, 2000);
+        if (event.error === 'no-speech') {
+            // Silence detected — restart quietly if user hasn't stopped
+            if (isListening) {
+                try { recognition.start(); } catch (e) { /* already starting */ }
+            }
+            return;
         }
+
+        // Any other error — stop fully and show brief indicator
+        isListening = false;
+        btn.textContent = '⚠️ Error';
+        btn.classList.remove('journal-voice-active');
+        setTimeout(function() { btn.textContent = '🎤 Speak'; }, 2000);
     };
 }
 

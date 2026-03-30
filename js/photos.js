@@ -923,6 +923,7 @@ function openLlmPhotoStaging(title, onSend) {
     // Trigger camera immediately for first photo
     var camInput = document.getElementById('stagingCameraInput');
     camInput.value = '';
+    window._filePickerOpen = true;   // block popstate from closing modal when camera returns
     camInput.click();
 }
 
@@ -1069,6 +1070,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Staging camera input — fires after user takes/selects a photo
     document.getElementById('stagingCameraInput').addEventListener('change', function() {
+        window._filePickerOpen = false;  // camera returned
         if (this.files && this.files[0]) {
             _stagingHandleCamera(this.files[0]);
         }
@@ -1079,6 +1081,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('photoStagingAddBtn').addEventListener('click', function() {
         var camInput = document.getElementById('stagingCameraInput');
         camInput.value = '';
+        window._filePickerOpen = true;   // camera opening — block popstate close
         camInput.click();
     });
 

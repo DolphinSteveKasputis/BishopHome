@@ -446,6 +446,9 @@ function closeModal(modalId) {
     // history in sync. (When the back button triggers closeModal, history
     // has already been popped, so history.state won't match and we skip this.)
     if (history.state && history.state.modal === modalId) {
+        // Signal the popstate handler to ignore this synthetic back navigation —
+        // it was us cleaning up history, not the user pressing the back button.
+        window._modalHistoryBack = true;
         history.back();
     }
 }

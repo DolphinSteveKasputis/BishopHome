@@ -2816,6 +2816,23 @@ document.getElementById('addItemBtn').addEventListener('click', function() {
     openItemModal(null, null);
 });
 
+// Sub-thing detail — "+Photo" quick-add for items — opens staging modal directly
+document.getElementById('quickAddItemPhotoBtn').addEventListener('click', function() {
+    houseQuickAddItemFromPhoto('quickAddItemPhotoBtn', 'quickItemCamInput');
+});
+// Legacy camera input kept wired for any remaining direct trigger path
+document.getElementById('quickItemCamInput').addEventListener('change', function() {
+    if (this.files && this.files.length > 0) {
+        (async function(files) {
+            var images = [];
+            for (var i = 0; i < Math.min(files.length, 4); i++) {
+                images.push(await compressImage(files[i]));
+            }
+            await _houseQuickSendToLlm(images, 'item', 'quickAddItemPhotoBtn', 'quickItemCamInput');
+        })(this.files);
+    }
+});
+
 // Sub-thing detail — Edit
 document.getElementById('editStBtn').addEventListener('click', function() {
     if (!currentSubThing) return;
@@ -3760,6 +3777,11 @@ async function houseSaveFromLlm(parsed, images, targetType, nameOverride) {
         itemData.category = document.getElementById('thingCategorySelect').value || 'other';
         itemData.roomId   = currentRoom.id;
         newRef = await userCol('things').add(itemData);
+    } else if (targetType === 'item') {
+        if (!currentSubThing) throw new Error('No parent sub-item selected.');
+        itemData.subThingId = currentSubThing.id;
+        itemData.tags       = [];
+        newRef = await userCol('subThingItems').add(itemData);
     } else {
         if (!currentThing) throw new Error('No parent item selected.');
         itemData.thingId = currentThing.id;
@@ -3770,7 +3792,7 @@ async function houseSaveFromLlm(parsed, images, targetType, nameOverride) {
     // Save photos only when identification produced a name
     var identified = !!(parsed.name || nameOverride);
     if (identified) {
-        var photoTargetType = isThing ? 'thing' : 'subthing';
+        var photoTargetType = isThing ? 'thing' : (targetType === 'item' ? 'item' : 'subthing');
         for (var i = 0; i < images.length; i++) {
             await userCol('photos').add({
                 targetType : photoTargetType,
@@ -3808,6 +3830,16 @@ function houseQuickAddThingFromPhoto(btnId, inputId) {
 function houseQuickAddSubThingFromPhoto(btnId, inputId) {
     openLlmPhotoStaging('Identify Item', function(images) {
         _houseQuickSendToLlm(images, 'subthing', btnId, inputId);
+    });
+}
+
+/**
+ * Quick-add a house item from the "+Photo" button on a sub-thing detail page.
+ * Opens the shared staging modal; sends staged images to LLM; saves directly.
+ */
+function houseQuickAddItemFromPhoto(btnId, inputId) {
+    openLlmPhotoStaging('Identify Item', function(images) {
+        _houseQuickSendToLlm(images, 'item', btnId, inputId);
     });
 }
 
@@ -3852,6 +3884,9 @@ async function _houseQuickSendToLlm(images, targetType, btnId, inputId) {
         if (targetType === 'thing') {
             await houseSaveFromLlm(parsed, images, 'thing', '');
             if (currentRoom) loadThingsList(currentRoom.id);
+        } else if (targetType === 'item') {
+            await houseSaveFromLlm(parsed, images, 'item', '');
+            if (currentSubThing) loadItemsList(currentSubThing.id);
         } else {
             await houseSaveFromLlm(parsed, images, 'subthing', '');
             if (currentThing) loadSubThingsList(currentThing.id);

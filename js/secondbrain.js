@@ -48,7 +48,7 @@ var SB_ICONS = {
     ADD_FACT:           '📋', ADD_PROJECT:        '🔨', LOG_INTERACTION:    '👥',
     ADD_WEED:           '🌱', ADD_TRACKING_ENTRY: '📊', ADD_THING:          '📦',
     ATTACH_PHOTOS:      '📷', MOVE_THING:         '🚚', ADD_PLANT:          '🪴',
-    UNKNOWN_ACTION:     '❓'
+    ADD_NOTE:           '📝', UNKNOWN_ACTION:     '❓'
 };
 var SB_LABELS = {
     ADD_JOURNAL_ENTRY:  'Add Journal Entry',  ADD_CALENDAR_EVENT: 'Add Calendar Event',
@@ -58,7 +58,8 @@ var SB_LABELS = {
     LOG_INTERACTION:    'Log Interaction',     ADD_WEED:           'Add Weed',
     ADD_TRACKING_ENTRY: 'Add Tracking Entry',  ADD_THING:          'Add Item',
     ATTACH_PHOTOS:      'Attach Photos',       MOVE_THING:         'Move Item',
-    ADD_PLANT:          'Add Plant',           UNKNOWN_ACTION:     'Unknown Action'
+    ADD_PLANT:          'Add Plant',           ADD_NOTE:           'Add Note',
+    UNKNOWN_ACTION:     'Unknown Action'
 };
 
 // ============================================================
@@ -107,7 +108,8 @@ async function _sbBuildContext() {
             weedsSnap, chemSnap, catSnap,
             floorsSnap, roomsSnap, thingsSnap, subThingsSnap,
             gRoomsSnap, gThingsSnap, gSubSnap,
-            strSnap, strThingsSnap, strSubSnap
+            strSnap, strThingsSnap, strSubSnap,
+            notebooksSnap
         ] = await Promise.all([
             userCol('zones').get(),
             userCol('plants').get(),
@@ -125,7 +127,8 @@ async function _sbBuildContext() {
             userCol('garageSubThings').get(),
             userCol('structures').get(),
             userCol('structureThings').get(),
-            userCol('structureSubThings').get()
+            userCol('structureSubThings').get(),
+            userCol('notebooks').orderBy('name').get()
         ]);
 
         // --- Zones (build hierarchy) ---
@@ -260,6 +263,12 @@ async function _sbBuildContext() {
         });
         var structures = Object.values(structById);
 
+        // --- Notebooks ---
+        var notebooks = [];
+        notebooksSnap.forEach(function(d) {
+            notebooks.push({ id: d.id, name: d.data().name || '' });
+        });
+
         // --- Assemble final context ---
         _sbContext = {
             today: _sbToday(), currentTime: _sbNow(),
@@ -267,7 +276,8 @@ async function _sbBuildContext() {
             plants: plants, people: people, vehicles: vehicles,
             weeds: weeds, chemicals: chemicals,
             trackingCategories: trackingCategories,
-            house: house, garage: garage, structures: structures
+            house: house, garage: garage, structures: structures,
+            notebooks: notebooks
         };
         _sbContextExp = now + SB_CACHE_MS;
         return _sbContext;
@@ -366,7 +376,8 @@ function _sbBuildSystemPrompt(ctx) {
         zones: ctx.zones, plants: ctx.plants, people: ctx.people,
         vehicles: ctx.vehicles, weeds: ctx.weeds, chemicals: ctx.chemicals,
         trackingCategories: ctx.trackingCategories,
-        house: ctx.house, garage: ctx.garage, structures: ctx.structures
+        house: ctx.house, garage: ctx.garage, structures: ctx.structures,
+        notebookNames: (ctx.notebooks || []).map(function(nb) { return nb.name; })
     });
 
     return [
@@ -430,6 +441,12 @@ ctxJson,
 '',
 'ATTACH_PHOTOS — attach photos to an existing record, no new record created.',
 '{"action":"ATTACH_PHOTOS","payload":{"targetType":"zone|plant|weed|vehicle|person|floor|room|thing|subthing|garageroom|garagething|garagesubthing|structure|structurething|structuresubthing","targetId":"id","targetLabel":"full path","caption":"optional","ambiguous":false}}',
+'',
+'ADD_NOTE — add a note to a notebook. Use notebookNames from context to resolve the target notebook.',
+'- If no notebook is implied: set notebook="Default", notebookRequested=null.',
+'- If a notebook is implied and matches a name in notebookNames (case-insensitive): set notebook=<matched name>, notebookRequested=<user term>.',
+'- If a notebook is implied but no match found: set notebook="Default", notebookRequested=<user term> (fallback — the app will warn the user).',
+'{"action":"ADD_NOTE","payload":{"notebook":"Default","notebookRequested":null,"note":"the note text"}}',
 '',
 'UNKNOWN_ACTION — nothing above fits.',
 '{"action":"UNKNOWN_ACTION","payload":{"raw":"user text","llmNote":"reason"}}',
@@ -874,6 +891,11 @@ function _sbRenderWarnings(action, payload) {
         html += '<div class="sb-info">ℹ New tracking category "' +
                 _sbEsc(p.categoryName || '') + '" will be created.</div>';
     }
+    // ADD_NOTE: warn when the user implied a notebook name but it couldn't be matched
+    if (action === 'ADD_NOTE' && p.notebookRequested && p.notebook === 'Default') {
+        html += '<div class="sb-warning">⚠ Notebook "' + _sbEsc(p.notebookRequested) +
+                '" not found — will add to Default. Use the dropdown above to redirect.</div>';
+    }
     // ATTACH_PHOTOS requires at least one photo
     if (action === 'ATTACH_PHOTOS' && _sbPhotos.length === 0) {
         html += '<div class="sb-warning">⚠ No photos are attached. Cancel and add photos before confirming.</div>';
@@ -1221,6 +1243,21 @@ function _sbRenderConfirmFields(action, payload) {
             html += _sbFieldRow('Caption',
                 '<input type="text" class="sb-field" data-field="caption" value="' + _sbEsc(p.caption || '') + '">');
             break;
+
+        case 'ADD_NOTE': {
+            // Build notebook dropdown from cached context
+            var notebooks = (_sbContext && _sbContext.notebooks) ? _sbContext.notebooks : [];
+            var resolvedName = p.notebook || 'Default';
+            var nbOptions = notebooks.map(function(nb) {
+                var sel = (nb.name === resolvedName) ? ' selected' : '';
+                return '<option value="' + _sbEsc(nb.id) + '"' + sel + '>' + _sbEsc(nb.name) + '</option>';
+            }).join('');
+            html += _sbFieldRow('Notebook',
+                '<select class="sb-field" data-field="notebookId">' + nbOptions + '</select>');
+            html += _sbFieldRow('Note',
+                '<textarea class="sb-field" data-field="note" rows="4">' + _sbEsc(p.note || '') + '</textarea>');
+            break;
+        }
 
         case 'UNKNOWN_ACTION':
             html += '<div class="sb-unknown-raw"><strong>You said:</strong> ' + _sbEsc(p.raw || '') + '</div>';
@@ -1693,6 +1730,44 @@ async function _sbWrite(action, payload) {
             return newId;
         }
 
+        // ---- Add Note ----------------------------------------
+        case 'ADD_NOTE': {
+            var noteText     = (payload.note || '').trim();
+            var notebookId   = payload.notebookId || null;
+
+            // Resolve notebook: use the ID from the dropdown if provided, otherwise fall back
+            if (!notebookId) {
+                // Try matching by name from context
+                var allNbs = (_sbContext && _sbContext.notebooks) ? _sbContext.notebooks : [];
+                var nbName = payload.notebook || 'Default';
+                var matched = allNbs.find(function(nb) {
+                    return nb.name.toLowerCase() === nbName.toLowerCase();
+                });
+                notebookId = matched ? matched.id : null;
+            }
+
+            if (!notebookId) {
+                // Absolute fallback: ensure Default exists and use it
+                var def = await notesEnsureDefaultNotebook();
+                notebookId = def.id;
+            }
+
+            ref   = await userCol('notes').add({
+                notebookId: notebookId,
+                body:       noteText,
+                createdAt:  ts,
+                updatedAt:  null
+            });
+            newId = ref.id;
+
+            // Increment notebook note count
+            await userCol('notebooks').doc(notebookId).update({
+                noteCount: firebase.firestore.FieldValue.increment(1),
+                updatedAt: ts
+            });
+            break;
+        }
+
         default:
             throw new Error('SecondBrain: unhandled action "' + action + '"');
     }
@@ -1731,6 +1806,9 @@ function _sbNavigateTo(action, payload, newId) {
     switch (action) {
         case 'ADD_JOURNAL_ENTRY':   hash = '#journal';           break;
         case 'ADD_CALENDAR_EVENT':  hash = '#calendar';          break;
+        case 'ADD_NOTE':
+            hash = payload.notebookId ? '#notebook/' + payload.notebookId : '#notes';
+            break;
         case 'ADD_TRACKING_ENTRY':  hash = '#journal-tracking';  break;
         case 'ADD_PLANT':
             hash = id ? '#plant/' + id : '#home';
@@ -1942,6 +2020,17 @@ var SB_HELP_ACTIONS = [
             'Add these photos to the back yard',
             'Attach this to the shed',
             'Add this picture to the truck'
+        ]
+    },
+    {
+        action: 'ADD_NOTE',
+        icon: '📝', label: 'Add Note',
+        desc: 'Add a note to a notebook. Optionally specify a notebook by name; falls back to Default if not found.',
+        examples: [
+            'Add a note to pay my taxes',
+            'Jot down — need to call the plumber about the downstairs bathroom',
+            'Note that the azalea by the mailbox was blooming today',
+            'Add a financial note: mortgage payment due on the 1st'
         ]
     }
 ];

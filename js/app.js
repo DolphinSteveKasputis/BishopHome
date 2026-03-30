@@ -27,6 +27,7 @@ const ALL_PAGES = [
     'journal-entry', 'journal-tracking', 'journal-categories',
     'collection', 'collectionitem',
     'person',
+    'notebook', 'note',
     'health-allergies', 'health-supplements', 'health-vaccinations', 'health-eye',
     'health-visit', 'health-medications', 'health-conditions', 'health-concerns', 'health-concern',
     'health-bloodwork-detail', 'health-insurance-detail'
@@ -41,6 +42,7 @@ const HOUSE_PAGES = ['house', 'floor', 'room', 'thing', 'subthing', 'floorplan',
 const YARD_PAGES  = ['main', 'home', 'zones', 'zone', 'plant', 'weeds', 'weed', 'chemicals', 'chemical', 'actions', 'gpsmap', 'yardmap', 'activityreport', 'checklists',
                      'structures', 'structure', 'structurething', 'structuresubthing'];
 const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'journal-categories', 'people', 'person',
+                     'notes', 'notebook', 'note',
                      'health', 'health-visits', 'health-visit',
                      'health-medications', 'health-conditions', 'health-concerns', 'health-concern',
                      'health-allergies', 'health-supplements', 'health-vaccinations', 'health-eye',
@@ -101,6 +103,8 @@ function showPage(page) {
     if (page === 'panel')      navPage = 'house';
     if (page === 'subthing')   navPage = 'house';
     if (page === 'person')     navPage = 'people'; // Sub-page of people
+    if (page === 'notebook')   navPage = 'notes';  // Sub-page of notes
+    if (page === 'note')       navPage = 'notes';  // Sub-page of notes
     if (page === 'main')       navPage = '';       // No link highlighted on the landing page
 
     document.querySelectorAll('.nav-link').forEach(function(link) {
@@ -220,9 +224,6 @@ function handleRoute() {
     } else if (page === 'backup') {
         showPage('backup');
         loadBackupPage();
-    } else if (page === 'notes') {
-        showPage('notes');
-        loadNotesPage();
     } else if (page === 'chat') {
         showPage('chat');
         loadChatPage();
@@ -290,6 +291,19 @@ function handleRoute() {
     } else if (page === 'journal-categories') {
         showPage('journal-categories');
         loadJournalCategoriesPage();
+    // ---------- Notes routes ----------
+    } else if (page === 'notes') {
+        showPage('notes');
+        loadNotesPage();
+    } else if (page === 'notebook' && id) {
+        showPage('notebook');
+        loadNotebookPage(id);
+    } else if (page === 'note' && id === 'new') {
+        showPage('note');
+        loadNewNotePage();
+    } else if (page === 'note' && id) {
+        showPage('note');
+        loadNotePage(id);
     // ---------- Vitals routes ----------
     } else if (page === 'health-vitals') {
         showPage('health-vitals');

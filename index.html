@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=254">
+    <link rel="stylesheet" href="css/styles.css?v=257">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -87,6 +87,7 @@
         <nav class="header-nav hidden" id="lifeNav">
             <a href="#journal" class="nav-link" data-page="journal">Journal</a>
             <a href="#people" class="nav-link" data-page="people">People</a>
+            <a href="#notes" class="nav-link" data-page="notes">Notes</a>
             <a href="#chat" class="nav-link" data-page="chat">Chat</a>
             <a href="#settings" class="nav-link" data-page="settings">Settings</a>
             <button class="nav-signout-btn" id="signOutBtnLife" title="Sign out">Sign Out</button>
@@ -4202,11 +4203,99 @@
                     <span class="landing-tile-icon">❤️</span>
                     <span class="landing-tile-label">My Health</span>
                 </a>
+                <a href="#notes" class="landing-tile landing-tile--notes">
+                    <span class="landing-tile-icon">📒</span>
+                    <span class="landing-tile-label">Notes</span>
+                </a>
             </div>
             <!-- Coming Up — annual dates within the next 30 days -->
             <div id="lifeCalendarSection" style="display:none; margin-top:24px;">
                 <div id="lifeCalendarContainer"></div>
             </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             NOTES PAGES — notebooks list, notebook detail, note view/edit
+             ═══════════════════════════════════════════════════════════ -->
+
+        <!-- Page: Notebooks List (#notes) -->
+        <section class="page hidden" id="page-notes">
+            <div class="page-header">
+                <h2>Notebooks</h2>
+                <button class="btn btn-primary btn-small" id="addNotebookBtn">+ Add Notebook</button>
+            </div>
+            <!-- Global search across all notes -->
+            <div class="notes-search-bar">
+                <input type="text" id="notesGlobalSearchInput" placeholder="Search all notes...">
+            </div>
+            <!-- Search results — shown only while a query is active -->
+            <div id="notesSearchResults" class="hidden"></div>
+            <!-- Notebook tiles grid — populated by notes.js -->
+            <div class="landing-grid" id="notebookGrid"></div>
+            <p id="notebookGridEmpty" class="hidden" style="color:#888;text-align:center;padding:24px 0;">No notebooks yet.</p>
+        </section>
+
+        <!-- Page: Notebook Detail (#notebook/{id}) -->
+        <section class="page hidden" id="page-notebook">
+            <div class="page-header">
+                <button class="btn btn-secondary btn-small" id="notebookBackBtn">← Notebooks</button>
+                <h2 id="notebookDetailName" style="flex:1;text-align:center;margin:0 8px;font-size:1.1rem;"></h2>
+                <div style="display:flex;gap:6px;flex-shrink:0;">
+                    <button class="btn btn-secondary btn-small" id="editNotebookBtn">Edit</button>
+                    <button class="btn btn-danger btn-small" id="deleteNotebookBtn">Delete</button>
+                </div>
+            </div>
+            <!-- Search within this notebook -->
+            <div class="notes-search-bar">
+                <input type="text" id="notebookSearchInput" placeholder="Search notes in this notebook...">
+            </div>
+            <!-- Add Note -->
+            <button class="btn btn-primary" id="addNoteBtn" style="margin-bottom:14px;">+ Add Note</button>
+            <!-- Note cards — populated by notes.js, oldest at top -->
+            <div id="notesList"></div>
+            <p id="notesListEmpty" class="hidden" style="color:#888;text-align:center;padding:24px 0;">No notes yet. Tap + Add Note to get started.</p>
+        </section>
+
+        <!-- Page: Note View / Edit (#note/{id} and #note/new) -->
+        <section class="page hidden" id="page-note">
+
+            <!-- ── View Mode ─────────────────────────────────────── -->
+            <div id="noteViewMode">
+                <div class="page-header">
+                    <button class="btn btn-secondary btn-small" id="noteBackBtn">← Back</button>
+                    <span id="noteViewTimestamp" class="note-page-timestamp"></span>
+                    <div style="display:flex;gap:6px;flex-shrink:0;">
+                        <button class="btn btn-secondary btn-small" id="noteEditBtn">Edit</button>
+                        <button class="btn btn-danger btn-small" id="noteDeleteBtn">Delete</button>
+                    </div>
+                </div>
+                <div id="noteViewBody" class="note-page-body"></div>
+            </div>
+
+            <!-- ── Edit Mode ─────────────────────────────────────── -->
+            <div id="noteEditMode" class="hidden">
+                <div class="page-header">
+                    <button class="btn btn-secondary btn-small" id="noteCancelEditBtn">Cancel</button>
+                    <h2 id="noteEditTitle" style="flex:1;text-align:center;font-size:1.1rem;margin:0 8px;">Edit Note</h2>
+                    <button class="btn btn-primary btn-small" id="noteSaveBtn">Save</button>
+                </div>
+                <textarea id="noteBodyInput" rows="12" placeholder="Write your note..." spellcheck="true"></textarea>
+            </div>
+
+            <!-- ── Photos — visible in both modes ───────────────── -->
+            <!-- noteAddPhotoSection is shown only in edit mode     -->
+            <div class="note-photos-section">
+                <div class="note-photos-header">
+                    <span class="note-photos-label">Photos</span>
+                    <div id="noteAddPhotoSection" class="hidden" style="display:flex;gap:6px;">
+                        <button class="btn btn-secondary btn-small" id="noteCameraBtn">📷 Camera</button>
+                        <button class="btn btn-secondary btn-small" id="noteGalleryBtn">🖼 Gallery</button>
+                    </div>
+                </div>
+                <div id="notePhotoContainer"></div>
+                <p id="notePhotoEmptyState" class="hidden" style="color:#888;font-size:0.9rem;margin:0;">No photos attached.</p>
+            </div>
+
         </section>
 
         <!-- ═══════════════════════════════════════════════════════════
@@ -6168,46 +6257,68 @@
     <!-- ========== SECONDBRAIN TOAST ========== -->
     <div id="sbToast" class="sb-toast hidden"></div>
 
+    <!-- ========== NOTEBOOK MODAL ========== -->
+    <div class="modal-overlay" id="notebookModal">
+        <div class="modal">
+            <h3 id="notebookModalTitle">Add Notebook</h3>
+            <div class="form-group">
+                <label for="notebookNameInput">Name *</label>
+                <input type="text" id="notebookNameInput" placeholder="Notebook name">
+            </div>
+            <div class="form-group">
+                <label>Color</label>
+                <!-- Swatch circles rendered by notes.js from NOTES_COLOR_SWATCHES -->
+                <div class="notes-color-swatches" id="notebookColorSwatches"></div>
+                <input type="hidden" id="notebookColorValue">
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="notebookModalCancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="notebookModalSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=254"></script>
-    <script src="js/auth.js?v=254"></script>
-    <script src="js/zones.js?v=254"></script>
-    <script src="js/plants.js?v=254"></script>
-    <script src="js/problems.js?v=254"></script>
-    <script src="js/facts.js?v=254"></script>
-    <script src="js/projects.js?v=254"></script>
-    <script src="js/chemicals.js?v=254"></script>
-    <script src="js/activities.js?v=254"></script>
+    <script src="js/firebase-config.js?v=257"></script>
+    <script src="js/auth.js?v=257"></script>
+    <script src="js/zones.js?v=257"></script>
+    <script src="js/plants.js?v=257"></script>
+    <script src="js/problems.js?v=257"></script>
+    <script src="js/facts.js?v=257"></script>
+    <script src="js/projects.js?v=257"></script>
+    <script src="js/chemicals.js?v=257"></script>
+    <script src="js/activities.js?v=257"></script>
     <!-- Cropper.js — client-side image cropping library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <!-- SortableJS — drag-and-drop list reordering -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    <script src="js/photos.js?v=254"></script>
-    <script src="js/weeds.js?v=254"></script>
-    <script src="js/calendar.js?v=254"></script>
-    <script src="js/gps.js?v=254"></script>
-    <script src="js/settings.js?v=254"></script>
-    <script src="js/house.js?v=254"></script>
-    <script src="js/floorplan.js?v=254"></script>
-    <script src="js/search.js?v=254"></script>
-    <script src="js/activityreport.js?v=254"></script>
-    <script src="js/checklists.js?v=254"></script>
-    <script src="js/bulkactivity.js?v=254"></script>
-    <script src="js/devnotes.js?v=254"></script>
-    <script src="js/vehicles.js?v=254"></script>
-    <script src="js/garage.js?v=254"></script>
-    <script src="js/structures.js?v=254"></script>
-    <script src="js/moveThings.js?v=254"></script>
-    <script src="js/journal.js?v=254"></script>
-    <script src="js/people.js?v=254"></script>
-    <script src="js/collections.js?v=254"></script>
-    <script src="js/health.js?v=254"></script>
+    <script src="js/photos.js?v=257"></script>
+    <script src="js/weeds.js?v=257"></script>
+    <script src="js/calendar.js?v=257"></script>
+    <script src="js/gps.js?v=257"></script>
+    <script src="js/settings.js?v=257"></script>
+    <script src="js/house.js?v=257"></script>
+    <script src="js/floorplan.js?v=257"></script>
+    <script src="js/search.js?v=257"></script>
+    <script src="js/activityreport.js?v=257"></script>
+    <script src="js/checklists.js?v=257"></script>
+    <script src="js/bulkactivity.js?v=257"></script>
+    <script src="js/devnotes.js?v=257"></script>
+    <script src="js/vehicles.js?v=257"></script>
+    <script src="js/garage.js?v=257"></script>
+    <script src="js/structures.js?v=257"></script>
+    <script src="js/moveThings.js?v=257"></script>
+    <script src="js/journal.js?v=257"></script>
+    <script src="js/people.js?v=257"></script>
+    <script src="js/collections.js?v=257"></script>
+    <script src="js/health.js?v=257"></script>
+    <script src="js/notes.js?v=257"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=254"></script>
-    <script src="js/secondbrain.js?v=254"></script>
-    <script src="js/sbissues.js?v=254"></script>
-    <script src="js/app.js?v=254"></script>
+    <script src="js/chat.js?v=257"></script>
+    <script src="js/secondbrain.js?v=257"></script>
+    <script src="js/sbissues.js?v=257"></script>
+    <script src="js/app.js?v=257"></script>
 
 </body>
 </html>

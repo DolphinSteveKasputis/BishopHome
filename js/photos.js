@@ -64,6 +64,7 @@ var PHOTO_CONTAINERS = {
     healthVisit:        ['visitPhotoContainer',           'visitPhotoEmptyState'],
     concern:            ['concernPhotoContainer',          'concernPhotoEmptyState'],
     insurancePolicy:    ['insurancePhotoContainer',        'insurancePhotoEmptyState'],
+    note:               ['notePhotoContainer',              'notePhotoEmptyState'],
 };
 
 // ---------- Load & Display Photos ----------
@@ -764,6 +765,7 @@ async function handleDeletePhoto(photoId, targetType) {
             structurething:     window.currentStructureThing,
             structuresubthing:  window.currentStructureSubThing,
             collectionitem:     window.currentCollectionItem,
+            note:               window.currentNote,
         };
         var current = currentMap[targetType];
         if (current && current.id) {

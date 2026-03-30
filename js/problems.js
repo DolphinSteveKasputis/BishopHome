@@ -198,6 +198,7 @@ async function loadProblems(targetType, targetId, containerId, emptyStateId) {
         'room':             'showResolvedRoomProblems',
         'thing':            'showResolvedThingProblems',
         'subthing':         'showResolvedSubThingProblems',
+        'item':             'showResolvedItemProblems',
         'panel':            'showResolvedPanelProblems',
         'weed':             'showResolvedWeedProblems',
     };

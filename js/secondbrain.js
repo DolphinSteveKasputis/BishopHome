@@ -21,24 +21,25 @@ var _sbLastRawResponse = '';            // raw LLM response string, saved for is
 
 // ---------- Which entity types are valid targets per action ----------
 var SB_TARGET_TYPES = {
-    LOG_ACTIVITY:  ['zone','plant','weed','vehicle','floor','room','thing','subthing',
+    LOG_ACTIVITY:  ['zone','plant','weed','vehicle','floor','room','thing','subthing','item',
                     'garageroom','garagething','garagesubthing',
                     'structure','structurething','structuresubthing'],
-    ADD_PROBLEM:   ['zone','plant','weed','vehicle','floor','room','thing','subthing',
+    ADD_PROBLEM:   ['zone','plant','weed','vehicle','floor','room','thing','subthing','item',
                     'garageroom','garagething','garagesubthing',
                     'structure','structurething','structuresubthing'],
-    ADD_FACT:      ['zone','plant','weed','vehicle','person','floor','room','thing','subthing',
+    ADD_FACT:      ['zone','plant','weed','vehicle','person','floor','room','thing','subthing','item',
                     'garageroom','garagething','garagesubthing',
                     'structure','structurething','structuresubthing'],
-    ADD_PROJECT:   ['zone','plant','vehicle','floor','room','thing','garageroom','structure'],
-    ADD_THING:     ['room','thing','garageroom','garagething','structure','structurething'],
-    ATTACH_PHOTOS: ['zone','plant','weed','vehicle','person','floor','room','thing','subthing',
+    ADD_PROJECT:   ['zone','plant','vehicle','floor','room','thing','subthing','item','garageroom','structure'],
+    ADD_THING:     ['room','thing','subthing','garageroom','garagething','structure','structurething'],
+    ATTACH_PHOTOS: ['zone','plant','weed','vehicle','person','floor','room','thing','subthing','item',
                     'garageroom','garagething','garagesubthing',
                     'structure','structurething','structuresubthing'],
-    // MOVE_THING — destination types for things vs subthings
+    // MOVE_THING — destination types for things vs subthings vs items
     // Things move to locations (room/garageroom/structure)
     // SubThings move to parent things (thing/garagething/structurething)
-    MOVE_THING_DEST: ['room','garageroom','structure','thing','garagething','structurething']
+    // Items move to parent subThings (subthing)
+    MOVE_THING_DEST: ['room','garageroom','structure','thing','garagething','structurething','subthing']
 };
 
 // ---------- Display metadata ----------
@@ -106,7 +107,7 @@ async function _sbBuildContext() {
         var [
             zonesSnap, plantsSnap, peopleSnap, vehiclesSnap,
             weedsSnap, chemSnap, catSnap,
-            floorsSnap, roomsSnap, thingsSnap, subThingsSnap,
+            floorsSnap, roomsSnap, thingsSnap, subThingsSnap, subThingItemsSnap,
             gRoomsSnap, gThingsSnap, gSubSnap,
             strSnap, strThingsSnap, strSubSnap,
             notebooksSnap
@@ -122,6 +123,7 @@ async function _sbBuildContext() {
             userCol('rooms').get(),
             userCol('things').get(),
             userCol('subThings').get(),
+            userCol('subThingItems').get(),
             userCol('garageRooms').get(),
             userCol('garageThings').get(),
             userCol('garageSubThings').get(),
@@ -180,8 +182,8 @@ async function _sbBuildContext() {
         chemSnap.forEach(function(d)  { chemicals.push({ id: d.id, name: d.data().name || '' }); });
         catSnap.forEach(function(d)   { trackingCategories.push({ id: d.id, name: d.data().name || '' }); });
 
-        // --- House (floors → rooms → things → subThings) ---
-        var floorsById = {}, roomsById = {}, thingsById = {};
+        // --- House (floors → rooms → things → subThings → items) ---
+        var floorsById = {}, roomsById = {}, thingsById = {}, subThingsById = {};
         floorsSnap.forEach(function(d) {
             floorsById[d.id] = { id: d.id, name: d.data().name || '', type: 'floor', rooms: [] };
         });
@@ -195,8 +197,15 @@ async function _sbBuildContext() {
         });
         subThingsSnap.forEach(function(d) {
             var st = d.data();
+            subThingsById[d.id] = { id: d.id, name: st.name || '', items: [] };
             if (st.thingId && thingsById[st.thingId]) {
-                thingsById[st.thingId].subthings.push({ id: d.id, name: st.name || '' });
+                thingsById[st.thingId].subthings.push(subThingsById[d.id]);
+            }
+        });
+        subThingItemsSnap.forEach(function(d) {
+            var si = d.data();
+            if (si.subThingId && subThingsById[si.subThingId]) {
+                subThingsById[si.subThingId].items.push({ id: d.id, name: si.name || '', type: 'item' });
             }
         });
         Object.values(thingsById).forEach(function(t) {
@@ -329,7 +338,11 @@ function _sbFlattenTargets(allowedTypes) {
                 var tl = rl + ' / ' + thing.name;
                 add('thing', thing.id, tl);
                 (thing.subthings || []).forEach(function(st) {
-                    add('subthing', st.id, tl + ' / ' + st.name);
+                    var stl = tl + ' / ' + st.name;
+                    add('subthing', st.id, stl);
+                    (st.items || []).forEach(function(item) {
+                        add('item', item.id, stl + ' / ' + item.name);
+                    });
                 });
             });
         });
@@ -404,10 +417,10 @@ ctxJson,
 'recurring: null | {"type":"weekly"} | {"type":"monthly"} | {"type":"intervalDays","intervalDays":N}',
 '',
 'LOG_ACTIVITY — physical task done on any entity (yard work, maintenance, painting, cleaning, etc.).',
-'{"action":"LOG_ACTIVITY","payload":{"targetType":"zone|plant|weed|vehicle|floor|room|thing|subthing|garageroom|garagething|garagesubthing|structure|structurething|structuresubthing","targetId":"id","targetLabel":"full path","description":"what was done","date":"YYYY-MM-DD","notes":"","chemicalIds":[],"chemicalLabels":[],"unknownChemicals":[],"ambiguous":false}}',
+'{"action":"LOG_ACTIVITY","payload":{"targetType":"zone|plant|weed|vehicle|floor|room|thing|subthing|item|garageroom|garagething|garagesubthing|structure|structurething|structuresubthing","targetId":"id","targetLabel":"full path","description":"what was done","date":"YYYY-MM-DD","notes":"","chemicalIds":[],"chemicalLabels":[],"unknownChemicals":[],"ambiguous":false}}',
 '',
 'ADD_PROBLEM — issue or concern with any entity.',
-'{"action":"ADD_PROBLEM","payload":{"targetType":"zone|plant|weed|vehicle|floor|room|thing|subthing|garageroom|garagething|garagesubthing|structure|structurething|structuresubthing","targetId":"id","targetLabel":"full path","description":"problem","notes":"","dateLogged":"YYYY-MM-DD","ambiguous":false}}',
+'{"action":"ADD_PROBLEM","payload":{"targetType":"zone|plant|weed|vehicle|floor|room|thing|subthing|item|garageroom|garagething|garagesubthing|structure|structurething|structuresubthing","targetId":"id","targetLabel":"full path","description":"problem","notes":"","dateLogged":"YYYY-MM-DD","ambiguous":false}}',
 '',
 'ADD_IMPORTANT_DATE — birthday, anniversary, or important date for a person.',
 '{"action":"ADD_IMPORTANT_DATE","payload":{"personId":"id or null","personName":"name","personFound":true,"label":"Birthday|Anniversary|etc","month":1,"day":1,"year":null,"notes":""}}',
@@ -416,10 +429,10 @@ ctxJson,
 '{"action":"LOG_MILEAGE","payload":{"vehicleId":"id","vehicleLabel":"name","mileage":12345,"date":"YYYY-MM-DD","notes":""}}',
 '',
 'ADD_FACT — factual attribute about any entity (size, spec, date, preference).',
-'{"action":"ADD_FACT","payload":{"targetType":"zone|plant|weed|vehicle|person|floor|room|thing|subthing|garageroom|garagething|garagesubthing|structure|structurething|structuresubthing","targetId":"id","targetLabel":"full path","label":"label","value":"value","ambiguous":false}}',
+'{"action":"ADD_FACT","payload":{"targetType":"zone|plant|weed|vehicle|person|floor|room|thing|subthing|item|garageroom|garagething|garagesubthing|structure|structurething|structuresubthing","targetId":"id","targetLabel":"full path","label":"label","value":"value","ambiguous":false}}',
 '',
 'ADD_PROJECT — future improvement or task to track (not a calendar event).',
-'{"action":"ADD_PROJECT","payload":{"targetType":"zone|plant|vehicle|floor|room|thing|garageroom|structure","targetId":"id","targetLabel":"full path","title":"title","notes":"","ambiguous":false}}',
+'{"action":"ADD_PROJECT","payload":{"targetType":"zone|plant|vehicle|floor|room|thing|subthing|item|garageroom|structure","targetId":"id","targetLabel":"full path","title":"title","notes":"","ambiguous":false}}',
 '',
 'LOG_INTERACTION — meeting, talking to, or spending time with a person.',
 '{"action":"LOG_INTERACTION","payload":{"personId":"id or null","personName":"name","personFound":true,"date":"YYYY-MM-DD","notes":"summary"}}',
@@ -433,14 +446,14 @@ ctxJson,
 'ADD_TRACKING_ENTRY — personal health/life metric (weight, BP, sleep, steps, etc.).',
 '{"action":"ADD_TRACKING_ENTRY","payload":{"date":"YYYY-MM-DD","categoryId":"id or null","categoryName":"name","categoryExists":true,"value":"value"}}',
 '',
-'ADD_THING — add a tracked item to a room/garage/structure; identify from photos if possible.',
-'{"action":"ADD_THING","payload":{"parentType":"room|thing|garageroom|garagething|structure|structurething","parentId":"id","parentLabel":"full path","name":"item name","notes":"","hasPhotos":true,"ambiguous":false}}',
+'ADD_THING — add a tracked item to a room/garage/structure or sub-item inside a subthing; identify from photos if possible.',
+'{"action":"ADD_THING","payload":{"parentType":"room|thing|subthing|garageroom|garagething|structure|structurething","parentId":"id","parentLabel":"full path","name":"item name","notes":"","hasPhotos":true,"ambiguous":false}}',
 '',
-'MOVE_THING — move one or more items (things or subthings) to a new location. All items must be the same type and all move to the same destination (all-or-nothing). Things move to locations (room/garageroom/structure). SubThings move to parent things (thing/garagething/structurething).',
-'{"action":"MOVE_THING","payload":{"itemType":"thing|subthing|garagething|garagesubthing|structurething|structuresubthing","itemIds":["id"],"itemLabels":["name"],"destParentType":"room|garageroom|structure|thing|garagething|structurething","destParentId":"id","destParentLabel":"full path","ambiguous":false}}',
+'MOVE_THING — move one or more items (things, subthings, or items) to a new location. All items must be the same type and all move to the same destination (all-or-nothing). Things move to locations (room/garageroom/structure). SubThings move to parent things (thing/garagething/structurething). Items move to parent subthings (subthing).',
+'{"action":"MOVE_THING","payload":{"itemType":"thing|subthing|item|garagething|garagesubthing|structurething|structuresubthing","itemIds":["id"],"itemLabels":["name"],"destParentType":"room|garageroom|structure|thing|subthing|garagething|structurething","destParentId":"id","destParentLabel":"full path","ambiguous":false}}',
 '',
 'ATTACH_PHOTOS — attach photos to an existing record, no new record created.',
-'{"action":"ATTACH_PHOTOS","payload":{"targetType":"zone|plant|weed|vehicle|person|floor|room|thing|subthing|garageroom|garagething|garagesubthing|structure|structurething|structuresubthing","targetId":"id","targetLabel":"full path","caption":"optional","ambiguous":false}}',
+'{"action":"ATTACH_PHOTOS","payload":{"targetType":"zone|plant|weed|vehicle|person|floor|room|thing|subthing|item|garageroom|garagething|garagesubthing|structure|structurething|structuresubthing","targetId":"id","targetLabel":"full path","caption":"optional","ambiguous":false}}',
 '',
 'ADD_NOTE — add a note to a notebook. Use notebookNames from context to resolve the target notebook.',
 '- If no notebook is implied: set notebook="Default", notebookRequested=null.',
@@ -1648,6 +1661,7 @@ async function _sbWrite(action, payload) {
             var thingColMap = {
                 'room':           { col: 'things',             parentField: 'roomId'      },
                 'thing':          { col: 'subThings',          parentField: 'thingId'     },
+                'subthing':       { col: 'subThingItems',      parentField: 'subThingId'  },
                 'garageroom':     { col: 'garageThings',       parentField: 'roomId'      },
                 'garagething':    { col: 'garageSubThings',    parentField: 'thingId'     },
                 'structure':      { col: 'structureThings',    parentField: 'structureId' },
@@ -1667,6 +1681,7 @@ async function _sbWrite(action, payload) {
             var thingPhotoTypeMap = {
                 'room':           'thing',
                 'thing':          'subthing',
+                'subthing':       'item',
                 'garageroom':     'garagething',
                 'garagething':    'garagesubthing',
                 'structure':      'structurething',
@@ -1693,17 +1708,23 @@ async function _sbWrite(action, payload) {
                 'structurething':    'structureThings',
                 'subthing':          'subThings',
                 'garagesubthing':    'garageSubThings',
-                'structuresubthing': 'structureSubThings'
+                'structuresubthing': 'structureSubThings',
+                'item':              'subThingItems'
             };
             var mvCollection = mvCollMap[mvItemType];
             if (!mvCollection) throw new Error('MOVE_THING: unknown itemType "' + mvItemType + '"');
 
-            var mvIsSubThing = mvItemType.indexOf('subthing') !== -1;
+            var mvIsSubThing = mvItemType.indexOf('subthing') !== -1 && mvItemType !== 'subthing';
+            var mvIsItem     = mvItemType === 'item';
+            var mvIsHouseSubThing = mvItemType === 'subthing';
 
             for (var k = 0; k < mvItemIds.length; k++) {
                 var mvItemId = mvItemIds[k];
-                if (mvIsSubThing) {
-                    // SubThing: update thingId to point to the new parent thing
+                if (mvIsItem) {
+                    // Item: update subThingId to point to the new parent subThing
+                    await userCol(mvCollection).doc(mvItemId).update({ subThingId: mvDestId });
+                } else if (mvIsHouseSubThing || mvIsSubThing) {
+                    // SubThing (house or garage/structure): update thingId to point to the new parent thing
                     await userCol(mvCollection).doc(mvItemId).update({ thingId: mvDestId });
                 } else {
                     // Thing: clear old parent fields, set new one
@@ -1849,7 +1870,8 @@ function _sbTypeHash(type, id) {
     var map = {
         zone: '#zone/', plant: '#plant/', vehicle: '#vehicle/', weed: '#weed/',
         person: '#person/', floor: '#floor/', room: '#room/', thing: '#thing/',
-        subthing: '#subthing/', garageroom: '#garageroom/', garagething: '#garagething/',
+        subthing: '#subthing/', item: '#item/',
+        garageroom: '#garageroom/', garagething: '#garagething/',
         garagesubthing: '#garagesubthing/', structure: '#structure/',
         structurething: '#structurething/', structuresubthing: '#structuresubthing/'
     };

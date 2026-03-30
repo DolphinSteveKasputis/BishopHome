@@ -78,6 +78,23 @@ async function getHouseContextLabel(targetType, targetId) {
             var fDoc2    = await userCol('floors').doc(rData2.floorId).get();
             var fName2   = fDoc2.exists ? fDoc2.data().name : 'Floor';
             return 'House \u203a ' + fName2 + ' \u203a ' + rData2.name + ' \u203a ' + tData.name + ' \u203a ' + stData.name;
+
+        } else if (targetType === 'item') {
+            var itemDoc = await userCol('subThingItems').doc(targetId).get();
+            if (!itemDoc.exists) return null;
+            var itemData2 = itemDoc.data();
+            var stDoc2    = await userCol('subThings').doc(itemData2.subThingId).get();
+            if (!stDoc2.exists) return 'House \u203a \u2026 \u203a ' + itemData2.name;
+            var stData2   = stDoc2.data();
+            var tDoc2     = await userCol('things').doc(stData2.thingId).get();
+            if (!tDoc2.exists) return 'House \u203a \u2026 \u203a ' + stData2.name + ' \u203a ' + itemData2.name;
+            var tData2    = tDoc2.data();
+            var rDoc3     = await userCol('rooms').doc(tData2.roomId).get();
+            if (!rDoc3.exists) return 'House \u203a \u2026 \u203a ' + tData2.name + ' \u203a ' + stData2.name + ' \u203a ' + itemData2.name;
+            var rData3    = rDoc3.data();
+            var fDoc3     = await userCol('floors').doc(rData3.floorId).get();
+            var fName3    = fDoc3.exists ? fDoc3.data().name : 'Floor';
+            return 'House \u203a ' + fName3 + ' \u203a ' + rData3.name + ' \u203a ' + tData2.name + ' \u203a ' + stData2.name + ' \u203a ' + itemData2.name;
         }
         return null;
     } catch (e) {
@@ -2380,6 +2397,79 @@ function loadSubThingDetail(subThingId) {
         .catch(function(err) { console.error('loadSubThingDetail error:', err); });
 }
 
+// ============================================================
+// ITEM LIST  (shown on SubThing detail page)
+// ============================================================
+
+/**
+ * Loads and renders all Items for a subThing as clickable cards.
+ * Called from renderSubThingDetail and after add/delete operations.
+ * @param {string} subThingId
+ */
+function loadItemsList(subThingId) {
+    var container  = document.getElementById('itemListContainer');
+    var emptyState = document.getElementById('itemListEmptyState');
+    if (!container) return;
+
+    container.innerHTML    = '';
+    emptyState.textContent = 'Loading…';
+
+    userCol('subThingItems').where('subThingId', '==', subThingId).get()
+        .then(function(snapshot) {
+            emptyState.textContent = '';
+            if (snapshot.empty) {
+                emptyState.textContent = 'No items yet. Tap + Add Item to start tracking.';
+                return;
+            }
+
+            var docs = [];
+            snapshot.forEach(function(doc) { docs.push(doc); });
+            docs.sort(function(a, b) {
+                var ta = a.data().createdAt ? a.data().createdAt.toMillis() : 0;
+                var tb = b.data().createdAt ? b.data().createdAt.toMillis() : 0;
+                return ta - tb;  // oldest first
+            });
+            docs.forEach(function(doc) {
+                container.appendChild(buildItemCard(doc.id, doc.data()));
+            });
+        })
+        .catch(function(err) {
+            console.error('loadItemsList error:', err);
+            emptyState.textContent = 'Error loading items.';
+        });
+}
+
+/**
+ * Builds a single clickable card for an Item in the list.
+ * @param {string} id   - Firestore document ID
+ * @param {Object} data - Item data
+ * @returns {HTMLElement}
+ */
+function buildItemCard(id, data) {
+    var card = document.createElement('div');
+    card.className = 'card card--clickable';
+
+    var label = escapeHtml(data.name || 'Unnamed Item');
+    var tags  = (data.tags || []).map(function(t) {
+        return '<span class="thing-tag-badge">' + escapeHtml(t) + '</span>';
+    }).join('');
+    var meta  = tags
+        ? '<div class="house-floor-meta" style="margin-top:3px">' + tags + '</div>'
+        : '';
+
+    card.innerHTML =
+        '<div class="card-main">' +
+            '<span class="card-title">' + label + '</span>' +
+            meta +
+        '</div>' +
+        '<span class="card-arrow">\u203a</span>';
+
+    card.addEventListener('click', function() {
+        window.location.hash = '#item/' + id;
+    });
+    return card;
+}
+
 function renderSubThingDetail(subThing, thing, room, floor) {
     document.getElementById('stTitle').textContent = subThing.name || 'Item';
 
@@ -2403,6 +2493,9 @@ function renderSubThingDetail(subThing, thing, room, floor) {
 
     // Details card
     renderInventoryDetails(subThing, 'stDetailsSection');
+
+    // Items list (fourth level)
+    loadItemsList(subThing.id);
 
     // All cross-entity feature sections
     loadProblems(  'subthing', subThing.id, 'stProblemsContainer', 'stProblemsEmptyState');
@@ -2540,17 +2633,26 @@ document.getElementById('stModalScanBtn').addEventListener('click', function() {
 document.getElementById('stModalDeleteBtn').addEventListener('click', function() {
     var editId = document.getElementById('subThingModal').dataset.editId;
     if (!editId) return;
-    if (!confirm('Delete this item? This cannot be undone.')) return;
-    userCol('subThings').doc(editId).delete()
-        .then(function() {
-            closeModal('subThingModal');
-            if (currentThing) {
-                window.location.hash = '#thing/' + currentThing.id;
-            } else {
-                window.location.hash = '#house';
+    // Guard: block delete if this subThing has items
+    userCol('subThingItems').where('subThingId', '==', editId).limit(1).get()
+        .then(function(snap) {
+            if (!snap.empty) {
+                alert('This sub-item has items. Delete all items first.');
+                return;
             }
+            if (!confirm('Delete this item? This cannot be undone.')) return;
+            userCol('subThings').doc(editId).delete()
+                .then(function() {
+                    closeModal('subThingModal');
+                    if (currentThing) {
+                        window.location.hash = '#thing/' + currentThing.id;
+                    } else {
+                        window.location.hash = '#house';
+                    }
+                })
+                .catch(function(err) { console.error('Delete subThing error:', err); });
         })
-        .catch(function(err) { console.error('Delete subThing error:', err); });
+        .catch(function(err) { console.error('Delete subThing guard error:', err); });
 });
 
 // ============================================================
@@ -2708,6 +2810,12 @@ document.getElementById('quickSubThingCamInput').addEventListener('change', func
     }
 });
 
+// Sub-thing detail — Add Item
+document.getElementById('addItemBtn').addEventListener('click', function() {
+    if (!currentSubThing) return;
+    openItemModal(null, null);
+});
+
 // Sub-thing detail — Edit
 document.getElementById('editStBtn').addEventListener('click', function() {
     if (!currentSubThing) return;
@@ -2832,19 +2940,27 @@ document.getElementById('stMoveSearchInput').addEventListener('input', function(
     stMoveRenderList(this.value);
 });
 
-// Sub-thing detail — Delete
+// Sub-thing detail — Delete (guarded: blocked if items exist)
 document.getElementById('deleteStBtn').addEventListener('click', function() {
     if (!currentSubThing) return;
-    if (!confirm('Delete "' + (currentSubThing.name || 'this item') + '"? This cannot be undone.')) return;
-    userCol('subThings').doc(currentSubThing.id).delete()
-        .then(function() {
-            if (currentThing) {
-                window.location.hash = '#thing/' + currentThing.id;
-            } else {
-                window.location.hash = '#house';
+    userCol('subThingItems').where('subThingId', '==', currentSubThing.id).limit(1).get()
+        .then(function(snap) {
+            if (!snap.empty) {
+                alert('This sub-item has items. Delete all items first.');
+                return;
             }
+            if (!confirm('Delete "' + (currentSubThing.name || 'this item') + '"? This cannot be undone.')) return;
+            userCol('subThings').doc(currentSubThing.id).delete()
+                .then(function() {
+                    if (currentThing) {
+                        window.location.hash = '#thing/' + currentThing.id;
+                    } else {
+                        window.location.hash = '#house';
+                    }
+                })
+                .catch(function(err) { console.error('Delete subThing error:', err); });
         })
-        .catch(function(err) { console.error('Delete subThing error:', err); });
+        .catch(function(err) { console.error('Delete subThing guard error:', err); });
 });
 
 // Sub-thing feature section buttons
@@ -3824,4 +3940,461 @@ document.getElementById('thingLlmReviewModal').addEventListener('click', functio
         houseLlmPending = null;
         closeModal('thingLlmReviewModal');
     }
+});
+
+// ============================================================
+// ITEMS  (subThingItems — fourth level of house hierarchy)
+// Room → Thing → SubThing → Item
+// ============================================================
+
+// ---- State ----
+var currentItem    = null;   // subThingItem document currently being viewed
+window.currentItem = null;   // also exposed on window for photos.js
+
+// Tag state for the subThingItem modal
+var siSelectedTags = [];     // Tags currently selected in the modal
+var siAllTags      = [];     // All known tag names (shared tag collection)
+
+// ============================================================
+// ITEM CRUD HELPERS
+// ============================================================
+
+/**
+ * Deletes an Item document and all cross-entity records attached to it
+ * (problems, facts, projects, activities, photos, calendarEvents).
+ * @param {string} itemId - Firestore ID of the subThingItems document.
+ */
+async function _deleteItemCascade(itemId) {
+    var collections = ['problems', 'facts', 'projects', 'activities', 'photos', 'calendarEvents'];
+    for (var i = 0; i < collections.length; i++) {
+        var snap = await userCol(collections[i])
+            .where('targetType', '==', 'item')
+            .where('targetId',   '==', itemId)
+            .get();
+        for (var j = 0; j < snap.docs.length; j++) {
+            await snap.docs[j].ref.delete();
+        }
+    }
+    await userCol('subThingItems').doc(itemId).delete();
+}
+
+// ============================================================
+// ITEM DETAIL PAGE  (#item/{itemId})
+// ============================================================
+
+/**
+ * Entry point called by app.js when navigating to #item/{id}.
+ * Loads the item and its full parent chain, then renders the detail page.
+ * @param {string} itemId
+ */
+function loadItemDetail(itemId) {
+    userCol('subThingItems').doc(itemId).get()
+        .then(function(doc) {
+            if (!doc.exists) { window.location.hash = '#house'; return; }
+            currentItem = window.currentItem = Object.assign({ id: doc.id }, doc.data());
+
+            // Load parent subThing
+            return userCol('subThings').doc(currentItem.subThingId).get()
+                .then(function(stDoc) {
+                    currentSubThing = stDoc.exists
+                        ? Object.assign({ id: stDoc.id }, stDoc.data())
+                        : { id: currentItem.subThingId, name: 'Sub-Item', thingId: null };
+
+                    var thingId = currentSubThing.thingId;
+                    if (!thingId) {
+                        currentThing = currentRoom = currentFloor = { id: '', name: '…' };
+                        renderItemDetail(currentItem, currentSubThing, currentThing, currentRoom, currentFloor);
+                        return;
+                    }
+
+                    return userCol('things').doc(thingId).get()
+                        .then(function(tDoc) {
+                            currentThing = tDoc.exists
+                                ? Object.assign({ id: tDoc.id }, tDoc.data())
+                                : { id: thingId, name: 'Thing', roomId: null };
+
+                            var roomId = currentThing.roomId;
+                            if (!roomId) {
+                                currentRoom  = { id: '', name: 'Room',  floorId: null };
+                                currentFloor = { id: '', name: 'Floor' };
+                                renderItemDetail(currentItem, currentSubThing, currentThing, currentRoom, currentFloor);
+                                return;
+                            }
+
+                            return userCol('rooms').doc(roomId).get()
+                                .then(function(rDoc) {
+                                    currentRoom = rDoc.exists
+                                        ? Object.assign({ id: rDoc.id }, rDoc.data())
+                                        : { id: roomId, name: 'Room', floorId: null };
+
+                                    var floorId = currentRoom.floorId;
+                                    if (!floorId) {
+                                        currentFloor = { id: '', name: 'Floor' };
+                                        renderItemDetail(currentItem, currentSubThing, currentThing, currentRoom, currentFloor);
+                                        return;
+                                    }
+
+                                    return userCol('floors').doc(floorId).get()
+                                        .then(function(fDoc) {
+                                            currentFloor = fDoc.exists
+                                                ? Object.assign({ id: fDoc.id }, fDoc.data())
+                                                : { id: floorId, name: 'Floor' };
+                                            renderItemDetail(currentItem, currentSubThing, currentThing, currentRoom, currentFloor);
+                                        });
+                                });
+                        });
+                });
+        })
+        .catch(function(err) { console.error('loadItemDetail error:', err); });
+}
+
+/**
+ * Renders all UI for the Item detail page once all parent docs are loaded.
+ */
+function renderItemDetail(item, subThing, thing, room, floor) {
+    document.getElementById('siTitle').textContent = item.name || 'Item';
+
+    // Meta line: Floor › Room › Thing › SubThing · #tag1 #tag2
+    var tagsText = (item.tags || []).map(function(t) { return '#' + t; }).join(' ');
+    document.getElementById('siMeta').textContent =
+        (floor.name    || '') + ' \u203a ' +
+        (room.name     || '') + ' \u203a ' +
+        (thing.name    || '') + ' \u203a ' +
+        (subThing.name || '') +
+        (tagsText ? ' \u00b7 ' + tagsText : '');
+
+    // Breadcrumb: House › Floor › Room › Thing › SubThing › Item
+    buildHouseBreadcrumb([
+        { label: 'House',                    hash: '#house' },
+        { label: floor.name    || 'Floor',   hash: floor.id    ? '#floor/'   + floor.id    : null },
+        { label: room.name     || 'Room',    hash: room.id     ? '#room/'    + room.id     : null },
+        { label: thing.name    || 'Thing',   hash: thing.id    ? '#thing/'   + thing.id    : null },
+        { label: subThing.name || 'Sub-Item',hash: subThing.id ? '#subthing/'+ subThing.id : null },
+        { label: item.name     || 'Item',    hash: null }
+    ]);
+
+    // Inventory details card
+    renderInventoryDetails(item, 'siDetailsSection');
+
+    // All cross-entity feature sections
+    loadProblems(  'item', item.id, 'siProblemsContainer', 'siProblemsEmptyState');
+    loadFacts(     'item', item.id, 'siFactsContainer',    'siFactsEmptyState');
+    loadProjects(  'item', item.id, 'siProjectsContainer', 'siProjectsEmptyState');
+    loadActivities('item', item.id, 'siActivityContainer', 'siActivityEmptyState');
+    loadPhotos(    'item', item.id, 'siPhotoContainer',    'siPhotoEmptyState');
+
+    if (typeof loadEventsForTarget === 'function') {
+        var months = parseInt(document.getElementById('siCalendarRangeSelect').value, 10) || 3;
+        loadEventsForTarget('item', item.id,
+            'siCalendarEventsContainer', 'siCalendarEventsEmptyState', months);
+    }
+}
+
+// ============================================================
+// ITEM MODAL  (Add / Edit)
+// ============================================================
+
+/**
+ * Opens the add/edit Item modal.
+ * @param {string|null} editId  - ID to edit, or null for add mode.
+ * @param {Object|null} data    - Existing item data for edit mode.
+ */
+function openItemModal(editId, data) {
+    var modal     = document.getElementById('subThingItemModal');
+    var nameInput = document.getElementById('siNameInput');
+    var deleteBtn = document.getElementById('siModalDeleteBtn');
+
+    if (editId) {
+        document.getElementById('siModalTitle').textContent  = 'Edit Item';
+        nameInput.value                                       = data.name        || '';
+        document.getElementById('siPricePaidInput').value    = data.pricePaid   || '';
+        document.getElementById('siWorthInput').value        = data.worth       || '';
+        document.getElementById('siYearBoughtInput').value   = data.yearBought  || '';
+        document.getElementById('siDescriptionInput').value  = data.description || '';
+        document.getElementById('siNotesInput').value        = data.notes       || '';
+        deleteBtn.style.display = '';
+        modal.dataset.mode   = 'edit';
+        modal.dataset.editId = editId;
+    } else {
+        document.getElementById('siModalTitle').textContent  = 'Add Item';
+        nameInput.value                                       = '';
+        document.getElementById('siPricePaidInput').value    = '';
+        document.getElementById('siWorthInput').value        = '';
+        document.getElementById('siYearBoughtInput').value   = '';
+        document.getElementById('siDescriptionInput').value  = '';
+        document.getElementById('siNotesInput').value        = '';
+        deleteBtn.style.display = 'none';
+        modal.dataset.mode   = 'add';
+        modal.dataset.editId = '';
+    }
+
+    // Initialize tag state
+    siSelectedTags = editId ? (data.tags || []).slice() : [];
+    siRenderChips();
+    document.getElementById('siTagInput').value = '';
+    document.getElementById('siTagSuggestions').classList.add('hidden');
+    siLoadTags();
+
+    openModal('subThingItemModal');
+    nameInput.focus();
+}
+
+// ---- Modal Save ----
+document.getElementById('siModalSaveBtn').addEventListener('click', function() {
+    var modal   = document.getElementById('subThingItemModal');
+    var nameVal = document.getElementById('siNameInput').value.trim();
+
+    if (!nameVal) { alert('Please enter a name.'); return; }
+
+    var itemData = {
+        name:        nameVal,
+        pricePaid:   document.getElementById('siPricePaidInput').value.trim()   || null,
+        worth:       document.getElementById('siWorthInput').value.trim()       || null,
+        yearBought:  document.getElementById('siYearBoughtInput').value.trim()  || null,
+        description: document.getElementById('siDescriptionInput').value.trim(),
+        notes:       document.getElementById('siNotesInput').value.trim(),
+        tags:        siSelectedTags.slice()
+    };
+
+    var mode   = modal.dataset.mode;
+    var editId = modal.dataset.editId;
+
+    if (mode === 'edit' && editId) {
+        userCol('subThingItems').doc(editId).update(itemData)
+            .then(function() {
+                closeModal('subThingItemModal');
+                loadItemDetail(editId);
+            })
+            .catch(function(err) { console.error('Update item error:', err); });
+    } else {
+        if (!currentSubThing) { alert('No parent sub-item selected.'); return; }
+        itemData.subThingId = currentSubThing.id;
+        itemData.createdAt  = firebase.firestore.FieldValue.serverTimestamp();
+        userCol('subThingItems').add(itemData)
+            .then(function(ref) {
+                closeModal('subThingItemModal');
+                // Navigate to the new item's detail page
+                window.location.hash = '#item/' + ref.id;
+            })
+            .catch(function(err) { console.error('Add item error:', err); });
+    }
+});
+
+// ---- Modal Cancel ----
+document.getElementById('siModalCancelBtn').addEventListener('click', function() {
+    closeModal('subThingItemModal');
+});
+
+// ---- Modal Delete ----
+document.getElementById('siModalDeleteBtn').addEventListener('click', function() {
+    var editId = document.getElementById('subThingItemModal').dataset.editId;
+    if (!editId) return;
+    if (!confirm('Delete this item? This cannot be undone.')) return;
+
+    _deleteItemCascade(editId)
+        .then(function() {
+            closeModal('subThingItemModal');
+            if (currentSubThing) {
+                window.location.hash = '#subthing/' + currentSubThing.id;
+            } else {
+                window.location.hash = '#house';
+            }
+        })
+        .catch(function(err) { console.error('Delete item error:', err); });
+});
+
+// ============================================================
+// ITEM DETAIL PAGE — button wiring
+// ============================================================
+
+// Edit button
+document.getElementById('editSiBtn').addEventListener('click', function() {
+    if (currentItem) openItemModal(currentItem.id, currentItem);
+});
+
+// Delete button (from detail page)
+document.getElementById('deleteSiBtn').addEventListener('click', function() {
+    if (!currentItem) return;
+    if (!confirm('Delete this item? This cannot be undone.')) return;
+
+    _deleteItemCascade(currentItem.id)
+        .then(function() {
+            if (currentSubThing) {
+                window.location.hash = '#subthing/' + currentSubThing.id;
+            } else {
+                window.location.hash = '#house';
+            }
+        })
+        .catch(function(err) { console.error('Delete item error:', err); });
+});
+
+// Cross-entity section buttons
+document.getElementById('addSiProblemBtn').addEventListener('click', function() {
+    if (currentItem) openAddProblemModal('item', currentItem.id);
+});
+
+document.getElementById('addSiFactBtn').addEventListener('click', function() {
+    if (currentItem) openAddFactModal('item', currentItem.id);
+});
+
+document.getElementById('addSiProjectBtn').addEventListener('click', function() {
+    if (currentItem) openAddProjectModal('item', currentItem.id);
+});
+
+document.getElementById('logSiActivityBtn').addEventListener('click', function() {
+    if (currentItem) openLogActivityModal('item', currentItem.id);
+});
+
+document.getElementById('addSiCameraBtn').addEventListener('click', function() {
+    if (currentItem) triggerCameraUpload('item', currentItem.id);
+});
+document.getElementById('addSiGalleryBtn').addEventListener('click', function() {
+    if (currentItem) triggerGalleryUpload('item', currentItem.id);
+});
+
+document.getElementById('addSiCalendarEventBtn').addEventListener('click', function() {
+    if (currentItem && typeof openAddCalendarEventModal === 'function') {
+        var reloadFn = function() {
+            var months = parseInt(document.getElementById('siCalendarRangeSelect').value, 10) || 3;
+            loadEventsForTarget('item', currentItem.id,
+                'siCalendarEventsContainer', 'siCalendarEventsEmptyState', months);
+        };
+        openAddCalendarEventModal('item', currentItem.id, reloadFn);
+    }
+});
+
+document.getElementById('siCalendarRangeSelect').addEventListener('change', function() {
+    if (currentItem && typeof loadEventsForTarget === 'function') {
+        var months = parseInt(this.value, 10) || 3;
+        loadEventsForTarget('item', currentItem.id,
+            'siCalendarEventsContainer', 'siCalendarEventsEmptyState', months);
+    }
+});
+
+document.getElementById('showResolvedItemProblems').addEventListener('change', function() {
+    if (currentItem) loadProblems('item', currentItem.id, 'siProblemsContainer', 'siProblemsEmptyState');
+});
+
+// ============================================================
+// ITEM TAG INPUT LOGIC
+// ============================================================
+
+function siLoadTags() {
+    userCol('tags').get()
+        .then(function(snap) {
+            siAllTags = [];
+            snap.forEach(function(d) {
+                var n = d.data().name;
+                if (n) siAllTags.push(n);
+            });
+            siAllTags.sort(function(a, b) { return a.toLowerCase().localeCompare(b.toLowerCase()); });
+        })
+        .catch(function(err) { console.error('siLoadTags error:', err); });
+}
+
+function siRenderChips() {
+    var chipsEl = document.getElementById('siTagChips');
+    chipsEl.innerHTML = '';
+    siSelectedTags.forEach(function(tag) {
+        var chip = document.createElement('span');
+        chip.className = 'tag-chip';
+        chip.innerHTML =
+            escapeHtml(tag) +
+            '<button class="tag-chip-remove" data-tag="' + escapeHtml(tag) + '" title="Remove">\u00d7</button>';
+        chip.querySelector('.tag-chip-remove').addEventListener('click', function(e) {
+            e.stopPropagation();
+            siRemoveTag(this.dataset.tag);
+        });
+        chipsEl.appendChild(chip);
+    });
+}
+
+function siRemoveTag(name) {
+    siSelectedTags = siSelectedTags.filter(function(t) { return t !== name; });
+    siRenderChips();
+}
+
+function siAddTag(name) {
+    name = name.trim();
+    if (!name) return;
+    var lower = name.toLowerCase();
+    if (siSelectedTags.some(function(t) { return t.toLowerCase() === lower; })) return;
+    siSelectedTags.push(name);
+    siRenderChips();
+    // Persist new tag to global Firestore tags collection if new
+    var existsInAll = siAllTags.some(function(t) { return t.toLowerCase() === lower; });
+    if (!existsInAll) {
+        siAllTags.push(name);
+        siAllTags.sort(function(a, b) { return a.toLowerCase().localeCompare(b.toLowerCase()); });
+        userCol('tags').add({
+            name:      name,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).catch(function(err) { console.error('siAddTag: error saving tag:', err); });
+    }
+}
+
+function siUpdateSuggestions(query) {
+    var sugEl = document.getElementById('siTagSuggestions');
+    sugEl.innerHTML = '';
+
+    var q = query.trim();
+    if (!q) { sugEl.classList.add('hidden'); return; }
+
+    var qLower   = q.toLowerCase();
+    var selected = siSelectedTags.map(function(t) { return t.toLowerCase(); });
+
+    var matches = siAllTags.filter(function(t) {
+        return t.toLowerCase().indexOf(qLower) !== -1 &&
+               selected.indexOf(t.toLowerCase()) === -1;
+    });
+
+    var exactMatch = siAllTags.some(function(t) { return t.toLowerCase() === qLower; });
+
+    var items = matches.map(function(t) { return { label: t, isNew: false }; });
+    if (!exactMatch && selected.indexOf(qLower) === -1) {
+        items.push({ label: q, isNew: true });
+    }
+
+    if (!items.length) { sugEl.classList.add('hidden'); return; }
+
+    items.forEach(function(item) {
+        var div = document.createElement('div');
+        div.className = 'tag-suggestion-item' + (item.isNew ? ' tag-suggestion-new' : '');
+        div.textContent = item.isNew ? '+ Add "' + item.label + '"' : item.label;
+        div.addEventListener('mousedown', function(e) {
+            e.preventDefault();
+            siAddTag(item.label);
+            document.getElementById('siTagInput').value = '';
+            siUpdateSuggestions('');
+        });
+        sugEl.appendChild(div);
+    });
+
+    sugEl.classList.remove('hidden');
+}
+
+// Wire tag input events
+document.getElementById('siTagInput').addEventListener('input', function() {
+    siUpdateSuggestions(this.value);
+});
+
+document.getElementById('siTagInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' || e.key === ',') {
+        e.preventDefault();
+        var val = this.value.trim().replace(/,$/, '');
+        if (val) { siAddTag(val); this.value = ''; siUpdateSuggestions(''); }
+    } else if (e.key === 'Backspace' && !this.value && siSelectedTags.length) {
+        siRemoveTag(siSelectedTags[siSelectedTags.length - 1]);
+    }
+});
+
+document.getElementById('siTagInput').addEventListener('blur', function() {
+    setTimeout(function() {
+        var sugEl = document.getElementById('siTagSuggestions');
+        if (sugEl) sugEl.classList.add('hidden');
+    }, 150);
+});
+
+document.getElementById('siTagWrapper').addEventListener('click', function() {
+    document.getElementById('siTagInput').focus();
 });

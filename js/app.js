@@ -20,7 +20,7 @@ const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'h
 const ALL_PAGES = [
     ...TOP_LEVEL_PAGES,
     'zone', 'plant', 'weed', 'chemical', 'gpsmap', 'yardmap',
-    'floor', 'room', 'thing', 'subthing', 'floorplan', 'panel', 'rooms', 'things',
+    'floor', 'room', 'thing', 'subthing', 'item', 'floorplan', 'panel', 'rooms', 'things',
     'backup', 'vehicle',
     'garageroom', 'garagething', 'garagesubthing',
     'structure', 'structurething', 'structuresubthing',
@@ -38,7 +38,7 @@ const ALL_PAGES = [
  * Yard-context pages — switching to any of these shows the yard nav.
  * Shared pages (calendar, settings) keep whichever context was last active.
  */
-const HOUSE_PAGES = ['house', 'floor', 'room', 'thing', 'subthing', 'floorplan', 'panel', 'rooms', 'things'];
+const HOUSE_PAGES = ['house', 'floor', 'room', 'thing', 'subthing', 'item', 'floorplan', 'panel', 'rooms', 'things'];
 const YARD_PAGES  = ['main', 'home', 'zones', 'zone', 'plant', 'weeds', 'weed', 'chemicals', 'chemical', 'actions', 'gpsmap', 'yardmap', 'activityreport', 'checklists',
                      'structures', 'structure', 'structurething', 'structuresubthing'];
 const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'journal-categories', 'people', 'person',
@@ -102,6 +102,7 @@ function showPage(page) {
     if (page === 'floorplan')  navPage = 'house';
     if (page === 'panel')      navPage = 'house';
     if (page === 'subthing')   navPage = 'house';
+    if (page === 'item')       navPage = 'house';
     if (page === 'person')     navPage = 'people'; // Sub-page of people
     if (page === 'notebook')   navPage = 'notes';  // Sub-page of notes
     if (page === 'note')       navPage = 'notes';  // Sub-page of notes
@@ -206,6 +207,9 @@ function handleRoute() {
     } else if (page === 'subthing' && id) {
         showPage('subthing');
         loadSubThingDetail(id);
+    } else if (page === 'item' && id) {
+        showPage('item');
+        loadItemDetail(id);
     } else if (page === 'checklists') {
         showPage('checklists');
         loadChecklistsPage();

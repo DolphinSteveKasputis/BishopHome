@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=257">
+    <link rel="stylesheet" href="css/styles.css?v=262">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -1151,6 +1151,15 @@
             <p class="house-thing-meta" id="stMeta"></p>
             <!-- Inventory details -->
             <div id="stDetailsSection" class="thing-details-section" style="display:none"></div>
+
+            <!-- Items section -->
+            <div class="section-header">
+                <h3 class="section-heading">Items</h3>
+                <button class="btn btn-primary btn-small" id="addItemBtn">+ Add Item</button>
+            </div>
+            <div class="card-list" id="itemListContainer"></div>
+            <p class="empty-state" id="itemListEmptyState"></p>
+
             <!-- Problems -->
             <div class="section-header">
                 <h3 class="section-heading">Problems / Concerns</h3>
@@ -1209,6 +1218,78 @@
             </div>
             <div id="stPhotoContainer"></div>
             <p class="empty-state" id="stPhotoEmptyState">No photos yet.</p>
+        </section>
+
+        <!-- Page: Item Detail (#item/{id}) -->
+        <section class="page hidden" id="page-item">
+            <div class="page-header">
+                <h2 id="siTitle">Item</h2>
+                <div class="page-header-actions">
+                    <button class="btn btn-secondary btn-small" id="editSiBtn">Edit</button>
+                    <button class="btn btn-danger btn-small" id="deleteSiBtn">Delete</button>
+                </div>
+            </div>
+            <p class="house-thing-meta" id="siMeta"></p>
+            <!-- Inventory details -->
+            <div id="siDetailsSection" class="thing-details-section" style="display:none"></div>
+            <!-- Problems -->
+            <div class="section-header">
+                <h3 class="section-heading">Problems / Concerns</h3>
+                <div class="section-header-actions">
+                    <label class="show-toggle"><input type="checkbox" id="showResolvedItemProblems"> Show resolved</label>
+                    <button class="btn btn-primary btn-small" id="addSiProblemBtn">+ Add</button>
+                </div>
+            </div>
+            <div id="siProblemsContainer"></div>
+            <p class="empty-state" id="siProblemsEmptyState"></p>
+            <!-- Facts -->
+            <div class="section-header">
+                <h3 class="section-heading">Facts</h3>
+                <button class="btn btn-primary btn-small" id="addSiFactBtn">+ Add</button>
+            </div>
+            <div id="siFactsContainer"></div>
+            <p class="empty-state" id="siFactsEmptyState"></p>
+            <!-- Future Projects -->
+            <div class="section-header">
+                <h3 class="section-heading">Future Projects</h3>
+                <button class="btn btn-primary btn-small" id="addSiProjectBtn">+ Add</button>
+            </div>
+            <div id="siProjectsContainer"></div>
+            <p class="empty-state" id="siProjectsEmptyState"></p>
+            <!-- Calendar Events -->
+            <div class="section-header">
+                <h3 class="section-heading">Calendar Events</h3>
+                <div class="section-header-actions">
+                    <div class="calendar-range-picker">
+                        <label>Next</label>
+                        <select id="siCalendarRangeSelect" class="range-select">
+                            <option value="1">1 mo</option>
+                            <option value="3" selected>3 mo</option>
+                            <option value="6">6 mo</option>
+                            <option value="12">12 mo</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary btn-small" id="addSiCalendarEventBtn">+ Add Event</button>
+                </div>
+            </div>
+            <div id="siCalendarEventsContainer"></div>
+            <p class="empty-state" id="siCalendarEventsEmptyState"></p>
+            <!-- Activity History -->
+            <div class="section-header">
+                <h3 class="section-heading">Activity History</h3>
+                <button class="btn btn-primary btn-small" id="logSiActivityBtn">+ Log Activity</button>
+            </div>
+            <div id="siActivityContainer"></div>
+            <p class="empty-state" id="siActivityEmptyState">No activities logged yet.</p>
+            <!-- Photos -->
+            <div class="section-header">
+                <h3 class="section-heading">Photos</h3>
+                <button class="btn btn-primary btn-small" id="addSiCameraBtn">+ Camera</button>
+                <button class="btn btn-primary btn-small" id="addSiGalleryBtn">+ Gallery</button>
+                <button class="btn btn-primary btn-small paste-photo-btn" data-entity="item">📋 Paste</button>
+            </div>
+            <div id="siPhotoContainer"></div>
+            <p class="empty-state" id="siPhotoEmptyState">No photos yet.</p>
         </section>
 
         <!-- Page: Rooms Tree (house nav → Rooms) -->
@@ -3348,6 +3429,53 @@
                 <div style="flex:1"></div>
                 <button class="btn btn-secondary" id="stModalCancelBtn">Cancel</button>
                 <button class="btn btn-primary" id="stModalSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add / Edit Item Modal (subThingItem) -->
+    <div class="modal-overlay" id="subThingItemModal">
+        <div class="modal">
+            <h3 id="siModalTitle">Add Item</h3>
+            <div class="form-group">
+                <label for="siNameInput">Name <span class="label-required">*</span></label>
+                <input type="text" id="siNameInput" placeholder="e.g. Stapler, Notepad, Cable">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="siPricePaidInput">Price Paid ($)</label>
+                    <input type="number" id="siPricePaidInput" min="0" step="0.01" placeholder="e.g. 14.99">
+                </div>
+                <div class="form-group">
+                    <label for="siWorthInput">Worth / Value ($)</label>
+                    <input type="number" id="siWorthInput" min="0" step="0.01" placeholder="e.g. 9.99">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="siYearBoughtInput">Year Bought</label>
+                <input type="number" id="siYearBoughtInput" min="1900" max="2100" placeholder="e.g. 2023">
+            </div>
+            <div class="form-group">
+                <label for="siDescriptionInput">Description</label>
+                <textarea id="siDescriptionInput" rows="2" placeholder="Describe this item…"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="siNotesInput">Notes</label>
+                <textarea id="siNotesInput" rows="2" placeholder="Any personal notes…"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Tags <span class="label-hint">(type and press Enter, or click a suggestion)</span></label>
+                <div class="tag-input-wrapper" id="siTagWrapper">
+                    <div class="tag-chips" id="siTagChips"></div>
+                    <input type="text" id="siTagInput" placeholder="Type a tag…" autocomplete="off">
+                </div>
+                <div class="tag-suggestions hidden" id="siTagSuggestions"></div>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-danger" id="siModalDeleteBtn" style="display:none">Delete</button>
+                <div style="flex:1"></div>
+                <button class="btn btn-secondary" id="siModalCancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="siModalSaveBtn">Save</button>
             </div>
         </div>
     </div>
@@ -6280,45 +6408,45 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=257"></script>
-    <script src="js/auth.js?v=257"></script>
-    <script src="js/zones.js?v=257"></script>
-    <script src="js/plants.js?v=257"></script>
-    <script src="js/problems.js?v=257"></script>
-    <script src="js/facts.js?v=257"></script>
-    <script src="js/projects.js?v=257"></script>
-    <script src="js/chemicals.js?v=257"></script>
-    <script src="js/activities.js?v=257"></script>
+    <script src="js/firebase-config.js?v=262"></script>
+    <script src="js/auth.js?v=262"></script>
+    <script src="js/zones.js?v=262"></script>
+    <script src="js/plants.js?v=262"></script>
+    <script src="js/problems.js?v=262"></script>
+    <script src="js/facts.js?v=262"></script>
+    <script src="js/projects.js?v=262"></script>
+    <script src="js/chemicals.js?v=262"></script>
+    <script src="js/activities.js?v=262"></script>
     <!-- Cropper.js — client-side image cropping library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <!-- SortableJS — drag-and-drop list reordering -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    <script src="js/photos.js?v=257"></script>
-    <script src="js/weeds.js?v=257"></script>
-    <script src="js/calendar.js?v=257"></script>
-    <script src="js/gps.js?v=257"></script>
-    <script src="js/settings.js?v=257"></script>
-    <script src="js/house.js?v=257"></script>
-    <script src="js/floorplan.js?v=257"></script>
-    <script src="js/search.js?v=257"></script>
-    <script src="js/activityreport.js?v=257"></script>
-    <script src="js/checklists.js?v=257"></script>
-    <script src="js/bulkactivity.js?v=257"></script>
-    <script src="js/devnotes.js?v=257"></script>
-    <script src="js/vehicles.js?v=257"></script>
-    <script src="js/garage.js?v=257"></script>
-    <script src="js/structures.js?v=257"></script>
-    <script src="js/moveThings.js?v=257"></script>
-    <script src="js/journal.js?v=257"></script>
-    <script src="js/people.js?v=257"></script>
-    <script src="js/collections.js?v=257"></script>
-    <script src="js/health.js?v=257"></script>
-    <script src="js/notes.js?v=257"></script>
+    <script src="js/photos.js?v=262"></script>
+    <script src="js/weeds.js?v=262"></script>
+    <script src="js/calendar.js?v=262"></script>
+    <script src="js/gps.js?v=262"></script>
+    <script src="js/settings.js?v=262"></script>
+    <script src="js/house.js?v=262"></script>
+    <script src="js/floorplan.js?v=262"></script>
+    <script src="js/search.js?v=262"></script>
+    <script src="js/activityreport.js?v=262"></script>
+    <script src="js/checklists.js?v=262"></script>
+    <script src="js/bulkactivity.js?v=262"></script>
+    <script src="js/devnotes.js?v=262"></script>
+    <script src="js/vehicles.js?v=262"></script>
+    <script src="js/garage.js?v=262"></script>
+    <script src="js/structures.js?v=262"></script>
+    <script src="js/moveThings.js?v=262"></script>
+    <script src="js/journal.js?v=262"></script>
+    <script src="js/people.js?v=262"></script>
+    <script src="js/collections.js?v=262"></script>
+    <script src="js/health.js?v=262"></script>
+    <script src="js/notes.js?v=262"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=257"></script>
-    <script src="js/secondbrain.js?v=257"></script>
-    <script src="js/sbissues.js?v=257"></script>
-    <script src="js/app.js?v=257"></script>
+    <script src="js/chat.js?v=262"></script>
+    <script src="js/secondbrain.js?v=262"></script>
+    <script src="js/sbissues.js?v=262"></script>
+    <script src="js/app.js?v=262"></script>
 
 </body>
 </html>

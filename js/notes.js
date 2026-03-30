@@ -408,6 +408,28 @@ var _notesModalWired = false;
  * Entry point called by app.js when navigating to #notes.
  * Ensures the Default notebook exists, renders tiles, wires controls.
  */
+/**
+ * Navigates directly to the "Dev Notes" notebook, creating it if needed.
+ * Called from the Settings page Dev Notes button.
+ */
+async function openDevNotesNotebook() {
+    var snap = await userCol('notebooks').where('name', '==', 'Dev Notes').limit(1).get();
+    var id;
+    if (!snap.empty) {
+        id = snap.docs[0].id;
+    } else {
+        var now = firebase.firestore.FieldValue.serverTimestamp();
+        var ref = await userCol('notebooks').add({
+            name: 'Dev Notes',
+            noteCount: 0,
+            createdAt: now,
+            updatedAt: now
+        });
+        id = ref.id;
+    }
+    window.location.hash = '#notebook/' + id;
+}
+
 async function loadNotesPage() {
     // Always guarantee Default exists before rendering
     await notesEnsureDefaultNotebook();

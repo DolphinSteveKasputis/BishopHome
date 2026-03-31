@@ -781,6 +781,15 @@ function initVoiceToText(textareaId, btnId) {
 
     var isListening = false;
 
+    // Expose a global stop function so other modules (e.g. QuickLog send/cancel)
+    // can kill the active recognition session from outside this closure.
+    window._stopVoiceToText = function() {
+        if (isListening) {
+            isListening = false;
+            try { recognition.stop(); } catch (e) { /* already stopped */ }
+        }
+    };
+
     btn.onclick = function() {
         if (isListening) {
             isListening = false;   // Set false before stop so onend doesn't auto-restart

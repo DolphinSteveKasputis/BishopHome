@@ -774,6 +774,8 @@ function _sbRenderPageCtxHint() {
 }
 
 function _sbCloseInput() {
+    // Stop speech recognition if it's still listening
+    if (typeof window._stopVoiceToText === 'function') window._stopVoiceToText();
     document.getElementById('sbInputModal').classList.remove('open');
     _sbSetThinking(false);
 }
@@ -787,6 +789,9 @@ function _sbSetThinking(on) {
 }
 
 async function _sbHandleSend() {
+    // Stop speech recognition before processing
+    if (typeof window._stopVoiceToText === 'function') window._stopVoiceToText();
+
     var text = (document.getElementById('sbTextInput').value || '').trim();
     if (!text) {
         alert('Please speak or type a command first.');

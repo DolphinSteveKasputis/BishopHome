@@ -4,6 +4,41 @@
 // Stored in Firestore collection: "chemicals"
 // ============================================================
 
+// Maps targetType values (other than plant/zone/weed) to their Firestore collection names
+var CHEM_USAGE_COLLECTIONS = {
+    vehicle:           'vehicles',
+    floor:             'floors',
+    room:              'rooms',
+    thing:             'things',
+    subthing:          'subThings',
+    item:              'subThingItems',
+    garageroom:        'garageRooms',
+    garagething:       'garageThings',
+    garagesubthing:    'garageSubThings',
+    structure:         'structures',
+    structurething:    'structureThings',
+    structuresubthing: 'structureSubThings',
+};
+
+// Maps targetType values to their hash-route prefixes for clickable links
+var CHEM_USAGE_PREFIXES = {
+    plant:             '#plant/',
+    zone:              '#zone/',
+    weed:              '#weed/',
+    vehicle:           '#vehicle/',
+    floor:             '#floor/',
+    room:              '#room/',
+    thing:             '#thing/',
+    subthing:          '#subthing/',
+    item:              '#item/',
+    garageroom:        '#garageroom/',
+    garagething:       '#garagething/',
+    garagesubthing:    '#garagesubthing/',
+    structure:         '#structure/',
+    structurething:    '#structurething/',
+    structuresubthing: '#structuresubthing/',
+};
+
 // ---------- Load & Display Chemicals Page ----------
 
 /**
@@ -374,11 +409,27 @@ async function loadChemicalUsageHistory(chemicalId) {
             return;
         }
 
-        // Build name maps for resolving target names
+        // Build name maps for resolving target names (start with yard entities)
         var nameMap = { plant: {}, zone: {}, weed: {} };
         plantsSnap.forEach(function(doc) { nameMap.plant[doc.id] = doc.data().name || ''; });
         zonesSnap.forEach(function(doc)  { nameMap.zone[doc.id]  = doc.data().name || ''; });
         weedsSnap.forEach(function(doc)  { nameMap.weed[doc.id]  = doc.data().name || ''; });
+
+        // Find any targetTypes in these activities that need extra collection fetches
+        var extraTypes = {};
+        activities.forEach(function(a) {
+            var t = a.targetType;
+            if (t && !nameMap[t] && CHEM_USAGE_COLLECTIONS[t]) {
+                extraTypes[t] = true;
+            }
+        });
+        var extraFetches = Object.keys(extraTypes).map(function(t) {
+            return userCol(CHEM_USAGE_COLLECTIONS[t]).get().then(function(snap) {
+                nameMap[t] = {};
+                snap.forEach(function(doc) { nameMap[t][doc.id] = doc.data().name || ''; });
+            });
+        });
+        await Promise.all(extraFetches);
 
         // Render a summary count
         var summary = document.createElement('p');
@@ -403,7 +454,7 @@ async function loadChemicalUsageHistory(chemicalId) {
  * Builds a single usage-history card for one activity.
  * Reuses the ar-* card styles from the Activity History Report (NF-2).
  * @param {Object} a       - Activity data object.
- * @param {Object} nameMap - { plant: {id:name}, zone: {id:name}, weed: {id:name} }
+ * @param {Object} nameMap - { plant: {id:name}, zone: {id:name}, weed: {id:name}, thing: {id:name}, ... }
  * @returns {HTMLElement}
  */
 function chemUsageBuildCard(a, nameMap) {
@@ -429,8 +480,7 @@ function chemUsageBuildCard(a, nameMap) {
     var map     = nameMap[typeName] || {};
     var rawName = map[a.targetId];
     var targetName = rawName !== undefined ? (rawName || '(Unnamed)') : '(Deleted)';
-    var prefixes   = { plant: '#plant/', zone: '#zone/', weed: '#weed/' };
-    var prefix     = prefixes[typeName];
+    var prefix  = CHEM_USAGE_PREFIXES[typeName];
 
     var targetEl;
     if (prefix && a.targetId) {

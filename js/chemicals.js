@@ -79,30 +79,6 @@ function createChemicalItem(chemical) {
 
     item.appendChild(info);
 
-    const actions = document.createElement('div');
-    actions.className = 'item-actions';
-    actions.style.flexShrink = '0';
-
-    const editBtn = document.createElement('button');
-    editBtn.className = 'btn btn-small btn-secondary';
-    editBtn.textContent = 'Edit';
-    editBtn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        openEditChemicalModal(chemical);
-    });
-    actions.appendChild(editBtn);
-
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'btn btn-small btn-danger';
-    deleteBtn.textContent = 'Delete';
-    deleteBtn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        handleDeleteChemical(chemical.id);
-    });
-    actions.appendChild(deleteBtn);
-
-    item.appendChild(actions);
-
     return item;
 }
 
@@ -123,9 +99,10 @@ function openAddChemicalModal() {
 
     modal.dataset.mode = 'add';
 
-    // Hide facts section and scan row — no ID yet for a new chemical
-    document.getElementById('chemicalFactsSection').style.display = 'none';
-    document.getElementById('chemicalScanRow').style.display      = 'none';
+    // Hide facts section, scan row, and delete button — no ID yet for a new chemical
+    document.getElementById('chemicalFactsSection').style.display  = 'none';
+    document.getElementById('chemicalScanRow').style.display       = 'none';
+    document.getElementById('chemicalModalDeleteBtn').style.display = 'none';
 
     // Reset LLM pending state and status
     _chemPendingFacts  = null;
@@ -159,10 +136,11 @@ function openEditChemicalModal(chemical) {
     modal.dataset.mode = 'edit';
     modal.dataset.editId = chemical.id;
 
-    // Show facts section and scan row; load existing facts
-    document.getElementById('chemicalFactsSection').style.display = 'block';
-    document.getElementById('chemicalScanRow').style.display      = 'block';
-    document.getElementById('chemicalScanResult').style.display   = 'none';
+    // Show facts section, scan row, and delete button in edit mode
+    document.getElementById('chemicalFactsSection').style.display  = 'block';
+    document.getElementById('chemicalScanRow').style.display       = 'block';
+    document.getElementById('chemicalScanResult').style.display    = 'none';
+    document.getElementById('chemicalModalDeleteBtn').style.display = '';
     loadFacts('chemical', chemical.id, 'chemicalModalFactsContainer', 'chemicalModalFactsEmptyState');
 
     // Reset LLM pending state and status
@@ -1099,6 +1077,14 @@ document.addEventListener('DOMContentLoaded', function() {
             // Reload facts list so the new facts appear immediately
             loadFacts('chemical', editId, 'chemicalModalFactsContainer', 'chemicalModalFactsEmptyState');
         });
+    });
+
+    // Chemical modal — Delete button (edit mode only)
+    document.getElementById('chemicalModalDeleteBtn').addEventListener('click', function() {
+        var editId = document.getElementById('chemicalModal').dataset.editId;
+        if (!editId) return;
+        closeModal('chemicalModal');
+        handleDeleteChemical(editId);
     });
 
     // Chemical detail — Edit button

@@ -1037,12 +1037,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Activity modal — Saved action dropdown change
     document.getElementById('activitySavedActionSelect').addEventListener('change', handleSavedActionSelect);
 
-    // Activity modal — show/hide Amount Used field when chemicals are checked/unchecked
-    // Uses event delegation on the container so it works even after the list is rebuilt
-    document.getElementById('activityChemicalList').addEventListener('change', function(e) {
-        if (e.target.type === 'checkbox') updateAmountUsedVisibility();
-    });
-
     // "Add Saved Action" button on the actions page
     document.getElementById('addSavedActionBtn').addEventListener('click', openAddSavedActionModal);
 

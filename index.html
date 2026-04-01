@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=286">
+    <link rel="stylesheet" href="css/styles.css?v=287">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -61,7 +61,7 @@
             <a href="#calendar" class="nav-link" data-page="calendar">Calendar</a>
             <a href="#activityreport" class="nav-link" data-page="activityreport">History</a>
             <a href="#checklists" class="nav-link" data-page="checklists">Checklists</a>
-            <a href="#chemicals" class="nav-link" data-page="chemicals">Chemicals</a>
+            <a href="#chemicals" class="nav-link" data-page="chemicals">Products</a>
             <a href="#actions" class="nav-link" data-page="actions">Actions</a>
             <a href="#house" class="nav-link" data-page="house">House</a>
             <a href="#structures" class="nav-link" data-page="structures">Structures</a>
@@ -79,6 +79,7 @@
             <a href="#settings" class="nav-link" data-page="settings">Settings</a>
             <a href="#things" class="nav-link" data-page="things">Things</a>
             <a href="#collections" class="nav-link" data-page="collections">Collections</a>
+            <a href="#chemicals" class="nav-link" data-page="chemicals">Products</a>
             <a href="#search" class="nav-link" data-page="search">🔍 Search</a>
             <a href="#chat" class="nav-link" data-page="chat">Chat</a>
             <button class="nav-signout-btn" id="signOutBtnHouse" title="Sign out">Sign Out</button>
@@ -88,6 +89,7 @@
             <a href="#journal" class="nav-link" data-page="journal">Journal</a>
             <a href="#people" class="nav-link" data-page="people">People</a>
             <a href="#notes" class="nav-link" data-page="notes">Notes</a>
+            <a href="#chemicals" class="nav-link" data-page="chemicals">Products</a>
             <a href="#chat" class="nav-link" data-page="chat">Chat</a>
             <a href="#settings" class="nav-link" data-page="settings">Settings</a>
             <button class="nav-signout-btn" id="signOutBtnLife" title="Sign out">Sign Out</button>
@@ -112,7 +114,7 @@
             <a href="#calendar" class="nav-link" data-page="calendar">Calendar</a>
             <a href="#activityreport" class="nav-link" data-page="activityreport">History</a>
             <a href="#checklists" class="nav-link" data-page="checklists">Checklists</a>
-            <a href="#chemicals" class="nav-link" data-page="chemicals">Chemicals</a>
+            <a href="#chemicals" class="nav-link" data-page="chemicals">Products</a>
             <a href="#actions" class="nav-link" data-page="actions">Actions</a>
             <a href="#house" class="nav-link" data-page="house">House</a>
             <a href="#structures" class="nav-link" data-page="structures">Structures</a>
@@ -125,6 +127,7 @@
         <div id="mobileNavLife" class="hidden">
             <a href="#journal" class="nav-link" data-page="journal">Journal</a>
             <a href="#people" class="nav-link" data-page="people">People</a>
+            <a href="#chemicals" class="nav-link" data-page="chemicals">Products</a>
             <a href="#chat" class="nav-link" data-page="chat">Chat</a>
             <a href="#settings" class="nav-link" data-page="settings">Settings</a>
             <button class="nav-signout-btn" id="signOutBtnMobileLife">Sign Out</button>
@@ -138,6 +141,7 @@
             <a href="#settings" class="nav-link" data-page="settings">Settings</a>
             <a href="#things" class="nav-link" data-page="things">Things</a>
             <a href="#collections" class="nav-link" data-page="collections">Collections</a>
+            <a href="#chemicals" class="nav-link" data-page="chemicals">Products</a>
             <a href="#search" class="nav-link" data-page="search">🔍 Search</a>
             <a href="#chat" class="nav-link" data-page="chat">Chat</a>
             <button class="nav-signout-btn" id="signOutBtnMobileHouse">Sign Out</button>
@@ -223,9 +227,9 @@
                         </select>
                     </div>
                     <div class="ar-filter-group">
-                        <label for="arChemicalFilter">Chemical</label>
+                        <label for="arChemicalFilter">Product</label>
                         <select id="arChemicalFilter">
-                            <option value="">All chemicals</option>
+                            <option value="">All products</option>
                         </select>
                     </div>
                 </div>
@@ -1661,7 +1665,7 @@
         <!-- Page: Chemicals / Products -->
         <section class="page hidden" id="page-chemicals">
             <div class="page-header">
-                <h2>Chemicals & Products</h2>
+                <h2>Products</h2>
                 <div class="page-header-actions">
                     <button class="btn btn-primary btn-small" id="addChemicalBtn">+ Add</button>
                 </div>
@@ -1673,7 +1677,7 @@
         <!-- Page: Chemical detail -->
         <section class="page hidden" id="page-chemical">
             <div class="page-header">
-                <h2 id="chemicalDetailName">Chemical</h2>
+                <h2 id="chemicalDetailName">Product</h2>
                 <div class="page-header-actions">
                     <button class="btn btn-secondary btn-small" id="editChemicalDetailBtn">Edit</button>
                     <button class="btn btn-danger btn-small" id="deleteChemicalDetailBtn">Delete</button>
@@ -2527,7 +2531,7 @@
                     <option value="">-- Select Category --</option>
                     <option value="appliance">Appliance</option>
                     <option value="auto">Auto</option>
-                    <option value="chemical">Chemical</option>
+                    <option value="chemical">Product</option>
                     <option value="electronics">Electronics</option>
                     <option value="fixture">Fixture</option>
                     <option value="furniture">Furniture</option>
@@ -2896,7 +2900,7 @@
     <!-- Chemical Add/Edit Modal -->
     <div class="modal-overlay" id="chemicalModal">
         <div class="modal">
-            <h3 id="chemicalModalTitle">Add Chemical</h3>
+            <h3 id="chemicalModalTitle">Add Product</h3>
             <!-- Scan bottle with LLM — at the top so it's reachable without scrolling -->
             <div id="chemFromPictureSection" class="plant-from-pic-section hidden">
                 <div class="plant-from-pic-divider">— scan bottle with AI —</div>
@@ -2961,7 +2965,7 @@
             </div>
             <div class="form-group" id="activityChemicalGroup">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-                    <label style="margin:0;">Chemical / Product <span class="label-hint">(optional)</span></label>
+                    <label style="margin:0;">Product <span class="label-hint">(optional)</span></label>
                     <button type="button" class="btn btn-secondary btn-small" id="activityEditChemicalsBtn">Edit</button>
                 </div>
                 <div id="activityChemicalChips" class="chemical-chips-display"></div>
@@ -3003,7 +3007,7 @@
                 <input type="date" id="bulkDateInput">
             </div>
             <div class="form-group">
-                <label>Chemical / Product <span class="label-hint">(optional)</span></label>
+                <label>Product <span class="label-hint">(optional)</span></label>
                 <div class="zone-checkbox-list" id="bulkChemicalList"></div>
             </div>
             <!-- Amount Used — only shown when at least one chemical is checked -->
@@ -3057,7 +3061,7 @@
                 <div id="viewActivityDesc" class="view-value"></div>
             </div>
             <div class="view-field">
-                <label>Chemical / Product</label>
+                <label>Product</label>
                 <div id="viewActivityChemical" class="view-value"></div>
             </div>
             <div class="view-field" id="viewActivityAmountUsedField" style="display:none;">
@@ -3105,9 +3109,9 @@
                 <input type="text" id="savedActionDescInput" placeholder="What this action does">
             </div>
             <div class="form-group">
-                <label>Chemical / Product (optional)</label>
+                <label>Product (optional)</label>
                 <div id="savedActionSelectedChemicalsDisplay" class="selected-chemicals-display"></div>
-                <button class="btn btn-secondary btn-small" id="openChemicalPickerBtn" type="button">Select Chemicals...</button>
+                <button class="btn btn-secondary btn-small" id="openChemicalPickerBtn" type="button">Select Products...</button>
             </div>
             <div class="form-group">
                 <label for="savedActionNotesInput">Notes (optional)</label>
@@ -3123,7 +3127,7 @@
     <!-- Chemical Picker Modal (used by Saved Action modal) -->
     <div class="modal-overlay" id="chemicalPickerModal">
         <div class="modal">
-            <h3>Select Chemicals / Products</h3>
+            <h3>Select Products</h3>
             <div class="zone-checkbox-list" id="chemicalPickerList"></div>
             <div class="modal-buttons">
                 <button class="btn btn-secondary" id="chemicalPickerCancelBtn">Cancel</button>
@@ -3327,7 +3331,7 @@
                     <option value="auto">Auto</option>
                     <option value="ceiling-fan">Ceiling Fan</option>
                     <option value="ceiling-light">Ceiling Light</option>
-                    <option value="chemical">Chemical</option>
+                    <option value="chemical">Product</option>
                     <option value="electronics">Electronics</option>
                     <option value="fixture">Fixture</option>
                     <option value="furniture">Furniture</option>
@@ -4150,7 +4154,7 @@
                     <option value="">-- Select Category --</option>
                     <option value="appliance">Appliance</option>
                     <option value="auto">Auto</option>
-                    <option value="chemical">Chemical</option>
+                    <option value="chemical">Product</option>
                     <option value="electronics">Electronics</option>
                     <option value="fixture">Fixture</option>
                     <option value="furniture">Furniture</option>
@@ -6435,44 +6439,44 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=286"></script>
-    <script src="js/auth.js?v=286"></script>
-    <script src="js/zones.js?v=286"></script>
-    <script src="js/plants.js?v=286"></script>
-    <script src="js/problems.js?v=286"></script>
-    <script src="js/facts.js?v=286"></script>
-    <script src="js/projects.js?v=286"></script>
-    <script src="js/chemicals.js?v=286"></script>
-    <script src="js/activities.js?v=286"></script>
+    <script src="js/firebase-config.js?v=287"></script>
+    <script src="js/auth.js?v=287"></script>
+    <script src="js/zones.js?v=287"></script>
+    <script src="js/plants.js?v=287"></script>
+    <script src="js/problems.js?v=287"></script>
+    <script src="js/facts.js?v=287"></script>
+    <script src="js/projects.js?v=287"></script>
+    <script src="js/chemicals.js?v=287"></script>
+    <script src="js/activities.js?v=287"></script>
     <!-- Cropper.js — client-side image cropping library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <!-- SortableJS — drag-and-drop list reordering -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    <script src="js/photos.js?v=286"></script>
-    <script src="js/weeds.js?v=286"></script>
-    <script src="js/calendar.js?v=286"></script>
-    <script src="js/gps.js?v=286"></script>
-    <script src="js/settings.js?v=286"></script>
-    <script src="js/house.js?v=286"></script>
-    <script src="js/floorplan.js?v=286"></script>
-    <script src="js/search.js?v=286"></script>
-    <script src="js/activityreport.js?v=286"></script>
-    <script src="js/checklists.js?v=286"></script>
-    <script src="js/bulkactivity.js?v=286"></script>
-    <script src="js/vehicles.js?v=286"></script>
-    <script src="js/garage.js?v=286"></script>
-    <script src="js/structures.js?v=286"></script>
-    <script src="js/moveThings.js?v=286"></script>
-    <script src="js/journal.js?v=286"></script>
-    <script src="js/people.js?v=286"></script>
-    <script src="js/collections.js?v=286"></script>
-    <script src="js/health.js?v=286"></script>
-    <script src="js/notes.js?v=286"></script>
+    <script src="js/photos.js?v=287"></script>
+    <script src="js/weeds.js?v=287"></script>
+    <script src="js/calendar.js?v=287"></script>
+    <script src="js/gps.js?v=287"></script>
+    <script src="js/settings.js?v=287"></script>
+    <script src="js/house.js?v=287"></script>
+    <script src="js/floorplan.js?v=287"></script>
+    <script src="js/search.js?v=287"></script>
+    <script src="js/activityreport.js?v=287"></script>
+    <script src="js/checklists.js?v=287"></script>
+    <script src="js/bulkactivity.js?v=287"></script>
+    <script src="js/vehicles.js?v=287"></script>
+    <script src="js/garage.js?v=287"></script>
+    <script src="js/structures.js?v=287"></script>
+    <script src="js/moveThings.js?v=287"></script>
+    <script src="js/journal.js?v=287"></script>
+    <script src="js/people.js?v=287"></script>
+    <script src="js/collections.js?v=287"></script>
+    <script src="js/health.js?v=287"></script>
+    <script src="js/notes.js?v=287"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=286"></script>
-    <script src="js/secondbrain.js?v=286"></script>
-    <script src="js/sbissues.js?v=286"></script>
-    <script src="js/app.js?v=286"></script>
+    <script src="js/chat.js?v=287"></script>
+    <script src="js/secondbrain.js?v=287"></script>
+    <script src="js/sbissues.js?v=287"></script>
+    <script src="js/app.js?v=287"></script>
 
 </body>
 </html>

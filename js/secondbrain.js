@@ -63,7 +63,7 @@ var SB_LABELS = {
     ATTACH_PHOTOS:      'Attach Photos',       MOVE_THING:         'Move Item',
     FIND_THING:         'Find Item',            ADD_DEV_NOTE:       'Dev Note',
     ADD_PLANT:          'Add Plant',           ADD_NOTE:           'Add Note',
-    ADD_CHEMICAL:       'Add Chemical',
+    ADD_CHEMICAL:       'Add Product',
     UNKNOWN_ACTION:     'Unknown Action'
 };
 
@@ -447,7 +447,7 @@ ctxJson,
 'ADD_WEED — finding/adding a weed. If photos attached try to identify species. If the weed name matches an existing weed in context, set alreadyExists:true and existingWeedId. Include zoneIds even when alreadyExists.',
 '{"action":"ADD_WEED","payload":{"name":"weed name","existingWeedId":"id or null","alreadyExists":false,"zoneIds":[],"zoneLabels":[],"treatmentMethod":"","applicationTiming":"","notes":""}}',
 '',
-'ADD_CHEMICAL — add a chemical or product to the chemicals list (fertilizers, herbicides, pesticides, etc.).',
+'ADD_CHEMICAL — add a product to the products list (fertilizers, herbicides, pesticides, cleaning products, etc.).',
 '{"action":"ADD_CHEMICAL","payload":{"name":"full product name","notes":"","ambiguous":false}}',
 '',
 'ADD_TRACKING_ENTRY — personal health/life metric (weight, BP, sleep, steps, etc.).',
@@ -927,7 +927,7 @@ function _sbRenderWarnings(action, payload) {
     if (action === 'LOG_ACTIVITY' && p.unknownChemicals && p.unknownChemicals.length) {
         p.unknownChemicals.forEach(function(c) {
             html += '<div class="sb-warning">⚠ "' + _sbEsc(c) +
-                    '" is not in your chemicals list — it will be added on confirm.</div>';
+                    '" is not in your products list — it will be added on confirm.</div>';
         });
     }
     if (action === 'ADD_TRACKING_ENTRY' && p.categoryExists === false) {
@@ -1070,7 +1070,7 @@ function _sbRenderConfirmFields(action, payload) {
             html += _sbFieldRow('Notes',
                 '<textarea class="sb-field" data-field="notes" rows="2">' + _sbEsc(p.notes || '') + '</textarea>');
             if (p.chemicalLabels && p.chemicalLabels.length) {
-                html += _sbFieldRow('Chemicals',
+                html += _sbFieldRow('Products',
                     p.chemicalLabels.map(function(c) {
                         return '<span class="sb-tag">' + _sbEsc(c) + '</span>';
                     }).join(' '));
@@ -2135,10 +2135,10 @@ var SB_HELP_ACTIONS = [
     },
     {
         action: 'ADD_CHEMICAL',
-        icon: '🧪', label: 'Add Chemical',
-        desc: 'Add a chemical or product to your chemicals list (fertilizers, herbicides, pesticides, soil amendments, etc.).',
+        icon: '🧪', label: 'Add Product',
+        desc: 'Add a product to your products list (fertilizers, herbicides, pesticides, cleaning supplies, soil amendments, etc.).',
         examples: [
-            'Add Roundup to my chemicals',
+            'Add Roundup to my products',
             'I bought a new bag of Scotts Turf Builder',
             'Add Spectracide weed killer to my products list',
             'Track a new fertilizer called Osmocote Plus'

@@ -54,7 +54,7 @@ async function loadChemicalsList() {
         container.innerHTML = '';
 
         if (snapshot.empty) {
-            emptyState.textContent = 'No chemicals or products added yet.';
+            emptyState.textContent = 'No products added yet.';
             emptyState.style.display = 'block';
             return;
         }
@@ -77,7 +77,7 @@ async function loadChemicalsList() {
 
     } catch (error) {
         console.error('Error loading chemicals:', error);
-        emptyState.textContent = 'Error loading chemicals.';
+        emptyState.textContent = 'Error loading products.';
         emptyState.style.display = 'block';
     }
 }
@@ -128,7 +128,7 @@ function openAddChemicalModal() {
     const nameInput = document.getElementById('chemicalNameInput');
     const notesInput = document.getElementById('chemicalNotesInput');
 
-    modalTitle.textContent = 'Add Chemical / Product';
+    modalTitle.textContent = 'Add Product';
     nameInput.value = '';
     notesInput.value = '';
 
@@ -164,7 +164,7 @@ function openEditChemicalModal(chemical) {
     const nameInput = document.getElementById('chemicalNameInput');
     const notesInput = document.getElementById('chemicalNotesInput');
 
-    modalTitle.textContent = 'Edit Chemical / Product';
+    modalTitle.textContent = 'Edit Product';
     nameInput.value = chemical.name || '';
     notesInput.value = chemical.notes || '';
 
@@ -274,7 +274,7 @@ async function handleChemicalModalSave() {
 
     } catch (error) {
         console.error('Error saving chemical:', error);
-        alert('Error saving chemical. Check console for details.');
+        alert('Error saving product. Check console for details.');
     }
 }
 
@@ -297,7 +297,7 @@ async function handleDeleteChemical(chemicalId) {
 
     } catch (error) {
         console.error('Error deleting chemical:', error);
-        alert('Error deleting chemical. Check console for details.');
+        alert('Error deleting product. Check console for details.');
     }
 }
 
@@ -313,7 +313,7 @@ async function loadChemicalDetail(chemicalId) {
         const doc = await userCol('chemicals').doc(chemicalId).get();
 
         if (!doc.exists) {
-            document.getElementById('chemicalDetailName').textContent = 'Chemical not found';
+            document.getElementById('chemicalDetailName').textContent = 'Product not found';
             return;
         }
 
@@ -351,7 +351,7 @@ async function loadChemicalDetail(chemicalId) {
 
     } catch (error) {
         console.error('Error loading chemical detail:', error);
-        document.getElementById('chemicalDetailName').textContent = 'Error loading chemical';
+        document.getElementById('chemicalDetailName').textContent = 'Error loading product';
     }
 }
 

@@ -103,7 +103,7 @@ async function arPopulateChemicalFilter() {
     var select   = document.getElementById('arChemicalFilter');
     var prevVal  = select.value;
 
-    select.innerHTML = '<option value="">All chemicals</option>';
+    select.innerHTML = '<option value="">All products</option>';
 
     try {
         var snap = await userCol('chemicals').orderBy('name').get();
@@ -279,7 +279,7 @@ function arBuildCard(a) {
         chemIds.forEach(function(id) {
             var tag = document.createElement('span');
             tag.className   = 'ar-chem-tag';
-            tag.textContent = arChemMap[id] || '(unknown chemical)';
+            tag.textContent = arChemMap[id] || '(unknown product)';
             chemRow.appendChild(tag);
         });
         card.appendChild(chemRow);

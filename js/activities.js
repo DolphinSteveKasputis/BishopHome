@@ -53,7 +53,7 @@ async function buildChemicalCheckboxList(containerId, selectedIds) {
         container.innerHTML = '';
 
         if (chemicals.length === 0) {
-            container.innerHTML = '<em style="color:#888;font-size:0.85em;">No chemicals added yet.</em>';
+            container.innerHTML = '<em style="color:#888;font-size:0.85em;">No products added yet.</em>';
             return;
         }
 
@@ -73,7 +73,7 @@ async function buildChemicalCheckboxList(containerId, selectedIds) {
 
     } catch (e) {
         console.error('Error loading chemicals for checkbox list:', e);
-        container.innerHTML = '<em style="color:#888;font-size:0.85em;">Error loading chemicals.</em>';
+        container.innerHTML = '<em style="color:#888;font-size:0.85em;">Error loading products.</em>';
     }
 }
 
@@ -701,7 +701,7 @@ function createSavedActionItem(action, chemicalNames) {
         const chem = document.createElement('div');
         chem.className = 'card-subtitle';
         chem.style.color = '#2e7d32';
-        chem.textContent = 'Chemical: ' + chemicalNames.join(', ');
+        chem.textContent = 'Product: ' + chemicalNames.join(', ');
         info.appendChild(chem);
     }
 

@@ -486,6 +486,15 @@ button {
     font-style: italic;
 }
 
+/* Compact chips display in the activity modal (replaces inline checkboxes) */
+.chemical-chips-display {
+    min-height: 28px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+}
+
 .card-subtitle {
     font-size: 0.85rem;
     color: #888;

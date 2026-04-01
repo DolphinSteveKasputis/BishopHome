@@ -11,6 +11,15 @@
 /** Chemical IDs currently selected in the saved-action modal. */
 var savedActionSelectedChemicalIds = [];
 
+/** Chemical IDs currently selected in the log/edit activity modal. */
+var _activitySelectedChemIds = [];
+
+/**
+ * Which modal most recently opened the chemical picker: 'activity' or 'savedAction'.
+ * Used by handleChemicalPickerDone to route the selection back correctly.
+ */
+var _chemPickerContext = 'savedAction';
+
 // ---------- Chemical Checkbox List Helpers ----------
 
 /**
@@ -93,9 +102,46 @@ function getCheckedChemicalIds(containerId) {
  * Called whenever checkboxes change or the modal opens.
  */
 function updateAmountUsedVisibility() {
-    var anyChecked = getCheckedChemicalIds('activityChemicalList').length > 0;
+    var anyChecked = _activitySelectedChemIds.length > 0;
     var row = document.getElementById('activityAmountUsedRow');
     if (row) row.style.display = anyChecked ? '' : 'none';
+}
+
+/**
+ * Renders the selected chemicals as compact tags inside the activity modal chips area.
+ * @param {string[]} chemicalIds - Array of selected chemical IDs.
+ */
+async function renderActivityChemicalsDisplay(chemicalIds) {
+    var container = document.getElementById('activityChemicalChips');
+    container.innerHTML = '';
+
+    if (!chemicalIds || chemicalIds.length === 0) {
+        var none = document.createElement('span');
+        none.className = 'chemicals-none-text';
+        none.textContent = 'None selected';
+        container.appendChild(none);
+        return;
+    }
+
+    try {
+        var chemicals = await getAllChemicals();
+        var selected = chemicals.filter(function(c) { return chemicalIds.indexOf(c.id) >= 0; });
+        if (selected.length === 0) {
+            var none2 = document.createElement('span');
+            none2.className = 'chemicals-none-text';
+            none2.textContent = 'None selected';
+            container.appendChild(none2);
+        } else {
+            selected.forEach(function(c) {
+                var tag = document.createElement('span');
+                tag.className = 'chemical-tag';
+                tag.textContent = c.name;
+                container.appendChild(tag);
+            });
+        }
+    } catch (e) {
+        console.error('Error rendering activity chemicals:', e);
+    }
 }
 
 // ---------- Load & Display Activity History ----------
@@ -317,16 +363,17 @@ async function openEditActivityModal(activity, targetType, targetId) {
     notesInput.value = activity.notes || '';
     document.getElementById('activityAmountUsedInput').value = activity.amountUsed || '';
 
-    // Hide chemical section for vehicle; otherwise build with pre-checked items
+    // Hide chemical section for vehicle; otherwise show chips with pre-selected items
     var hideChemicals = (targetType === 'vehicle');
-    var chemicalGroup = document.getElementById('activityChemicalList').closest('.form-group');
+    var chemicalGroup = document.getElementById('activityChemicalGroup');
     if (chemicalGroup) chemicalGroup.style.display = hideChemicals ? 'none' : '';
 
     if (!hideChemicals) {
-        var existingIds = normalizeChemicalIds(activity);
-        await buildChemicalCheckboxList('activityChemicalList', existingIds);
+        _activitySelectedChemIds = normalizeChemicalIds(activity);
+        await renderActivityChemicalsDisplay(_activitySelectedChemIds);
         updateAmountUsedVisibility();
     } else {
+        _activitySelectedChemIds = [];
         document.getElementById('activityAmountUsedRow').style.display = 'none';
     }
 
@@ -360,14 +407,14 @@ async function openLogActivityModal(targetType, targetId) {
 
     // Hide chemical/product section for target types that don't use chemicals
     var hideChemicals = (targetType === 'vehicle');
-    var chemicalGroup = document.getElementById('activityChemicalList').closest('.form-group');
+    var chemicalGroup = document.getElementById('activityChemicalGroup');
     if (chemicalGroup) chemicalGroup.style.display = hideChemicals ? 'none' : '';
     document.getElementById('activityAmountUsedRow').style.display = 'none';
 
-    // Build chemical checkbox list (none pre-checked)
+    // Reset and render empty chips display
+    _activitySelectedChemIds = [];
     if (!hideChemicals) {
-        await buildChemicalCheckboxList('activityChemicalList', []);
-        updateAmountUsedVisibility();
+        await renderActivityChemicalsDisplay([]);
     }
 
     // Populate saved actions dropdown
@@ -405,9 +452,10 @@ async function handleSavedActionSelect() {
         document.getElementById('activityDescInput').value = action.description || '';
         document.getElementById('activityNotesInput').value = action.notes || '';
 
-        // Pre-check chemicals from the saved action
+        // Pre-select chemicals from the saved action
         var ids = normalizeChemicalIds(action);
-        await buildChemicalCheckboxList('activityChemicalList', ids);
+        _activitySelectedChemIds = ids;
+        await renderActivityChemicalsDisplay(ids);
         updateAmountUsedVisibility();
 
         console.log('Saved action loaded:', action.name);
@@ -447,7 +495,7 @@ async function handleActivityModalSave() {
     const date = dateInput.value;
     const notes = notesInput.value.trim();
     const amountUsed = document.getElementById('activityAmountUsedInput').value.trim();
-    const chemicalIds = getCheckedChemicalIds('activityChemicalList');
+    const chemicalIds = _activitySelectedChemIds.slice();
     const savedActionId = savedActionSelect.value || null;
 
     if (!description) {
@@ -738,17 +786,34 @@ async function renderSavedActionChemicalsDisplay(chemicalIds) {
  * Opens the chemical picker modal, pre-checking the currently selected chemicals.
  */
 async function openChemicalPickerForSavedAction() {
+    _chemPickerContext = 'savedAction';
     await buildChemicalCheckboxList('chemicalPickerList', savedActionSelectedChemicalIds);
     openModal('chemicalPickerModal');
 }
 
 /**
- * Applies the chemical picker selection back to the saved-action modal.
+ * Opens the chemical picker from the log/edit activity modal.
+ */
+async function openChemicalPickerForActivity() {
+    _chemPickerContext = 'activity';
+    await buildChemicalCheckboxList('chemicalPickerList', _activitySelectedChemIds);
+    openModal('chemicalPickerModal');
+}
+
+/**
+ * Applies the chemical picker selection back to whichever modal opened it.
  */
 async function handleChemicalPickerDone() {
-    savedActionSelectedChemicalIds = getCheckedChemicalIds('chemicalPickerList');
+    var selected = getCheckedChemicalIds('chemicalPickerList');
     closeModal('chemicalPickerModal');
-    await renderSavedActionChemicalsDisplay(savedActionSelectedChemicalIds);
+    if (_chemPickerContext === 'activity') {
+        _activitySelectedChemIds = selected;
+        await renderActivityChemicalsDisplay(_activitySelectedChemIds);
+        updateAmountUsedVisibility();
+    } else {
+        savedActionSelectedChemicalIds = selected;
+        await renderSavedActionChemicalsDisplay(savedActionSelectedChemicalIds);
+    }
 }
 
 // ---------- Save as Action (from an existing activity) ----------
@@ -984,6 +1049,9 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('savedActionModalCancelBtn').addEventListener('click', function() {
         closeModal('savedActionModal');
     });
+
+    // Chemical picker — Edit button inside the activity modal
+    document.getElementById('activityEditChemicalsBtn').addEventListener('click', openChemicalPickerForActivity);
 
     // Chemical picker — open button (inside saved-action modal)
     document.getElementById('openChemicalPickerBtn').addEventListener('click', openChemicalPickerForSavedAction);

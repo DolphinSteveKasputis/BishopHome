@@ -795,9 +795,13 @@ async function openChemicalPickerForSavedAction() {
  * Opens the chemical picker from the log/edit activity modal.
  */
 async function openChemicalPickerForActivity() {
-    _chemPickerContext = 'activity';
-    await buildChemicalCheckboxList('chemicalPickerList', _activitySelectedChemIds);
-    openModal('chemicalPickerModal');
+    try {
+        _chemPickerContext = 'activity';
+        await buildChemicalCheckboxList('chemicalPickerList', _activitySelectedChemIds);
+        openModal('chemicalPickerModal');
+    } catch (e) {
+        console.error('openChemicalPickerForActivity error:', e);
+    }
 }
 
 /**

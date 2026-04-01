@@ -580,8 +580,9 @@ button {
     display: flex;
 }
 
-/* Facts modal can open on top of another modal (e.g. chemical edit) */
-#factModal {
+/* Facts modal and chemical picker can open on top of another modal */
+#factModal,
+#chemicalPickerModal {
     z-index: 300;
 }
 

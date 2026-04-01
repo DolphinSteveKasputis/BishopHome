@@ -127,6 +127,15 @@ function openAddChemicalModal() {
     document.getElementById('chemicalFactsSection').style.display = 'none';
     document.getElementById('chemicalScanRow').style.display      = 'none';
 
+    // Reset LLM pending state and status
+    _chemPendingFacts  = null;
+    _chemPendingImages = null;
+    document.getElementById('chemPicStatus').classList.add('hidden');
+    document.getElementById('chemPicFactsPreview').style.display = 'none';
+
+    // Show scan-from-photo section if LLM is configured
+    chemCheckLlmForModal();
+
     openModal('chemicalModal');
     nameInput.focus();
 }
@@ -156,6 +165,15 @@ function openEditChemicalModal(chemical) {
     document.getElementById('chemicalScanResult').style.display   = 'none';
     loadFacts('chemical', chemical.id, 'chemicalModalFactsContainer', 'chemicalModalFactsEmptyState');
 
+    // Reset LLM pending state and status
+    _chemPendingFacts  = null;
+    _chemPendingImages = null;
+    document.getElementById('chemPicStatus').classList.add('hidden');
+    document.getElementById('chemPicFactsPreview').style.display = 'none';
+
+    // Show scan-from-photo section if LLM is configured
+    chemCheckLlmForModal();
+
     openModal('chemicalModal');
     nameInput.focus();
 }
@@ -181,22 +199,56 @@ async function handleChemicalModalSave() {
     const mode = modal.dataset.mode;
 
     try {
+        var chemicalId;
+
         if (mode === 'add') {
-            await userCol('chemicals').add({
+            var docRef = await userCol('chemicals').add({
                 name: name,
                 notes: notes,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
+            chemicalId = docRef.id;
             console.log('Chemical added:', name);
 
         } else if (mode === 'edit') {
-            const chemicalId = modal.dataset.editId;
+            chemicalId = modal.dataset.editId;
             await userCol('chemicals').doc(chemicalId).update({
                 name: name,
                 notes: notes
             });
             console.log('Chemical updated:', name);
         }
+
+        // Save any facts the LLM extracted from the bottle scan
+        if (_chemPendingFacts && _chemPendingFacts.length && chemicalId) {
+            for (var i = 0; i < _chemPendingFacts.length; i++) {
+                var f = _chemPendingFacts[i];
+                if (f.label && f.value) {
+                    await userCol('facts').add({
+                        targetType: 'chemical',
+                        targetId:   chemicalId,
+                        label:      f.label,
+                        value:      f.value
+                    });
+                }
+            }
+        }
+
+        // Save any photos captured during the bottle scan
+        if (_chemPendingImages && _chemPendingImages.length && chemicalId) {
+            for (var j = 0; j < _chemPendingImages.length; j++) {
+                await userCol('photos').add({
+                    targetType: 'chemical',
+                    targetId:   chemicalId,
+                    imageData:  _chemPendingImages[j],
+                    caption:    '',
+                    createdAt:  firebase.firestore.FieldValue.serverTimestamp()
+                });
+            }
+        }
+
+        _chemPendingFacts  = null;
+        _chemPendingImages = null;
 
         closeModal('chemicalModal');
         // Reload the appropriate view depending on where we are
@@ -277,6 +329,9 @@ async function loadChemicalDetail(chemicalId) {
 
         // Load facts for this chemical
         loadFacts('chemical', chemicalId, 'chemicalFactsContainer', 'chemicalFactsEmptyState');
+
+        // Load photos for this chemical
+        loadPhotos('chemical', chemicalId, 'chemicalPhotoContainer', 'chemicalPhotoEmptyState');
 
         // Load usage history (activities that used this chemical)
         loadChemicalUsageHistory(chemicalId);
@@ -455,6 +510,169 @@ async function getAllChemicals() {
         return a.name.localeCompare(b.name);
     });
     return chemicals;
+}
+
+// ============================================================
+// CHEMICAL IDENTIFICATION FROM PHOTO (LLM)
+// Takes a photo of a chemical bottle and asks the LLM to return
+// the product name, general notes, and a set of facts (mixing
+// ratios, active ingredients, application info, etc.).
+// ============================================================
+
+// Pending LLM data — set by chemSendToLlm, consumed by handleChemicalModalSave
+var _chemPendingFacts  = null;  // Array of {label, value} to save as facts
+var _chemPendingImages = null;  // Array of base64 data URLs to save as photos
+
+// The prompt sent to the LLM for chemical bottle scanning.
+var CHEM_ID_PROMPT = [
+    'You are a chemical/product label reading assistant. Analyze the provided image(s) of a chemical or product bottle/label and return ONLY a valid JSON object.',
+    'No explanation, no markdown, no code blocks, no extra text of any kind.',
+    'Your entire response must be parseable by JSON.parse().',
+    '',
+    'Return this exact structure:',
+    '{',
+    '  "name": "",',
+    '  "notes": "",',
+    '  "facts": [',
+    '    { "label": "", "value": "" }',
+    '  ]',
+    '}',
+    '',
+    'Field rules:',
+    '- name: the full product name as printed on the label, e.g. "Roundup Weed & Grass Killer Concentrate Plus"',
+    '- notes: a brief 1-2 sentence summary of what the product does and any important safety caution. 50 words or less.',
+    '- facts: an array of key facts extracted from the label. Include as many as are visible and useful. Good fact labels include:',
+    '  "Active Ingredient", "Mixing Ratio", "Coverage", "Application Method", "Reentry Interval",',
+    '  "Pre-Harvest Interval", "Target Pests", "Do Not Apply When", "Storage", "First Aid"',
+    '  Use the exact label text for values where possible. Omit facts you cannot clearly read.',
+    '- If you cannot read the label clearly, return name and notes as "" and explain in notes.',
+    '- additionalMessage: omit this field entirely (not needed).'
+].join('\n');
+
+/**
+ * Checks if an LLM is configured and shows the bottle-scan section in the chemical modal.
+ */
+async function chemCheckLlmForModal() {
+    try {
+        var doc = await userCol('settings').doc('llm').get();
+        var ok  = doc.exists && doc.data().provider && doc.data().apiKey;
+        document.getElementById('chemFromPictureSection').classList.toggle('hidden', !ok);
+    } catch (e) { /* leave hidden */ }
+}
+
+/**
+ * Parses the LLM response text into a structured object.
+ * Strips markdown code fences if present.
+ */
+function chemParseLlmResponse(text) {
+    var clean = text.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+    return JSON.parse(clean);
+}
+
+/**
+ * Sends compressed images to the LLM for chemical bottle analysis.
+ * On success, pre-fills the modal name/notes fields and stores pending facts + images.
+ * @param {string[]} images - Array of base64 data URLs (already compressed by staging flow)
+ */
+async function chemSendToLlm(images) {
+    var statusEl   = document.getElementById('chemPicStatus');
+    var galleryBtn = document.getElementById('chemPicGalleryBtn');
+    var cameraBtn  = document.getElementById('chemPicCameraBtn');
+    var saveBtn    = document.getElementById('chemicalModalSaveBtn');
+
+    statusEl.textContent = 'Reading label\u2026';
+    statusEl.classList.remove('hidden');
+    galleryBtn.disabled = true;
+    cameraBtn.disabled  = true;
+    saveBtn.disabled    = true;
+
+    try {
+        // Load LLM config
+        var settingsDoc = await userCol('settings').doc('llm').get();
+        if (!settingsDoc.exists) { alert('LLM not configured. Go to Settings > AI.'); return; }
+        var cfg      = settingsDoc.data();
+        var provider = cfg.provider;
+        var apiKey   = cfg.apiKey;
+        var model    = cfg.model || '';
+
+        // Determine endpoint and model
+        var endpoint, llmModel;
+        if (provider === 'openai') {
+            endpoint = 'https://api.openai.com/v1/chat/completions';
+            llmModel = model || 'gpt-4o';
+        } else if (provider === 'anthropic') {
+            endpoint = 'https://api.anthropic.com/v1/messages';
+            llmModel = model || 'claude-opus-4-6';
+        } else if (provider === 'openrouter') {
+            endpoint = 'https://openrouter.ai/api/v1/chat/completions';
+            llmModel = model || 'openai/gpt-4o';
+        } else {
+            alert('Unknown LLM provider.'); return;
+        }
+
+        // Build content: prompt + images
+        var content = [{ type: 'text', text: CHEM_ID_PROMPT }];
+        images.forEach(function(url) {
+            content.push({ type: 'image_url', image_url: { url: url } });
+        });
+
+        // Call the LLM
+        var response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + apiKey
+            },
+            body: JSON.stringify({
+                model: llmModel,
+                messages: [{ role: 'user', content: content }],
+                max_tokens: 1000
+            })
+        });
+
+        if (!response.ok) {
+            var errText = await response.text();
+            throw new Error('LLM error ' + response.status + ': ' + errText.slice(0, 200));
+        }
+
+        var data   = await response.json();
+        var raw    = (data.choices && data.choices[0] && data.choices[0].message)
+                     ? data.choices[0].message.content
+                     : (data.content && data.content[0] ? data.content[0].text : '');
+        var parsed = chemParseLlmResponse(raw);
+
+        // Pre-fill modal fields
+        if (parsed.name)  document.getElementById('chemicalNameInput').value  = parsed.name;
+        if (parsed.notes) document.getElementById('chemicalNotesInput').value = parsed.notes;
+
+        // Store pending data for save handler
+        _chemPendingFacts  = (parsed.facts && parsed.facts.length) ? parsed.facts : null;
+        _chemPendingImages = images.length ? images : null;
+
+        // Show facts preview
+        var previewEl  = document.getElementById('chemPicFactsPreview');
+        var listEl     = document.getElementById('chemPicFactsList');
+        if (_chemPendingFacts && _chemPendingFacts.length) {
+            listEl.innerHTML = _chemPendingFacts.map(function(f) {
+                return '<div><strong>' + escapeHtml(f.label) + ':</strong> ' + escapeHtml(f.value) + '</div>';
+            }).join('');
+            previewEl.style.display = 'block';
+        } else {
+            previewEl.style.display = 'none';
+        }
+
+        statusEl.textContent = 'Label read. Review the fields below and click Save.';
+
+    } catch (err) {
+        console.error('Chem LLM error:', err);
+        statusEl.textContent = 'Error: ' + err.message;
+        _chemPendingFacts  = null;
+        _chemPendingImages = null;
+    } finally {
+        galleryBtn.disabled = false;
+        cameraBtn.disabled  = false;
+        saveBtn.disabled    = false;
+    }
 }
 
 // ============================================================
@@ -894,6 +1112,30 @@ document.addEventListener('DOMContentLoaded', function() {
         if (window.currentChemical) {
             handleDeleteChemical(window.currentChemical.id);
         }
+    });
+
+    // Chemical detail — Camera button (add photo directly to this chemical)
+    document.getElementById('addChemicalCameraBtn').addEventListener('click', function() {
+        if (window.currentChemical) triggerCameraUpload('chemical', window.currentChemical.id);
+    });
+
+    // Chemical detail — Gallery button
+    document.getElementById('addChemicalGalleryBtn').addEventListener('click', function() {
+        if (window.currentChemical) triggerGalleryUpload('chemical', window.currentChemical.id);
+    });
+
+    // Chemical modal — LLM bottle scan: Gallery button
+    document.getElementById('chemPicGalleryBtn').addEventListener('click', function() {
+        openLlmPhotoStaging('Scan Chemical Bottle', function(images) {
+            chemSendToLlm(images);
+        });
+    });
+
+    // Chemical modal — LLM bottle scan: Camera button
+    document.getElementById('chemPicCameraBtn').addEventListener('click', function() {
+        openLlmPhotoStaging('Scan Chemical Bottle', function(images) {
+            chemSendToLlm(images);
+        });
     });
 
     // Barcode scanner — Scan Barcode button on chemicals list page

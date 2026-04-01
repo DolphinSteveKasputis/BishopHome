@@ -47,6 +47,7 @@ var PHOTO_CONTAINERS = {
     plant:              ['plantPhotoContainer',          'plantPhotoEmptyState'],
     zone:               ['zonePhotoContainer',           'zonePhotoEmptyState'],
     weed:               ['weedPhotoContainer',           'weedPhotoEmptyState'],
+    chemical:           ['chemicalPhotoContainer',        'chemicalPhotoEmptyState'],
     vehicle:            ['vehiclePhotoContainer',        'vehiclePhotoEmptyState'],
     panel:              ['panelPhotoContainer',          'panelPhotoEmptyState'],
     floor:              ['floorPhotoContainer',          'floorPhotoEmptyState'],

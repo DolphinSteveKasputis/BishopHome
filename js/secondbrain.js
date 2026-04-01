@@ -2302,6 +2302,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); _sbHandleSend(); }
     });
 
+    // Clear text input
+    document.getElementById('sbClearBtn').addEventListener('click', function() {
+        document.getElementById('sbTextInput').value = '';
+        document.getElementById('sbTextInput').focus();
+    });
+
     // Cancel input
     document.getElementById('sbCancelInputBtn').addEventListener('click', _sbCloseInput);
 

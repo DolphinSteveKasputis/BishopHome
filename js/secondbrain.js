@@ -50,6 +50,7 @@ var SB_ICONS = {
     ADD_WEED:           '🌱', ADD_TRACKING_ENTRY: '📊', ADD_THING:          '📦',
     ATTACH_PHOTOS:      '📷', MOVE_THING:         '🚚', ADD_PLANT:          '🪴',
     ADD_NOTE:           '📝', FIND_THING:         '🔍', ADD_DEV_NOTE:       '🛠️',
+    ADD_CHEMICAL:       '🧪',
     UNKNOWN_ACTION:     '❓'
 };
 var SB_LABELS = {
@@ -62,6 +63,7 @@ var SB_LABELS = {
     ATTACH_PHOTOS:      'Attach Photos',       MOVE_THING:         'Move Item',
     FIND_THING:         'Find Item',            ADD_DEV_NOTE:       'Dev Note',
     ADD_PLANT:          'Add Plant',           ADD_NOTE:           'Add Note',
+    ADD_CHEMICAL:       'Add Chemical',
     UNKNOWN_ACTION:     'Unknown Action'
 };
 
@@ -444,6 +446,9 @@ ctxJson,
 '',
 'ADD_WEED — finding/adding a weed. If photos attached try to identify species. If the weed name matches an existing weed in context, set alreadyExists:true and existingWeedId. Include zoneIds even when alreadyExists.',
 '{"action":"ADD_WEED","payload":{"name":"weed name","existingWeedId":"id or null","alreadyExists":false,"zoneIds":[],"zoneLabels":[],"treatmentMethod":"","applicationTiming":"","notes":""}}',
+'',
+'ADD_CHEMICAL — add a chemical or product to the chemicals list (fertilizers, herbicides, pesticides, etc.).',
+'{"action":"ADD_CHEMICAL","payload":{"name":"full product name","notes":"","ambiguous":false}}',
 '',
 'ADD_TRACKING_ENTRY — personal health/life metric (weight, BP, sleep, steps, etc.).',
 '{"action":"ADD_TRACKING_ENTRY","payload":{"date":"YYYY-MM-DD","categoryId":"id or null","categoryName":"name","categoryExists":true,"value":"value"}}',
@@ -1303,6 +1308,14 @@ function _sbRenderConfirmFields(action, payload) {
             html += '<div class="sb-info">ℹ Will be saved to the <strong>Dev Notes</strong> notebook.</div>';
             break;
 
+        case 'ADD_CHEMICAL':
+            html += _sbFieldRow('Name',
+                '<input type="text" class="sb-field' + (p.ambiguous ? ' sb-ambiguous' : '') +
+                '" data-field="name" value="' + _sbEsc(p.name || '') + '">');
+            html += _sbFieldRow('Notes',
+                '<textarea class="sb-field" data-field="notes" rows="2">' + _sbEsc(p.notes || '') + '</textarea>');
+            break;
+
         case 'FIND_THING':
             if (p.found) {
                 html += '<div class="sb-find-result">' +
@@ -1646,6 +1659,17 @@ async function _sbWrite(action, payload) {
             return newId;
         }
 
+        // ---- Add Chemical -----------------------------------
+        case 'ADD_CHEMICAL': {
+            ref = await userCol('chemicals').add({
+                name:      payload.name  || '',
+                notes:     payload.notes || '',
+                createdAt: ts
+            });
+            newId = ref.id;
+            return newId;
+        }
+
         // ---- Add Weed ---------------------------------------
         case 'ADD_WEED': {
             var weedId;
@@ -1934,6 +1958,9 @@ function _sbNavigateTo(action, payload, newId) {
         case 'ADD_PLANT':
             hash = id ? '#plant/' + id : '#home';
             break;
+        case 'ADD_CHEMICAL':
+            hash = id ? '#chemical/' + id : '#chemicals';
+            break;
         case 'ADD_WEED':
             hash = id ? '#weed/' + id : '#weeds';
             break;
@@ -2104,6 +2131,17 @@ var SB_HELP_ACTIONS = [
             'Add this hosta to the bed by the mailbox',
             'attach a photo and say "add this plant to the right side of the porch"',
             'Put 3 mums in the back garden bed'
+        ]
+    },
+    {
+        action: 'ADD_CHEMICAL',
+        icon: '🧪', label: 'Add Chemical',
+        desc: 'Add a chemical or product to your chemicals list (fertilizers, herbicides, pesticides, soil amendments, etc.).',
+        examples: [
+            'Add Roundup to my chemicals',
+            'I bought a new bag of Scotts Turf Builder',
+            'Add Spectracide weed killer to my products list',
+            'Track a new fertilizer called Osmocote Plus'
         ]
     },
     {

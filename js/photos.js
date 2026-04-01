@@ -1071,12 +1071,40 @@ function _updateStagingGrid() {
     countEl.textContent  = _stagingQueue.length + ' / ' + STAGING_MAX + ' photos';
 }
 
+/**
+ * Like openLlmPhotoStaging but opens the gallery picker (no capture attribute)
+ * instead of the camera. Used when the user taps "Gallery" in an LLM scan flow.
+ * @param {string}   title  - Title shown in the staging modal
+ * @param {function} onSend - Callback receiving array of base64 compressed image strings
+ */
+function openLlmPhotoStagingGallery(title, onSend) {
+    _stagingQueue    = [];
+    _stagingCallback = onSend;
+    document.getElementById('photoStagingTitle').textContent = title || 'Add Photos';
+    _updateStagingGrid();
+    openModal('photoStagingModal');
+    // Trigger gallery picker (no capture="environment") for first photo
+    var galleryInput = document.getElementById('stagingGalleryInput');
+    galleryInput.value = '';
+    window._filePickerOpen = true;
+    galleryInput.click();
+}
+
 // Wire up staging + crop buttons once the DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
 
     // Staging camera input — fires after user takes/selects a photo
     document.getElementById('stagingCameraInput').addEventListener('change', function() {
         window._filePickerOpen = false;  // camera returned
+        if (this.files && this.files[0]) {
+            _stagingHandleCamera(this.files[0]);
+        }
+        this.value = '';
+    });
+
+    // Staging gallery input — fires after user picks from gallery
+    document.getElementById('stagingGalleryInput').addEventListener('change', function() {
+        window._filePickerOpen = false;
         if (this.files && this.files[0]) {
             _stagingHandleCamera(this.files[0]);
         }

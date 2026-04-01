@@ -1124,9 +1124,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (window.currentChemical) triggerGalleryUpload('chemical', window.currentChemical.id);
     });
 
-    // Chemical modal — LLM bottle scan: Gallery button
+    // Chemical modal — LLM bottle scan: Gallery button (opens file picker, not camera)
     document.getElementById('chemPicGalleryBtn').addEventListener('click', function() {
-        openLlmPhotoStaging('Scan Chemical Bottle', function(images) {
+        openLlmPhotoStagingGallery('Scan Chemical Bottle', function(images) {
             chemSendToLlm(images);
         });
     });

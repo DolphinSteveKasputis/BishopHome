@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=279">
+    <link rel="stylesheet" href="css/styles.css?v=280">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -2897,6 +2897,22 @@
     <div class="modal-overlay" id="chemicalModal">
         <div class="modal">
             <h3 id="chemicalModalTitle">Add Chemical</h3>
+            <!-- Scan bottle with LLM — at the top so it's reachable without scrolling -->
+            <div id="chemFromPictureSection" class="plant-from-pic-section hidden">
+                <div class="plant-from-pic-divider">— scan bottle with AI —</div>
+                <input type="file" id="chemPicInput" accept="image/*" multiple style="display:none">
+                <input type="file" id="chemCamInput" accept="image/*" capture="environment" style="display:none">
+                <div class="plant-from-pic-buttons">
+                    <button type="button" class="btn btn-secondary btn-sm" id="chemPicGalleryBtn">&#128206; Gallery</button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="chemPicCameraBtn">&#128247; Camera</button>
+                </div>
+                <div id="chemPicStatus" class="plant-pic-status hidden"></div>
+                <!-- Preview of facts the LLM will save -->
+                <div id="chemPicFactsPreview" style="display:none;margin-top:8px;">
+                    <div style="font-size:0.8rem;font-weight:600;color:#555;margin-bottom:4px;">Facts to be saved:</div>
+                    <div id="chemPicFactsList" style="font-size:0.8rem;color:#444;"></div>
+                </div>
+            </div>
             <div class="form-group">
                 <label for="chemicalNameInput">Name</label>
                 <input type="text" id="chemicalNameInput" placeholder="e.g., Roundup, Scotts Turf Builder">
@@ -2916,22 +2932,6 @@
             <div id="chemicalScanRow" style="display:none;text-align:center;margin:8px 0;">
                 <button class="btn btn-secondary" id="chemicalModalScanBtn" type="button">&#128247; Scan Barcode &#8594; Save as Facts</button>
                 <p id="chemicalScanResult" style="margin:6px 0 0;font-size:0.85rem;display:none;"></p>
-            </div>
-            <!-- Scan bottle with LLM — visible for both add and edit modes when LLM is configured -->
-            <div id="chemFromPictureSection" class="plant-from-pic-section hidden">
-                <div class="plant-from-pic-divider">— or scan bottle with AI —</div>
-                <input type="file" id="chemPicInput" accept="image/*" multiple style="display:none">
-                <input type="file" id="chemCamInput" accept="image/*" capture="environment" style="display:none">
-                <div class="plant-from-pic-buttons">
-                    <button type="button" class="btn btn-secondary btn-sm" id="chemPicGalleryBtn">&#128206; Gallery</button>
-                    <button type="button" class="btn btn-secondary btn-sm" id="chemPicCameraBtn">&#128247; Camera</button>
-                </div>
-                <div id="chemPicStatus" class="plant-pic-status hidden"></div>
-                <!-- Preview of facts the LLM will save -->
-                <div id="chemPicFactsPreview" style="display:none;margin-top:8px;">
-                    <div style="font-size:0.8rem;font-weight:600;color:#555;margin-bottom:4px;">Facts to be saved:</div>
-                    <div id="chemPicFactsList" style="font-size:0.8rem;color:#444;"></div>
-                </div>
             </div>
             <div class="modal-buttons">
                 <button class="btn btn-secondary" id="chemicalModalCancelBtn">Cancel</button>
@@ -6303,6 +6303,8 @@
             <div id="photoStagingCount" class="staging-count">0 / 4 photos</div>
             <!-- Hidden camera input shared by all staging flows -->
             <input type="file" id="stagingCameraInput" accept="image/*" capture="environment" style="display:none;">
+            <!-- Hidden gallery input (no capture attribute — opens file picker / gallery) -->
+            <input type="file" id="stagingGalleryInput" accept="image/*" multiple style="display:none;">
             <div class="modal-buttons">
                 <button class="btn btn-secondary" id="photoStagingCancelBtn">Cancel</button>
                 <button class="btn btn-secondary" id="photoStagingAddBtn">&#128247; Add Another</button>
@@ -6429,44 +6431,44 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=279"></script>
-    <script src="js/auth.js?v=279"></script>
-    <script src="js/zones.js?v=279"></script>
-    <script src="js/plants.js?v=279"></script>
-    <script src="js/problems.js?v=279"></script>
-    <script src="js/facts.js?v=279"></script>
-    <script src="js/projects.js?v=279"></script>
-    <script src="js/chemicals.js?v=279"></script>
-    <script src="js/activities.js?v=279"></script>
+    <script src="js/firebase-config.js?v=280"></script>
+    <script src="js/auth.js?v=280"></script>
+    <script src="js/zones.js?v=280"></script>
+    <script src="js/plants.js?v=280"></script>
+    <script src="js/problems.js?v=280"></script>
+    <script src="js/facts.js?v=280"></script>
+    <script src="js/projects.js?v=280"></script>
+    <script src="js/chemicals.js?v=280"></script>
+    <script src="js/activities.js?v=280"></script>
     <!-- Cropper.js — client-side image cropping library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <!-- SortableJS — drag-and-drop list reordering -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    <script src="js/photos.js?v=279"></script>
-    <script src="js/weeds.js?v=279"></script>
-    <script src="js/calendar.js?v=279"></script>
-    <script src="js/gps.js?v=279"></script>
-    <script src="js/settings.js?v=279"></script>
-    <script src="js/house.js?v=279"></script>
-    <script src="js/floorplan.js?v=279"></script>
-    <script src="js/search.js?v=279"></script>
-    <script src="js/activityreport.js?v=279"></script>
-    <script src="js/checklists.js?v=279"></script>
-    <script src="js/bulkactivity.js?v=279"></script>
-    <script src="js/vehicles.js?v=279"></script>
-    <script src="js/garage.js?v=279"></script>
-    <script src="js/structures.js?v=279"></script>
-    <script src="js/moveThings.js?v=279"></script>
-    <script src="js/journal.js?v=279"></script>
-    <script src="js/people.js?v=279"></script>
-    <script src="js/collections.js?v=279"></script>
-    <script src="js/health.js?v=279"></script>
-    <script src="js/notes.js?v=279"></script>
+    <script src="js/photos.js?v=280"></script>
+    <script src="js/weeds.js?v=280"></script>
+    <script src="js/calendar.js?v=280"></script>
+    <script src="js/gps.js?v=280"></script>
+    <script src="js/settings.js?v=280"></script>
+    <script src="js/house.js?v=280"></script>
+    <script src="js/floorplan.js?v=280"></script>
+    <script src="js/search.js?v=280"></script>
+    <script src="js/activityreport.js?v=280"></script>
+    <script src="js/checklists.js?v=280"></script>
+    <script src="js/bulkactivity.js?v=280"></script>
+    <script src="js/vehicles.js?v=280"></script>
+    <script src="js/garage.js?v=280"></script>
+    <script src="js/structures.js?v=280"></script>
+    <script src="js/moveThings.js?v=280"></script>
+    <script src="js/journal.js?v=280"></script>
+    <script src="js/people.js?v=280"></script>
+    <script src="js/collections.js?v=280"></script>
+    <script src="js/health.js?v=280"></script>
+    <script src="js/notes.js?v=280"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=279"></script>
-    <script src="js/secondbrain.js?v=279"></script>
-    <script src="js/sbissues.js?v=279"></script>
-    <script src="js/app.js?v=279"></script>
+    <script src="js/chat.js?v=280"></script>
+    <script src="js/secondbrain.js?v=280"></script>
+    <script src="js/sbissues.js?v=280"></script>
+    <script src="js/app.js?v=280"></script>
 
 </body>
 </html>

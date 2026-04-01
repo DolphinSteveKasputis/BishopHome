@@ -616,6 +616,11 @@ async function chemSendToLlm(images) {
             content.push({ type: 'image_url', image_url: { url: url } });
         });
 
+        // OpenAI o-series models require max_completion_tokens; other providers use max_tokens
+        var tokenParam = (provider === 'openai') ? 'max_completion_tokens' : 'max_tokens';
+        var reqBody = { model: llmModel, messages: [{ role: 'user', content: content }] };
+        reqBody[tokenParam] = 1000;
+
         // Call the LLM
         var response = await fetch(endpoint, {
             method: 'POST',
@@ -623,11 +628,7 @@ async function chemSendToLlm(images) {
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer ' + apiKey
             },
-            body: JSON.stringify({
-                model: llmModel,
-                messages: [{ role: 'user', content: content }],
-                max_tokens: 1000
-            })
+            body: JSON.stringify(reqBody)
         });
 
         if (!response.ok) {

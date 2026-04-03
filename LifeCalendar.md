@@ -717,7 +717,9 @@ System prompt rule:
 
 ---
 
-### Phase LC-7 — Photos on Events
+### Phase LC-7 — Photos on Events ✅ COMPLETE (v=296)
+
+**Delivered:** Photo section added to event detail page (hidden on new events). Camera, Gallery, and Paste buttons wired. `loadPhotos('lifeEvent', id, ...)` called on page load. `lifeEvent` added to `_getPasteEntity` map in photos.js so paste delegation works. Delete cascade for photos already handled by existing `lcDeleteEvent`.
 
 **Goal:** Photos can be attached to life events using the existing photos system.
 

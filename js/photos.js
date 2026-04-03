@@ -408,6 +408,7 @@ function _getPasteEntity(type) {
         collectionitem:    window.currentCollectionItem,
         person:            window.currentPerson,
         item:              window.currentItem,
+        lifeEvent:         window.currentLifeEvent,
     };
     return entityMap[type] || null;
 }

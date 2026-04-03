@@ -858,6 +858,16 @@ function _lcRenderEventForm(event, categories, prefillDate) {
                 <p style="color:var(--text-muted);font-size:0.88rem;">Loading…</p>
             </div>
         </div>
+
+        <!-- Photos — only shown on existing events -->
+        <div class="lc-section-header" style="margin-top:1.5rem;">
+            <h3>Photos</h3>
+            <button type="button" class="btn btn-sm btn-primary" id="lcPhotoCameraBtn">+ Camera</button>
+            <button type="button" class="btn btn-sm btn-primary" id="lcPhotoGalleryBtn">+ Gallery</button>
+            <button type="button" class="btn btn-sm btn-primary paste-photo-btn" data-entity="lifeEvent">📋 Paste</button>
+        </div>
+        <div id="lcPhotoContainer"></div>
+        <p class="empty-state" id="lcPhotoEmpty">No photos yet.</p>
         ` : ''}
     `;
 
@@ -1761,6 +1771,15 @@ async function loadLifeEventPage(id) {
 
         // Wire the mini log section (exists only on edit pages)
         _lcWireMiniLog(id);
+
+        // Load photos (exists only on edit pages)
+        loadPhotos('lifeEvent', id, 'lcPhotoContainer', 'lcPhotoEmpty');
+
+        // Wire photo upload buttons
+        var cameraBtn  = document.getElementById('lcPhotoCameraBtn');
+        var galleryBtn = document.getElementById('lcPhotoGalleryBtn');
+        if (cameraBtn)  cameraBtn.addEventListener('click',  function() { triggerCameraUpload('lifeEvent',  id); });
+        if (galleryBtn) galleryBtn.addEventListener('click', function() { triggerGalleryUpload('lifeEvent', id); });
     } catch (err) {
         console.error('loadLifeEventPage error:', err);
         section.innerHTML = '<div class="lc-page-body"><p style="color:var(--danger);">Failed to load. Please refresh.</p></div>';

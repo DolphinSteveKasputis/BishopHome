@@ -67,6 +67,17 @@ var _lcSearchQuery    = '';
 /** All events loaded for the calendar page (unfiltered). */
 var _lcAllEvents      = [];
 
+// ---------- LC-9: Grid view state ----------
+
+/** Current view mode. null until first page load, then 'list' or 'grid'. */
+var _lcViewMode  = null;
+
+/** Year currently displayed on the grid (full 4-digit). */
+var _lcGridYear  = 0;
+
+/** Month currently displayed on the grid (0-indexed, JS Date convention). */
+var _lcGridMonth = 0;
+
 // Template keys for each known category type.
 // 'travel' intentionally has no extra fields (marker only).
 var LC_TEMPLATE_KEYS = ['race', 'concert', 'golf', 'sports'];
@@ -528,11 +539,12 @@ function _lcStatusLabel(status) {
 }
 
 /**
- * Apply current filter state to _lcAllEvents and re-render the event list.
- * Called whenever a filter control changes.
+ * Return the current events array with all filters applied (unsorted).
+ * Shared by both list and grid render paths.
+ * @returns {Array}
  */
-function _lcApplyFilters() {
-    var filtered = _lcAllEvents.filter(function(ev) {
+function _lcGetFilteredEvents() {
+    return _lcAllEvents.filter(function(ev) {
         // Status filter
         if (_lcStatusFilter === 'upcoming'          && ev.status !== 'upcoming')  return false;
         if (_lcStatusFilter === 'upcoming+attended' && ev.status === 'didntgo')   return false;
@@ -549,18 +561,29 @@ function _lcApplyFilters() {
         }
         return true;
     });
+}
 
-    // Sort: past-only views → newest first; everything else → soonest first
-    var descending = (_lcStatusFilter === 'attended' || _lcStatusFilter === 'missed');
-    filtered.sort(function(a, b) {
-        var aDate = a.startDate || '';
-        var bDate = b.startDate || '';
-        if (aDate < bDate) return descending ? 1 : -1;
-        if (aDate > bDate) return descending ? -1 : 1;
-        return 0;
-    });
+/**
+ * Apply current filter state and render to whichever view is active (list or grid).
+ * Called whenever a filter control or view toggle changes.
+ */
+function _lcApplyFilters() {
+    var filtered = _lcGetFilteredEvents();
 
-    _lcRenderEventList(filtered, _lcAllCategories);
+    if (_lcViewMode === 'grid') {
+        _lcRenderGrid(_lcGridYear, _lcGridMonth, filtered);
+    } else {
+        // Sort: past-only views → newest first; everything else → soonest first
+        var descending = (_lcStatusFilter === 'attended' || _lcStatusFilter === 'missed');
+        filtered.sort(function(a, b) {
+            var aDate = a.startDate || '';
+            var bDate = b.startDate || '';
+            if (aDate < bDate) return descending ? 1 : -1;
+            if (aDate > bDate) return descending ? -1 : 1;
+            return 0;
+        });
+        _lcRenderEventList(filtered, _lcAllCategories);
+    }
 }
 
 /**
@@ -616,6 +639,249 @@ function _lcRenderEventList(events, categories) {
     });
 }
 
+// ============================================================
+// LC-9 helpers — grid view
+// ============================================================
+
+/**
+ * Format a Date object to 'YYYY-MM-DD' local time string.
+ * @param {Date} date
+ * @returns {string}
+ */
+function _lcIsoDate(date) {
+    var y = date.getFullYear();
+    var m = String(date.getMonth() + 1).padStart(2, '0');
+    var d = String(date.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + d;
+}
+
+/**
+ * Build a map of dayOfMonth → events[] for the given month.
+ * Multi-day events appear on every day they touch within the month.
+ * @param {Array}  events - Filtered events
+ * @param {number} year
+ * @param {number} month  - 0-indexed
+ * @returns {Object}      - { 1: [...], 2: [...], … }
+ */
+function _lcBuildDayMap(events, year, month) {
+    var daysInMonth = new Date(year, month + 1, 0).getDate();
+    var map = {};
+    for (var d = 1; d <= daysInMonth; d++) map[d] = [];
+
+    var monthStart = year + '-' + String(month + 1).padStart(2, '0') + '-01';
+    var monthEnd   = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(daysInMonth).padStart(2, '0');
+
+    events.forEach(function(ev) {
+        var start = ev.startDate || '';
+        var end   = ev.endDate   || ev.startDate || '';
+        if (!start) return;
+        // Skip events entirely outside this month
+        if (end < monthStart || start > monthEnd) return;
+
+        // Clamp to month boundaries
+        var effStart = start < monthStart ? monthStart : start;
+        var effEnd   = end   > monthEnd   ? monthEnd   : end;
+
+        // Walk each day in range and add event to its slot
+        var cur = new Date(effStart + 'T00:00:00');
+        var last = new Date(effEnd  + 'T00:00:00');
+        while (cur <= last) {
+            if (cur.getMonth() === month && cur.getFullYear() === year) {
+                map[cur.getDate()].push(ev);
+            }
+            cur.setDate(cur.getDate() + 1);
+        }
+    });
+
+    return map;
+}
+
+/**
+ * Update the grid month/year label above the grid.
+ */
+function _lcUpdateGridMonthLabel() {
+    var label = document.getElementById('lcGridMonthLabel');
+    if (!label) return;
+    var d = new Date(_lcGridYear, _lcGridMonth, 1);
+    label.textContent = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
+
+/**
+ * Sync the view-toggle button text and show/hide grid vs list containers.
+ */
+function _lcSyncViewUI() {
+    var isGrid   = (_lcViewMode === 'grid');
+    var toggleBtn = document.getElementById('lcViewToggle');
+    var gridNav   = document.getElementById('lcGridNav');
+    var gridWrap  = document.getElementById('lcGridContainer');
+    var listWrap  = document.getElementById('lcEventList');
+
+    if (toggleBtn) toggleBtn.textContent = isGrid ? 'List View' : 'Grid View';
+    if (gridNav)   gridNav.classList.toggle('hidden', !isGrid);
+    if (gridWrap)  gridWrap.classList.toggle('hidden', !isGrid);
+    if (listWrap)  listWrap.classList.toggle('hidden',  isGrid);
+}
+
+/**
+ * Render the month grid into #lcGridContainer.
+ * @param {number} year
+ * @param {number} month   - 0-indexed
+ * @param {Array}  events  - Already-filtered events
+ */
+function _lcRenderGrid(year, month, events) {
+    var container = document.getElementById('lcGridContainer');
+    if (!container) return;
+
+    var todayStr     = _lcIsoDate(new Date());
+    var daysInMonth  = new Date(year, month + 1, 0).getDate();
+    var firstWeekDay = new Date(year, month, 1).getDay(); // 0 = Sunday
+
+    var dayMap   = _lcBuildDayMap(events, year, month);
+    var colorMap = {};
+    _lcAllCategories.forEach(function(c) { colorMap[c.id] = c.color || ''; });
+
+    var html = '<div class="lc-grid">';
+
+    // Day-of-week headers
+    ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(function(h) {
+        html += '<div class="lc-grid-header">' + h + '</div>';
+    });
+
+    // Leading blank cells
+    for (var b = 0; b < firstWeekDay; b++) {
+        html += '<div class="lc-grid-cell lc-grid-cell--blank"></div>';
+    }
+
+    // Day cells
+    for (var day = 1; day <= daysInMonth; day++) {
+        var isoDay   = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+        var isToday  = (isoDay === todayStr);
+        var dayEvs   = dayMap[day] || [];
+        var showN    = Math.min(2, dayEvs.length);
+        var overflow = dayEvs.length - showN;
+
+        html += '<div class="lc-grid-cell' + (isToday ? ' lc-grid-cell--today' : '') +
+                '" data-date="' + isoDay + '" data-day="' + day + '">';
+
+        // Date number (circled if today)
+        html += '<span class="lc-grid-day-num' + (isToday ? ' lc-grid-day-num--today' : '') + '">' + day + '</span>';
+
+        // Up to 2 event bars
+        for (var i = 0; i < showN; i++) {
+            var ev    = dayEvs[i];
+            var color = colorMap[ev.categoryId] || 'linear-gradient(135deg,#6b7280,#9ca3af)';
+            var dgo   = ev.status === 'didntgo';
+            html += '<div class="lc-event-bar' + (dgo ? ' lc-event-bar--didnt-go' : '') +
+                    '" data-id="' + escapeHtml(ev.id) + '" style="background:' + color + '"' +
+                    ' title="' + escapeHtml(ev.title || '') + '">' +
+                    '<span class="lc-event-bar-title">' + escapeHtml(ev.title || '') + '</span>' +
+                    (dgo ? '<span class="lc-event-bar-x">✗</span>' : '') +
+                    '</div>';
+        }
+
+        // Overflow link
+        if (overflow > 0) {
+            html += '<span class="lc-overflow-link" data-day="' + day + '">+' + overflow + ' more</span>';
+        }
+
+        html += '</div>';
+    }
+
+    html += '</div>';
+    container.innerHTML = html;
+
+    // Wire event bar clicks → navigate directly
+    container.querySelectorAll('.lc-event-bar').forEach(function(bar) {
+        bar.addEventListener('click', function(e) {
+            e.stopPropagation();
+            window.location.hash = '#life-event/' + this.dataset.id;
+        });
+    });
+
+    // Wire day cell clicks → day modal (or straight to new event if no events)
+    container.querySelectorAll('.lc-grid-cell:not(.lc-grid-cell--blank)').forEach(function(cell) {
+        cell.addEventListener('click', function(e) {
+            if (e.target.closest('.lc-event-bar')) return; // handled above
+            var date   = this.dataset.date;
+            var dayNum = parseInt(this.dataset.day);
+            var evs    = dayMap[dayNum] || [];
+            if (evs.length === 0) {
+                // Empty day → go straight to create event
+                window._newEventDate = date;
+                window.location.hash = '#life-event/new';
+            } else {
+                _lcOpenDayModal(date, evs);
+            }
+        });
+    });
+
+    // Wire overflow links → open day modal
+    container.querySelectorAll('.lc-overflow-link').forEach(function(link) {
+        link.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var dayNum = parseInt(this.dataset.day);
+            var date   = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(dayNum).padStart(2, '0');
+            _lcOpenDayModal(date, dayMap[dayNum] || []);
+        });
+    });
+
+    // Update the month/year label
+    _lcUpdateGridMonthLabel();
+}
+
+/**
+ * Open the day-detail modal for the given date.
+ * @param {string} date   - ISO date (YYYY-MM-DD)
+ * @param {Array}  events - Events that fall on this day
+ */
+function _lcOpenDayModal(date, events) {
+    var d = new Date(date + 'T00:00:00');
+    var label = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+    document.getElementById('lcDayModalDate').textContent = label;
+
+    var colorMap = {};
+    _lcAllCategories.forEach(function(c) { colorMap[c.id] = c.color || ''; });
+
+    var list = document.getElementById('lcDayModalList');
+    list.innerHTML = '';
+
+    // Event cards
+    events.forEach(function(ev) {
+        var color = colorMap[ev.categoryId] || 'linear-gradient(135deg,#6b7280,#9ca3af)';
+        var card  = document.createElement('div');
+        card.className = 'lc-day-modal-card';
+        card.innerHTML =
+            '<div class="lc-event-card-bar" style="background:' + color + '"></div>' +
+            '<div class="lc-event-card-body">' +
+                '<div class="lc-event-card-title">' + escapeHtml(ev.title || '') + '</div>' +
+                '<div class="lc-event-card-meta">' +
+                    '<span class="lc-event-card-dates">' + escapeHtml(_lcFormatDateRange(ev.startDate, ev.endDate)) + '</span>' +
+                    '<span class="lc-status-badge lc-status-badge--' + (ev.status || 'upcoming') + '">' +
+                        escapeHtml(_lcStatusLabel(ev.status)) +
+                    '</span>' +
+                '</div>' +
+            '</div>';
+        card.addEventListener('click', function() {
+            closeModal('lcDayModal');
+            window.location.hash = '#life-event/' + ev.id;
+        });
+        list.appendChild(card);
+    });
+
+    // Add Event card
+    var addCard = document.createElement('div');
+    addCard.className = 'lc-day-modal-add';
+    addCard.textContent = '+ Add Event for This Day';
+    addCard.addEventListener('click', function() {
+        closeModal('lcDayModal');
+        window._newEventDate = date;
+        window.location.hash = '#life-event/new';
+    });
+    list.appendChild(addCard);
+
+    openModal('lcDayModal');
+}
+
 /**
  * Load the Life Calendar main page (#life-calendar).
  * Shows event list with filters, and category management below.
@@ -653,11 +919,22 @@ async function loadLifeCalendarPage() {
         _lcAllCategories = categories;
         _lcAllEvents = eventsSnap.docs.map(function(d) { return { id: d.id, ...d.data() }; });
 
+        // Set default view based on screen size (only on first visit)
+        if (_lcViewMode === null) {
+            _lcViewMode = window.innerWidth >= 768 ? 'grid' : 'list';
+        }
+
+        // Initialize grid to current month
+        var now = new Date();
+        if (_lcGridYear === 0) { _lcGridYear = now.getFullYear(); _lcGridMonth = now.getMonth(); }
+
         // Build category filter options
         var catOptions = '<option value="">All Categories</option>' +
             categories.map(function(c) {
                 return '<option value="' + escapeHtml(c.id) + '">' + escapeHtml(c.name) + '</option>';
             }).join('');
+
+        var isGrid = (_lcViewMode === 'grid');
 
         // Render full page
         section.innerHTML = `
@@ -685,11 +962,23 @@ async function loadLifeCalendarPage() {
                     </select>
                     <input type="search" id="lcSearchInput" class="form-control lc-search-input"
                            placeholder="Search events…" value="${escapeHtml(_lcSearchQuery)}">
+                    <button class="btn btn-sm btn-secondary" id="lcViewToggle">${isGrid ? 'List View' : 'Grid View'}</button>
                     <button class="btn btn-primary btn-sm" id="lcAddEventBtn">+ Add Event</button>
                 </div>
 
-                <!-- Event list -->
-                <div class="lc-event-list" id="lcEventList">
+                <!-- Grid navigation (hidden in list view) -->
+                <div class="lc-grid-nav${isGrid ? '' : ' hidden'}" id="lcGridNav">
+                    <button class="btn btn-sm btn-secondary" id="lcGridPrev">&#8249;</button>
+                    <span class="lc-grid-month-label" id="lcGridMonthLabel"></span>
+                    <button class="btn btn-sm btn-secondary" id="lcGridNext">&#8250;</button>
+                    <button class="btn btn-sm btn-secondary" id="lcGridToday">Today</button>
+                </div>
+
+                <!-- Grid container (hidden in list view) -->
+                <div class="lc-grid-wrap${isGrid ? '' : ' hidden'}" id="lcGridContainer"></div>
+
+                <!-- Event list (hidden in grid view) -->
+                <div class="lc-event-list${isGrid ? ' hidden' : ''}" id="lcEventList">
                     <p style="color:var(--text-muted);">Loading events…</p>
                 </div>
 
@@ -727,6 +1016,31 @@ async function loadLifeCalendarPage() {
             _lcApplyFilters();
         });
 
+        // Wire view toggle
+        document.getElementById('lcViewToggle').addEventListener('click', function() {
+            _lcViewMode = (_lcViewMode === 'grid') ? 'list' : 'grid';
+            _lcSyncViewUI();
+            _lcApplyFilters();
+        });
+
+        // Wire grid navigation
+        document.getElementById('lcGridPrev').addEventListener('click', function() {
+            _lcGridMonth--;
+            if (_lcGridMonth < 0) { _lcGridMonth = 11; _lcGridYear--; }
+            _lcApplyFilters();
+        });
+        document.getElementById('lcGridNext').addEventListener('click', function() {
+            _lcGridMonth++;
+            if (_lcGridMonth > 11) { _lcGridMonth = 0; _lcGridYear++; }
+            _lcApplyFilters();
+        });
+        document.getElementById('lcGridToday').addEventListener('click', function() {
+            var t = new Date();
+            _lcGridYear  = t.getFullYear();
+            _lcGridMonth = t.getMonth();
+            _lcApplyFilters();
+        });
+
         // Wire Add Event button
         document.getElementById('lcAddEventBtn').addEventListener('click', function() {
             window._newEventDate = null;
@@ -736,6 +1050,11 @@ async function loadLifeCalendarPage() {
         // Wire Add Category button
         document.getElementById('lcAddCategoryBtn').addEventListener('click', function() {
             lcOpenCategoryModal(null);
+        });
+
+        // Wire day modal close button
+        document.getElementById('lcDayModalCloseBtn').addEventListener('click', function() {
+            closeModal('lcDayModal');
         });
 
         // Wire category modal save/cancel buttons

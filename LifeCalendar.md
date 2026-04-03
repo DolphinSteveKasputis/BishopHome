@@ -771,7 +771,9 @@ System prompt rule:
 
 ---
 
-### Phase LC-9 — Calendar Grid View
+### Phase LC-9 — Calendar Grid View ✅ COMPLETE (v=298)
+
+**Delivered:** 7-column month grid with event bars (colored by category, ✗ badge for Didn't Go), today circled, Prev/Next/Today navigation. Day click → day modal (event cards + Add Event card); empty day → goes straight to new event form. Grid/List toggle button in controls row. Desktop defaults to grid, mobile defaults to list (≤599px hides grid). Filter state (status/category/search) applies to both views. `#lcDayModal` added to index.html.
 
 **Goal:** Full month grid with multi-day event bars, today circled, day-click modal, navigation, and overflow.
 

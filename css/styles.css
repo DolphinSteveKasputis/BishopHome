@@ -6863,6 +6863,169 @@ textarea.sb-field { resize: vertical; min-height: 60px; }
     .lc-search-input  { flex: 1 1 100%; }
 }
 
+/* ══════════════════════════════════════════════════════════════
+   LC-9 — Month grid view
+   ══════════════════════════════════════════════════════════════ */
+
+/* Grid nav bar (Prev / Month Year / Next / Today) */
+.lc-grid-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+.lc-grid-month-label {
+    flex: 1;
+    text-align: center;
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--text-primary, #1f2937);
+}
+
+/* Grid wrapper — allows horizontal scroll on very small screens */
+.lc-grid-wrap {
+    overflow-x: auto;
+    margin-bottom: 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border, #e5e7eb);
+}
+
+/* 7-column grid */
+.lc-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    min-width: 420px;    /* prevent total collapse on small screens */
+}
+
+/* Day-of-week header row */
+.lc-grid-header {
+    background: var(--bg-muted, #f9fafb);
+    text-align: center;
+    padding: 6px 0;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-secondary, #6b7280);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--border, #e5e7eb);
+}
+
+/* Day cells */
+.lc-grid-cell {
+    min-height: 80px;
+    padding: 4px;
+    border-right: 1px solid var(--border, #e5e7eb);
+    border-bottom: 1px solid var(--border, #e5e7eb);
+    cursor: pointer;
+    overflow: hidden;
+    vertical-align: top;
+}
+/* Remove right border on last column */
+.lc-grid-cell:nth-child(7n) { border-right: none; }
+/* Remove bottom border on last row (approximate — last 7 cells) */
+.lc-grid-cell:hover { background: var(--hover-bg, #f9fafb); }
+
+.lc-grid-cell--blank {
+    background: var(--bg-light, #fafafa);
+    cursor: default;
+}
+.lc-grid-cell--blank:hover { background: var(--bg-light, #fafafa); }
+
+/* Date number in top-left of cell */
+.lc-grid-day-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    font-size: 0.78rem;
+    color: var(--text-secondary, #6b7280);
+    margin-bottom: 2px;
+    line-height: 1;
+}
+.lc-grid-day-num--today {
+    background: var(--primary, #2563eb);
+    color: #fff;
+    font-weight: 700;
+}
+
+/* Event bars inside day cells */
+.lc-event-bar {
+    display: flex;
+    align-items: center;
+    border-radius: 3px;
+    padding: 1px 5px;
+    margin-bottom: 2px;
+    cursor: pointer;
+    font-size: 0.7rem;
+    color: #fff;
+    overflow: hidden;
+    line-height: 1.5;
+    transition: opacity 0.1s;
+}
+.lc-event-bar:hover { opacity: 0.8; }
+.lc-event-bar-title {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.lc-event-bar-x {
+    flex-shrink: 0;
+    margin-left: 3px;
+    font-size: 0.6rem;
+}
+.lc-event-bar--didnt-go { opacity: 0.6; }
+
+/* "+N more" overflow link */
+.lc-overflow-link {
+    display: block;
+    font-size: 0.68rem;
+    color: var(--primary, #2563eb);
+    cursor: pointer;
+    padding: 0 4px;
+}
+.lc-overflow-link:hover { text-decoration: underline; }
+
+/* Day-detail modal */
+.lc-day-modal-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 8px;
+    max-height: 380px;
+    overflow-y: auto;
+}
+.lc-day-modal-card {
+    display: flex;
+    align-items: stretch;
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: box-shadow 0.15s;
+}
+.lc-day-modal-card:hover { box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+.lc-day-modal-add {
+    padding: 10px 14px;
+    border: 2px dashed var(--border, #d1d5db);
+    border-radius: 8px;
+    text-align: center;
+    color: var(--primary, #2563eb);
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.lc-day-modal-add:hover { background: #eff6ff; }
+
+/* Mobile: force list view (hide grid) */
+@media (max-width: 599px) {
+    .lc-grid-wrap,
+    .lc-grid-nav { display: none !important; }
+}
+
 /* ── Notebook tiles (color set via inline style by notes.js) ── */
 .notebook-tile {
     display: flex;

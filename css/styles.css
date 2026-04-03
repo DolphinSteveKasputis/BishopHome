@@ -6469,6 +6469,92 @@ textarea.sb-field { resize: vertical; min-height: 60px; }
     font-weight: 400;
 }
 
+/* ── Life Calendar — mini log section ── */
+.lc-mini-log-section {
+    padding: 0 16px 24px;
+    max-width: 640px;
+    border-top: 1px solid var(--border, #e5e7eb);
+    margin-top: 8px;
+    padding-top: 20px;
+}
+.lc-log-add-form {
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.lc-log-datetime-row {
+    display: flex;
+    gap: 10px;
+}
+.lc-log-date-input {
+    flex: 1.4;
+}
+.lc-log-time-input {
+    flex: 1;
+}
+.lc-log-textarea-wrap {
+    position: relative;
+}
+.lc-log-mention-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    z-index: 200;
+    max-height: 180px;
+    overflow-y: auto;
+}
+.lc-log-mention-item {
+    padding: 8px 14px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+.lc-log-mention-item:hover {
+    background: var(--bg-secondary, #f3f4f6);
+}
+.lc-mini-log-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.lc-log-entry {
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 10px;
+    padding: 12px 14px;
+    background: var(--bg-secondary, #f8f9fa);
+}
+.lc-log-meta {
+    font-size: 0.78rem;
+    color: var(--text-muted, #9ca3af);
+    margin-bottom: 6px;
+    font-weight: 500;
+}
+.lc-log-body {
+    font-size: 0.92rem;
+    line-height: 1.55;
+    color: var(--text-primary, #1f2937);
+    margin-bottom: 8px;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+.lc-mention-link {
+    color: var(--accent, #3b82f6);
+    text-decoration: none;
+    font-weight: 500;
+}
+.lc-mention-link:hover {
+    text-decoration: underline;
+}
+.lc-log-actions {
+    display: flex;
+    gap: 6px;
+}
+
 /* ── Life Calendar — category type fields ── */
 .lc-type-fields {
     background: var(--bg-secondary, #f8f9fa);

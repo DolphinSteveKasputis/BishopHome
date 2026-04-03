@@ -206,6 +206,75 @@ async function lcDeleteEvent(id) {
 }
 
 // ============================================================
+// Mini Log — Firestore CRUD
+// ============================================================
+
+/**
+ * Add a mini log entry for a life event.
+ * @param {string} eventId   - Parent event doc ID
+ * @param {string} body      - Entry text (may contain @name mentions)
+ * @param {Array}  mentionedPersonIds - Person IDs mentioned
+ * @param {string} logDate   - ISO date string (YYYY-MM-DD)
+ * @param {string} logTime   - HH:MM time string
+ * @returns {string} New log doc ID
+ */
+async function lcAddLog(eventId, body, mentionedPersonIds, logDate, logTime) {
+    var ref = await userCol('lifeEventLogs').add({
+        eventId:            eventId,
+        body:               body,
+        mentionedPersonIds: mentionedPersonIds || [],
+        logDate:            logDate || '',
+        logTime:            logTime || '',
+        createdAt:          firebase.firestore.FieldValue.serverTimestamp()
+    });
+    return ref.id;
+}
+
+/**
+ * Update an existing mini log entry's body text.
+ * @param {string} logId             - Log doc ID
+ * @param {string} body              - New body text
+ * @param {Array}  mentionedPersonIds - Updated person IDs mentioned
+ */
+async function lcUpdateLog(logId, body, mentionedPersonIds) {
+    await userCol('lifeEventLogs').doc(logId).update({
+        body:               body,
+        mentionedPersonIds: mentionedPersonIds || [],
+        updatedAt:          firebase.firestore.FieldValue.serverTimestamp()
+    });
+}
+
+/**
+ * Delete a mini log entry.
+ * @param {string} logId - Log doc ID
+ */
+async function lcDeleteLog(logId) {
+    await userCol('lifeEventLogs').doc(logId).delete();
+}
+
+/**
+ * Load all mini log entries for an event, sorted oldest first.
+ * @param {string} eventId
+ * @returns {Array} Array of { id, body, mentionedPersonIds, logDate, logTime, createdAt }
+ */
+async function lcLoadLogs(eventId) {
+    // Single-field filter only (no composite index needed).
+    // Sort client-side by logDate + logTime.
+    var snap = await userCol('lifeEventLogs')
+        .where('eventId', '==', eventId)
+        .get();
+    var docs = snap.docs.map(function(doc) {
+        return { id: doc.id, ...doc.data() };
+    });
+    docs.sort(function(a, b) {
+        var aKey = (a.logDate || '') + (a.logTime || '');
+        var bKey = (b.logDate || '') + (b.logTime || '');
+        return aKey.localeCompare(bKey);
+    });
+    return docs;
+}
+
+// ============================================================
 // People — load for picker
 // ============================================================
 
@@ -764,6 +833,32 @@ function _lcRenderEventForm(event, categories, prefillDate) {
 
             </form>
         </div>
+
+        ${!isNew ? `
+        <!-- Mini Log — only shown on existing events -->
+        <div class="lc-mini-log-section">
+            <div class="lc-section-header">
+                <h3>Mini Log</h3>
+            </div>
+            <!-- Add entry form -->
+            <div class="lc-log-add-form" id="lcLogAddForm">
+                <div class="lc-log-datetime-row">
+                    <input type="date" id="lcLogNewDate" class="form-control lc-log-date-input">
+                    <input type="time" id="lcLogNewTime" class="form-control lc-log-time-input">
+                </div>
+                <div class="lc-log-textarea-wrap">
+                    <textarea id="lcLogNewBody" class="form-control" rows="2"
+                              placeholder="What happened? Type @ to mention someone…"></textarea>
+                    <div id="lcLogMentionDropdown" class="lc-log-mention-dropdown" style="display:none;"></div>
+                </div>
+                <button type="button" class="btn btn-sm btn-primary" id="lcLogAddBtn">Add Entry</button>
+            </div>
+            <!-- Log entries list -->
+            <div class="lc-mini-log-list" id="lcMiniLogList">
+                <p style="color:var(--text-muted);font-size:0.88rem;">Loading…</p>
+            </div>
+        </div>
+        ` : ''}
     `;
 
     // Toggle "Didn't Go" reason visibility when status changes
@@ -943,6 +1038,282 @@ function _lcRenderEventForm(event, categories, prefillDate) {
         document.getElementById('lcLinkInlineForm').classList.add('hidden');
         _lcRenderLinks();
         _lcEventDirty = true;
+    });
+}
+
+// ============================================================
+// Mini Log — UI helpers
+// ============================================================
+
+/** Person IDs @-mentioned in the mini log entry currently being composed/edited. */
+var _lcLogMentionedIds = new Set();
+
+/**
+ * Wire the mini log section on the event detail page.
+ * Loads existing logs and sets up the add-entry form.
+ * @param {string} eventId
+ */
+async function _lcWireMiniLog(eventId) {
+    // Default date/time to now
+    var now = new Date();
+    var pad = function(n) { return String(n).padStart(2, '0'); };
+    var todayStr = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
+    var timeStr  = pad(now.getHours()) + ':' + pad(now.getMinutes());
+
+    var dateEl = document.getElementById('lcLogNewDate');
+    var timeEl = document.getElementById('lcLogNewTime');
+    if (dateEl) dateEl.value = todayStr;
+    if (timeEl) timeEl.value = timeStr;
+
+    // Wire @mention autocomplete on the textarea
+    _lcLogMentionedIds = new Set();
+    _lcInitLogMention('lcLogNewBody', 'lcLogMentionDropdown');
+
+    // Wire Add Entry button
+    var addBtn = document.getElementById('lcLogAddBtn');
+    if (addBtn) {
+        addBtn.addEventListener('click', async function() {
+            var body = (document.getElementById('lcLogNewBody').value || '').trim();
+            if (!body) { alert('Please enter some text.'); return; }
+            var logDate = document.getElementById('lcLogNewDate').value || todayStr;
+            var logTime = document.getElementById('lcLogNewTime').value || timeStr;
+            addBtn.disabled = true;
+            try {
+                await lcAddLog(eventId, body, [..._lcLogMentionedIds], logDate, logTime);
+                document.getElementById('lcLogNewBody').value = '';
+                _lcLogMentionedIds = new Set();
+                await _lcLoadAndRenderLogs(eventId);
+            } catch (err) {
+                console.error('lcAddLog error:', err);
+                alert('Failed to add entry.');
+            } finally {
+                addBtn.disabled = false;
+            }
+        });
+    }
+
+    // Load existing logs
+    await _lcLoadAndRenderLogs(eventId);
+}
+
+/**
+ * Load logs from Firestore and render them into #lcMiniLogList.
+ * @param {string} eventId
+ */
+async function _lcLoadAndRenderLogs(eventId) {
+    var list = document.getElementById('lcMiniLogList');
+    if (!list) return;
+    try {
+        var logs = await lcLoadLogs(eventId);
+        if (logs.length === 0) {
+            list.innerHTML = '<p style="color:var(--text-muted);font-size:0.88rem;">No entries yet.</p>';
+            return;
+        }
+        list.innerHTML = '';
+        logs.forEach(function(log) {
+            list.appendChild(_lcBuildLogEntry(log, eventId));
+        });
+    } catch (err) {
+        console.error('_lcLoadAndRenderLogs error:', err);
+        list.innerHTML = '<p style="color:var(--danger);font-size:0.88rem;">Failed to load.</p>';
+    }
+}
+
+/**
+ * Build a DOM element for one log entry (display mode).
+ * @param {Object} log     - Log data { id, body, mentionedPersonIds, logDate, logTime }
+ * @param {string} eventId - Parent event ID (for reload after edit/delete)
+ * @returns {HTMLElement}
+ */
+function _lcBuildLogEntry(log, eventId) {
+    var entry = document.createElement('div');
+    entry.className = 'lc-log-entry';
+    entry.dataset.logId = log.id;
+
+    var dateStr = log.logDate || '';
+    var timeStr = log.logTime || '';
+    var metaStr = dateStr;
+    if (timeStr) metaStr += ' ' + timeStr;
+
+    entry.innerHTML =
+        '<div class="lc-log-meta">' + escapeHtml(metaStr) + '</div>' +
+        '<div class="lc-log-body">' + _lcRenderLogBody(log.body || '', log.mentionedPersonIds || []) + '</div>' +
+        '<div class="lc-log-actions">' +
+            '<button type="button" class="btn btn-xs btn-secondary lc-log-edit-btn">Edit</button>' +
+            '<button type="button" class="btn btn-xs btn-danger lc-log-delete-btn">Delete</button>' +
+        '</div>';
+
+    // Delete
+    entry.querySelector('.lc-log-delete-btn').addEventListener('click', async function() {
+        if (!confirm('Delete this entry?')) return;
+        try {
+            await lcDeleteLog(log.id);
+            await _lcLoadAndRenderLogs(eventId);
+        } catch (err) {
+            console.error('lcDeleteLog error:', err);
+            alert('Delete failed.');
+        }
+    });
+
+    // Edit — switch to inline edit mode
+    entry.querySelector('.lc-log-edit-btn').addEventListener('click', function() {
+        _lcShowLogEditMode(entry, log, eventId);
+    });
+
+    return entry;
+}
+
+/**
+ * Replace the log entry element with an inline edit form.
+ * @param {HTMLElement} entry   - The .lc-log-entry DOM element
+ * @param {Object}      log     - Original log data
+ * @param {string}      eventId
+ */
+function _lcShowLogEditMode(entry, log, eventId) {
+    var editMentionedIds = new Set(log.mentionedPersonIds || []);
+    var dropId = 'lcLogEditDrop_' + log.id;
+
+    entry.innerHTML =
+        '<div class="lc-log-textarea-wrap">' +
+            '<textarea id="lcLogEditBody_' + log.id + '" class="form-control" rows="2">' +
+                escapeHtml(log.body || '') +
+            '</textarea>' +
+            '<div id="' + dropId + '" class="lc-log-mention-dropdown" style="display:none;"></div>' +
+        '</div>' +
+        '<div class="lc-log-actions">' +
+            '<button type="button" class="btn btn-xs btn-primary lc-log-save-edit-btn">Save</button>' +
+            '<button type="button" class="btn btn-xs btn-secondary lc-log-cancel-edit-btn">Cancel</button>' +
+        '</div>';
+
+    // Wire @mention on edit textarea
+    _lcInitLogMention('lcLogEditBody_' + log.id, dropId, editMentionedIds);
+
+    // Save
+    entry.querySelector('.lc-log-save-edit-btn').addEventListener('click', async function() {
+        var body = (document.getElementById('lcLogEditBody_' + log.id).value || '').trim();
+        if (!body) { alert('Please enter some text.'); return; }
+        try {
+            await lcUpdateLog(log.id, body, [...editMentionedIds]);
+            await _lcLoadAndRenderLogs(eventId);
+        } catch (err) {
+            console.error('lcUpdateLog error:', err);
+            alert('Save failed.');
+        }
+    });
+
+    // Cancel — re-render without changes
+    entry.querySelector('.lc-log-cancel-edit-btn').addEventListener('click', async function() {
+        await _lcLoadAndRenderLogs(eventId);
+    });
+}
+
+/**
+ * Render log body text, converting @name tokens into person links.
+ * Uses _lcAllPeople for name → ID lookup.
+ * @param {string} body               - Raw body text
+ * @param {Array}  mentionedPersonIds - Person IDs that were mentioned
+ * @returns {string} Safe HTML string
+ */
+function _lcRenderLogBody(body, mentionedPersonIds) {
+    if (!body) return '';
+    if (!mentionedPersonIds || !mentionedPersonIds.length || !_lcAllPeople.length) {
+        return escapeHtml(body).replace(/\n/g, '<br>');
+    }
+
+    // Build a map of first-name/nickname → person ID
+    var mentionMap = {};
+    mentionedPersonIds.forEach(function(id) {
+        var person = _lcAllPeople.find(function(p) { return p.id === id; });
+        if (!person) return;
+        var displayName = person.name.split(' ')[0];
+        mentionMap[displayName] = id;
+    });
+
+    var names = Object.keys(mentionMap);
+    if (!names.length) return escapeHtml(body).replace(/\n/g, '<br>');
+
+    names.sort(function(a, b) { return b.length - a.length; });
+    var pattern = names.map(function(n) {
+        return '@' + n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }).join('|');
+    var regex = new RegExp('(' + pattern + ')(?!\\w)', 'g');
+
+    var parts = body.split(regex);
+    return parts.map(function(part) {
+        if (part.charAt(0) === '@') {
+            var name = part.slice(1);
+            var id = mentionMap[name];
+            if (id) {
+                return '<a href="#person/' + id + '" class="lc-mention-link">@' + escapeHtml(name) + '</a>';
+            }
+        }
+        return escapeHtml(part).replace(/\n/g, '<br>');
+    }).join('');
+}
+
+/**
+ * Wire @mention autocomplete on a textarea.
+ * @param {string}  textareaId  - ID of the textarea element
+ * @param {string}  dropId      - ID of the dropdown container element
+ * @param {Set}     [mentionSet] - Set to track mentioned IDs (defaults to _lcLogMentionedIds)
+ */
+function _lcInitLogMention(textareaId, dropId, mentionSet) {
+    var ta   = document.getElementById(textareaId);
+    var drop = document.getElementById(dropId);
+    if (!ta || !drop) return;
+
+    var ids = mentionSet || _lcLogMentionedIds;
+
+    function getMentionPrefix() {
+        var before = ta.value.substring(0, ta.selectionStart);
+        var match  = before.match(/@(\w*)$/);
+        return match ? match[1] : null;
+    }
+
+    function showDrop(matches) {
+        if (!matches.length) { drop.style.display = 'none'; drop.innerHTML = ''; return; }
+        drop.innerHTML = '';
+        matches.forEach(function(person) {
+            var item = document.createElement('div');
+            item.className = 'lc-log-mention-item';
+            item.textContent = person.name;
+            item.addEventListener('mousedown', function(e) {
+                e.preventDefault();
+                var prefix = getMentionPrefix();
+                if (prefix === null) { drop.style.display = 'none'; return; }
+                var firstName = person.name.split(' ')[0];
+                var pos    = ta.selectionStart;
+                var before = ta.value.substring(0, pos - prefix.length - 1);
+                var after  = ta.value.substring(pos);
+                ta.value   = before + '@' + firstName + ' ' + after;
+                var newPos = before.length + 1 + firstName.length + 1;
+                ta.selectionStart = ta.selectionEnd = newPos;
+                ids.add(person.id);
+                drop.style.display = 'none';
+                drop.innerHTML = '';
+                ta.focus();
+            });
+            drop.appendChild(item);
+        });
+        drop.style.display = '';
+    }
+
+    ta.addEventListener('input', function() {
+        var prefix = getMentionPrefix();
+        if (prefix === null) { drop.style.display = 'none'; return; }
+        var q = prefix.toLowerCase();
+        var matches = _lcAllPeople.filter(function(p) {
+            return p.name.toLowerCase().startsWith(q);
+        }).slice(0, 7);
+        showDrop(matches);
+    });
+
+    ta.addEventListener('blur', function() {
+        setTimeout(function() { drop.style.display = 'none'; }, 180);
+    });
+
+    ta.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') { drop.style.display = 'none'; }
     });
 }
 
@@ -1387,6 +1758,9 @@ async function loadLifeEventPage(id) {
         window.currentLifeEvent = event;
 
         _lcRenderEventForm(event, categories, '');
+
+        // Wire the mini log section (exists only on edit pages)
+        _lcWireMiniLog(id);
     } catch (err) {
         console.error('loadLifeEventPage error:', err);
         section.innerHTML = '<div class="lc-page-body"><p style="color:var(--danger);">Failed to load. Please refresh.</p></div>';

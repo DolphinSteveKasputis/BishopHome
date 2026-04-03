@@ -861,10 +861,13 @@ function _lcOpenDayModal(date, events) {
                     '</span>' +
                 '</div>' +
             '</div>';
-        card.addEventListener('click', function() {
-            closeModal('lcDayModal');
-            window.location.hash = '#life-event/' + ev.id;
-        });
+        card.addEventListener('click', (function(id) {
+            return function() {
+                closeModal('lcDayModal');
+                // Defer navigation so closeModal's history.back() resolves first
+                setTimeout(function() { window.location.hash = '#life-event/' + id; }, 50);
+            };
+        })(ev.id));
         list.appendChild(card);
     });
 
@@ -874,8 +877,11 @@ function _lcOpenDayModal(date, events) {
     addCard.textContent = '+ Add Event for This Day';
     addCard.addEventListener('click', function() {
         closeModal('lcDayModal');
-        window._newEventDate = date;
-        window.location.hash = '#life-event/new';
+        // Defer navigation so closeModal's history.back() resolves first
+        setTimeout(function() {
+            window._newEventDate = date;
+            window.location.hash = '#life-event/new';
+        }, 50);
     });
     list.appendChild(addCard);
 

@@ -1598,7 +1598,6 @@ async function collectionAutoSaveFromLlm(parsed, images, collectionId, collType)
             team: (parsed.team || '').trim(),
             year: ''
         };
-    }
     } else if (collType === 'Books & Magazines') {
         typeData = {
             type:      (parsed.type      || '').trim(),

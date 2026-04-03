@@ -6469,6 +6469,50 @@ textarea.sb-field { resize: vertical; min-height: 60px; }
     font-weight: 400;
 }
 
+/* ── Life Calendar — category type fields ── */
+.lc-type-fields {
+    background: var(--bg-secondary, #f8f9fa);
+    border: 1px solid var(--border, #e5e7eb);
+    border-left: 3px solid var(--accent, #3b82f6);
+    border-radius: 10px;
+    padding: 14px 14px 6px;
+    margin-bottom: 16px;
+}
+.lc-type-fields-header {
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--accent, #3b82f6);
+    margin-bottom: 12px;
+}
+.lc-type-fields .form-group {
+    margin-bottom: 12px;
+}
+
+/* ── Life Calendar — tag chips (acts, courses, scores) ── */
+.lc-tag-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 6px;
+    min-height: 0;
+}
+.lc-tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--accent, #3b82f6);
+    color: #fff;
+    border-radius: 14px;
+    padding: 3px 8px 3px 10px;
+    font-size: 0.82rem;
+    font-weight: 500;
+}
+.lc-tag-input-wrap {
+    margin-top: 2px;
+}
+
 /* ── Life Calendar — people picker chips ── */
 .lc-people-chips {
     display: flex;

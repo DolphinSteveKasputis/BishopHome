@@ -48,6 +48,16 @@ var _lcAllPeople = [];
 var _lcEventLinks = [];
 
 /**
+ * Categories cached for template lookup on the event form.
+ * Populated by loadNewLifeEventPage / loadLifeEventPage.
+ */
+var _lcAllCategories = [];
+
+// Template keys for each known category type.
+// 'travel' intentionally has no extra fields (marker only).
+var LC_TEMPLATE_KEYS = ['race', 'concert', 'golf', 'sports'];
+
+/**
  * Color swatches for category color picker.
  * Reuses the same gradient set as notebooks for visual consistency.
  */
@@ -638,6 +648,86 @@ function _lcRenderEventForm(event, categories, prefillDate) {
                               placeholder="How did it go?">${escapeHtml(outcome)}</textarea>
                 </div>
 
+                <!-- Category-specific type fields (shown/hidden by template) -->
+                <div class="lc-type-fields hidden" id="lcTypeFields-race">
+                    <div class="lc-type-fields-header">Race Details</div>
+                    <div class="form-group">
+                        <label for="lcRaceDistance">Distance</label>
+                        <input type="text" id="lcRaceDistance" class="form-control" placeholder="e.g. 26.2 miles">
+                    </div>
+                    <div class="form-group">
+                        <label for="lcRaceFinishTime">Finish Time</label>
+                        <input type="text" id="lcRaceFinishTime" class="form-control" placeholder="e.g. 3:45:22">
+                    </div>
+                </div>
+
+                <div class="lc-type-fields hidden" id="lcTypeFields-concert">
+                    <div class="lc-type-fields-header">Concert Details</div>
+                    <div class="form-group">
+                        <label>Acts / Performers</label>
+                        <div class="lc-tag-chips" id="lcConcertActChips"></div>
+                        <div class="lc-tag-input-wrap">
+                            <input type="text" id="lcConcertActInput" class="form-control"
+                                   placeholder="Type name, press Enter to add">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="lcConcertSeat">Section &amp; Seat</label>
+                        <input type="text" id="lcConcertSeat" class="form-control" placeholder="e.g. Section 101 Row D Seat 12">
+                    </div>
+                </div>
+
+                <div class="lc-type-fields hidden" id="lcTypeFields-golf">
+                    <div class="lc-type-fields-header">Golf Details</div>
+                    <div class="form-group">
+                        <label>Course(s)</label>
+                        <div class="lc-tag-chips" id="lcGolfCourseChips"></div>
+                        <div class="lc-tag-input-wrap">
+                            <input type="text" id="lcGolfCourseInput" class="form-control"
+                                   placeholder="Type course name, press Enter to add">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Score(s)</label>
+                        <div class="lc-tag-chips" id="lcGolfScoreChips"></div>
+                        <div class="lc-tag-input-wrap">
+                            <input type="text" id="lcGolfScoreInput" class="form-control"
+                                   placeholder="Type score, press Enter to add">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lc-type-fields hidden" id="lcTypeFields-sports">
+                    <div class="lc-type-fields-header">Sports Event Details</div>
+                    <div class="form-group">
+                        <label for="lcSportType">Sport</label>
+                        <select id="lcSportType" class="form-control">
+                            <option value="">Select…</option>
+                            <option value="Baseball">Baseball</option>
+                            <option value="Football">Football</option>
+                            <option value="Basketball">Basketball</option>
+                            <option value="Hockey">Hockey</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group hidden" id="lcSportOtherGroup">
+                        <label for="lcSportOther">Sport (other)</label>
+                        <input type="text" id="lcSportOther" class="form-control" placeholder="Specify sport">
+                    </div>
+                    <div class="form-group">
+                        <label for="lcSportsTeams">Teams Playing</label>
+                        <input type="text" id="lcSportsTeams" class="form-control" placeholder="e.g. Cubs vs Cardinals">
+                    </div>
+                    <div class="form-group">
+                        <label for="lcSportsFinalScore">Final Score</label>
+                        <input type="text" id="lcSportsFinalScore" class="form-control" placeholder="e.g. 4–2">
+                    </div>
+                    <div class="form-group">
+                        <label for="lcSportsSeat">Section &amp; Seat</label>
+                        <input type="text" id="lcSportsSeat" class="form-control" placeholder="e.g. Section 203 Row B">
+                    </div>
+                </div>
+
                 <!-- People picker -->
                 <div class="form-group">
                     <label>Who went with you?</label>
@@ -716,6 +806,37 @@ function _lcRenderEventForm(event, categories, prefillDate) {
         _lcEventDirty = false;
         window.location.hash = '#life-calendar';
     });
+
+    // ---- Type fields ----
+
+    // Show the right typeFields section based on the current category, and populate from event.typeFields
+    var tf = (event && event.typeFields) ? event.typeFields : {};
+    _lcShowTypeFields(_lcGetTemplateForCategory(catId), tf);
+
+    // Re-show on category change
+    document.getElementById('lcEventCategory').addEventListener('change', function() {
+        var tmpl = _lcGetTemplateForCategory(this.value);
+        _lcShowTypeFields(tmpl, {});
+        _lcEventDirty = true;
+    });
+
+    // Sports: toggle "Other" text input
+    var sportSel = document.getElementById('lcSportType');
+    if (sportSel) {
+        sportSel.addEventListener('change', function() {
+            var otherGroup = document.getElementById('lcSportOtherGroup');
+            if (this.value === 'Other') {
+                otherGroup.classList.remove('hidden');
+            } else {
+                otherGroup.classList.add('hidden');
+            }
+        });
+    }
+
+    // Wire tag-list inputs (Enter to add)
+    _lcWireTagInput('lcConcertActInput',  'lcConcertActChips');
+    _lcWireTagInput('lcGolfCourseInput',  'lcGolfCourseChips');
+    _lcWireTagInput('lcGolfScoreInput',   'lcGolfScoreChips');
 
     // ---- People picker ----
 
@@ -822,6 +943,181 @@ function _lcRenderEventForm(event, categories, prefillDate) {
         document.getElementById('lcLinkInlineForm').classList.add('hidden');
         _lcRenderLinks();
         _lcEventDirty = true;
+    });
+}
+
+// ============================================================
+// Type fields helpers
+// ============================================================
+
+/**
+ * Returns the template key for a given category ID.
+ * Falls back to '' if the category has no template or isn't found.
+ * @param {string} categoryId
+ * @returns {string} template key, e.g. 'race', 'concert', 'golf', 'sports', 'travel', or ''
+ */
+function _lcGetTemplateForCategory(categoryId) {
+    var cat = _lcAllCategories.find(function(c) { return c.id === categoryId; });
+    return (cat && cat.template) ? cat.template : '';
+}
+
+/**
+ * Hide all typeFields sections, then show the one matching `template`.
+ * Populate the visible section's fields from `typeFields` data.
+ * @param {string} template - e.g. 'race', 'concert', 'golf', 'sports', or ''
+ * @param {Object} tf       - typeFields data from the event doc
+ */
+function _lcShowTypeFields(template, tf) {
+    // Hide all
+    LC_TEMPLATE_KEYS.forEach(function(key) {
+        var el = document.getElementById('lcTypeFields-' + key);
+        if (el) el.classList.add('hidden');
+    });
+
+    if (!template || !LC_TEMPLATE_KEYS.includes(template)) return;
+
+    var section = document.getElementById('lcTypeFields-' + template);
+    if (!section) return;
+    section.classList.remove('hidden');
+
+    // Populate fields from saved data
+    if (template === 'race') {
+        _lcSetVal('lcRaceDistance',  tf.distance   || '');
+        _lcSetVal('lcRaceFinishTime', tf.finishTime || '');
+    } else if (template === 'concert') {
+        _lcSetVal('lcConcertSeat', tf.seat || '');
+        _lcRenderTagChips('lcConcertActChips', tf.acts || [], 'lcConcertActInput');
+    } else if (template === 'golf') {
+        _lcRenderTagChips('lcGolfCourseChips', tf.courses || [], 'lcGolfCourseInput');
+        _lcRenderTagChips('lcGolfScoreChips',  tf.scores  || [], 'lcGolfScoreInput');
+    } else if (template === 'sports') {
+        _lcSetVal('lcSportsTeams',      tf.teams      || '');
+        _lcSetVal('lcSportsFinalScore', tf.finalScore || '');
+        _lcSetVal('lcSportsSeat',       tf.seat       || '');
+        var sportSel = document.getElementById('lcSportType');
+        if (sportSel) {
+            var sport = tf.sport || '';
+            var knownSports = ['Baseball','Football','Basketball','Hockey'];
+            if (sport && !knownSports.includes(sport)) {
+                sportSel.value = 'Other';
+                _lcSetVal('lcSportOther', sport);
+                var otherGroup = document.getElementById('lcSportOtherGroup');
+                if (otherGroup) otherGroup.classList.remove('hidden');
+            } else {
+                sportSel.value = sport;
+            }
+        }
+    }
+}
+
+/** Set a form element's value safely. */
+function _lcSetVal(id, val) {
+    var el = document.getElementById(id);
+    if (el) el.value = val;
+}
+
+/**
+ * Read all visible typeFields and return an object to store in Firestore.
+ * Returns {} if no template section is currently visible.
+ */
+function _lcReadTypeFields() {
+    for (var i = 0; i < LC_TEMPLATE_KEYS.length; i++) {
+        var key = LC_TEMPLATE_KEYS[i];
+        var section = document.getElementById('lcTypeFields-' + key);
+        if (!section || section.classList.contains('hidden')) continue;
+
+        if (key === 'race') {
+            return {
+                distance:   (document.getElementById('lcRaceDistance').value  || '').trim(),
+                finishTime: (document.getElementById('lcRaceFinishTime').value || '').trim()
+            };
+        } else if (key === 'concert') {
+            return {
+                acts: _lcReadTagChips('lcConcertActChips'),
+                seat: (document.getElementById('lcConcertSeat').value || '').trim()
+            };
+        } else if (key === 'golf') {
+            return {
+                courses: _lcReadTagChips('lcGolfCourseChips'),
+                scores:  _lcReadTagChips('lcGolfScoreChips')
+            };
+        } else if (key === 'sports') {
+            var sportEl = document.getElementById('lcSportType');
+            var sport = sportEl ? sportEl.value : '';
+            if (sport === 'Other') {
+                sport = (document.getElementById('lcSportOther').value || '').trim() || 'Other';
+            }
+            return {
+                sport:       sport,
+                teams:       (document.getElementById('lcSportsTeams').value      || '').trim(),
+                finalScore:  (document.getElementById('lcSportsFinalScore').value  || '').trim(),
+                seat:        (document.getElementById('lcSportsSeat').value        || '').trim()
+            };
+        }
+    }
+    return {};
+}
+
+/**
+ * Wires an Enter-key tag-input to add chips.
+ * @param {string} inputId      - ID of the text input
+ * @param {string} chipsId      - ID of the chips container
+ */
+function _lcWireTagInput(inputId, chipsId) {
+    var input = document.getElementById(inputId);
+    if (!input) return;
+    input.addEventListener('keydown', function(e) {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        var val = this.value.trim();
+        if (!val) return;
+        var existing = _lcReadTagChips(chipsId);
+        if (!existing.includes(val)) {
+            existing.push(val);
+            _lcRenderTagChips(chipsId, existing, inputId);
+            _lcEventDirty = true;
+        }
+        this.value = '';
+    });
+}
+
+/**
+ * Render tag chips in a container.
+ * @param {string} chipsId  - ID of the container div
+ * @param {Array}  tags     - Array of string values
+ * @param {string} inputId  - ID of the associated input (for re-wiring after render)
+ */
+function _lcRenderTagChips(chipsId, tags, inputId) {
+    var container = document.getElementById(chipsId);
+    if (!container) return;
+    container.innerHTML = '';
+    tags.forEach(function(tag) {
+        var chip = document.createElement('span');
+        chip.className = 'lc-tag-chip';
+        chip.innerHTML = escapeHtml(tag) +
+            '<button type="button" class="lc-chip-remove" title="Remove">✕</button>';
+        chip.querySelector('.lc-chip-remove').addEventListener('click', function() {
+            var current = _lcReadTagChips(chipsId);
+            var idx = current.indexOf(tag);
+            if (idx > -1) current.splice(idx, 1);
+            _lcRenderTagChips(chipsId, current, inputId);
+            _lcEventDirty = true;
+        });
+        container.appendChild(chip);
+    });
+}
+
+/**
+ * Read current tag chips from a container as an array of strings.
+ * @param {string} chipsId
+ * @returns {Array<string>}
+ */
+function _lcReadTagChips(chipsId) {
+    var container = document.getElementById(chipsId);
+    if (!container) return [];
+    return Array.from(container.querySelectorAll('.lc-tag-chip')).map(function(chip) {
+        // text content minus the ✕ button text
+        return chip.childNodes[0].textContent.trim();
     });
 }
 
@@ -957,8 +1253,9 @@ function _lcReadEventForm() {
     var costVal = document.getElementById('lcEventCost').value;
     data.cost = costVal !== '' ? parseFloat(costVal) : null;
 
-    data.peopleIds = _lcSelectedPeopleIds.slice();
-    data.links     = _lcEventLinks.map(function(l) { return { label: l.label, url: l.url }; });
+    data.peopleIds  = _lcSelectedPeopleIds.slice();
+    data.links      = _lcEventLinks.map(function(l) { return { label: l.label, url: l.url }; });
+    data.typeFields = _lcReadTypeFields();
 
     return data;
 }
@@ -1049,7 +1346,8 @@ async function loadNewLifeEventPage() {
             await lcEnsureDefaultCategories();
             categories = await lcLoadCategories();
         }
-        _lcAllPeople = people;
+        _lcAllPeople      = people;
+        _lcAllCategories  = categories;
         _lcRenderEventForm(null, categories, prefillDate);
     } catch (err) {
         console.error('loadNewLifeEventPage error:', err);
@@ -1077,7 +1375,8 @@ async function loadLifeEventPage(id) {
             lcLoadCategories(),
             lcLoadPeople()
         ]);
-        _lcAllPeople = people;
+        _lcAllPeople     = people;
+        _lcAllCategories = categories;
 
         if (!eventDoc.exists) {
             section.innerHTML = '<div class="lc-page-body"><p style="color:var(--danger);">Event not found.</p></div>';

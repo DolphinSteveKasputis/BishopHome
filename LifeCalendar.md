@@ -638,7 +638,9 @@ System prompt rule:
 
 ---
 
-### Phase LC-4 — Event Detail: People Picker & Links
+### Phase LC-4 — Event Detail: People Picker & Links ✅ COMPLETE (v=293)
+
+**Delivered:** `lcLoadPeople()` loads people sorted by name. People picker: text search with dropdown autocomplete, Enter adds single match, chips show person name (clickable → `#person/{id}`) with ✕ remove button, stored as `peopleIds[]`. Links: inline add/edit form (label + URL inputs), rendered list with Edit (pre-fills form) and Delete, stored as `links[]`. Both fields saved to Firestore via `_lcReadEventForm`.
 
 **Goal:** Add the People "Who went with" picker and the Links list to the event detail page.
 

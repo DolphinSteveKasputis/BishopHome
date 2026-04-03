@@ -6341,6 +6341,14 @@ textarea.sb-field { resize: vertical; min-height: 60px; }
     transform: translateY(-3px);
     box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35);
 }
+.landing-tile--life-calendar {
+    background: linear-gradient(135deg, #2563eb, #60a5fa);
+    color: #fff;
+}
+.landing-tile--life-calendar:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.35);
+}
 
 /* ── Notebook tiles (color set via inline style by notes.js) ── */
 .notebook-tile {

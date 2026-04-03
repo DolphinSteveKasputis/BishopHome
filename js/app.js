@@ -12,7 +12,8 @@
  */
 const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'house', 'settings', 'main', 'search', 'activityreport', 'checklists', 'notes', 'chat', 'vehicles', 'garage', 'structures', 'life', 'journal', 'collections', 'changepassword', 'people',
                          'health', 'health-visits', 'health-medications', 'health-conditions', 'health-concerns', 'health-bloodwork',
-                         'health-vitals', 'health-insurance', 'health-emergency', 'health-appointments'];
+                         'health-vitals', 'health-insurance', 'health-emergency', 'health-appointments',
+                         'life-calendar'];
 
 /**
  * All pages that can be shown (includes detail pages not in the nav).
@@ -30,7 +31,8 @@ const ALL_PAGES = [
     'notebook', 'note',
     'health-allergies', 'health-supplements', 'health-vaccinations', 'health-eye',
     'health-visit', 'health-medications', 'health-conditions', 'health-concerns', 'health-concern',
-    'health-bloodwork-detail', 'health-insurance-detail'
+    'health-bloodwork-detail', 'health-insurance-detail',
+    'life-event'
 ];
 
 /**
@@ -48,7 +50,8 @@ const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'jo
                      'health-allergies', 'health-supplements', 'health-vaccinations', 'health-eye',
                      'health-bloodwork', 'health-bloodwork-detail',
                      'health-vitals', 'health-insurance', 'health-insurance-detail', 'health-emergency',
-                     'health-appointments'];
+                     'health-appointments',
+                     'life-calendar', 'life-event'];
 
 /** Tracks which nav context is currently active ('yard', 'house', or 'life'). */
 var currentNavContext = 'yard';
@@ -371,6 +374,15 @@ function handleRoute() {
     } else if (page === 'health-eye') {
         showPage('health-eye');
         loadEyePage();
+    } else if (page === 'life-calendar') {
+        showPage('life-calendar');
+        loadLifeCalendarPage();
+    } else if (page === 'life-event' && id === 'new') {
+        showPage('life-event');
+        loadNewLifeEventPage();
+    } else if (page === 'life-event' && id) {
+        showPage('life-event');
+        loadLifeEventPage(id);
     } else if (TOP_LEVEL_PAGES.includes(page)) {
         showPage(page);
     } else {

@@ -53,6 +53,20 @@ var _lcEventLinks = [];
  */
 var _lcAllCategories = [];
 
+// ---------- LC-8: Calendar page filter state ----------
+
+/** Status filter value for the calendar event list. */
+var _lcStatusFilter   = 'upcoming'; // 'upcoming'|'upcoming+attended'|'attended'|'missed'|'all'
+
+/** Category ID filter — empty string means All Categories. */
+var _lcCategoryFilter = '';
+
+/** Search query (filters title + location client-side). */
+var _lcSearchQuery    = '';
+
+/** All events loaded for the calendar page (unfiltered). */
+var _lcAllEvents      = [];
+
 // Template keys for each known category type.
 // 'travel' intentionally has no extra fields (marker only).
 var LC_TEMPLATE_KEYS = ['race', 'concert', 'golf', 'sports'];
@@ -472,9 +486,139 @@ function lcRenderCategoryTiles(categories, container) {
 // Page Loaders
 // ============================================================
 
+// ============================================================
+// LC-8 helpers — event list rendering
+// ============================================================
+
+/**
+ * Format a date range for display on event cards.
+ * @param {string} startDate - ISO date (YYYY-MM-DD)
+ * @param {string} endDate   - ISO date or '' for single-day
+ * @returns {string}
+ */
+function _lcFormatDateRange(startDate, endDate) {
+    if (!startDate) return '';
+    // Use T00:00:00 to parse as local time (not UTC)
+    var s = new Date(startDate + 'T00:00:00');
+    var fullOpts  = { month: 'short', day: 'numeric', year: 'numeric' };
+    var shortOpts = { month: 'short', day: 'numeric' };
+    if (!endDate || endDate === startDate) {
+        return s.toLocaleDateString('en-US', fullOpts);
+    }
+    var e = new Date(endDate + 'T00:00:00');
+    if (s.getFullYear() === e.getFullYear()) {
+        // "Apr 3 – Oct 11, 2026"
+        return s.toLocaleDateString('en-US', shortOpts) + ' \u2013 ' +
+               e.toLocaleDateString('en-US', fullOpts);
+    }
+    // Cross-year: "Dec 30, 2025 – Jan 2, 2026"
+    return s.toLocaleDateString('en-US', fullOpts) + ' \u2013 ' +
+           e.toLocaleDateString('en-US', fullOpts);
+}
+
+/**
+ * Return a human-readable status label.
+ * @param {string} status
+ * @returns {string}
+ */
+function _lcStatusLabel(status) {
+    if (status === 'attended') return 'Attended';
+    if (status === 'didntgo')  return "Didn't Go";
+    return 'Upcoming';
+}
+
+/**
+ * Apply current filter state to _lcAllEvents and re-render the event list.
+ * Called whenever a filter control changes.
+ */
+function _lcApplyFilters() {
+    var filtered = _lcAllEvents.filter(function(ev) {
+        // Status filter
+        if (_lcStatusFilter === 'upcoming'          && ev.status !== 'upcoming')  return false;
+        if (_lcStatusFilter === 'upcoming+attended' && ev.status === 'didntgo')   return false;
+        if (_lcStatusFilter === 'attended'          && ev.status !== 'attended')  return false;
+        if (_lcStatusFilter === 'missed'            && ev.status !== 'didntgo')   return false;
+        // Category filter
+        if (_lcCategoryFilter && ev.categoryId !== _lcCategoryFilter) return false;
+        // Search filter (title + location, case-insensitive)
+        if (_lcSearchQuery) {
+            var q   = _lcSearchQuery.toLowerCase();
+            var hit = (ev.title    || '').toLowerCase().includes(q) ||
+                      (ev.location || '').toLowerCase().includes(q);
+            if (!hit) return false;
+        }
+        return true;
+    });
+
+    // Sort: past-only views → newest first; everything else → soonest first
+    var descending = (_lcStatusFilter === 'attended' || _lcStatusFilter === 'missed');
+    filtered.sort(function(a, b) {
+        var aDate = a.startDate || '';
+        var bDate = b.startDate || '';
+        if (aDate < bDate) return descending ? 1 : -1;
+        if (aDate > bDate) return descending ? -1 : 1;
+        return 0;
+    });
+
+    _lcRenderEventList(filtered, _lcAllCategories);
+}
+
+/**
+ * Render event cards into #lcEventList.
+ * @param {Array} events     - Filtered + sorted events
+ * @param {Array} categories - All categories (for color lookup)
+ */
+function _lcRenderEventList(events, categories) {
+    var list = document.getElementById('lcEventList');
+    if (!list) return;
+
+    if (events.length === 0) {
+        list.innerHTML = '<p class="empty-state">No events match your filters.</p>';
+        return;
+    }
+
+    // Build category color map for quick lookup
+    var colorMap = {};
+    categories.forEach(function(c) { colorMap[c.id] = c.color || ''; });
+
+    list.innerHTML = events.map(function(ev) {
+        var color     = colorMap[ev.categoryId] || 'linear-gradient(135deg,#6b7280,#9ca3af)';
+        var dates     = _lcFormatDateRange(ev.startDate, ev.endDate);
+        var statusLbl = _lcStatusLabel(ev.status);
+        var statusCls = 'lc-status-badge--' + (ev.status || 'upcoming');
+        var location  = ev.location
+            ? '<span class="lc-event-card-location">' + escapeHtml(ev.location) + '</span>'
+            : '';
+
+        return `
+            <div class="lc-event-card" data-id="${escapeHtml(ev.id)}" role="button" tabindex="0">
+                <div class="lc-event-card-bar" style="background:${color}"></div>
+                <div class="lc-event-card-body">
+                    <div class="lc-event-card-title">${escapeHtml(ev.title || '')}</div>
+                    <div class="lc-event-card-meta">
+                        <span class="lc-event-card-dates">${escapeHtml(dates)}</span>
+                        ${location}
+                        <span class="lc-status-badge ${statusCls}">${escapeHtml(statusLbl)}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    // Wire click handlers
+    list.querySelectorAll('.lc-event-card').forEach(function(card) {
+        card.addEventListener('click', function() {
+            window.location.hash = '#life-event/' + this.dataset.id;
+        });
+        card.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') window.location.hash = '#life-event/' + this.dataset.id;
+        });
+    });
+}
+
 /**
  * Load the Life Calendar main page (#life-calendar).
- * Auto-seeds categories on first visit, then renders the category grid.
+ * Shows event list with filters, and category management below.
  */
 async function loadLifeCalendarPage() {
     const section = document.getElementById('page-life-calendar');
@@ -499,10 +643,23 @@ async function loadLifeCalendarPage() {
         // Seed default categories if this is the first visit
         await lcEnsureDefaultCategories();
 
-        // Load categories
-        var categories = await lcLoadCategories();
+        // Load categories and events in parallel
+        var [categories, eventsSnap] = await Promise.all([
+            lcLoadCategories(),
+            userCol('lifeEvents').get()
+        ]);
 
-        // Render full page content
+        // Cache for filter re-use
+        _lcAllCategories = categories;
+        _lcAllEvents = eventsSnap.docs.map(function(d) { return { id: d.id, ...d.data() }; });
+
+        // Build category filter options
+        var catOptions = '<option value="">All Categories</option>' +
+            categories.map(function(c) {
+                return '<option value="' + escapeHtml(c.id) + '">' + escapeHtml(c.name) + '</option>';
+            }).join('');
+
+        // Render full page
         section.innerHTML = `
             <div class="page-header">
                 <div class="breadcrumb">
@@ -513,28 +670,79 @@ async function loadLifeCalendarPage() {
                 <h2>Life Calendar</h2>
             </div>
             <div class="lc-page-body">
-                <div class="lc-section-header">
-                    <h3>Categories</h3>
-                    <button class="btn btn-sm btn-secondary" id="lcAddCategoryBtn">+ Category</button>
-                </div>
-                <div class="lc-category-grid" id="lcCategoryGrid"></div>
 
-                <div style="margin-top:24px;">
-                    <a href="#life-event/new" class="btn btn-primary">+ New Event</a>
+                <!-- Controls -->
+                <div class="lc-controls-row">
+                    <select id="lcStatusFilter" class="form-control lc-filter-select">
+                        <option value="upcoming">Upcoming</option>
+                        <option value="upcoming+attended">Upcoming + Attended</option>
+                        <option value="attended">Attended</option>
+                        <option value="missed">Missed</option>
+                        <option value="all">All</option>
+                    </select>
+                    <select id="lcCategoryFilter" class="form-control lc-filter-select">
+                        ${catOptions}
+                    </select>
+                    <input type="search" id="lcSearchInput" class="form-control lc-search-input"
+                           placeholder="Search events…" value="${escapeHtml(_lcSearchQuery)}">
+                    <button class="btn btn-primary btn-sm" id="lcAddEventBtn">+ Add Event</button>
                 </div>
+
+                <!-- Event list -->
+                <div class="lc-event-list" id="lcEventList">
+                    <p style="color:var(--text-muted);">Loading events…</p>
+                </div>
+
+                <!-- Category management (collapsible) -->
+                <details class="lc-categories-details">
+                    <summary class="lc-categories-summary">Manage Categories</summary>
+                    <div class="lc-section-header" style="margin-top:12px;">
+                        <h3>Categories</h3>
+                        <button class="btn btn-sm btn-secondary" id="lcAddCategoryBtn">+ Category</button>
+                    </div>
+                    <div class="lc-category-grid" id="lcCategoryGrid"></div>
+                </details>
+
             </div>
         `;
 
-        // Render category tiles
+        // Restore filter UI state
+        document.getElementById('lcStatusFilter').value   = _lcStatusFilter;
+        document.getElementById('lcCategoryFilter').value = _lcCategoryFilter;
+
+        // Render category tiles inside the details panel
         lcRenderCategoryTiles(categories, document.getElementById('lcCategoryGrid'));
 
-        // Wire the Add Category button
+        // Wire filter controls
+        document.getElementById('lcStatusFilter').addEventListener('change', function() {
+            _lcStatusFilter = this.value;
+            _lcApplyFilters();
+        });
+        document.getElementById('lcCategoryFilter').addEventListener('change', function() {
+            _lcCategoryFilter = this.value;
+            _lcApplyFilters();
+        });
+        document.getElementById('lcSearchInput').addEventListener('input', function() {
+            _lcSearchQuery = this.value;
+            _lcApplyFilters();
+        });
+
+        // Wire Add Event button
+        document.getElementById('lcAddEventBtn').addEventListener('click', function() {
+            window._newEventDate = null;
+            window.location.hash = '#life-event/new';
+        });
+
+        // Wire Add Category button
         document.getElementById('lcAddCategoryBtn').addEventListener('click', function() {
             lcOpenCategoryModal(null);
         });
 
-        // Wire category modal save button
+        // Wire category modal save/cancel buttons
         _lcWireCategoryModal();
+
+        // Initial render
+        _lcApplyFilters();
 
     } catch (err) {
         console.error('loadLifeCalendarPage error:', err);

@@ -738,7 +738,9 @@ System prompt rule:
 
 ---
 
-### Phase LC-8 — Calendar List View & Controls
+### Phase LC-8 — Calendar List View & Controls ✅ COMPLETE (v=297)
+
+**Delivered:** Event list with live client-side filtering (status, category, search). Event cards show category color bar, title, dates, location, status badge. Chronological sort (ascending for upcoming, descending for past-only views). Category management collapsed into a `<details>` panel at bottom. Filter state persisted in module vars so it survives category modal round-trips. Mobile wraps controls to two rows.
 
 **Goal:** The Life Calendar page shows a usable list of events with status filter, category filter, and search. Mobile works.
 

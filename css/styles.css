@@ -6733,6 +6733,136 @@ textarea.sb-field { resize: vertical; min-height: 60px; }
     color: var(--text-secondary, #555);
 }
 
+/* ══════════════════════════════════════════════════════════════
+   LC-8 — Calendar list view, controls, event cards
+   ══════════════════════════════════════════════════════════════ */
+
+/* Controls row — status filter, category filter, search, add button */
+.lc-controls-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 16px;
+}
+.lc-filter-select {
+    flex: 0 0 auto;
+    min-width: 140px;
+    max-width: 200px;
+}
+.lc-search-input {
+    flex: 1 1 160px;
+    min-width: 120px;
+}
+
+/* Event list */
+.lc-event-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 24px;
+}
+
+/* Event card */
+.lc-event-card {
+    display: flex;
+    align-items: stretch;
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    background: var(--card-bg, #fff);
+    transition: box-shadow 0.15s, transform 0.1s;
+}
+.lc-event-card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transform: translateY(-1px);
+}
+.lc-event-card:active {
+    transform: translateY(0);
+}
+
+/* Colored left bar (uses category gradient) */
+.lc-event-card-bar {
+    width: 6px;
+    flex-shrink: 0;
+}
+
+/* Card content */
+.lc-event-card-body {
+    padding: 10px 14px;
+    flex: 1;
+    min-width: 0;
+}
+.lc-event-card-title {
+    font-weight: 600;
+    font-size: 0.97rem;
+    color: var(--text-primary, #1f2937);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.lc-event-card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    margin-top: 4px;
+    align-items: center;
+    font-size: 0.83rem;
+    color: var(--text-secondary, #6b7280);
+}
+.lc-event-card-location::before {
+    content: '📍';
+    margin-right: 2px;
+    font-size: 0.78rem;
+}
+
+/* Status badges */
+.lc-status-badge {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 12px;
+    font-size: 0.76rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+.lc-status-badge--upcoming  { background: #dbeafe; color: #1d4ed8; }
+.lc-status-badge--attended  { background: #d1fae5; color: #065f46; }
+.lc-status-badge--didntgo   { background: #fee2e2; color: #991b1b; }
+
+/* Category management collapsible */
+.lc-categories-details {
+    margin-top: 8px;
+    border-top: 1px solid var(--border, #e5e7eb);
+    padding-top: 12px;
+}
+.lc-categories-summary {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text-secondary, #6b7280);
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+    padding: 4px 0;
+}
+.lc-categories-summary::-webkit-details-marker { display: none; }
+.lc-categories-summary::before {
+    content: '▶ ';
+    font-size: 0.7rem;
+    transition: transform 0.15s;
+    display: inline-block;
+}
+.lc-categories-details[open] .lc-categories-summary::before {
+    transform: rotate(90deg);
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+    .lc-filter-select { min-width: 0; flex: 1 1 45%; }
+    .lc-search-input  { flex: 1 1 100%; }
+}
+
 /* ── Notebook tiles (color set via inline style by notes.js) ── */
 .notebook-tile {
     display: flex;

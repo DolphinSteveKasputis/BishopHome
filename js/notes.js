@@ -400,6 +400,9 @@ var _notesEditingNotebook = null;
 /** Guard to prevent double-wiring of modal button listeners. */
 var _notesModalWired = false;
 
+/** Guard to prevent double-wiring of the textarea tab handler. */
+var _notesTabWired = false;
+
 // ============================================================
 // Page Loader: #notes — Notebooks list
 // ============================================================
@@ -973,6 +976,23 @@ function _notesShowEditMode(title) {
     if (typeof initVoiceToText === 'function') {
         initVoiceToText('noteBodyInput', 'noteSpeakBtn');
     }
+
+    // Wire Tab key to insert a real tab character instead of moving focus (once only)
+    if (!_notesTabWired) {
+        _notesTabWired = true;
+        var ta = document.getElementById('noteBodyInput');
+        if (ta) {
+            ta.addEventListener('keydown', function(e) {
+                if (e.key === 'Tab') {
+                    e.preventDefault();
+                    var start = ta.selectionStart;
+                    var end   = ta.selectionEnd;
+                    ta.value  = ta.value.substring(0, start) + '\t' + ta.value.substring(end);
+                    ta.selectionStart = ta.selectionEnd = start + 1;
+                }
+            });
+        }
+    }
 }
 
 /** Switches an existing note to edit mode and pre-fills the textarea. */
@@ -1008,7 +1028,19 @@ function _notesWireNotePage(note) {
 
     if (deleteBtn) deleteBtn.onclick = function() { _notesConfirmDeleteNoteFromPage(note); };
 
-    if (cancelBtn) cancelBtn.onclick = _notesShowViewMode;
+    if (cancelBtn) cancelBtn.onclick = function() {
+        var textarea = document.getElementById('noteBodyInput');
+        var currentText = textarea ? textarea.value : '';
+        var savedText   = window.currentNote ? (window.currentNote.body || '') : '';
+        if (currentText !== savedText) {
+            if (!confirm('Discard unsaved changes?')) return;
+            // Copy the unsaved text to clipboard as a safety measure
+            if (currentText.trim() && navigator.clipboard) {
+                navigator.clipboard.writeText(currentText).catch(function() {});
+            }
+        }
+        _notesShowViewMode();
+    };
 
     if (saveBtn) saveBtn.onclick = function() { _notesSaveExistingNote(note); };
 
@@ -1026,6 +1058,16 @@ function _notesWireNotePageNew() {
     var saveBtn   = document.getElementById('noteSaveBtn');
 
     if (cancelBtn) cancelBtn.onclick = function() {
+        var textarea = document.getElementById('noteBodyInput');
+        var text = textarea ? textarea.value.trim() : '';
+        if (text) {
+            if (!confirm('Discard this note?')) return;
+            // Copy text to clipboard as a safety measure before navigating away
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(text).catch(function() {});
+            }
+        }
+        if (typeof window._stopVoiceToText === 'function') window._stopVoiceToText();
         var hash = window.currentNotebook ? '#notebook/' + window.currentNotebook.id : '#notes';
         window.location.hash = hash;
     };
@@ -1048,6 +1090,12 @@ function _notesWireNotePageNew() {
  * Saves a brand-new note and navigates to its detail page.
  */
 async function _notesSaveNewNote() {
+    // Stop any active voice recognition and give it a moment to append final results
+    if (typeof window._stopVoiceToText === 'function') {
+        window._stopVoiceToText();
+        await new Promise(function(resolve) { setTimeout(resolve, 250); });
+    }
+
     var body = (document.getElementById('noteBodyInput').value || '').trim();
     if (!body) {
         alert('Please write something before saving.');
@@ -1074,6 +1122,12 @@ async function _notesSaveNewNote() {
  * @param {Object} note - The original note object.
  */
 async function _notesSaveExistingNote(note) {
+    // Stop any active voice recognition and give it a moment to append final results
+    if (typeof window._stopVoiceToText === 'function') {
+        window._stopVoiceToText();
+        await new Promise(function(resolve) { setTimeout(resolve, 250); });
+    }
+
     var body = (document.getElementById('noteBodyInput').value || '').trim();
     if (!body) {
         alert('Note cannot be empty.');

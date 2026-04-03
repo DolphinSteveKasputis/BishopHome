@@ -28,6 +28,7 @@ var COLLECTION_TYPES = [
     'Hat Pins',
     'Beanie Babies',
     'Ceramic Stadiums',
+    'Books & Magazines',
     'Generic'
 ];
 
@@ -347,6 +348,8 @@ function loadCollectionPage(id) {
                     filterEl.placeholder = 'Filter by series…';
                 } else if (data.type === 'Records/Albums') {
                     filterEl.placeholder = 'Filter by artist…';
+                } else if (data.type === 'Books & Magazines') {
+                    filterEl.placeholder = 'Filter by title or author…';
                 } else {
                     filterEl.placeholder = 'Search by name…';
                 }
@@ -477,6 +480,10 @@ function filterCollectionItems(items, collType, term) {
         if (collType === 'Records/Albums') {
             return ((item.typeData && item.typeData.artist) || '').toLowerCase().indexOf(term) !== -1;
         }
+        if (collType === 'Books & Magazines') {
+            return (item.name || '').toLowerCase().indexOf(term) !== -1 ||
+                   ((item.typeData && item.typeData.author) || '').toLowerCase().indexOf(term) !== -1;
+        }
         return (item.name || '').toLowerCase().indexOf(term) !== -1;
     });
 }
@@ -508,6 +515,8 @@ function renderCollectionItemsList(items, collType, listEl) {
             keyField = item.typeData.style ? escapeHtml(item.typeData.style) : '';
         } else if (collType === 'Ceramic Stadiums' && item.typeData) {
             keyField = item.typeData.team ? escapeHtml(item.typeData.team) : '';
+        } else if (collType === 'Books & Magazines' && item.typeData) {
+            keyField = item.typeData.author ? escapeHtml(item.typeData.author) : '';
         }
 
         var worthStr = item.estimatedValue
@@ -628,6 +637,40 @@ function renderCollectionItemTypeFields(collType, typeData, colDoc) {
                     '<label for="ciYear">Year</label>' +
                     '<input type="number" id="ciYear" placeholder="e.g., 2005" value="' + escapeHtml(String(typeData.year || '')) + '">' +
                 '</div>' +
+            '</div>';
+
+    } else if (collType === 'Books & Magazines') {
+        var typeOptions = ['Book', 'Magazine'].map(function(t) {
+            return '<option value="' + t + '"' + (typeData.type === t ? ' selected' : '') + '>' + t + '</option>';
+        }).join('');
+        container.innerHTML =
+            '<div class="form-row">' +
+                '<div class="form-group">' +
+                    '<label for="ciBmType">Type</label>' +
+                    '<select id="ciBmType"><option value="">-- Select --</option>' + typeOptions + '</select>' +
+                '</div>' +
+                '<div class="form-group">' +
+                    '<label for="ciYear">Year</label>' +
+                    '<input type="number" id="ciYear" placeholder="e.g., 1987" value="' + escapeHtml(String(typeData.year || '')) + '">' +
+                '</div>' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label for="ciAuthor">Author / Creator</label>' +
+                '<input type="text" id="ciAuthor" placeholder="e.g., Stephen King" value="' + escapeHtml(typeData.author || '') + '">' +
+            '</div>' +
+            '<div class="form-row">' +
+                '<div class="form-group">' +
+                    '<label for="ciPublisher">Publisher</label>' +
+                    '<input type="text" id="ciPublisher" placeholder="e.g., Doubleday" value="' + escapeHtml(typeData.publisher || '') + '">' +
+                '</div>' +
+                '<div class="form-group">' +
+                    '<label for="ciIsbn">ISBN <span class="label-optional">(optional)</span></label>' +
+                    '<input type="text" id="ciIsbn" placeholder="e.g., 978-0-385-33348-1" value="' + escapeHtml(typeData.isbn || '') + '">' +
+                '</div>' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label for="ciIssueDate">Issue Date <span class="label-optional">(magazines)</span></label>' +
+                '<input type="text" id="ciIssueDate" placeholder="e.g., March 1987" value="' + escapeHtml(typeData.issueDate || '') + '">' +
             '</div>';
 
     } else if (collType === 'Generic') {
@@ -761,6 +804,13 @@ function handleCollectionItemModalSave() {
     } else if (collType === 'Ceramic Stadiums') {
         typeData.team = (document.getElementById('ciTeam') ? document.getElementById('ciTeam').value.trim() : '');
         typeData.year = (document.getElementById('ciYear') ? document.getElementById('ciYear').value.trim() : '');
+    } else if (collType === 'Books & Magazines') {
+        typeData.type      = (document.getElementById('ciBmType')    ? document.getElementById('ciBmType').value                : '');
+        typeData.author    = (document.getElementById('ciAuthor')    ? document.getElementById('ciAuthor').value.trim()         : '');
+        typeData.publisher = (document.getElementById('ciPublisher') ? document.getElementById('ciPublisher').value.trim()      : '');
+        typeData.year      = (document.getElementById('ciYear')      ? document.getElementById('ciYear').value.trim()           : '');
+        typeData.isbn      = (document.getElementById('ciIsbn')      ? document.getElementById('ciIsbn').value.trim()          : '');
+        typeData.issueDate = (document.getElementById('ciIssueDate') ? document.getElementById('ciIssueDate').value.trim()      : '');
     } else if (collType === 'Generic') {
         typeData.value1 = (document.getElementById('ciValue1') ? document.getElementById('ciValue1').value.trim() : '');
         typeData.value2 = (document.getElementById('ciValue2') ? document.getElementById('ciValue2').value.trim() : '');
@@ -927,6 +977,13 @@ function renderCollectionItemInfoCard(infoCard, itemData, colData) {
     } else if (collType === 'Ceramic Stadiums') {
         if (typeData.team) rows.push(['Team', escapeHtml(typeData.team)]);
         if (typeData.year) rows.push(['Year', escapeHtml(String(typeData.year))]);
+    } else if (collType === 'Books & Magazines') {
+        if (typeData.type)      rows.push(['Type',       escapeHtml(typeData.type)]);
+        if (typeData.author)    rows.push(['Author',     escapeHtml(typeData.author)]);
+        if (typeData.publisher) rows.push(['Publisher',  escapeHtml(typeData.publisher)]);
+        if (typeData.year)      rows.push(['Year',       escapeHtml(String(typeData.year))]);
+        if (typeData.isbn)      rows.push(['ISBN',       escapeHtml(typeData.isbn)]);
+        if (typeData.issueDate) rows.push(['Issue Date', escapeHtml(typeData.issueDate)]);
     } else if (collType === 'Generic') {
         var l1 = colData.label1 || 'Label 1';
         var l2 = colData.label2 || 'Label 2';
@@ -1360,6 +1417,24 @@ function getCollectionIdPrompt(collType) {
         ]).join('\n');
     }
 
+    if (collType === 'Books & Magazines') {
+        return base.concat([
+            'You are a book and magazine identification assistant. Analyze the cover image.',
+            'Return this exact JSON:',
+            '{ "name": "", "type": "", "author": "", "publisher": "", "year": "", "isbn": "", "issueDate": "", "estimatedValue": "", "additionalMessage": "" }',
+            '',
+            '- name: the full title of the book or magazine',
+            '- type: exactly "Book" or "Magazine" based on what is shown',
+            '- author: the author(s) for books; the primary featured person or topic for magazines; "" if unclear',
+            '- publisher: the publishing house or magazine publisher, or "" if unknown',
+            '- year: 4-digit publication year string, or "" if unknown',
+            '- isbn: the ISBN (10 or 13 digit) if you can determine it from your knowledge of this specific edition; leave "" if not confident — do not guess',
+            '- issueDate: for magazines only, the cover date string e.g. "March 1987" or "Vol. 12 No. 4"; leave "" for books',
+            '- estimatedValue: estimated collector or used value as a number string e.g. "8.50", or "" if unknown',
+            '- additionalMessage: note any issues (unclear image, multiple editions, etc). Leave "" if none.'
+        ]).join('\n');
+    }
+
     // Generic (default)
     return base.concat([
         'You are a collectible item identification assistant. Analyze the image.',
@@ -1524,6 +1599,16 @@ async function collectionAutoSaveFromLlm(parsed, images, collectionId, collType)
             year: ''
         };
     }
+    } else if (collType === 'Books & Magazines') {
+        typeData = {
+            type:      (parsed.type      || '').trim(),
+            author:    (parsed.author    || '').trim(),
+            publisher: (parsed.publisher || '').trim(),
+            year:      String(parsed.year || '').trim(),
+            isbn:      (parsed.isbn      || '').trim(),
+            issueDate: (parsed.issueDate || '').trim()
+        };
+    }
     // Hat Pins and Generic: typeData stays {}
 
     var docRef = await userCol('collectionItems').add({
@@ -1587,6 +1672,13 @@ function collectionShowResultModal(parsed, collType, identified) {
         if (parsed.hasTags) rows.push(['Has Tags', parsed.hasTags]);
     } else if (collType === 'Ceramic Stadiums') {
         if (parsed.team) rows.push(['Team', parsed.team]);
+    } else if (collType === 'Books & Magazines') {
+        if (parsed.type)      rows.push(['Type',       parsed.type]);
+        if (parsed.author)    rows.push(['Author',     parsed.author]);
+        if (parsed.publisher) rows.push(['Publisher',  parsed.publisher]);
+        if (parsed.year)      rows.push(['Year',       String(parsed.year)]);
+        if (parsed.isbn)      rows.push(['ISBN',       parsed.isbn]);
+        if (parsed.issueDate) rows.push(['Issue Date', parsed.issueDate]);
     } else {
         // Hat Pins and Generic
         if (parsed.notes) rows.push(['Notes', parsed.notes]);

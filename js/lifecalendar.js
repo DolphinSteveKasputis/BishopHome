@@ -20,6 +20,16 @@ window._newEventDate = null;
 var _lcEditingCategoryId = null;
 
 /**
+ * Tracks unsaved changes on the event form.
+ * Set to true on any field change; cleared on save.
+ * Checked on hashchange to warn the user before navigating away.
+ */
+var _lcEventDirty = false;
+
+/** ID of the event currently being edited (null = new event). */
+var _lcEditingEventId = null;
+
+/**
  * Color swatches for category color picker.
  * Reuses the same gradient set as notebooks for visual consistency.
  */
@@ -115,6 +125,56 @@ async function lcDeleteCategory(id) {
     if (!confirm('Delete this category?')) return;
     await userCol('lifeCategories').doc(id).delete();
     loadLifeCalendarPage();
+}
+
+// ============================================================
+// Event — Firestore CRUD
+// ============================================================
+
+/**
+ * Create a new life event in Firestore.
+ * @param {Object} data - Event fields (title, categoryId, startDate, etc.)
+ * @returns {string} New document ID
+ */
+async function lcAddEvent(data) {
+    data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+    var ref = await userCol('lifeEvents').add(data);
+    return ref.id;
+}
+
+/**
+ * Update an existing life event.
+ * @param {string} id   - Firestore doc ID
+ * @param {Object} data - Fields to update
+ */
+async function lcUpdateEvent(id, data) {
+    data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+    await userCol('lifeEvents').doc(id).update(data);
+}
+
+/**
+ * Delete a life event and cascade-delete its mini logs and photos.
+ * Journal entries that reference this event are left intact.
+ * @param {string} id - Firestore doc ID
+ */
+async function lcDeleteEvent(id) {
+    var batch = firebase.firestore().batch();
+
+    // Delete mini logs
+    var logsSnap = await userCol('lifeEventLogs').where('eventId', '==', id).get();
+    logsSnap.docs.forEach(function(doc) { batch.delete(doc.ref); });
+
+    // Delete photos
+    var photosSnap = await userCol('photos')
+        .where('targetType', '==', 'lifeEvent')
+        .where('targetId', '==', id)
+        .get();
+    photosSnap.docs.forEach(function(doc) { batch.delete(doc.ref); });
+
+    // Delete the event itself
+    batch.delete(userCol('lifeEvents').doc(id));
+
+    await batch.commit();
 }
 
 // ============================================================
@@ -410,58 +470,375 @@ function _lcWireCategoryModal() {
     });
 }
 
+// ============================================================
+// Event Form — shared helpers
+// ============================================================
+
+/**
+ * Builds the category <option> list for the event form dropdown.
+ * @param {Array}  categories     - Array of category objects
+ * @param {string} selectedId     - Currently selected category ID (or '')
+ * @returns {string} HTML option tags
+ */
+function _lcBuildCategoryOptions(categories, selectedId) {
+    return categories.map(function(cat) {
+        var sel = cat.id === selectedId ? ' selected' : '';
+        return '<option value="' + cat.id + '"' + sel + '>' + escapeHtml(cat.name) + '</option>';
+    }).join('');
+}
+
+/**
+ * Renders the event form HTML into #page-life-event.
+ * Used by both new and edit flows.
+ * @param {Object|null} event      - Existing event data (null = new)
+ * @param {Array}       categories - All life categories
+ * @param {string}      prefillDate - ISO date string to pre-fill startDate (new only)
+ */
+function _lcRenderEventForm(event, categories, prefillDate) {
+    const isNew    = !event;
+    const title    = isNew ? '' : (event.title || '');
+    const catId    = isNew ? (categories[0] ? categories[0].id : '') : (event.categoryId || '');
+    const startDate = isNew ? (prefillDate || '') : (event.startDate || '');
+    const endDate  = isNew ? '' : (event.endDate || '');
+    const location = isNew ? '' : (event.location || '');
+    const cost     = isNew ? '' : (event.cost != null ? event.cost : '');
+    const status   = isNew ? 'upcoming' : (event.status || 'upcoming');
+    const didntGoReason = isNew ? '' : (event.didntGoReason || '');
+    const description   = isNew ? '' : (event.description || '');
+    const outcome       = isNew ? '' : (event.outcome || '');
+
+    const breadcrumbLabel = isNew ? 'New Event' : escapeHtml(title || 'Event');
+    const pageTitle       = isNew ? 'New Event' : escapeHtml(title || 'Event');
+
+    const didntGoHidden = status === 'didntgo' ? '' : ' hidden';
+
+    const catOptions = _lcBuildCategoryOptions(categories, catId);
+
+    const section = document.getElementById('page-life-event');
+    section.innerHTML = `
+        <div class="page-header">
+            <div class="breadcrumb">
+                <a href="#life" class="breadcrumb-link">Life</a>
+                <span class="breadcrumb-sep"> › </span>
+                <a href="#life-calendar" class="breadcrumb-link">Calendar</a>
+                <span class="breadcrumb-sep"> › </span>
+                <span>${breadcrumbLabel}</span>
+            </div>
+            <h2>${pageTitle}</h2>
+        </div>
+        <div class="lc-event-form-wrap">
+            <form class="lc-event-form" id="lcEventForm" autocomplete="off">
+
+                <div class="form-group">
+                    <label for="lcEventTitle">Title *</label>
+                    <input type="text" id="lcEventTitle" class="form-control"
+                           placeholder="Event name" value="${escapeHtml(title)}">
+                </div>
+
+                <div class="form-group">
+                    <label for="lcEventCategory">Category *</label>
+                    <select id="lcEventCategory" class="form-control">
+                        ${catOptions}
+                    </select>
+                </div>
+
+                <div class="lc-date-row">
+                    <div class="form-group">
+                        <label for="lcEventStartDate">Start Date *</label>
+                        <input type="date" id="lcEventStartDate" class="form-control"
+                               value="${escapeHtml(startDate)}">
+                    </div>
+                    <div class="form-group">
+                        <label for="lcEventEndDate">End Date <span class="label-optional">(optional)</span></label>
+                        <input type="date" id="lcEventEndDate" class="form-control"
+                               value="${escapeHtml(endDate)}">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="lcEventLocation">Location</label>
+                    <input type="text" id="lcEventLocation" class="form-control"
+                           placeholder="City, venue, etc." value="${escapeHtml(location)}">
+                </div>
+
+                <div class="form-group">
+                    <label for="lcEventCost">Cost ($)</label>
+                    <input type="number" id="lcEventCost" class="form-control"
+                           placeholder="0.00" min="0" step="0.01"
+                           value="${cost !== '' ? cost : ''}">
+                </div>
+
+                <div class="form-group lc-status-row">
+                    <label>Status</label>
+                    <div class="lc-status-options">
+                        <label class="lc-status-label">
+                            <input type="radio" name="lcEventStatus" value="upcoming"
+                                   ${status === 'upcoming' ? 'checked' : ''}> Upcoming
+                        </label>
+                        <label class="lc-status-label">
+                            <input type="radio" name="lcEventStatus" value="attended"
+                                   ${status === 'attended' ? 'checked' : ''}> Attended
+                        </label>
+                        <label class="lc-status-label">
+                            <input type="radio" name="lcEventStatus" value="didntgo"
+                                   ${status === 'didntgo' ? 'checked' : ''}> Didn't Go
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group lc-didnt-go-reason${didntGoHidden}" id="lcDidntGoGroup">
+                    <label for="lcEventDidntGoReason">Reason for not going</label>
+                    <textarea id="lcEventDidntGoReason" class="form-control" rows="2"
+                              placeholder="Why didn't you go?">${escapeHtml(didntGoReason)}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="lcEventDescription">Description</label>
+                    <textarea id="lcEventDescription" class="form-control" rows="3"
+                              placeholder="What is this event?">${escapeHtml(description)}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="lcEventOutcome">Outcome / Notes</label>
+                    <textarea id="lcEventOutcome" class="form-control" rows="3"
+                              placeholder="How did it go?">${escapeHtml(outcome)}</textarea>
+                </div>
+
+                <div class="lc-event-form-actions">
+                    <button type="button" class="btn btn-primary" id="lcEventSaveBtn">Save</button>
+                    ${!isNew ? '<button type="button" class="btn btn-danger" id="lcEventDeleteBtn">Delete</button>' : ''}
+                    <button type="button" class="btn btn-secondary" id="lcEventCancelBtn">Cancel</button>
+                </div>
+
+            </form>
+        </div>
+    `;
+
+    // Toggle "Didn't Go" reason visibility when status changes
+    section.querySelectorAll('input[name="lcEventStatus"]').forEach(function(radio) {
+        radio.addEventListener('change', function() {
+            var group = document.getElementById('lcDidntGoGroup');
+            if (this.value === 'didntgo') {
+                group.classList.remove('hidden');
+            } else {
+                group.classList.add('hidden');
+            }
+            _lcEventDirty = true;
+        });
+    });
+
+    // Mark dirty on any field change
+    ['lcEventTitle','lcEventCategory','lcEventStartDate','lcEventEndDate',
+     'lcEventLocation','lcEventCost','lcEventDidntGoReason',
+     'lcEventDescription','lcEventOutcome'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.addEventListener('input', function() { _lcEventDirty = true; });
+        if (el) el.addEventListener('change', function() { _lcEventDirty = true; });
+    });
+
+    // Wire Save
+    document.getElementById('lcEventSaveBtn').addEventListener('click', function() {
+        _lcSaveEvent(isNew);
+    });
+
+    // Wire Delete (edit mode only)
+    if (!isNew) {
+        document.getElementById('lcEventDeleteBtn').addEventListener('click', function() {
+            _lcConfirmDeleteEvent(_lcEditingEventId);
+        });
+    }
+
+    // Wire Cancel
+    document.getElementById('lcEventCancelBtn').addEventListener('click', function() {
+        if (_lcEventDirty && !confirm('You have unsaved changes. Leave anyway?')) return;
+        _lcEventDirty = false;
+        window.location.hash = '#life-calendar';
+    });
+}
+
+/**
+ * Reads all event form fields and returns a plain data object.
+ * @returns {Object|null} Event data, or null if validation fails
+ */
+function _lcReadEventForm() {
+    var title = (document.getElementById('lcEventTitle').value || '').trim();
+    if (!title) { alert('Please enter a title.'); return null; }
+
+    var startDate = document.getElementById('lcEventStartDate').value || '';
+    if (!startDate) { alert('Please enter a start date.'); return null; }
+
+    var statusEl = document.querySelector('input[name="lcEventStatus"]:checked');
+    var status   = statusEl ? statusEl.value : 'upcoming';
+
+    var data = {
+        title:         title,
+        categoryId:    document.getElementById('lcEventCategory').value || '',
+        startDate:     startDate,
+        endDate:       document.getElementById('lcEventEndDate').value || '',
+        location:      (document.getElementById('lcEventLocation').value || '').trim(),
+        status:        status,
+        didntGoReason: status === 'didntgo'
+            ? (document.getElementById('lcEventDidntGoReason').value || '').trim()
+            : '',
+        description:   (document.getElementById('lcEventDescription').value || '').trim(),
+        outcome:       (document.getElementById('lcEventOutcome').value || '').trim(),
+    };
+
+    var costVal = document.getElementById('lcEventCost').value;
+    data.cost = costVal !== '' ? parseFloat(costVal) : null;
+
+    return data;
+}
+
+/**
+ * Save handler — called from both new and edit form.
+ * @param {boolean} isNew - true when creating, false when editing
+ */
+async function _lcSaveEvent(isNew) {
+    var data = _lcReadEventForm();
+    if (!data) return;
+
+    var saveBtn = document.getElementById('lcEventSaveBtn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving…';
+
+    try {
+        if (isNew) {
+            var newId = await lcAddEvent(data);
+            _lcEventDirty = false;
+            window.location.hash = '#life-event/' + newId;
+        } else {
+            await lcUpdateEvent(_lcEditingEventId, data);
+            _lcEventDirty = false;
+            // Update the breadcrumb title in place
+            var h2 = document.querySelector('#page-life-event h2');
+            if (h2) h2.textContent = data.title;
+            var breadcrumbSpan = document.querySelector('#page-life-event .breadcrumb span:last-child');
+            if (breadcrumbSpan) breadcrumbSpan.textContent = data.title;
+            saveBtn.textContent = 'Saved ✓';
+            setTimeout(function() {
+                if (document.getElementById('lcEventSaveBtn')) {
+                    document.getElementById('lcEventSaveBtn').textContent = 'Save';
+                    document.getElementById('lcEventSaveBtn').disabled = false;
+                }
+            }, 1500);
+            return; // don't re-enable below
+        }
+    } catch (err) {
+        console.error('_lcSaveEvent error:', err);
+        alert('Save failed. Please try again.');
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save';
+    }
+}
+
+/**
+ * Prompt and delete a life event, then navigate to #life-calendar.
+ * @param {string} id - Event doc ID
+ */
+async function _lcConfirmDeleteEvent(id) {
+    if (!confirm('Delete this event? Mini logs and photos will also be deleted. Journal entries will be kept.')) return;
+    try {
+        await lcDeleteEvent(id);
+        _lcEventDirty = false;
+        window.location.hash = '#life-calendar';
+    } catch (err) {
+        console.error('_lcConfirmDeleteEvent error:', err);
+        alert('Delete failed. Please try again.');
+    }
+}
+
+// ============================================================
+// Page Loaders — Event pages
+// ============================================================
+
 /**
  * Load the New Life Event page (#life-event/new).
  * Pre-fills the date from window._newEventDate if set.
  */
-function loadNewLifeEventPage() {
+async function loadNewLifeEventPage() {
     const prefillDate = window._newEventDate || '';
     window._newEventDate = null; // consume it
+    _lcEditingEventId  = null;
+    _lcEventDirty      = false;
 
     const section = document.getElementById('page-life-event');
     if (!section) return;
 
-    section.innerHTML = `
-        <div class="page-header">
-            <div class="breadcrumb">
-                <a href="#life" class="breadcrumb-link">Life</a>
-                <span class="breadcrumb-sep"> › </span>
-                <a href="#life-calendar" class="breadcrumb-link">Calendar</a>
-                <span class="breadcrumb-sep"> › </span>
-                <span>New Event</span>
-            </div>
-            <h2>New Event</h2>
-        </div>
-        <div style="padding: 16px; color: var(--text-muted);">
-            <p>New Life Event form — coming in LC-3.</p>
-            ${prefillDate ? `<p>Date: ${prefillDate}</p>` : ''}
-        </div>
-    `;
+    section.innerHTML = '<div class="lc-page-body"><p style="color:var(--text-muted);">Loading…</p></div>';
+
+    try {
+        var categories = await lcLoadCategories();
+        if (categories.length === 0) {
+            await lcEnsureDefaultCategories();
+            categories = await lcLoadCategories();
+        }
+        _lcRenderEventForm(null, categories, prefillDate);
+    } catch (err) {
+        console.error('loadNewLifeEventPage error:', err);
+        section.innerHTML = '<div class="lc-page-body"><p style="color:var(--danger);">Failed to load. Please refresh.</p></div>';
+    }
 }
 
 /**
- * Load the Life Event detail page (#life-event/{id}).
+ * Load the Life Event detail/edit page (#life-event/{id}).
  * @param {string} id - Firestore document ID of the life event
  */
-function loadLifeEventPage(id) {
+async function loadLifeEventPage(id) {
     window.currentLifeEvent = null;
+    _lcEditingEventId  = id;
+    _lcEventDirty      = false;
 
     const section = document.getElementById('page-life-event');
     if (!section) return;
 
-    section.innerHTML = `
-        <div class="page-header">
-            <div class="breadcrumb">
-                <a href="#life" class="breadcrumb-link">Life</a>
-                <span class="breadcrumb-sep"> › </span>
-                <a href="#life-calendar" class="breadcrumb-link">Calendar</a>
-                <span class="breadcrumb-sep"> › </span>
-                <span>Event</span>
-            </div>
-            <h2>Event Detail</h2>
-        </div>
-        <div style="padding: 16px; color: var(--text-muted);">
-            <p>Life Event detail — coming in LC-3. (ID: ${id})</p>
-        </div>
-    `;
+    section.innerHTML = '<div class="lc-page-body"><p style="color:var(--text-muted);">Loading…</p></div>';
+
+    try {
+        var [eventDoc, categories] = await Promise.all([
+            userCol('lifeEvents').doc(id).get(),
+            lcLoadCategories()
+        ]);
+
+        if (!eventDoc.exists) {
+            section.innerHTML = '<div class="lc-page-body"><p style="color:var(--danger);">Event not found.</p></div>';
+            return;
+        }
+
+        var event = { id: eventDoc.id, ...eventDoc.data() };
+        window.currentLifeEvent = event;
+
+        _lcRenderEventForm(event, categories, '');
+    } catch (err) {
+        console.error('loadLifeEventPage error:', err);
+        section.innerHTML = '<div class="lc-page-body"><p style="color:var(--danger);">Failed to load. Please refresh.</p></div>';
+    }
 }
+
+// ============================================================
+// Dirty flag — hashchange guard
+// ============================================================
+
+/**
+ * Intercepts hash navigation when the event form has unsaved changes.
+ * Fires before app.js's handleRoute because this file is loaded first.
+ * If the user cancels, we restore the old hash to stay on the form.
+ */
+window.addEventListener('hashchange', function(e) {
+    if (!_lcEventDirty) return;
+
+    // Only guard when we're currently on the event page
+    var oldHash = (e.oldURL || '').split('#')[1] || '';
+    if (!oldHash.startsWith('life-event')) return;
+
+    if (!confirm('You have unsaved changes. Leave anyway?')) {
+        // Restore the old hash without triggering another hashchange
+        history.replaceState(null, '', '#' + oldHash);
+        // Stop further handlers (app.js's handleRoute) from running
+        e.stopImmediatePropagation();
+        return;
+    }
+
+    // User confirmed — clear the dirty flag so the route proceeds normally
+    _lcEventDirty = false;
+}, true); // useCapture = true so this fires before app.js's listener

@@ -6414,6 +6414,61 @@ textarea.sb-field { resize: vertical; min-height: 60px; }
     background: rgba(255,255,255,0.38);
 }
 
+/* ── Life Calendar — event form ── */
+.lc-event-form-wrap {
+    padding: 16px;
+    max-width: 640px;
+}
+.lc-event-form .form-group {
+    margin-bottom: 16px;
+}
+.lc-date-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+@media (max-width: 480px) {
+    .lc-date-row {
+        grid-template-columns: 1fr;
+    }
+}
+.lc-status-row .form-group {
+    margin-bottom: 0;
+}
+.lc-status-options {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+}
+.lc-status-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 0.95rem;
+}
+.lc-didnt-go-reason {
+    background: var(--bg-secondary, #f8f9fa);
+    border-left: 3px solid var(--warning, #f59e0b);
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+}
+.lc-event-form-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border, #e5e7eb);
+}
+.label-optional {
+    font-size: 0.78rem;
+    color: var(--text-muted, #9ca3af);
+    font-weight: 400;
+}
+
 /* ── Life Calendar — delete reassignment modal event list ── */
 .lc-delete-event-list {
     margin: 8px 0 0 18px;

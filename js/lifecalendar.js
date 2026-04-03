@@ -1395,6 +1395,14 @@ function _lcRenderEventForm(event, categories, prefillDate) {
         </div>
         <div id="lcPhotoContainer"></div>
         <p class="empty-state" id="lcPhotoEmpty">No photos yet.</p>
+
+        <!-- Create Journal Entry — only on saved events -->
+        <div class="lc-create-journal-wrap">
+            <button type="button" class="btn btn-secondary" id="lcCreateJournalEntryBtn">
+                📓 Create Journal Entry
+            </button>
+            <span class="label-optional">Opens a pre-filled draft in the journal editor</span>
+        </div>
         ` : ''}
     `;
 
@@ -2227,6 +2235,161 @@ async function _lcConfirmDeleteEvent(id) {
 }
 
 // ============================================================
+// LC-11: Compiled Journal Entry
+// ============================================================
+
+/**
+ * Generate a structured journal entry draft from the current life event,
+ * save it to Firestore, and open it in the journal editor.
+ *
+ * The new journalEntry doc has a `sourceEventId` field linking it back here.
+ * Calling this multiple times creates multiple independent snapshot entries.
+ *
+ * @param {string} eventId - The life event's Firestore ID
+ */
+async function lcCreateCompiledEntry(eventId) {
+    if (_lcEventDirty) {
+        alert('Please save your changes before creating a journal entry.');
+        return;
+    }
+
+    var event = window.currentLifeEvent;
+    if (!event) { alert('Event not loaded.'); return; }
+
+    var btn = document.getElementById('lcCreateJournalEntryBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Creating…'; }
+
+    try {
+        // Load mini logs for this event
+        var logs = await lcLoadLogs(eventId);
+
+        // Look up category
+        var cat = _lcAllCategories.find(function(c) { return c.id === event.categoryId; }) || null;
+
+        // Build people @mention strings from _lcAllPeople cache
+        var peopleNames = (event.peopleIds || []).map(function(pid) {
+            var p = _lcAllPeople.find(function(x) { return x.id === pid; });
+            return p ? '@' + p.name : '';
+        }).filter(Boolean);
+
+        // ---------- Build draft text ----------
+        var lines = [];
+
+        // Header line: Title — Date Range — Location
+        var headerParts = [event.title || '(Untitled)'];
+        var dateRange = _lcFormatDateRange(event.startDate, event.endDate);
+        if (dateRange)    headerParts.push(dateRange);
+        if (event.location) headerParts.push(event.location);
+        lines.push(headerParts.join(' — '));
+
+        // Category + cost meta line
+        var meta = [];
+        if (cat)                meta.push('Category: ' + cat.name);
+        if (event.cost != null) meta.push('Cost: $' + event.cost);
+        if (meta.length) lines.push(meta.join(' | '));
+
+        lines.push('');
+
+        // Description
+        if (event.description) {
+            lines.push('Description:');
+            lines.push(event.description);
+            lines.push('');
+        }
+
+        // Mini log notes (bulleted)
+        if (logs.length > 0) {
+            lines.push('Notes:');
+            logs.forEach(function(log) {
+                var when = log.logDate + (log.logTime ? ' ' + log.logTime : '');
+                lines.push('• [' + when + '] ' + (log.body || ''));
+            });
+            lines.push('');
+        }
+
+        // Outcome / result
+        if (event.outcomeSummary) {
+            lines.push('Outcome:');
+            lines.push(event.outcomeSummary);
+            lines.push('');
+        }
+
+        // Didn't Go reason
+        if (event.status === 'didntgo' && event.didntGoReason) {
+            lines.push("Didn't Go — " + event.didntGoReason);
+            lines.push('');
+        }
+
+        // Category-specific type fields
+        var tf = event.typeFields || {};
+        if (cat && cat.template === 'race') {
+            if (tf.distance)   lines.push('Distance: '    + tf.distance);
+            if (tf.finishTime) lines.push('Finish Time: ' + tf.finishTime);
+            if (tf.distance || tf.finishTime) lines.push('');
+        } else if (cat && cat.template === 'concert') {
+            if (tf.acts && tf.acts.length) lines.push('Acts: '           + tf.acts.join(', '));
+            if (tf.seat)                   lines.push('Section & Seat: ' + tf.seat);
+            if ((tf.acts && tf.acts.length) || tf.seat) lines.push('');
+        } else if (cat && cat.template === 'golf') {
+            if (tf.courses && tf.courses.length) lines.push('Course(s): ' + tf.courses.join(', '));
+            if (tf.scores  && tf.scores.length)  lines.push('Score(s): '  + tf.scores.join(', '));
+            if ((tf.courses && tf.courses.length) || (tf.scores && tf.scores.length)) lines.push('');
+        } else if (cat && cat.template === 'sports') {
+            if (tf.sport)      lines.push('Sport: '         + tf.sport);
+            if (tf.teams)      lines.push('Teams: '         + tf.teams);
+            if (tf.finalScore) lines.push('Final Score: '   + tf.finalScore);
+            if (tf.seat)       lines.push('Section & Seat: '+ tf.seat);
+            if (tf.sport || tf.teams || tf.finalScore || tf.seat) lines.push('');
+        }
+
+        // People
+        if (peopleNames.length) {
+            lines.push('People: ' + peopleNames.join(' '));
+            lines.push('');
+        }
+
+        // Links
+        if (event.links && event.links.length) {
+            lines.push('Links:');
+            event.links.forEach(function(link) {
+                var label = link.label ? link.label + ' — ' : '';
+                lines.push('• ' + label + (link.url || ''));
+            });
+        }
+
+        var entryText = lines.join('\n').trimEnd();
+
+        // ---------- Save to Firestore ----------
+        var now       = new Date();
+        var entryTime = String(now.getHours()).padStart(2, '0') + ':' +
+                        String(now.getMinutes()).padStart(2, '0');
+
+        var ref = await userCol('journalEntries').add({
+            date:               event.startDate || journalFormatDate(now),
+            entryText:          entryText,
+            entryTime:          entryTime,
+            sourceEventId:      eventId,           // links entry back to this event
+            mentionedPersonIds: event.peopleIds || [],
+            createdAt:          firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt:          null
+        });
+
+        // Track the compiled entry ID on the event document
+        await userCol('lifeEvents').doc(eventId).update({
+            journalEntryIds: firebase.firestore.FieldValue.arrayUnion(ref.id)
+        });
+
+        // Open the new entry in the journal editor for review + save
+        await openEditJournalEntry(ref.id);
+
+    } catch (err) {
+        console.error('lcCreateCompiledEntry error:', err);
+        alert('Failed to create journal entry. Please try again.');
+        if (btn) { btn.disabled = false; btn.textContent = '📓 Create Journal Entry'; }
+    }
+}
+
+// ============================================================
 // Page Loaders — Event pages
 // ============================================================
 
@@ -2307,6 +2470,14 @@ async function loadLifeEventPage(id) {
         var galleryBtn = document.getElementById('lcPhotoGalleryBtn');
         if (cameraBtn)  cameraBtn.addEventListener('click',  function() { triggerCameraUpload('lifeEvent',  id); });
         if (galleryBtn) galleryBtn.addEventListener('click', function() { triggerGalleryUpload('lifeEvent', id); });
+
+        // Wire "Create Journal Entry" button
+        var journalBtn = document.getElementById('lcCreateJournalEntryBtn');
+        if (journalBtn) {
+            journalBtn.addEventListener('click', function() {
+                lcCreateCompiledEntry(id);
+            });
+        }
     } catch (err) {
         console.error('loadLifeEventPage error:', err);
         section.innerHTML = '<div class="lc-page-body"><p style="color:var(--danger);">Failed to load. Please refresh.</p></div>';

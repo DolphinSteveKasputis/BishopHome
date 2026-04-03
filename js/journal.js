@@ -492,6 +492,13 @@ function _renderEntryCard(id, data) {
     var timeStr = data.entryTime ? journalFormatTime12(data.entryTime) : journalFormatTime(data.createdAt);
     var text    = data.entryText || '';
 
+    // "Go to Event" button — shown only on compiled entries (sourceEventId is set)
+    var goToEvent = data.sourceEventId
+        ? '<div class="lc-go-to-event-wrap">' +
+              '<a href="#life-event/' + journalEscape(data.sourceEventId) + '" class="lc-go-to-event-btn">Go to Event →</a>' +
+          '</div>'
+        : '';
+
     return '<div class="journal-item journal-item--entry">' +
                '<div class="journal-item-row">' +
                    '<span class="journal-item-time">📝 ' + journalEscape(timeStr) + '</span>' +
@@ -503,6 +510,7 @@ function _renderEntryCard(id, data) {
                                'onclick="openEditJournalEntry(\'' + id + '\')">Edit</button>' +
                    '</div>' +
                '</div>' +
+               goToEvent +
            '</div>';
 }
 

@@ -831,7 +831,9 @@ System prompt rule:
 
 ---
 
-### Phase LC-11 — Compiled Journal Entry
+### Phase LC-11 — Compiled Journal Entry ✅ COMPLETE (v=300)
+
+**Delivered:** "📓 Create Journal Entry" button at bottom of saved event pages. `lcCreateCompiledEntry(eventId)` loads mini logs, builds structured draft (title/dates/location, category/cost, description, bulleted notes, outcome, type fields, people @mentions, links), saves to `journalEntries` with `sourceEventId` field, updates event's `journalEntryIds` array, then opens entry in journal editor. `_renderEntryCard()` in journal.js shows "Go to Event →" link on compiled entries.
 
 **Goal:** "Create Journal Entry" button generates a structured draft, opens journal edit page pre-filled, and saves a link back to the event.
 

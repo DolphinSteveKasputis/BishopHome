@@ -7026,6 +7026,16 @@ textarea.sb-field { resize: vertical; min-height: 60px; }
     .lc-grid-nav { display: none !important; }
 }
 
+/* ── LC-11: Create Journal Entry button on event detail page ── */
+.lc-create-journal-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border, #e5e7eb);
+}
+
 /* ══════════════════════════════════════════════════════════════
    LC-10 — Life event mini logs in journal feed
    ══════════════════════════════════════════════════════════════ */

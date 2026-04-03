@@ -26,7 +26,7 @@ var _cropOriginalFile = null;  // The raw File/Blob passed into showCropPreview
  * Entity types that support a profile thumbnail (set from the photo viewer).
  * The "Use as Profile" button only appears in the viewer for these types.
  */
-var PROFILE_PHOTO_TYPES = ['plant', 'weed', 'person', 'vehicle', 'thing', 'collectionitem'];
+var PROFILE_PHOTO_TYPES = ['plant', 'weed', 'person', 'vehicle', 'thing', 'subthing', 'item', 'collectionitem'];
 
 /**
  * Maps targetType → Firestore collection name for writing profilePhotoData.
@@ -37,6 +37,8 @@ var PROFILE_COLLECTION_MAP = {
     person:  'people',
     vehicle: 'vehicles',
     thing:           'things',
+    subthing:        'subThings',
+    item:            'subThingItems',
     collectionitem:  'collectionItems',
 };
 
@@ -527,14 +529,25 @@ async function handlePhotoFile(file, targetType, targetId) {
 
         console.log('Photo saved for', targetType, targetId);
 
-        // Auto-set thumbnail if this is the first photo for a collection item
-        if (targetType === 'collectionitem') {
-            var itemSnap = await userCol('collectionItems').doc(targetId).get();
-            if (itemSnap.exists && !itemSnap.data().profilePhotoData) {
+        // Auto-set thumbnail if this is the first photo for supported entity types
+        var autoThumbCollection = PROFILE_COLLECTION_MAP[targetType];
+        if (autoThumbCollection) {
+            var autoSnap = await userCol(autoThumbCollection).doc(targetId).get();
+            if (autoSnap.exists && !autoSnap.data().profilePhotoData) {
                 var autoThumb = await _compressToThumb(imageData);
-                await userCol('collectionItems').doc(targetId).update({ profilePhotoData: autoThumb });
-                if (window.currentCollectionItem && window.currentCollectionItem.id === targetId) {
-                    window.currentCollectionItem.profilePhotoData = autoThumb;
+                await userCol(autoThumbCollection).doc(targetId).update({ profilePhotoData: autoThumb });
+                // Update the in-memory state object for the current entity
+                var stateMap = {
+                    thing:          'currentThing',
+                    subthing:       'currentSubThing',
+                    item:           'currentItem',
+                    collectionitem: 'currentCollectionItem',
+                    person:         'currentPerson',
+                    vehicle:        'currentVehicle',
+                };
+                var stateKey = stateMap[targetType];
+                if (stateKey && window[stateKey] && window[stateKey].id === targetId) {
+                    window[stateKey].profilePhotoData = autoThumb;
                 }
             }
         }

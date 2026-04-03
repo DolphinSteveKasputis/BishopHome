@@ -2334,11 +2334,16 @@ function buildSubThingCard(id, data) {
         : '';
 
     card.innerHTML =
+        (data.profilePhotoData ? '<img class="entity-card-thumb" alt="">' : '') +
         '<div class="card-main">' +
             '<span class="card-title">' + label + '</span>' +
             meta +
         '</div>' +
         '<span class="card-arrow">\u203a</span>';
+
+    if (data.profilePhotoData) {
+        card.querySelector('.entity-card-thumb').src = data.profilePhotoData;
+    }
 
     card.addEventListener('click', function() {
         window.location.hash = '#subthing/' + id;
@@ -2458,11 +2463,16 @@ function buildItemCard(id, data) {
         : '';
 
     card.innerHTML =
+        (data.profilePhotoData ? '<img class="entity-card-thumb" alt="">' : '') +
         '<div class="card-main">' +
             '<span class="card-title">' + label + '</span>' +
             meta +
         '</div>' +
         '<span class="card-arrow">\u203a</span>';
+
+    if (data.profilePhotoData) {
+        card.querySelector('.entity-card-thumb').src = data.profilePhotoData;
+    }
 
     card.addEventListener('click', function() {
         window.location.hash = '#item/' + id;
@@ -3801,6 +3811,16 @@ async function houseSaveFromLlm(parsed, images, targetType, nameOverride) {
                 caption    : '',
                 createdAt  : firebase.firestore.FieldValue.serverTimestamp()
             });
+        }
+        // Auto-set thumbnail from the first photo
+        if (images.length > 0 && typeof _compressToThumb === 'function') {
+            try {
+                var thumbData = await _compressToThumb(images[0]);
+                var thumbCol = isThing ? 'things' : (targetType === 'item' ? 'subThingItems' : 'subThings');
+                await userCol(thumbCol).doc(newRef.id).update({ profilePhotoData: thumbData });
+            } catch (thumbErr) {
+                console.warn('Could not auto-set house item thumbnail:', thumbErr);
+            }
         }
     }
 

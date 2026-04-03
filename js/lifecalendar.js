@@ -30,6 +30,24 @@ var _lcEventDirty = false;
 var _lcEditingEventId = null;
 
 /**
+ * People IDs currently selected on the event form.
+ * Populated from the loaded event on edit, or empty on new.
+ */
+var _lcSelectedPeopleIds = [];
+
+/**
+ * Full people list loaded once per event page visit.
+ * Each entry: { id, name }
+ */
+var _lcAllPeople = [];
+
+/**
+ * Links currently on the event form.
+ * Each entry: { label, url }
+ */
+var _lcEventLinks = [];
+
+/**
  * Color swatches for category color picker.
  * Reuses the same gradient set as notebooks for visual consistency.
  */
@@ -175,6 +193,22 @@ async function lcDeleteEvent(id) {
     batch.delete(userCol('lifeEvents').doc(id));
 
     await batch.commit();
+}
+
+// ============================================================
+// People — load for picker
+// ============================================================
+
+/**
+ * Load all people for the current user, sorted by name.
+ * Used to populate the people picker autocomplete.
+ * @returns {Array} Array of { id, name }
+ */
+async function lcLoadPeople() {
+    var snap = await userCol('people').orderBy('name').get();
+    return snap.docs.map(function(doc) {
+        return { id: doc.id, name: doc.data().name || '' };
+    });
 }
 
 // ============================================================
@@ -604,6 +638,34 @@ function _lcRenderEventForm(event, categories, prefillDate) {
                               placeholder="How did it go?">${escapeHtml(outcome)}</textarea>
                 </div>
 
+                <!-- People picker -->
+                <div class="form-group">
+                    <label>Who went with you?</label>
+                    <div class="lc-people-chips" id="lcPeopleChips"></div>
+                    <div class="lc-people-picker-wrap">
+                        <input type="text" id="lcPeopleSearch" class="form-control"
+                               placeholder="Search by name…" autocomplete="off">
+                        <ul class="lc-people-dropdown hidden" id="lcPeopleDropdown"></ul>
+                    </div>
+                </div>
+
+                <!-- Links -->
+                <div class="form-group">
+                    <div class="lc-section-header" style="margin-bottom:8px;">
+                        <label style="margin:0;">Links</label>
+                        <button type="button" class="btn btn-sm btn-secondary" id="lcAddLinkBtn">+ Link</button>
+                    </div>
+                    <div id="lcLinkInlineForm" class="lc-link-inline-form hidden">
+                        <input type="text" id="lcLinkLabel" class="form-control" placeholder="Label (e.g. Race Results)">
+                        <input type="url"  id="lcLinkUrl"   class="form-control" placeholder="https://…" style="margin-top:6px;">
+                        <div class="lc-link-inline-btns">
+                            <button type="button" class="btn btn-sm btn-primary"    id="lcLinkConfirmBtn">Add</button>
+                            <button type="button" class="btn btn-sm btn-secondary"  id="lcLinkCancelBtn">Cancel</button>
+                        </div>
+                    </div>
+                    <ul class="lc-links-list" id="lcLinksList"></ul>
+                </div>
+
                 <div class="lc-event-form-actions">
                     <button type="button" class="btn btn-primary" id="lcEventSaveBtn">Save</button>
                     ${!isNew ? '<button type="button" class="btn btn-danger" id="lcEventDeleteBtn">Delete</button>' : ''}
@@ -654,6 +716,214 @@ function _lcRenderEventForm(event, categories, prefillDate) {
         _lcEventDirty = false;
         window.location.hash = '#life-calendar';
     });
+
+    // ---- People picker ----
+
+    // Initialize selected people from the event (edit) or empty (new)
+    _lcSelectedPeopleIds = (event && event.peopleIds) ? event.peopleIds.slice() : [];
+
+    // Render chips for already-selected people (using cached _lcAllPeople)
+    _lcRenderPeopleChips();
+
+    // Wire search input
+    var searchEl = document.getElementById('lcPeopleSearch');
+    var dropEl   = document.getElementById('lcPeopleDropdown');
+
+    searchEl.addEventListener('input', function() {
+        var q = this.value.trim().toLowerCase();
+        if (!q) { dropEl.classList.add('hidden'); dropEl.innerHTML = ''; return; }
+
+        var matches = _lcAllPeople.filter(function(p) {
+            return p.name.toLowerCase().includes(q) && !_lcSelectedPeopleIds.includes(p.id);
+        });
+
+        if (matches.length === 0) {
+            dropEl.innerHTML = '<li class="lc-people-no-match">No matches</li>';
+            dropEl.classList.remove('hidden');
+            return;
+        }
+
+        dropEl.innerHTML = matches.map(function(p) {
+            return '<li data-id="' + p.id + '" data-name="' + escapeHtml(p.name) + '">'
+                + escapeHtml(p.name) + '</li>';
+        }).join('');
+        dropEl.classList.remove('hidden');
+
+        dropEl.querySelectorAll('li[data-id]').forEach(function(li) {
+            li.addEventListener('click', function() {
+                _lcAddPersonChip(li.dataset.id, li.dataset.name);
+                searchEl.value = '';
+                dropEl.innerHTML = '';
+                dropEl.classList.add('hidden');
+            });
+        });
+    });
+
+    // Enter key: if exactly one match, add it
+    searchEl.addEventListener('keydown', function(e) {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        var q = this.value.trim().toLowerCase();
+        var matches = _lcAllPeople.filter(function(p) {
+            return p.name.toLowerCase().includes(q) && !_lcSelectedPeopleIds.includes(p.id);
+        });
+        if (matches.length === 1) {
+            _lcAddPersonChip(matches[0].id, matches[0].name);
+            searchEl.value = '';
+            dropEl.innerHTML = '';
+            dropEl.classList.add('hidden');
+        }
+    });
+
+    // Close dropdown on outside click
+    document.addEventListener('click', function _lcPickerOutside(e) {
+        if (!e.target.closest('#lcPeopleSearch') && !e.target.closest('#lcPeopleDropdown')) {
+            dropEl.classList.add('hidden');
+            document.removeEventListener('click', _lcPickerOutside);
+        }
+    });
+
+    // ---- Links ----
+
+    // Initialize links from event (edit) or empty (new)
+    _lcEventLinks = (event && event.links) ? event.links.map(function(l) {
+        return { label: l.label || '', url: l.url || '' };
+    }) : [];
+
+    // Track which index is being edited (-1 = new)
+    var _lcEditingLinkIdx = -1;
+
+    _lcRenderLinks();
+
+    document.getElementById('lcAddLinkBtn').addEventListener('click', function() {
+        _lcEditingLinkIdx = -1;
+        document.getElementById('lcLinkLabel').value = '';
+        document.getElementById('lcLinkUrl').value   = '';
+        document.getElementById('lcLinkConfirmBtn').textContent = 'Add';
+        document.getElementById('lcLinkInlineForm').classList.remove('hidden');
+        document.getElementById('lcLinkLabel').focus();
+    });
+
+    document.getElementById('lcLinkCancelBtn').addEventListener('click', function() {
+        document.getElementById('lcLinkInlineForm').classList.add('hidden');
+    });
+
+    document.getElementById('lcLinkConfirmBtn').addEventListener('click', function() {
+        var label = (document.getElementById('lcLinkLabel').value || '').trim();
+        var url   = (document.getElementById('lcLinkUrl').value || '').trim();
+        if (!label || !url) { alert('Please enter both a label and a URL.'); return; }
+
+        if (_lcEditingLinkIdx >= 0) {
+            _lcEventLinks[_lcEditingLinkIdx] = { label: label, url: url };
+        } else {
+            _lcEventLinks.push({ label: label, url: url });
+        }
+        _lcEditingLinkIdx = -1;
+        document.getElementById('lcLinkInlineForm').classList.add('hidden');
+        _lcRenderLinks();
+        _lcEventDirty = true;
+    });
+}
+
+/**
+ * Add a person chip to the selected list and re-render.
+ * @param {string} id   - Person Firestore ID
+ * @param {string} name - Person display name
+ */
+function _lcAddPersonChip(id, name) {
+    if (_lcSelectedPeopleIds.includes(id)) return;
+    _lcSelectedPeopleIds.push(id);
+
+    // Cache name for re-rendering (in case _lcAllPeople doesn't have it yet)
+    if (!_lcAllPeople.find(function(p) { return p.id === id; })) {
+        _lcAllPeople.push({ id: id, name: name });
+    }
+    _lcRenderPeopleChips();
+    _lcEventDirty = true;
+}
+
+/**
+ * Render all currently selected people as chips.
+ */
+function _lcRenderPeopleChips() {
+    var container = document.getElementById('lcPeopleChips');
+    if (!container) return;
+    container.innerHTML = '';
+
+    _lcSelectedPeopleIds.forEach(function(personId) {
+        var person = _lcAllPeople.find(function(p) { return p.id === personId; });
+        var name   = person ? person.name : personId;
+
+        var chip = document.createElement('span');
+        chip.className = 'lc-person-chip';
+        chip.innerHTML =
+            '<a href="#person/' + personId + '" class="lc-chip-name">' + escapeHtml(name) + '</a>' +
+            '<button type="button" class="lc-chip-remove" data-id="' + personId + '" title="Remove">✕</button>';
+
+        chip.querySelector('.lc-chip-remove').addEventListener('click', function() {
+            _lcSelectedPeopleIds = _lcSelectedPeopleIds.filter(function(id) { return id !== personId; });
+            _lcRenderPeopleChips();
+            _lcEventDirty = true;
+        });
+
+        container.appendChild(chip);
+    });
+}
+
+/**
+ * Render the links list.
+ */
+function _lcRenderLinks() {
+    var list = document.getElementById('lcLinksList');
+    if (!list) return;
+    list.innerHTML = '';
+
+    _lcEventLinks.forEach(function(link, idx) {
+        var li = document.createElement('li');
+        li.className = 'lc-link-item';
+        li.innerHTML =
+            '<a href="' + escapeHtml(link.url) + '" target="_blank" rel="noopener" class="lc-link-label">'
+            + escapeHtml(link.label) + '</a>' +
+            '<div class="lc-link-actions">' +
+            '<button type="button" class="btn btn-xs btn-secondary" data-action="edit">Edit</button>' +
+            '<button type="button" class="btn btn-xs btn-danger"    data-action="delete">Delete</button>' +
+            '</div>';
+
+        li.querySelector('[data-action="edit"]').addEventListener('click', function() {
+            // stash editing index into closure variable via re-assignment
+            document.getElementById('lcLinkLabel').value = link.label;
+            document.getElementById('lcLinkUrl').value   = link.url;
+            document.getElementById('lcLinkConfirmBtn').textContent = 'Update';
+            document.getElementById('lcLinkInlineForm').classList.remove('hidden');
+            document.getElementById('lcLinkLabel').focus();
+            // Update the confirm handler's editing index
+            // We reach into the closure via the module-level approach:
+            // The confirmBtn listener reads _lcEditingLinkIdx from its own scope
+            // so we update it on the parent form via a custom attribute trick
+            document.getElementById('lcLinkInlineForm').dataset.editIdx = idx;
+            // Re-wire confirm button for this index
+            var cb = document.getElementById('lcLinkConfirmBtn');
+            var fresh = cb.cloneNode(true);
+            cb.parentNode.replaceChild(fresh, cb);
+            fresh.addEventListener('click', function() {
+                var label = (document.getElementById('lcLinkLabel').value || '').trim();
+                var url   = (document.getElementById('lcLinkUrl').value || '').trim();
+                if (!label || !url) { alert('Please enter both a label and a URL.'); return; }
+                _lcEventLinks[idx] = { label: label, url: url };
+                document.getElementById('lcLinkInlineForm').classList.add('hidden');
+                _lcRenderLinks();
+                _lcEventDirty = true;
+            });
+        });
+
+        li.querySelector('[data-action="delete"]').addEventListener('click', function() {
+            _lcEventLinks.splice(idx, 1);
+            _lcRenderLinks();
+            _lcEventDirty = true;
+        });
+
+        list.appendChild(li);
+    });
 }
 
 /**
@@ -686,6 +956,9 @@ function _lcReadEventForm() {
 
     var costVal = document.getElementById('lcEventCost').value;
     data.cost = costVal !== '' ? parseFloat(costVal) : null;
+
+    data.peopleIds = _lcSelectedPeopleIds.slice();
+    data.links     = _lcEventLinks.map(function(l) { return { label: l.label, url: l.url }; });
 
     return data;
 }
@@ -768,11 +1041,15 @@ async function loadNewLifeEventPage() {
     section.innerHTML = '<div class="lc-page-body"><p style="color:var(--text-muted);">Loading…</p></div>';
 
     try {
-        var categories = await lcLoadCategories();
+        var [categories, people] = await Promise.all([
+            lcLoadCategories(),
+            lcLoadPeople()
+        ]);
         if (categories.length === 0) {
             await lcEnsureDefaultCategories();
             categories = await lcLoadCategories();
         }
+        _lcAllPeople = people;
         _lcRenderEventForm(null, categories, prefillDate);
     } catch (err) {
         console.error('loadNewLifeEventPage error:', err);
@@ -795,10 +1072,12 @@ async function loadLifeEventPage(id) {
     section.innerHTML = '<div class="lc-page-body"><p style="color:var(--text-muted);">Loading…</p></div>';
 
     try {
-        var [eventDoc, categories] = await Promise.all([
+        var [eventDoc, categories, people] = await Promise.all([
             userCol('lifeEvents').doc(id).get(),
-            lcLoadCategories()
+            lcLoadCategories(),
+            lcLoadPeople()
         ]);
+        _lcAllPeople = people;
 
         if (!eventDoc.exists) {
             section.innerHTML = '<div class="lc-page-body"><p style="color:var(--danger);">Event not found.</p></div>';

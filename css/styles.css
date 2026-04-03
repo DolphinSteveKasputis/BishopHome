@@ -6469,6 +6469,131 @@ textarea.sb-field { resize: vertical; min-height: 60px; }
     font-weight: 400;
 }
 
+/* ── Life Calendar — people picker chips ── */
+.lc-people-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+    min-height: 0;
+}
+.lc-person-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--accent, #3b82f6);
+    color: #fff;
+    border-radius: 20px;
+    padding: 3px 10px 3px 12px;
+    font-size: 0.83rem;
+    font-weight: 500;
+}
+.lc-chip-name {
+    color: #fff;
+    text-decoration: none;
+}
+.lc-chip-name:hover {
+    text-decoration: underline;
+}
+.lc-chip-remove {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.8);
+    cursor: pointer;
+    font-size: 0.8rem;
+    padding: 0 2px;
+    line-height: 1;
+}
+.lc-chip-remove:hover {
+    color: #fff;
+}
+.lc-people-picker-wrap {
+    position: relative;
+}
+.lc-people-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    list-style: none;
+    margin: 2px 0 0;
+    padding: 4px 0;
+    z-index: 200;
+    max-height: 200px;
+    overflow-y: auto;
+}
+.lc-people-dropdown li {
+    padding: 8px 14px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+.lc-people-dropdown li:hover {
+    background: var(--bg-secondary, #f3f4f6);
+}
+.lc-people-no-match {
+    color: var(--text-muted, #9ca3af);
+    cursor: default !important;
+}
+
+/* ── Life Calendar — links ── */
+.lc-link-inline-form {
+    background: var(--bg-secondary, #f8f9fa);
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 10px;
+}
+.lc-link-inline-btns {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+.lc-links-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.lc-link-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--bg-secondary, #f8f9fa);
+    border-radius: 8px;
+    border: 1px solid var(--border, #e5e7eb);
+}
+.lc-link-label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--accent, #3b82f6);
+    text-decoration: none;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.lc-link-label:hover {
+    text-decoration: underline;
+}
+.lc-link-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+.btn-xs {
+    padding: 2px 8px;
+    font-size: 0.78rem;
+    border-radius: 6px;
+}
+
 /* ── Life Calendar — delete reassignment modal event list ── */
 .lc-delete-event-list {
     margin: 8px 0 0 18px;

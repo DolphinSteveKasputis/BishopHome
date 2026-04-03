@@ -689,7 +689,9 @@ System prompt rule:
 
 ---
 
-### Phase LC-6 — Mini Log
+### Phase LC-6 — Mini Log ✅ COMPLETE (v=295)
+
+**Delivered:** `lcAddLog`, `lcUpdateLog`, `lcDeleteLog`, `lcLoadLogs` (single-field filter + client-side sort to avoid composite index). Mini log section below event form (edit mode only). Add entry form with date/time inputs (default = now). Entries show date/time, body with @name→link rendering, Edit (inline textarea) and Delete. `_lcInitLogMention` wires @mention autocomplete on any textarea using `_lcAllPeople`. `_lcRenderLogBody` converts @name tokens to `#person/{id}` links via `mentionedPersonIds`. CSS: `.lc-mini-log-section`, `.lc-log-entry`, `.lc-log-meta`, `.lc-log-body`, `.lc-log-mention-dropdown`.
 
 **Goal:** User can add, edit, and delete timestamped mini log entries on an event. @mentions work.
 

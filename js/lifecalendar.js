@@ -944,11 +944,6 @@ async function loadLifeCalendarPage() {
         // Render full page
         section.innerHTML = `
             <div class="page-header">
-                <div class="breadcrumb">
-                    <a href="#life" class="breadcrumb-link">Life</a>
-                    <span class="breadcrumb-sep"> › </span>
-                    <span>Calendar</span>
-                </div>
                 <h2>Life Calendar</h2>
             </div>
             <div class="lc-page-body">

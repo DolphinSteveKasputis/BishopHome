@@ -7026,6 +7026,80 @@ textarea.sb-field { resize: vertical; min-height: 60px; }
     .lc-grid-nav { display: none !important; }
 }
 
+/* ══════════════════════════════════════════════════════════════
+   LC-10 — Life event mini logs in journal feed
+   ══════════════════════════════════════════════════════════════ */
+
+/* Life log card — distinct teal left border */
+.journal-item--life-log {
+    display: flex;
+    align-items: stretch;
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 8px;
+    background: var(--card-bg, #fff);
+}
+
+/* Category color bar (left side of card) */
+.lc-event-badge-bar {
+    width: 5px;
+    flex-shrink: 0;
+}
+
+/* Content area */
+.lc-log-journal-body {
+    flex: 1;
+    padding: 10px 14px;
+    min-width: 0;
+}
+
+/* Event title badge (e.g. "Chicago Marathon 2026") */
+.lc-event-badge {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 10px;
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-size: 0.78rem;
+    font-weight: 600;
+    margin-left: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 220px;
+    vertical-align: middle;
+}
+
+/* "Go to Event" link */
+.lc-go-to-event-wrap {
+    margin-top: 8px;
+}
+.lc-go-to-event-btn {
+    font-size: 0.8rem;
+    color: var(--primary, #2563eb);
+    text-decoration: none;
+    font-weight: 600;
+}
+.lc-go-to-event-btn:hover { text-decoration: underline; }
+
+/* Hide mini logs when toggle is off */
+.journal-feed--hide-logs .journal-item--life-log {
+    display: none;
+}
+
+/* Show Event Notes toggle label */
+.journal-toggle-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.85rem;
+    color: var(--text-secondary, #6b7280);
+    cursor: pointer;
+    user-select: none;
+    margin-left: 4px;
+}
+
 /* ── Notebook tiles (color set via inline style by notes.js) ── */
 .notebook-tile {
     display: flex;

@@ -25,6 +25,12 @@ var _journalMentionedPersonIds = new Set();
  */
 var _journalPeopleCache = null;
 
+/**
+ * Whether to show mini log entries from life events in the journal feed.
+ * Persisted in localStorage so the choice survives page reloads.
+ */
+var _journalShowEventNotes = localStorage.getItem('bishop_journal_showEventNotes') !== 'false';
+
 /** The tracking item currently being edited (or null when adding). */
 window.currentTrackingItem = null;
 
@@ -216,6 +222,20 @@ function _journalWireToolbar() {
             window.location.hash = '#journal-categories';
         };
     }
+
+    // "Show Event Notes" toggle — hides/shows mini log entries from life events
+    var showNotesChk = document.getElementById('journalShowEventNotes');
+    if (showNotesChk) {
+        showNotesChk.checked = _journalShowEventNotes;
+        showNotesChk.onchange = function() {
+            _journalShowEventNotes = this.checked;
+            localStorage.setItem('bishop_journal_showEventNotes', _journalShowEventNotes ? 'true' : 'false');
+            var feedEl = document.getElementById('journalFeed');
+            if (feedEl) {
+                feedEl.classList.toggle('journal-feed--hide-logs', !_journalShowEventNotes);
+            }
+        };
+    }
 }
 
 /**
@@ -292,8 +312,8 @@ async function loadJournalData() {
     }
 
     try {
-        // Run both queries in parallel for speed
-        var [entriesSnap, trackingSnap] = await Promise.all([
+        // Run all queries in parallel for speed
+        var [entriesSnap, trackingSnap, logsSnap] = await Promise.all([
             userCol('journalEntries')
                 .where('date', '>=', range.fromDate)
                 .where('date', '<=', range.toDate)
@@ -305,10 +325,15 @@ async function loadJournalData() {
                 .where('date', '<=', range.toDate)
                 .orderBy('date', 'desc')
                 .orderBy('createdAt', 'asc')
+                .get(),
+            // Mini logs: range query on a single field — no composite index needed
+            userCol('lifeEventLogs')
+                .where('logDate', '>=', range.fromDate)
+                .where('logDate', '<=', range.toDate)
                 .get()
         ]);
 
-        // Collect all items from both snapshots into a flat array
+        // Collect all items from all snapshots into a flat array
         var allItems = [];
 
         entriesSnap.forEach(function(doc) {
@@ -318,6 +343,51 @@ async function loadJournalData() {
         trackingSnap.forEach(function(doc) {
             allItems.push({ type: 'tracking', id: doc.id, data: doc.data() });
         });
+
+        // Process life event mini logs
+        var logDocs = [];
+        logsSnap.forEach(function(doc) { logDocs.push({ id: doc.id, data: doc.data() }); });
+
+        if (logDocs.length > 0) {
+            // Batch-fetch the referenced life events and all categories
+            var uniqueEventIds = [];
+            logDocs.forEach(function(l) {
+                if (l.data.eventId && uniqueEventIds.indexOf(l.data.eventId) === -1) {
+                    uniqueEventIds.push(l.data.eventId);
+                }
+            });
+
+            var [eventDocs, catSnap] = await Promise.all([
+                Promise.all(uniqueEventIds.map(function(id) { return userCol('lifeEvents').doc(id).get(); })),
+                userCol('lifeCategories').get()
+            ]);
+
+            var eventMap = {};
+            eventDocs.forEach(function(doc) { if (doc.exists) eventMap[doc.id] = doc.data(); });
+
+            var categoryMap = {};
+            catSnap.forEach(function(doc) { categoryMap[doc.id] = doc.data(); });
+
+            // Add each log as a 'lifeLog' item, enriched with event/category data
+            logDocs.forEach(function(log) {
+                var evData  = eventMap[log.data.eventId] || null;
+                var catData = evData && categoryMap[evData.categoryId] ? categoryMap[evData.categoryId] : null;
+                allItems.push({
+                    type: 'lifeLog',
+                    id:   log.id,
+                    data: {
+                        date:               log.data.logDate  || '',
+                        entryTime:          log.data.logTime  || '',
+                        body:               log.data.body     || '',
+                        mentionedPersonIds: log.data.mentionedPersonIds || [],
+                        eventId:            log.data.eventId  || '',
+                        eventTitle:         evData ? (evData.title || '(Event)') : '(Event)',
+                        categoryColor:      catData ? (catData.color || '') : '',
+                        createdAt:          log.data.createdAt
+                    }
+                });
+            });
+        }
 
         // Group by date — build a map { 'YYYY-MM-DD': [items...] }
         var dateMap = {};
@@ -398,11 +468,20 @@ function renderJournalFeed(groupedData) {
                 html += _renderEntryCard(item.id, item.data);
             } else if (item.type === 'tracking') {
                 html += _renderTrackingCard(item.id, item.data);
+            } else if (item.type === 'lifeLog') {
+                html += _renderLifeLogCard(item.id, item.data);
             }
         });
     });
 
     feedEl.innerHTML = html;
+
+    // Apply the "show event notes" toggle state
+    if (!_journalShowEventNotes) {
+        feedEl.classList.add('journal-feed--hide-logs');
+    } else {
+        feedEl.classList.remove('journal-feed--hide-logs');
+    }
 }
 
 /**
@@ -448,6 +527,34 @@ function _renderTrackingCard(id, data) {
            '</div>';
 }
 
+
+/**
+ * Build the HTML for a life event mini log entry card.
+ * @param {string} id   - Log document ID
+ * @param {Object} data - Enriched log data (body, eventTitle, categoryColor, etc.)
+ */
+function _renderLifeLogCard(id, data) {
+    var timeStr  = data.entryTime ? journalFormatTime12(data.entryTime) : journalFormatTime(data.createdAt);
+    var color    = data.categoryColor || 'linear-gradient(135deg,#6b7280,#9ca3af)';
+    var bodyHtml = _renderEntryTextWithMentions(data.body || '', data.mentionedPersonIds);
+    var eventId  = data.eventId || '';
+
+    return '<div class="journal-item journal-item--life-log">' +
+               '<div class="lc-event-badge-bar" style="background:' + color + '"></div>' +
+               '<div class="lc-log-journal-body">' +
+                   '<div class="journal-item-row">' +
+                       '<span class="journal-item-time">📅 ' + journalEscape(timeStr) + '</span>' +
+                       '<span class="lc-event-badge">' + journalEscape(data.eventTitle) + '</span>' +
+                   '</div>' +
+                   '<div class="journal-item-text" style="margin-top:6px;">' + bodyHtml + '</div>' +
+                   (eventId
+                       ? '<div class="lc-go-to-event-wrap">' +
+                             '<a href="#life-event/' + journalEscape(eventId) + '" class="lc-go-to-event-btn">Go to Event →</a>' +
+                         '</div>'
+                       : '') +
+               '</div>' +
+           '</div>';
+}
 
 // ============================================================
 // Go to Date

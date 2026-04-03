@@ -803,7 +803,9 @@ System prompt rule:
 
 ---
 
-### Phase LC-10 — Journal Integration: Mini Logs
+### Phase LC-10 — Journal Integration: Mini Logs ✅ COMPLETE (v=299)
+
+**Delivered:** `loadJournalData()` now queries `lifeEventLogs` in the date range (single-field range query, no composite index needed). Batch-fetches referenced lifeEvents + lifeCategories. Mini logs merged into feed as `type: 'lifeLog'` items. `_renderLifeLogCard()` renders category color bar, event title badge, log body with @mention links, "Go to Event →" button. "Show Event Notes" checkbox in journal toolbar — localStorage-persisted, toggles `journal-feed--hide-logs` class for instant hide/show without re-render.
 
 **Goal:** Mini log entries appear in the journal timeline. "Show Event Notes" toggle works.
 

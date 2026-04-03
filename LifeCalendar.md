@@ -866,7 +866,9 @@ System prompt rule:
 
 ---
 
-### Phase LC-12 — People Page: Shared Events Section
+### Phase LC-12 — People Page: Shared Events Section ✅ COMPLETE (v=301)
+
+**Delivered:** `loadSharedEvents(personId)` queries `lifeEvents` where `peopleIds` array-contains the person's ID, batch-fetches categories for colors, sorts newest-first. Renders clickable event cards (category color bar, title, dates, location, status badge) reusing existing LC-8 card CSS. "No shared events yet." empty state. Section placed between Photos and Interactions on person detail page.
 
 **Goal:** Each person's detail page shows a "Shared Events" section listing life events they're attached to.
 

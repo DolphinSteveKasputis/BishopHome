@@ -240,6 +240,7 @@ function renderPersonDetail(person, parentPerson) {
     loadImportantDates(person.id);
     loadPhotos('person', person.id, 'personPhotoContainer', 'personPhotoEmptyState');
     loadFacts('person',  person.id, 'personFactsContainer',  'personFactsEmptyState');
+    loadSharedEvents(person.id);
     loadInteractions(person.id);
 }
 
@@ -248,6 +249,91 @@ function _contactRow(label, valueHtml) {
                '<span class="person-contact-label">' + escapeHtml(label) + '</span>' +
                '<span class="person-contact-value">' + valueHtml + '</span>' +
            '</div>';
+}
+
+// ============================================================
+// LC-12: Shared Events section on Person detail page
+// ============================================================
+
+/**
+ * Load life events this person is tagged on and render the Shared Events section.
+ * Queries lifeEvents where peopleIds array-contains the person's ID.
+ * @param {string} personId
+ */
+async function loadSharedEvents(personId) {
+    var container = document.getElementById('personSharedEventsContainer');
+    var emptyEl   = document.getElementById('personSharedEventsEmpty');
+    if (!container || !emptyEl) return;
+
+    try {
+        var [eventsSnap, catSnap] = await Promise.all([
+            userCol('lifeEvents').where('peopleIds', 'array-contains', personId).get(),
+            userCol('lifeCategories').get()
+        ]);
+
+        // Build category color map
+        var colorMap = {};
+        catSnap.forEach(function(doc) { colorMap[doc.id] = doc.data().color || ''; });
+
+        // Collect events and sort newest-first by startDate
+        var events = [];
+        eventsSnap.forEach(function(doc) { events.push({ id: doc.id, ...doc.data() }); });
+        events.sort(function(a, b) {
+            var aDate = a.startDate || '';
+            var bDate = b.startDate || '';
+            return aDate < bDate ? 1 : aDate > bDate ? -1 : 0;
+        });
+
+        if (events.length === 0) {
+            container.innerHTML = '';
+            emptyEl.style.display = '';
+            return;
+        }
+
+        emptyEl.style.display = 'none';
+        container.innerHTML = events.map(function(ev) {
+            var color     = colorMap[ev.categoryId] || 'linear-gradient(135deg,#6b7280,#9ca3af)';
+            // _lcFormatDateRange and _lcStatusLabel are globals from lifecalendar.js
+            var dates     = typeof _lcFormatDateRange === 'function'
+                                ? _lcFormatDateRange(ev.startDate, ev.endDate)
+                                : (ev.startDate || '');
+            var statusLbl = typeof _lcStatusLabel === 'function'
+                                ? _lcStatusLabel(ev.status)
+                                : (ev.status || 'Upcoming');
+            var statusCls = 'lc-status-badge--' + (ev.status || 'upcoming');
+            var location  = ev.location
+                ? '<span class="lc-event-card-location">' + escapeHtml(ev.location) + '</span>'
+                : '';
+
+            return '<div class="lc-shared-event-item" data-id="' + escapeHtml(ev.id) + '" role="button" tabindex="0">' +
+                       '<div class="lc-shared-event-bar" style="background:' + color + '"></div>' +
+                       '<div class="lc-event-card-body">' +
+                           '<div class="lc-event-card-title">' + escapeHtml(ev.title || '') + '</div>' +
+                           '<div class="lc-event-card-meta">' +
+                               '<span class="lc-event-card-dates">' + escapeHtml(dates) + '</span>' +
+                               location +
+                               '<span class="lc-status-badge ' + statusCls + '">' + escapeHtml(statusLbl) + '</span>' +
+                           '</div>' +
+                       '</div>' +
+                   '</div>';
+        }).join('');
+
+        // Wire click handlers
+        container.querySelectorAll('.lc-shared-event-item').forEach(function(item) {
+            item.addEventListener('click', function() {
+                window.location.hash = '#life-event/' + this.dataset.id;
+            });
+            item.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    window.location.hash = '#life-event/' + this.dataset.id;
+                }
+            });
+        });
+
+    } catch (err) {
+        console.error('loadSharedEvents error:', err);
+        container.innerHTML = '<p style="color:var(--danger);font-size:0.88rem;">Failed to load shared events.</p>';
+    }
 }
 
 // ============================================================

@@ -6496,6 +6496,8 @@ textarea.sb-field { resize: vertical; min-height: 60px; }
 .lc-log-textarea-wrap textarea {
     min-height: 80px;
     resize: vertical;
+    width: 100%;
+    box-sizing: border-box;
 }
 .lc-log-mention-dropdown {
     position: absolute;

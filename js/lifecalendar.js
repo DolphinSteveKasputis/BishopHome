@@ -1167,6 +1167,7 @@ function _lcRenderEventForm(event, categories, prefillDate) {
     section.innerHTML = `
         <div class="page-header">
             <h2>${pageTitle}</h2>
+            <button type="button" class="btn btn-primary btn-sm" id="lcEventTopSaveBtn">Save</button>
         </div>
         <div class="lc-event-form-wrap">
             <form class="lc-event-form" id="lcEventForm" autocomplete="off">
@@ -1376,7 +1377,7 @@ function _lcRenderEventForm(event, categories, prefillDate) {
                     <input type="time" id="lcLogNewTime" class="form-control lc-log-time-input">
                 </div>
                 <div class="lc-log-textarea-wrap">
-                    <textarea id="lcLogNewBody" class="form-control" rows="2"
+                    <textarea id="lcLogNewBody" class="form-control" rows="4"
                               placeholder="What happened? Type @ to mention someone…"></textarea>
                     <div id="lcLogMentionDropdown" class="lc-log-mention-dropdown" style="display:none;"></div>
                 </div>
@@ -1430,8 +1431,11 @@ function _lcRenderEventForm(event, categories, prefillDate) {
         if (el) el.addEventListener('change', function() { _lcEventDirty = true; });
     });
 
-    // Wire Save
+    // Wire Save (bottom button and top button)
     document.getElementById('lcEventSaveBtn').addEventListener('click', function() {
+        _lcSaveEvent(isNew);
+    });
+    document.getElementById('lcEventTopSaveBtn').addEventListener('click', function() {
         _lcSaveEvent(isNew);
     });
 
@@ -2201,22 +2205,7 @@ async function _lcSaveEvent(isNew) {
         } else {
             await lcUpdateEvent(_lcEditingEventId, data);
             _lcEventDirty = false;
-            // Update the breadcrumb title in place
-            var h2 = document.querySelector('#page-life-event h2');
-            if (h2) h2.textContent = data.title;
-            var headerCrumb = document.getElementById('breadcrumbBar');
-            if (headerCrumb) {
-                var lastSpan = headerCrumb.querySelector('span:last-child');
-                if (lastSpan) lastSpan.textContent = data.title;
-            }
-            saveBtn.textContent = 'Saved ✓';
-            setTimeout(function() {
-                if (document.getElementById('lcEventSaveBtn')) {
-                    document.getElementById('lcEventSaveBtn').textContent = 'Save';
-                    document.getElementById('lcEventSaveBtn').disabled = false;
-                }
-            }, 1500);
-            return; // don't re-enable below
+            window.location.hash = '#life-calendar';
         }
     } catch (err) {
         console.error('_lcSaveEvent error:', err);

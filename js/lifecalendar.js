@@ -896,14 +896,13 @@ async function loadLifeCalendarPage() {
     const section = document.getElementById('page-life-calendar');
     if (!section) return;
 
+    // Set breadcrumb in sticky header
+    var crumb = document.getElementById('breadcrumbBar');
+    if (crumb) crumb.innerHTML = '<a href="#life">Life</a><span class="separator">&rsaquo;</span><span>Calendar</span>';
+
     // Skeleton while loading
     section.innerHTML = `
         <div class="page-header">
-            <div class="breadcrumb">
-                <a href="#life" class="breadcrumb-link">Life</a>
-                <span class="breadcrumb-sep"> › </span>
-                <span>Calendar</span>
-            </div>
             <h2>Life Calendar</h2>
         </div>
         <div class="lc-page-body">

@@ -434,6 +434,10 @@ async function openDevNotesNotebook() {
 }
 
 async function loadNotesPage() {
+    // Set breadcrumb in sticky header
+    var crumb = document.getElementById('breadcrumbBar');
+    if (crumb) crumb.innerHTML = '<a href="#life">Life</a><span class="separator">&rsaquo;</span><span>Notebooks</span>';
+
     // Always guarantee Default exists before rendering
     await notesEnsureDefaultNotebook();
 

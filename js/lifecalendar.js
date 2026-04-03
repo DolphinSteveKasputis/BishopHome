@@ -898,7 +898,7 @@ async function loadLifeCalendarPage() {
 
     // Set breadcrumb in sticky header
     var crumb = document.getElementById('breadcrumbBar');
-    if (crumb) crumb.innerHTML = '<a href="#life">Life</a><span class="separator">&rsaquo;</span><span>Calendar</span>';
+    if (crumb) crumb.innerHTML = '<a href="#life">Life</a><span class="separator">&rsaquo;</span><a href="#life-calendar">Calendar</a>';
 
     // Skeleton while loading
     section.innerHTML = `
@@ -1159,16 +1159,13 @@ function _lcRenderEventForm(event, categories, prefillDate) {
 
     const catOptions = _lcBuildCategoryOptions(categories, catId);
 
+    // Set sticky header breadcrumb
+    var crumb = document.getElementById('breadcrumbBar');
+    if (crumb) crumb.innerHTML = '<a href="#life">Life</a><span class="separator">&rsaquo;</span><a href="#life-calendar">Calendar</a><span class="separator">&rsaquo;</span><span>' + breadcrumbLabel + '</span>';
+
     const section = document.getElementById('page-life-event');
     section.innerHTML = `
         <div class="page-header">
-            <div class="breadcrumb">
-                <a href="#life" class="breadcrumb-link">Life</a>
-                <span class="breadcrumb-sep"> › </span>
-                <a href="#life-calendar" class="breadcrumb-link">Calendar</a>
-                <span class="breadcrumb-sep"> › </span>
-                <span>${breadcrumbLabel}</span>
-            </div>
             <h2>${pageTitle}</h2>
         </div>
         <div class="lc-event-form-wrap">
@@ -2154,6 +2151,9 @@ function _lcReadEventForm() {
     var startDate = document.getElementById('lcEventStartDate').value || '';
     if (!startDate) { alert('Please enter a start date.'); return null; }
 
+    var endDate = document.getElementById('lcEventEndDate').value || '';
+    if (endDate && endDate < startDate) { alert('End date cannot be before start date.'); return null; }
+
     var statusEl = document.querySelector('input[name="lcEventStatus"]:checked');
     var status   = statusEl ? statusEl.value : 'upcoming';
 
@@ -2161,7 +2161,7 @@ function _lcReadEventForm() {
         title:         title,
         categoryId:    document.getElementById('lcEventCategory').value || '',
         startDate:     startDate,
-        endDate:       document.getElementById('lcEventEndDate').value || '',
+        endDate:       endDate,
         location:      (document.getElementById('lcEventLocation').value || '').trim(),
         status:        status,
         didntGoReason: status === 'didntgo'
@@ -2204,8 +2204,11 @@ async function _lcSaveEvent(isNew) {
             // Update the breadcrumb title in place
             var h2 = document.querySelector('#page-life-event h2');
             if (h2) h2.textContent = data.title;
-            var breadcrumbSpan = document.querySelector('#page-life-event .breadcrumb span:last-child');
-            if (breadcrumbSpan) breadcrumbSpan.textContent = data.title;
+            var headerCrumb = document.getElementById('breadcrumbBar');
+            if (headerCrumb) {
+                var lastSpan = headerCrumb.querySelector('span:last-child');
+                if (lastSpan) lastSpan.textContent = data.title;
+            }
             saveBtn.textContent = 'Saved ✓';
             setTimeout(function() {
                 if (document.getElementById('lcEventSaveBtn')) {

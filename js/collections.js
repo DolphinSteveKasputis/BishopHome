@@ -1446,13 +1446,15 @@ async function collectionSendToLlm(images) {
 
         if (identified) {
             await collectionAutoSaveFromLlm(parsed, images, collectionId, collType);
-            // Refresh item list in background
-            if (window.currentCollection && window.currentCollection.id === collectionId) {
-                loadCollectionPage(collectionId);
-            }
         }
 
         collectionShowResultModal(parsed, collType, identified);
+
+        // Refresh item list in background AFTER modal is shown, so the re-render
+        // doesn't race with collectionShowResultModal updating the modal DOM.
+        if (identified && window.currentCollection && window.currentCollection.id === collectionId) {
+            setTimeout(function() { loadCollectionPage(collectionId); }, 100);
+        }
 
     } catch (err) {
         console.error('Collection pic error:', err);

@@ -2581,10 +2581,10 @@ button {
 
 .landing-tiles {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-    max-width: 520px;
-    margin: 60px auto 0;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    max-width: 420px;
+    margin: 40px auto 0;
     padding: 0 16px;
 }
 .landing-tile {
@@ -2592,7 +2592,7 @@ button {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 36px 16px;
+    padding: 28px 16px;
     border-radius: 16px;
     text-decoration: none;
     transition: transform 0.12s, box-shadow 0.12s;
@@ -2608,12 +2608,9 @@ button {
     transform: translateY(-3px);
     box-shadow: 0 8px 24px rgba(0,0,0,0.12);
 }
-.landing-tile-icon  { font-size:2.8rem; margin-bottom:10px; line-height:1; }
-.landing-tile-label { font-size:1.15rem; font-weight:700; letter-spacing:0.01em; }
+.landing-tile-icon  { font-size:2.4rem; margin-bottom:8px; line-height:1; }
+.landing-tile-label { font-size:1.1rem; font-weight:700; letter-spacing:0.01em; }
 .landing-tile-soon  { font-size:0.72rem; margin-top:4px; opacity:0.7; }
-@media (max-width: 400px) {
-    .landing-tiles { grid-template-columns:1fr; max-width:220px; }
-}
 
 /* ============================================================
    ROOMS TREE PAGE  (page-rooms)

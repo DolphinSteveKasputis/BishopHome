@@ -4505,6 +4505,22 @@ a.ar-target-link:hover {
     color: #065f46;
 }
 
+img.collection-item-row-thumb {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.collection-item-row-thumb-placeholder {
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    border-radius: 4px;
+    background: var(--border, #e0e0e0);
+}
+
 /* ---- Collection item detail info card ---- */
 .collection-info-table {
     width: 100%;

@@ -26,7 +26,7 @@ var _cropOriginalFile = null;  // The raw File/Blob passed into showCropPreview
  * Entity types that support a profile thumbnail (set from the photo viewer).
  * The "Use as Profile" button only appears in the viewer for these types.
  */
-var PROFILE_PHOTO_TYPES = ['plant', 'weed', 'person', 'vehicle', 'thing'];
+var PROFILE_PHOTO_TYPES = ['plant', 'weed', 'person', 'vehicle', 'thing', 'collectionitem'];
 
 /**
  * Maps targetType → Firestore collection name for writing profilePhotoData.
@@ -36,7 +36,8 @@ var PROFILE_COLLECTION_MAP = {
     weed:    'weeds',
     person:  'people',
     vehicle: 'vehicles',
-    thing:   'things',
+    thing:           'things',
+    collectionitem:  'collectionItems',
 };
 
 /**
@@ -217,11 +218,12 @@ function renderPhotoViewer(targetType, containerId) {
     var actions = document.createElement('div');
     actions.className = 'photo-actions';
 
-    // "Use as Profile" — only for entity types that have profile thumbnails
+    // "Use as Profile / Thumbnail" — only for entity types that support it
     if (PROFILE_PHOTO_TYPES.indexOf(targetType) !== -1) {
+        var profileBtnLabel = (targetType === 'collectionitem') ? '⭐ Use as Thumbnail' : '⭐ Use as Profile';
         var profileBtn = document.createElement('button');
         profileBtn.className = 'btn btn-small btn-secondary';
-        profileBtn.textContent = '⭐ Use as Profile';
+        profileBtn.textContent = profileBtnLabel;
         profileBtn.addEventListener('click', async function() {
             var btn = this;
             btn.disabled = true;
@@ -238,12 +240,17 @@ function renderPhotoViewer(targetType, containerId) {
                         avatarEl.innerHTML = _buildAvatarHtml(window.currentPerson, 'person-detail-avatar');
                     }
                 }
+                // Live-update currentCollectionItem so the row thumbnail reflects the change
+                if (targetType === 'collectionitem' && window.currentCollectionItem &&
+                        window.currentCollectionItem.id === photo.targetId) {
+                    window.currentCollectionItem.profilePhotoData = thumbData;
+                }
                 setTimeout(function() {
-                    btn.textContent = '⭐ Use as Profile';
+                    btn.textContent = profileBtnLabel;
                     btn.disabled = false;
                 }, 2000);
             } else {
-                btn.textContent = '⭐ Use as Profile';
+                btn.textContent = profileBtnLabel;
                 btn.disabled = false;
             }
         });
@@ -519,6 +526,18 @@ async function handlePhotoFile(file, targetType, targetId) {
         });
 
         console.log('Photo saved for', targetType, targetId);
+
+        // Auto-set thumbnail if this is the first photo for a collection item
+        if (targetType === 'collectionitem') {
+            var itemSnap = await userCol('collectionItems').doc(targetId).get();
+            if (itemSnap.exists && !itemSnap.data().profilePhotoData) {
+                var autoThumb = await _compressToThumb(imageData);
+                await userCol('collectionItems').doc(targetId).update({ profilePhotoData: autoThumb });
+                if (window.currentCollectionItem && window.currentCollectionItem.id === targetId) {
+                    window.currentCollectionItem.profilePhotoData = autoThumb;
+                }
+            }
+        }
 
         // Reload the photo gallery
         loadPhotos(targetType, targetId, containerId, emptyStateId);

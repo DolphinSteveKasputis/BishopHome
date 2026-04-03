@@ -523,7 +523,12 @@ function renderCollectionItemsList(items, collType, listEl) {
             ? '$' + parseFloat(item.estimatedValue).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
             : '';
 
+        var thumbHtml = item.profilePhotoData
+            ? '<img class="collection-item-row-thumb" src="' + item.profilePhotoData + '" alt="">'
+            : '<div class="collection-item-row-thumb collection-item-row-thumb-placeholder"></div>';
+
         row.innerHTML =
+            thumbHtml +
             '<div class="collection-item-row-info">' +
                 '<span class="collection-item-row-name">' + escapeHtml(item.name || 'Unnamed') + '</span>' +
                 (keyField ? '<span class="collection-item-row-key">' + keyField + '</span>' : '') +
@@ -1622,7 +1627,7 @@ async function collectionAutoSaveFromLlm(parsed, images, collectionId, collType)
         createdAt:      firebase.firestore.FieldValue.serverTimestamp()
     });
 
-    // Save the photo
+    // Save the photos
     for (var i = 0; i < images.length; i++) {
         await userCol('photos').add({
             targetType: 'collectionitem',
@@ -1631,6 +1636,16 @@ async function collectionAutoSaveFromLlm(parsed, images, collectionId, collType)
             caption:    '',
             createdAt:  firebase.firestore.FieldValue.serverTimestamp()
         });
+    }
+
+    // Auto-set thumbnail from the first photo
+    if (images.length > 0 && typeof _compressToThumb === 'function') {
+        try {
+            var thumbData = await _compressToThumb(images[0]);
+            await userCol('collectionItems').doc(docRef.id).update({ profilePhotoData: thumbData });
+        } catch (thumbErr) {
+            console.warn('Could not auto-set collection item thumbnail:', thumbErr);
+        }
     }
 
     return docRef.id;

@@ -1102,10 +1102,17 @@ function _lcWireCategoryModal() {
         }
     });
 
-    document.getElementById('lcCategoryModalCancelBtn').addEventListener('click', function() {
+    var cancelBtn = document.getElementById('lcCategoryModalCancelBtn');
+    var freshCancel = cancelBtn.cloneNode(true);
+    cancelBtn.parentNode.replaceChild(freshCancel, cancelBtn);
+    freshCancel.addEventListener('click', function() {
         closeModal('lcCategoryModal');
     });
-    document.getElementById('lcDeleteCategoryModalCancelBtn').addEventListener('click', function() {
+
+    var deleteCancelBtn = document.getElementById('lcDeleteCategoryModalCancelBtn');
+    var freshDeleteCancel = deleteCancelBtn.cloneNode(true);
+    deleteCancelBtn.parentNode.replaceChild(freshDeleteCancel, deleteCancelBtn);
+    freshDeleteCancel.addEventListener('click', function() {
         closeModal('lcDeleteCategoryModal');
     });
 }

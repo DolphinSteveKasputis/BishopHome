@@ -527,6 +527,8 @@ async function loadNotebookPage(notebookId) {
     var bar = document.getElementById('breadcrumbBar');
     if (bar) {
         bar.innerHTML =
+            '<a href="#life" class="breadcrumb-link">Life</a>' +
+            '<span class="breadcrumb-sep"> › </span>' +
             '<a href="#notes" class="breadcrumb-link">Notes</a>' +
             '<span class="breadcrumb-sep"> › </span>' +
             '<span class="breadcrumb-current">' + (notebook.name || 'Notebook') + '</span>';
@@ -874,6 +876,8 @@ async function loadNotePage(noteId) {
         var nbName = (window.currentNotebook && window.currentNotebook.name) || 'Notebook';
         var nbHash = (window.currentNotebook) ? '#notebook/' + window.currentNotebook.id : '#notes';
         bar.innerHTML =
+            '<a href="#life" class="breadcrumb-link">Life</a>' +
+            '<span class="breadcrumb-sep"> › </span>' +
             '<a href="#notes" class="breadcrumb-link">Notes</a>' +
             '<span class="breadcrumb-sep"> › </span>' +
             '<a href="' + nbHash + '" class="breadcrumb-link">' + nbName + '</a>' +
@@ -916,6 +920,8 @@ function loadNewNotePage() {
         var nbName = (window.currentNotebook && window.currentNotebook.name) || 'Notebook';
         var nbHash = (window.currentNotebook) ? '#notebook/' + window.currentNotebook.id : '#notes';
         bar.innerHTML =
+            '<a href="#life" class="breadcrumb-link">Life</a>' +
+            '<span class="breadcrumb-sep"> › </span>' +
             '<a href="#notes" class="breadcrumb-link">Notes</a>' +
             '<span class="breadcrumb-sep"> › </span>' +
             '<a href="' + nbHash + '" class="breadcrumb-link">' + nbName + '</a>' +

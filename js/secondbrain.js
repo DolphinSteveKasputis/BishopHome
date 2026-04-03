@@ -50,7 +50,7 @@ var SB_ICONS = {
     ADD_WEED:           '🌱', ADD_TRACKING_ENTRY: '📊', ADD_THING:          '📦',
     ATTACH_PHOTOS:      '📷', MOVE_THING:         '🚚', ADD_PLANT:          '🪴',
     ADD_NOTE:           '📝', FIND_THING:         '🔍', ADD_DEV_NOTE:       '🛠️',
-    ADD_CHEMICAL:       '🧪',
+    ADD_CHEMICAL:       '🧪', ADD_PERSONAL_EVENT: '🗓️',
     UNKNOWN_ACTION:     '❓'
 };
 var SB_LABELS = {
@@ -63,7 +63,7 @@ var SB_LABELS = {
     ATTACH_PHOTOS:      'Attach Photos',       MOVE_THING:         'Move Item',
     FIND_THING:         'Find Item',            ADD_DEV_NOTE:       'Dev Note',
     ADD_PLANT:          'Add Plant',           ADD_NOTE:           'Add Note',
-    ADD_CHEMICAL:       'Add Product',
+    ADD_CHEMICAL:       'Add Product',         ADD_PERSONAL_EVENT: 'Add Personal Event',
     UNKNOWN_ACTION:     'Unknown Action'
 };
 
@@ -114,7 +114,7 @@ async function _sbBuildContext() {
             floorsSnap, roomsSnap, thingsSnap, subThingsSnap, subThingItemsSnap,
             gRoomsSnap, gThingsSnap, gSubSnap,
             strSnap, strThingsSnap, strSubSnap,
-            notebooksSnap
+            notebooksSnap, lifeCatSnap
         ] = await Promise.all([
             userCol('zones').get(),
             userCol('plants').get(),
@@ -134,7 +134,8 @@ async function _sbBuildContext() {
             userCol('structures').get(),
             userCol('structureThings').get(),
             userCol('structureSubThings').get(),
-            userCol('notebooks').orderBy('name').get()
+            userCol('notebooks').orderBy('name').get(),
+            userCol('lifeCategories').orderBy('name').get()
         ]);
 
         // --- Zones (build hierarchy) ---
@@ -282,6 +283,13 @@ async function _sbBuildContext() {
             notebooks.push({ id: d.id, name: d.data().name || '' });
         });
 
+        // --- Life Categories ---
+        var lifeCategories = [];
+        lifeCatSnap.forEach(function(d) {
+            var lc = d.data();
+            lifeCategories.push({ id: d.id, name: lc.name || '', template: lc.template || null });
+        });
+
         // --- Assemble final context ---
         _sbContext = {
             today: _sbToday(), currentTime: _sbNow(),
@@ -290,7 +298,8 @@ async function _sbBuildContext() {
             weeds: weeds, chemicals: chemicals,
             trackingCategories: trackingCategories,
             house: house, garage: garage, structures: structures,
-            notebooks: notebooks
+            notebooks: notebooks,
+            lifeCategories: lifeCategories
         };
         _sbContextExp = now + SB_CACHE_MS;
         return _sbContext;
@@ -394,7 +403,11 @@ function _sbBuildSystemPrompt(ctx) {
         vehicles: ctx.vehicles, weeds: ctx.weeds, chemicals: ctx.chemicals,
         trackingCategories: ctx.trackingCategories,
         house: ctx.house, garage: ctx.garage, structures: ctx.structures,
-        notebookNames: (ctx.notebooks || []).map(function(nb) { return nb.name; })
+        notebookNames: (ctx.notebooks || []).map(function(nb) { return nb.name; }),
+        lifeCategories: (ctx.lifeCategories || []).map(function(c) {
+            return { id: c.id, name: c.name, template: c.template };
+        }),
+        sportTypes: ['baseball', 'football', 'basketball', 'hockey', 'other']
     });
 
     return [
@@ -416,9 +429,16 @@ ctxJson,
 'ADD_JOURNAL_ENTRY — journal/diary entry or personal thought.',
 '{"action":"ADD_JOURNAL_ENTRY","payload":{"date":"YYYY-MM-DD","entryTime":"HH:MM","entryText":"full text","mentionedPersonIds":[],"mentionedPersonNames":[]}}',
 '',
-'ADD_CALENDAR_EVENT — schedule/reminder/future task.',
+'ADD_CALENDAR_EVENT — schedule/reminder/future task. Use for yard/house reminders, chores, maintenance tasks, and recurring task scheduling.',
 '{"action":"ADD_CALENDAR_EVENT","payload":{"title":"short title","date":"YYYY-MM-DD","description":"","recurring":null}}',
 'recurring: null | {"type":"weekly"} | {"type":"monthly"} | {"type":"intervalDays","intervalDays":N}',
+'',
+'ADD_PERSONAL_EVENT — planning to attend or participate in a personal life experience: concerts, races, trips, golf outings, sporting events, shows, tournaments, any outing.',
+'Use ADD_PERSONAL_EVENT for experiential/attendance events. Use ADD_CALENDAR_EVENT for task/reminder events. When in doubt: experiential/attendance = personal event; task/reminder = calendar event.',
+'{"action":"ADD_PERSONAL_EVENT","payload":{"title":"short event title","categoryName":"matched category name","categoryId":"id or null","categoryFound":true,"startDate":"YYYY-MM-DD","endDate":"YYYY-MM-DD or null","location":"venue or null","description":"full utterance lightly cleaned","cost":null,"peopleIds":[],"peopleNames":[],"peopleAmbiguous":[],"typeFields":{},"ambiguous":false,"dateNote":"explanation of date resolution"}}',
+'Date rules: future-roll partial dates. If named date (e.g. Sept 26) has NOT yet passed this calendar year → use this year. If it has passed → use next year. Year explicitly stated → use it verbatim. Month only (e.g. "in October") → 1st of that month, same rolling rule, endDate null. Range stated ("June 3rd through 7th") → set both startDate and endDate. Vague duration ("golf trip next March") → startDate only, endDate null. Always populate dateNote explaining your reasoning.',
+'typeFields by category template: race→{distance:"Half Marathon or null",finishTime:null}, concert→{acts:[],sectionSeat:null}, golf→{courses:[],scores:[]}, sports→{sport:"baseball|football|basketball|hockey|other",sportOther:null,teams:"Team A vs Team B or null",finalScore:null,sectionSeat:null}, travel/other→{}.',
+'People: resolve from people context; if ambiguous (multiple matches) add name to peopleAmbiguous[]; if resolved add id to peopleIds[] and name to peopleNames[].',
 '',
 'LOG_ACTIVITY — physical task done on any entity (yard work, maintenance, painting, cleaning, etc.).',
 '{"action":"LOG_ACTIVITY","payload":{"targetType":"zone|plant|weed|vehicle|floor|room|thing|subthing|item|garageroom|garagething|garagesubthing|structure|structurething|structuresubthing","targetId":"id","targetLabel":"full path","description":"what was done","date":"YYYY-MM-DD","notes":"","chemicalIds":[],"chemicalLabels":[],"unknownChemicals":[],"ambiguous":false}}',
@@ -1308,6 +1328,49 @@ function _sbRenderConfirmFields(action, payload) {
             html += '<div class="sb-info">ℹ Will be saved to the <strong>Dev Notes</strong> notebook.</div>';
             break;
 
+        case 'ADD_PERSONAL_EVENT': {
+            // Category dropdown from lifeCategories in context
+            var lifeCats = (_sbContext && _sbContext.lifeCategories) || [];
+            var lcSel = '<select class="sb-field' + (!p.categoryFound ? ' sb-ambiguous' : '') +
+                        '" data-field="categoryId">';
+            lcSel += '<option value="">— select category —</option>';
+            lifeCats.forEach(function(c) {
+                lcSel += '<option value="' + _sbEsc(c.id) + '"' +
+                         (c.id === p.categoryId ? ' selected' : '') + '>' + _sbEsc(c.name) + '</option>';
+            });
+            lcSel += '</select>';
+            if (!p.categoryFound) {
+                lcSel += '<div class="sb-ambiguous-note">⚠ Category not found — please select one</div>';
+            }
+
+            html += _sbFieldRow('Title',
+                '<input type="text" class="sb-field" data-field="title" value="' + _sbEsc(p.title || '') + '">');
+            html += _sbFieldRow('Category', lcSel);
+            html += _sbFieldRow('Start Date',
+                '<input type="date" class="sb-field" data-field="startDate" value="' + _sbEsc(p.startDate || _sbToday()) + '">');
+            html += _sbFieldRow('End Date',
+                '<input type="date" class="sb-field" data-field="endDate" value="' + _sbEsc(p.endDate || '') + '">');
+            html += _sbFieldRow('Location',
+                '<input type="text" class="sb-field" data-field="location" value="' + _sbEsc(p.location || '') + '">');
+            html += _sbFieldRow('Description',
+                '<textarea class="sb-field" data-field="description" rows="2">' + _sbEsc(p.description || '') + '</textarea>');
+            if (p.dateNote) {
+                html += '<div class="sb-info">📅 ' + _sbEsc(p.dateNote) + '</div>';
+            }
+            if (p.peopleNames && p.peopleNames.length) {
+                html += _sbFieldRow('People',
+                    p.peopleNames.map(function(n) {
+                        return '<span class="sb-tag">' + _sbEsc(n) + '</span>';
+                    }).join(' '));
+            }
+            if (p.peopleAmbiguous && p.peopleAmbiguous.length) {
+                html += '<div class="sb-warning">⚠ Ambiguous people: ' +
+                    p.peopleAmbiguous.map(function(n) { return '"' + _sbEsc(n) + '"'; }).join(', ') +
+                    ' — add them on the event page after saving.</div>';
+            }
+            break;
+        }
+
         case 'ADD_CHEMICAL':
             html += _sbFieldRow('Name',
                 '<input type="text" class="sb-field' + (p.ambiguous ? ' sb-ambiguous' : '') +
@@ -1906,6 +1969,32 @@ async function _sbWrite(action, payload) {
             break;
         }
 
+        // ---- Add Personal Event (Life Calendar) ----------------
+        case 'ADD_PERSONAL_EVENT': {
+            ref = await userCol('lifeEvents').add({
+                title:           payload.title        || '',
+                categoryId:      payload.categoryId   || null,
+                startDate:       payload.startDate    || _sbToday(),
+                endDate:         payload.endDate       || null,
+                location:        payload.location     || '',
+                description:     payload.description  || '',
+                cost:            payload.cost != null && payload.cost !== ''
+                                     ? parseFloat(payload.cost) : null,
+                status:          'upcoming',
+                peopleIds:       Array.isArray(payload.peopleIds) ? payload.peopleIds : [],
+                typeFields:      (payload.typeFields && typeof payload.typeFields === 'object')
+                                     ? payload.typeFields : {},
+                links:           [],
+                outcome:         '',
+                journalEntryIds: [],
+                createdAt:       ts
+            });
+            newId = ref.id;
+            // Photos go directly to the life event record
+            await _sbSavePhotos('lifeEvent', newId, '');
+            return newId;
+        }
+
         case 'FIND_THING':
             // Read-only — no write needed (short-circuited before _sbWrite in normal flow)
             return null;
@@ -1948,6 +2037,9 @@ function _sbNavigateTo(action, payload, newId) {
     switch (action) {
         case 'ADD_JOURNAL_ENTRY':   hash = '#journal';           break;
         case 'ADD_CALENDAR_EVENT':  hash = '#calendar';          break;
+        case 'ADD_PERSONAL_EVENT':
+            hash = id ? '#life-event/' + id : '#life-calendar';
+            break;
         case 'ADD_NOTE':
             hash = payload.notebookId ? '#notebook/' + payload.notebookId : '#notes';
             break;
@@ -2207,6 +2299,17 @@ var SB_HELP_ACTIONS = [
             'Dev note — fix the photo layout on the notes page',
             'Tell the developer the calendar is slow to load',
             'Leave a dev note: add dark mode'
+        ]
+    },
+    {
+        action: 'ADD_PERSONAL_EVENT',
+        icon: '🗓️', label: 'Add Personal Event',
+        desc: 'Add a life event (concert, race, trip, golf outing, sporting event, etc.) to your personal calendar. Resolves partial dates to the nearest future occurrence.',
+        examples: [
+            "I'm going to the AC/DC concert on Sept 26",
+            'Signed up for the Chicago Half Marathon in October',
+            'Golf trip to Scottsdale next March',
+            'Taking a trip to Vegas June 3rd through 7th'
         ]
     },
     {

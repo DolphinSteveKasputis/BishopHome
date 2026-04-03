@@ -891,11 +891,13 @@ System prompt rule:
 
 ---
 
-### Phase LC-13 — SecondBrain: ADD_PERSONAL_EVENT
+### Phase LC-13 — SecondBrain: ADD_PERSONAL_EVENT ✅ COMPLETE
 
 **Goal:** "I'm going to the AC/DC concert on Aug 5 at Chastain" creates a life event via quick log.
 
-**Files touched:** `js/secondbrain.js`
+**Delivered:** `lifeCategories` (id/name/template) + `sportTypes` enum added to context; `ADD_PERSONAL_EVENT` action block added to system prompt with full date-resolution rules and disambiguation vs `ADD_CALENDAR_EVENT`; `SB_ICONS`, `SB_LABELS`, `_sbRenderConfirmFields` case, `_sbWrite` case, `_sbNavigateTo` case, and `SB_HELP_ACTIONS` entry all added. Version v=302.
+
+**Files touched:** `js/secondbrain.js`, `index.html`
 
 **Work:**
 1. **Context loading** (`_sbBuildContext()`):

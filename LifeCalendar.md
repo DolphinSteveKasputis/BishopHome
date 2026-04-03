@@ -666,7 +666,9 @@ System prompt rule:
 
 ---
 
-### Phase LC-5 — Category-Specific Fields (typeFields)
+### Phase LC-5 — Category-Specific Fields (typeFields) ✅ COMPLETE (v=294)
+
+**Delivered:** `LC_TEMPLATE_KEYS` + `_lcGetTemplateForCategory()` resolve template from `_lcAllCategories`. Four typeFields sections: race (distance, finish time), concert (acts tag-list, section/seat), golf (courses + scores tag-lists), sports (sport select with Other text, teams, final score, seat). `_lcShowTypeFields()` shows/hides and populates from `event.typeFields`. Category dropdown change re-triggers show/hide. Tag-list inputs use Enter-to-add with ✕ remove chips. `_lcReadTypeFields()` reads visible section. `typeFields` saved and loaded via Firestore. CSS: `.lc-type-fields`, `.lc-tag-chip`.
 
 **Goal:** When a category with a known template is selected, extra fields appear on the event detail page.
 

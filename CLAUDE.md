@@ -209,6 +209,12 @@ Bishop/
 - Keep code clear and well-commented for a developer whose primary background is C#/VB.NET
 - Prioritize readability and maintainability over cleverness
 
+## OpenAI API — REQUIRED BEHAVIOR
+**IMPORTANT: Never use `max_tokens` with OpenAI API calls. Always use `max_completion_tokens`.**
+- `max_tokens` is deprecated and rejected by newer models (gpt-4o, gpt-5.4-mini, etc.)
+- This applies everywhere in the codebase: LLM chat calls, test calls, SecondBrain, any future AI integration
+- xAI (Grok) uses the same OpenAI-compatible format and also accepts `max_completion_tokens`
+
 ## Notifications — REQUIRED BEHAVIOR
 **IMPORTANT: This must be followed in every session, every time.**
 - When the user includes **"notify me"** anywhere in a request, you MUST run this curl command as the final step after the task is complete:

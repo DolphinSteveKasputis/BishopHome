@@ -315,6 +315,7 @@ function _placesCaptureGps() {
  */
 async function _placesReverseGeocode(lat, lng) {
     try {
+        await _placesNominatimRateLimit();
         var url = 'https://nominatim.openstreetmap.org/reverse?format=json&lat=' +
                   lat + '&lon=' + lng + '&zoom=18&addressdetails=1';
         var resp = await fetch(url, {
@@ -397,12 +398,13 @@ async function _placesSave() {
             }
         } else {
             // New place
-            payload.osmId     = null;  // set by Phase 3 when created from OSM search
+            payload.osmId     = null;
             payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
             var ref = await userCol('places').add(payload);
             closeModal('placeModal');
             loadPlacesPage();
-            // LLM enrichment fires here in Phase 3 (placesEnrichWithLLM will be wired in)
+            // Fire LLM enrichment non-blocking — user is already moving on
+            placesEnrichWithLLM(ref.id);
         }
     } catch (err) {
         console.error('Error saving place:', err);
@@ -433,5 +435,351 @@ async function _placesConfirmDelete(placeId) {
     } catch (err) {
         console.error('Error deleting place:', err);
         alert('Error deleting place — please try again.');
+    }
+}
+
+// ============================================================
+// Phase 3 — OSM Utilities, Dedup, and LLM Enrichment
+// ============================================================
+
+// Rate-limit guard: Nominatim asks for no more than 1 request/second
+var _placesNominatimLastCall = 0;
+
+/**
+ * Enforce at least 1 second between Nominatim API calls.
+ */
+async function _placesNominatimRateLimit() {
+    var now  = Date.now();
+    var wait = 1000 - (now - _placesNominatimLastCall);
+    if (wait > 0) await new Promise(function(r) { setTimeout(r, wait); });
+    _placesNominatimLastCall = Date.now();
+}
+
+// ============================================================
+// placesNearby — Overpass GPS-based venue search
+// ============================================================
+
+/**
+ * Find named venues within 500m of (lat, lng) using the Overpass API.
+ * Deduplicates against existing saved places by osmId.
+ *
+ * @param {number} lat
+ * @param {number} lng
+ * @returns {Promise<Array>} Array of venue objects:
+ *   { name, address, category, osmId, lat, lng, existingId }
+ *   existingId = Firestore doc ID if already in places, null if new
+ */
+async function placesNearby(lat, lng) {
+    var query = '[out:json][timeout:15];(' +
+        'node["name"](around:500,' + lat + ',' + lng + ');' +
+        'way["name"](around:500,' + lat + ',' + lng + ');' +
+        ');out center 30;';
+
+    var resp = await fetch('https://overpass-api.de/api/interpreter', {
+        method : 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body   : query
+    });
+    if (!resp.ok) throw new Error('Overpass error: ' + resp.status);
+
+    var data     = await resp.json();
+    var elements = data.elements || [];
+
+    // Build raw venue list from OSM results
+    var venues = [];
+    elements.forEach(function(el) {
+        var name = el.tags && el.tags.name;
+        if (!name) return;
+
+        var osmId = el.type + '/' + el.id;
+        var vLat  = (el.type === 'node') ? el.lat : (el.center && el.center.lat);
+        var vLng  = (el.type === 'node') ? el.lon : (el.center && el.center.lon);
+
+        // Category: prefer amenity, then shop, leisure, tourism, office
+        var tags     = el.tags || {};
+        var category = tags.amenity || tags.shop || tags.leisure ||
+                       tags.tourism || tags.office || null;
+
+        // Address from OSM addr:* tags
+        var addrParts = [];
+        var street = [tags['addr:housenumber'], tags['addr:street']].filter(Boolean).join(' ');
+        if (street)             addrParts.push(street);
+        if (tags['addr:city'])  addrParts.push(tags['addr:city']);
+        var address = addrParts.join(', ') || null;
+
+        venues.push({ name: name, address: address, category: category,
+                      osmId: osmId, lat: vLat, lng: vLng, existingId: null });
+    });
+
+    // Dedup: check which osmIds are already in places
+    if (venues.length > 0) {
+        var osmIds    = venues.map(function(v) { return v.osmId; });
+        var chunkSize = 30; // Firestore 'in' limit
+        var existingMap = {};
+        for (var i = 0; i < osmIds.length; i += chunkSize) {
+            var chunk = osmIds.slice(i, i + chunkSize);
+            var snap  = await userCol('places')
+                .where('osmId', 'in', chunk)
+                .where('status', '==', 1)
+                .get();
+            snap.forEach(function(doc) {
+                existingMap[doc.data().osmId] = doc.id;
+            });
+        }
+        venues.forEach(function(v) {
+            v.existingId = existingMap[v.osmId] || null;
+        });
+    }
+
+    return venues;
+}
+
+// ============================================================
+// placesSearchByName — Firestore first, Nominatim fallback
+// ============================================================
+
+/**
+ * Search for places by name.
+ * Priority: saved places (Firestore) first, then Nominatim text search.
+ * Results are deduped by osmId so a saved place won't appear twice.
+ *
+ * @param {string} query - User-typed search string
+ * @returns {Promise<Array>} Array of venue objects (same shape as placesNearby)
+ */
+async function placesSearchByName(query) {
+    query = (query || '').trim();
+    if (!query) return [];
+
+    var results    = [];
+    var seenOsmIds = {};
+
+    // 1) Search saved places in Firestore (client-side name filter)
+    var snap = await userCol('places').where('status', '==', 1).get();
+    var term = query.toLowerCase();
+    snap.forEach(function(doc) {
+        var d = doc.data();
+        if ((d.name || '').toLowerCase().includes(term)) {
+            results.push({
+                name      : d.name,
+                address   : d.address   || null,
+                category  : d.category  || null,
+                osmId     : d.osmId     || null,
+                lat       : d.lat       || null,
+                lng       : d.lng       || null,
+                existingId: doc.id
+            });
+            if (d.osmId) seenOsmIds[d.osmId] = true;
+        }
+    });
+
+    // 2) Nominatim text search for anything not already found
+    try {
+        await _placesNominatimRateLimit();
+        var url = 'https://nominatim.openstreetmap.org/search?format=json&limit=8&addressdetails=1&q=' +
+                  encodeURIComponent(query);
+        var nomResp = await fetch(url, {
+            headers: { 'Accept-Language': 'en', 'User-Agent': 'MyLifeApp/1.0' }
+        });
+        if (nomResp.ok) {
+            var items = await nomResp.json();
+            items.forEach(function(item) {
+                var osmId = item.osm_type + '/' + item.osm_id;
+                if (seenOsmIds[osmId]) return; // already from saved places
+                seenOsmIds[osmId] = true;
+
+                // Build short address from Nominatim structured parts
+                var a      = item.address || {};
+                var parts  = [];
+                var street = [a.house_number, a.road || a.pedestrian || a.path].filter(Boolean).join(' ');
+                if (street) parts.push(street);
+                var city = a.city || a.town || a.village || a.suburb || a.hamlet;
+                if (city)   parts.push(city);
+                if (a.state) parts.push(a.state);
+                var address  = parts.join(', ') || item.display_name || null;
+                var category = a.amenity || a.shop || a.leisure || a.tourism || null;
+
+                results.push({
+                    name      : item.name || item.display_name,
+                    address   : address,
+                    category  : category,
+                    osmId     : osmId,
+                    lat       : parseFloat(item.lat) || null,
+                    lng       : parseFloat(item.lon) || null,
+                    existingId: null
+                });
+            });
+        }
+    } catch (err) {
+        console.warn('Nominatim text search error:', err);
+    }
+
+    return results;
+}
+
+// ============================================================
+// placesSaveNew — dedup + write + enrichment trigger
+// ============================================================
+
+/**
+ * Save a venue to the places collection, with deduplication by osmId.
+ * If a matching active place already exists (same osmId), returns its ID.
+ * Otherwise creates a new doc and fires LLM enrichment non-blocking.
+ *
+ * @param {object} venueObj - Shape: { name, address, category, osmId, lat, lng }
+ * @returns {Promise<string>} Firestore doc ID (existing or newly created)
+ */
+async function placesSaveNew(venueObj) {
+    // Dedup by osmId (only when osmId is present)
+    if (venueObj.osmId) {
+        var snap = await userCol('places')
+            .where('osmId', '==', venueObj.osmId)
+            .where('status', '==', 1)
+            .get();
+        if (!snap.empty) {
+            return snap.docs[0].id; // reuse existing place
+        }
+    }
+
+    // Create new place doc
+    var ref = await userCol('places').add({
+        name     : venueObj.name     || '(unnamed)',
+        address  : venueObj.address  || null,
+        category : venueObj.category || null,
+        lat      : venueObj.lat      || null,
+        lng      : venueObj.lng      || null,
+        osmId    : venueObj.osmId    || null,
+        status   : 1,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    // Fire enrichment non-blocking
+    placesEnrichWithLLM(ref.id);
+
+    return ref.id;
+}
+
+// ============================================================
+// placesEnrichWithLLM — background fact enrichment
+// ============================================================
+
+/**
+ * Silently enrich a place with factual data from the configured LLM.
+ * Non-blocking — caller should NOT await this function.
+ * Skips gracefully if no LLM is configured or if the call fails.
+ * Saves any non-null returned values as Facts (targetType: 'place').
+ *
+ * @param {string} placeId - Firestore places doc ID
+ */
+async function placesEnrichWithLLM(placeId) {
+    try {
+        // Load LLM config
+        var cfgDoc = await userCol('settings').doc('llm').get();
+        if (!cfgDoc.exists) return;
+        var cfg = cfgDoc.data();
+        if (!cfg.provider || !cfg.apiKey) return;
+
+        // Load place data
+        var placeDoc = await userCol('places').doc(placeId).get();
+        if (!placeDoc.exists) return;
+        var place = placeDoc.data();
+
+        // Build context string for the prompt
+        var details = [];
+        if (place.name)     details.push('Name: '     + place.name);
+        if (place.address)  details.push('Address: '  + place.address);
+        if (place.category) details.push('Category: ' + place.category);
+        if (place.lat && place.lng) {
+            details.push('Coordinates: ' + place.lat.toFixed(6) + ', ' + place.lng.toFixed(6));
+        }
+
+        var prompt =
+            'You are enriching a place record with known factual data. ' +
+            'Return only information you are confident is correct. ' +
+            'It is perfectly acceptable — and preferred — to return null for any field you are unsure about. ' +
+            'Do not guess, infer, or fabricate any values. A null is always better than a wrong answer.\n\n' +
+            'Place details:\n' + details.join('\n') + '\n\n' +
+            'Return a JSON object with exactly these keys (use null for unknown):\n' +
+            '{\n' +
+            '  "website": "official website URL or null",\n' +
+            '  "phone": "phone number or null",\n' +
+            '  "hours": "general hours string e.g. Mon-Sat 9am-9pm, or null",\n' +
+            '  "facebook": "Facebook page URL or null",\n' +
+            '  "google_maps": "Google Maps URL from address/coordinates or null"\n' +
+            '}\n' +
+            'Respond with only the JSON object — no explanation, no markdown fences.';
+
+        var endpoint = (cfg.provider === 'openai')
+            ? 'https://api.openai.com/v1/chat/completions'
+            : 'https://api.x.ai/v1/chat/completions';
+        var model = (cfg.provider === 'openai')
+            ? (cfg.model || 'gpt-4o-mini')
+            : 'grok-3-mini';
+
+        var resp = await fetch(endpoint, {
+            method : 'POST',
+            headers: {
+                'Content-Type' : 'application/json',
+                'Authorization': 'Bearer ' + cfg.apiKey
+            },
+            body: JSON.stringify({
+                model                : model,
+                messages             : [{ role: 'user', content: prompt }],
+                max_completion_tokens: 300
+            })
+        });
+
+        if (!resp.ok) {
+            console.warn('placesEnrichWithLLM: LLM call failed', resp.status);
+            return;
+        }
+
+        var data    = await resp.json();
+        var content = data.choices && data.choices[0] &&
+                      data.choices[0].message && data.choices[0].message.content;
+        if (!content) return;
+
+        // Strip markdown code fences if the LLM wrapped the JSON
+        content = content.trim()
+            .replace(/^```(?:json)?\s*/i, '')
+            .replace(/\s*```$/, '');
+
+        var enriched;
+        try {
+            enriched = JSON.parse(content);
+        } catch (e) {
+            console.warn('placesEnrichWithLLM: could not parse JSON', content);
+            return;
+        }
+
+        // Save non-null fields as Facts on the place
+        var labelMap = {
+            website    : 'Website',
+            phone      : 'Phone',
+            hours      : 'Hours',
+            facebook   : 'Facebook',
+            google_maps: 'Google Maps'
+        };
+
+        var saves = [];
+        Object.keys(labelMap).forEach(function(key) {
+            var value = enriched[key];
+            if (value && typeof value === 'string' && value.trim() && value !== 'null') {
+                saves.push(userCol('facts').add({
+                    targetType: 'place',
+                    targetId  : placeId,
+                    label     : labelMap[key],
+                    value     : value.trim()
+                }));
+            }
+        });
+
+        if (saves.length > 0) {
+            await Promise.all(saves);
+            console.log('placesEnrichWithLLM: saved', saves.length, 'facts for place', placeId);
+        }
+
+    } catch (err) {
+        // Silently swallow — enrichment is best-effort, never blocks the user
+        console.warn('placesEnrichWithLLM error (non-fatal):', err);
     }
 }

@@ -7676,6 +7676,63 @@ textarea.sb-field { resize: vertical; min-height: 60px; }
     display: none;
 }
 
+/* ── Phase 6: Place Detail Page ───────────────────────────── */
+
+/* Summary line: "3 check-ins · 1 activity" */
+.place-detail-summary {
+    font-size: 0.85rem;
+    color: var(--text-muted, #888);
+    margin: 4px 0 12px;
+}
+
+/* Leaflet map wrapper */
+.place-detail-map-wrap {
+    margin: 0 0 20px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border, #e0e0e0);
+}
+.place-detail-map {
+    height: 240px;
+    width: 100%;
+}
+
+/* Journal entry cards inside place detail */
+.place-journal-item {
+    background: var(--card-bg, #fff);
+    border: 1px solid var(--border, #e0e0e0);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    cursor: pointer;
+}
+.place-journal-item:hover { background: #f8f9fa; }
+
+.place-journal-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+.place-journal-date {
+    font-size: 0.8rem;
+    color: var(--text-muted, #888);
+    font-weight: 600;
+}
+.place-journal-checkin-badge {
+    font-size: 0.72rem;
+    background: #0d9488;
+    color: #fff;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-weight: 700;
+}
+.place-journal-text {
+    font-size: 0.9rem;
+    color: var(--text, #333);
+    line-height: 1.4;
+}
+
 /* ── Phase 5: Quick Check-In Flow ─────────────────────────── */
 
 /* "📍 Check In" button on the home/landing page */

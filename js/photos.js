@@ -70,6 +70,7 @@ var PHOTO_CONTAINERS = {
     insurancePolicy:    ['insurancePhotoContainer',        'insurancePhotoEmptyState'],
     note:               ['notePhotoContainer',              'notePhotoEmptyState'],
     item:               ['siPhotoContainer',               'siPhotoEmptyState'],
+    place:              ['placePhotoContainer',            'placePhotoEmptyState'],
 };
 
 // ---------- Load & Display Photos ----------
@@ -1034,6 +1035,13 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     document.getElementById('addInsuranceGalleryBtn').addEventListener('click', function() {
         if (window.currentInsurance) triggerGalleryUpload('insurancePolicy', window.currentInsurance.id);
+    });
+
+    document.getElementById('addPlaceCameraBtn').addEventListener('click', function() {
+        if (window.currentPlace) triggerCameraUpload('place', window.currentPlace.id);
+    });
+    document.getElementById('addPlaceGalleryBtn').addEventListener('click', function() {
+        if (window.currentPlace) triggerGalleryUpload('place', window.currentPlace.id);
     });
 
     // ---- Crop Preview Modal Buttons ----

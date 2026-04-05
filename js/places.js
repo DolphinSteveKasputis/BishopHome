@@ -141,14 +141,27 @@ function _placesFilterList(term) {
  * Load the #place/{id} detail page.
  * Called by app.js when routing to #place/{id}.
  */
-async function loadPlaceDetailPage(placeId) {
-    var nameEl  = document.getElementById('placeDetailName');
-    var infoEl  = document.getElementById('placeDetailInfo');
-    var backBtn = document.getElementById('placeDetailBackBtn');
-    var editBtn = document.getElementById('editPlaceDetailBtn');
+/** Leaflet map instance for the place detail page (destroyed on re-load). */
+var _placeDetailMap = null;
 
-    nameEl.textContent  = 'Loading...';
-    infoEl.innerHTML    = '';
+async function loadPlaceDetailPage(placeId) {
+    var nameEl     = document.getElementById('placeDetailName');
+    var infoEl     = document.getElementById('placeDetailInfo');
+    var summaryEl  = document.getElementById('placeDetailSummary');
+    var mapWrap    = document.getElementById('placeDetailMapWrap');
+    var backBtn    = document.getElementById('placeDetailBackBtn');
+    var editBtn    = document.getElementById('editPlaceDetailBtn');
+
+    nameEl.textContent   = 'Loading...';
+    infoEl.innerHTML     = '';
+    if (summaryEl)  summaryEl.textContent = '';
+
+    // Destroy any previous map instance so Leaflet doesn't complain
+    if (_placeDetailMap) {
+        _placeDetailMap.remove();
+        _placeDetailMap = null;
+    }
+    if (mapWrap) mapWrap.classList.add('hidden');
 
     backBtn.onclick = function() {
         window.location.hash = _placeDetailFrom || '#places';
@@ -167,9 +180,11 @@ async function loadPlaceDetailPage(placeId) {
 
         var data = doc.data();
         window._placeDetailData = data;  // cache for edit button
+        window.currentPlace = { id: placeId, ...data };  // global for photo/fact/activity buttons
+
         nameEl.textContent = data.name || '(unnamed)';
 
-        // Build info rows
+        // ── Info table ───────────────────────────────────────────
         var rows = [];
         if (data.category) rows.push({ label: 'Category', value: data.category });
         if (data.address)  rows.push({ label: 'Address',  value: data.address });
@@ -177,6 +192,7 @@ async function loadPlaceDetailPage(placeId) {
             rows.push({ label: 'Coordinates', value: data.lat.toFixed(6) + ', ' + data.lng.toFixed(6) });
         }
 
+        infoEl.innerHTML = '';
         if (rows.length > 0) {
             var table = document.createElement('div');
             table.className = 'place-detail-table';
@@ -190,9 +206,121 @@ async function loadPlaceDetailPage(placeId) {
             infoEl.appendChild(table);
         }
 
+        // ── Leaflet map ──────────────────────────────────────────
+        if (data.lat && data.lng && typeof L !== 'undefined' && mapWrap) {
+            mapWrap.classList.remove('hidden');
+            // Give the container a moment to become visible before init
+            setTimeout(function() {
+                _placeDetailMap = L.map('placeDetailMap').setView([data.lat, data.lng], 16);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                }).addTo(_placeDetailMap);
+                L.marker([data.lat, data.lng]).addTo(_placeDetailMap);
+                _placeDetailMap.invalidateSize();
+            }, 50);
+        }
+
+        // ── Facts ────────────────────────────────────────────────
+        loadFacts('place', placeId, 'placeFactsContainer', 'placeFactsEmptyState');
+
+        // ── Photos ───────────────────────────────────────────────
+        loadPhotos('place', placeId, 'placePhotoContainer', 'placePhotoEmptyState');
+
+        // ── Activities ───────────────────────────────────────────
+        loadActivities('place', placeId, 'placeActivityContainer', 'placeActivityEmptyState');
+
+        // ── Journal entries at this place ────────────────────────
+        _placeLoadJournalEntries(placeId);
+
+        // ── Summary line ─────────────────────────────────────────
+        _placeLoadSummary(placeId, summaryEl);
+
     } catch (err) {
         console.error('Error loading place detail:', err);
         nameEl.textContent = 'Error loading place';
+    }
+}
+
+/**
+ * Load and render journal entries that include this place in their placeIds[].
+ * Uses Firestore array-contains query — no composite index needed.
+ */
+async function _placeLoadJournalEntries(placeId) {
+    var container = document.getElementById('placeJournalContainer');
+    var emptyEl   = document.getElementById('placeJournalEmptyState');
+    if (!container || !emptyEl) return;
+
+    container.innerHTML = '';
+    emptyEl.style.display = 'none';
+
+    try {
+        var snap = await userCol('journalEntries')
+            .where('placeIds', 'array-contains', placeId)
+            .get();
+
+        if (snap.empty) {
+            emptyEl.style.display = 'block';
+            return;
+        }
+
+        // Sort newest first client-side
+        var entries = [];
+        snap.forEach(function(d) { entries.push({ id: d.id, ...d.data() }); });
+        entries.sort(function(a, b) {
+            var da = a.date || '';
+            var db = b.date || '';
+            return db.localeCompare(da);
+        });
+
+        var html = '';
+        entries.forEach(function(e) {
+            var isCheckin = e.isCheckin ? '<span class="place-journal-checkin-badge">📍 Check-In</span>' : '';
+            var snippet   = (e.entryText || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            if (snippet.length > 120) snippet = snippet.slice(0, 120) + '…';
+            html += '<div class="place-journal-item" onclick="openEditJournalEntry(\'' + e.id + '\')">' +
+                        '<div class="place-journal-header">' +
+                            '<span class="place-journal-date">' + escapeHtml(e.date || '') + '</span>' +
+                            isCheckin +
+                        '</div>' +
+                        (snippet ? '<div class="place-journal-text">' + snippet + '</div>' : '') +
+                    '</div>';
+        });
+        container.innerHTML = html;
+
+    } catch (err) {
+        console.error('Error loading place journal entries:', err);
+        emptyEl.textContent = 'Error loading journal entries.';
+        emptyEl.style.display = 'block';
+    }
+}
+
+/**
+ * Load counts of journal check-ins and activities for the summary line.
+ */
+async function _placeLoadSummary(placeId, el) {
+    if (!el) return;
+    try {
+        var [journalSnap, activitySnap] = await Promise.all([
+            userCol('journalEntries').where('placeIds', 'array-contains', placeId).get(),
+            userCol('activities').where('targetType', '==', 'place').where('targetId', '==', placeId).get()
+        ]);
+
+        var checkins   = 0;
+        var nonCheckin = 0;
+        journalSnap.forEach(function(d) {
+            if (d.data().isCheckin) checkins++; else nonCheckin++;
+        });
+        var activityCount = activitySnap.size;
+
+        var parts = [];
+        if (checkins > 0)   parts.push(checkins + ' check-in' + (checkins > 1 ? 's' : ''));
+        if (nonCheckin > 0) parts.push(nonCheckin + ' journal entr' + (nonCheckin > 1 ? 'ies' : 'y'));
+        if (activityCount > 0) parts.push(activityCount + ' activit' + (activityCount > 1 ? 'ies' : 'y'));
+
+        el.textContent = parts.length > 0 ? parts.join(' · ') : '';
+    } catch (err) {
+        // Summary is non-critical; ignore errors
+        console.warn('Could not load place summary:', err);
     }
 }
 

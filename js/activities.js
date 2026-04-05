@@ -593,6 +593,7 @@ function reloadActivitiesForCurrentTarget(targetType, targetId) {
         'structure':        ['structureActivitiesContainer',         'structureActivitiesEmpty'],
         'structurething':   ['structureThingActivitiesContainer',    'structureThingActivitiesEmpty'],
         'structuresubthing':['structureSubThingActivitiesContainer', 'structureSubThingActivitiesEmpty'],
+        'place':            ['placeActivityContainer',               'placeActivityEmptyState'],
     };
     var ids = map[targetType];
     if (ids) {
@@ -1017,6 +1018,12 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('logZoneActivityBtn').addEventListener('click', function() {
         if (window.currentZone) {
             openLogActivityModal('zone', window.currentZone.id);
+        }
+    });
+
+    document.getElementById('logPlaceActivityBtn').addEventListener('click', function() {
+        if (window.currentPlace) {
+            openLogActivityModal('place', window.currentPlace.id);
         }
     });
 

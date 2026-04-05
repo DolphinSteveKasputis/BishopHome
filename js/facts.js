@@ -322,6 +322,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    document.getElementById('addPlaceFactBtn').addEventListener('click', function() {
+        if (window.currentPlace) {
+            openAddFactModal('place', window.currentPlace.id);
+        }
+    });
+
     document.getElementById('addProblemFactBtn').addEventListener('click', async function() {
         // ensureProblemSaved() handles both add mode (saves first) and edit mode (returns existing ID)
         var problemId = await ensureProblemSaved();

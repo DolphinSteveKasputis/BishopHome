@@ -7561,3 +7561,117 @@ textarea.sb-field { resize: vertical; min-height: 60px; }
     font-size: 0.95rem;
     color: var(--text, #333);
 }
+
+/* ── Journal Places & Check-In ───────────────────────────────── */
+
+/* Places search row: input + Nearby button side by side */
+.journal-places-search-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.journal-places-search-row input {
+    flex: 1;
+}
+
+/* Dropdown of place search results */
+.journal-place-dropdown {
+    background: #fff;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    max-height: 220px;
+    overflow-y: auto;
+    z-index: 999;
+    margin-top: 4px;
+}
+.journal-place-dropdown-item {
+    padding: 10px 14px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+}
+.journal-place-dropdown-item:last-child { border-bottom: none; }
+.journal-place-dropdown-item:hover,
+.journal-place-dropdown-item:active { background: #f0f4ff; }
+.journal-place-dropdown-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text, #333);
+}
+.journal-place-dropdown-sub {
+    font-size: 0.78rem;
+    color: var(--text-muted, #888);
+    margin-top: 2px;
+}
+
+/* Selected place pills row */
+.journal-place-chips-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 10px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    margin-top: 8px;
+}
+.journal-place-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #2563eb;
+    color: #fff;
+    padding: 5px 8px 5px 10px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+.journal-place-chip-remove {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.8);
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    padding: 0 2px;
+}
+.journal-place-chip-remove:hover { color: #fff; }
+
+/* 📍 Check-In badge at top of entry card */
+.journal-checkin-badge {
+    display: inline-block;
+    background: #0d9488;
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+}
+
+/* Check-in cards get a teal left accent instead of green */
+.journal-item--checkin {
+    border-left: 4px solid #0d9488;
+}
+
+/* Place name line below entry text */
+.journal-place-line {
+    font-size: 0.85rem;
+    color: var(--text-muted, #888);
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid var(--border, #e0e0e0);
+}
+.journal-place-link {
+    color: #2563eb;
+    text-decoration: none;
+    font-weight: 600;
+}
+.journal-place-link:hover { text-decoration: underline; }
+
+/* Check-Ins Only filter: hide non-checkin entries */
+.journal-feed--checkins-only .journal-item--entry:not(.journal-item--checkin) {
+    display: none;
+}

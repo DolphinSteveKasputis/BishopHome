@@ -25,6 +25,18 @@ var _journalMentionedPersonIds = new Set();
  */
 var _journalPeopleCache = null;
 
+/** Set of place IDs selected on the entry currently being edited. */
+var _journalPlaceIds = new Set();
+
+/** Map of placeId → place name, pre-loaded when rendering the feed. */
+var _journalPlaceNamesMap = {};
+
+/** Temporary store for venues shown in the place search dropdown. */
+var _journalPlaceDropdownVenues = [];
+
+/** Whether the "Check-Ins Only" feed filter is active. */
+var _journalCheckinsOnly = localStorage.getItem('bishop_journal_checkinsOnly') === 'true';
+
 /**
  * Whether to show mini log entries from life events in the journal feed.
  * Persisted in localStorage so the choice survives page reloads.
@@ -236,6 +248,18 @@ function _journalWireToolbar() {
             }
         };
     }
+
+    // "Check-Ins Only" toggle — hides non-check-in journal entries
+    var checkinsOnlyChk = document.getElementById('journalCheckinsOnly');
+    if (checkinsOnlyChk) {
+        checkinsOnlyChk.checked = _journalCheckinsOnly;
+        checkinsOnlyChk.onchange = function() {
+            _journalCheckinsOnly = this.checked;
+            localStorage.setItem('bishop_journal_checkinsOnly', _journalCheckinsOnly ? 'true' : 'false');
+            var feedEl = document.getElementById('journalFeed');
+            if (feedEl) feedEl.classList.toggle('journal-feed--checkins-only', _journalCheckinsOnly);
+        };
+    }
 }
 
 /**
@@ -422,6 +446,24 @@ async function loadJournalData() {
 
         // Pre-load people cache so @mention links render correctly in the feed
         await _journalLoadPeopleCache();
+
+        // Pre-load place names so place links render correctly in the feed
+        var allPlaceIds = [];
+        entriesSnap.forEach(function(doc) {
+            (doc.data().placeIds || []).forEach(function(pid) {
+                if (allPlaceIds.indexOf(pid) === -1) allPlaceIds.push(pid);
+            });
+        });
+        _journalPlaceNamesMap = {};
+        if (allPlaceIds.length > 0) {
+            var placeFetches = allPlaceIds.map(function(pid) {
+                return userCol('places').doc(pid).get().then(function(d) {
+                    if (d.exists) _journalPlaceNamesMap[pid] = d.data().name || '(Place)';
+                });
+            });
+            await Promise.all(placeFetches);
+        }
+
         renderJournalFeed(grouped);
 
     } catch (err) {
@@ -476,6 +518,9 @@ function renderJournalFeed(groupedData) {
 
     feedEl.innerHTML = html;
 
+    // Apply the "check-ins only" filter
+    feedEl.classList.toggle('journal-feed--checkins-only', _journalCheckinsOnly);
+
     // Apply the "show event notes" toggle state
     if (!_journalShowEventNotes) {
         feedEl.classList.add('journal-feed--hide-logs');
@@ -489,8 +534,26 @@ function renderJournalFeed(groupedData) {
  */
 function _renderEntryCard(id, data) {
     // Show user-set time if stored; fall back to server createdAt for old entries
-    var timeStr = data.entryTime ? journalFormatTime12(data.entryTime) : journalFormatTime(data.createdAt);
-    var text    = data.entryText || '';
+    var timeStr   = data.entryTime ? journalFormatTime12(data.entryTime) : journalFormatTime(data.createdAt);
+    var text      = data.entryText || '';
+    var isCheckin = !!data.isCheckin;
+    var placeIds  = data.placeIds || [];
+
+    // 📍 Check-In badge — shown prominently at the top for check-in entries
+    var checkinBadge = isCheckin
+        ? '<div class="journal-checkin-badge">📍 Check-In</div>'
+        : '';
+
+    // Place name line — tappable links to each place detail page
+    var placeHtml = '';
+    if (placeIds.length > 0) {
+        var placeLinks = placeIds.map(function(pid) {
+            var name = _journalPlaceNamesMap[pid] || '(Place)';
+            return '<a href="#place/' + journalEscape(pid) + '" class="journal-place-link">' +
+                   journalEscape(name) + '</a>';
+        });
+        placeHtml = '<div class="journal-place-line">' + placeLinks.join(', ') + '</div>';
+    }
 
     // "Go to Event" button — shown only on compiled entries (sourceEventId is set)
     var goToEvent = data.sourceEventId
@@ -499,7 +562,8 @@ function _renderEntryCard(id, data) {
           '</div>'
         : '';
 
-    return '<div class="journal-item journal-item--entry">' +
+    return '<div class="journal-item journal-item--entry' + (isCheckin ? ' journal-item--checkin' : '') + '">' +
+               checkinBadge +
                '<div class="journal-item-row">' +
                    '<span class="journal-item-time">📝 ' + journalEscape(timeStr) + '</span>' +
                    '<div class="journal-item-text">' +
@@ -510,6 +574,7 @@ function _renderEntryCard(id, data) {
                                'onclick="openEditJournalEntry(\'' + id + '\')">Edit</button>' +
                    '</div>' +
                '</div>' +
+               placeHtml +
                goToEvent +
            '</div>';
 }
@@ -610,6 +675,8 @@ function openAddJournalEntry() {
     _journalMentionedPersonIds = new Set();   // fresh mention set for new entry
     _journalPeopleCache = null;               // refresh people list
     _updateMentionChips();                    // clear any chips from previous session
+    _journalPlaceIds = new Set();             // fresh place set for new entry
+    _updateJournalPlaceChips();               // clear place chips from previous session
 
     var titleEl  = document.getElementById('journalEntryPageTitle');
     var dateEl   = document.getElementById('journalEntryDate');
@@ -660,6 +727,17 @@ async function openEditJournalEntry(id) {
         _journalPeopleCache = null;
         await _journalLoadPeopleCache();
         _updateMentionChips();
+        // Restore place set from stored IDs, then show chips
+        _journalPlaceIds = new Set(data.placeIds || []);
+        if (data.placeIds && data.placeIds.length > 0) {
+            var placeFetches = data.placeIds.map(function(pid) {
+                return userCol('places').doc(pid).get().then(function(d) {
+                    if (d.exists) _journalPlaceNamesMap[pid] = d.data().name || '(Place)';
+                });
+            });
+            await Promise.all(placeFetches);
+        }
+        _updateJournalPlaceChips();
 
         var titleEl   = document.getElementById('journalEntryPageTitle');
         var dateEl    = document.getElementById('journalEntryDate');
@@ -720,6 +798,9 @@ function _journalWireEntryPage() {
 
     // Initialize @mention autocomplete
     _journalInitMentions();
+
+    // Initialize place search
+    _journalInitPlaceSearch();
 }
 
 /**
@@ -747,16 +828,18 @@ async function saveJournalEntry() {
     if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
 
     var mentionedIds = [..._journalMentionedPersonIds];
+    var placeIds     = [..._journalPlaceIds];
 
     try {
         if (window.journalEditMode && window.currentJournalEntry) {
-            // Update existing entry
+            // Update existing entry — preserve existing isCheckin value
             var entryId = window.currentJournalEntry.id;
             await userCol('journalEntries').doc(entryId).update({
                 date:               date,
                 entryTime:          entryTime,
                 entryText:          text,
                 mentionedPersonIds: mentionedIds,
+                placeIds:           placeIds,
                 updatedAt:          firebase.firestore.FieldValue.serverTimestamp()
             });
             // Re-sync interactions (deletes old records, creates fresh ones)
@@ -768,6 +851,8 @@ async function saveJournalEntry() {
                 entryTime:          entryTime,
                 entryText:          text,
                 mentionedPersonIds: mentionedIds,
+                placeIds:           placeIds,
+                isCheckin:          false,
                 createdAt:          firebase.firestore.FieldValue.serverTimestamp()
             });
             if (mentionedIds.length > 0) {
@@ -1729,5 +1814,188 @@ function _updateMentionChips() {
     });
     container.innerHTML = html;
     container.style.display = "";
+}
+
+// ============================================================
+// PLACE SEARCH + CHIPS IN ENTRY FORM
+// ============================================================
+
+/**
+ * Wire the place search input, GPS button, and dropdown for the entry form.
+ * Called every time the entry page opens.
+ */
+function _journalInitPlaceSearch() {
+    var input    = document.getElementById('journalPlaceSearch');
+    var locBtn   = document.getElementById('journalUseLocationBtn');
+    var dropdown = document.getElementById('journalPlaceDropdown');
+    if (!input || !locBtn || !dropdown) return;
+
+    // Clear field and dropdown from any previous session
+    input.value = '';
+    dropdown.style.display = 'none';
+
+    // Debounced name search — fires 500ms after user stops typing
+    var debounceTimer = null;
+    input.oninput = function() {
+        clearTimeout(debounceTimer);
+        var q = input.value.trim();
+        if (q.length < 2) { dropdown.style.display = 'none'; return; }
+        debounceTimer = setTimeout(async function() {
+            try {
+                var results = await placesSearchByName(q);
+                _journalShowPlaceDropdown(results);
+            } catch (err) {
+                console.warn('Place search error:', err);
+            }
+        }, 500);
+    };
+
+    // Hide dropdown when focus leaves the input (delay so clicks register first)
+    input.onblur = function() {
+        setTimeout(function() { dropdown.style.display = 'none'; }, 200);
+    };
+
+    // GPS nearby search
+    locBtn.onclick = _journalHandleUseLocation;
+}
+
+/**
+ * Show a dropdown of venue options below the place search input.
+ * Stores venues in _journalPlaceDropdownVenues so onclick can look them up by index.
+ * @param {Array} venues - Array of venue objects from placesSearchByName / placesNearby
+ */
+function _journalShowPlaceDropdown(venues) {
+    var dropdown = document.getElementById('journalPlaceDropdown');
+    if (!dropdown) return;
+
+    if (!venues || venues.length === 0) {
+        dropdown.style.display = 'none';
+        return;
+    }
+
+    _journalPlaceDropdownVenues = venues.slice(0, 8);
+    var html = '';
+    _journalPlaceDropdownVenues.forEach(function(v, i) {
+        var sub = [v.category, v.address].filter(Boolean).join(' · ');
+        html += '<div class="journal-place-dropdown-item" onmousedown="_journalAddPlaceToEntry(' + i + ')">' +
+                    '<div class="journal-place-dropdown-name">' + journalEscape(v.name || '') + '</div>' +
+                    (sub ? '<div class="journal-place-dropdown-sub">' + journalEscape(sub) + '</div>' : '') +
+                '</div>';
+    });
+    dropdown.innerHTML = html;
+    dropdown.style.display = '';
+}
+
+/**
+ * Add a venue to the entry's place selection.
+ * Uses the venue's existingId if already saved; otherwise calls placesSaveNew().
+ * @param {number} idx - Index into _journalPlaceDropdownVenues
+ */
+function _journalAddPlaceToEntry(idx) {
+    var venue = _journalPlaceDropdownVenues[idx];
+    if (!venue) return;
+
+    // Close dropdown and clear search input
+    var dropdown = document.getElementById('journalPlaceDropdown');
+    var input    = document.getElementById('journalPlaceSearch');
+    if (dropdown) dropdown.style.display = 'none';
+    if (input)    input.value = '';
+
+    if (venue.existingId) {
+        // Already a saved place — just add it to the selection
+        _journalPlaceIds.add(venue.existingId);
+        _journalPlaceNamesMap[venue.existingId] = venue.name;
+        _updateJournalPlaceChips();
+        return;
+    }
+
+    // New place — save it first (dedup + LLM enrichment fires inside placesSaveNew)
+    placesSaveNew(venue).then(function(placeId) {
+        _journalPlaceIds.add(placeId);
+        _journalPlaceNamesMap[placeId] = venue.name;
+        _updateJournalPlaceChips();
+    }).catch(function(err) {
+        console.error('Error saving place from journal:', err);
+        alert('Could not save place. Try again.');
+    });
+}
+
+/**
+ * Remove a place from the current entry's selection.
+ * @param {string} pid - Place Firestore doc ID
+ */
+function _journalRemovePlace(pid) {
+    _journalPlaceIds.delete(pid);
+    _updateJournalPlaceChips();
+}
+
+/**
+ * Render the selected places as removable pills below the search input.
+ */
+function _updateJournalPlaceChips() {
+    var container = document.getElementById('journalPlaceChips');
+    if (!container) return;
+
+    var ids = Array.from(_journalPlaceIds);
+    if (!ids.length) {
+        container.style.display = 'none';
+        container.innerHTML = '';
+        return;
+    }
+
+    var html = '<span class="mention-chips-label">Places:</span>';
+    ids.forEach(function(pid) {
+        var name = _journalPlaceNamesMap[pid] || '(Place)';
+        html += '<span class="journal-place-chip">' +
+                    journalEscape(name) +
+                    ' <button class="journal-place-chip-remove" ' +
+                             'onmousedown="_journalRemovePlace(\'' + pid + '\')" ' +
+                             'title="Remove">&times;</button>' +
+                '</span>';
+    });
+    container.innerHTML = html;
+    container.style.display = '';
+}
+
+/**
+ * Handle the "📍 Nearby" button — get GPS then call Overpass for nearby venues.
+ */
+async function _journalHandleUseLocation() {
+    var locBtn = document.getElementById('journalUseLocationBtn');
+    if (!locBtn) return;
+
+    if (!navigator.geolocation) {
+        alert('GPS not supported by this browser.');
+        return;
+    }
+
+    locBtn.disabled    = true;
+    locBtn.textContent = 'Getting location...';
+
+    navigator.geolocation.getCurrentPosition(
+        async function(pos) {
+            locBtn.disabled    = false;
+            locBtn.textContent = '📍 Nearby';
+            try {
+                var venues = await placesNearby(pos.coords.latitude, pos.coords.longitude);
+                if (venues.length === 0) {
+                    alert('No named places found nearby. Try searching by name instead.');
+                    return;
+                }
+                _journalShowPlaceDropdown(venues);
+                var input = document.getElementById('journalPlaceSearch');
+                if (input) input.focus();
+            } catch (err) {
+                console.error('Nearby places error:', err);
+                alert('Could not find nearby places. Check your connection.');
+            }
+        },
+        function() {
+            locBtn.disabled    = false;
+            locBtn.textContent = '📍 Nearby';
+            alert('Could not get your location. Search by name instead.');
+        },
+        { timeout: 10000, maximumAge: 30000 }
+    );
 }
 

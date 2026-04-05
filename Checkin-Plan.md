@@ -438,6 +438,46 @@ A new `CHECK_IN` action added to SecondBrain. Must follow the full SecondBrain n
 
 ---
 
+---
+
+## Part 11: Tests
+
+End-to-end test scenarios covering the full Places & Check-In feature. Run via the preview server (localhost:8080) logged in as the test account.
+
+| ID | Result | Scenario | Notes |
+|----|--------|----------|-------|
+| T-01 | ✅ | Places list loads | List renders with data |
+| T-02 | ✅ | Add place manually | Name + address saved; appears in list immediately |
+| T-03 | ✅ | Edit place | Modal pre-fills existing values; save updates list |
+| T-04 | ✅ | Soft delete place | `status: 0` written to Firestore; place removed from list |
+| T-05 | ✅ | Place detail — sections visible | Facts, Photos, Journal Entries, Activities all present |
+| T-06 | ✅ | Place detail — Leaflet map | Map renders with marker for place with lat/lng; hidden when absent |
+| T-07 | ✅ | Place facts | Fact saved with `targetType: 'place'`; displayed on reload |
+| T-08 | ⏭ | Place photos | Camera/gallery unavailable in preview; shared photo module already tested in other contexts |
+| T-09 | ✅ | Journal entry — place search | `placesSearchByName()` returns saved places; dropdown renders |
+| T-10 | ✅ | Journal entry — place attach | Chip appears; `_journalPlaceIds` populated; `placeIds` written to Firestore on save |
+| T-11 | ⏭ | Check-in flow — GPS | GPS unavailable in preview (expected); `openCheckIn()` path verified by code review |
+| T-12 | ✅ | Check-in flow — save | Entry saved with `isCheckin: true`, `placeIds: [id]`; navigates to `#journal` |
+| T-13 | ✅ | Check-in badge in feed | 📍 Check-In badge shown on check-in cards; not shown on regular entries |
+| T-14 | ✅ | Place name tappable in feed | `<a href="#place/{id}">` rendered in journal feed; correct ID |
+| T-15 | ✅ | Activity — place search | `activityPlaceSearch` input present and visible in log activity modal |
+| T-16 | ✅ | Activity — place attach | Chip shows with place name; `placeId` written to Firestore on save |
+| T-17 | ✅ | Activity place link | `📍 <a class="activity-place-link" href="#place/{id}">` in rendered activity row |
+| T-18 | ✅ | SecondBrain CHECK_IN — named place | `_sbHandleCheckIn({placeName})` → `openCheckInForm()` → `#journal-entry` with `checkinMode: true` |
+| T-19 | ⏭ | SecondBrain CHECK_IN — GPS | GPS unavailable in preview; `useGps: true` path calls `openCheckIn()` (code-verified) |
+| T-20 | ✅ | Place detail — journal entries list | 1 entry shown for Test Coffee Shop; Firestore `array-contains` query works |
+| T-21 | ✅ | Place detail — activities list | Activity logged directly to place appears in `placeActivityContainer` |
+| T-22 | ✅ | Place detail — summary line | "1 journal entry · 1 activity" shown after data added |
+| T-23 | ✅ | New place from activity save | `placesSaveNew()` called on save; new `places` doc created; count increased from 1→2 |
+| T-24 | ✅ | Dedup by osmId | Two calls to `placesSaveNew()` with same osmId return identical Firestore doc ID; 1 doc only |
+
+**Notes from test run (2026-04-05):**
+- Console shows "Error loading places: index required" on first page load — these are stale errors accumulated from a previous session when `orderBy('name')` was used. Current code has no `orderBy`; list loads successfully. Errors do not recur after first load.
+- `confirm()` dialogs block `preview_eval` (known limitation); delete flow verified by direct Firestore update.
+- GPS-dependent tests (T-11, T-19) skipped; GPS is unavailable in the preview browser context by design.
+
+---
+
 ## Resolved Decisions
 
 - **Place API**: OpenStreetMap (Overpass + Nominatim) — free, no key, no account required

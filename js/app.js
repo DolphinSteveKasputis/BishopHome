@@ -10,7 +10,7 @@
  * List of top-level pages that map to nav links.
  * These pages clear the breadcrumb bar when shown.
  */
-const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'house', 'settings', 'settings-general', 'main', 'search', 'activityreport', 'checklists', 'notes', 'chat', 'vehicles', 'garage', 'structures', 'life', 'journal', 'collections', 'changepassword', 'people',
+const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'house', 'settings', 'settings-general', 'main', 'search', 'activityreport', 'checklists', 'notes', 'chat', 'vehicles', 'garage', 'structures', 'life', 'journal', 'collections', 'changepassword', 'people', 'places',
                          'health', 'health-visits', 'health-medications', 'health-conditions', 'health-concerns', 'health-bloodwork',
                          'health-vitals', 'health-insurance', 'health-emergency', 'health-appointments',
                          'life-calendar'];
@@ -27,6 +27,7 @@ const ALL_PAGES = [
     'structure', 'structurething', 'structuresubthing',
     'journal-entry', 'journal-tracking', 'journal-categories',
     'collection', 'collectionitem',
+    'place',
     'person',
     'notebook', 'note',
     'health-allergies', 'health-supplements', 'health-vaccinations', 'health-eye',
@@ -386,6 +387,13 @@ function handleRoute() {
     } else if (page === 'life-event' && id) {
         showPage('life-event');
         loadLifeEventPage(id);
+    // ---------- Places routes ----------
+    } else if (page === 'places') {
+        showPage('places');
+        loadPlacesPage();
+    } else if (page === 'place' && id) {
+        showPage('place');
+        loadPlaceDetailPage(id);
     } else if (TOP_LEVEL_PAGES.includes(page)) {
         showPage(page);
     } else {

@@ -191,6 +191,11 @@ Bishop/
 - **Phase 8**: Polish & Responsive Design ✅ COMPLETE (verified across all pages at 375px mobile)
 - **Phase 9**: Deployment ✅ COMPLETE (live on GitHub Pages at https://dolphinstevekasputis.github.io/BishopHome)
 
+## Functional Specification
+- **`MyLife-Functional-Spec.md`** is the source of truth for this app's features and architecture.
+- Read it at the start of any session to get a complete picture of the app without re-scanning code.
+- It covers: all major sections (Yard/House/Garage/Vehicles/Collections/Life), all shared features (Photos/Facts/Activities/Problems/Projects/Calendar), architecture, routing, Firestore data model, testing credentials, and deployment protocol.
+
 ## Development Notes
 - Claude is writing the entire app under user direction
 - Keep code clear and well-commented for a developer whose primary background is C#/VB.NET

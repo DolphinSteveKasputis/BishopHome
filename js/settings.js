@@ -544,9 +544,9 @@ async function testLlmKey() {
                 'Authorization': 'Bearer ' + apiKey
             },
             body: JSON.stringify({
-                model    : model,
-                messages : [{ role: 'user', content: 'What is 2+2?' }],
-                max_tokens: 20
+                model                : model,
+                messages             : [{ role: 'user', content: 'What is 2+2?' }],
+                max_completion_tokens: 20
             })
         });
 

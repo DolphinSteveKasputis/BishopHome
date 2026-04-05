@@ -1,6 +1,6 @@
 # MyLife (Bishop) — Functional Specification
 
-> **Purpose**: This document is the source of truth for the MyLife/Bishop application. It is written for developers, AI coding assistants, and power users. Each major section describes what a feature does and how it works. Shared features (photos, facts, activities, etc.) are described in depth in [Part 10: Shared Features](#part-10-shared-features) — individual sections above reference them and only expand on nuances.
+> **Purpose**: This document is the source of truth for the MyLife/Bishop application. It is written for developers, AI coding assistants, and power users. Each major section describes what a feature does and how it works. Shared features (photos, facts, activities, etc.) are described in depth in [Part 11: Shared Features](#part-11-shared-features) — individual sections above reference them and only expand on nuances.
 
 ---
 
@@ -14,12 +14,13 @@
 6. [Vehicles](#part-6-vehicles)
 7. [Collections](#part-7-collections)
 8. [Life](#part-8-life)
-9. [AI / LLM Features](#part-9-ai--llm-features)
-10. [Shared Features](#part-10-shared-features)
-11. [Navigation & Routing](#part-11-navigation--routing)
-12. [Testing](#part-12-testing)
-13. [Deployment](#part-13-deployment)
-14. [Firestore Data Model](#part-14-firestore-data-model)
+9. [Places & Check-In](#part-9-places--check-in)
+10. [AI / LLM Features](#part-10-ai--llm-features)
+11. [Shared Features](#part-11-shared-features)
+12. [Navigation & Routing](#part-12-navigation--routing)
+13. [Testing](#part-13-testing)
+14. [Deployment](#part-14-deployment)
+15. [Firestore Data Model](#part-15-firestore-data-model)
 
 ---
 
@@ -68,6 +69,7 @@ Key entities being viewed are stored on `window` for cross-module access:
 - `window.currentRoom`, `window.currentFloor`
 - `window.currentVehicle`, `window.currentCollection`, `window.currentCollectionItem`
 - `window.currentPerson`, `window.currentNotebook`
+- `window.currentPlace`
 
 ### Stale Event Listener Pattern
 Many modals and buttons are re-wired every time a page loads. To avoid accumulating duplicate listeners, the pattern is:
@@ -392,7 +394,7 @@ The Life section covers personal tracking — journal, people, health, notes, an
 Daily entry logging with optional tracking metrics.
 
 **Firestore**:
-- `journalEntries` — `date`, `entryTime` (HH:MM), `entryText`, `mentionedPersonIds[]`, `sourceEventId?`, `createdAt`, `updatedAt`
+- `journalEntries` — `date`, `entryTime` (HH:MM), `entryText`, `mentionedPersonIds[]`, `placeIds[]`, `isCheckin` (bool), `sourceEventId?`, `createdAt`, `updatedAt`
 - `journalTrackingItems` — `date`, `category`, `value`, `createdAt`
 - `journalCategories` — `name`, `createdAt`
 - `lifeEventLogs` — `logDate`, `logTime`, `body`, `eventId`, `mentionedPersonIds[]`, `createdAt` (mini logs from Life Calendar)
@@ -406,6 +408,10 @@ Daily entry logging with optional tracking metrics.
 **Tracking items**: Numeric values logged per category per day (e.g., weight, mood, blood pressure). A trend view shows all values for a selected category over time.
 
 **Life Event Logs integration**: Mini log entries from Life Calendar events appear inline in the journal feed. Toggle "Show Event Notes" to show/hide them.
+
+**Place linking**: Journal entries can be linked to one or more places (`placeIds[]`). When an entry was created via the Check-In flow (`isCheckin: true`), a check-in badge (📍 checked-in) is shown in the journal feed. The entry form shows a "Place" search field to attach a place; if none exists it auto-creates one via `placesSaveNew()`.
+
+**Check-in flow**: The "📍 Check In" button (on the QuickLog screen and SecondBrain) opens the check-in form pre-filled with a venue. On save, it creates a journal entry with `isCheckin: true` and `placeIds: [placeId]`.
 
 ### People (`people.js`)
 
@@ -507,7 +513,76 @@ Tracks major life events — trips, milestones, goals, relationships.
 
 ---
 
-## Part 9: AI / LLM Features
+## Part 9: Places & Check-In
+
+**JS file**: `js/places.js`
+
+Tracks real-world places the user visits. Places tie together journal check-ins, activities, and a searchable location history. Uses OpenStreetMap (OSM) data for discovery and geocoding — no paid API key required.
+
+### Places List (`#places`)
+- Shows all saved places as cards (name, address/city, category)
+- Soft-delete: `status: 0` hides a place from the list without removing Firestore data
+- "+ New Place" button opens the add-place modal
+
+### Place Detail Page (`#place/{id}`)
+- Sets `window.currentPlace` on load
+- **Summary line**: "X journal entries · Y activities" (loaded in parallel via `Promise.all`)
+- **Interactive map**: Leaflet.js map centered on `lat`/`lng`, showing a marker. Initialized in a 50ms `setTimeout` after the container becomes visible; `map.invalidateSize()` called to handle deferred layout. Previous map instance destroyed with `_placeDetailMap.remove()` on re-visit.
+- **Photos**: Full gallery via `photos.js` — `targetType: 'place'`, `targetId: place.id`. Camera and gallery upload buttons wired in `photos.js` `DOMContentLoaded`.
+- **Facts**: Key/value pairs via `facts.js` — `targetType: 'place'`. "Add Fact" button wired in `facts.js` `DOMContentLoaded`.
+- **Journal Entries**: Lists all journal entries with `placeIds` array containing this place's ID. Uses `array-contains` Firestore query (no composite index needed). Sorted newest-first. Check-in entries show a 📍 badge. Clicking an entry navigates to it via `openEditJournalEntry(id)`.
+- **Activities**: Full activity list via `activities.js` — `targetType: 'place'`. "Log Activity" button wired in `activities.js`.
+
+### Add / Edit Place
+- Modal with fields: Name, Address, City, State, Zip, Category, Notes
+- **GPS capture**: "Use My Location" button calls `navigator.geolocation.getCurrentPosition`, then reverse-geocodes via Nominatim to auto-fill Name/Address/City/State/Zip
+- **Search**: Text search field queries OSM Nominatim for matching venues; results shown in dropdown; selecting auto-fills all fields including `lat`/`lng`/`osmId`
+
+### Check-In Flow
+1. User taps "📍 Check In" (QuickLog or SecondBrain)
+2. **Check-in form**: Shows nearby venues (via OSM Overpass API within 500m radius) or search results
+3. User selects a venue
+4. Form pre-fills as a journal entry with `isCheckin: true` and the venue pre-attached
+5. User edits entry text (optional) and taps Save
+6. Saves a `journalEntries` doc with `placeIds: [placeId]`, `isCheckin: true`
+7. If the place wasn't already in Firestore, `placesSaveNew()` creates it first (dedup by `osmId` if available)
+
+### OSM Integration
+- **Nominatim** (text search + reverse geocode): `https://nominatim.openstreetmap.org/search` and `/reverse`
+- **Overpass API** (nearby venues): Queries nodes within radius; returns name, lat, lng, address tags
+- Both endpoints are free, no API key needed; rate-limited (max 1 req/sec)
+- Results shown in a dropdown; user selects to populate place fields
+
+### LLM Enrichment (`placesEnrichWithLLM()`)
+- Non-blocking background enrichment after a new place is saved
+- Sends place name + address to LLM and asks for category, opening hours hint, and notes
+- If LLM responds, updates the Firestore doc with enriched fields
+- Silent failure — no UI feedback if LLM is not configured or enrichment fails
+
+### Deduplication
+- Before creating a new place, `placesSaveNew()` checks if any existing place has the same `osmId` (if provided)
+- If a match is found, returns the existing place's ID without creating a duplicate
+- Places without `osmId` (manually entered) are never auto-deduped
+
+### Firestore
+- **Collection**: `places`
+- **Key fields**: `name`, `address`, `city`, `state`, `zip`, `country`, `lat`, `lng`, `osmId?`, `category?`, `notes`, `status` (1=active, 0=soft-deleted), `profilePhotoData?`, `createdAt`
+- **Soft delete**: `status: 0` (never hard-deleted)
+- **No `orderBy`** in queries — avoids composite index requirement; results sorted client-side
+
+### Routes
+- `#places` — places list
+- `#place/{id}` — place detail
+
+### SecondBrain Integration
+- `CHECK_IN` action: short-circuit (same pattern as `FIND_THING` — no Firestore write from SecondBrain itself)
+- If `payload.placeName` provided: calls `placesSearchByName()` → passes first match to `openCheckInForm(venue, false)`
+- If `payload.useGps: true` or no name: calls `openCheckIn()` (GPS-based nearby venues)
+- The place is not committed to Firestore until the user taps Save on the check-in form
+
+---
+
+## Part 10: AI / LLM Features
 
 **Plan documents**: `Chat.md`, `SecondBrain.md`
 
@@ -565,6 +640,7 @@ Natural language command interface for logging anything hands-free.
 | `ADD_THING` | Creates a house thing |
 | `ATTACH_PHOTOS` | Attaches photos to an entity |
 | `ADD_NOTE` | Adds a note to a notebook |
+| `CHECK_IN` | Opens the check-in form for a named or GPS-based place (short-circuit — no Firestore write; navigates to the check-in form) |
 | `UNKNOWN_ACTION` | LLM could not determine intent — no action taken |
 
 **Help screen**: Built-in help listing all actions with icons, labels, descriptions, and example utterances. Maintained in `SB_HELP_ACTIONS` array — **must be kept in sync when new actions are added**.
@@ -580,7 +656,7 @@ See [House: LLM Photo Identification](#llm-photo-identification-house) and [Coll
 
 ---
 
-## Part 10: Shared Features
+## Part 11: Shared Features
 
 These features are used across multiple sections. The implementation lives primarily in dedicated JS files.
 
@@ -589,7 +665,7 @@ These features are used across multiple sections. The implementation lives prima
 **Firestore**: `photos` — `targetType`, `targetId`, `imageData` (Base64 JPEG), `caption`, `takenAt`, `createdAt`
 
 **Key fields**:
-- `targetType`: identifies the entity type (e.g., `plant`, `zone`, `thing`, `subthing`, `item`, `collectionitem`, `person`, `vehicle`, `weed`, `chemical`, etc.)
+- `targetType`: identifies the entity type (e.g., `plant`, `zone`, `thing`, `subthing`, `item`, `collectionitem`, `person`, `vehicle`, `weed`, `chemical`, `place`, etc.)
 - `targetId`: Firestore document ID of the entity
 
 **Storage**: Base64 JPEG compressed client-side using the Canvas API. Target size ~100–200KB per photo.
@@ -658,7 +734,7 @@ var PHOTO_CONTAINERS = { /* ... all entity types ... */ };
 ### Activities (`activities.js`)
 
 **Firestore**:
-- `activities` — `targetType`, `targetId`, `description`, `notes`, `date`, `chemicalIds[]`, `savedActionId?`, `createdAt`
+- `activities` — `targetType`, `targetId`, `description`, `notes`, `date`, `chemicalIds[]`, `savedActionId?`, `placeId?`, `createdAt`
 - `savedActions` — `name`, `description`, `chemicalIds[]`, `notes`, `createdAt`
 
 **Log activity modal**:
@@ -667,6 +743,7 @@ var PHOTO_CONTAINERS = { /* ... all entity types ... */ };
 - Notes textarea
 - Chemical multi-select: checkbox list of all chemicals, supports selecting multiple
 - "Use Saved Action" dropdown: pre-fills description and chemical selection
+- **Place (optional)**: Search field to attach a place to the activity. Typing opens a dropdown of matching places (via Nominatim + saved places). Selecting shows a chip with a clear button. If the place doesn't exist in Firestore yet, it is auto-created via `placesSaveNew()` when the activity is saved. Saved place name shown as a tappable link in the activity list row.
 
 **Activity list**: Compact rows with date + description + Edit button. Edit modal shows full details (read-only) plus Save as Action and Delete.
 
@@ -751,7 +828,7 @@ var PHOTO_CONTAINERS = { /* ... all entity types ... */ };
 
 ---
 
-## Part 11: Navigation & Routing
+## Part 12: Navigation & Routing
 
 The app has three navigation contexts, each with its own nav bar:
 
@@ -759,7 +836,7 @@ The app has three navigation contexts, each with its own nav bar:
 |---------|-----------|
 | **Yard** | Home (zones), Weeds, Products (chemicals), Calendar, Activity Report, Saved Actions, Bulk Activity, Structures, Search |
 | **House** | House (floors), Garage, Vehicles, Checklists |
-| **Life** | Journal, People, Health, Notes, Collections, Life Calendar, SecondBrain, Chat |
+| **Life** | Journal, Places, People, Health, Notes, Collections, Life Calendar, SecondBrain, Chat |
 
 **Shared pages** (retain last active context): Settings, Change Password, GPS Map
 
@@ -771,7 +848,7 @@ The app has three navigation contexts, each with its own nav bar:
 
 ---
 
-## Part 12: Testing
+## Part 13: Testing
 
 ### Test Account
 The app requires Firebase Auth login. A shared test account is used for local preview server testing:
@@ -815,7 +892,7 @@ Feature-specific test plans live in their own markdown files:
 
 ---
 
-## Part 13: Deployment
+## Part 14: Deployment
 
 - **Hosting**: GitHub Pages — live at `https://dolphinstevekasputis.github.io/BishopHome`
 - **GitHub username**: `DolphinSteveKasputis`
@@ -828,7 +905,7 @@ Feature-specific test plans live in their own markdown files:
 
 ---
 
-## Part 14: Firestore Data Model
+## Part 15: Firestore Data Model
 
 All collections live under `/users/{uid}/`. Every module uses `userCol('collectionName')` to scope reads/writes.
 
@@ -840,7 +917,7 @@ All collections live under `/users/{uid}/`. Every module uses `userCol('collecti
 | `plants` | name, zoneId, metadata{}, profilePhotoData?, createdAt |
 | `weeds` | name, treatmentMethod, applicationTiming, notes, zoneIds[], profilePhotoData?, createdAt |
 | `chemicals` | name, notes, createdAt |
-| `activities` | targetType, targetId, description, notes, date, chemicalIds[], savedActionId? |
+| `activities` | targetType, targetId, description, notes, date, chemicalIds[], savedActionId?, placeId? |
 | `savedActions` | name, description, chemicalIds[], notes |
 
 ### House
@@ -893,7 +970,7 @@ All collections live under `/users/{uid}/`. Every module uses `userCol('collecti
 | `peopleImportantDates` | personId, label, month, day, year?, notes, createdAt |
 | `peopleInteractions` | personId, date, notes, createdAt |
 | `peopleCategories` | name, createdAt |
-| `journalEntries` | date, entryTime, entryText, mentionedPersonIds[], sourceEventId?, createdAt, updatedAt |
+| `journalEntries` | date, entryTime, entryText, mentionedPersonIds[], placeIds[], isCheckin, sourceEventId?, createdAt, updatedAt |
 | `journalTrackingItems` | date, category, value, createdAt |
 | `journalCategories` | name, createdAt |
 | `lifeEvents` | title, description, startDate, endDate?, location?, categoryId?, status, peopleIds[], notes?, miniLogEnabled, createdAt |
@@ -929,6 +1006,12 @@ All collections live under `/users/{uid}/`. Every module uses `userCol('collecti
 | `problems` | targetType, targetId, description, notes, status, dateLogged, resolvedAt |
 | `projects` | targetType, targetId, title, notes, status, items[], completedAt |
 | `calendarEvents` | title, description, date, recurring{type,intervalDays}?, targetType?, targetId?, zoneIds[], savedActionId?, completed, completedDates[], cancelledDates[] |
+
+### Places
+
+| Collection | Key Fields |
+|------------|------------|
+| `places` | name, address, city, state, zip, country, lat, lng, osmId?, category?, notes, status (1=active/0=deleted), profilePhotoData?, createdAt |
 
 ### Settings
 

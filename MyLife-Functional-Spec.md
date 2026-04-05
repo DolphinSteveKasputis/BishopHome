@@ -597,8 +597,8 @@ These features are used across multiple sections. The implementation lives prima
 **Gallery UI**:
 - Shows newest photo by default
 - Newer / Older navigation buttons with counter (e.g., "2 of 5")
-- Caption shown below photo (edit via pencil button → modal)
-- Delete button with confirmation
+- Caption shown below photo (edit caption or add caption button)
+- Action buttons per photo: **⭐ Use as Profile/Thumbnail** (supported types only), **🔍 View**, **Edit/Add Caption**, **Delete Photo**
 
 **Photo upload paths**:
 - Camera input (`<input type="file" accept="image/*" capture>`)
@@ -606,7 +606,16 @@ These features are used across multiple sections. The implementation lives prima
 - Clipboard paste
 - LLM identification flow (photos staged and compressed before sending)
 
-**Crop tool**: Cropper.js instance shown before save — user can adjust framing. Optional, can skip.
+**Crop tool**: Cropper.js instance shown before save — user can adjust framing. Optional, can skip. Also accessible from the View lightbox (see below).
+
+**View Lightbox** (`openPhotoLightbox()` in `photos.js`):
+- Tapping **🔍 View** opens a full-screen dark overlay (z-index 9999)
+- **Pinch-to-zoom**: 2-finger pinch gesture scales the image from 1× up to 5×
+- **Pan**: 1-finger drag pans the image when zoomed in (no-op at 1×)
+- **Long-press download**: Hold finger on the image for ~650ms to trigger a download of the photo as `photo.jpg`
+- **✂ Crop button**: shown at the bottom — closes lightbox and opens the Cropper.js flow
+- **✕ close button**: top-right corner dismisses the overlay
+- Implemented as a dynamically-created DOM element appended to `document.body` (no static modal in `index.html`)
 
 **Profile / Thumbnail photos**:
 - Supported entity types: `plant`, `weed`, `person`, `vehicle`, `thing`, `subthing`, `item`, `collectionitem`
@@ -796,6 +805,12 @@ Feature-specific test plans live in their own markdown files:
 - After `closeModal()`, navigation must use `setTimeout(..., 50)` — test that back-button behavior is correct after modal interactions
 - Duplicate event listeners accumulate on buttons if `cloneNode` is not used — test that clicking modal buttons multiple times doesn't fire handlers multiple times
 - Cache busting: if a fix isn't appearing, verify the `?v=N` was bumped on all script and CSS tags
+- **Empty test account**: The test account may have no data. For UI-only verifications (e.g., checking a button label or that a modal opens), inject mock state via `preview_eval` rather than concluding the feature is untestable
+
+### Keeping This Spec Current
+- The functional spec must be updated in the **same commit** as any feature change
+- Do not defer spec updates — a stale spec gives the wrong context at the start of the next session
+- Update the section that owns the changed feature; add new sections for new entity types or major new capabilities
 
 ---
 

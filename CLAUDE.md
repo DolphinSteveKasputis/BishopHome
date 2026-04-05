@@ -196,6 +196,13 @@ Bishop/
 - Read it at the start of any session to get a complete picture of the app without re-scanning code.
 - It covers: all major sections (Yard/House/Garage/Vehicles/Collections/Life), all shared features (Photos/Facts/Activities/Problems/Projects/Calendar), architecture, routing, Firestore data model, testing credentials, and deployment protocol.
 
+## Functional Specification — REQUIRED BEHAVIOR
+**IMPORTANT: Keep `MyLife-Functional-Spec.md` up to date as a living document.**
+- Any time a feature is added, changed, or removed, update the spec in the **same commit** as the code change.
+- The spec is the first thing read at the start of a new session — if it's stale, context is wrong from the start.
+- Update the section that owns the feature (e.g., Photos section for photo changes, the relevant Part for new entity types).
+- Do not defer spec updates to a later commit. This is not optional.
+
 ## Development Notes
 - Claude is writing the entire app under user direction
 - Keep code clear and well-commented for a developer whose primary background is C#/VB.NET
@@ -217,6 +224,14 @@ Bishop/
 - Each entry needs: `action`, `icon`, `label`, `desc`, and `examples` (2–4 example utterances)
 - The corresponding icon and label must also be added to `SB_ICONS` and `SB_LABELS` at the top of `secondbrain.js`
 - Do not add a new action without also adding it to `SB_HELP_ACTIONS`. This is not optional.
+
+## Preview Verification — REQUIRED BEHAVIOR
+**IMPORTANT: When verifying changes in the preview server, the app requires Firebase Auth login.**
+- Always use test credentials from memory (`reference_test_account.md`) — do not skip login and conclude "can't verify".
+- Start the dev server: `preview_start` → `bishop-dev`
+- Log in using the test account before navigating to any feature
+- If no data exists in the test account for the feature being tested, verify by injecting mock state via `preview_eval` (e.g., populating `photoViewerState` to render the photo viewer)
+- Never skip verification for changes that are observable in the browser
 
 ## Git Push — REQUIRED BEHAVIOR
 **IMPORTANT: git push requires a Windows credential confirmation prompt. Always notify BEFORE pushing.**

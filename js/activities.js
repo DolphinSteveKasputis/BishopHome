@@ -14,6 +14,15 @@ var savedActionSelectedChemicalIds = [];
 /** Chemical IDs currently selected in the log/edit activity modal. */
 var _activitySelectedChemIds = [];
 
+/** Firestore place ID selected in the activity modal (null = none). */
+var _activityPlaceId = null;
+
+/** Venue data for a NEW (unsaved) place picked from search dropdown. */
+var _activityPlaceVenue = null;
+
+/** Venues shown in the activity place search dropdown. */
+var _activityPlaceDropdownVenues = [];
+
 /**
  * Which modal most recently opened the chemical picker: 'activity' or 'savedAction'.
  * Used by handleChemicalPickerDone to route the selection back correctly.
@@ -205,10 +214,24 @@ async function loadActivities(targetType, targetId, containerId, emptyStateId) {
             }
         }
 
+        // Batch-fetch place names for activities that have a placeId
+        var placeNames = {};
+        var placeIds = [];
+        activities.forEach(function(a) {
+            if (a.placeId && placeIds.indexOf(a.placeId) < 0) placeIds.push(a.placeId);
+        });
+        for (var pi = 0; pi < placeIds.length; pi++) {
+            try {
+                var placeDoc = await userCol('places').doc(placeIds[pi]).get();
+                if (placeDoc.exists) placeNames[placeIds[pi]] = placeDoc.data().name || '';
+            } catch (e) { /* ignore */ }
+        }
+
         activities.forEach(function(activity) {
             var ids = normalizeChemicalIds(activity);
             var names = ids.map(function(id) { return chemicalNames[id] || 'Unknown'; });
-            var item = createActivityItem(activity, names, targetType, targetId);
+            var placeName = activity.placeId ? (placeNames[activity.placeId] || null) : null;
+            var item = createActivityItem(activity, names, targetType, targetId, placeName);
             container.appendChild(item);
         });
 
@@ -227,9 +250,10 @@ async function loadActivities(targetType, targetId, containerId, emptyStateId) {
  * @param {string[]} chemicalNames - Array of chemical names used (may be empty).
  * @param {string} targetType - "plant", "zone", or "weed"
  * @param {string} targetId - The target's Firestore document ID.
+ * @param {string|null} [placeName] - Resolved place name (if activity has a placeId).
  * @returns {HTMLElement} The activity item element.
  */
-function createActivityItem(activity, chemicalNames, targetType, targetId) {
+function createActivityItem(activity, chemicalNames, targetType, targetId, placeName) {
     const item = document.createElement('div');
     item.className = 'activity-item';
 
@@ -253,6 +277,16 @@ function createActivityItem(activity, chemicalNames, targetType, targetId) {
         amountEl.className = 'activity-amount';
         amountEl.textContent = activity.amountUsed;
         leftSide.appendChild(amountEl);
+    }
+
+    // Show place name as a tappable secondary line if this activity has one
+    if (placeName && activity.placeId) {
+        var placeLineEl = document.createElement('span');
+        placeLineEl.className = 'activity-place-line';
+        placeLineEl.innerHTML = '📍 <a class="activity-place-link" href="#place/' +
+            activity.placeId + '" onclick="event.stopPropagation()">' +
+            escapeHtml(placeName) + '</a>';
+        leftSide.appendChild(placeLineEl);
     }
 
     item.appendChild(leftSide);
@@ -363,6 +397,19 @@ async function openEditActivityModal(activity, targetType, targetId) {
     notesInput.value = activity.notes || '';
     document.getElementById('activityAmountUsedInput').value = activity.amountUsed || '';
 
+    // Restore place selection
+    _activityPlaceId    = activity.placeId || null;
+    _activityPlaceVenue = null;
+    _activityInitPlaceSearch();
+    if (_activityPlaceId) {
+        // Fetch name for the chip display
+        userCol('places').doc(_activityPlaceId).get().then(function(doc) {
+            _activityUpdatePlaceUI(doc.exists ? (doc.data().name || '(Place)') : '(Place)');
+        }).catch(function() { _activityUpdatePlaceUI('(Place)'); });
+    } else {
+        _activityUpdatePlaceUI(null);
+    }
+
     // Hide chemical section for vehicle; otherwise show chips with pre-selected items
     var hideChemicals = (targetType === 'vehicle');
     var chemicalGroup = document.getElementById('activityChemicalGroup');
@@ -401,6 +448,12 @@ async function openLogActivityModal(targetType, targetId) {
     notesInput.value = '';
     document.getElementById('activityAmountUsedInput').value = '';
     document.getElementById('activityAmountUsedRow').style.display = 'none';
+
+    // Reset place selection
+    _activityPlaceId    = null;
+    _activityPlaceVenue = null;
+    _activityInitPlaceSearch();
+    _activityUpdatePlaceUI(null);
 
     modal.dataset.targetType = targetType;
     modal.dataset.targetId = targetId;
@@ -479,6 +532,8 @@ function _resetActivityModal() {
     document.getElementById('activityModalSaveBtn').textContent = 'Log Activity';
     var savedActionRow = document.getElementById('activitySavedActionSelect').closest('.form-group');
     if (savedActionRow) savedActionRow.style.display = '';
+    _activityPlaceId    = null;
+    _activityPlaceVenue = null;
 }
 
 /**
@@ -513,6 +568,16 @@ async function handleActivityModalSave() {
     const isEdit = modal.dataset.mode === 'edit';
     const editId = modal.dataset.editId;
 
+    // Resolve place — save new place if one was selected from OSM but not yet in Firestore
+    var resolvedPlaceId = _activityPlaceId || null;
+    try {
+        if (!resolvedPlaceId && _activityPlaceVenue) {
+            resolvedPlaceId = await placesSaveNew(_activityPlaceVenue);
+        }
+    } catch (err) {
+        console.error('Error saving place for activity:', err);
+    }
+
     try {
         if (isEdit && editId) {
             // Update existing activity
@@ -522,19 +587,21 @@ async function handleActivityModalSave() {
                 notes:       notes,
                 amountUsed:  amountUsed || '',
                 chemicalIds: chemicalIds,
+                placeId:     resolvedPlaceId,
                 updatedAt:   firebase.firestore.FieldValue.serverTimestamp()
             });
         } else {
         await userCol('activities').add({
-            targetType:  targetType,
-            targetId:    targetId,
-            description: description,
-            date:        date,
-            notes:       notes,
-            amountUsed:  amountUsed || '',
-            chemicalIds: chemicalIds,
+            targetType:    targetType,
+            targetId:      targetId,
+            description:   description,
+            date:          date,
+            notes:         notes,
+            amountUsed:    amountUsed || '',
+            chemicalIds:   chemicalIds,
             savedActionId: savedActionId,
-            createdAt:   firebase.firestore.FieldValue.serverTimestamp()
+            placeId:       resolvedPlaceId,
+            createdAt:     firebase.firestore.FieldValue.serverTimestamp()
         });
         }
 
@@ -1002,6 +1069,127 @@ async function getAllSavedActions() {
         return a.name.localeCompare(b.name);
     });
     return actions;
+}
+
+// ============================================================
+// Activity Modal — Place Search
+// ============================================================
+
+/**
+ * Wire up the place search input inside the activity modal.
+ * Debounced text search via placesSearchByName(); results shown in a dropdown.
+ */
+function _activityInitPlaceSearch() {
+    var input    = document.getElementById('activityPlaceSearch');
+    var dropdown = document.getElementById('activityPlaceDropdown');
+    if (!input || !dropdown) return;
+
+    input.value = '';
+    dropdown.style.display = 'none';
+
+    var debounceTimer = null;
+    input.oninput = function() {
+        clearTimeout(debounceTimer);
+        var q = input.value.trim();
+        if (q.length < 2) { dropdown.style.display = 'none'; return; }
+        debounceTimer = setTimeout(async function() {
+            try {
+                var results = await placesSearchByName(q);
+                _activityShowPlaceDropdown(results);
+            } catch (err) {
+                console.warn('Activity place search error:', err);
+            }
+        }, 500);
+    };
+
+    // Hide dropdown on blur (delay so clicks register first via onmousedown)
+    input.onblur = function() {
+        setTimeout(function() { dropdown.style.display = 'none'; }, 200);
+    };
+}
+
+/**
+ * Render the place search results dropdown in the activity modal.
+ * @param {Array} venues - Venue objects from placesSearchByName.
+ */
+function _activityShowPlaceDropdown(venues) {
+    var dropdown = document.getElementById('activityPlaceDropdown');
+    if (!dropdown) return;
+
+    if (!venues || venues.length === 0) {
+        dropdown.style.display = 'none';
+        return;
+    }
+
+    _activityPlaceDropdownVenues = venues.slice(0, 8);
+    var html = '';
+    _activityPlaceDropdownVenues.forEach(function(v, i) {
+        var sub = [v.category, v.address].filter(Boolean).join(' · ');
+        html += '<div class="activity-place-dropdown-item" onmousedown="_activitySelectPlace(' + i + ')">' +
+                    '<div class="activity-place-dropdown-name">' + escapeHtml(v.name || '') + '</div>' +
+                    (sub ? '<div class="activity-place-dropdown-sub">' + escapeHtml(sub) + '</div>' : '') +
+                '</div>';
+    });
+    dropdown.innerHTML = html;
+    dropdown.style.display = '';
+}
+
+/**
+ * User selected a venue from the dropdown.
+ * Sets _activityPlaceId (if already saved) or _activityPlaceVenue (if new OSM result).
+ * @param {number} idx - Index into _activityPlaceDropdownVenues.
+ */
+function _activitySelectPlace(idx) {
+    var venue = _activityPlaceDropdownVenues[idx];
+    if (!venue) return;
+
+    var dropdown = document.getElementById('activityPlaceDropdown');
+    if (dropdown) dropdown.style.display = 'none';
+
+    if (venue.existingId) {
+        _activityPlaceId    = venue.existingId;
+        _activityPlaceVenue = null;
+    } else {
+        _activityPlaceId    = null;
+        _activityPlaceVenue = venue;
+    }
+
+    _activityUpdatePlaceUI(venue.name || '(Place)');
+}
+
+/**
+ * Toggle the activity modal place UI between:
+ * - chip mode (name !== null): shows the chip row, hides the search input
+ * - search mode (name === null): shows the search input, hides the chip row
+ * @param {string|null} name - Place name to display in chip, or null to show search.
+ */
+function _activityUpdatePlaceUI(name) {
+    var chipRow   = document.getElementById('activityPlaceChipRow');
+    var searchRow = document.getElementById('activityPlaceSearchRow');
+    var chipName  = document.getElementById('activityPlaceChipName');
+    var clearBtn  = document.getElementById('activityPlaceClearBtn');
+
+    if (name !== null) {
+        // Place selected — show chip
+        if (chipName)  chipName.textContent = '📍 ' + name;
+        if (chipRow)   chipRow.classList.remove('hidden');
+        if (searchRow) searchRow.style.display = 'none';
+        if (clearBtn) {
+            clearBtn.onclick = function() {
+                _activityPlaceId    = null;
+                _activityPlaceVenue = null;
+                _activityUpdatePlaceUI(null);
+            };
+        }
+    } else {
+        // No place — show search input
+        if (chipRow)   chipRow.classList.add('hidden');
+        if (searchRow) searchRow.style.display = '';
+        var input = document.getElementById('activityPlaceSearch');
+        if (input) input.value = '';
+        var dropdown = document.getElementById('activityPlaceDropdown');
+        if (dropdown) dropdown.style.display = 'none';
+    }
 }
 
 // ---------- Event Listeners ----------

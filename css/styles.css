@@ -7676,6 +7676,82 @@ textarea.sb-field { resize: vertical; min-height: 60px; }
     display: none;
 }
 
+/* ── Phase 7: Activity Place Field ────────────────────────── */
+
+/* Selected place chip inside the activity modal */
+.activity-modal-place-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f0fdfa;
+    border: 1px solid #99f6e4;
+    border-radius: 6px;
+    padding: 7px 12px;
+}
+.activity-modal-place-name {
+    flex: 1;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+.activity-modal-place-clear {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    color: var(--text-muted, #888);
+    padding: 0 2px;
+    line-height: 1;
+}
+.activity-modal-place-clear:hover { color: #e53e3e; }
+
+/* Dropdown for place search inside the modal */
+.activity-place-dropdown {
+    position: absolute;
+    left: 0;
+    right: 0;
+    background: var(--card-bg, #fff);
+    border: 1px solid var(--border, #e0e0e0);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    z-index: 200;
+    max-height: 220px;
+    overflow-y: auto;
+}
+.activity-place-dropdown-item {
+    padding: 9px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border, #e0e0e0);
+}
+.activity-place-dropdown-item:last-child { border-bottom: none; }
+.activity-place-dropdown-item:hover { background: #f0fdf4; }
+.activity-place-dropdown-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+.activity-place-dropdown-sub {
+    font-size: 0.78rem;
+    color: var(--text-muted, #888);
+    margin-top: 2px;
+}
+/* Container for the search input + dropdown */
+#activityPlaceSearchRow {
+    position: relative;
+}
+
+/* Place line in activity list rows */
+.activity-place-line {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-muted, #888);
+    margin-top: 3px;
+}
+.activity-place-link {
+    color: #2563eb;
+    text-decoration: none;
+    font-weight: 600;
+}
+.activity-place-link:hover { text-decoration: underline; }
+
 /* ── Phase 6: Place Detail Page ───────────────────────────── */
 
 /* Summary line: "3 check-ins · 1 activity" */

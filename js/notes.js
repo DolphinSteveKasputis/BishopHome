@@ -918,6 +918,11 @@ async function loadNotePage(noteId) {
 function loadNewNotePage() {
     window.currentNote = null;
 
+    // Push an extra history entry so the hardware back button hits this dummy
+    // entry first. The popstate listener in _notesWireNotePageNew() will catch
+    // it and run the dirty check before allowing navigation away.
+    history.pushState({ noteNew: true }, '');
+
     // Breadcrumb: Notes › Notebook Name › New Note
     var bar = document.getElementById('breadcrumbBar');
     if (bar) {
@@ -1061,34 +1066,94 @@ function _notesWireNotePage(note) {
 }
 
 /**
- * Wires Save and Cancel for a new note (#note/new).
+ * Wires Save, Cancel, and Back for a new note (#note/new).
+ * Also installs a popstate guard so the hardware back button runs the same
+ * dirty-check as Cancel before navigating away.
  */
 function _notesWireNotePageNew() {
     var cancelBtn = document.getElementById('noteCancelEditBtn');
     var saveBtn   = document.getElementById('noteSaveBtn');
+    var backBtn   = document.getElementById('noteBackBtn');
+
+    // --- Dirty-check helpers ---
+
+    function _getTypedText() {
+        var textarea = document.getElementById('noteBodyInput');
+        return textarea ? textarea.value.trim() : '';
+    }
+
+    function _copyToClipboard(text) {
+        if (text && navigator.clipboard) {
+            navigator.clipboard.writeText(text).catch(function() {});
+        }
+    }
+
+    function _navigateToNotebook() {
+        var hash = window.currentNotebook ? '#notebook/' + window.currentNotebook.id : '#notes';
+        window.location.hash = hash;
+    }
+
+    // --- Popstate guard (hardware back button) ---
+
+    var _popStateHandler = null;
+
+    function _removeDirtyBackGuard() {
+        if (_popStateHandler) {
+            window.removeEventListener('popstate', _popStateHandler);
+            _popStateHandler = null;
+        }
+    }
+
+    _popStateHandler = function() {
+        var text = _getTypedText();
+        if (!text) {
+            // Nothing typed — clean up and let navigation proceed naturally
+            _removeDirtyBackGuard();
+            return;
+        }
+        // Re-push the dummy entry so we appear to stay on the page while prompting
+        history.pushState({ noteNew: true }, '');
+        if (!confirm('Discard this note?')) return; // User cancelled — state already restored
+        // User confirmed discard
+        _copyToClipboard(text);
+        if (typeof window._stopVoiceToText === 'function') window._stopVoiceToText();
+        _removeDirtyBackGuard();
+        _navigateToNotebook();
+    };
+    window.addEventListener('popstate', _popStateHandler);
+
+    // --- Cancel button ---
 
     if (cancelBtn) cancelBtn.onclick = function() {
-        var textarea = document.getElementById('noteBodyInput');
-        var text = textarea ? textarea.value.trim() : '';
+        var text = _getTypedText();
         if (text) {
             if (!confirm('Discard this note?')) return;
-            // Copy text to clipboard as a safety measure before navigating away
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText(text).catch(function() {});
-            }
+            _copyToClipboard(text);
         }
         if (typeof window._stopVoiceToText === 'function') window._stopVoiceToText();
-        var hash = window.currentNotebook ? '#notebook/' + window.currentNotebook.id : '#notes';
-        window.location.hash = hash;
+        _removeDirtyBackGuard();
+        _navigateToNotebook();
     };
 
-    if (saveBtn) saveBtn.onclick = _notesSaveNewNote;
+    // --- Save button ---
 
-    // Back button in view mode is not shown for new notes (we're always in edit mode)
-    var backBtn = document.getElementById('noteBackBtn');
+    if (saveBtn) saveBtn.onclick = function() {
+        _removeDirtyBackGuard();
+        _notesSaveNewNote();
+    };
+
+    // --- On-screen Back button (shown in edit mode) ---
+    // Also runs the dirty check so it behaves consistently with Cancel and hardware back.
+
     if (backBtn) backBtn.onclick = function() {
-        var hash = window.currentNotebook ? '#notebook/' + window.currentNotebook.id : '#notes';
-        window.location.hash = hash;
+        var text = _getTypedText();
+        if (text) {
+            if (!confirm('Discard this note?')) return;
+            _copyToClipboard(text);
+        }
+        if (typeof window._stopVoiceToText === 'function') window._stopVoiceToText();
+        _removeDirtyBackGuard();
+        _navigateToNotebook();
     };
 }
 

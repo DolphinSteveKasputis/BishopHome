@@ -601,9 +601,15 @@ async function testFoursquareKey() {
             resultEl.textContent = '\u2713 Key works!' + (name ? ' Found: ' + name : '');
             resultEl.style.color = '#2e7d32';
         } else {
-            var errData = await resp.json().catch(function() { return {}; });
-            var msg = errData.message || resp.statusText;
-            resultEl.textContent = '\u2717 Error ' + resp.status + ': ' + msg;
+            var errText = await resp.text().catch(function() { return ''; });
+            var errMsg;
+            try {
+                var errData = JSON.parse(errText);
+                errMsg = errData.message || errData.error || errText;
+            } catch (e) {
+                errMsg = errText || resp.statusText || '(no details)';
+            }
+            resultEl.textContent = '\u2717 Error ' + resp.status + ': ' + errMsg;
             resultEl.style.color = '#c62828';
         }
     } catch (err) {

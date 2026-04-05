@@ -560,13 +560,7 @@ function _notesWireNotebookDetailPage(notebook) {
     var editBtn = document.getElementById('editNotebookBtn');
     if (editBtn) editBtn.onclick = function() { _notesOpenNotebookModal(notebook); };
 
-    var deleteBtn = document.getElementById('deleteNotebookBtn');
-    if (deleteBtn) {
-        // Default notebook cannot be deleted
-        var isDefault = notebook.name === NOTES_DEFAULT_NOTEBOOK_NAME;
-        deleteBtn.style.display = isDefault ? 'none' : '';
-        deleteBtn.onclick = function() { _notesConfirmDeleteNotebook(notebook); };
-    }
+    // Delete Notebook is now inside the Edit modal — no standalone button here.
 
     var addNoteBtn = document.getElementById('addNoteBtn');
     if (addNoteBtn) {
@@ -603,6 +597,18 @@ function _notesOpenNotebookModal(notebook) {
     var selectedColor = (notebook && notebook.color) ? notebook.color : NOTES_COLOR_SWATCHES[0].gradient;
     if (colorInput) colorInput.value = selectedColor;
     _notesRenderColorSwatches(selectedColor);
+
+    // Show "Delete Notebook" only in edit mode, and never for the Default notebook
+    var deleteBtn = document.getElementById('notebookModalDeleteBtn');
+    if (deleteBtn) {
+        var isEditing = !!notebook;
+        var isDefault = notebook && notebook.name === NOTES_DEFAULT_NOTEBOOK_NAME;
+        deleteBtn.style.display = (isEditing && !isDefault) ? '' : 'none';
+        deleteBtn.onclick = function() {
+            closeModal('notebookModal');
+            setTimeout(function() { _notesConfirmDeleteNotebook(notebook); }, 50);
+        };
+    }
 
     openModal('notebookModal');
     if (nameInput) nameInput.focus();

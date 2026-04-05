@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=320">
+    <link rel="stylesheet" href="css/styles.css?v=321">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -4415,7 +4415,6 @@
                 <h2 id="notebookDetailName" style="flex:1;text-align:center;margin:0 8px;font-size:1.1rem;"></h2>
                 <div style="display:flex;gap:6px;flex-shrink:0;">
                     <button class="btn btn-secondary btn-small" id="editNotebookBtn">Edit</button>
-                    <button class="btn btn-danger btn-small" id="deleteNotebookBtn">Delete</button>
                 </div>
             </div>
             <!-- Search within this notebook -->
@@ -6504,6 +6503,8 @@
             </div>
             <div class="modal-buttons">
                 <button class="btn btn-secondary" id="notebookModalCancelBtn">Cancel</button>
+                <div style="flex:1;"></div>
+                <button class="btn btn-danger" id="notebookModalDeleteBtn" style="display:none;">Delete Notebook</button>
                 <button class="btn btn-primary" id="notebookModalSaveBtn">Save</button>
             </div>
         </div>
@@ -6543,7 +6544,7 @@
     <script src="js/people.js?v=316"></script>
     <script src="js/collections.js?v=316"></script>
     <script src="js/health.js?v=316"></script>
-    <script src="js/notes.js?v=320"></script>
+    <script src="js/notes.js?v=321"></script>
     <script src="js/lifecalendar.js?v=316"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="js/chat.js?v=316"></script>

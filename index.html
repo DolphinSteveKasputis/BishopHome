@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=322">
+    <link rel="stylesheet" href="css/styles.css?v=323">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -57,17 +57,14 @@
             <!-- Yard nav (default context) -->
             <nav class="header-nav" id="yardNav">
             <a href="#zones" class="nav-link" data-page="home">Zones</a>
-            <a href="#weeds" class="nav-link" data-page="weeds">Weeds</a>
             <a href="#calendar" class="nav-link" data-page="calendar">Calendar</a>
             <a href="#activityreport" class="nav-link" data-page="activityreport">History</a>
             <a href="#checklists" class="nav-link" data-page="checklists">Checklists</a>
-            <a href="#chemicals" class="nav-link" data-page="chemicals">Products</a>
-            <a href="#actions" class="nav-link" data-page="actions">Actions</a>
             <a href="#house" class="nav-link" data-page="house">House</a>
             <a href="#structures" class="nav-link" data-page="structures">Structures</a>
             <a href="#search" class="nav-link" data-page="search">🔍 Search</a>
             <a href="#chat" class="nav-link" data-page="chat">Chat</a>
-            <a href="#settings" class="nav-link" data-page="settings">Settings</a>
+            <a href="#settings" class="nav-link" data-page="settings">⚙️</a>
             <button class="nav-signout-btn" id="signOutBtn" title="Sign out">Sign Out</button>
         </nav>
         <!-- House nav (shown when on house-context pages) -->
@@ -76,12 +73,11 @@
             <a href="#rooms" class="nav-link" data-page="rooms">Rooms</a>
             <a href="#calendar" class="nav-link" data-page="calendar">Calendar</a>
             <a href="#zones" class="nav-link" data-page="yard">Yard</a>
-            <a href="#settings" class="nav-link" data-page="settings">Settings</a>
             <a href="#things" class="nav-link" data-page="things">Things</a>
             <a href="#collections" class="nav-link" data-page="collections">Collections</a>
-            <a href="#chemicals" class="nav-link" data-page="chemicals">Products</a>
             <a href="#search" class="nav-link" data-page="search">🔍 Search</a>
             <a href="#chat" class="nav-link" data-page="chat">Chat</a>
+            <a href="#settings" class="nav-link" data-page="settings">⚙️</a>
             <button class="nav-signout-btn" id="signOutBtnHouse" title="Sign out">Sign Out</button>
         </nav>
         <!-- Life nav (shown when on life-context pages) -->
@@ -89,9 +85,8 @@
             <a href="#journal" class="nav-link" data-page="journal">Journal</a>
             <a href="#people" class="nav-link" data-page="people">People</a>
             <a href="#notes" class="nav-link" data-page="notes">Notes</a>
-            <a href="#chemicals" class="nav-link" data-page="chemicals">Products</a>
             <a href="#chat" class="nav-link" data-page="chat">Chat</a>
-            <a href="#settings" class="nav-link" data-page="settings">Settings</a>
+            <a href="#settings" class="nav-link" data-page="settings">⚙️</a>
             <button class="nav-signout-btn" id="signOutBtnLife" title="Sign out">Sign Out</button>
         </nav>
         <!-- Hamburger menu for mobile -->
@@ -110,26 +105,23 @@
         <!-- Yard context links -->
         <div id="mobileNavYard">
             <a href="#zones" class="nav-link" data-page="home">Zones</a>
-            <a href="#weeds" class="nav-link" data-page="weeds">Weeds</a>
             <a href="#calendar" class="nav-link" data-page="calendar">Calendar</a>
             <a href="#activityreport" class="nav-link" data-page="activityreport">History</a>
             <a href="#checklists" class="nav-link" data-page="checklists">Checklists</a>
-            <a href="#chemicals" class="nav-link" data-page="chemicals">Products</a>
-            <a href="#actions" class="nav-link" data-page="actions">Actions</a>
             <a href="#house" class="nav-link" data-page="house">House</a>
             <a href="#structures" class="nav-link" data-page="structures">Structures</a>
             <a href="#search" class="nav-link" data-page="search">🔍 Search</a>
             <a href="#chat" class="nav-link" data-page="chat">Chat</a>
-            <a href="#settings" class="nav-link" data-page="settings">Settings</a>
+            <a href="#settings" class="nav-link" data-page="settings">⚙️ Settings</a>
             <button class="nav-signout-btn" id="signOutBtnMobile">Sign Out</button>
         </div>
         <!-- Life context links -->
         <div id="mobileNavLife" class="hidden">
             <a href="#journal" class="nav-link" data-page="journal">Journal</a>
             <a href="#people" class="nav-link" data-page="people">People</a>
-            <a href="#chemicals" class="nav-link" data-page="chemicals">Products</a>
+            <a href="#notes" class="nav-link" data-page="notes">Notes</a>
             <a href="#chat" class="nav-link" data-page="chat">Chat</a>
-            <a href="#settings" class="nav-link" data-page="settings">Settings</a>
+            <a href="#settings" class="nav-link" data-page="settings">⚙️ Settings</a>
             <button class="nav-signout-btn" id="signOutBtnMobileLife">Sign Out</button>
         </div>
         <!-- House context links -->
@@ -138,12 +130,11 @@
             <a href="#rooms" class="nav-link" data-page="rooms">Rooms</a>
             <a href="#calendar" class="nav-link" data-page="calendar">Calendar</a>
             <a href="#zones" class="nav-link" data-page="yard">Yard</a>
-            <a href="#settings" class="nav-link" data-page="settings">Settings</a>
             <a href="#things" class="nav-link" data-page="things">Things</a>
             <a href="#collections" class="nav-link" data-page="collections">Collections</a>
-            <a href="#chemicals" class="nav-link" data-page="chemicals">Products</a>
             <a href="#search" class="nav-link" data-page="search">🔍 Search</a>
             <a href="#chat" class="nav-link" data-page="chat">Chat</a>
+            <a href="#settings" class="nav-link" data-page="settings">⚙️ Settings</a>
             <button class="nav-signout-btn" id="signOutBtnMobileHouse">Sign Out</button>
         </div>
     </nav>
@@ -525,10 +516,40 @@
             <p class="empty-state" id="yardmapEmptyState"></p>
         </section>
 
-        <!-- Page: Settings -->
+        <!-- Page: Settings Hub -->
         <section class="page hidden" id="page-settings">
             <div class="page-header">
                 <h2>Settings</h2>
+            </div>
+            <div class="landing-tiles">
+                <a href="#settings-general" class="landing-tile landing-tile--settings-general">
+                    <span class="landing-tile-icon">⚙️</span>
+                    <span class="landing-tile-label">General Settings</span>
+                </a>
+                <a href="#places" class="landing-tile landing-tile--settings-places">
+                    <span class="landing-tile-icon">📍</span>
+                    <span class="landing-tile-label">Places</span>
+                </a>
+                <a href="#chemicals" class="landing-tile landing-tile--settings-products">
+                    <span class="landing-tile-icon">🧪</span>
+                    <span class="landing-tile-label">Products</span>
+                </a>
+                <a href="#actions" class="landing-tile landing-tile--settings-actions">
+                    <span class="landing-tile-icon">⚡</span>
+                    <span class="landing-tile-label">Saved Actions</span>
+                </a>
+                <a href="#weeds" class="landing-tile landing-tile--settings-weeds">
+                    <span class="landing-tile-icon">🌿</span>
+                    <span class="landing-tile-label">Weeds</span>
+                </a>
+            </div>
+        </section>
+
+        <!-- Page: General Settings -->
+        <section class="page hidden" id="page-settings-general">
+            <div class="page-header">
+                <button class="btn btn-secondary btn-small back-btn" onclick="window.location.hash='#settings'">&#8592; Back</button>
+                <h2>General Settings</h2>
             </div>
             <div class="settings-card">
                 <div class="form-group">
@@ -600,6 +621,27 @@
                 </div>
                 <div class="settings-save-row" style="margin-top:8px;">
                     <a href="#sb-issues" class="btn btn-secondary btn-sm">🐛 View QuickLog Issues</a>
+                </div>
+            </div>
+
+            <!-- ===== Foursquare API Key ===== -->
+            <div class="settings-card">
+                <h3 class="settings-section-title">Places API (Foursquare)</h3>
+                <p class="settings-section-desc">
+                    Used to look up nearby places and venues when checking in.
+                    A free API key is required — tap <strong>Help</strong> for step-by-step setup instructions.
+                </p>
+                <div class="form-group">
+                    <label for="foursquareApiKey">Foursquare API Key</label>
+                    <div class="api-key-row">
+                        <input type="password" id="foursquareApiKey" placeholder="Paste your Foursquare API key here" class="api-key-input">
+                        <button type="button" class="btn btn-secondary btn-sm" id="foursquareApiKeyToggle">Show</button>
+                        <button type="button" class="btn btn-secondary btn-sm" id="foursquareHelpBtn">Help</button>
+                    </div>
+                </div>
+                <div class="settings-save-row">
+                    <button class="btn btn-primary" id="foursquareSaveBtn">Save Places Key</button>
+                    <span class="settings-saved-msg hidden" id="foursquareSavedMsg">&#10003; Saved</span>
                 </div>
             </div>
 
@@ -6487,6 +6529,59 @@
         </div>
     </div>
 
+    <!-- ========== FOURSQUARE HELP MODAL ========== -->
+    <div class="modal-overlay" id="foursquareHelpModal">
+        <div class="modal modal-wide">
+            <h3>How to Get a Foursquare API Key</h3>
+            <div class="fsq-help-body">
+                <p>Foursquare provides a <strong>free</strong> Places API that lets this app find nearby venues when you check in. You get up to 1,000 lookups per day at no cost — no credit card required.</p>
+
+                <h4>Step 1 — Create a Foursquare Developer Account</h4>
+                <ol>
+                    <li>Open a browser and go to: <strong>foursquare.com/developer</strong></li>
+                    <li>Click <strong>Sign Up</strong> in the top-right corner.</li>
+                    <li>You can sign up with an email address or use an existing Google account.</li>
+                    <li>Complete the sign-up form and verify your email if prompted.</li>
+                </ol>
+
+                <h4>Step 2 — Create a New App</h4>
+                <ol>
+                    <li>Once logged in, you will land on the Developer Dashboard.</li>
+                    <li>Click the <strong>Create a New App</strong> button (or <strong>+ New Project</strong> — the label may vary).</li>
+                    <li>Give your app any name — for example: <strong>MyLife</strong> or <strong>Bishop</strong>.</li>
+                    <li>For the app URL, you can enter anything — for example: <strong>https://localhost</strong>. This field is not validated.</li>
+                    <li>Click <strong>Create</strong> or <strong>Save</strong>.</li>
+                </ol>
+
+                <h4>Step 3 — Copy Your API Key</h4>
+                <ol>
+                    <li>After creating the app, you will be taken to the app's detail page.</li>
+                    <li>Look for a section labeled <strong>API Key</strong> or <strong>Keys</strong>. It will show a long string of letters and numbers.</li>
+                    <li>Click the <strong>Copy</strong> button next to the key (or tap and hold the key text to copy it manually).</li>
+                </ol>
+
+                <h4>Step 4 — Paste the Key into This App</h4>
+                <ol>
+                    <li>Return to this Settings page.</li>
+                    <li>Tap the <strong>Foursquare API Key</strong> field.</li>
+                    <li>Paste the key you copied.</li>
+                    <li>Tap <strong>Save Places Key</strong>.</li>
+                    <li>You should see a ✓ Saved confirmation. You are done.</li>
+                </ol>
+
+                <h4>Troubleshooting</h4>
+                <ul>
+                    <li><strong>Can't find the API key?</strong> — On the Dashboard, click your app name to open it. The key is on the app's overview page, sometimes under a "Keys" or "Credentials" tab.</li>
+                    <li><strong>Key not working?</strong> — Make sure you copied the full key with no spaces at the beginning or end.</li>
+                    <li><strong>Nearby places not showing up?</strong> — The app needs location permission from your browser. When prompted, tap <strong>Allow</strong>.</li>
+                </ul>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-primary" onclick="closeModal('foursquareHelpModal')">Got It</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ========== NOTEBOOK MODAL ========== -->
     <div class="modal-overlay" id="notebookModal">
         <div class="modal">
@@ -6512,45 +6607,45 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=316"></script>
-    <script src="js/auth.js?v=316"></script>
-    <script src="js/zones.js?v=316"></script>
-    <script src="js/plants.js?v=316"></script>
-    <script src="js/problems.js?v=316"></script>
-    <script src="js/facts.js?v=316"></script>
-    <script src="js/projects.js?v=316"></script>
-    <script src="js/chemicals.js?v=316"></script>
-    <script src="js/activities.js?v=316"></script>
+    <script src="js/firebase-config.js?v=323"></script>
+    <script src="js/auth.js?v=323"></script>
+    <script src="js/zones.js?v=323"></script>
+    <script src="js/plants.js?v=323"></script>
+    <script src="js/problems.js?v=323"></script>
+    <script src="js/facts.js?v=323"></script>
+    <script src="js/projects.js?v=323"></script>
+    <script src="js/chemicals.js?v=323"></script>
+    <script src="js/activities.js?v=323"></script>
     <!-- Cropper.js — client-side image cropping library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <!-- SortableJS — drag-and-drop list reordering -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    <script src="js/photos.js?v=319"></script>
-    <script src="js/weeds.js?v=316"></script>
-    <script src="js/calendar.js?v=316"></script>
-    <script src="js/gps.js?v=316"></script>
-    <script src="js/settings.js?v=316"></script>
-    <script src="js/house.js?v=316"></script>
-    <script src="js/floorplan.js?v=316"></script>
-    <script src="js/search.js?v=316"></script>
-    <script src="js/activityreport.js?v=316"></script>
-    <script src="js/checklists.js?v=316"></script>
-    <script src="js/bulkactivity.js?v=316"></script>
-    <script src="js/vehicles.js?v=316"></script>
-    <script src="js/garage.js?v=316"></script>
-    <script src="js/structures.js?v=316"></script>
-    <script src="js/moveThings.js?v=316"></script>
-    <script src="js/journal.js?v=316"></script>
-    <script src="js/people.js?v=316"></script>
-    <script src="js/collections.js?v=316"></script>
-    <script src="js/health.js?v=316"></script>
-    <script src="js/notes.js?v=322"></script>
-    <script src="js/lifecalendar.js?v=316"></script>
+    <script src="js/photos.js?v=323"></script>
+    <script src="js/weeds.js?v=323"></script>
+    <script src="js/calendar.js?v=323"></script>
+    <script src="js/gps.js?v=323"></script>
+    <script src="js/settings.js?v=323"></script>
+    <script src="js/house.js?v=323"></script>
+    <script src="js/floorplan.js?v=323"></script>
+    <script src="js/search.js?v=323"></script>
+    <script src="js/activityreport.js?v=323"></script>
+    <script src="js/checklists.js?v=323"></script>
+    <script src="js/bulkactivity.js?v=323"></script>
+    <script src="js/vehicles.js?v=323"></script>
+    <script src="js/garage.js?v=323"></script>
+    <script src="js/structures.js?v=323"></script>
+    <script src="js/moveThings.js?v=323"></script>
+    <script src="js/journal.js?v=323"></script>
+    <script src="js/people.js?v=323"></script>
+    <script src="js/collections.js?v=323"></script>
+    <script src="js/health.js?v=323"></script>
+    <script src="js/notes.js?v=323"></script>
+    <script src="js/lifecalendar.js?v=323"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=316"></script>
-    <script src="js/secondbrain.js?v=316"></script>
-    <script src="js/sbissues.js?v=316"></script>
-    <script src="js/app.js?v=316"></script>
+    <script src="js/chat.js?v=323"></script>
+    <script src="js/secondbrain.js?v=323"></script>
+    <script src="js/sbissues.js?v=323"></script>
+    <script src="js/app.js?v=323"></script>
 
 </body>
 </html>

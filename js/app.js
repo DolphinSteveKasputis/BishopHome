@@ -10,7 +10,7 @@
  * List of top-level pages that map to nav links.
  * These pages clear the breadcrumb bar when shown.
  */
-const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'house', 'settings', 'main', 'search', 'activityreport', 'checklists', 'notes', 'chat', 'vehicles', 'garage', 'structures', 'life', 'journal', 'collections', 'changepassword', 'people',
+const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'house', 'settings', 'settings-general', 'main', 'search', 'activityreport', 'checklists', 'notes', 'chat', 'vehicles', 'garage', 'structures', 'life', 'journal', 'collections', 'changepassword', 'people',
                          'health', 'health-visits', 'health-medications', 'health-conditions', 'health-concerns', 'health-bloodwork',
                          'health-vitals', 'health-insurance', 'health-emergency', 'health-appointments',
                          'life-calendar'];
@@ -224,7 +224,10 @@ function handleRoute() {
         loadSearchPage();
     } else if (page === 'settings') {
         showPage('settings');
-        loadSettingsPage();
+        loadSettingsHub();
+    } else if (page === 'settings-general') {
+        showPage('settings-general');
+        loadSettingsGeneralPage();
     } else if (page === 'changepassword') {
         showPage('changepassword');
         loadChangePasswordPage();

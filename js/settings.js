@@ -5,10 +5,18 @@
 // ============================================================
 
 /**
- * Load settings from Firestore and populate the form fields.
+ * Loads the Settings Hub page — no async work needed, just a static card grid.
  * Called by app.js when routing to #settings.
  */
-async function loadSettingsPage() {
+function loadSettingsHub() {
+    // Nothing to load — the hub is purely static HTML cards.
+}
+
+/**
+ * Load general settings from Firestore and populate the form fields.
+ * Called by app.js when routing to #settings-general.
+ */
+async function loadSettingsGeneralPage() {
     var appNameEl   = document.getElementById('settingsAppName');
     var addressEl   = document.getElementById('settingsAddress');
     var parcelIdEl  = document.getElementById('settingsParcelId');
@@ -37,6 +45,7 @@ async function loadSettingsPage() {
     }
 
     loadLlmSettings();
+    loadFoursquareSettings();
 }
 
 /**
@@ -535,16 +544,83 @@ async function saveLlmSettings() {
     }
 }
 
+// ---------- Foursquare API Key ----------
+
+/**
+ * Load the Foursquare API key from Firestore and populate the field.
+ * Stored alongside the LLM key in userCol('settings').doc('llm').
+ */
+async function loadFoursquareSettings() {
+    try {
+        var doc = await userCol('settings').doc('llm').get();
+        if (doc.exists && doc.data().foursquareApiKey) {
+            document.getElementById('foursquareApiKey').value = doc.data().foursquareApiKey;
+        }
+    } catch (err) {
+        console.error('Error loading Foursquare settings:', err);
+    }
+}
+
+/**
+ * Save the Foursquare API key to Firestore (merge so LLM key is preserved).
+ */
+async function saveFoursquareSettings() {
+    var saveBtn  = document.getElementById('foursquareSaveBtn');
+    var savedMsg = document.getElementById('foursquareSavedMsg');
+    var apiKey   = document.getElementById('foursquareApiKey').value.trim();
+
+    if (!apiKey) {
+        alert('Please paste your Foursquare API key before saving.');
+        return;
+    }
+
+    saveBtn.disabled    = true;
+    saveBtn.textContent = 'Saving\u2026';
+    savedMsg.classList.add('hidden');
+
+    try {
+        await userCol('settings').doc('llm').set(
+            { foursquareApiKey: apiKey, updatedAt: firebase.firestore.FieldValue.serverTimestamp() },
+            { merge: true }
+        );
+        saveBtn.disabled    = false;
+        saveBtn.textContent = 'Save Places Key';
+        savedMsg.classList.remove('hidden');
+        setTimeout(function() { savedMsg.classList.add('hidden'); }, 2000);
+    } catch (err) {
+        console.error('Error saving Foursquare key:', err);
+        alert('Error saving key — please try again.');
+        saveBtn.disabled    = false;
+        saveBtn.textContent = 'Save Places Key';
+    }
+}
+
 // ---------- Button Wire-Up ----------
 
 document.getElementById('settingsSaveBtn').addEventListener('click', saveSettings);
 document.getElementById('backupBtn').addEventListener('click', runBackup);
 document.getElementById('llmSaveBtn').addEventListener('click', saveLlmSettings);
 document.getElementById('llmProvider').addEventListener('change', updateLlmModelVisibility);
+document.getElementById('foursquareSaveBtn').addEventListener('click', saveFoursquareSettings);
+document.getElementById('foursquareHelpBtn').addEventListener('click', function() {
+    openModal('foursquareHelpModal');
+});
 
-// Show/hide toggle for the API key field
+// Show/hide toggle for the LLM API key field
 document.getElementById('llmApiKeyToggle').addEventListener('click', function() {
     var input = document.getElementById('llmApiKey');
+    if (input.type === 'password') {
+        input.type        = 'text';
+        this.textContent  = 'Hide';
+    } else {
+        input.type        = 'password';
+        this.textContent  = 'Show';
+    }
+});
+
+// Show/hide toggle for the Foursquare API key field
+document.getElementById('foursquareApiKeyToggle').addEventListener('click', function() {
+    var input = document.getElementById('foursquareApiKey');
     if (input.type === 'password') {
         input.type        = 'text';
         this.textContent  = 'Hide';

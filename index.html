@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=323">
+    <link rel="stylesheet" href="css/styles.css?v=324">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -613,12 +613,15 @@
                     <div class="api-key-row">
                         <input type="password" id="llmApiKey" placeholder="Paste your API key here" class="api-key-input">
                         <button type="button" class="btn btn-secondary btn-sm" id="llmApiKeyToggle">Show</button>
+                        <button type="button" class="btn btn-secondary btn-sm" id="llmHelpBtn" disabled>Select an LLM first</button>
                     </div>
                 </div>
                 <div class="settings-save-row">
                     <button class="btn btn-primary" id="llmSaveBtn">Save AI Settings</button>
+                    <button class="btn btn-secondary" id="llmTestBtn">Test</button>
                     <span class="settings-saved-msg hidden" id="llmSavedMsg">&#10003; Saved</span>
                 </div>
+                <div class="hidden settings-test-result" id="llmTestResult"></div>
                 <div class="settings-save-row" style="margin-top:8px;">
                     <a href="#sb-issues" class="btn btn-secondary btn-sm">🐛 View QuickLog Issues</a>
                 </div>
@@ -641,8 +644,10 @@
                 </div>
                 <div class="settings-save-row">
                     <button class="btn btn-primary" id="foursquareSaveBtn">Save Places Key</button>
+                    <button class="btn btn-secondary" id="foursquareTestBtn">Test</button>
                     <span class="settings-saved-msg hidden" id="foursquareSavedMsg">&#10003; Saved</span>
                 </div>
+                <div class="hidden settings-test-result" id="foursquareTestResult"></div>
             </div>
 
             <!-- ===== Change Password Link ===== -->
@@ -6529,6 +6534,70 @@
         </div>
     </div>
 
+    <!-- ========== LLM HELP MODAL ========== -->
+    <div class="modal-overlay" id="llmHelpModal">
+        <div class="modal modal-wide">
+            <h3 id="llmHelpModalTitle">How to Get an API Key</h3>
+            <div class="fsq-help-body">
+
+                <!-- ChatGPT / OpenAI section -->
+                <div id="llmHelpOpenAI">
+                    <h4>Step 1 — Create or Sign In to an OpenAI Account</h4>
+                    <ol>
+                        <li>Go to: <a href="https://platform.openai.com" target="_blank" rel="noopener noreferrer"><strong>platform.openai.com</strong></a></li>
+                        <li>Click <strong>Sign Up</strong> to create a new account, or <strong>Log In</strong> if you already have one.</li>
+                        <li>Verify your email if prompted.</li>
+                    </ol>
+                    <h4>Step 2 — Add a Payment Method</h4>
+                    <ol>
+                        <li>OpenAI charges per use — you must add a credit card before the API will work.</li>
+                        <li>In the left sidebar click <strong>Billing</strong>, then <strong>Add payment method</strong>.</li>
+                        <li>You can set a monthly spending limit to avoid surprises. A few dollars goes a long way — <strong>gpt-4o-mini</strong> is very affordable.</li>
+                    </ol>
+                    <h4>Step 3 — Generate an API Key</h4>
+                    <ol>
+                        <li>In the left sidebar click <strong>API Keys</strong> (or go to the Dashboard → API Keys).</li>
+                        <li>Click <strong>Create new secret key</strong>.</li>
+                        <li>Give it a name (e.g. <strong>MyLife</strong>) and click <strong>Create</strong>.</li>
+                        <li>Copy the key — it starts with <strong>sk-</strong>. You will only see it once.</li>
+                    </ol>
+                    <h4>Step 4 — Paste the Key into This App</h4>
+                    <ol>
+                        <li>Select <strong>ChatGPT (OpenAI)</strong> from the LLM Provider dropdown.</li>
+                        <li>Paste the key into the API Key field.</li>
+                        <li>Click <strong>Save AI Settings</strong>, then click <strong>Test</strong> to confirm it works.</li>
+                    </ol>
+                </div>
+
+                <!-- Grok / xAI section -->
+                <div id="llmHelpGrok">
+                    <h4>Step 1 — Create or Sign In to an xAI Account</h4>
+                    <ol>
+                        <li>Go to: <a href="https://console.x.ai" target="_blank" rel="noopener noreferrer"><strong>console.x.ai</strong></a></li>
+                        <li>Sign in with your X (Twitter) account, or create one if needed.</li>
+                    </ol>
+                    <h4>Step 2 — Generate an API Key</h4>
+                    <ol>
+                        <li>In the left sidebar click <strong>API Keys</strong>.</li>
+                        <li>Click <strong>Create API Key</strong>.</li>
+                        <li>Give it a name (e.g. <strong>MyLife</strong>) and click <strong>Create</strong>.</li>
+                        <li>Copy the key — you will only see it once.</li>
+                    </ol>
+                    <h4>Step 3 — Paste the Key into This App</h4>
+                    <ol>
+                        <li>Select <strong>Grok (xAI)</strong> from the LLM Provider dropdown.</li>
+                        <li>Paste the key into the API Key field.</li>
+                        <li>Click <strong>Save AI Settings</strong>, then click <strong>Test</strong> to confirm it works.</li>
+                    </ol>
+                    <p><strong>Note:</strong> xAI may offer free credits to new accounts. Check <a href="https://console.x.ai" target="_blank" rel="noopener noreferrer">console.x.ai</a> for current pricing and credit status.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('llmHelpModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ========== FOURSQUARE HELP MODAL ========== -->
     <div class="modal-overlay" id="foursquareHelpModal">
         <div class="modal modal-wide">
@@ -6538,8 +6607,8 @@
 
                 <h4>Step 1 — Create a Foursquare Developer Account</h4>
                 <ol>
-                    <li>Open a browser and go to: <strong>foursquare.com/developer</strong></li>
-                    <li>Click <strong>Sign Up</strong> in the top-right corner.</li>
+                    <li>Go to: <a href="https://foursquare.com/developer" target="_blank" rel="noopener noreferrer"><strong>foursquare.com/developer</strong></a></li>
+                    <li>Look for a button like <strong>"Get started for free"</strong> or <strong>"Sign Up"</strong> — the label may vary.</li>
                     <li>You can sign up with an email address or use an existing Google account.</li>
                     <li>Complete the sign-up form and verify your email if prompted.</li>
                 </ol>
@@ -6549,14 +6618,15 @@
                     <li>Once logged in, you will land on the Developer Dashboard.</li>
                     <li>Click the <strong>Create a New App</strong> button (or <strong>+ New Project</strong> — the label may vary).</li>
                     <li>Give your app any name — for example: <strong>MyLife</strong> or <strong>Bishop</strong>.</li>
-                    <li>For the app URL, you can enter anything — for example: <strong>https://localhost</strong>. This field is not validated.</li>
+                    <li>If asked for an app URL, enter anything — for example: <strong>https://localhost</strong>. If you don't see this field, just skip it.</li>
                     <li>Click <strong>Create</strong> or <strong>Save</strong>.</li>
                 </ol>
 
-                <h4>Step 3 — Copy Your API Key</h4>
+                <h4>Step 3 — Generate and Copy Your API Key</h4>
                 <ol>
-                    <li>After creating the app, you will be taken to the app's detail page.</li>
-                    <li>Look for a section labeled <strong>API Key</strong> or <strong>Keys</strong>. It will show a long string of letters and numbers.</li>
+                    <li>Back on the Developer Dashboard, find your project and click <strong>Generate API Key</strong> in the API Keys column.</li>
+                    <li>You will land on a <strong>Service API Keys</strong> screen. Click <strong>Generate Service API Key</strong>.</li>
+                    <li>A key will appear — it is a long string of letters and numbers.</li>
                     <li>Click the <strong>Copy</strong> button next to the key (or tap and hold the key text to copy it manually).</li>
                 </ol>
 
@@ -6607,45 +6677,45 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=323"></script>
-    <script src="js/auth.js?v=323"></script>
-    <script src="js/zones.js?v=323"></script>
-    <script src="js/plants.js?v=323"></script>
-    <script src="js/problems.js?v=323"></script>
-    <script src="js/facts.js?v=323"></script>
-    <script src="js/projects.js?v=323"></script>
-    <script src="js/chemicals.js?v=323"></script>
-    <script src="js/activities.js?v=323"></script>
+    <script src="js/firebase-config.js?v=324"></script>
+    <script src="js/auth.js?v=324"></script>
+    <script src="js/zones.js?v=324"></script>
+    <script src="js/plants.js?v=324"></script>
+    <script src="js/problems.js?v=324"></script>
+    <script src="js/facts.js?v=324"></script>
+    <script src="js/projects.js?v=324"></script>
+    <script src="js/chemicals.js?v=324"></script>
+    <script src="js/activities.js?v=324"></script>
     <!-- Cropper.js — client-side image cropping library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <!-- SortableJS — drag-and-drop list reordering -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    <script src="js/photos.js?v=323"></script>
-    <script src="js/weeds.js?v=323"></script>
-    <script src="js/calendar.js?v=323"></script>
-    <script src="js/gps.js?v=323"></script>
-    <script src="js/settings.js?v=323"></script>
-    <script src="js/house.js?v=323"></script>
-    <script src="js/floorplan.js?v=323"></script>
-    <script src="js/search.js?v=323"></script>
-    <script src="js/activityreport.js?v=323"></script>
-    <script src="js/checklists.js?v=323"></script>
-    <script src="js/bulkactivity.js?v=323"></script>
-    <script src="js/vehicles.js?v=323"></script>
-    <script src="js/garage.js?v=323"></script>
-    <script src="js/structures.js?v=323"></script>
-    <script src="js/moveThings.js?v=323"></script>
-    <script src="js/journal.js?v=323"></script>
-    <script src="js/people.js?v=323"></script>
-    <script src="js/collections.js?v=323"></script>
-    <script src="js/health.js?v=323"></script>
-    <script src="js/notes.js?v=323"></script>
-    <script src="js/lifecalendar.js?v=323"></script>
+    <script src="js/photos.js?v=324"></script>
+    <script src="js/weeds.js?v=324"></script>
+    <script src="js/calendar.js?v=324"></script>
+    <script src="js/gps.js?v=324"></script>
+    <script src="js/settings.js?v=324"></script>
+    <script src="js/house.js?v=324"></script>
+    <script src="js/floorplan.js?v=324"></script>
+    <script src="js/search.js?v=324"></script>
+    <script src="js/activityreport.js?v=324"></script>
+    <script src="js/checklists.js?v=324"></script>
+    <script src="js/bulkactivity.js?v=324"></script>
+    <script src="js/vehicles.js?v=324"></script>
+    <script src="js/garage.js?v=324"></script>
+    <script src="js/structures.js?v=324"></script>
+    <script src="js/moveThings.js?v=324"></script>
+    <script src="js/journal.js?v=324"></script>
+    <script src="js/people.js?v=324"></script>
+    <script src="js/collections.js?v=324"></script>
+    <script src="js/health.js?v=324"></script>
+    <script src="js/notes.js?v=324"></script>
+    <script src="js/lifecalendar.js?v=324"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=323"></script>
-    <script src="js/secondbrain.js?v=323"></script>
-    <script src="js/sbissues.js?v=323"></script>
-    <script src="js/app.js?v=323"></script>
+    <script src="js/chat.js?v=324"></script>
+    <script src="js/secondbrain.js?v=324"></script>
+    <script src="js/sbissues.js?v=324"></script>
+    <script src="js/app.js?v=324"></script>
 
 </body>
 </html>

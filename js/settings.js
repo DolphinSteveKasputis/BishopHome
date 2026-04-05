@@ -467,6 +467,7 @@ function handleRestoreFile(file, expectType) {
 /**
  * Show or hide the model picker depending on the selected provider.
  * Only OpenAI has a model choice right now.
+ * Also updates the Help button state.
  */
 function updateLlmModelVisibility() {
     var provider = document.getElementById('llmProvider').value;
@@ -476,6 +477,143 @@ function updateLlmModelVisibility() {
     } else {
         modelGroup.classList.add('hidden');
     }
+    updateLlmHelpBtn();
+}
+
+/**
+ * Update the LLM Help button text and enabled state based on the selected provider.
+ * If no provider is selected, the button is disabled and says "Select an LLM first".
+ */
+function updateLlmHelpBtn() {
+    var provider = document.getElementById('llmProvider').value;
+    var btn = document.getElementById('llmHelpBtn');
+    if (!btn) return;
+    if (!provider) {
+        btn.textContent = 'Select an LLM first';
+        btn.disabled = true;
+    } else {
+        btn.textContent = 'Help';
+        btn.disabled = false;
+    }
+}
+
+/**
+ * Open the LLM help modal showing only the relevant provider's instructions.
+ */
+function openLlmHelp() {
+    var provider = document.getElementById('llmProvider').value;
+    document.getElementById('llmHelpOpenAI').style.display = (provider === 'openai') ? '' : 'none';
+    document.getElementById('llmHelpGrok').style.display   = (provider === 'grok')   ? '' : 'none';
+    document.getElementById('llmHelpModalTitle').textContent =
+        provider === 'openai' ? 'How to Get a ChatGPT (OpenAI) API Key'
+                              : 'How to Get a Grok (xAI) API Key';
+    openModal('llmHelpModal');
+}
+
+/**
+ * Test the LLM API key by sending "What is 2+2?" and showing the response.
+ */
+async function testLlmKey() {
+    var provider = document.getElementById('llmProvider').value;
+    var apiKey   = document.getElementById('llmApiKey').value.trim();
+
+    if (!provider) { alert('Please select an LLM provider first.'); return; }
+    if (!apiKey)   { alert('Please enter an API key first.'); return; }
+
+    var btn      = document.getElementById('llmTestBtn');
+    var resultEl = document.getElementById('llmTestResult');
+    btn.disabled    = true;
+    btn.textContent = 'Testing\u2026';
+    resultEl.classList.add('hidden');
+    resultEl.style.color = '';
+
+    var endpoint, model;
+    if (provider === 'openai') {
+        endpoint = 'https://api.openai.com/v1/chat/completions';
+        model    = document.getElementById('llmModel').value || 'gpt-4o-mini';
+    } else {
+        endpoint = 'https://api.x.ai/v1/chat/completions';
+        model    = 'grok-3-mini';
+    }
+
+    try {
+        var resp = await fetch(endpoint, {
+            method : 'POST',
+            headers: {
+                'Content-Type' : 'application/json',
+                'Authorization': 'Bearer ' + apiKey
+            },
+            body: JSON.stringify({
+                model    : model,
+                messages : [{ role: 'user', content: 'What is 2+2?' }],
+                max_tokens: 20
+            })
+        });
+
+        if (resp.ok) {
+            var data   = await resp.json();
+            var answer = (data.choices && data.choices[0] && data.choices[0].message)
+                ? data.choices[0].message.content.trim()
+                : '(no response text)';
+            resultEl.textContent = '\u2713 Key works! Response: \u201c' + answer + '\u201d';
+            resultEl.style.color = '#2e7d32';
+        } else {
+            var errData = await resp.json().catch(function() { return {}; });
+            var msg = (errData.error && errData.error.message) || resp.statusText;
+            resultEl.textContent = '\u2717 Error ' + resp.status + ': ' + msg;
+            resultEl.style.color = '#c62828';
+        }
+    } catch (err) {
+        resultEl.textContent = '\u2717 Network error: ' + err.message;
+        resultEl.style.color = '#c62828';
+    }
+
+    resultEl.classList.remove('hidden');
+    btn.disabled    = false;
+    btn.textContent = 'Test';
+}
+
+/**
+ * Test the Foursquare API key by doing a simple nearby search.
+ * Uses a hardcoded location (NYC) so GPS is not required.
+ */
+async function testFoursquareKey() {
+    var apiKey = document.getElementById('foursquareApiKey').value.trim();
+    if (!apiKey) { alert('Please enter your Foursquare API key first.'); return; }
+
+    var btn      = document.getElementById('foursquareTestBtn');
+    var resultEl = document.getElementById('foursquareTestResult');
+    btn.disabled    = true;
+    btn.textContent = 'Testing\u2026';
+    resultEl.classList.add('hidden');
+    resultEl.style.color = '';
+
+    try {
+        var resp = await fetch(
+            'https://api.foursquare.com/v3/places/search?query=coffee&ll=40.7128,-74.0060&limit=1',
+            { headers: { 'Authorization': apiKey, 'Accept': 'application/json' } }
+        );
+
+        if (resp.ok) {
+            var data  = await resp.json();
+            var count = (data.results && data.results.length) || 0;
+            var name  = (count > 0 && data.results[0].name) ? data.results[0].name : '';
+            resultEl.textContent = '\u2713 Key works!' + (name ? ' Found: ' + name : '');
+            resultEl.style.color = '#2e7d32';
+        } else {
+            var errData = await resp.json().catch(function() { return {}; });
+            var msg = errData.message || resp.statusText;
+            resultEl.textContent = '\u2717 Error ' + resp.status + ': ' + msg;
+            resultEl.style.color = '#c62828';
+        }
+    } catch (err) {
+        resultEl.textContent = '\u2717 Network error: ' + err.message;
+        resultEl.style.color = '#c62828';
+    }
+
+    resultEl.classList.remove('hidden');
+    btn.disabled    = false;
+    btn.textContent = 'Test';
 }
 
 /**
@@ -491,11 +629,12 @@ async function loadLlmSettings() {
             if (d.model) {
                 document.getElementById('llmModel').value = d.model;
             }
-            updateLlmModelVisibility();
+            updateLlmModelVisibility(); // also calls updateLlmHelpBtn
         }
     } catch (err) {
         console.error('Error loading LLM settings:', err);
     }
+    updateLlmHelpBtn(); // ensure button reflects state even if no saved settings
 }
 
 /**
@@ -602,9 +741,12 @@ document.getElementById('backupBtn').addEventListener('click', runBackup);
 document.getElementById('llmSaveBtn').addEventListener('click', saveLlmSettings);
 document.getElementById('llmProvider').addEventListener('change', updateLlmModelVisibility);
 document.getElementById('foursquareSaveBtn').addEventListener('click', saveFoursquareSettings);
+document.getElementById('foursquareTestBtn').addEventListener('click', testFoursquareKey);
 document.getElementById('foursquareHelpBtn').addEventListener('click', function() {
     openModal('foursquareHelpModal');
 });
+document.getElementById('llmHelpBtn').addEventListener('click', openLlmHelp);
+document.getElementById('llmTestBtn').addEventListener('click', testLlmKey);
 
 // Show/hide toggle for the LLM API key field
 document.getElementById('llmApiKeyToggle').addEventListener('click', function() {

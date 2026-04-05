@@ -51,6 +51,7 @@ var SB_ICONS = {
     ATTACH_PHOTOS:      '📷', MOVE_THING:         '🚚', ADD_PLANT:          '🪴',
     ADD_NOTE:           '📝', FIND_THING:         '🔍', ADD_DEV_NOTE:       '🛠️',
     ADD_CHEMICAL:       '🧪', ADD_PERSONAL_EVENT: '🗓️',
+    CHECK_IN:           '📍',
     UNKNOWN_ACTION:     '❓'
 };
 var SB_LABELS = {
@@ -64,6 +65,7 @@ var SB_LABELS = {
     FIND_THING:         'Find Item',            ADD_DEV_NOTE:       'Dev Note',
     ADD_PLANT:          'Add Plant',           ADD_NOTE:           'Add Note',
     ADD_CHEMICAL:       'Add Product',         ADD_PERSONAL_EVENT: 'Add Personal Event',
+    CHECK_IN:           'Check In',
     UNKNOWN_ACTION:     'Unknown Action'
 };
 
@@ -495,6 +497,11 @@ ctxJson,
 '',
 'ADD_DEV_NOTE — leave a note for the developer. Use when the user says "note to dev", "dev note", "note to developer", "tell the developer", "leave a dev note", or similar. Always routes to the "Dev Notes" notebook.',
 '{"action":"ADD_DEV_NOTE","payload":{"note":"the note text"}}',
+'',
+'CHECK_IN — check in at a real-world place (restaurant, store, park, venue, etc.). Use when user says "check in at X", "I\'m at X", "I\'m here", "at the X", "just arrived at X", or similar location phrases.',
+'{"action":"CHECK_IN","payload":{"placeName":"name of the place, or null if unknown","useGps":false}}',
+'useGps: set true ONLY when user says "here", "this place", "my location", "current location", or similar with no specific named place.',
+'Do NOT use CHECK_IN for journal entries or activities that happen to mention a place — only when the primary intent is to record a physical presence at a location.',
 '',
 'UNKNOWN_ACTION — nothing above fits.',
 '{"action":"UNKNOWN_ACTION","payload":{"raw":"user text","llmNote":"reason"}}',
@@ -1391,6 +1398,20 @@ function _sbRenderConfirmFields(action, payload) {
             }
             break;
 
+        case 'CHECK_IN':
+            if (p.useGps) {
+                html += '<div class="sb-find-result">' +
+                        '<div class="sb-find-name">📍 Check In Here</div>' +
+                        '<div class="sb-find-path">GPS will find nearby places when the form opens</div>' +
+                        '</div>';
+            } else {
+                html += '<div class="sb-find-result">' +
+                        '<div class="sb-find-name">📍 ' + _sbEsc(p.placeName || 'Unknown Place') + '</div>' +
+                        '<div class="sb-find-path">Best match will be selected · you can change it in the form</div>' +
+                        '</div>';
+            }
+            break;
+
         case 'UNKNOWN_ACTION':
             html += '<div class="sb-unknown-raw"><strong>You said:</strong> ' + _sbEsc(p.raw || '') + '</div>';
             if (p.llmNote) {
@@ -1475,6 +1496,13 @@ async function _sbExecuteAction(navigate) {
         return;
     }
 
+    // CHECK_IN — resolve place and open the check-in form; no Firestore write at this step
+    if (action === 'CHECK_IN') {
+        _sbCloseConfirm();
+        await _sbHandleCheckIn(payload);
+        return;
+    }
+
     // ATTACH_PHOTOS requires photos — hard guard before writing
     if (action === 'ATTACH_PHOTOS' && _sbPhotos.length === 0) {
         alert('No photos are attached. Please cancel and add photos first.');
@@ -1508,6 +1536,42 @@ async function _sbExecuteAction(navigate) {
         alert('Error saving: ' + err.message);
         if (goBtn)   { goBtn.disabled   = false; goBtn.textContent   = '✓ Confirm & Go'; }
         if (doneBtn) { doneBtn.disabled = false; doneBtn.textContent = '✓ Confirm & Done'; }
+    }
+}
+
+// ============================================================
+// CHECK_IN HANDLER
+// Resolves the place and navigates to the check-in form.
+// The place is NOT written to Firestore until the user taps Save.
+// ============================================================
+
+/**
+ * Resolves a place from the CHECK_IN payload and opens the check-in form.
+ * - useGps true (or no placeName): opens the GPS picker (openCheckIn)
+ * - placeName provided: searches saved places + OSM Nominatim, uses best match
+ * @param {Object} payload - LLM payload: {placeName, useGps}
+ */
+async function _sbHandleCheckIn(payload) {
+    // GPS mode or no place name: hand off to the GPS picker flow
+    if (payload.useGps || !payload.placeName) {
+        openCheckIn();
+        return;
+    }
+
+    // Named place: search saved places first, then OSM
+    try {
+        var venues = await placesSearchByName(payload.placeName);
+        if (venues && venues.length > 0) {
+            // Use the top result
+            openCheckInForm(venues[0], false);
+        } else {
+            // No match found — open manual check-in form with the typed name pre-populated
+            openCheckInForm({ name: payload.placeName }, false);
+        }
+    } catch (err) {
+        console.warn('SecondBrain CHECK_IN place search failed:', err);
+        // Fall back to manual entry with the name pre-set
+        openCheckInForm({ name: payload.placeName }, false);
     }
 }
 
@@ -1999,6 +2063,10 @@ async function _sbWrite(action, payload) {
             // Read-only — no write needed (short-circuited before _sbWrite in normal flow)
             return null;
 
+        case 'CHECK_IN':
+            // Navigation-only — short-circuited before _sbWrite in _sbExecuteAction
+            return null;
+
         default:
             throw new Error('SecondBrain: unhandled action "' + action + '"');
     }
@@ -2080,6 +2148,10 @@ function _sbNavigateTo(action, payload, newId) {
             hash = (payload.found && payload.targetType && payload.targetId)
                 ? _sbTypeHash(payload.targetType, payload.targetId)
                 : null;
+            break;
+
+        case 'CHECK_IN':
+            // Handled entirely in _sbHandleCheckIn — no hash navigation needed here
             break;
     }
 
@@ -2321,6 +2393,17 @@ var SB_HELP_ACTIONS = [
             'Find the stapler',
             'Where did I put the router manual?',
             'Locate the chainsaw'
+        ]
+    },
+    {
+        action: 'CHECK_IN',
+        icon: '📍', label: 'Check In',
+        desc: 'Check in at a real-world place — restaurant, store, park, etc. Opens the check-in form with the place pre-filled.',
+        examples: [
+            'Check in at Smokey Bones',
+            "I'm at Home Depot",
+            'Check in here',
+            'Just arrived at the dentist'
         ]
     }
 ];

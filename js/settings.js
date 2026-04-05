@@ -45,7 +45,6 @@ async function loadSettingsGeneralPage() {
     }
 
     loadLlmSettings();
-    loadFoursquareSettings();
 }
 
 /**
@@ -689,55 +688,56 @@ async function saveLlmSettings() {
     }
 }
 
-// ---------- Foursquare API Key ----------
+// ---------- OpenStreetMap Places ----------
 
 /**
- * Load the Foursquare API key from Firestore and populate the field.
- * Stored alongside the LLM key in userCol('settings').doc('llm').
+ * Test the OpenStreetMap Overpass API by searching for nearby amenities
+ * at a hardcoded location (Charlotte, NC — the user's city).
+ * No API key required — just verifies the service is reachable.
  */
-async function loadFoursquareSettings() {
+async function testOsmApi() {
+    var btn      = document.getElementById('osmTestBtn');
+    var resultEl = document.getElementById('osmTestResult');
+    btn.disabled    = true;
+    btn.textContent = 'Testing\u2026';
+    resultEl.classList.add('hidden');
+    resultEl.style.color = '';
+
+    // Query: find up to 5 named amenities within 500m of a spot in Charlotte, NC
+    var query = '[out:json][timeout:10];' +
+                'node["name"](around:500,35.2271,-80.8431);' +
+                'out 5;';
+
     try {
-        var doc = await userCol('settings').doc('llm').get();
-        if (doc.exists && doc.data().foursquareApiKey) {
-            document.getElementById('foursquareApiKey').value = doc.data().foursquareApiKey;
+        var resp = await fetch('https://overpass-api.de/api/interpreter', {
+            method : 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body   : 'data=' + encodeURIComponent(query)
+        });
+
+        if (resp.ok) {
+            var data  = await resp.json();
+            var count = data.elements ? data.elements.length : 0;
+            var names = (data.elements || [])
+                .filter(function(e) { return e.tags && e.tags.name; })
+                .slice(0, 3)
+                .map(function(e) { return e.tags.name; })
+                .join(', ');
+            resultEl.textContent = '\u2713 Connected! Found ' + count + ' nearby places near Charlotte, NC'
+                + (names ? ': ' + names : '') + '.';
+            resultEl.style.color = '#2e7d32';
+        } else {
+            resultEl.textContent = '\u2717 Error ' + resp.status + ' from OpenStreetMap — try again in a moment.';
+            resultEl.style.color = '#c62828';
         }
     } catch (err) {
-        console.error('Error loading Foursquare settings:', err);
-    }
-}
-
-/**
- * Save the Foursquare API key to Firestore (merge so LLM key is preserved).
- */
-async function saveFoursquareSettings() {
-    var saveBtn  = document.getElementById('foursquareSaveBtn');
-    var savedMsg = document.getElementById('foursquareSavedMsg');
-    var apiKey   = document.getElementById('foursquareApiKey').value.trim();
-
-    if (!apiKey) {
-        alert('Please paste your Foursquare API key before saving.');
-        return;
+        resultEl.textContent = '\u2717 Network error: ' + err.message;
+        resultEl.style.color = '#c62828';
     }
 
-    saveBtn.disabled    = true;
-    saveBtn.textContent = 'Saving\u2026';
-    savedMsg.classList.add('hidden');
-
-    try {
-        await userCol('settings').doc('llm').set(
-            { foursquareApiKey: apiKey, updatedAt: firebase.firestore.FieldValue.serverTimestamp() },
-            { merge: true }
-        );
-        saveBtn.disabled    = false;
-        saveBtn.textContent = 'Save Places Key';
-        savedMsg.classList.remove('hidden');
-        setTimeout(function() { savedMsg.classList.add('hidden'); }, 2000);
-    } catch (err) {
-        console.error('Error saving Foursquare key:', err);
-        alert('Error saving key — please try again.');
-        saveBtn.disabled    = false;
-        saveBtn.textContent = 'Save Places Key';
-    }
+    resultEl.classList.remove('hidden');
+    btn.disabled    = false;
+    btn.textContent = 'Test Connection';
 }
 
 // ---------- Button Wire-Up ----------
@@ -746,10 +746,9 @@ document.getElementById('settingsSaveBtn').addEventListener('click', saveSetting
 document.getElementById('backupBtn').addEventListener('click', runBackup);
 document.getElementById('llmSaveBtn').addEventListener('click', saveLlmSettings);
 document.getElementById('llmProvider').addEventListener('change', updateLlmModelVisibility);
-document.getElementById('foursquareSaveBtn').addEventListener('click', saveFoursquareSettings);
-document.getElementById('foursquareTestBtn').addEventListener('click', testFoursquareKey);
-document.getElementById('foursquareHelpBtn').addEventListener('click', function() {
-    openModal('foursquareHelpModal');
+document.getElementById('osmTestBtn').addEventListener('click', testOsmApi);
+document.getElementById('osmHelpBtn').addEventListener('click', function() {
+    openModal('osmHelpModal');
 });
 document.getElementById('llmHelpBtn').addEventListener('click', openLlmHelp);
 document.getElementById('llmTestBtn').addEventListener('click', testLlmKey);
@@ -757,18 +756,6 @@ document.getElementById('llmTestBtn').addEventListener('click', testLlmKey);
 // Show/hide toggle for the LLM API key field
 document.getElementById('llmApiKeyToggle').addEventListener('click', function() {
     var input = document.getElementById('llmApiKey');
-    if (input.type === 'password') {
-        input.type        = 'text';
-        this.textContent  = 'Hide';
-    } else {
-        input.type        = 'password';
-        this.textContent  = 'Show';
-    }
-});
-
-// Show/hide toggle for the Foursquare API key field
-document.getElementById('foursquareApiKeyToggle').addEventListener('click', function() {
-    var input = document.getElementById('foursquareApiKey');
     if (input.type === 'password') {
         input.type        = 'text';
         this.textContent  = 'Hide';

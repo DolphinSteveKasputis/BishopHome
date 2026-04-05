@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=326">
+    <link rel="stylesheet" href="css/styles.css?v=327">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -627,27 +627,18 @@
                 </div>
             </div>
 
-            <!-- ===== Foursquare API Key ===== -->
+            <!-- ===== OpenStreetMap Places ===== -->
             <div class="settings-card">
-                <h3 class="settings-section-title">Places API (Foursquare)</h3>
+                <h3 class="settings-section-title">Places (OpenStreetMap)</h3>
                 <p class="settings-section-desc">
-                    Used to look up nearby places and venues when checking in.
-                    A free API key is required — tap <strong>Help</strong> for step-by-step setup instructions.
+                    Nearby place lookup uses <strong>OpenStreetMap</strong> — a free, open-source map database used by millions of apps worldwide.
+                    No API key or account required.
                 </p>
-                <div class="form-group">
-                    <label for="foursquareApiKey">Foursquare API Key</label>
-                    <div class="api-key-row">
-                        <input type="password" id="foursquareApiKey" placeholder="Paste your Foursquare API key here" class="api-key-input">
-                        <button type="button" class="btn btn-secondary btn-sm" id="foursquareApiKeyToggle">Show</button>
-                        <button type="button" class="btn btn-secondary btn-sm" id="foursquareHelpBtn">Help</button>
-                    </div>
-                </div>
                 <div class="settings-save-row">
-                    <button class="btn btn-primary" id="foursquareSaveBtn">Save Places Key</button>
-                    <button class="btn btn-secondary" id="foursquareTestBtn">Test</button>
-                    <span class="settings-saved-msg hidden" id="foursquareSavedMsg">&#10003; Saved</span>
+                    <button class="btn btn-secondary" id="osmTestBtn">Test Connection</button>
+                    <button class="btn btn-secondary btn-sm" id="osmHelpBtn">What is this?</button>
                 </div>
-                <div class="hidden settings-test-result" id="foursquareTestResult"></div>
+                <div class="hidden settings-test-result" id="osmTestResult"></div>
             </div>
 
             <!-- ===== Change Password Link ===== -->
@@ -6598,56 +6589,44 @@
         </div>
     </div>
 
-    <!-- ========== FOURSQUARE HELP MODAL ========== -->
-    <div class="modal-overlay" id="foursquareHelpModal">
+    <!-- ========== OPENSTREETMAP HELP MODAL ========== -->
+    <div class="modal-overlay" id="osmHelpModal">
         <div class="modal modal-wide">
-            <h3>How to Get a Foursquare API Key</h3>
+            <h3>About Places (OpenStreetMap)</h3>
             <div class="fsq-help-body">
-                <p>Foursquare provides a <strong>free</strong> Places API that lets this app find nearby venues when you check in. You get up to 1,000 lookups per day at no cost — no credit card required.</p>
+                <p>
+                    This app uses <strong>OpenStreetMap (OSM)</strong> to find nearby places when you check in.
+                    OpenStreetMap is a free, open-source, community-maintained map of the world — the same data that
+                    powers apps like OsmAnd, AllTrails, and thousands of others.
+                </p>
 
-                <h4>Step 1 — Create a Foursquare Developer Account</h4>
-                <ol>
-                    <li>Go to: <a href="https://foursquare.com/developer" target="_blank" rel="noopener noreferrer"><strong>foursquare.com/developer</strong></a></li>
-                    <li>Look for a button like <strong>"Get started for free"</strong> or <strong>"Sign Up"</strong> — the label may vary.</li>
-                    <li>You can sign up with an email address or use an existing Google account.</li>
-                    <li>Complete the sign-up form and verify your email if prompted.</li>
-                </ol>
-
-                <h4>Step 2 — Create a New App</h4>
-                <ol>
-                    <li>Once logged in, you will land on the Developer Dashboard.</li>
-                    <li>Click the <strong>Create a New App</strong> button (or <strong>+ New Project</strong> — the label may vary).</li>
-                    <li>Give your app any name — for example: <strong>MyLife</strong> or <strong>Bishop</strong>.</li>
-                    <li>If asked for an app URL, enter anything — for example: <strong>https://localhost</strong>. If you don't see this field, just skip it.</li>
-                    <li>Click <strong>Create</strong> or <strong>Save</strong>.</li>
-                </ol>
-
-                <h4>Step 3 — Generate and Copy Your API Key</h4>
-                <ol>
-                    <li>Back on the Developer Dashboard, find your project and click <strong>Generate API Key</strong> in the API Keys column.</li>
-                    <li>You will land on a <strong>Service API Keys</strong> screen. Click <strong>Generate Service API Key</strong>.</li>
-                    <li>A key will appear — it is a long string of letters and numbers.</li>
-                    <li>Click the <strong>Copy</strong> button next to the key (or tap and hold the key text to copy it manually).</li>
-                </ol>
-
-                <h4>Step 4 — Paste the Key into This App</h4>
-                <ol>
-                    <li>Return to this Settings page.</li>
-                    <li>Tap the <strong>Foursquare API Key</strong> field.</li>
-                    <li>Paste the key you copied.</li>
-                    <li>Tap <strong>Save Places Key</strong>.</li>
-                    <li>You should see a ✓ Saved confirmation. You are done.</li>
-                </ol>
-
-                <h4>Troubleshooting</h4>
+                <h4>What it does</h4>
                 <ul>
-                    <li><strong>Can't find the API key?</strong> — On the Dashboard, click your app name to open it. The key is on the app's overview page, sometimes under a "Keys" or "Credentials" tab.</li>
-                    <li><strong>Key not working?</strong> — Make sure you copied the full key with no spaces at the beginning or end.</li>
-                    <li><strong>Nearby places not showing up?</strong> — The app needs location permission from your browser. When prompted, tap <strong>Allow</strong>.</li>
+                    <li>When you check in, your GPS location is used to search for nearby venues within a short radius.</li>
+                    <li>Results include the place name, category (restaurant, park, store, etc.), and address where available.</li>
+                    <li>You pick the place from the list, or type one in manually if it's not found.</li>
                 </ul>
+
+                <h4>Why OpenStreetMap?</h4>
+                <ul>
+                    <li><strong>Completely free</strong> — no API key, no account, no credit card required.</li>
+                    <li><strong>No limits</strong> — no daily call caps or billing surprises.</li>
+                    <li><strong>Good coverage</strong> — well-mapped in the US, especially in suburban and urban areas.</li>
+                    <li><strong>Privacy-friendly</strong> — your location is sent directly to OSM servers, not a third-party commercial service.</li>
+                </ul>
+
+                <h4>Limitations</h4>
+                <ul>
+                    <li>Very new or recently closed businesses may not yet appear — OSM is crowdsourced and occasionally lags real-world changes.</li>
+                    <li>No ratings, photos, or business hours — just names, categories, and addresses.</li>
+                    <li>If a place isn't found, you can always type it in manually on the check-in form.</li>
+                </ul>
+
+                <h4>No setup needed</h4>
+                <p>There is nothing to configure. Use the <strong>Test Connection</strong> button on the Settings page to confirm the service is reachable from your device.</p>
             </div>
             <div class="modal-buttons">
-                <button class="btn btn-primary" onclick="closeModal('foursquareHelpModal')">Got It</button>
+                <button class="btn btn-primary" onclick="closeModal('osmHelpModal')">Got It</button>
             </div>
         </div>
     </div>
@@ -6677,45 +6656,45 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=326"></script>
-    <script src="js/auth.js?v=326"></script>
-    <script src="js/zones.js?v=326"></script>
-    <script src="js/plants.js?v=326"></script>
-    <script src="js/problems.js?v=326"></script>
-    <script src="js/facts.js?v=326"></script>
-    <script src="js/projects.js?v=326"></script>
-    <script src="js/chemicals.js?v=326"></script>
-    <script src="js/activities.js?v=326"></script>
+    <script src="js/firebase-config.js?v=327"></script>
+    <script src="js/auth.js?v=327"></script>
+    <script src="js/zones.js?v=327"></script>
+    <script src="js/plants.js?v=327"></script>
+    <script src="js/problems.js?v=327"></script>
+    <script src="js/facts.js?v=327"></script>
+    <script src="js/projects.js?v=327"></script>
+    <script src="js/chemicals.js?v=327"></script>
+    <script src="js/activities.js?v=327"></script>
     <!-- Cropper.js — client-side image cropping library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <!-- SortableJS — drag-and-drop list reordering -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    <script src="js/photos.js?v=326"></script>
-    <script src="js/weeds.js?v=326"></script>
-    <script src="js/calendar.js?v=326"></script>
-    <script src="js/gps.js?v=326"></script>
-    <script src="js/settings.js?v=326"></script>
-    <script src="js/house.js?v=326"></script>
-    <script src="js/floorplan.js?v=326"></script>
-    <script src="js/search.js?v=326"></script>
-    <script src="js/activityreport.js?v=326"></script>
-    <script src="js/checklists.js?v=326"></script>
-    <script src="js/bulkactivity.js?v=326"></script>
-    <script src="js/vehicles.js?v=326"></script>
-    <script src="js/garage.js?v=326"></script>
-    <script src="js/structures.js?v=326"></script>
-    <script src="js/moveThings.js?v=326"></script>
-    <script src="js/journal.js?v=326"></script>
-    <script src="js/people.js?v=326"></script>
-    <script src="js/collections.js?v=326"></script>
-    <script src="js/health.js?v=326"></script>
-    <script src="js/notes.js?v=326"></script>
-    <script src="js/lifecalendar.js?v=326"></script>
+    <script src="js/photos.js?v=327"></script>
+    <script src="js/weeds.js?v=327"></script>
+    <script src="js/calendar.js?v=327"></script>
+    <script src="js/gps.js?v=327"></script>
+    <script src="js/settings.js?v=327"></script>
+    <script src="js/house.js?v=327"></script>
+    <script src="js/floorplan.js?v=327"></script>
+    <script src="js/search.js?v=327"></script>
+    <script src="js/activityreport.js?v=327"></script>
+    <script src="js/checklists.js?v=327"></script>
+    <script src="js/bulkactivity.js?v=327"></script>
+    <script src="js/vehicles.js?v=327"></script>
+    <script src="js/garage.js?v=327"></script>
+    <script src="js/structures.js?v=327"></script>
+    <script src="js/moveThings.js?v=327"></script>
+    <script src="js/journal.js?v=327"></script>
+    <script src="js/people.js?v=327"></script>
+    <script src="js/collections.js?v=327"></script>
+    <script src="js/health.js?v=327"></script>
+    <script src="js/notes.js?v=327"></script>
+    <script src="js/lifecalendar.js?v=327"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=326"></script>
-    <script src="js/secondbrain.js?v=326"></script>
-    <script src="js/sbissues.js?v=326"></script>
-    <script src="js/app.js?v=326"></script>
+    <script src="js/chat.js?v=327"></script>
+    <script src="js/secondbrain.js?v=327"></script>
+    <script src="js/sbissues.js?v=327"></script>
+    <script src="js/app.js?v=327"></script>
 
 </body>
 </html>

@@ -751,12 +751,30 @@ function openPhotoLightbox(photo, targetType, containerId) {
     imgWrapper.appendChild(img);
     overlay.appendChild(imgWrapper);
 
-    // Close button (top-right)
+    // Push a history entry so the hardware back button closes the lightbox
+    // instead of navigating away from the current page.
+    history.pushState({ photoLightbox: true }, '');
+
+    function closeLightbox() {
+        // Remove popstate listener first so it doesn't fire after we're gone
+        window.removeEventListener('popstate', onPopState);
+        if (document.body.contains(overlay)) {
+            document.body.removeChild(overlay);
+        }
+    }
+
+    function onPopState() {
+        // Back button was pressed — just close the lightbox (state already popped)
+        closeLightbox();
+    }
+    window.addEventListener('popstate', onPopState);
+
+    // Close button (top-right) — goes back in history, which triggers onPopState
     var closeBtn = document.createElement('button');
     closeBtn.className = 'photo-lightbox-close';
     closeBtn.textContent = '✕';
     closeBtn.addEventListener('click', function() {
-        document.body.removeChild(overlay);
+        history.back(); // triggers onPopState → closeLightbox
     });
     overlay.appendChild(closeBtn);
 
@@ -768,8 +786,11 @@ function openPhotoLightbox(photo, targetType, containerId) {
     cropBtn.className = 'btn btn-secondary';
     cropBtn.textContent = '✂ Crop';
     cropBtn.addEventListener('click', function() {
-        document.body.removeChild(overlay);
-        cropExistingPhoto(photo, targetType, containerId);
+        closeLightbox();
+        history.back(); // pop the lightbox history entry before opening crop modal
+        setTimeout(function() {
+            cropExistingPhoto(photo, targetType, containerId);
+        }, 50);
     });
     btnBar.appendChild(cropBtn);
     overlay.appendChild(btnBar);

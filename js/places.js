@@ -49,7 +49,6 @@ async function loadPlacesPage() {
     try {
         var snap = await userCol('places')
             .where('status', '==', 1)
-            .orderBy('name')
             .get();
 
         if (snap.empty) {
@@ -57,9 +56,14 @@ async function loadPlacesPage() {
             return;
         }
 
+        // Sort client-side to avoid needing a composite Firestore index
+        var docs = [];
+        snap.forEach(function(doc) { docs.push({ id: doc.id, data: doc.data() }); });
+        docs.sort(function(a, b) { return (a.data.name || '').localeCompare(b.data.name || ''); });
+
         emptyState.classList.add('hidden');
-        snap.forEach(function(doc) {
-            container.appendChild(_placesRenderRow(doc.id, doc.data()));
+        docs.forEach(function(d) {
+            container.appendChild(_placesRenderRow(d.id, d.data));
         });
 
     } catch (err) {

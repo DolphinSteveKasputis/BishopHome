@@ -259,13 +259,13 @@ function renderPhotoViewer(targetType, containerId) {
         actions.appendChild(profileBtn);
     }
 
-    var cropBtn = document.createElement('button');
-    cropBtn.className = 'btn btn-small btn-secondary';
-    cropBtn.textContent = '✂ Crop';
-    cropBtn.addEventListener('click', function() {
-        cropExistingPhoto(photo, targetType, containerId);
+    var viewBtn = document.createElement('button');
+    viewBtn.className = 'btn btn-small btn-secondary';
+    viewBtn.textContent = '🔍 View';
+    viewBtn.addEventListener('click', function() {
+        openPhotoLightbox(photo, targetType, containerId);
     });
-    actions.appendChild(cropBtn);
+    actions.appendChild(viewBtn);
 
     var editCaptionBtn = document.createElement('button');
     editCaptionBtn.className = 'btn btn-small btn-secondary';
@@ -719,6 +719,149 @@ async function setProfilePhoto(photo, targetType) {
         alert('Error setting profile photo.');
         return null;
     }
+}
+
+// ---------- Photo Lightbox (View / Zoom / Download) ----------
+
+/**
+ * Opens a full-screen lightbox for the given photo.
+ * Features:
+ *   - 2-finger pinch-to-zoom and 1-finger pan (when zoomed)
+ *   - Long-press (600ms) anywhere on the image to download
+ *   - "✂ Crop" button to proceed into the existing crop flow
+ *   - "✕" close button in the top-right corner
+ *
+ * @param {Object} photo        - Photo object from photoViewerState (has .imageData)
+ * @param {string} targetType
+ * @param {string} containerId
+ */
+function openPhotoLightbox(photo, targetType, containerId) {
+    // --- Build overlay ---
+    var overlay = document.createElement('div');
+    overlay.className = 'photo-lightbox-overlay';
+
+    // Image wrapper — this element receives the CSS transform
+    var imgWrapper = document.createElement('div');
+    imgWrapper.className = 'photo-lightbox-img-wrapper';
+
+    var img = document.createElement('img');
+    img.src = photo.imageData;
+    img.className = 'photo-lightbox-img';
+    img.alt = photo.caption || 'Photo';
+    imgWrapper.appendChild(img);
+    overlay.appendChild(imgWrapper);
+
+    // Close button (top-right)
+    var closeBtn = document.createElement('button');
+    closeBtn.className = 'photo-lightbox-close';
+    closeBtn.textContent = '✕';
+    closeBtn.addEventListener('click', function() {
+        document.body.removeChild(overlay);
+    });
+    overlay.appendChild(closeBtn);
+
+    // Bottom action bar — Crop button
+    var btnBar = document.createElement('div');
+    btnBar.className = 'photo-lightbox-actions';
+
+    var cropBtn = document.createElement('button');
+    cropBtn.className = 'btn btn-secondary';
+    cropBtn.textContent = '✂ Crop';
+    cropBtn.addEventListener('click', function() {
+        document.body.removeChild(overlay);
+        cropExistingPhoto(photo, targetType, containerId);
+    });
+    btnBar.appendChild(cropBtn);
+    overlay.appendChild(btnBar);
+
+    // --- Touch state ---
+    var scale       = 1;
+    var translateX  = 0;
+    var translateY  = 0;
+    var lastScale   = 1;
+    var lastTX      = 0;
+    var lastTY      = 0;
+    var initDist    = 0;      // distance between two fingers at start of pinch
+    var panStartX   = 0;      // offset from translateX at touch start
+    var panStartY   = 0;
+    var longPressTimer = null;
+    var moved       = false;  // true if finger moved enough to be a pan (not a long-press)
+
+    function getDistance(touches) {
+        var dx = touches[0].clientX - touches[1].clientX;
+        var dy = touches[0].clientY - touches[1].clientY;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    function applyTransform() {
+        imgWrapper.style.transform =
+            'translate(' + translateX + 'px, ' + translateY + 'px) scale(' + scale + ')';
+    }
+
+    overlay.addEventListener('touchstart', function(e) {
+        if (e.touches.length === 2) {
+            // Two fingers — start pinch zoom
+            e.preventDefault();
+            clearTimeout(longPressTimer);
+            initDist   = getDistance(e.touches);
+            lastScale  = scale;
+            lastTX     = translateX;
+            lastTY     = translateY;
+        } else if (e.touches.length === 1) {
+            // One finger — prepare for pan or long-press download
+            moved      = false;
+            panStartX  = e.touches[0].clientX - translateX;
+            panStartY  = e.touches[0].clientY - translateY;
+
+            longPressTimer = setTimeout(function() {
+                if (!moved) {
+                    // Trigger download
+                    var a = document.createElement('a');
+                    a.href = photo.imageData;
+                    a.download = 'photo.jpg';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                }
+            }, 650);
+        }
+    }, { passive: false });
+
+    overlay.addEventListener('touchmove', function(e) {
+        if (e.touches.length === 2) {
+            e.preventDefault();
+            var newDist = getDistance(e.touches);
+            scale = Math.max(1, Math.min(lastScale * (newDist / initDist), 5));
+            applyTransform();
+        } else if (e.touches.length === 1) {
+            var dx = e.touches[0].clientX - panStartX - translateX;
+            var dy = e.touches[0].clientY - panStartY - translateY;
+            if (!moved && Math.sqrt(dx * dx + dy * dy) > 8) {
+                moved = true;
+                clearTimeout(longPressTimer);
+            }
+            if (moved && scale > 1) {
+                // Pan only when zoomed in
+                e.preventDefault();
+                translateX = e.touches[0].clientX - panStartX;
+                translateY = e.touches[0].clientY - panStartY;
+                applyTransform();
+            }
+        }
+    }, { passive: false });
+
+    overlay.addEventListener('touchend', function(e) {
+        clearTimeout(longPressTimer);
+        // Snap back to normal scale if pinch went below 1×
+        if (e.touches.length === 0 && scale <= 1) {
+            scale      = 1;
+            translateX = 0;
+            translateY = 0;
+            applyTransform();
+        }
+    });
+
+    document.body.appendChild(overlay);
 }
 
 // ---------- Crop Existing Photo ----------

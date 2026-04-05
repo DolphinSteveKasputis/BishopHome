@@ -7675,3 +7675,89 @@ textarea.sb-field { resize: vertical; min-height: 60px; }
 .journal-feed--checkins-only .journal-item--entry:not(.journal-item--checkin) {
     display: none;
 }
+
+/* ── Phase 5: Quick Check-In Flow ─────────────────────────── */
+
+/* "📍 Check In" button on the home/landing page */
+.checkin-home-btn {
+    display: block;
+    width: 100%;
+    padding: 14px 20px;
+    margin-bottom: 16px;
+    background: #0d9488;
+    color: #fff;
+    font-size: 1.05rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: center;
+}
+.checkin-home-btn:hover { background: #0f766e; }
+
+/* Status line inside the picker modal */
+.checkin-picker-status {
+    font-size: 0.9rem;
+    color: var(--text-muted, #888);
+    margin: 0 0 12px;
+    text-align: center;
+}
+
+/* Scrollable results container in the picker modal */
+.checkin-picker-results {
+    max-height: 280px;
+    overflow-y: auto;
+    border: 1px solid var(--border, #e0e0e0);
+    border-radius: 6px;
+    margin-bottom: 12px;
+}
+
+/* Single venue row in the picker */
+.checkin-picker-item {
+    padding: 10px 14px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border, #e0e0e0);
+}
+.checkin-picker-item:last-child { border-bottom: none; }
+.checkin-picker-item:hover { background: #f0fdf4; }
+
+.checkin-picker-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+.checkin-picker-sub {
+    font-size: 0.8rem;
+    color: var(--text-muted, #888);
+    margin-top: 2px;
+}
+
+/* Locked place display inside the journal entry form (check-in mode) */
+.checkin-locked-place {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #f0fdfa;
+    border: 1px solid #99f6e4;
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 4px;
+}
+.checkin-locked-badge {
+    background: #0d9488;
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 12px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.checkin-locked-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    flex: 1;
+}
+.checkin-locked-sub {
+    font-size: 0.8rem;
+    color: var(--text-muted, #888);
+}

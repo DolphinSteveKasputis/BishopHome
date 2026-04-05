@@ -37,6 +37,15 @@ var _journalPlaceDropdownVenues = [];
 /** Whether the "Check-Ins Only" feed filter is active. */
 var _journalCheckinsOnly = localStorage.getItem('bishop_journal_checkinsOnly') === 'true';
 
+/** True when the entry form is opened in check-in mode (from the Check In button). */
+var _journalCheckinMode = false;
+
+/** The venue selected in the check-in picker (not yet saved to Firestore until Save). */
+var _journalCheckinVenue = null;
+
+/** Venues shown in the check-in place picker modal. */
+var _checkinPickerVenues = [];
+
 /**
  * Whether to show mini log entries from life events in the journal feed.
  * Persisted in localStorage so the choice survives page reloads.
@@ -677,6 +686,8 @@ function openAddJournalEntry() {
     _updateMentionChips();                    // clear any chips from previous session
     _journalPlaceIds = new Set();             // fresh place set for new entry
     _updateJournalPlaceChips();               // clear place chips from previous session
+    _journalCheckinMode  = false;
+    _journalCheckinVenue = null;
 
     var titleEl  = document.getElementById('journalEntryPageTitle');
     var dateEl   = document.getElementById('journalEntryDate');
@@ -722,6 +733,8 @@ async function openEditJournalEntry(id) {
         var data = doc.data();
         window.currentJournalEntry = { id: id, ...data };
         window.journalEditMode = true;
+        _journalCheckinMode  = false;  // editing is never in check-in mode
+        _journalCheckinVenue = null;
         // Restore mention set from stored IDs, then show chips
         _journalMentionedPersonIds = new Set(data.mentionedPersonIds || []);
         _journalPeopleCache = null;
@@ -799,8 +812,11 @@ function _journalWireEntryPage() {
     // Initialize @mention autocomplete
     _journalInitMentions();
 
-    // Initialize place search
+    // Initialize place search (skips if in check-in mode with pre-selected venue)
     _journalInitPlaceSearch();
+
+    // Show/hide check-in vs regular places UI based on mode
+    _journalUpdateCheckinModeUI();
 }
 
 /**
@@ -827,12 +843,21 @@ async function saveJournalEntry() {
 
     if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
 
-    var mentionedIds = [..._journalMentionedPersonIds];
-    var placeIds     = [..._journalPlaceIds];
+    var mentionedIds  = [..._journalMentionedPersonIds];
+    var placeIds      = [..._journalPlaceIds];
+    var isCheckinEntry = _journalCheckinMode;  // capture before any async work
 
     try {
+        // Resolve the check-in venue to a Firestore place ID (dedup + enrichment inside)
+        if (_journalCheckinMode && _journalCheckinVenue && _journalCheckinVenue.name) {
+            var checkinPlaceId = _journalCheckinVenue.existingId
+                ? _journalCheckinVenue.existingId
+                : await placesSaveNew(_journalCheckinVenue);
+            if (placeIds.indexOf(checkinPlaceId) === -1) placeIds.push(checkinPlaceId);
+        }
+
         if (window.journalEditMode && window.currentJournalEntry) {
-            // Update existing entry — preserve existing isCheckin value
+            // Update existing entry — preserve existing isCheckin value (do not overwrite)
             var entryId = window.currentJournalEntry.id;
             await userCol('journalEntries').doc(entryId).update({
                 date:               date,
@@ -852,7 +877,7 @@ async function saveJournalEntry() {
                 entryText:          text,
                 mentionedPersonIds: mentionedIds,
                 placeIds:           placeIds,
-                isCheckin:          false,
+                isCheckin:          isCheckinEntry,
                 createdAt:          firebase.firestore.FieldValue.serverTimestamp()
             });
             if (mentionedIds.length > 0) {
@@ -1955,6 +1980,194 @@ function _updateJournalPlaceChips() {
     });
     container.innerHTML = html;
     container.style.display = '';
+}
+
+// ============================================================
+// Phase 5 — Quick Check-In Flow
+// ============================================================
+
+/**
+ * Open the check-in picker modal.
+ * Fires GPS immediately; user can also search by name.
+ * Called from the "📍 Check In" button on the home/landing page.
+ */
+function openCheckIn() {
+    openModal('checkInPickerModal');
+
+    var statusEl  = document.getElementById('checkInPickerStatus');
+    var resultsEl = document.getElementById('checkInPickerResults');
+    var searchEl  = document.getElementById('checkInPickerSearch');
+
+    if (statusEl)  statusEl.textContent = '📍 Getting your location...';
+    if (resultsEl) resultsEl.innerHTML  = '';
+    if (searchEl)  searchEl.value       = '';
+    _checkinPickerVenues = [];
+
+    // Wire Cancel button
+    var cancelBtn = document.getElementById('checkInPickerCancelBtn');
+    if (cancelBtn) {
+        cancelBtn.onclick = function() { closeModal('checkInPickerModal'); };
+    }
+
+    // Wire "Enter Manually" button → skip picker, open blank check-in form
+    var manualBtn = document.getElementById('checkInManualBtn');
+    if (manualBtn) {
+        manualBtn.onclick = function() {
+            closeModal('checkInPickerModal');
+            openCheckInForm(null, true);
+        };
+    }
+
+    // Wire name search input (debounced)
+    var _searchTimer = null;
+    if (searchEl) {
+        searchEl.oninput = function() {
+            clearTimeout(_searchTimer);
+            var q = searchEl.value.trim();
+            if (!q) return;
+            _searchTimer = setTimeout(async function() {
+                if (statusEl) statusEl.textContent = '🔍 Searching...';
+                try {
+                    var results = await placesSearchByName(q);
+                    _checkinPickerVenues = results;
+                    _checkinPickerShowResults(results);
+                    if (statusEl) statusEl.textContent = results.length
+                        ? results.length + ' result(s) found'
+                        : 'No places found for "' + q + '"';
+                } catch (err) {
+                    if (statusEl) statusEl.textContent = 'Search failed. Try again.';
+                }
+            }, 500);
+        };
+    }
+
+    // Fire GPS immediately
+    if (!navigator.geolocation) {
+        if (statusEl) statusEl.textContent = 'GPS not available. Search by name above.';
+        return;
+    }
+    navigator.geolocation.getCurrentPosition(
+        async function(pos) {
+            if (statusEl) statusEl.textContent = '🔍 Finding nearby places...';
+            try {
+                var venues = await placesNearby(pos.coords.latitude, pos.coords.longitude);
+                _checkinPickerVenues = venues;
+                _checkinPickerShowResults(venues);
+                if (statusEl) statusEl.textContent = venues.length
+                    ? 'Nearby places — tap one to check in'
+                    : 'No named places found nearby. Try searching by name.';
+            } catch (err) {
+                if (statusEl) statusEl.textContent = 'Could not load nearby places. Search by name above.';
+            }
+        },
+        function() {
+            if (statusEl) statusEl.textContent = 'Location unavailable. Search by name above.';
+        },
+        { timeout: 12000, maximumAge: 60000 }
+    );
+}
+
+/**
+ * Render the venue list inside the check-in picker modal.
+ * @param {Array} venues  Array of venue objects from placesNearby/placesSearchByName.
+ */
+function _checkinPickerShowResults(venues) {
+    var el = document.getElementById('checkInPickerResults');
+    if (!el) return;
+
+    if (!venues || venues.length === 0) {
+        el.innerHTML = '';
+        return;
+    }
+
+    var html = '';
+    venues.forEach(function(v, idx) {
+        var sub = [];
+        if (v.category)  sub.push(v.category);
+        if (v.address)   sub.push(v.address);
+        var subText = sub.join(' · ');
+
+        html += '<div class="checkin-picker-item" data-idx="' + idx + '">' +
+                    '<div class="checkin-picker-name">' + (v.name || 'Unnamed Place') + '</div>' +
+                    (subText ? '<div class="checkin-picker-sub">' + subText + '</div>' : '') +
+                '</div>';
+    });
+    el.innerHTML = html;
+
+    // Wire tap handlers
+    el.querySelectorAll('.checkin-picker-item').forEach(function(item) {
+        item.onclick = function() {
+            var idx = parseInt(item.dataset.idx, 10);
+            _checkinSelectPlace(idx);
+        };
+    });
+}
+
+/**
+ * User tapped a venue in the picker — close picker and open the entry form
+ * pre-loaded with that venue in check-in mode.
+ * @param {number} idx  Index into _checkinPickerVenues.
+ */
+function _checkinSelectPlace(idx) {
+    var venue = _checkinPickerVenues[idx];
+    if (!venue) return;
+    closeModal('checkInPickerModal');
+    openCheckInForm(venue, false);
+}
+
+/**
+ * Open the journal entry form in check-in mode.
+ * Sets _journalCheckinMode and _journalCheckinVenue, then opens the modal.
+ * @param {Object|null} venue     The selected venue (or null for manual entry).
+ * @param {boolean}     isManual  True when the user chose "Enter Manually".
+ */
+function openCheckInForm(venue, isManual) {
+    // Start a fresh journal entry
+    openAddJournalEntry();
+
+    // Set check-in mode globals before wiring the form
+    _journalCheckinMode   = true;
+    _journalCheckinVenue  = venue || null;
+
+    // Reflect the mode in the form UI
+    _journalUpdateCheckinModeUI();
+}
+
+/**
+ * Update the journal entry form to reflect current check-in mode.
+ * - In check-in mode: hide the place search row; show the locked venue display.
+ * - In normal mode: show the place search row; hide the locked venue display.
+ */
+function _journalUpdateCheckinModeUI() {
+    var placesGroup    = document.getElementById('journalPlacesGroup');
+    var checkinRow     = document.getElementById('journalCheckinPlaceRow');
+    var nameEl         = document.getElementById('journalCheckinPlaceName');
+    var subEl          = document.getElementById('journalCheckinPlaceSub');
+
+    if (_journalCheckinMode) {
+        // Hide the normal place-search row
+        if (placesGroup)  placesGroup.classList.add('hidden');
+        // Show the locked check-in place display
+        if (checkinRow)   checkinRow.classList.remove('hidden');
+
+        if (_journalCheckinVenue) {
+            if (nameEl) nameEl.textContent = _journalCheckinVenue.name || '';
+            if (subEl) {
+                var parts = [];
+                if (_journalCheckinVenue.category) parts.push(_journalCheckinVenue.category);
+                if (_journalCheckinVenue.address)  parts.push(_journalCheckinVenue.address);
+                subEl.textContent = parts.join(' · ');
+            }
+        } else {
+            // Manual check-in — no venue selected yet
+            if (nameEl) nameEl.textContent = 'Manual check-in';
+            if (subEl)  subEl.textContent  = 'No specific place selected';
+        }
+    } else {
+        // Normal mode
+        if (placesGroup)  placesGroup.classList.remove('hidden');
+        if (checkinRow)   checkinRow.classList.add('hidden');
+    }
 }
 
 /**

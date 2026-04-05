@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=331">
+    <link rel="stylesheet" href="css/styles.css?v=332">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -146,6 +146,8 @@
         <section class="page hidden" id="page-main">
             <!-- QuickLog natural-language command button -->
             <button class="sb-home-btn" id="sbHomeBtn">⚡ QuickLog — Tell me something</button>
+            <!-- Quick Check-In button -->
+            <button class="checkin-home-btn" onclick="openCheckIn()">📍 Check In</button>
 
             <div class="landing-tiles">
                 <a href="#zones" class="landing-tile landing-tile--yard">
@@ -6045,8 +6047,16 @@
                     <!-- Mentioned people chips — shown when entry has @mentions -->
                     <div id="journalMentionedChips" class="journal-mention-chips-row" style="display:none;"></div>
                 </div>
+                <!-- Check-in mode: selected place shown locked (no search shown) -->
+                <div id="journalCheckinPlaceRow" class="hidden">
+                    <div class="checkin-locked-place">
+                        <div class="checkin-locked-badge">📍 Check-In</div>
+                        <div id="journalCheckinPlaceName" class="checkin-locked-name"></div>
+                        <div id="journalCheckinPlaceSub" class="checkin-locked-sub"></div>
+                    </div>
+                </div>
                 <!-- Places section — search + nearby GPS + selected place pills -->
-                <div class="form-group">
+                <div class="form-group" id="journalPlacesGroup">
                     <label>Places</label>
                     <div class="journal-places-search-row">
                         <input type="text" id="journalPlaceSearch" placeholder="Search by name..." autocomplete="off">
@@ -6431,6 +6441,22 @@
         </div>
     </div>
 
+    <!-- ========== CHECK-IN PLACE PICKER MODAL ========== -->
+    <div class="modal-overlay" id="checkInPickerModal">
+        <div class="modal">
+            <h3>📍 Check In</h3>
+            <p id="checkInPickerStatus" class="checkin-picker-status">📍 Getting your location...</p>
+            <div class="form-group">
+                <input type="text" id="checkInPickerSearch" placeholder="Or search by name..." autocomplete="off">
+            </div>
+            <div id="checkInPickerResults" class="checkin-picker-results"></div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="checkInPickerCancelBtn">Cancel</button>
+                <button class="btn btn-secondary" id="checkInManualBtn">Enter Manually</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ========== QUICKLOG INPUT MODAL ========== -->
     <div class="modal-overlay" id="sbInputModal">
         <div class="modal sb-modal">
@@ -6734,46 +6760,46 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=331"></script>
-    <script src="js/auth.js?v=331"></script>
-    <script src="js/zones.js?v=331"></script>
-    <script src="js/plants.js?v=331"></script>
-    <script src="js/problems.js?v=331"></script>
-    <script src="js/facts.js?v=331"></script>
-    <script src="js/projects.js?v=331"></script>
-    <script src="js/chemicals.js?v=331"></script>
-    <script src="js/activities.js?v=331"></script>
+    <script src="js/firebase-config.js?v=332"></script>
+    <script src="js/auth.js?v=332"></script>
+    <script src="js/zones.js?v=332"></script>
+    <script src="js/plants.js?v=332"></script>
+    <script src="js/problems.js?v=332"></script>
+    <script src="js/facts.js?v=332"></script>
+    <script src="js/projects.js?v=332"></script>
+    <script src="js/chemicals.js?v=332"></script>
+    <script src="js/activities.js?v=332"></script>
     <!-- Cropper.js — client-side image cropping library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <!-- SortableJS — drag-and-drop list reordering -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    <script src="js/photos.js?v=331"></script>
-    <script src="js/weeds.js?v=331"></script>
-    <script src="js/calendar.js?v=331"></script>
-    <script src="js/gps.js?v=331"></script>
-    <script src="js/settings.js?v=331"></script>
-    <script src="js/house.js?v=331"></script>
-    <script src="js/floorplan.js?v=331"></script>
-    <script src="js/search.js?v=331"></script>
-    <script src="js/activityreport.js?v=331"></script>
-    <script src="js/checklists.js?v=331"></script>
-    <script src="js/bulkactivity.js?v=331"></script>
-    <script src="js/vehicles.js?v=331"></script>
-    <script src="js/garage.js?v=331"></script>
-    <script src="js/structures.js?v=331"></script>
-    <script src="js/moveThings.js?v=331"></script>
-    <script src="js/journal.js?v=331"></script>
-    <script src="js/people.js?v=331"></script>
-    <script src="js/collections.js?v=331"></script>
-    <script src="js/health.js?v=331"></script>
-    <script src="js/notes.js?v=331"></script>
-    <script src="js/lifecalendar.js?v=331"></script>
+    <script src="js/photos.js?v=332"></script>
+    <script src="js/weeds.js?v=332"></script>
+    <script src="js/calendar.js?v=332"></script>
+    <script src="js/gps.js?v=332"></script>
+    <script src="js/settings.js?v=332"></script>
+    <script src="js/house.js?v=332"></script>
+    <script src="js/floorplan.js?v=332"></script>
+    <script src="js/search.js?v=332"></script>
+    <script src="js/activityreport.js?v=332"></script>
+    <script src="js/checklists.js?v=332"></script>
+    <script src="js/bulkactivity.js?v=332"></script>
+    <script src="js/vehicles.js?v=332"></script>
+    <script src="js/garage.js?v=332"></script>
+    <script src="js/structures.js?v=332"></script>
+    <script src="js/moveThings.js?v=332"></script>
+    <script src="js/journal.js?v=332"></script>
+    <script src="js/people.js?v=332"></script>
+    <script src="js/collections.js?v=332"></script>
+    <script src="js/health.js?v=332"></script>
+    <script src="js/notes.js?v=332"></script>
+    <script src="js/lifecalendar.js?v=332"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=331"></script>
-    <script src="js/secondbrain.js?v=331"></script>
-    <script src="js/sbissues.js?v=331"></script>
-    <script src="js/places.js?v=331"></script>
-    <script src="js/app.js?v=331"></script>
+    <script src="js/chat.js?v=332"></script>
+    <script src="js/secondbrain.js?v=332"></script>
+    <script src="js/sbissues.js?v=332"></script>
+    <script src="js/places.js?v=332"></script>
+    <script src="js/app.js?v=332"></script>
 
 </body>
 </html>

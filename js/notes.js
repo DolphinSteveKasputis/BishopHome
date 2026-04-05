@@ -1219,14 +1219,10 @@ async function _notesSaveExistingNote(note) {
 
     try {
         await notesUpdateNote(note.id, notebookId, body);
-        // Update in-memory currentNote so view mode shows new text
-        window.currentNote = { ...note, body: body };
 
-        // Refresh view mode display
-        var bodyEl = document.getElementById('noteViewBody');
-        if (bodyEl) bodyEl.textContent = body;
-
-        _notesShowViewMode();
+        // Navigate back to the notebook — Save acts as Save and Close
+        var hash = window.currentNotebook ? '#notebook/' + window.currentNotebook.id : '#notes';
+        window.location.hash = hash;
     } catch (e) {
         console.error('_notesSaveExistingNote error:', e);
         alert('Error saving note. Please try again.');

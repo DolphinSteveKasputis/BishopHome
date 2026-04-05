@@ -155,11 +155,15 @@ function renderPhotoViewer(targetType, containerId) {
     var viewer = document.createElement('div');
     viewer.className = 'photo-viewer';
 
-    // Image
+    // Image — clicking opens the full-screen lightbox (same as the View button)
     var img = document.createElement('img');
     img.className = 'photo-viewer-image';
     img.src = photo.imageData;
     img.alt = photo.caption || 'Photo';
+    img.style.cursor = 'zoom-in';
+    img.addEventListener('click', function() {
+        openPhotoLightbox(photo, targetType, containerId);
+    });
     viewer.appendChild(img);
 
     // Standalone date stamp below the image (more visible than inside the nav bar)

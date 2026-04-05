@@ -811,6 +811,7 @@ Feature-specific test plans live in their own markdown files:
 - The functional spec must be updated in the **same commit** as any feature change
 - Do not defer spec updates — a stale spec gives the wrong context at the start of the next session
 - Update the section that owns the changed feature; add new sections for new entity types or major new capabilities
+- **Always tell the user** when the spec was updated — state which section(s) changed and what was added/modified. This allows the user to notice if a spec update was skipped when it should have happened.
 
 ---
 

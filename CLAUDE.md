@@ -202,6 +202,7 @@ Bishop/
 - The spec is the first thing read at the start of a new session — if it's stale, context is wrong from the start.
 - Update the section that owns the feature (e.g., Photos section for photo changes, the relevant Part for new entity types).
 - Do not defer spec updates to a later commit. This is not optional.
+- **Always tell the user** when you update the functional spec — state which section(s) were changed and what was updated. This lets the user notice if a spec update was skipped when it should have happened.
 
 ## Development Notes
 - Claude is writing the entire app under user direction

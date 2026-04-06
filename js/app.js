@@ -491,5 +491,35 @@ function initApp() {
     initAppName().then(function() {
         handleRoute();
     });
+    _initTabIndentTextareas();
     console.log("Bishop app initialized.");
+}
+
+/**
+ * Make Tab key insert spaces (instead of moving focus) in designated textareas.
+ * Uses event delegation on document so it works even if the textarea
+ * is rendered after this runs (modals, dynamically added pages, etc.).
+ * Applies to: #journalEntryText, #noteTextInput
+ */
+function _initTabIndentTextareas() {
+    var TAB_TARGETS = ['journalEntryText', 'noteTextInput'];
+    var TAB_SPACES  = '    '; // 4 spaces per Tab press
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key !== 'Tab') return;
+        var el = e.target;
+        if (!el || el.tagName !== 'TEXTAREA') return;
+        if (TAB_TARGETS.indexOf(el.id) === -1) return;
+
+        // Prevent the browser from moving focus
+        e.preventDefault();
+
+        // Insert spaces at the cursor position
+        var start = el.selectionStart;
+        var end   = el.selectionEnd;
+        el.value  = el.value.substring(0, start) + TAB_SPACES + el.value.substring(end);
+
+        // Move cursor to after the inserted spaces
+        el.selectionStart = el.selectionEnd = start + TAB_SPACES.length;
+    });
 }

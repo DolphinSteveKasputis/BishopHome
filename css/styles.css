@@ -7574,6 +7574,38 @@ textarea.sb-field { resize: vertical; min-height: 60px; }
     flex: 1;
 }
 
+/* Bias row: "Search near" location input + radius dropdown */
+.journal-places-bias-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-top: 6px;
+}
+.journal-places-bias-row .bias-label {
+    font-size: 0.8rem;
+    color: var(--text-muted, #6b7280);
+    white-space: nowrap;
+}
+.journal-places-bias-row .bias-input {
+    flex: 1;
+    font-size: 0.85rem;
+    padding: 4px 8px;
+    height: 32px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: #fafafa;
+}
+.journal-places-bias-row .bias-radius {
+    font-size: 0.85rem;
+    padding: 4px 6px;
+    height: 32px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: #fafafa;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
 /* Dropdown of place search results */
 .journal-place-dropdown {
     background: #fff;

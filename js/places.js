@@ -674,7 +674,44 @@ async function placesNearby(lat, lng) {
  * @param {string} query - User-typed search string
  * @returns {Promise<Array>} Array of venue objects (same shape as placesNearby)
  */
-async function placesSearchByName(query) {
+/**
+ * Geocode a free-text location string (e.g. "Destin, FL") to lat/lng using Nominatim.
+ * Returns { lat, lng } or null on failure.
+ * @param {string} locationText
+ */
+async function placesGeocodeLocation(locationText) {
+    locationText = (locationText || '').trim();
+    if (!locationText) return null;
+    try {
+        await _placesNominatimRateLimit();
+        var url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' +
+                  encodeURIComponent(locationText);
+        var resp = await fetch(url, {
+            headers: { 'Accept-Language': 'en', 'User-Agent': 'MyLifeApp/1.0' }
+        });
+        if (!resp.ok) return null;
+        var items = await resp.json();
+        if (!items || items.length === 0) return null;
+        return { lat: parseFloat(items[0].lat), lng: parseFloat(items[0].lon) };
+    } catch (err) {
+        console.warn('Geocode error:', err);
+        return null;
+    }
+}
+
+/**
+ * Search for places by name.
+ * Priority: saved places (Firestore) first, then Nominatim text search.
+ * When biasLat/biasLng/radiusKm are provided, a viewbox is added to the
+ * Nominatim request to prefer results near that location.
+ *
+ * @param {string} query       - User-typed search string
+ * @param {number} [biasLat]   - Latitude of search center (optional)
+ * @param {number} [biasLng]   - Longitude of search center (optional)
+ * @param {number} [radiusKm]  - Search radius in km (optional, requires biasLat/biasLng)
+ * @returns {Promise<Array>} Merged array of venue objects
+ */
+async function placesSearchByName(query, biasLat, biasLng, radiusKm) {
     query = (query || '').trim();
     if (!query) return [];
 
@@ -701,10 +738,25 @@ async function placesSearchByName(query) {
     });
 
     // 2) Nominatim text search for anything not already found
+    //    If a bias location + radius is provided, restrict results to that area
+    //    using Nominatim's viewbox + bounded parameters.
     try {
         await _placesNominatimRateLimit();
         var url = 'https://nominatim.openstreetmap.org/search?format=json&limit=8&addressdetails=1&q=' +
                   encodeURIComponent(query);
+
+        // Add viewbox bias when coordinates + radius are provided
+        if (biasLat != null && biasLng != null && radiusKm) {
+            // Convert radius (km) to degrees for lat and lng
+            var dLat = radiusKm / 111;
+            var dLng = radiusKm / (111 * Math.cos(biasLat * Math.PI / 180));
+            // Nominatim viewbox format: left,top,right,bottom (lng/lat)
+            var viewbox = (biasLng - dLng).toFixed(6) + ',' +
+                          (biasLat + dLat).toFixed(6) + ',' +
+                          (biasLng + dLng).toFixed(6) + ',' +
+                          (biasLat - dLat).toFixed(6);
+            url += '&viewbox=' + viewbox + '&bounded=1';
+        }
         var nomResp = await fetch(url, {
             headers: { 'Accept-Language': 'en', 'User-Agent': 'MyLifeApp/1.0' }
         });

@@ -28,6 +28,10 @@ var _journalPeopleCache = null;
 /** Set of place IDs selected on the entry currently being edited. */
 var _journalPlaceIds = new Set();
 
+/** Bias coordinates for place text search (set from GPS or manual geocode). */
+var _journalBiasLat = null;
+var _journalBiasLng = null;
+
 /** Map of placeId → place name, pre-loaded when rendering the feed. */
 var _journalPlaceNamesMap = {};
 
@@ -1850,16 +1854,90 @@ function _updateMentionChips() {
  * Called every time the entry page opens.
  */
 function _journalInitPlaceSearch() {
-    var input    = document.getElementById('journalPlaceSearch');
-    var locBtn   = document.getElementById('journalUseLocationBtn');
-    var dropdown = document.getElementById('journalPlaceDropdown');
+    var input      = document.getElementById('journalPlaceSearch');
+    var locBtn     = document.getElementById('journalUseLocationBtn');
+    var dropdown   = document.getElementById('journalPlaceDropdown');
+    var biasInput  = document.getElementById('journalPlaceBias');
+    var radiusSel  = document.getElementById('journalPlaceRadius');
     if (!input || !locBtn || !dropdown) return;
 
-    // Clear field and dropdown from any previous session
+    // Clear search field and dropdown from any previous session
     input.value = '';
     dropdown.style.display = 'none';
 
-    // Debounced name search — fires 500ms after user stops typing
+    // ── Radius dropdown — restore sticky value from localStorage ────────────
+    var RADIUS_KEY = 'bishop_place_search_radius';
+    if (radiusSel) {
+        var savedRadius = localStorage.getItem(RADIUS_KEY);
+        if (savedRadius) {
+            // Find and select the matching option; fall back to default (500m) if not found
+            var found = false;
+            for (var i = 0; i < radiusSel.options.length; i++) {
+                if (radiusSel.options[i].value === savedRadius) {
+                    radiusSel.selectedIndex = i;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) radiusSel.selectedIndex = 0;
+        }
+        radiusSel.onchange = function() {
+            localStorage.setItem(RADIUS_KEY, radiusSel.value);
+        };
+    }
+
+    // ── Bias location — silently grab GPS on form open ───────────────────────
+    // Reset bias coords from any previous form session
+    _journalBiasLat = null;
+    _journalBiasLng = null;
+    if (biasInput) biasInput.value = '';
+
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            function(pos) {
+                _journalBiasLat = pos.coords.latitude;
+                _journalBiasLng = pos.coords.longitude;
+                if (biasInput && !biasInput.value) {
+                    biasInput.value = 'Current location';
+                }
+            },
+            function() { /* GPS unavailable or denied — no-op, search runs unbiased */ },
+            { timeout: 8000, maximumAge: 60000 }
+        );
+    }
+
+    // ── Bias input — geocode typed location with 800ms debounce ─────────────
+    var biasDebounce = null;
+    if (biasInput) {
+        biasInput.oninput = function() {
+            clearTimeout(biasDebounce);
+            var text = biasInput.value.trim();
+            // If cleared, reset bias coords
+            if (!text || text === 'Current location') {
+                if (!text) { _journalBiasLat = null; _journalBiasLng = null; }
+                return;
+            }
+            biasDebounce = setTimeout(async function() {
+                biasInput.style.borderColor = '#aaa'; // visual "searching" hint
+                var coords = await placesGeocodeLocation(text);
+                if (coords) {
+                    _journalBiasLat = coords.lat;
+                    _journalBiasLng = coords.lng;
+                    biasInput.style.borderColor = ''; // reset
+                } else {
+                    // Geocode failed — clear bias so search runs globally
+                    _journalBiasLat = null;
+                    _journalBiasLng = null;
+                    biasInput.style.borderColor = 'var(--danger)'; // red hint
+                }
+            }, 800);
+        };
+
+        // Clear red hint when user starts typing again
+        biasInput.onfocus = function() { biasInput.style.borderColor = ''; };
+    }
+
+    // ── Name search — passes bias + radius to placesSearchByName ────────────
     var debounceTimer = null;
     input.oninput = function() {
         clearTimeout(debounceTimer);
@@ -1867,7 +1945,8 @@ function _journalInitPlaceSearch() {
         if (q.length < 2) { dropdown.style.display = 'none'; return; }
         debounceTimer = setTimeout(async function() {
             try {
-                var results = await placesSearchByName(q);
+                var radiusKm = radiusSel ? parseFloat(radiusSel.value) : null;
+                var results  = await placesSearchByName(q, _journalBiasLat, _journalBiasLng, radiusKm);
                 _journalShowPlaceDropdown(results);
             } catch (err) {
                 console.warn('Place search error:', err);
@@ -1875,12 +1954,12 @@ function _journalInitPlaceSearch() {
         }, 500);
     };
 
-    // Hide dropdown when focus leaves the input (delay so clicks register first)
+    // Hide dropdown when focus leaves the search input (delay so clicks register first)
     input.onblur = function() {
         setTimeout(function() { dropdown.style.display = 'none'; }, 200);
     };
 
-    // GPS nearby search
+    // GPS nearby search (Overpass, unchanged)
     locBtn.onclick = _journalHandleUseLocation;
 }
 

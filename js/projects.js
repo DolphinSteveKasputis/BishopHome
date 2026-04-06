@@ -1096,11 +1096,15 @@ document.addEventListener('DOMContentLoaded', function() {
         loadAllProjects();
     });
 
-    // Project modal — Save button
+    // Project modal — Save buttons (bottom and top)
     document.getElementById('projectModalSaveBtn').addEventListener('click', handleProjectModalSave);
+    document.getElementById('projectModalSaveBtnTop').addEventListener('click', handleProjectModalSave);
 
-    // Project modal — Cancel button
+    // Project modal — Cancel buttons (bottom and top)
     document.getElementById('projectModalCancelBtn').addEventListener('click', function() {
+        closeModal('projectModal');
+    });
+    document.getElementById('projectModalCancelBtnTop').addEventListener('click', function() {
         closeModal('projectModal');
     });
 

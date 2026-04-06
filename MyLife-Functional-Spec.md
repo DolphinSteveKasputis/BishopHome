@@ -771,6 +771,8 @@ var PHOTO_CONTAINERS = { /* ... all entity types ... */ };
 
 **Facts on problems**: Each problem can have its own facts (key/value pairs).
 
+**Add/Edit modal**: Save and Cancel buttons appear both at the top (inline with the title) and at the bottom, so the user can save without scrolling regardless of keyboard position.
+
 **Used by**: All entity types
 
 ### Projects (`projects.js`)
@@ -786,6 +788,8 @@ var PHOTO_CONTAINERS = { /* ... all entity types ... */ };
 **Show completed**: Checkbox to toggle visibility of completed projects.
 
 **Roll-up**: Same pattern as Problems — parent entities aggregate all descendant projects.
+
+**Add/Edit modal**: Save and Cancel buttons appear both at the top (inline with the title) and at the bottom, so the user can save without scrolling regardless of keyboard position.
 
 **Used by**: All entity types
 

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=338">
+    <link rel="stylesheet" href="css/styles.css?v=339">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -2807,7 +2807,13 @@
     <!-- Problem Add/Edit Modal -->
     <div class="modal-overlay" id="problemModal">
         <div class="modal">
-            <h3 id="problemModalTitle">Add Problem</h3>
+            <div class="modal-title-bar">
+                <h3 id="problemModalTitle">Add Problem</h3>
+                <div class="modal-title-actions">
+                    <button class="btn btn-secondary btn-small" id="problemModalCancelBtnTop">Cancel</button>
+                    <button class="btn btn-primary btn-small" id="problemModalSaveBtnTop">Save</button>
+                </div>
+            </div>
             <div class="form-group">
                 <label for="problemDescInput">Description</label>
                 <input type="text" id="problemDescInput" placeholder="e.g., Aphids on leaves">
@@ -2992,7 +2998,13 @@
     <!-- Project Add/Edit Modal -->
     <div class="modal-overlay" id="projectModal">
         <div class="modal">
-            <h3 id="projectModalTitle">Add Project</h3>
+            <div class="modal-title-bar">
+                <h3 id="projectModalTitle">Add Project</h3>
+                <div class="modal-title-actions">
+                    <button class="btn btn-secondary btn-small" id="projectModalCancelBtnTop">Cancel</button>
+                    <button class="btn btn-primary btn-small" id="projectModalSaveBtnTop">Save</button>
+                </div>
+            </div>
             <div class="form-group">
                 <label for="projectTitleInput">Project Title</label>
                 <input type="text" id="projectTitleInput" placeholder="e.g., Level the front yard">
@@ -6829,46 +6841,46 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=338"></script>
-    <script src="js/auth.js?v=338"></script>
-    <script src="js/zones.js?v=338"></script>
-    <script src="js/plants.js?v=338"></script>
-    <script src="js/problems.js?v=338"></script>
-    <script src="js/facts.js?v=338"></script>
-    <script src="js/projects.js?v=338"></script>
-    <script src="js/chemicals.js?v=338"></script>
-    <script src="js/activities.js?v=338"></script>
+    <script src="js/firebase-config.js?v=339"></script>
+    <script src="js/auth.js?v=339"></script>
+    <script src="js/zones.js?v=339"></script>
+    <script src="js/plants.js?v=339"></script>
+    <script src="js/problems.js?v=339"></script>
+    <script src="js/facts.js?v=339"></script>
+    <script src="js/projects.js?v=339"></script>
+    <script src="js/chemicals.js?v=339"></script>
+    <script src="js/activities.js?v=339"></script>
     <!-- Cropper.js — client-side image cropping library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <!-- SortableJS — drag-and-drop list reordering -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    <script src="js/photos.js?v=338"></script>
-    <script src="js/weeds.js?v=338"></script>
-    <script src="js/calendar.js?v=338"></script>
-    <script src="js/gps.js?v=338"></script>
-    <script src="js/settings.js?v=338"></script>
-    <script src="js/house.js?v=338"></script>
-    <script src="js/floorplan.js?v=338"></script>
-    <script src="js/search.js?v=338"></script>
-    <script src="js/activityreport.js?v=338"></script>
-    <script src="js/checklists.js?v=338"></script>
-    <script src="js/bulkactivity.js?v=338"></script>
-    <script src="js/vehicles.js?v=338"></script>
-    <script src="js/garage.js?v=338"></script>
-    <script src="js/structures.js?v=338"></script>
-    <script src="js/moveThings.js?v=338"></script>
-    <script src="js/journal.js?v=338"></script>
-    <script src="js/people.js?v=338"></script>
-    <script src="js/collections.js?v=338"></script>
-    <script src="js/health.js?v=338"></script>
-    <script src="js/notes.js?v=338"></script>
-    <script src="js/lifecalendar.js?v=338"></script>
+    <script src="js/photos.js?v=339"></script>
+    <script src="js/weeds.js?v=339"></script>
+    <script src="js/calendar.js?v=339"></script>
+    <script src="js/gps.js?v=339"></script>
+    <script src="js/settings.js?v=339"></script>
+    <script src="js/house.js?v=339"></script>
+    <script src="js/floorplan.js?v=339"></script>
+    <script src="js/search.js?v=339"></script>
+    <script src="js/activityreport.js?v=339"></script>
+    <script src="js/checklists.js?v=339"></script>
+    <script src="js/bulkactivity.js?v=339"></script>
+    <script src="js/vehicles.js?v=339"></script>
+    <script src="js/garage.js?v=339"></script>
+    <script src="js/structures.js?v=339"></script>
+    <script src="js/moveThings.js?v=339"></script>
+    <script src="js/journal.js?v=339"></script>
+    <script src="js/people.js?v=339"></script>
+    <script src="js/collections.js?v=339"></script>
+    <script src="js/health.js?v=339"></script>
+    <script src="js/notes.js?v=339"></script>
+    <script src="js/lifecalendar.js?v=339"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=338"></script>
-    <script src="js/secondbrain.js?v=338"></script>
-    <script src="js/sbissues.js?v=338"></script>
-    <script src="js/places.js?v=338"></script>
-    <script src="js/app.js?v=338"></script>
+    <script src="js/chat.js?v=339"></script>
+    <script src="js/secondbrain.js?v=339"></script>
+    <script src="js/sbissues.js?v=339"></script>
+    <script src="js/places.js?v=339"></script>
+    <script src="js/app.js?v=339"></script>
 
 </body>
 </html>

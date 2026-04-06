@@ -725,8 +725,9 @@ document.addEventListener('DOMContentLoaded', function() {
     wireShowResolved('showResolvedSubThingProblems',         function(){ return window.currentSubThing; },       'stProblemsContainer',                 'stProblemsEmptyState',             'subthing');
     wireShowResolved('showResolvedPanelProblems',            function(){ return window.currentPanel; },          'panelProblemsContainer',              'panelProblemsEmptyState',          'panel');
 
-    // Problem modal — Save button
+    // Problem modal — Save buttons (bottom and top)
     document.getElementById('problemModalSaveBtn').addEventListener('click', handleProblemModalSave);
+    document.getElementById('problemModalSaveBtnTop').addEventListener('click', handleProblemModalSave);
 
     // Problem modal — Delete button (only visible in edit mode)
     document.getElementById('problemModalDeleteBtn').addEventListener('click', function() {
@@ -740,8 +741,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Problem modal — Cancel button
+    // Problem modal — Cancel buttons (bottom and top)
     document.getElementById('problemModalCancelBtn').addEventListener('click', function() {
+        closeModal('problemModal');
+    });
+    document.getElementById('problemModalCancelBtnTop').addEventListener('click', function() {
         closeModal('problemModal');
     });
 

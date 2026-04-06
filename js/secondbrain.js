@@ -924,6 +924,14 @@ function _sbRenderConfirmPhotos() {
 function _sbCloseConfirm() {
     document.getElementById('sbConfirmModal').classList.remove('open');
     _sbLastResult = null;
+
+    // Re-enable confirm buttons so they work correctly next time the modal opens.
+    // They get disabled on save and are only re-enabled on error, so a successful
+    // save leaves them disabled for subsequent uses.
+    var goBtn   = document.getElementById('sbConfirmGoBtn');
+    var doneBtn = document.getElementById('sbConfirmDoneBtn');
+    if (goBtn)   { goBtn.disabled   = false; goBtn.textContent   = '✓ Confirm & Go →'; }
+    if (doneBtn) { doneBtn.disabled = false; doneBtn.textContent = '✓ Confirm & Done'; }
 }
 
 /**

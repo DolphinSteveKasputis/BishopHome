@@ -199,10 +199,12 @@ Bishop/
 ## Functional Specification — REQUIRED BEHAVIOR
 **IMPORTANT: Keep `MyLife-Functional-Spec.md` up to date as a living document.**
 - Any time a feature is added, changed, or removed, update the spec in the **same commit** as the code change.
+- **This applies to ALL changes — no exceptions for "minor tweaks", one-liners, or navigation fixes.** If behavior changed, the spec must reflect it.
 - The spec is the first thing read at the start of a new session — if it's stale, context is wrong from the start.
 - Update the section that owns the feature (e.g., Photos section for photo changes, the relevant Part for new entity types).
 - Do not defer spec updates to a later commit. This is not optional.
 - **Always tell the user** when you update the functional spec — state which section(s) were changed and what was updated. This lets the user notice if a spec update was skipped when it should have happened.
+- **Before every `git commit` that touches JS, HTML, or CSS: ask yourself "did any user-visible behavior change?" If yes → update the spec first.**
 
 ## Development Notes
 - Claude is writing the entire app under user direction

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=340">
+    <link rel="stylesheet" href="css/styles.css?v=341">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -2815,12 +2815,15 @@
                 </div>
             </div>
             <div class="form-group">
-                <label for="problemDescInput">Description</label>
+                <label for="problemDescInput">Title</label>
                 <input type="text" id="problemDescInput" placeholder="e.g., Aphids on leaves">
             </div>
             <div class="form-group">
-                <label for="problemNotesInput">Notes (optional)</label>
-                <textarea id="problemNotesInput" placeholder="Additional details..."></textarea>
+                <div class="journal-textarea-header">
+                    <label for="problemNotesInput">Description (optional)</label>
+                    <button class="btn btn-secondary btn-small" id="problemNotesVoiceBtn" title="Voice to text">🎤 Speak</button>
+                </div>
+                <textarea id="problemNotesInput" placeholder="Describe the problem..."></textarea>
             </div>
 
             <!-- Status — only shown in edit mode -->
@@ -3022,7 +3025,10 @@
                 <input type="text" id="projectTitleInput" placeholder="e.g., Level the front yard">
             </div>
             <div class="form-group">
-                <label for="projectNotesInput">Notes (optional)</label>
+                <div class="journal-textarea-header">
+                    <label for="projectNotesInput">Notes (optional)</label>
+                    <button class="btn btn-secondary btn-small" id="projectNotesVoiceBtn" title="Voice to text">🎤 Speak</button>
+                </div>
                 <textarea id="projectNotesInput" placeholder="Project details..."></textarea>
             </div>
             <div class="modal-buttons">
@@ -6853,46 +6859,46 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=340"></script>
-    <script src="js/auth.js?v=340"></script>
-    <script src="js/zones.js?v=340"></script>
-    <script src="js/plants.js?v=340"></script>
-    <script src="js/problems.js?v=340"></script>
-    <script src="js/facts.js?v=340"></script>
-    <script src="js/projects.js?v=340"></script>
-    <script src="js/chemicals.js?v=340"></script>
-    <script src="js/activities.js?v=340"></script>
+    <script src="js/firebase-config.js?v=341"></script>
+    <script src="js/auth.js?v=341"></script>
+    <script src="js/zones.js?v=341"></script>
+    <script src="js/plants.js?v=341"></script>
+    <script src="js/problems.js?v=341"></script>
+    <script src="js/facts.js?v=341"></script>
+    <script src="js/projects.js?v=341"></script>
+    <script src="js/chemicals.js?v=341"></script>
+    <script src="js/activities.js?v=341"></script>
     <!-- Cropper.js — client-side image cropping library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <!-- SortableJS — drag-and-drop list reordering -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    <script src="js/photos.js?v=340"></script>
-    <script src="js/weeds.js?v=340"></script>
-    <script src="js/calendar.js?v=340"></script>
-    <script src="js/gps.js?v=340"></script>
-    <script src="js/settings.js?v=340"></script>
-    <script src="js/house.js?v=340"></script>
-    <script src="js/floorplan.js?v=340"></script>
-    <script src="js/search.js?v=340"></script>
-    <script src="js/activityreport.js?v=340"></script>
-    <script src="js/checklists.js?v=340"></script>
-    <script src="js/bulkactivity.js?v=340"></script>
-    <script src="js/vehicles.js?v=340"></script>
-    <script src="js/garage.js?v=340"></script>
-    <script src="js/structures.js?v=340"></script>
-    <script src="js/moveThings.js?v=340"></script>
-    <script src="js/journal.js?v=340"></script>
-    <script src="js/people.js?v=340"></script>
-    <script src="js/collections.js?v=340"></script>
-    <script src="js/health.js?v=340"></script>
-    <script src="js/notes.js?v=340"></script>
-    <script src="js/lifecalendar.js?v=340"></script>
+    <script src="js/photos.js?v=341"></script>
+    <script src="js/weeds.js?v=341"></script>
+    <script src="js/calendar.js?v=341"></script>
+    <script src="js/gps.js?v=341"></script>
+    <script src="js/settings.js?v=341"></script>
+    <script src="js/house.js?v=341"></script>
+    <script src="js/floorplan.js?v=341"></script>
+    <script src="js/search.js?v=341"></script>
+    <script src="js/activityreport.js?v=341"></script>
+    <script src="js/checklists.js?v=341"></script>
+    <script src="js/bulkactivity.js?v=341"></script>
+    <script src="js/vehicles.js?v=341"></script>
+    <script src="js/garage.js?v=341"></script>
+    <script src="js/structures.js?v=341"></script>
+    <script src="js/moveThings.js?v=341"></script>
+    <script src="js/journal.js?v=341"></script>
+    <script src="js/people.js?v=341"></script>
+    <script src="js/collections.js?v=341"></script>
+    <script src="js/health.js?v=341"></script>
+    <script src="js/notes.js?v=341"></script>
+    <script src="js/lifecalendar.js?v=341"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=340"></script>
-    <script src="js/secondbrain.js?v=340"></script>
-    <script src="js/sbissues.js?v=340"></script>
-    <script src="js/places.js?v=340"></script>
-    <script src="js/app.js?v=340"></script>
+    <script src="js/chat.js?v=341"></script>
+    <script src="js/secondbrain.js?v=341"></script>
+    <script src="js/sbissues.js?v=341"></script>
+    <script src="js/places.js?v=341"></script>
+    <script src="js/app.js?v=341"></script>
 
 </body>
 </html>

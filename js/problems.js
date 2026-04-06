@@ -739,6 +739,11 @@ document.addEventListener('DOMContentLoaded', function() {
     wireShowResolved('showResolvedSubThingProblems',         function(){ return window.currentSubThing; },       'stProblemsContainer',                 'stProblemsEmptyState',             'subthing');
     wireShowResolved('showResolvedPanelProblems',            function(){ return window.currentPanel; },          'panelProblemsContainer',              'panelProblemsEmptyState',          'panel');
 
+    // Problem modal — voice-to-text on the Description (formerly Notes) textarea
+    if (typeof initVoiceToText === 'function') {
+        initVoiceToText('problemNotesInput', 'problemNotesVoiceBtn');
+    }
+
     // Problem modal — Save buttons (bottom and top)
     document.getElementById('problemModalSaveBtn').addEventListener('click', handleProblemModalSave);
     document.getElementById('problemModalSaveBtnTop').addEventListener('click', handleProblemModalSave);

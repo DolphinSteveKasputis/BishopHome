@@ -773,6 +773,10 @@ var PHOTO_CONTAINERS = { /* ... all entity types ... */ };
 
 **Add/Edit modal**: Save and Cancel buttons appear both at the top (inline with the title) and at the bottom, so the user can save without scrolling regardless of keyboard position.
 
+**Fields**: "Title" (short name, text input) and "Description" (free-form details, textarea). Stored as `description` and `notes` in Firestore respectively.
+
+**Voice-to-text**: The Description textarea has a 🎤 Speak button for hands-free dictation in the field.
+
 **Photos on problems**: Each problem can have photos attached (Camera, Gallery, or Paste). `targetType: 'problem'`, `targetId: problem.id`. In add mode, the problem is auto-saved first to get an ID before photos can be attached.
 
 **Used by**: All entity types
@@ -792,6 +796,8 @@ var PHOTO_CONTAINERS = { /* ... all entity types ... */ };
 **Roll-up**: Same pattern as Problems — parent entities aggregate all descendant projects.
 
 **Add/Edit modal**: Save and Cancel buttons appear both at the top (inline with the title) and at the bottom, so the user can save without scrolling regardless of keyboard position.
+
+**Voice-to-text**: The Notes textarea has a 🎤 Speak button for hands-free dictation.
 
 **Used by**: All entity types
 

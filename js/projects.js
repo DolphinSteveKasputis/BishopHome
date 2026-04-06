@@ -1096,6 +1096,11 @@ document.addEventListener('DOMContentLoaded', function() {
         loadAllProjects();
     });
 
+    // Project modal — voice-to-text on the Notes textarea
+    if (typeof initVoiceToText === 'function') {
+        initVoiceToText('projectNotesInput', 'projectNotesVoiceBtn');
+    }
+
     // Project modal — Save buttons (bottom and top)
     document.getElementById('projectModalSaveBtn').addEventListener('click', handleProjectModalSave);
     document.getElementById('projectModalSaveBtnTop').addEventListener('click', handleProjectModalSave);

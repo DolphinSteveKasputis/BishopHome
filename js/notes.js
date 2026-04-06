@@ -1189,9 +1189,8 @@ async function _notesSaveNewNote() {
 
     try {
         var newId = await notesAddNote(window.currentNotebook.id, body);
-        // Navigate to the saved note in edit mode so photos can be added immediately
-        window._noteOpenInEditMode = true;
-        window.location.hash = '#note/' + newId;
+        // Navigate back to the notebook after saving
+        window.location.hash = '#notebook/' + window.currentNotebook.id;
     } catch (e) {
         console.error('_notesSaveNewNote error:', e);
         alert('Error saving note. Please try again.');

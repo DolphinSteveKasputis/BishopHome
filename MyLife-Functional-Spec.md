@@ -413,6 +413,8 @@ Daily entry logging with optional tracking metrics.
 
 **Check-in flow**: The "📍 Check In" button (on the QuickLog screen and SecondBrain) opens the check-in form pre-filled with a venue. On save, it creates a journal entry with `isCheckin: true` and `placeIds: [placeId]`.
 
+**Tab key**: In the journal entry textarea, pressing Tab inserts 4 spaces instead of moving focus to the next field.
+
 ### People (`people.js`)
 
 **Plan document**: `People.md`
@@ -484,6 +486,10 @@ A notebook-organized note-taking system.
 **Default notebook**: Auto-created "Default" gray notebook on first visit; cannot be deleted.
 
 **Search**: Global search across all note body text.
+
+**New note save**: After saving a new note, the app navigates back to the notebook list (not to the note's edit page).
+
+**Tab key**: In the note body textarea, pressing Tab inserts 4 spaces instead of moving focus to the next field.
 
 ### Life Calendar (`lifecalendar.js`)
 

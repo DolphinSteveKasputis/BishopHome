@@ -369,6 +369,10 @@ function openAddProblemModal(targetType, targetId) {
     document.getElementById('problemFactsEmptyState').textContent = 'Save this problem first, then add facts.';
     document.getElementById('problemFactsEmptyState').style.display = 'block';
 
+    // Hide photos section until problem is saved and has an ID
+    document.getElementById('problemPhotosSection').style.display = 'none';
+    document.getElementById('problemPhotoContainer').innerHTML = '';
+
     openModal('problemModal');
     descInput.focus();
 }
@@ -404,6 +408,11 @@ function openEditProblemModal(problem, targetType, targetId) {
     // Show Facts section and load facts for this problem
     document.getElementById('problemFactsSection').style.display = 'block';
     loadFacts('problem', problem.id, 'problemFactsContainer', 'problemFactsEmptyState');
+
+    // Show Photos section and load photos for this problem
+    document.getElementById('problemPhotosSection').style.display = 'block';
+    window.currentProblem = { id: problem.id };
+    loadPhotos('problem', problem.id, 'problemPhotoContainer', 'problemPhotoEmptyState');
 
     openModal('problemModal');
     descInput.focus();
@@ -669,6 +678,11 @@ async function ensureProblemSaved() {
 
         // Reload the facts section now that we have an ID
         loadFacts('problem', docRef.id, 'problemFactsContainer', 'problemFactsEmptyState');
+
+        // Show and load the photos section now that we have an ID
+        document.getElementById('problemPhotosSection').style.display = 'block';
+        window.currentProblem = { id: docRef.id };
+        loadPhotos('problem', docRef.id, 'problemPhotoContainer', 'problemPhotoEmptyState');
 
         // Reload the problems list in the background
         reloadProblemsForCurrentTarget(targetType, targetId);

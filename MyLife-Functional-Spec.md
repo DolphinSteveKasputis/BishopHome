@@ -773,6 +773,8 @@ var PHOTO_CONTAINERS = { /* ... all entity types ... */ };
 
 **Add/Edit modal**: Save and Cancel buttons appear both at the top (inline with the title) and at the bottom, so the user can save without scrolling regardless of keyboard position.
 
+**Photos on problems**: Each problem can have photos attached (Camera, Gallery, or Paste). `targetType: 'problem'`, `targetId: problem.id`. In add mode, the problem is auto-saved first to get an ID before photos can be attached.
+
 **Used by**: All entity types
 
 ### Projects (`projects.js`)

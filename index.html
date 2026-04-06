@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=339">
+    <link rel="stylesheet" href="css/styles.css?v=340">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -2840,6 +2840,18 @@
                 </div>
                 <div id="problemFactsContainer"></div>
                 <p class="empty-state" id="problemFactsEmptyState" style="padding: 8px 0;"></p>
+            </div>
+
+            <!-- Photos section — only shown in edit mode -->
+            <div id="problemPhotosSection" style="display:none;">
+                <div class="section-header" style="margin-top: 8px; margin-bottom: 4px; padding-bottom: 4px;">
+                    <h4 style="font-weight: 600; color: #555; font-size: 0.95rem;">Photos</h4>
+                    <button class="btn btn-primary btn-small" id="addProblemCameraBtn" type="button">+ Camera</button>
+                    <button class="btn btn-primary btn-small" id="addProblemGalleryBtn" type="button">+ Gallery</button>
+                    <button class="btn btn-primary btn-small paste-photo-btn" data-entity="problem" type="button">📋 Paste</button>
+                </div>
+                <div id="problemPhotoContainer"></div>
+                <p class="empty-state" id="problemPhotoEmptyState" style="padding: 8px 0;"></p>
             </div>
 
             <div class="modal-buttons">
@@ -6841,46 +6853,46 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=339"></script>
-    <script src="js/auth.js?v=339"></script>
-    <script src="js/zones.js?v=339"></script>
-    <script src="js/plants.js?v=339"></script>
-    <script src="js/problems.js?v=339"></script>
-    <script src="js/facts.js?v=339"></script>
-    <script src="js/projects.js?v=339"></script>
-    <script src="js/chemicals.js?v=339"></script>
-    <script src="js/activities.js?v=339"></script>
+    <script src="js/firebase-config.js?v=340"></script>
+    <script src="js/auth.js?v=340"></script>
+    <script src="js/zones.js?v=340"></script>
+    <script src="js/plants.js?v=340"></script>
+    <script src="js/problems.js?v=340"></script>
+    <script src="js/facts.js?v=340"></script>
+    <script src="js/projects.js?v=340"></script>
+    <script src="js/chemicals.js?v=340"></script>
+    <script src="js/activities.js?v=340"></script>
     <!-- Cropper.js — client-side image cropping library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <!-- SortableJS — drag-and-drop list reordering -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    <script src="js/photos.js?v=339"></script>
-    <script src="js/weeds.js?v=339"></script>
-    <script src="js/calendar.js?v=339"></script>
-    <script src="js/gps.js?v=339"></script>
-    <script src="js/settings.js?v=339"></script>
-    <script src="js/house.js?v=339"></script>
-    <script src="js/floorplan.js?v=339"></script>
-    <script src="js/search.js?v=339"></script>
-    <script src="js/activityreport.js?v=339"></script>
-    <script src="js/checklists.js?v=339"></script>
-    <script src="js/bulkactivity.js?v=339"></script>
-    <script src="js/vehicles.js?v=339"></script>
-    <script src="js/garage.js?v=339"></script>
-    <script src="js/structures.js?v=339"></script>
-    <script src="js/moveThings.js?v=339"></script>
-    <script src="js/journal.js?v=339"></script>
-    <script src="js/people.js?v=339"></script>
-    <script src="js/collections.js?v=339"></script>
-    <script src="js/health.js?v=339"></script>
-    <script src="js/notes.js?v=339"></script>
-    <script src="js/lifecalendar.js?v=339"></script>
+    <script src="js/photos.js?v=340"></script>
+    <script src="js/weeds.js?v=340"></script>
+    <script src="js/calendar.js?v=340"></script>
+    <script src="js/gps.js?v=340"></script>
+    <script src="js/settings.js?v=340"></script>
+    <script src="js/house.js?v=340"></script>
+    <script src="js/floorplan.js?v=340"></script>
+    <script src="js/search.js?v=340"></script>
+    <script src="js/activityreport.js?v=340"></script>
+    <script src="js/checklists.js?v=340"></script>
+    <script src="js/bulkactivity.js?v=340"></script>
+    <script src="js/vehicles.js?v=340"></script>
+    <script src="js/garage.js?v=340"></script>
+    <script src="js/structures.js?v=340"></script>
+    <script src="js/moveThings.js?v=340"></script>
+    <script src="js/journal.js?v=340"></script>
+    <script src="js/people.js?v=340"></script>
+    <script src="js/collections.js?v=340"></script>
+    <script src="js/health.js?v=340"></script>
+    <script src="js/notes.js?v=340"></script>
+    <script src="js/lifecalendar.js?v=340"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=339"></script>
-    <script src="js/secondbrain.js?v=339"></script>
-    <script src="js/sbissues.js?v=339"></script>
-    <script src="js/places.js?v=339"></script>
-    <script src="js/app.js?v=339"></script>
+    <script src="js/chat.js?v=340"></script>
+    <script src="js/secondbrain.js?v=340"></script>
+    <script src="js/sbissues.js?v=340"></script>
+    <script src="js/places.js?v=340"></script>
+    <script src="js/app.js?v=340"></script>
 
 </body>
 </html>

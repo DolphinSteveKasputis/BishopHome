@@ -71,6 +71,7 @@ var PHOTO_CONTAINERS = {
     note:               ['notePhotoContainer',              'notePhotoEmptyState'],
     item:               ['siPhotoContainer',               'siPhotoEmptyState'],
     place:              ['placePhotoContainer',            'placePhotoEmptyState'],
+    problem:            ['problemPhotoContainer',          'problemPhotoEmptyState'],
 };
 
 // ---------- Load & Display Photos ----------
@@ -423,6 +424,7 @@ function _getPasteEntity(type) {
         person:            window.currentPerson,
         item:              window.currentItem,
         lifeEvent:         window.currentLifeEvent,
+        problem:           window.currentProblem,
     };
     return entityMap[type] || null;
 }
@@ -1042,6 +1044,13 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     document.getElementById('addPlaceGalleryBtn').addEventListener('click', function() {
         if (window.currentPlace) triggerGalleryUpload('place', window.currentPlace.id);
+    });
+
+    document.getElementById('addProblemCameraBtn').addEventListener('click', function() {
+        if (window.currentProblem) triggerCameraUpload('problem', window.currentProblem.id);
+    });
+    document.getElementById('addProblemGalleryBtn').addEventListener('click', function() {
+        if (window.currentProblem) triggerGalleryUpload('problem', window.currentProblem.id);
     });
 
     // ---- Crop Preview Modal Buttons ----

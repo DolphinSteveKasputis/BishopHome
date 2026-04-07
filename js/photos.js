@@ -72,6 +72,7 @@ var PHOTO_CONTAINERS = {
     item:               ['siPhotoContainer',               'siPhotoEmptyState'],
     place:              ['placePhotoContainer',            'placePhotoEmptyState'],
     problem:            ['problemPhotoContainer',          'problemPhotoEmptyState'],
+    medication:         ['medPhotoContainer',               'medPhotoEmptyState'],
 };
 
 // ---------- Load & Display Photos ----------

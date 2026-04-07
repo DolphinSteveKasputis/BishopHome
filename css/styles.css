@@ -5901,6 +5901,22 @@ textarea.sb-field { resize: vertical; min-height: 60px; }
     flex-shrink: 0;
 }
 
+/* Scan Rx row at top of medication modal */
+.med-scan-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.med-scan-status {
+    font-size: 0.85rem;
+    color: #374151;
+    flex: 1;
+}
+
 /* ── Health badges ─────────────────────────────────────────── */
 .health-badge {
     display: inline-block;

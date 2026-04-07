@@ -467,6 +467,10 @@ A comprehensive medical tracking hub.
 
 **Blood Work LLM Import**: User pastes lab report text → LLM extracts structured markers (name, value, unit, reference range, flagged status) → editable preview before save.
 
+**Medication Photos**: Each medication card has a "Photos" button that opens a dedicated photo modal with Camera / Gallery / Paste upload options. Photos stored in `photos` collection with `targetType: 'medication'`.
+
+**Scan Rx Label (LLM Vision)**: The Add/Edit Medication modal has a "📷 Scan Rx Label" button. User selects a photo of their prescription receipt; the app compresses it and sends it to the configured LLM (gpt-4o / grok-2-vision) with a structured extraction prompt. LLM returns JSON: name, dosage, prescribedBy, startDate, type (Ongoing/Short-term/As-needed), notes (Rx#, NDC, qty, refills, insurance savings). Fields are auto-populated for review before saving. The scanned image is automatically saved as a photo on the medication after save.
+
 **Vitals trend**: Select a vital type, see all readings over time in a table.
 
 ### Notes / Notebooks (`notes.js`)

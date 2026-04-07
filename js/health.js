@@ -910,6 +910,7 @@ function buildMedCard(doc) {
         '</div>' +
         '<div class="health-card-actions">' +
             '<button class="btn btn-secondary btn-small" onclick="openMedModal(\'' + doc.id + '\')">Edit</button>' +
+            '<button class="btn btn-secondary btn-small" onclick="openMedPhotoModal(\'' + doc.id + '\')">Photos</button>' +
             (!isCompleted ? '<button class="btn btn-secondary btn-small" onclick="markMedDone(\'' + doc.id + '\')">Done</button>' : '') +
             '<button class="btn btn-danger btn-small" onclick="deleteMed(\'' + doc.id + '\')">Delete</button>' +
         '</div>';
@@ -934,6 +935,143 @@ function populateVisitDropdown(selectId, selectedVisitId) {
         }).catch(function() {});
 }
 
+// ── Medication Photos ────────────────────────────────────────────────────────
+
+/**
+ * Opens the photo viewer modal for a specific medication.
+ * Uses a fixed container (medPhotoContainer) shared across all medications —
+ * the current medication ID is stored in window._medPhotoModalId.
+ */
+function openMedPhotoModal(id) {
+    window._medPhotoModalId = id;
+    loadPhotos('medication', id, 'medPhotoContainer', 'medPhotoEmptyState');
+    openModal('medPhotoModal');
+}
+
+// ── Scan Rx Label (LLM Vision) ───────────────────────────────────────────────
+
+/**
+ * Triggers the hidden file input so the user can pick a camera photo or
+ * gallery image of their prescription label.
+ */
+function _medScanRx() {
+    document.getElementById('medRxScanInput').value = '';
+    document.getElementById('medRxScanInput').click();
+}
+
+/**
+ * Called when the user selects an image via the Scan Rx file input.
+ * Compresses the image, sends it to the LLM with a vision prompt, then
+ * populates the medication form fields and stores the compressed image
+ * so it can be saved as a photo when the user clicks Save.
+ */
+async function _medHandleRxScan(input) {
+    if (!input.files || !input.files[0]) return;
+    var file = input.files[0];
+    var statusEl = document.getElementById('medScanStatus');
+
+    statusEl.textContent = 'Compressing image…';
+    var base64DataUrl;
+    try {
+        base64DataUrl = await compressImage(file);
+    } catch (e) {
+        statusEl.textContent = 'Error compressing image.';
+        console.error('_medHandleRxScan compress:', e);
+        return;
+    }
+
+    // Store so saveMed() can attach it as a photo after saving
+    document.getElementById('medicationModal').dataset.pendingRxPhoto = base64DataUrl;
+
+    statusEl.textContent = 'Reading label with AI…';
+    var parsed;
+    try {
+        parsed = await _medCallLLMVision(base64DataUrl);
+    } catch (e) {
+        statusEl.textContent = 'AI error: ' + e.message;
+        console.error('_medHandleRxScan LLM:', e);
+        return;
+    }
+
+    // Populate form fields — only overwrite if the LLM returned a value
+    if (parsed.name)          document.getElementById('medName').value         = parsed.name;
+    if (parsed.dosage)        document.getElementById('medDosage').value       = parsed.dosage;
+    if (parsed.prescribedBy)  document.getElementById('medPrescribedBy').value = parsed.prescribedBy;
+    if (parsed.startDate)     document.getElementById('medStartDate').value    = parsed.startDate;
+    if (parsed.type)          document.getElementById('medType').value         = parsed.type;
+    if (parsed.notes)         document.getElementById('medNotes').value        = parsed.notes;
+
+    statusEl.textContent = '✓ Fields filled — review and save.';
+}
+
+/**
+ * Calls the configured LLM with a vision prompt to extract prescription data
+ * from a Base64 image.  Returns a plain object with the extracted fields.
+ *
+ * Extracted fields: name, dosage, prescribedBy, startDate, type, notes.
+ */
+async function _medCallLLMVision(base64DataUrl) {
+    var doc = await userCol('settings').doc('llm').get();
+    if (!doc.exists) throw new Error('LLM not configured. Go to Settings → QuickLog to add your API key.');
+
+    var cfg      = doc.data();
+    var provider = cfg.provider || 'openai';
+    var apiKey   = cfg.apiKey   || '';
+    var model    = cfg.model    || '';
+
+    var ENDPOINTS = {
+        openai: { url: 'https://api.openai.com/v1/chat/completions', model: 'gpt-4o' },
+        grok:   { url: 'https://api.x.ai/v1/chat/completions',       model: 'grok-2-vision-1212' }
+    };
+    var ep = ENDPOINTS[provider] || ENDPOINTS.openai;
+
+    var systemPrompt =
+        'You are a prescription label reader. Extract medication information from the image ' +
+        'and return ONLY a valid JSON object with these fields:\n' +
+        '  name        – drug name and strength (e.g. "Albendazole 200 MG")\n' +
+        '  dosage      – dosage instructions including qty and days supply (e.g. "200mg, 4 tablets, 2-day supply")\n' +
+        '  prescribedBy – prescriber name only (e.g. "Nathan Szakal")\n' +
+        '  startDate   – fill date as YYYY-MM-DD (e.g. "2026-04-07")\n' +
+        '  type        – one of: "Ongoing", "Short-term", "As-needed" — infer from days supply\n' +
+        '  notes       – one compact line: Rx#, NDC, qty, refills, insurance savings if shown\n' +
+        'Return ONLY the JSON object, no markdown, no explanation.';
+
+    var res = await fetch(ep.url, {
+        method : 'POST',
+        headers: {
+            'Content-Type' : 'application/json',
+            'Authorization': 'Bearer ' + apiKey
+        },
+        body: JSON.stringify({
+            model: model || ep.model,
+            max_completion_tokens: 400,
+            messages: [{
+                role: 'user',
+                content: [
+                    { type: 'text',      text: systemPrompt },
+                    { type: 'image_url', image_url: { url: base64DataUrl, detail: 'high' } }
+                ]
+            }]
+        })
+    });
+
+    if (!res.ok) {
+        var errBody = await res.text();
+        throw new Error('LLM error ' + res.status + ': ' + errBody.slice(0, 200));
+    }
+    var json    = await res.json();
+    var content = json.choices[0].message.content.trim();
+
+    // Strip markdown code fences if the model added them
+    content = content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+
+    try {
+        return JSON.parse(content);
+    } catch (e) {
+        throw new Error('Could not parse LLM response: ' + content.slice(0, 100));
+    }
+}
+
 function openMedModal(id) {
     var modal = document.getElementById('medicationModal');
     modal.dataset.editId = id || '';
@@ -944,6 +1082,8 @@ function openMedModal(id) {
     });
     document.getElementById('medType').value   = '';
     document.getElementById('medStatus').value = 'active';
+    document.getElementById('medScanStatus').textContent = '';
+    document.getElementById('medicationModal').dataset.pendingRxPhoto = '';
 
     var visitId = '';
     if (id) {
@@ -994,9 +1134,24 @@ function saveMed() {
         data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
         op = userCol('medications').add(data);
     }
-    op.then(function() {
+    op.then(function(ref) {
+        var savedId   = ref ? ref.id : editId;  // ref is set on add, undefined on update
+        var rxPhoto   = document.getElementById('medicationModal').dataset.pendingRxPhoto || '';
+        var afterClose = function() { loadMedicationsPage(); };
+
+        if (rxPhoto && savedId) {
+            // Attach the scanned Rx receipt image as a photo on this medication
+            userCol('photos').add({
+                targetType : 'medication',
+                targetId   : savedId,
+                imageData  : rxPhoto,
+                caption    : 'Rx receipt',
+                createdAt  : firebase.firestore.FieldValue.serverTimestamp()
+            }).catch(function(e) { console.error('Failed to save Rx photo:', e); });
+        }
+
         closeModal('medicationModal');
-        loadMedicationsPage();
+        afterClose();
     }).catch(function(err) { alert('Error saving: ' + err.message); });
 }
 

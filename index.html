@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=342">
+    <link rel="stylesheet" href="css/styles.css?v=343">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -5872,6 +5872,11 @@
         <div class="modal-overlay" id="medicationModal">
             <div class="modal">
                 <h3 id="medicationModalTitle">Add Medication</h3>
+                <div class="med-scan-row">
+                    <button class="btn btn-secondary btn-small" onclick="_medScanRx()">&#128247; Scan Rx Label</button>
+                    <span id="medScanStatus" class="med-scan-status"></span>
+                </div>
+                <input type="file" id="medRxScanInput" accept="image/*" style="display:none" onchange="_medHandleRxScan(this)">
                 <div class="form-row">
                     <div class="form-group">
                         <label for="medName">Name *</label>
@@ -5931,6 +5936,24 @@
                 <div class="modal-buttons">
                     <button class="btn btn-secondary" onclick="closeModal('medicationModal')">Cancel</button>
                     <button class="btn btn-primary" onclick="saveMed()">Save</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal: Medication Photos -->
+        <div class="modal-overlay" id="medPhotoModal">
+            <div class="modal">
+                <h3>Medication Photos</h3>
+                <div class="section-header" style="margin-bottom:0.5rem">
+                    <button class="btn btn-primary btn-small" onclick="triggerCameraUpload('medication', window._medPhotoModalId)">+ Camera</button>
+                    <button class="btn btn-primary btn-small" onclick="triggerGalleryUpload('medication', window._medPhotoModalId)">+ Gallery</button>
+                    <button class="btn btn-secondary btn-small" onclick="triggerPasteUpload('medication', window._medPhotoModalId)">&#128203; Paste</button>
+                </div>
+                <div id="medPhotoContainer">
+                    <p id="medPhotoEmptyState" class="empty-state">No photos yet.</p>
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn btn-secondary" onclick="closeModal('medPhotoModal')">Close</button>
                 </div>
             </div>
         </div>
@@ -6859,46 +6882,46 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=342"></script>
-    <script src="js/auth.js?v=342"></script>
-    <script src="js/zones.js?v=342"></script>
-    <script src="js/plants.js?v=342"></script>
-    <script src="js/problems.js?v=342"></script>
-    <script src="js/facts.js?v=342"></script>
-    <script src="js/projects.js?v=342"></script>
-    <script src="js/chemicals.js?v=342"></script>
-    <script src="js/activities.js?v=342"></script>
+    <script src="js/firebase-config.js?v=343"></script>
+    <script src="js/auth.js?v=343"></script>
+    <script src="js/zones.js?v=343"></script>
+    <script src="js/plants.js?v=343"></script>
+    <script src="js/problems.js?v=343"></script>
+    <script src="js/facts.js?v=343"></script>
+    <script src="js/projects.js?v=343"></script>
+    <script src="js/chemicals.js?v=343"></script>
+    <script src="js/activities.js?v=343"></script>
     <!-- Cropper.js — client-side image cropping library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <!-- SortableJS — drag-and-drop list reordering -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    <script src="js/photos.js?v=342"></script>
-    <script src="js/weeds.js?v=342"></script>
-    <script src="js/calendar.js?v=342"></script>
-    <script src="js/gps.js?v=342"></script>
-    <script src="js/settings.js?v=342"></script>
-    <script src="js/house.js?v=342"></script>
-    <script src="js/floorplan.js?v=342"></script>
-    <script src="js/search.js?v=342"></script>
-    <script src="js/activityreport.js?v=342"></script>
-    <script src="js/checklists.js?v=342"></script>
-    <script src="js/bulkactivity.js?v=342"></script>
-    <script src="js/vehicles.js?v=342"></script>
-    <script src="js/garage.js?v=342"></script>
-    <script src="js/structures.js?v=342"></script>
-    <script src="js/moveThings.js?v=342"></script>
-    <script src="js/journal.js?v=342"></script>
-    <script src="js/people.js?v=342"></script>
-    <script src="js/collections.js?v=342"></script>
-    <script src="js/health.js?v=342"></script>
-    <script src="js/notes.js?v=342"></script>
-    <script src="js/lifecalendar.js?v=342"></script>
+    <script src="js/photos.js?v=343"></script>
+    <script src="js/weeds.js?v=343"></script>
+    <script src="js/calendar.js?v=343"></script>
+    <script src="js/gps.js?v=343"></script>
+    <script src="js/settings.js?v=343"></script>
+    <script src="js/house.js?v=343"></script>
+    <script src="js/floorplan.js?v=343"></script>
+    <script src="js/search.js?v=343"></script>
+    <script src="js/activityreport.js?v=343"></script>
+    <script src="js/checklists.js?v=343"></script>
+    <script src="js/bulkactivity.js?v=343"></script>
+    <script src="js/vehicles.js?v=343"></script>
+    <script src="js/garage.js?v=343"></script>
+    <script src="js/structures.js?v=343"></script>
+    <script src="js/moveThings.js?v=343"></script>
+    <script src="js/journal.js?v=343"></script>
+    <script src="js/people.js?v=343"></script>
+    <script src="js/collections.js?v=343"></script>
+    <script src="js/health.js?v=343"></script>
+    <script src="js/notes.js?v=343"></script>
+    <script src="js/lifecalendar.js?v=343"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=342"></script>
-    <script src="js/secondbrain.js?v=342"></script>
-    <script src="js/sbissues.js?v=342"></script>
-    <script src="js/places.js?v=342"></script>
-    <script src="js/app.js?v=342"></script>
+    <script src="js/chat.js?v=343"></script>
+    <script src="js/secondbrain.js?v=343"></script>
+    <script src="js/sbissues.js?v=343"></script>
+    <script src="js/places.js?v=343"></script>
+    <script src="js/app.js?v=343"></script>
 
 </body>
 </html>

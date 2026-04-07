@@ -951,23 +951,66 @@ function openMedPhotoModal(id) {
 // ── Scan Rx Label (LLM Vision) ───────────────────────────────────────────────
 
 /**
- * Triggers the hidden file input so the user can pick a camera photo or
- * gallery image of their prescription label.
+ * Triggers the appropriate image source for scanning a prescription label.
+ * mode: 'camera'  — opens device camera (mobile)
+ *       'gallery' — opens file/photo picker
+ *       'paste'   — reads image from clipboard
  */
-function _medScanRx() {
-    document.getElementById('medRxScanInput').value = '';
-    document.getElementById('medRxScanInput').click();
+async function _medScanRx(mode) {
+    if (mode === 'paste') {
+        if (!navigator.clipboard || !navigator.clipboard.read) {
+            alert('Clipboard paste is not supported in this browser. Try Camera or Gallery instead.');
+            return;
+        }
+        try {
+            var items = await navigator.clipboard.read();
+            var imageBlob = null;
+            for (var i = 0; i < items.length; i++) {
+                var imageType = items[i].types.find(function(t) { return t.startsWith('image/'); });
+                if (imageType) { imageBlob = await items[i].getType(imageType); break; }
+            }
+            if (!imageBlob) {
+                alert('No image on the clipboard.\n\nRight-click an image and choose "Copy image", then click Paste.');
+                return;
+            }
+            var ext  = imageBlob.type === 'image/png' ? '.png' : '.jpg';
+            var file = new File([imageBlob], 'pasted-rx' + ext, { type: imageBlob.type });
+            await _medProcessRxFile(file);
+        } catch (err) {
+            if (err.name === 'NotAllowedError') {
+                alert('Clipboard access was denied. Click "Allow" when the browser asks, then try again.');
+            } else {
+                alert('Could not read clipboard: ' + err.message);
+            }
+        }
+        return;
+    }
+
+    // Camera or Gallery — use a temporary file input
+    var input = document.getElementById('medRxScanInput');
+    input.value = '';
+    if (mode === 'camera') {
+        input.setAttribute('capture', 'environment');
+    } else {
+        input.removeAttribute('capture');
+    }
+    input.click();
 }
 
 /**
- * Called when the user selects an image via the Scan Rx file input.
- * Compresses the image, sends it to the LLM with a vision prompt, then
- * populates the medication form fields and stores the compressed image
- * so it can be saved as a photo when the user clicks Save.
+ * Called when the user selects a file via the hidden file input.
  */
 async function _medHandleRxScan(input) {
     if (!input.files || !input.files[0]) return;
-    var file = input.files[0];
+    await _medProcessRxFile(input.files[0]);
+}
+
+/**
+ * Compresses an image file, sends it to the LLM for prescription data
+ * extraction, and auto-populates the medication form fields.
+ * Also stores the compressed image so saveMed() can attach it as a photo.
+ */
+async function _medProcessRxFile(file) {
     var statusEl = document.getElementById('medScanStatus');
 
     statusEl.textContent = 'Compressing image…';
@@ -976,7 +1019,7 @@ async function _medHandleRxScan(input) {
         base64DataUrl = await compressImage(file);
     } catch (e) {
         statusEl.textContent = 'Error compressing image.';
-        console.error('_medHandleRxScan compress:', e);
+        console.error('_medProcessRxFile compress:', e);
         return;
     }
 
@@ -989,7 +1032,7 @@ async function _medHandleRxScan(input) {
         parsed = await _medCallLLMVision(base64DataUrl);
     } catch (e) {
         statusEl.textContent = 'AI error: ' + e.message;
-        console.error('_medHandleRxScan LLM:', e);
+        console.error('_medProcessRxFile LLM:', e);
         return;
     }
 

@@ -87,14 +87,22 @@ var LC_TEMPLATE_KEYS = ['race', 'concert', 'golf', 'sports'];
  * Reuses the same gradient set as notebooks for visual consistency.
  */
 var LC_COLOR_SWATCHES = [
-    { label: 'Sky',     gradient: 'linear-gradient(135deg, #0284c7, #38bdf8)' },
-    { label: 'Teal',    gradient: 'linear-gradient(135deg, #0d9488, #34d399)' },
-    { label: 'Green',   gradient: 'linear-gradient(135deg, #16a34a, #4ade80)' },
-    { label: 'Amber',   gradient: 'linear-gradient(135deg, #d97706, #fbbf24)' },
-    { label: 'Rose',    gradient: 'linear-gradient(135deg, #e11d48, #fb7185)' },
-    { label: 'Violet',  gradient: 'linear-gradient(135deg, #7c3aed, #c4b5fd)' },
-    { label: 'Indigo',  gradient: 'linear-gradient(135deg, #6366f1, #a5b4fc)' },
-    { label: 'Gray',    gradient: 'linear-gradient(135deg, #6b7280, #9ca3af)' },
+    { label: 'Sky',      gradient: 'linear-gradient(135deg, #0284c7, #38bdf8)' },
+    { label: 'Teal',     gradient: 'linear-gradient(135deg, #0d9488, #34d399)' },
+    { label: 'Green',    gradient: 'linear-gradient(135deg, #16a34a, #4ade80)' },
+    { label: 'Amber',    gradient: 'linear-gradient(135deg, #d97706, #fbbf24)' },
+    { label: 'Rose',     gradient: 'linear-gradient(135deg, #e11d48, #fb7185)' },
+    { label: 'Violet',   gradient: 'linear-gradient(135deg, #7c3aed, #c4b5fd)' },
+    { label: 'Indigo',   gradient: 'linear-gradient(135deg, #6366f1, #a5b4fc)' },
+    { label: 'Gray',     gradient: 'linear-gradient(135deg, #6b7280, #9ca3af)' },
+    { label: 'Orange',   gradient: 'linear-gradient(135deg, #ea580c, #fb923c)' },
+    { label: 'Pink',     gradient: 'linear-gradient(135deg, #db2777, #f472b6)' },
+    { label: 'Lime',     gradient: 'linear-gradient(135deg, #65a30d, #a3e635)' },
+    { label: 'Cyan',     gradient: 'linear-gradient(135deg, #0891b2, #67e8f9)' },
+    { label: 'Purple',   gradient: 'linear-gradient(135deg, #9333ea, #d8b4fe)' },
+    { label: 'Brown',    gradient: 'linear-gradient(135deg, #92400e, #d97706)' },
+    { label: 'Midnight', gradient: 'linear-gradient(135deg, #1e1b4b, #4338ca)' },
+    { label: 'Forest',   gradient: 'linear-gradient(135deg, #14532d, #22c55e)' },
 ];
 
 /**

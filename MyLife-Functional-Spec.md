@@ -428,7 +428,7 @@ Renamed from "People". Tracks personal contacts and medical/service professional
 - **Personal** — family, friends (default for all legacy records)
 - **Medical Professional** — shows `specialty` combo box (~35 built-in options via `<datalist>`); custom specialties typed by the user are saved to `lookups/specialties` in Firestore and appear in the list for future contacts
 - **Medical Facility** — clinic, hospital, lab, pharmacy
-- **Service Professional** — plumber, electrician, contractor
+- **Service Professional** — shows `trade` combo box (built-ins: Plumber, Electrician, HVAC, Pest Control, Handyman); custom trades saved to `lookups/serviceTrades` in Firestore and appear in future combos
 - **Other**
 
 **Routes**: `#contacts` (list), `#contact/{id}` (detail). Legacy `#people` / `#person/{id}` redirect to the new routes.

@@ -944,6 +944,48 @@ async function deleteJournalEntry(id) {
  * Each replacement trims any leading/trailing space around the word so the
  * result reads naturally (e.g. "Hello period" → "Hello.")
  */
+/**
+ * Handle destructive voice editing commands that operate on the textarea
+ * content directly rather than inserting text.
+ * Called in onresult BEFORE punctuation processing.
+ * Returns true if the transcript was a command (caller should skip appending).
+ *
+ * Commands (entire spoken chunk must match, case-insensitive):
+ *   "delete last word"     — removes the last word in the textarea
+ *   "delete last sentence" — removes text after the last .  !  or  ?
+ *   "clear all"            — empties the textarea completely
+ */
+function _applyVoiceEditCommand(rawTranscript, textarea) {
+    var cmd = rawTranscript.trim().toLowerCase();
+
+    if (cmd === 'delete last word') {
+        // Remove the last word and any surrounding whitespace
+        textarea.value = textarea.value.replace(/\s*\S+\s*$/, '');
+        return true;
+    }
+
+    if (cmd === 'delete last sentence') {
+        var val = textarea.value;
+        // Find the rightmost .!? that still has non-whitespace content after it
+        // — that's the last sentence boundary before the incomplete trailing sentence.
+        // If there's no such boundary, clear everything.
+        var match = val.match(/([\s\S]*[.!?])[\s\S]*\S/);
+        if (match) {
+            textarea.value = match[1];
+        } else {
+            textarea.value = '';
+        }
+        return true;
+    }
+
+    if (cmd === 'clear all') {
+        textarea.value = '';
+        return true;
+    }
+
+    return false; // not a recognized command
+}
+
 function applySpokenPunctuation(text) {
     var rules = [
         // New line / paragraph first (multi-word)
@@ -1053,6 +1095,10 @@ function initVoiceToText(textareaId, btnId) {
         }
 
         if (transcript) {
+            // Check for editing commands first — these act on the textarea directly
+            // and should not be appended as text.
+            if (_applyVoiceEditCommand(transcript, textarea)) return;
+
             // Convert spoken punctuation words to symbols (e.g. "period" → ".")
             transcript = applySpokenPunctuation(transcript);
 

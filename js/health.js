@@ -1645,7 +1645,7 @@ function removeConcernMed(medId, concernId) {
 
 // Load appointments and visits linked to this concern
 async function loadConcernApptVisits(concernId) {
-    var container = document.getElementById('concernApptVisitList');
+    var container = document.getElementById('concernApptVisitsList');
     if (!container) return;
     container.innerHTML = '<p class="empty-state">Loading\u2026</p>';
 

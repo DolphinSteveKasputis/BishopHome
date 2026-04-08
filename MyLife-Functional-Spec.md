@@ -469,7 +469,7 @@ Row 1: Conditions, Concerns | Row 2: Appointments, Health Visits | Row 3: Medica
 
 | Collection | Key Fields |
 |------------|------------|
-| `healthVisits` | date, provider, providerType, reason, whatWasDone, outcome, cost, notes |
+| `healthVisits` | date, type, provider (legacy), providerType (legacy), facilityContactId, providerContactId, concernIds[], conditionIds[], reason, whatWasDone, outcome, cost, notes |
 | `medications` | name, dosage, purpose, prescribedBy, startDate, endDate, status (active/completed), type (Ongoing/Short-term/As-needed) |
 | `healthConcerns` | title, bodyArea, startDate, status (open/resolved), resolvedDate, summary |
 | `healthConcernLogs` | concernId, date, note, painScale |
@@ -484,6 +484,8 @@ Row 1: Conditions, Concerns | Row 2: Appointments, Health Visits | Row 3: Medica
 | `healthAppointments` | date, time, type, facilityContactId, providerContactId, concernIds[], conditionIds[], notes, status (scheduled/completed/cancelled/converted), linkedVisitId |
 
 **Appointments** (`#health-appointments`): List page shows Overdue / Upcoming / Past sections. Each card shows: type badge, date/time, Facility (tappable link to `#contact/{id}` if contactId set), Provider (tappable link or plain text), concern/condition chips, notes. Actions: Edit (hidden on converted), ✓ Mark Done + Cancel (scheduled/overdue only), View Visit link (if linkedVisitId set), Delete. Add/Edit modal: date, time, type dropdown (Dr. Visit / Specialist / Follow-up / Physical or Annual / Urgent Care / Emergency / Dental / Eye Exam / Lab or Test / Procedure), status, Facility ContactPicker (Medical Facility, allowCreate), Provider ContactPicker (Medical Professional, allowCreate, optional), scrollable concern/condition checkbox list (open concerns + active/managed conditions), notes. Mark Done → opens `apptConvertModal` to create a Health Visit; on save sets `status: 'converted'` and `linkedVisitId`. Converted appointments show no Edit button and a "View Visit" link.
+
+**Health Visits** (`#health-visits`, `#health-visit/{id}`): List page shows visits in reverse-chronological order grouped by year. Each card shows: date, provider, type badge (uses `visit.type` if set, falls back to `visit.providerType` for legacy records), reason. Visit detail page header shows "[Type] — [formatted date]" (falls back to "Visit — [date]" if no type). Detail rows: Facility (tappable link to `#contact/{id}` if `facilityContactId` set, or plain text from `facilityText`, hidden if neither set), Provider (tappable link or plain text, falls back to legacy `provider` field), Provider Type, Reason for Visit, What Was Done, Outcome/Next Steps, Cost, Notes. "This visit covered" section: tappable concern chips (→ `#health-concern/{id}`) and condition chips (→ `#health-condition/{id}`) from `concernIds[]` / `conditionIds[]`; section hidden if both arrays empty.
 
 **Routes**: `#health`, `#health-visits`, `#health-visit/{id}`, `#health-medications`, `#health-conditions`, `#health-concerns`, `#health-concern/{id}`, `#health-bloodwork`, `#health-bloodwork-detail/{id}`, `#health-vitals`, `#health-supplements`, `#health-vaccinations`, `#health-eye`, `#health-insurance`, `#health-insurance-detail/{id}`, `#health-emergency`, `#health-appointments`, `#health-allergies`
 
@@ -1027,7 +1029,7 @@ All collections live under `/users/{uid}/`. Every module uses `userCol('collecti
 
 | Collection | Key Fields |
 |------------|------------|
-| `healthVisits` | date, provider, providerType, reason, whatWasDone, outcome, cost, notes |
+| `healthVisits` | date, type, provider (legacy), providerType (legacy), facilityContactId, providerContactId, concernIds[], conditionIds[], reason, whatWasDone, outcome, cost, notes |
 | `medications` | name, dosage, purpose, prescribedBy, startDate, endDate, status, type |
 | `healthConcerns` | title, bodyArea, startDate, status, resolvedDate, summary |
 | `healthConcernLogs` | concernId, date, note, painScale? |

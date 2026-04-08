@@ -632,9 +632,11 @@ function buildVisitCard(visit) {
     div.className = 'health-card health-card--clickable';
     div.onclick = function() { location.hash = '#health-visit/' + visit.id; };
 
-    var badge = visit.providerType
-        ? '<span class="health-badge">' + escapeHtml(visit.providerType) + '</span>'
-        : '';
+    // Prefer new visit.type badge; fall back to legacy providerType badge
+    var badge = visit.type
+        ? '<span class="appt-type-badge">' + escapeHtml(visit.type) + '</span>'
+        : (visit.providerType ? '<span class="health-badge">' + escapeHtml(visit.providerType) + '</span>' : '');
+
     var sub = visit.reason
         ? escapeHtml(visit.reason)
         : '<em style="color:#aaa">No reason noted</em>';
@@ -670,19 +672,51 @@ function loadHealthVisitDetail(id) {
         });
 }
 
-function renderVisitDetail(visit) {
-    document.getElementById('visitDetailTitle').textContent =
-        (visit.date || '\u2014') + ' \u2014 ' + (visit.provider || 'Unknown');
+async function renderVisitDetail(visit) {
+    // Title: "[Type] — [formatted date]", fall back to "Visit — [date]" for older records
+    var titleType = visit.type || 'Visit';
+    var titleDate = visit.date ? _apptFormatDate(visit.date) : '\u2014';
+    document.getElementById('visitDetailTitle').textContent = titleType + ' \u2014 ' + titleDate;
 
-    document.getElementById('visitDetailProvider').textContent = visit.provider     || '\u2014';
-    document.getElementById('visitDetailType').textContent     = visit.providerType || '\u2014';
+    // Facility row — show if facilityContactId or facilityText set
+    var facilityRow = document.getElementById('visitDetailFacilityRow');
+    var facilityEl  = document.getElementById('visitDetailFacility');
+    if (visit.facilityContactId) {
+        facilityRow.style.display = '';
+        facilityEl.innerHTML = 'Loading\u2026';
+        userCol('people').doc(visit.facilityContactId).get().then(function(snap) {
+            var name = snap.exists ? (snap.data().name || visit.facilityContactId) : visit.facilityContactId;
+            facilityEl.innerHTML = '<a href="#contact/' + visit.facilityContactId + '" class="appt-contact-link">' + escapeHtml(name) + '</a>';
+        }).catch(function() { facilityEl.textContent = visit.facilityContactId; });
+    } else if (visit.facilityText) {
+        facilityRow.style.display = '';
+        facilityEl.textContent = visit.facilityText;
+    } else {
+        facilityRow.style.display = 'none';
+    }
+
+    // Provider row — prefer new contact fields, fall back to legacy provider string
+    var providerEl = document.getElementById('visitDetailProvider');
+    if (visit.providerContactId) {
+        providerEl.innerHTML = 'Loading\u2026';
+        userCol('people').doc(visit.providerContactId).get().then(function(snap) {
+            var name = snap.exists ? (snap.data().name || visit.providerContactId) : visit.providerContactId;
+            providerEl.innerHTML = '<a href="#contact/' + visit.providerContactId + '" class="appt-contact-link">' + escapeHtml(name) + '</a>';
+        }).catch(function() { providerEl.textContent = visit.providerContactId; });
+    } else if (visit.providerText) {
+        providerEl.textContent = visit.providerText;
+    } else {
+        providerEl.textContent = visit.provider || '\u2014';
+    }
+
+    document.getElementById('visitDetailType').textContent     = visit.providerType || visit.type || '\u2014';
     document.getElementById('visitDetailReason').textContent   = visit.reason       || '\u2014';
     document.getElementById('visitDetailWhatDone').textContent = visit.whatWasDone  || '\u2014';
     document.getElementById('visitDetailOutcome').textContent  = visit.outcome      || '\u2014';
     document.getElementById('visitDetailCost').textContent     = visit.cost ? '$' + visit.cost : '\u2014';
     document.getElementById('visitDetailNotes').textContent    = visit.notes        || '\u2014';
 
-    // Linked concern (hidden when not set)
+    // Legacy single-concern link (backwards compat)
     var concernSection = document.getElementById('visitDetailConcernSection');
     var concernEl      = document.getElementById('visitDetailConcern');
     if (visit.concernId) {
@@ -695,10 +729,46 @@ function renderVisitDetail(visit) {
         concernSection.style.display = 'none';
     }
 
+    // "This visit covered" — tappable concern/condition tags from Phase 3 arrays
+    var coveredSection = document.getElementById('visitDetailCoveredSection');
+    var coveredTags    = document.getElementById('visitDetailCoveredTags');
+    var concernIds   = visit.concernIds   || [];
+    var conditionIds = visit.conditionIds || [];
+    if (concernIds.length > 0 || conditionIds.length > 0) {
+        coveredSection.style.display = '';
+        coveredTags.innerHTML = '<span style="color:#94a3b8; font-size:0.85rem;">Loading\u2026</span>';
+        try {
+            var fetches = [];
+            concernIds.forEach(function(cid) {
+                fetches.push(userCol('healthConcerns').doc(cid).get().then(function(s) {
+                    return { id: cid, kind: 'concern', title: s.exists ? (s.data().title || cid) : cid };
+                }));
+            });
+            conditionIds.forEach(function(cid) {
+                fetches.push(userCol('healthConditions').doc(cid).get().then(function(s) {
+                    return { id: cid, kind: 'condition', title: s.exists ? (s.data().title || cid) : cid };
+                }));
+            });
+            var coveredItems = await Promise.all(fetches);
+            coveredTags.innerHTML = coveredItems.map(function(item) {
+                var icon = item.kind === 'concern' ? '\u26a0\ufe0f' : '\ud83d\udccb';
+                var href = item.kind === 'concern'
+                    ? '#health-concern/' + item.id
+                    : '#health-condition/' + item.id;
+                return '<a href="' + href + '" class="health-chip health-chip--' + item.kind + ' health-chip--link">' +
+                    icon + ' ' + escapeHtml(item.title) + '</a>';
+            }).join('');
+        } catch(e) {
+            coveredTags.innerHTML = '<span style="color:#dc2626; font-size:0.85rem;">Error loading</span>';
+        }
+    } else {
+        coveredSection.style.display = 'none';
+    }
+
     // Photos
     loadPhotos('healthVisit', visit.id, 'visitPhotoContainer', 'visitPhotoEmptyState');
 
-    // Linked records (will be empty until H3/H4 collections are populated)
+    // Linked records
     loadVisitLinkedMeds(visit.id);
     loadVisitLinkedConditions(visit.id);
     loadVisitLinkedBloodWork(visit.id);

@@ -6674,6 +6674,9 @@ textarea.sb-field { resize: vertical; min-height: 60px; }
 }
 .health-chip--concern   { background: #fef3c7; color: #92400e; }
 .health-chip--condition { background: #ede9fe; color: #6d28d9; }
+/* Clickable chip variant (used in "This visit covered" section) */
+a.health-chip--link { text-decoration: none; cursor: pointer; }
+a.health-chip--link:hover { filter: brightness(0.93); }
 
 /* ── Appointment modal — concern/condition checklist ────────── */
 .appt-concerns-list {

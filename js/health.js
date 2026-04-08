@@ -1251,7 +1251,14 @@ async function _medCallLLMVision(base64DataUrl) {
     }
 }
 
-function openMedModal(id) {
+/**
+ * Open the Add/Edit Medication modal.
+ * @param {string|null} id        - Medication doc ID to edit, or null for new.
+ * @param {object}      [options] - Optional: { presetVisitId: string } pre-selects
+ *                                  the "Prescribed at Visit" dropdown (used when
+ *                                  opening from Step 2 where the visit is known).
+ */
+function openMedModal(id, options) {
     var modal = document.getElementById('medicationModal');
     modal.dataset.editId = id || '';
     document.getElementById('medicationModalTitle').textContent = id ? 'Edit Medication' : 'Add Medication';
@@ -1282,7 +1289,9 @@ function openMedModal(id) {
             populateVisitDropdown('medVisitId', visitId);
         });
     } else {
-        populateVisitDropdown('medVisitId', '');
+        // Pre-select the visit if called from a context where it's already known
+        var presetVisitId = (options && options.presetVisitId) ? options.presetVisitId : '';
+        populateVisitDropdown('medVisitId', presetVisitId);
     }
     openModal('medicationModal');
 }
@@ -4178,7 +4187,8 @@ function _step2AddNewMed(type, id) {
             _step2LoadMedsForItem(type, id);
         }).catch(function(err) { console.error('_step2AddNewMed link error:', err); });
     };
-    openMedModal(null);   // open blank add-med form; on save, callback fires above
+    // Pass the current visit so it's pre-selected in "Prescribed at Visit"
+    openMedModal(null, { presetVisitId: _step2Visit ? _step2Visit.id : '' });
 }
 
 function _step2UnlinkMed(medId, type, id) {

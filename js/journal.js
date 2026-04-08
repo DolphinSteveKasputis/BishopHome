@@ -1703,6 +1703,7 @@ function _journalShowDropdown(matches) {
     matches.forEach(function(person) {
         var item = document.createElement('div');
         item.className = 'mention-item';
+        item._mentionPerson = person; // stored for Tab-key access
         var label = escapeHtml(person.name);
         if (person.nickname) label += ' <span class=mention-item-nick>(' + escapeHtml(person.nickname) + ')</span>';
         item.innerHTML = label;
@@ -1754,7 +1755,22 @@ function _journalInitMentions() {
     ta.removeEventListener('input',   _journalHandleTextareaInput);
     ta.addEventListener('input',      _journalHandleTextareaInput);
     ta.addEventListener('blur',       function(){ setTimeout(_journalHideDropdown, 180); });
-    ta.addEventListener('keydown',    function(e){ if (e.key === 'Escape') _journalHideDropdown(); });
+    ta.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            _journalHideDropdown();
+        } else if (e.key === 'Tab') {
+            // If the @mention dropdown is open, Tab picks the first result
+            var drop = document.getElementById('journalMentionDropdown');
+            if (drop && drop.style.display !== 'none' && drop.children.length > 0) {
+                e.preventDefault(); // stop focus from jumping to next field
+                // Re-use the existing select logic — pull the person from the first item's stored data
+                var firstItem = drop.children[0];
+                if (firstItem && firstItem._mentionPerson) {
+                    _journalSelectMention(firstItem._mentionPerson);
+                }
+            }
+        }
+    });
     _journalLoadPeopleCache();
 }
 

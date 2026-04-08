@@ -426,7 +426,7 @@ Renamed from "People". Tracks personal contacts and medical/service professional
 
 **Contact type categories** (fixed list, stored in `category` field):
 - **Personal** — family, friends (default for all legacy records)
-- **Medical Professional** — shows `specialty` field (e.g., "Family Medicine", "Dermatology")
+- **Medical Professional** — shows `specialty` combo box (~35 built-in options via `<datalist>`); custom specialties typed by the user are saved to `lookups/specialties` in Firestore and appear in the list for future contacts
 - **Medical Facility** — clinic, hospital, lab, pharmacy
 - **Service Professional** — plumber, electrician, contractor
 - **Other**

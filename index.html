@@ -2909,7 +2909,44 @@
             <!-- Specialty — shown only when Contact Type = Medical Professional -->
             <div class="form-group" id="personSpecialtyGroup" style="display:none;">
                 <label for="personSpecialtyInput">Specialty</label>
-                <input type="text" id="personSpecialtyInput" placeholder="e.g., Family Medicine, Dermatology, Dentistry">
+                <input type="text" id="personSpecialtyInput" list="specialtyOptions" placeholder="e.g., Family Medicine, Dermatology, Dentistry">
+                <datalist id="specialtyOptions">
+                    <option value="Family Medicine">
+                    <option value="Internal Medicine">
+                    <option value="Pediatrics">
+                    <option value="OB/GYN">
+                    <option value="Cardiology">
+                    <option value="Dermatology">
+                    <option value="Endocrinology">
+                    <option value="Gastroenterology">
+                    <option value="Neurology">
+                    <option value="Oncology">
+                    <option value="Ophthalmology">
+                    <option value="Optometry">
+                    <option value="Orthopedics">
+                    <option value="Otolaryngology (ENT)">
+                    <option value="Physical Therapy">
+                    <option value="Psychiatry">
+                    <option value="Psychology">
+                    <option value="Pulmonology">
+                    <option value="Rheumatology">
+                    <option value="Urology">
+                    <option value="Dentistry">
+                    <option value="Oral Surgery">
+                    <option value="Orthodontics">
+                    <option value="Urgent Care">
+                    <option value="Emergency Medicine">
+                    <option value="Radiology">
+                    <option value="Anesthesiology">
+                    <option value="Chiropractic">
+                    <option value="Podiatry">
+                    <option value="Allergy &amp; Immunology">
+                    <option value="Nephrology">
+                    <option value="Hematology">
+                    <option value="Infectious Disease">
+                    <option value="Sports Medicine">
+                    <option value="Sleep Medicine">
+                </datalist>
             </div>
             <div class="form-group">
                 <label for="personHowKnownInput">How do you know them?</label>
@@ -7268,7 +7305,7 @@
     <script src="js/structures.js?v=350"></script>
     <script src="js/moveThings.js?v=350"></script>
     <script src="js/journal.js?v=350"></script>
-    <script src="js/contacts.js?v=361"></script>
+    <script src="js/contacts.js?v=367"></script>
     <script src="js/collections.js?v=350"></script>
     <script src="js/health.js?v=366"></script>
     <script src="js/notes.js?v=350"></script>

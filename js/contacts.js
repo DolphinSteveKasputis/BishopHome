@@ -22,6 +22,55 @@ var CONTACT_CATEGORIES = [
     'Other'
 ];
 
+// ---------- Specialty list (built-in + user-defined) ----------
+// These match the <datalist id="specialtyOptions"> in index.html.
+// When a user saves a new specialty not in this list, it's added to
+// Firestore (lookups/specialties) and dynamically appended to the datalist.
+var _BUILTIN_SPECIALTIES = new Set([
+    'Family Medicine','Internal Medicine','Pediatrics','OB/GYN','Cardiology',
+    'Dermatology','Endocrinology','Gastroenterology','Neurology','Oncology',
+    'Ophthalmology','Optometry','Orthopedics','Otolaryngology (ENT)',
+    'Physical Therapy','Psychiatry','Psychology','Pulmonology','Rheumatology',
+    'Urology','Dentistry','Oral Surgery','Orthodontics','Urgent Care',
+    'Emergency Medicine','Radiology','Anesthesiology','Chiropractic',
+    'Podiatry','Allergy & Immunology','Nephrology','Hematology',
+    'Infectious Disease','Palliative Care','Geriatrics'
+]);
+
+/** Load custom specialties from Firestore and append to the datalist. */
+async function _loadCustomSpecialties() {
+    try {
+        var snap = await userCol('lookups').doc('specialties').get();
+        if (!snap.exists) return;
+        var values = snap.data().values || [];
+        var dl = document.getElementById('specialtyOptions');
+        if (!dl) return;
+        // Only append values not already in the hardcoded datalist
+        var existing = new Set(Array.from(dl.options).map(function(o) { return o.value; }));
+        values.forEach(function(v) {
+            if (!existing.has(v)) {
+                var opt = document.createElement('option');
+                opt.value = v;
+                dl.appendChild(opt);
+            }
+        });
+    } catch (err) {
+        console.warn('_loadCustomSpecialties error:', err);
+    }
+}
+
+/** Save a new specialty to Firestore so it appears in future dropdowns. */
+async function _saveCustomSpecialty(value) {
+    try {
+        await userCol('lookups').doc('specialties').set(
+            { values: firebase.firestore.FieldValue.arrayUnion(value) },
+            { merge: true }
+        );
+    } catch (err) {
+        console.warn('_saveCustomSpecialty error:', err);
+    }
+}
+
 // ============================================================
 // CONTACTS LIST PAGE  (#contacts)
 // ============================================================
@@ -429,6 +478,7 @@ async function openAddContactModal(parentPersonId) {
     modal.dataset.parentPersonId = parentPersonId || '';
 
     _populateContactCategorySelect('personCategorySelect', 'Personal');
+    _loadCustomSpecialties();
     openModal('personModal');
     document.getElementById('personNameInput').focus();
 }
@@ -463,6 +513,7 @@ async function openEditContactModal(person) {
     modal.dataset.editId         = person.id;
     modal.dataset.parentPersonId = person.parentPersonId || '';
 
+    _loadCustomSpecialties();
     openModal('personModal');
 }
 
@@ -508,6 +559,12 @@ async function handleContactModalSave() {
     var mode           = modal.dataset.mode;
     var editId         = modal.dataset.editId;
     var parentPersonId = modal.dataset.parentPersonId || null;
+
+    // If a new specialty was entered (not in the built-in list), persist it
+    // so it appears in the datalist for future contacts.
+    if (data.specialty && !_BUILTIN_SPECIALTIES.has(data.specialty)) {
+        _saveCustomSpecialty(data.specialty);
+    }
 
     try {
         if (mode === 'add') {

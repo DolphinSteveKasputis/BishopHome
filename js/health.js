@@ -3532,7 +3532,6 @@ async function loadAppointmentsPage() {
         var html = '';
 
         if (overdue.length > 0) {
-            html += '<div class="section-heading" style="color:#dc2626;">\u26a0\ufe0f Overdue</div>';
             overdue.forEach(function(a) { html += buildAppointmentCard(a, true, opts); });
         }
         if (upcoming.length > 0) {

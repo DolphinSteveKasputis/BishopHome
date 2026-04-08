@@ -6673,7 +6673,7 @@ textarea.sb-field { resize: vertical; min-height: 60px; }
 .appt-card-top {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
     gap: 8px;
     margin-bottom: 6px;
 }

@@ -2939,8 +2939,8 @@ async function openApptModal(id) {
     concernsList.innerHTML = '<p style="margin:4px 0; font-size:0.85rem; color:#64748b;">Loading...</p>';
     try {
         var ccResults = await Promise.all([
-            userCol('healthConcerns').where('status', '==', 'open').orderBy('title').get(),
-            userCol('healthConditions').where('status', 'in', ['active', 'managed']).orderBy('title').get()
+            userCol('healthConcerns').where('status', '==', 'open').get(),
+            userCol('healthConditions').where('status', 'in', ['active', 'managed']).get()
         ]);
         var concernSnap   = ccResults[0];
         var conditionSnap = ccResults[1];
@@ -2952,6 +2952,7 @@ async function openApptModal(id) {
         conditionSnap.docs.forEach(function(cd) {
             items.push({ id: cd.id, title: cd.data().title || cd.id, kind: 'condition' });
         });
+        items.sort(function(a, b) { return a.title.localeCompare(b.title); });
 
         if (items.length === 0) {
             concernsList.innerHTML = '<p style="margin:4px 0; font-size:0.85rem; color:#94a3b8;">No open concerns or active conditions.</p>';

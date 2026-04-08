@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=359">
+    <link rel="stylesheet" href="css/styles.css?v=360">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -5915,9 +5915,12 @@
                     <textarea id="apptNotes" rows="3" placeholder="Prep instructions, what to bring, questions to ask..."></textarea>
                 </div>
                 <div class="modal-buttons modal-buttons--spaced">
-                    <button class="btn btn-danger" id="apptDeleteBtn" style="display:none" onclick="closeModal('apptModal'); deleteAppointment(document.getElementById('apptModal').dataset.editId)">Delete</button>
+                    <div class="modal-buttons-left">
+                        <button class="btn btn-danger" id="apptDeleteBtn" style="display:none" onclick="closeModal('apptModal'); deleteAppointment(document.getElementById('apptModal').dataset.editId)">Delete</button>
+                        <button class="btn btn-secondary" id="apptCancelBtn" style="display:none" onclick="cancelApptFromModal()">Cancel Appt</button>
+                    </div>
                     <div class="modal-buttons-right">
-                        <button class="btn btn-secondary" onclick="closeModal('apptModal')">Cancel</button>
+                        <button class="btn btn-secondary" onclick="closeModal('apptModal')">Close</button>
                         <button class="btn btn-primary" onclick="saveAppointment()">Save</button>
                     </div>
                 </div>
@@ -7276,7 +7279,7 @@
     <script src="js/journal.js?v=350"></script>
     <script src="js/contacts.js?v=359"></script>
     <script src="js/collections.js?v=350"></script>
-    <script src="js/health.js?v=359"></script>
+    <script src="js/health.js?v=360"></script>
     <script src="js/notes.js?v=350"></script>
     <script src="js/lifecalendar.js?v=350"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>

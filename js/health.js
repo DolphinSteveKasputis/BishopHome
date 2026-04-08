@@ -3619,7 +3619,6 @@ function buildAppointmentCard(a, isOverdue, opts) {
     }
     if (a.status !== 'completed' && a.status !== 'cancelled' && !isConverted) {
         actionsHtml += '<button class="btn btn-primary btn-small" onclick="openConvertToVisitModal(\'' + a.id + '\')">\u2713 Mark Done</button>';
-        actionsHtml += '<button class="btn btn-secondary btn-small" onclick="cancelAppointment(\'' + a.id + '\')">Cancel</button>';
     }
     if ((isConverted || a.status === 'completed') && a.linkedVisitId) {
         actionsHtml += '<a href="#health-visit/' + a.linkedVisitId + '" class="btn btn-secondary btn-small">View Visit</a>';
@@ -3669,6 +3668,10 @@ async function openApptModal(id) {
     // Show Delete button only when editing an existing appointment
     var apptDeleteBtn = document.getElementById('apptDeleteBtn');
     if (apptDeleteBtn) apptDeleteBtn.style.display = id ? '' : 'none';
+    // Cancel Appointment button shown only for active (non-cancelled, non-converted) appointments
+    // Will be updated below after loading the appointment status
+    var apptCancelBtn = document.getElementById('apptCancelBtn');
+    if (apptCancelBtn) apptCancelBtn.style.display = 'none';
 
     // Reset fields
     document.getElementById('apptDate').value   = '';
@@ -3691,6 +3694,9 @@ async function openApptModal(id) {
                 document.getElementById('apptType').value   = d.type   || '';
                 document.getElementById('apptStatus').value = d.status || 'scheduled';
                 document.getElementById('apptNotes').value  = d.notes  || '';
+                // Show "Cancel Appointment" only for active (scheduled/overdue) appts
+                var isActive = d.status !== 'cancelled' && d.status !== 'completed' && d.status !== 'converted';
+                if (apptCancelBtn) apptCancelBtn.style.display = isActive ? '' : 'none';
                 checkedConcernIds   = d.concernIds   || [];
                 checkedConditionIds = d.conditionIds || [];
                 facInitId  = d.facilityContactId || '';
@@ -3819,6 +3825,21 @@ function saveAppointment() {
 function deleteAppointment(id) {
     if (!confirm('Delete this appointment?')) return;
     userCol('healthAppointments').doc(id).delete().then(function() {
+        loadAppointmentsPage();
+    }).catch(function(err) { alert('Error: ' + err.message); });
+}
+
+// Called from the edit modal — saves notes + marks cancelled in one step
+function cancelApptFromModal() {
+    var modal = document.getElementById('apptModal');
+    var id    = modal.dataset.editId;
+    if (!id) return;
+    if (!confirm('Mark this appointment as cancelled?')) return;
+    var notes = document.getElementById('apptNotes').value.trim();
+    var update = { status: 'cancelled' };
+    if (notes) update.notes = notes;
+    closeModal('apptModal');
+    userCol('healthAppointments').doc(id).update(update).then(function() {
         loadAppointmentsPage();
     }).catch(function(err) { alert('Error: ' + err.message); });
 }

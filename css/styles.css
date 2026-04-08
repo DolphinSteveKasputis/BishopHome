@@ -644,10 +644,14 @@ button {
     justify-content: flex-end;
     margin-top: 20px;
 }
-/* Delete on left, Save/Cancel on right */
+/* Destructive actions on left, Save/Close on right */
 .modal-buttons--spaced {
     justify-content: space-between;
     align-items: center;
+}
+.modal-buttons-left {
+    display: flex;
+    gap: 8px;
 }
 .modal-buttons-right {
     display: flex;

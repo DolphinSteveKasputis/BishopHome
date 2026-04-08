@@ -1690,6 +1690,11 @@ function renderConditionDetail(condition) {
     if (camBtn) camBtn.onclick = function() { openPhotoModal('condition', condition.id, 'camera'); };
     if (galBtn) galBtn.onclick = function() { openPhotoModal('condition', condition.id, 'gallery'); };
 
+    // Watch containers loaded by external modules (photos/facts/projects)
+    _watchContainerForCount('conditionPhotoContainer',   'conditionSectionPhotos');
+    _watchContainerForCount('conditionFactsContainer',   'conditionSectionFacts');
+    _watchContainerForCount('conditionProjectsContainer','conditionSectionProjects');
+
     // Load all section content
     loadConditionLogs(condition.id);
     loadConditionMeds(condition.id);
@@ -1741,6 +1746,7 @@ function loadConditionLogs(conditionId) {
             var logs = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
             logs.sort(function(a, b) { return (b.date || '').localeCompare(a.date || ''); });
 
+            _setSectionCount('conditionSectionJournal', logs.length);
             if (logs.length === 0) {
                 container.innerHTML = '<p class="empty-state">No journal entries yet.</p>';
                 return;
@@ -1826,6 +1832,7 @@ function loadConditionMeds(conditionId) {
             var meds = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
             meds.sort(function(a, b) { return (a.name || '').localeCompare(b.name || ''); });
 
+            _setSectionCount('conditionSectionMeds', meds.length);
             if (meds.length === 0) {
                 container.innerHTML = '<p class="empty-state">No medications linked.</p>';
                 return;
@@ -1878,6 +1885,7 @@ async function loadConditionApptVisits(conditionId) {
         });
         items.sort(function(a, b) { return (b.date || '').localeCompare(a.date || ''); });
 
+        _setSectionCount('conditionSectionAppts', items.length);
         if (items.length === 0) {
             container.innerHTML = '<p class="empty-state">No appointments or visits linked.</p>';
             return;
@@ -1904,6 +1912,33 @@ async function loadConditionApptVisits(conditionId) {
 
 // Patch saveCondition to reload detail page if currently viewing one
 var _origSaveCondition = null;
+
+// ── Section count helpers ─────────────────────────────────────────
+
+// Set the count badge on a collapsible section header label.
+// Pass n=0 to clear (hides via :empty CSS rule).
+function _setSectionCount(sectionId, n) {
+    var sec = document.getElementById(sectionId);
+    if (!sec) return;
+    var span = sec.querySelector('.collapsible-header .section-count');
+    if (!span) return;
+    span.textContent = n > 0 ? '(' + n + ')' : '';
+}
+
+// Watch a container div with MutationObserver so the section badge stays
+// accurate for sections loaded by external modules (photos, facts, projects).
+function _watchContainerForCount(containerId, sectionId) {
+    var container = document.getElementById(containerId);
+    if (!container) return;
+    var update = function() {
+        // Count real content children (skip empty-state paragraphs)
+        var count = Array.from(container.children).filter(function(c) {
+            return !c.classList.contains('empty-state');
+        }).length;
+        _setSectionCount(sectionId, count);
+    };
+    new MutationObserver(update).observe(container, { childList: true });
+}
 
 // ── Collapsible section helper ────────────────────────────────────
 
@@ -2038,6 +2073,7 @@ function loadConcernMeds(concernId) {
             var meds = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
             meds.sort(function(a, b) { return (a.name || '').localeCompare(b.name || ''); });
 
+            _setSectionCount('concernSectionMeds', meds.length);
             if (meds.length === 0) {
                 container.innerHTML = '<p class="empty-state">No medications linked.</p>';
                 return;
@@ -2108,6 +2144,7 @@ async function loadConcernApptVisits(concernId) {
 
         items.sort(function(a, b) { return (b.date || '').localeCompare(a.date || ''); });
 
+        _setSectionCount('concernSectionAppts', items.length);
         if (items.length === 0) {
             container.innerHTML = '<p class="empty-state">No appointments or visits linked.</p>';
             return;
@@ -2216,11 +2253,16 @@ function renderConcernDetail(concern) {
         if (body) body.style.display = '';
     });
 
+    // Watch containers loaded by external modules (photos, facts)
+    _watchContainerForCount('concernPhotoContainer', 'concernSectionPhotos');
+    _watchContainerForCount('concernFactsContainer', 'concernSectionFacts');
+
     // Load all section content
     loadConcernUpdates(concern.id);
     loadConcernMeds(concern.id);
     loadConcernApptVisits(concern.id);
     loadPhotos('concern', concern.id, 'concernPhotoContainer', 'concernPhotoEmptyState');
+    loadFacts('concern', concern.id, 'concernFactsContainer', 'concernFactsEmpty');
 }
 
 // ── Promote concern → condition ───────────────────────────────────
@@ -2409,6 +2451,7 @@ function loadConcernUpdates(concernId) {
             var updates = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
             updates.sort(function(a, b) { return (b.date || '').localeCompare(a.date || ''); });
 
+            _setSectionCount('concernSectionJournal', updates.length);
             if (updates.length === 0) {
                 container.innerHTML = '<p class="empty-state">No journal entries yet.</p>';
                 return;

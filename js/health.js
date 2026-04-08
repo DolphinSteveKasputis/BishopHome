@@ -4109,8 +4109,7 @@ function _step2BuildAccordionItem(type, id, name) {
     var div  = document.createElement('div');
     div.className = 'step2-accordion-item';
     div.id = 'step2-item-' + type + '-' + id;
-    var speakBtnId    = 'step2SpeakBtn-' + type + '-' + id;
-    var priorNotesId  = 'step2PriorNotes-' + type + '-' + id;
+    var speakBtnId = 'step2SpeakBtn-' + type + '-' + id;
     div.innerHTML =
         '<div class="step2-accordion-header" onclick="toggleStep2Item(this.parentElement)">' +
             '<span class="step2-item-icon">' + icon + '</span>' +
@@ -4127,7 +4126,6 @@ function _step2BuildAccordionItem(type, id, name) {
                     'Notes from this visit:' +
                     '<button class="btn btn-secondary btn-small" id="' + speakBtnId + '">\uD83C\uDFA4 Speak</button>' +
                 '</label>' +
-                '<div class="step2-prior-notes" id="' + priorNotesId + '"></div>' +
                 '<textarea id="step2Note-' + type + '-' + id + '" rows="3" placeholder="Add a note about this ' + type + ' from this visit\u2026"></textarea>' +
             '</div>' +
             '<div class="step2-meds-header">' +
@@ -4148,28 +4146,29 @@ function _step2InitItemVoice(type, id) {
 }
 
 /**
- * Load and display any notes already saved for this concern/condition from
- * the current visit. Shown above the textarea so the user can see what was
- * previously written before adding more.
+ * If a note was already saved for this concern/condition from the current
+ * visit, load it into the textarea for editing and store the doc ID on the
+ * textarea so saveStep2AndDone() can UPDATE instead of INSERT.
  */
 function _step2LoadPriorNotes(type, id) {
     if (!_step2Visit) return;
-    var container = document.getElementById('step2PriorNotes-' + type + '-' + id);
-    if (!container) return;
-    var collection = type === 'concern' ? 'concernUpdates'    : 'healthConditionLogs';
-    var idField    = type === 'concern' ? 'concernId'         : 'conditionId';
+    var ta = document.getElementById('step2Note-' + type + '-' + id);
+    if (!ta) return;
+    var collection = type === 'concern' ? 'concernUpdates' : 'healthConditionLogs';
+    var idField    = type === 'concern' ? 'concernId'      : 'conditionId';
     userCol(collection)
         .where(idField,   '==', id)
         .where('visitId', '==', _step2Visit.id)
         .get()
         .then(function(snap) {
             if (snap.empty) return;
-            var html = '<div class="step2-prior-notes-label">Previously saved for this visit:</div>';
-            snap.docs.forEach(function(d) {
-                var u = d.data();
-                html += '<div class="step2-prior-note">' + escapeHtml(u.note || '') + '</div>';
+            // Take the most recent entry if somehow there are multiples
+            var sorted = snap.docs.slice().sort(function(a, b) {
+                return (b.data().date || '').localeCompare(a.data().date || '');
             });
-            container.innerHTML = html;
+            var doc = sorted[0];
+            ta.value = doc.data().note || '';
+            ta.dataset.existingNoteId = doc.id;  // used by saveStep2AndDone to UPDATE
         })
         .catch(function(err) { console.warn('_step2LoadPriorNotes:', err); });
 }
@@ -4416,14 +4415,18 @@ async function saveStep2AndDone() {
         if (!ta) return;
         var note = ta.value.trim();
         if (!note) return;
-        batch.set(userCol('concernUpdates').doc(), {
-            concernId: cid,
-            date:      today,
-            note:      note,
-            type:      'visit-note',
-            visitId:   visitId,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
+        if (ta.dataset.existingNoteId) {
+            batch.update(userCol('concernUpdates').doc(ta.dataset.existingNoteId), { note: note });
+        } else {
+            batch.set(userCol('concernUpdates').doc(), {
+                concernId: cid,
+                date:      today,
+                note:      note,
+                type:      'visit-note',
+                visitId:   visitId,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
         hasChanges = true;
     });
 
@@ -4432,14 +4435,18 @@ async function saveStep2AndDone() {
         if (!ta) return;
         var note = ta.value.trim();
         if (!note) return;
-        batch.set(userCol('healthConditionLogs').doc(), {
-            conditionId: cid,
-            date:        today,
-            note:        note,
-            type:        'visit-note',
-            visitId:     visitId,
-            createdAt:   firebase.firestore.FieldValue.serverTimestamp()
-        });
+        if (ta.dataset.existingNoteId) {
+            batch.update(userCol('healthConditionLogs').doc(ta.dataset.existingNoteId), { note: note });
+        } else {
+            batch.set(userCol('healthConditionLogs').doc(), {
+                conditionId: cid,
+                date:        today,
+                note:        note,
+                type:        'visit-note',
+                visitId:     visitId,
+                createdAt:   firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
         hasChanges = true;
     });
 

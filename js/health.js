@@ -3949,9 +3949,11 @@ function saveConvertedVisit() {
             linkedVisitId: ref.id
         }).then(function() { return ref.id; });
     }).then(function(visitId) {
-        closeModal('apptConvertModal');
-        // Transition to Step 2 page
+        // Navigate first, THEN close the modal.
+        // closeModal calls history.back() asynchronously; if we closed first,
+        // that back() would override the hash we just set and return to #health-appointments.
         location.hash = '#health-visit-step2/' + visitId;
+        document.getElementById('apptConvertModal').classList.remove('open');
     }).catch(function(err) {
         alert('Error saving visit: ' + err.message);
         if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save & Continue \u2192'; }

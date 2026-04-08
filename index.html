@@ -5093,7 +5093,10 @@
 
             <!-- This visit covered: concern/condition tags (hidden when none) -->
             <div id="visitDetailCoveredSection" style="display:none;">
-                <div class="section-heading">This visit covered</div>
+                <div class="section-heading" style="display:flex; align-items:center; justify-content:space-between;">
+                    <span>This visit covered</span>
+                    <button class="btn btn-primary btn-small" id="visitStep2Btn" onclick="location.hash='#health-visit-step2/'+window.currentHealthVisit.id">Notes &amp; Meds ›</button>
+                </div>
                 <div id="visitDetailCoveredTags" class="appt-chips" style="padding:0 0 8px;"></div>
             </div>
 
@@ -5145,10 +5148,10 @@
                     <input type="text" id="visitProvider" placeholder="e.g. Dr. Smith, City Dental">
                 </div>
                 <div class="form-group">
-                    <label for="visitConcernId">Related Concern (optional)</label>
-                    <select id="visitConcernId">
-                        <option value="">— No concern linked —</option>
-                    </select>
+                    <label>Concerns &amp; Conditions</label>
+                    <div id="visitCCList" class="appt-concerns-list">
+                        <p style="margin:4px 0; font-size:0.85rem; color:#94a3b8;">Loading...</p>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label for="visitReason">Reason for Visit</label>
@@ -7279,7 +7282,7 @@
     <script src="js/journal.js?v=350"></script>
     <script src="js/contacts.js?v=361"></script>
     <script src="js/collections.js?v=350"></script>
-    <script src="js/health.js?v=364"></script>
+    <script src="js/health.js?v=365"></script>
     <script src="js/notes.js?v=350"></script>
     <script src="js/lifecalendar.js?v=350"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>

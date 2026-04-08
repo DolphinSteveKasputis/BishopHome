@@ -853,7 +853,7 @@ function loadVisitLinkedBloodWork(visitId) {
 
 // ── Add / Edit modal ──────────────────────────────────────────────
 
-function openVisitModal(id) {
+async function openVisitModal(id) {
     var modal = document.getElementById('visitModal');
     modal.dataset.editId = id || '';
     modal.dataset.concernRestore = '';
@@ -865,37 +865,61 @@ function openVisitModal(id) {
     });
     document.getElementById('visitProviderType').value = '';
 
-    // Populate concern dropdown (empty until H3 builds the concerns collection)
-    var select = document.getElementById('visitConcernId');
-    select.innerHTML = '<option value="">\u2014 No concern linked \u2014</option>';
-    userCol('concerns').orderBy('title').get().then(function(snap) {
-        snap.docs.forEach(function(d) {
-            var opt = document.createElement('option');
-            opt.value = d.id;
-            opt.textContent = d.data().title || d.id;
-            select.appendChild(opt);
-        });
-        if (modal.dataset.concernRestore) {
-            select.value = modal.dataset.concernRestore;
-        }
-    }).catch(function() {});
+    var checkedConcernIds   = [];
+    var checkedConditionIds = [];
 
     if (id) {
-        userCol('healthVisits').doc(id).get().then(function(snap) {
-            if (!snap.exists) return;
-            var d = snap.data();
-            document.getElementById('visitDate').value         = d.date         || '';
-            document.getElementById('visitProvider').value     = d.provider     || '';
-            document.getElementById('visitProviderType').value = d.providerType || '';
-            document.getElementById('visitReason').value       = d.reason       || '';
-            document.getElementById('visitWhatDone').value     = d.whatWasDone  || '';
-            document.getElementById('visitOutcome').value      = d.outcome      || '';
-            document.getElementById('visitCost').value         = d.cost         || '';
-            document.getElementById('visitNotes').value        = d.notes        || '';
-            modal.dataset.concernRestore = d.concernId || '';
-            select.value = d.concernId || '';
-        });
+        try {
+            var vSnap = await userCol('healthVisits').doc(id).get();
+            if (vSnap.exists) {
+                var d = vSnap.data();
+                document.getElementById('visitDate').value         = d.date         || '';
+                // Prefer new providerText field, fall back to legacy provider
+                document.getElementById('visitProvider').value     = d.providerText || d.provider || '';
+                document.getElementById('visitProviderType').value = d.providerType || '';
+                document.getElementById('visitReason').value       = d.reason       || '';
+                document.getElementById('visitWhatDone').value     = d.whatWasDone  || '';
+                document.getElementById('visitOutcome').value      = d.outcome      || '';
+                document.getElementById('visitCost').value         = d.cost         || '';
+                document.getElementById('visitNotes').value        = d.notes        || '';
+                checkedConcernIds   = d.concernIds   || (d.concernId ? [d.concernId] : []);
+                checkedConditionIds = d.conditionIds || [];
+            }
+        } catch(e) { /* ignore — fields stay blank */ }
     }
+
+    // Build concerns & conditions checkbox list (same pattern as appointment modal)
+    var ccList = document.getElementById('visitCCList');
+    ccList.innerHTML = '<p style="margin:4px 0; font-size:0.85rem; color:#64748b;">Loading...</p>';
+    try {
+        var ccResults = await Promise.all([
+            userCol('concerns').where('status', '==', 'open').get(),
+            userCol('conditions').where('status', 'in', ['active', 'managed']).get()
+        ]);
+        var items = [];
+        ccResults[0].docs.forEach(function(cd) {
+            items.push({ id: cd.id, kind: 'concern',   label: '\u26a0\ufe0f ' + (cd.data().title || cd.id) });
+        });
+        ccResults[1].docs.forEach(function(cd) {
+            items.push({ id: cd.id, kind: 'condition', label: '\ud83d\udccb ' + (cd.data().name  || cd.id) });
+        });
+        if (items.length === 0) {
+            ccList.innerHTML = '<p style="margin:4px 0; font-size:0.85rem; color:#94a3b8;">No open concerns or active conditions.</p>';
+        } else {
+            items.sort(function(a, b) { return a.label.localeCompare(b.label); });
+            ccList.innerHTML = items.map(function(item) {
+                var checked = (item.kind === 'concern'   && checkedConcernIds.indexOf(item.id)   !== -1) ||
+                              (item.kind === 'condition' && checkedConditionIds.indexOf(item.id) !== -1)
+                    ? 'checked' : '';
+                return '<label class="appt-concern-item">' +
+                    '<input type="checkbox" value="' + item.id + '" data-kind="' + item.kind + '" ' + checked + '> ' +
+                    escapeHtml(item.label) + '</label>';
+            }).join('');
+        }
+    } catch(e) {
+        ccList.innerHTML = '<p style="margin:4px 0; font-size:0.85rem; color:#dc2626;">Error loading</p>';
+    }
+
     openModal('visitModal');
 }
 
@@ -903,11 +927,22 @@ function saveVisit() {
     var date = document.getElementById('visitDate').value;
     if (!date) { alert('Date is required.'); return; }
 
+    // Collect checked concerns and conditions
+    var concernIds   = [];
+    var conditionIds = [];
+    document.querySelectorAll('#visitCCList input[type="checkbox"]:checked').forEach(function(cb) {
+        if (cb.dataset.kind === 'concern')   concernIds.push(cb.value);
+        if (cb.dataset.kind === 'condition') conditionIds.push(cb.value);
+    });
+
+    var providerText = document.getElementById('visitProvider').value.trim();
     var data = {
         date:         date,
-        provider:     document.getElementById('visitProvider').value.trim(),
+        providerText: providerText,
+        provider:     providerText,   // keep legacy field in sync for old views
         providerType: document.getElementById('visitProviderType').value,
-        concernId:    document.getElementById('visitConcernId').value || null,
+        concernIds:   concernIds,
+        conditionIds: conditionIds,
         reason:       document.getElementById('visitReason').value.trim(),
         whatWasDone:  document.getElementById('visitWhatDone').value.trim(),
         outcome:      document.getElementById('visitOutcome').value.trim(),

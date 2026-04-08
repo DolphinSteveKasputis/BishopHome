@@ -6638,8 +6638,13 @@ textarea.sb-field { resize: vertical; min-height: 60px; }
     color: #1d4ed8;
 }
 
-/* ── Appointment card — mobile-first stacked layout ─────────── */
-.appt-card { padding: 14px 16px; }
+/* ── Appointment card — stacked column layout ───────────────── */
+/* Override .health-card's horizontal flex so children fill full width */
+.appt-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+}
 
 .appt-card-top {
     display: flex;
@@ -6660,7 +6665,8 @@ textarea.sb-field { resize: vertical; min-height: 60px; }
     gap: 8px;
     margin-top: 12px;
 }
-.appt-card-actions .btn { flex: 1 1 auto; text-align: center; }
+/* Each button shares the row equally; on narrow screens they wrap to new rows */
+.appt-card-actions .btn { flex: 1 1 auto; min-width: 80px; text-align: center; }
 
 /* ── Appointment card detail rows (Facility / Provider) ─────── */
 .appt-detail-row {

@@ -2696,14 +2696,34 @@ var _apptAllRecords = [];
 
 // ── List page ────────────────────────────────────────────────────
 
-function loadAppointmentsPage() {
+async function loadAppointmentsPage() {
     var container = document.getElementById('appointmentsList');
     container.innerHTML = '<p class="empty-state">Loading...</p>';
 
-    userCol('healthAppointments').orderBy('date', 'asc').get().then(function(snap) {
-        _apptAllRecords = snap.docs.map(function(d) {
+    try {
+        // Parallel fetch: appointments + lookup maps for contacts, concerns, conditions
+        var results = await Promise.all([
+            userCol('healthAppointments').orderBy('date', 'asc').get(),
+            userCol('people').get(),
+            userCol('healthConcerns').get(),
+            userCol('healthConditions').get()
+        ]);
+        var apptSnap      = results[0];
+        var contactSnap   = results[1];
+        var concernSnap   = results[2];
+        var conditionSnap = results[3];
+
+        _apptAllRecords = apptSnap.docs.map(function(d) {
             return Object.assign({ id: d.id }, d.data());
         });
+
+        // Build id → data maps for resolving linked records
+        var contactMap = {};
+        contactSnap.docs.forEach(function(d) { contactMap[d.id] = d.data(); });
+        var concernMap = {};
+        concernSnap.docs.forEach(function(d) { concernMap[d.id] = d.data(); });
+        var conditionMap = {};
+        conditionSnap.docs.forEach(function(d) { conditionMap[d.id] = d.data(); });
 
         if (_apptAllRecords.length === 0) {
             container.innerHTML = '<p class="empty-state">No appointments yet. Tap + Add to schedule one.</p>';
@@ -2711,54 +2731,110 @@ function loadAppointmentsPage() {
         }
 
         var today    = new Date().toISOString().slice(0, 10);
-        var upcoming = _apptAllRecords.filter(function(a) { return a.status !== 'completed' && a.status !== 'cancelled' && a.date >= today; });
-        var overdue  = _apptAllRecords.filter(function(a) { return a.status !== 'completed' && a.status !== 'cancelled' && a.date < today; });
-        var past     = _apptAllRecords.filter(function(a) { return a.status === 'completed' || a.status === 'cancelled'; });
+        // 'converted' appointments (Mark Done flow) go to Past; only truly open ones in upcoming/overdue
+        var upcoming = _apptAllRecords.filter(function(a) {
+            return a.status !== 'completed' && a.status !== 'cancelled' && a.status !== 'converted' && a.date >= today;
+        });
+        var overdue  = _apptAllRecords.filter(function(a) {
+            return a.status !== 'completed' && a.status !== 'cancelled' && a.status !== 'converted' && a.date < today;
+        });
+        var past     = _apptAllRecords.filter(function(a) {
+            return a.status === 'completed' || a.status === 'cancelled' || a.status === 'converted';
+        });
 
+        var opts = { contactMap: contactMap, concernMap: concernMap, conditionMap: conditionMap };
         var html = '';
 
         if (overdue.length > 0) {
             html += '<div class="section-heading" style="color:#dc2626;">\u26a0\ufe0f Overdue</div>';
-            overdue.forEach(function(a) { html += buildAppointmentCard(a, true); });
+            overdue.forEach(function(a) { html += buildAppointmentCard(a, true, opts); });
         }
         if (upcoming.length > 0) {
             html += '<div class="section-heading">Upcoming</div>';
-            upcoming.forEach(function(a) { html += buildAppointmentCard(a, false); });
+            upcoming.forEach(function(a) { html += buildAppointmentCard(a, false, opts); });
         }
         if (upcoming.length === 0 && overdue.length === 0) {
             html = '<p class="empty-state">No upcoming appointments.</p>' + html;
         }
         if (past.length > 0) {
             html += '<div class="section-heading">Past Appointments</div>';
-            past.slice(0, 30).forEach(function(a) { html += buildAppointmentCard(a, false); });
+            past.slice(0, 30).forEach(function(a) { html += buildAppointmentCard(a, false, opts); });
         }
 
         container.innerHTML = html;
-    }).catch(function(err) {
+    } catch(err) {
         container.innerHTML = '<p class="empty-state">Error loading: ' + escapeHtml(err.message) + '</p>';
-    });
+    }
 }
 
-function buildAppointmentCard(a, isOverdue) {
-    var statusClass = a.status === 'completed' ? 'appt-badge--completed'
-                    : a.status === 'cancelled' ? 'appt-badge--cancelled'
-                    : isOverdue                ? 'appt-badge--overdue'
-                    :                            'appt-badge--scheduled';
-    var statusLabel = a.status === 'completed' ? 'Completed'
-                    : a.status === 'cancelled' ? 'Cancelled'
-                    : isOverdue                ? 'Overdue'
-                    :                            'Scheduled';
+function buildAppointmentCard(a, isOverdue, opts) {
+    opts = opts || {};
+    var contactMap   = opts.contactMap   || {};
+    var concernMap   = opts.concernMap   || {};
+    var conditionMap = opts.conditionMap || {};
+
+    var isConverted = a.status === 'converted';
+    var statusClass = isConverted                ? 'appt-badge--converted'
+                    : a.status === 'completed'   ? 'appt-badge--completed'
+                    : a.status === 'cancelled'   ? 'appt-badge--cancelled'
+                    : isOverdue                  ? 'appt-badge--overdue'
+                    :                              'appt-badge--scheduled';
+    var statusLabel = isConverted                ? 'Converted'
+                    : a.status === 'completed'   ? 'Completed'
+                    : a.status === 'cancelled'   ? 'Cancelled'
+                    : isOverdue                  ? 'Overdue'
+                    :                              'Scheduled';
 
     var dateStr = a.date ? _apptFormatDate(a.date) : '—';
     if (a.time) dateStr += ' at ' + _apptFormatTime(a.time);
 
+    // Type badge in card title area
+    var typeBadgeHtml = a.type
+        ? '<span class="appt-type-badge">' + escapeHtml(a.type) + '</span>'
+        : '<span style="color:#94a3b8;">Appointment</span>';
+
+    // Facility line — prefer linked contact, fall back to free text or legacy provider field
+    var facilityHtml = '';
+    if (a.facilityContactId && contactMap[a.facilityContactId]) {
+        facilityHtml = '<a href="#contact/' + a.facilityContactId + '" class="appt-contact-link">' +
+            escapeHtml(contactMap[a.facilityContactId].name || '') + '</a>';
+    } else if (a.facilityText) {
+        facilityHtml = escapeHtml(a.facilityText);
+    }
+
+    // Provider line — prefer linked contact, fall back to free text or legacy provider field
+    var providerHtml = '';
+    if (a.providerContactId && contactMap[a.providerContactId]) {
+        providerHtml = '<a href="#contact/' + a.providerContactId + '" class="appt-contact-link">' +
+            escapeHtml(contactMap[a.providerContactId].name || '') + '</a>';
+    } else if (a.providerText) {
+        providerHtml = escapeHtml(a.providerText);
+    } else if (a.provider) {
+        // backwards compat — old plain-text provider field
+        providerHtml = escapeHtml(a.provider);
+    }
+
+    // Concern / condition chips
+    var chips = '';
+    (a.concernIds || []).forEach(function(cid) {
+        var title = concernMap[cid] ? (concernMap[cid].title || cid) : cid;
+        chips += '<span class="health-chip health-chip--concern">\u26a0\ufe0f ' + escapeHtml(title) + '</span>';
+    });
+    (a.conditionIds || []).forEach(function(cid) {
+        var title = conditionMap[cid] ? (conditionMap[cid].title || cid) : cid;
+        chips += '<span class="health-chip health-chip--condition">\ud83d\udccb ' + escapeHtml(title) + '</span>';
+    });
+
+    // Action buttons — converted appointments are read-only (no Edit, no Mark Done)
     var actionsHtml = '';
-    actionsHtml += '<button class="btn btn-secondary btn-small" onclick="openApptModal(\'' + a.id + '\')">Edit</button>';
-    if (a.status !== 'completed' && a.status !== 'cancelled') {
+    if (!isConverted) {
+        actionsHtml += '<button class="btn btn-secondary btn-small" onclick="openApptModal(\'' + a.id + '\')">Edit</button>';
+    }
+    if (a.status !== 'completed' && a.status !== 'cancelled' && !isConverted) {
         actionsHtml += '<button class="btn btn-primary btn-small" onclick="openConvertToVisitModal(\'' + a.id + '\')">\u2713 Mark Done</button>';
         actionsHtml += '<button class="btn btn-secondary btn-small" onclick="cancelAppointment(\'' + a.id + '\')">Cancel</button>';
     }
-    if (a.status === 'completed' && a.linkedVisitId) {
+    if ((isConverted || a.status === 'completed') && a.linkedVisitId) {
         actionsHtml += '<a href="#health-visit/' + a.linkedVisitId + '" class="btn btn-secondary btn-small">View Visit</a>';
     }
     actionsHtml += '<button class="btn btn-danger btn-small" onclick="deleteAppointment(\'' + a.id + '\')">Delete</button>';
@@ -2766,11 +2842,14 @@ function buildAppointmentCard(a, isOverdue) {
     return '<div class="health-card">' +
         '<div class="health-card-header">' +
             '<div>' +
-                '<div class="health-card-title">' + escapeHtml(a.provider || 'No provider') + '</div>' +
-                '<div class="health-card-meta">' + escapeHtml(a.type || 'Appointment') + ' &bull; ' + dateStr + '</div>' +
+                '<div class="health-card-title">' + typeBadgeHtml + '</div>' +
+                '<div class="health-card-meta">' + dateStr + '</div>' +
             '</div>' +
             '<span class="appt-badge ' + statusClass + '">' + statusLabel + '</span>' +
         '</div>' +
+        (facilityHtml ? '<div class="appt-detail-row"><span class="appt-detail-label">Facility:</span> ' + facilityHtml + '</div>' : '') +
+        (providerHtml ? '<div class="appt-detail-row"><span class="appt-detail-label">Provider:</span> ' + providerHtml + '</div>' : '') +
+        (chips ? '<div class="appt-chips">' + chips + '</div>' : '') +
         (a.notes ? '<div class="health-card-notes">' + escapeHtml(a.notes) + '</div>' : '') +
         '<div class="health-card-actions">' + actionsHtml + '</div>' +
     '</div>';
@@ -2794,29 +2873,106 @@ function _apptFormatTime(t) {
 
 // ── Add / Edit modal ─────────────────────────────────────────────
 
-function openApptModal(id) {
+async function openApptModal(id) {
     var modal = document.getElementById('apptModal');
     modal.dataset.editId = id || '';
     document.getElementById('apptModalTitle').textContent = id ? 'Edit Appointment' : 'Add Appointment';
 
-    ['apptDate','apptTime','apptProvider','apptNotes'].forEach(function(f) {
-        document.getElementById(f).value = '';
-    });
+    // Reset fields
+    document.getElementById('apptDate').value   = '';
+    document.getElementById('apptTime').value   = '';
     document.getElementById('apptType').value   = '';
     document.getElementById('apptStatus').value = 'scheduled';
+    document.getElementById('apptNotes').value  = '';
 
+    var facInitId = '', facInitName = '', provInitId = '', provInitName = '';
+    var checkedConcernIds = [], checkedConditionIds = [];
+
+    // If editing, load existing appointment data first so pickers can pre-populate
     if (id) {
-        userCol('healthAppointments').doc(id).get().then(function(snap) {
-            if (!snap.exists) return;
-            var d = snap.data();
-            document.getElementById('apptDate').value     = d.date     || '';
-            document.getElementById('apptTime').value     = d.time     || '';
-            document.getElementById('apptProvider').value = d.provider || '';
-            document.getElementById('apptType').value     = d.type     || '';
-            document.getElementById('apptStatus').value   = d.status   || 'scheduled';
-            document.getElementById('apptNotes').value    = d.notes    || '';
-        });
+        try {
+            var snap = await userCol('healthAppointments').doc(id).get();
+            if (snap.exists) {
+                var d = snap.data();
+                document.getElementById('apptDate').value   = d.date   || '';
+                document.getElementById('apptTime').value   = d.time   || '';
+                document.getElementById('apptType').value   = d.type   || '';
+                document.getElementById('apptStatus').value = d.status || 'scheduled';
+                document.getElementById('apptNotes').value  = d.notes  || '';
+                checkedConcernIds   = d.concernIds   || [];
+                checkedConditionIds = d.conditionIds || [];
+                facInitId  = d.facilityContactId || '';
+                provInitId = d.providerContactId || '';
+
+                // Fetch contact names needed to pre-populate the pickers
+                var namePromises = [];
+                if (facInitId)  namePromises.push(userCol('people').doc(facInitId).get());
+                if (provInitId) namePromises.push(userCol('people').doc(provInitId).get());
+                if (namePromises.length > 0) {
+                    var nameSnaps = await Promise.all(namePromises);
+                    var ni = 0;
+                    if (facInitId)  { facInitName  = (nameSnaps[ni] && nameSnaps[ni].exists) ? (nameSnaps[ni].data().name || '') : ''; ni++; }
+                    if (provInitId) { provInitName = (nameSnaps[ni] && nameSnaps[ni].exists) ? (nameSnaps[ni].data().name || '') : ''; }
+                }
+            }
+        } catch(e) { /* ignore — pickers will just open empty */ }
     }
+
+    // Build ContactPickers (with initial values already loaded above if editing)
+    buildContactPicker('apptFacilityPicker', {
+        filterCategory: 'Medical Facility',
+        allowCreate:    true,
+        placeholder:    'Search facilities...',
+        initialId:      facInitId   || undefined,
+        initialName:    facInitName || undefined
+    });
+    buildContactPicker('apptProviderPicker', {
+        filterCategory: 'Medical Professional',
+        allowCreate:    true,
+        placeholder:    'Search providers... (optional)',
+        initialId:      provInitId   || undefined,
+        initialName:    provInitName || undefined
+    });
+
+    // Load concern/condition checkboxes
+    var concernsList = document.getElementById('apptConcernsList');
+    concernsList.innerHTML = '<p style="margin:4px 0; font-size:0.85rem; color:#64748b;">Loading...</p>';
+    try {
+        var ccResults = await Promise.all([
+            userCol('healthConcerns').where('status', '==', 'open').orderBy('title').get(),
+            userCol('healthConditions').where('status', 'in', ['active', 'managed']).orderBy('title').get()
+        ]);
+        var concernSnap   = ccResults[0];
+        var conditionSnap = ccResults[1];
+
+        var items = [];
+        concernSnap.docs.forEach(function(cd) {
+            items.push({ id: cd.id, title: cd.data().title || cd.id, kind: 'concern' });
+        });
+        conditionSnap.docs.forEach(function(cd) {
+            items.push({ id: cd.id, title: cd.data().title || cd.id, kind: 'condition' });
+        });
+
+        if (items.length === 0) {
+            concernsList.innerHTML = '<p style="margin:4px 0; font-size:0.85rem; color:#94a3b8;">No open concerns or active conditions.</p>';
+        } else {
+            concernsList.innerHTML = items.map(function(item) {
+                var icon    = item.kind === 'concern' ? '\u26a0\ufe0f' : '\ud83d\udccb';
+                var checked = (item.kind === 'concern'   && checkedConcernIds.indexOf(item.id)   !== -1) ||
+                              (item.kind === 'condition' && checkedConditionIds.indexOf(item.id) !== -1);
+                return '<label class="appt-concern-item">' +
+                    '<input type="checkbox" class="appt-concern-chk"' +
+                    ' data-id="' + item.id + '" data-kind="' + item.kind + '"' +
+                    (checked ? ' checked' : '') + '> ' +
+                    '<span class="appt-concern-icon">' + icon + '</span> ' +
+                    '<span>' + escapeHtml(item.title) + '</span>' +
+                '</label>';
+            }).join('');
+        }
+    } catch(err) {
+        concernsList.innerHTML = '<p style="color:#dc2626; font-size:0.85rem;">Error: ' + escapeHtml(err.message) + '</p>';
+    }
+
     openModal('apptModal');
 }
 
@@ -2824,13 +2980,30 @@ function saveAppointment() {
     var date = document.getElementById('apptDate').value;
     if (!date) { alert('Date is required.'); return; }
 
+    // Collect ContactPicker selections
+    var facPicker  = document.getElementById('apptFacilityPicker');
+    var provPicker = document.getElementById('apptProviderPicker');
+    var facilityContactId = (facPicker  && facPicker._getSelectedId)  ? (facPicker._getSelectedId()  || null) : null;
+    var providerContactId = (provPicker && provPicker._getSelectedId) ? (provPicker._getSelectedId() || null) : null;
+
+    // Collect checked concern / condition IDs
+    var concernIds   = [];
+    var conditionIds = [];
+    document.querySelectorAll('#apptConcernsList .appt-concern-chk:checked').forEach(function(chk) {
+        if (chk.dataset.kind === 'concern')   concernIds.push(chk.dataset.id);
+        if (chk.dataset.kind === 'condition') conditionIds.push(chk.dataset.id);
+    });
+
     var data = {
-        date:     date,
-        time:     document.getElementById('apptTime').value.trim(),
-        provider: document.getElementById('apptProvider').value.trim(),
-        type:     document.getElementById('apptType').value,
-        status:   document.getElementById('apptStatus').value || 'scheduled',
-        notes:    document.getElementById('apptNotes').value.trim()
+        date:             date,
+        time:             document.getElementById('apptTime').value.trim(),
+        type:             document.getElementById('apptType').value,
+        status:           document.getElementById('apptStatus').value || 'scheduled',
+        notes:            document.getElementById('apptNotes').value.trim(),
+        facilityContactId: facilityContactId,
+        providerContactId: providerContactId,
+        concernIds:        concernIds,
+        conditionIds:      conditionIds
     };
 
     var modal  = document.getElementById('apptModal');
@@ -2924,9 +3097,9 @@ function saveConvertedVisit() {
     var apptId = document.getElementById('apptConvertModal').dataset.apptId;
 
     userCol('healthVisits').add(visitData).then(function(ref) {
-        // Mark appointment completed and link back to the new visit
+        // Mark appointment as converted (read-only) and link back to the new visit
         return userCol('healthAppointments').doc(apptId).update({
-            status:        'completed',
+            status:        'converted',
             linkedVisitId: ref.id
         }).then(function() { return ref.id; });
     }).then(function(visitId) {

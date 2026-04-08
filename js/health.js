@@ -4315,7 +4315,7 @@ async function _step2SaveNewCondition() {
 }
 
 async function saveStep2AndDone() {
-    if (!_step2Visit) { location.hash = '#health'; return; }
+    if (!_step2Visit) { location.hash = '#health-visits'; return; }
 
     var visitId    = _step2Visit.id;
     var today      = _step2Visit.date || new Date().toISOString().slice(0, 10);
@@ -4356,8 +4356,9 @@ async function saveStep2AndDone() {
 
     try {
         if (hasChanges) await batch.commit();
+        var returnId = _step2Visit.id;
         _step2Visit = null;
-        location.hash = '#health';
+        location.hash = '#health-visit/' + returnId;
     } catch(err) {
         alert('Error saving notes: ' + err.message);
     }

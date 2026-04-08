@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=373">
+    <link rel="stylesheet" href="css/styles.css?v=375">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -5146,6 +5146,12 @@
                 <div id="visitDetailCoveredTags" class="appt-chips" style="padding:0 0 8px;"></div>
             </div>
 
+            <!-- Notes per concern/condition from this visit -->
+            <div id="visitNotesSection" style="display:none;">
+                <div class="section-heading">Visit Notes</div>
+                <div id="visitNotesContainer"></div>
+            </div>
+
             <!-- Linked records -->
             <div class="section-heading">Medications Prescribed</div>
             <div id="visitMedsContainer"></div>
@@ -7344,7 +7350,7 @@
     <script src="js/journal.js?v=350"></script>
     <script src="js/contacts.js?v=368"></script>
     <script src="js/collections.js?v=350"></script>
-    <script src="js/health.js?v=374"></script>
+    <script src="js/health.js?v=375"></script>
     <script src="js/notes.js?v=350"></script>
     <script src="js/lifecalendar.js?v=350"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>

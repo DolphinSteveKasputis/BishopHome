@@ -6235,6 +6235,10 @@ textarea.sb-field { resize: vertical; min-height: 60px; }
     color: #374151;
     margin-bottom: 6px;
 }
+/* Note items show the entity name in bold above the note text */
+.health-linked-item--note { padding: 8px 12px 10px; }
+.health-linked-item-title { font-weight: 600; margin-bottom: 4px; }
+.health-linked-item-note  { color: #4b5563; white-space: pre-wrap; }
 
 @media (max-width: 500px) {
     .health-detail-label { min-width: 110px; font-size: 0.78rem; }

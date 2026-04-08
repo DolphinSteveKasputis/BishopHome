@@ -800,6 +800,7 @@ async function renderVisitDetail(visit) {
     loadPhotos('healthVisit', visit.id, 'visitPhotoContainer', 'visitPhotoEmptyState');
 
     // Linked records
+    loadVisitLinkedNotes(visit.id);
     loadVisitLinkedMeds(visit.id);
     loadVisitLinkedConditions(visit.id);
     loadVisitLinkedBloodWork(visit.id);
@@ -820,6 +821,64 @@ function loadVisitLinkedMeds(visitId) {
                 el.appendChild(row);
             });
         }).catch(function() { el.innerHTML = '<p class="empty-state">\u2014</p>'; });
+}
+
+/**
+ * Load notes saved from this visit (from concernUpdates and healthConditionLogs)
+ * and display them as "Name — note" rows. Hidden when no notes exist.
+ */
+async function loadVisitLinkedNotes(visitId) {
+    var section = document.getElementById('visitNotesSection');
+    var el      = document.getElementById('visitNotesContainer');
+    if (!section || !el) return;
+    el.innerHTML = '';
+
+    try {
+        var [concernSnap, conditionSnap] = await Promise.all([
+            userCol('concernUpdates').where('visitId',    '==', visitId).get(),
+            userCol('healthConditionLogs').where('visitId', '==', visitId).get()
+        ]);
+
+        var rows = [];
+
+        // Concerns: load names in parallel
+        var cUpdates = concernSnap.docs.filter(function(d) { return d.data().note; });
+        var condUpdates = conditionSnap.docs.filter(function(d) { return d.data().note; });
+
+        await Promise.all(cUpdates.map(async function(d) {
+            var u = d.data();
+            var nameSnap = await userCol('concerns').doc(u.concernId).get();
+            var name = nameSnap.exists ? (nameSnap.data().title || u.concernId) : u.concernId;
+            rows.push({ kind: 'concern', name: name, note: u.note });
+        }));
+
+        await Promise.all(condUpdates.map(async function(d) {
+            var u = d.data();
+            var nameSnap = await userCol('conditions').doc(u.conditionId).get();
+            var name = nameSnap.exists ? (nameSnap.data().name || u.conditionId) : u.conditionId;
+            rows.push({ kind: 'condition', name: name, note: u.note });
+        }));
+
+        if (rows.length === 0) {
+            section.style.display = 'none';
+            return;
+        }
+
+        rows.forEach(function(r) {
+            var icon = r.kind === 'concern' ? '\u26a0\ufe0f' : '\ud83d\udccb';
+            var row = document.createElement('div');
+            row.className = 'health-linked-item health-linked-item--note';
+            row.innerHTML =
+                '<div class="health-linked-item-title">' + icon + ' ' + escapeHtml(r.name) + '</div>' +
+                '<div class="health-linked-item-note">' + escapeHtml(r.note) + '</div>';
+            el.appendChild(row);
+        });
+        section.style.display = '';
+
+    } catch(err) {
+        console.error('loadVisitLinkedNotes:', err);
+        section.style.display = 'none';
+    }
 }
 
 function loadVisitLinkedConditions(visitId) {

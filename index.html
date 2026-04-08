@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=353">
+    <link rel="stylesheet" href="css/styles.css?v=354">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -5427,9 +5427,16 @@
                 </div>
             </div>
 
-            <!-- Promote to Condition stub (Phase 7) -->
-            <div style="margin: 20px 0 32px;">
-                <button class="btn btn-secondary" onclick="alert('Coming soon \u2014 Promote to Condition will be available in a future update.')">&#8679; Promote to Condition</button>
+            <!-- Archived banner (shown when status = 'promoted') -->
+            <div id="concernArchivedBanner" class="concern-archived-banner" style="display:none;">
+                <span class="health-badge health-badge--promoted">Promoted to Condition</span>
+                <span id="concernArchivedDate" class="health-concern-date"></span>
+                <a id="concernArchivedLink" href="#" class="health-link">View Condition &#8594;</a>
+            </div>
+
+            <!-- Promote button row (hidden when promoted) -->
+            <div id="concernPromoteRow" style="margin: 20px 0 32px;">
+                <button class="btn btn-secondary" onclick="openPromoteModal()">&#8679; Promote to Condition</button>
             </div>
         </section>
 
@@ -6348,6 +6355,47 @@
             </div>
         </div>
 
+        <!-- Modal: Promote Concern to Condition -->
+        <div class="modal-overlay" id="promoteModal">
+            <div class="modal">
+                <h3>Promote to Condition</h3>
+                <p class="form-hint">All journal entries, medications, appointments, visits, and photos will be linked to the condition. The concern will be archived.</p>
+                <div class="form-group">
+                    <label for="promoteConditionName">Condition Name *</label>
+                    <input type="text" id="promoteConditionName" placeholder="e.g. Sleep Apnea, Hypertension">
+                </div>
+                <div class="form-group">
+                    <label for="promoteConditionCategory">Category</label>
+                    <select id="promoteConditionCategory">
+                        <option value="">— Select —</option>
+                        <option>Cardiovascular</option>
+                        <option>Metabolic</option>
+                        <option>Respiratory</option>
+                        <option>Neurological</option>
+                        <option>Musculoskeletal</option>
+                        <option>Mental Health</option>
+                        <option>Dental</option>
+                        <option>Sensory</option>
+                        <option>Other</option>
+                    </select>
+                </div>
+                <!-- Conflict section — shown when a matching condition name is found -->
+                <div id="promoteConflictSection" style="display:none;" class="promote-conflict-section">
+                    <div class="promote-conflict-msg">
+                        A condition named &ldquo;<span id="promoteConflictName"></span>&rdquo; already exists. What would you like to do?
+                    </div>
+                    <div class="promote-conflict-actions">
+                        <button class="btn btn-secondary" onclick="_confirmPromoteNew()">Create New</button>
+                        <button class="btn btn-primary" onclick="_confirmPromoteMerge()">Merge into existing</button>
+                    </div>
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn btn-secondary" onclick="closeModal('promoteModal')">Cancel</button>
+                    <button class="btn btn-primary" id="promoteSubmitBtn" onclick="submitPromoteModal()">Promote</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Modal: Med Picker (link / unlink medications to a concern or condition) -->
         <div class="modal-overlay" id="medPickerModal">
             <div class="modal">
@@ -7193,7 +7241,7 @@
     <script src="js/journal.js?v=350"></script>
     <script src="js/contacts.js?v=350"></script>
     <script src="js/collections.js?v=350"></script>
-    <script src="js/health.js?v=353"></script>
+    <script src="js/health.js?v=354"></script>
     <script src="js/notes.js?v=350"></script>
     <script src="js/lifecalendar.js?v=350"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -7201,7 +7249,7 @@
     <script src="js/secondbrain.js?v=350"></script>
     <script src="js/sbissues.js?v=350"></script>
     <script src="js/places.js?v=350"></script>
-    <script src="js/app.js?v=353"></script>
+    <script src="js/app.js?v=354"></script>
 
 </body>
 </html>

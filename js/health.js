@@ -2016,9 +2016,35 @@ function loadConcernDetail(id) {
 function renderConcernDetail(concern) {
     document.getElementById('concernDetailTitle').textContent = concern.title || 'Concern';
 
+    var isPromoted = concern.status === 'promoted';
+    var pageEl = document.getElementById('page-health-concern');
+
+    // Archived state (promoted)
+    var archivedBanner = document.getElementById('concernArchivedBanner');
+    var promoteRow     = document.getElementById('concernPromoteRow');
+    if (isPromoted) {
+        pageEl.classList.add('concern-archived');
+        archivedBanner.style.display = '';
+        document.getElementById('concernArchivedDate').textContent =
+            concern.promotedDate ? 'Promoted on ' + concern.promotedDate : '';
+        var link = document.getElementById('concernArchivedLink');
+        link.href = '#health-condition/' + (concern.promotedToConditionId || '');
+        link.onclick = function(e) {
+            e.preventDefault();
+            location.hash = '#health-condition/' + concern.promotedToConditionId;
+        };
+        if (promoteRow) promoteRow.style.display = 'none';
+    } else {
+        pageEl.classList.remove('concern-archived');
+        archivedBanner.style.display = 'none';
+        if (promoteRow) promoteRow.style.display = '';
+    }
+
     var statusEl = document.getElementById('concernDetailStatus');
-    statusEl.textContent  = concern.status === 'resolved' ? 'Resolved' : 'Open';
-    statusEl.className    = 'health-badge ' + (concern.status === 'resolved' ? 'health-badge--resolved' : 'health-badge--open');
+    statusEl.textContent  = isPromoted    ? 'Promoted'
+                          : concern.status === 'resolved' ? 'Resolved' : 'Open';
+    statusEl.className    = 'health-badge ' + (isPromoted    ? 'health-badge--promoted'
+                          : concern.status === 'resolved' ? 'health-badge--resolved' : 'health-badge--open');
 
     // Summary card fields
     var bodyAreaEl = document.getElementById('concernDetailBodyArea');
@@ -2028,18 +2054,18 @@ function renderConcernDetail(concern) {
     var summaryEl = document.getElementById('concernDetailSummary');
     if (summaryEl) summaryEl.textContent = concern.summary || '\u2014';
 
-    // Resolved date row
-    var resolvedRow = document.getElementById('concernDetailResolvedRow');
-    if (resolvedRow) {
+    // Resolved date inline
+    var resolvedDateEl = document.getElementById('concernDetailResolvedDate');
+    if (resolvedDateEl) {
         if (concern.status === 'resolved' && concern.resolvedDate) {
-            resolvedRow.style.display = '';
-            document.getElementById('concernDetailResolvedDate').textContent = 'Resolved: ' + concern.resolvedDate;
+            resolvedDateEl.textContent = 'Resolved: ' + concern.resolvedDate;
+            resolvedDateEl.style.display = '';
         } else {
-            resolvedRow.style.display = 'none';
+            resolvedDateEl.style.display = 'none';
         }
     }
 
-    // Toggle resolve/reopen button label
+    // Resolve/Reopen button
     var resolveBtn = document.getElementById('concernResolveBtn');
     if (resolveBtn) resolveBtn.textContent = concern.status === 'resolved' ? 'Reopen' : 'Mark Resolved';
 
@@ -2054,6 +2080,182 @@ function renderConcernDetail(concern) {
     loadConcernMeds(concern.id);
     loadConcernApptVisits(concern.id);
     loadPhotos('concern', concern.id, 'concernPhotoContainer', 'concernPhotoEmptyState');
+}
+
+// ── Promote concern → condition ───────────────────────────────────
+
+function openPromoteModal() {
+    var concern = window.currentHealthConcern;
+    if (!concern) return;
+
+    // Pre-fill name from concern title; clear category
+    document.getElementById('promoteConditionName').value     = concern.title || '';
+    document.getElementById('promoteConditionCategory').value = '';
+
+    // Reset conflict section
+    document.getElementById('promoteConflictSection').style.display = 'none';
+    document.getElementById('promoteConflictName').textContent       = '';
+    document.getElementById('promoteModal').dataset.conflictConditionId = '';
+    var submitBtn = document.getElementById('promoteSubmitBtn');
+    submitBtn.style.display  = '';
+    submitBtn.disabled       = false;
+
+    openModal('promoteModal');
+}
+
+async function submitPromoteModal() {
+    var name = document.getElementById('promoteConditionName').value.trim();
+    if (!name) { alert('Condition name is required.'); return; }
+
+    var submitBtn = document.getElementById('promoteSubmitBtn');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Checking\u2026';
+
+    try {
+        // Fetch all conditions and check for name conflict (case-insensitive)
+        var snap     = await userCol('conditions').get();
+        var nameLow  = name.toLowerCase();
+        var existing = snap.docs.find(function(d) {
+            return (d.data().name || '').toLowerCase() === nameLow;
+        });
+
+        if (!existing) {
+            // No conflict — create new condition directly
+            await _confirmPromoteNew();
+        } else {
+            // Show conflict UI
+            document.getElementById('promoteModal').dataset.conflictConditionId = existing.id;
+            document.getElementById('promoteConflictName').textContent = existing.data().name;
+            document.getElementById('promoteConflictSection').style.display = '';
+            submitBtn.style.display  = 'none';
+            submitBtn.disabled       = false;
+            submitBtn.textContent    = 'Promote';
+        }
+    } catch(err) {
+        alert('Error: ' + err.message);
+        submitBtn.disabled    = false;
+        submitBtn.textContent = 'Promote';
+    }
+}
+
+async function _confirmPromoteNew() {
+    var concern  = window.currentHealthConcern;
+    var name     = document.getElementById('promoteConditionName').value.trim();
+    var category = document.getElementById('promoteConditionCategory').value;
+
+    var submitBtn = document.getElementById('promoteSubmitBtn');
+    submitBtn.disabled    = true;
+    submitBtn.textContent = 'Promoting\u2026';
+
+    try {
+        // Create new condition record
+        var condRef = await userCol('conditions').add({
+            name:          name,
+            category:      category,
+            status:        'active',
+            diagnosedDate: concern.startDate || null,
+            createdAt:     firebase.firestore.FieldValue.serverTimestamp()
+        });
+        await _doPromotionWork(concern, condRef.id, name, false);
+        closeModal('promoteModal');
+        location.hash = '#health-condition/' + condRef.id;
+    } catch(err) {
+        alert('Error promoting: ' + err.message);
+        submitBtn.disabled    = false;
+        submitBtn.textContent = 'Promote';
+    }
+}
+
+async function _confirmPromoteMerge() {
+    var concern     = window.currentHealthConcern;
+    var existingId  = document.getElementById('promoteModal').dataset.conflictConditionId;
+    if (!existingId) return;
+
+    // Disable both conflict buttons
+    var btns = document.querySelectorAll('#promoteConflictSection button');
+    btns.forEach(function(b) { b.disabled = true; });
+
+    try {
+        await _doPromotionWork(concern, existingId, '', true);
+        closeModal('promoteModal');
+        location.hash = '#health-condition/' + existingId;
+    } catch(err) {
+        alert('Error merging: ' + err.message);
+        btns.forEach(function(b) { b.disabled = false; });
+    }
+}
+
+// Core promotion migration — runs for both Create New and Merge paths
+async function _doPromotionWork(concern, conditionId, conditionName, isMerge) {
+    var today = new Date().toISOString().slice(0, 10);
+    var batch = db.batch();
+
+    // 1. Add first journal entry to the condition (provenance note)
+    var firstLogRef = userCol('healthConditionLogs').doc();
+    batch.set(firstLogRef, {
+        conditionId: conditionId,
+        date:        today,
+        note:        (isMerge ? 'Merged from concern: ' : 'Promoted from concern: ') + concern.title + ' on ' + today + '.',
+        type:        'system',
+        createdAt:   firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    // 2. Copy concern journal entries → condition logs
+    var logsSnap = await userCol('concernUpdates').where('concernId', '==', concern.id).get();
+    logsSnap.docs.forEach(function(d) {
+        var u      = d.data();
+        var newRef = userCol('healthConditionLogs').doc();
+        batch.set(newRef, {
+            conditionId: conditionId,
+            date:        u.date || today,
+            note:        'Imported from concern: ' + concern.title + ' \u2014 ' + (u.note || ''),
+            painScale:   u.painScale || null,
+            type:        'system',
+            createdAt:   firebase.firestore.FieldValue.serverTimestamp()
+        });
+    });
+
+    // 3. Link medications
+    var medsSnap = await userCol('medications').where('concernIds', 'array-contains', concern.id).get();
+    medsSnap.docs.forEach(function(d) {
+        batch.update(d.ref, {
+            conditionIds: firebase.firestore.FieldValue.arrayUnion(conditionId)
+        });
+    });
+
+    // 4. Link appointments
+    var apptSnap = await userCol('appointments').where('concernIds', 'array-contains', concern.id).get();
+    apptSnap.docs.forEach(function(d) {
+        batch.update(d.ref, {
+            conditionIds: firebase.firestore.FieldValue.arrayUnion(conditionId)
+        });
+    });
+
+    // 5. Link health visits
+    var visitSnap = await userCol('healthVisits').where('concernIds', 'array-contains', concern.id).get();
+    visitSnap.docs.forEach(function(d) {
+        batch.update(d.ref, {
+            conditionIds: firebase.firestore.FieldValue.arrayUnion(conditionId)
+        });
+    });
+
+    // 6. Re-point photos from concern → condition
+    var photoSnap = await userCol('photos')
+        .where('targetType', '==', 'concern')
+        .where('targetId',   '==', concern.id)
+        .get();
+    photoSnap.docs.forEach(function(d) {
+        batch.update(d.ref, { targetType: 'condition', targetId: conditionId });
+    });
+
+    // 7. Mark concern as promoted
+    batch.update(userCol('concerns').doc(concern.id), {
+        status:                'promoted',
+        promotedToConditionId: conditionId,
+        promotedDate:          today
+    });
+
+    await batch.commit();
 }
 
 function loadConcernUpdates(concernId) {

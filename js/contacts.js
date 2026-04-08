@@ -275,11 +275,17 @@ function renderPersonDetail(person, parentPerson) {
     var subSection = document.getElementById('personSubPeopleSection');
     if (subSection) subSection.style.display = person.parentPersonId ? 'none' : '';
 
+    // Rename heading to "Staff" for Medical Facility contacts
+    var isFacility = person.category === 'Medical Facility';
+    var subLabel = isFacility ? 'Staff' : 'Family Members';
+    var headingEl = document.getElementById('subPeopleHeading');
+    if (headingEl) headingEl.textContent = subLabel;
+
     // Wire edit button
     document.getElementById('personEditBtn').onclick = function() { openEditContactModal(person); };
 
     // Load all sub-sections
-    if (!person.parentPersonId) loadSubPeople(person.id);
+    if (!person.parentPersonId) loadSubPeople(person.id, subLabel);
     loadImportantDates(person.id);
     loadPhotos('person', person.id, 'personPhotoContainer', 'personPhotoEmptyState');
     loadFacts('person',  person.id, 'personFactsContainer',  'personFactsEmptyState');
@@ -581,16 +587,17 @@ function handleDeletePerson(id) { return handleDeleteContact(id); }
 // SUB-CONTACTS  (family members on contact detail page)
 // ============================================================
 
-async function loadSubPeople(parentId) {
+async function loadSubPeople(parentId, label) {
     var container  = document.getElementById('subPeopleContainer');
     var emptyState = document.getElementById('subPeopleEmpty');
     container.innerHTML = '';
+    var memberLabel = label || 'Family Members';
 
     try {
         var snap = await userCol('people').where('parentPersonId', '==', parentId).get();
 
         if (snap.empty) {
-            emptyState.textContent = 'No family members added yet.';
+            emptyState.textContent = 'No ' + memberLabel.toLowerCase() + ' added yet.';
             emptyState.style.display = 'block';
             return;
         }

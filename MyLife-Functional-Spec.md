@@ -433,7 +433,7 @@ Renamed from "People". Tracks personal contacts and medical/service professional
 
 **Routes**: `#contacts` (list), `#contact/{id}` (detail). Legacy `#people` / `#person/{id}` redirect to the new routes.
 
-**Hierarchy**: Sub-contacts (`parentPersonId`) allow grouping (e.g., family members under a parent record).
+**Hierarchy**: Sub-contacts (`parentPersonId`) allow grouping (e.g., family members under a parent record). The sub-contacts section heading dynamically adapts: **"Family Members"** for Personal/other categories, **"Staff"** for Medical Facility contacts. The empty-state text also adapts accordingly.
 
 **Contact detail sections**:
 - Contact info: specialty (Medical Professional only), phone (tel: link), email (mailto: link), address (Google Maps link), website (external link), Facebook, how known, notes

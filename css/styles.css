@@ -6884,7 +6884,7 @@ a.health-chip--link:hover { filter: brightness(0.93); }
 .concern-appt-visit-item {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
     padding: 8px 4px;
     border-bottom: 1px solid #f1f5f9;
     cursor: pointer;

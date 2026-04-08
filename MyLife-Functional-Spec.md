@@ -413,7 +413,7 @@ Daily entry logging with optional tracking metrics.
 
 **Check-in flow**: The "📍 Check In" button (on the QuickLog screen and SecondBrain) opens the check-in form pre-filled with a venue. On save, it creates a journal entry with `isCheckin: true` and `placeIds: [placeId]`.
 
-**Tab key**: In the journal entry textarea, if the @mention dropdown is open, Tab selects the first name in the list (same as clicking it) and keeps focus in the textarea. If the dropdown is not open, Tab behaves normally (moves focus).
+**Tab key**: In the journal entry textarea, if the @mention dropdown is open, Tab selects the first name in the list (same as clicking it) and keeps focus in the textarea. If the dropdown is not open, Tab inserts 4 spaces (handled by `_initTabIndentTextareas` in `app.js`).
 
 ### Contacts (`contacts.js`)
 

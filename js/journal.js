@@ -972,8 +972,10 @@ function applySpokenPunctuation(text) {
         text = text.replace(rule[0], rule[1]);
     });
 
-    // Clean up any double spaces created by substitutions
-    text = text.replace(/  +/g, ' ').trim();
+    // Collapse multiple spaces/tabs (but NOT newlines — those are intentional commands)
+    text = text.replace(/[ \t]{2,}/g, ' ');
+    // Strip leading/trailing spaces and tabs only — never strip \n or \n\n
+    text = text.replace(/^[ \t]+/, '').replace(/[ \t]+$/, '');
 
     // Capitalize the first letter of each new sentence WITHIN this chunk
     // (after ". ", "? ", "! " followed by a lowercase letter)
@@ -1072,12 +1074,14 @@ function initVoiceToText(textareaId, btnId) {
                 }
             }
 
-            // Append with a space separator if needed
-            if (existing && !existing.endsWith(' ') && !existing.endsWith('\n')) {
-                textarea.value = existing + ' ' + transcript;
-            } else {
-                textarea.value = existing + transcript;
-            }
+            // Append with a space separator if needed.
+            // Skip the space when: existing already ends with space/newline,
+            // OR the incoming transcript starts with a newline (it IS the newline).
+            var needsSpace = existing.length > 0
+                && !existing.endsWith(' ')
+                && !existing.endsWith('\n')
+                && !transcript.startsWith('\n');
+            textarea.value = existing + (needsSpace ? ' ' : '') + transcript;
         }
     };
 

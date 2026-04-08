@@ -3625,19 +3625,17 @@ function buildAppointmentCard(a, isOverdue, opts) {
     }
     actionsHtml += '<button class="btn btn-danger btn-small" onclick="deleteAppointment(\'' + a.id + '\')">Delete</button>';
 
-    return '<div class="health-card">' +
-        '<div class="health-card-header">' +
-            '<div>' +
-                '<div class="health-card-title">' + typeBadgeHtml + '</div>' +
-                '<div class="health-card-meta">' + dateStr + '</div>' +
-            '</div>' +
+    return '<div class="health-card appt-card">' +
+        '<div class="appt-card-top">' +
+            typeBadgeHtml +
             '<span class="appt-badge ' + statusClass + '">' + statusLabel + '</span>' +
         '</div>' +
+        '<div class="appt-card-date">' + dateStr + '</div>' +
         (facilityHtml ? '<div class="appt-detail-row"><span class="appt-detail-label">Facility:</span> ' + facilityHtml + '</div>' : '') +
         (providerHtml ? '<div class="appt-detail-row"><span class="appt-detail-label">Provider:</span> ' + providerHtml + '</div>' : '') +
         (chips ? '<div class="appt-chips">' + chips + '</div>' : '') +
         (a.notes ? '<div class="health-card-notes">' + escapeHtml(a.notes) + '</div>' : '') +
-        '<div class="health-card-actions">' + actionsHtml + '</div>' +
+        '<div class="appt-card-actions">' + actionsHtml + '</div>' +
     '</div>';
 }
 

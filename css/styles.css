@@ -6638,6 +6638,30 @@ textarea.sb-field { resize: vertical; min-height: 60px; }
     color: #1d4ed8;
 }
 
+/* ── Appointment card — mobile-first stacked layout ─────────── */
+.appt-card { padding: 14px 16px; }
+
+.appt-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+.appt-card-date {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 8px;
+}
+.appt-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+.appt-card-actions .btn { flex: 1 1 auto; text-align: center; }
+
 /* ── Appointment card detail rows (Facility / Provider) ─────── */
 .appt-detail-row {
     display: flex;
@@ -6690,14 +6714,22 @@ a.health-chip--link:hover { filter: brightness(0.93); }
 .appt-concern-item {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 5px 2px;
+    gap: 8px;
+    padding: 7px 4px;
     font-size: 0.875rem;
     cursor: pointer;
     border-radius: 4px;
 }
 .appt-concern-item:hover { background: #f8fafc; }
-.appt-concern-icon { font-size: 0.85rem; line-height: 1; }
+.appt-concern-item input[type="checkbox"] {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    vertical-align: middle;
+    cursor: pointer;
+}
+.appt-concern-icon { font-size: 0.85rem; line-height: 1; flex-shrink: 0; }
 
 /* ── Collapsible section pattern (concern/condition detail) ─── */
 .collapsible-section {

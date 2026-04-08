@@ -3612,6 +3612,7 @@ function buildAppointmentCard(a, isOverdue, opts) {
     });
 
     // Action buttons — converted appointments are read-only (no Edit, no Mark Done)
+    // Delete is in the edit modal, not the card
     var actionsHtml = '';
     if (!isConverted) {
         actionsHtml += '<button class="btn btn-secondary btn-small" onclick="openApptModal(\'' + a.id + '\')">Edit</button>';
@@ -3623,14 +3624,18 @@ function buildAppointmentCard(a, isOverdue, opts) {
     if ((isConverted || a.status === 'completed') && a.linkedVisitId) {
         actionsHtml += '<a href="#health-visit/' + a.linkedVisitId + '" class="btn btn-secondary btn-small">View Visit</a>';
     }
-    actionsHtml += '<button class="btn btn-danger btn-small" onclick="deleteAppointment(\'' + a.id + '\')">Delete</button>';
+
+    // Date — tappable shortcut to edit (converted appts open read-only edit; no-op for converted)
+    var dateHtml = isConverted
+        ? '<div class="appt-card-date">' + dateStr + '</div>'
+        : '<div class="appt-card-date appt-card-date--link" onclick="openApptModal(\'' + a.id + '\')">' + dateStr + '</div>';
 
     return '<div class="health-card appt-card">' +
         '<div class="appt-card-top">' +
             typeBadgeHtml +
             '<span class="appt-badge ' + statusClass + '">' + statusLabel + '</span>' +
         '</div>' +
-        '<div class="appt-card-date">' + dateStr + '</div>' +
+        dateHtml +
         (facilityHtml ? '<div class="appt-detail-row"><span class="appt-detail-label">Facility:</span> ' + facilityHtml + '</div>' : '') +
         (providerHtml ? '<div class="appt-detail-row"><span class="appt-detail-label">Provider:</span> ' + providerHtml + '</div>' : '') +
         (chips ? '<div class="appt-chips">' + chips + '</div>' : '') +
@@ -3661,6 +3666,9 @@ async function openApptModal(id) {
     var modal = document.getElementById('apptModal');
     modal.dataset.editId = id || '';
     document.getElementById('apptModalTitle').textContent = id ? 'Edit Appointment' : 'Add Appointment';
+    // Show Delete button only when editing an existing appointment
+    var apptDeleteBtn = document.getElementById('apptDeleteBtn');
+    if (apptDeleteBtn) apptDeleteBtn.style.display = id ? '' : 'none';
 
     // Reset fields
     document.getElementById('apptDate').value   = '';

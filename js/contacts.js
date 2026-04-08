@@ -1202,16 +1202,16 @@ function buildContactPicker(containerId, options) {
     async function _loadContacts() {
         if (_allContacts) return _allContacts;
         try {
-            var snap = await userCol('people').where('parentPersonId', '==', null).get();
+            // When filtering by category, load ALL contacts (including sub-contacts like
+            // staff members under a Medical Facility) so they appear in the picker.
+            // Without a category filter, show only top-level contacts to avoid clutter.
+            var query = filterCat
+                ? userCol('people').where('category', '==', filterCat)
+                : userCol('people').where('parentPersonId', '==', null);
+            var snap = await query.get();
             _allContacts = [];
             snap.forEach(function(doc) {
-                var d = Object.assign({ id: doc.id }, doc.data());
-                // Apply category filter if set
-                if (!filterCat) {
-                    _allContacts.push(d);
-                } else if (d.category === filterCat) {
-                    _allContacts.push(d);
-                }
+                _allContacts.push(Object.assign({ id: doc.id }, doc.data()));
             });
             _allContacts.sort(function(a, b) { return (a.name || '').localeCompare(b.name || ''); });
         } catch (e) {

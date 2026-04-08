@@ -644,6 +644,15 @@ button {
     justify-content: flex-end;
     margin-top: 20px;
 }
+/* Delete on left, Save/Cancel on right */
+.modal-buttons--spaced {
+    justify-content: space-between;
+    align-items: center;
+}
+.modal-buttons-right {
+    display: flex;
+    gap: 8px;
+}
 
 /* ---------- Section Header with Actions ---------- */
 .section-header-actions {
@@ -6658,6 +6667,12 @@ textarea.sb-field { resize: vertical; min-height: 60px; }
     font-weight: 600;
     color: #1e293b;
     margin-bottom: 8px;
+}
+.appt-card-date--link {
+    cursor: pointer;
+    color: #1d4ed8;
+    text-decoration: underline;
+    text-underline-offset: 2px;
 }
 .appt-card-actions {
     display: flex;

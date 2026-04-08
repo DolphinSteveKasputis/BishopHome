@@ -1762,8 +1762,8 @@ function _journalInitMentions() {
             // If the @mention dropdown is open, Tab picks the first result
             var drop = document.getElementById('journalMentionDropdown');
             if (drop && drop.style.display !== 'none' && drop.children.length > 0) {
-                e.preventDefault(); // stop focus from jumping to next field
-                // Re-use the existing select logic — pull the person from the first item's stored data
+                e.preventDefault();      // stop focus from jumping to next field
+                e.stopPropagation();     // stop app.js document-level Tab→spaces handler
                 var firstItem = drop.children[0];
                 if (firstItem && firstItem._mentionPerson) {
                     _journalSelectMention(firstItem._mentionPerson);

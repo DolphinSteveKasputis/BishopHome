@@ -1021,7 +1021,7 @@ All collections live under `/users/{uid}/`. Every module uses `userCol('collecti
 
 | Collection | Key Fields |
 |------------|------------|
-| `people` | name, nickname, category, phone, email, address, facebookUrl, howKnown, notes, profilePhotoData?, parentPersonId?, createdAt |
+| `people` | name, nickname, category (Personal/Medical Professional/Medical Facility/Service Professional/Other), specialty?, phone, email, address, facebookUrl, howKnown, notes, profilePhotoData?, parentPersonId?, createdAt |
 | `peopleImportantDates` | personId, label, month, day, year?, notes, createdAt |
 | `peopleInteractions` | personId, date, notes, createdAt |
 | `peopleCategories` | name, createdAt |
@@ -1039,11 +1039,12 @@ All collections live under `/users/{uid}/`. Every module uses `userCol('collecti
 | Collection | Key Fields |
 |------------|------------|
 | `healthVisits` | date, type, provider (legacy), providerType (legacy), facilityContactId, providerContactId, concernIds[], conditionIds[], reason, whatWasDone, outcome, cost, notes |
-| `medications` | name, dosage, purpose, prescribedBy, startDate, endDate, status, type |
-| `concerns` | title, bodyArea, startDate, status, resolvedDate, summary |
-| `healthConcernLogs` | concernId, date, note, painScale? |
-| `conditions` | name, category, diagnosedDate, diagnosedBy, status, managementNotes |
-| `healthConditionLogs` | conditionId, date, note, painScale?, type, visitId? |
+| `medications` | name, dosage, purpose, prescribedBy, prescribedAtVisitId?, startDate, endDate, status, type, concernIds[], conditionIds[] |
+| `concerns` | title, bodyArea, startDate, status (open/resolved/promoted), resolvedDate, summary, promotedToConditionId?, promotedDate? |
+| `healthConcernLogs` | concernId, date, note, painScale?, type (manual/system/visit-note), visitId? |
+| `conditions` | name, category, diagnosedDate, diagnosedBy, status (active/managed/resolved), managementNotes |
+| `healthConditionLogs` | conditionId, date, note, painScale?, type (manual/system/visit-note), visitId?, createdAt |
+| `healthCareTeam` | single doc (`default`): members[{role, providerContactId?, facilityContactId?}] |
 | `bloodWork` | date, lab, orderedBy, notes, markers[] |
 | `vitals` | date, time, type, value1, value2?, unit, notes |
 | `supplements` | name, dosage, brand, reason, frequency, startDate, endDate, status |

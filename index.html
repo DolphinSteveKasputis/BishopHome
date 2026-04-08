@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=354">
+    <link rel="stylesheet" href="css/styles.css?v=355">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -5809,6 +5809,41 @@
 
         <!-- ─── H6: APPOINTMENTS PAGES ───────────────────────────────── -->
 
+        <!-- Page: Visit Step 2 — Notes & Prescriptions (#health-visit-step2/{id}) -->
+        <section class="page hidden" id="page-health-visit-step2">
+            <div class="page-header">
+                <h2>&#10003; Visit Saved &#8212; Step 2: Notes &amp; Prescriptions</h2>
+            </div>
+            <p class="form-hint step2-intro">Add notes or prescriptions for each concern/condition from this visit. You can skip this entirely.</p>
+
+            <div id="step2AccordionList"></div>
+
+            <!-- Create New Concern inline -->
+            <div class="step2-create-row" id="step2CreateConcernRow">
+                <button class="btn btn-secondary btn-small" onclick="_step2ToggleNewConcernForm()">+ New Concern</button>
+                <div id="step2NewConcernForm" class="step2-new-entity-form" style="display:none;">
+                    <input type="text" id="step2NewConcernTitle" placeholder="Concern title *">
+                    <input type="text" id="step2NewConcernArea" placeholder="Body area (optional)">
+                    <button class="btn btn-primary btn-small" onclick="_step2SaveNewConcern()">Add</button>
+                    <button class="btn btn-secondary btn-small" onclick="_step2ToggleNewConcernForm()">Cancel</button>
+                </div>
+            </div>
+
+            <!-- Create New Condition inline -->
+            <div class="step2-create-row" id="step2CreateConditionRow">
+                <button class="btn btn-secondary btn-small" onclick="_step2ToggleNewConditionForm()">+ New Condition</button>
+                <div id="step2NewConditionForm" class="step2-new-entity-form" style="display:none;">
+                    <input type="text" id="step2NewConditionName" placeholder="Condition name *">
+                    <button class="btn btn-primary btn-small" onclick="_step2SaveNewCondition()">Add</button>
+                    <button class="btn btn-secondary btn-small" onclick="_step2ToggleNewConditionForm()">Cancel</button>
+                </div>
+            </div>
+
+            <div class="step2-done-row">
+                <button class="btn btn-primary" onclick="saveStep2AndDone()">Done &#8594; My Health</button>
+            </div>
+        </section>
+
         <!-- Page: Appointments (#health-appointments) -->
         <section class="page hidden" id="page-health-appointments">
             <div class="page-header">
@@ -5886,11 +5921,11 @@
             </div>
         </div>
 
-        <!-- Modal: Mark Appointment Done / Convert to Visit -->
+        <!-- Modal: Mark Appointment Done / Convert to Visit (Step 1) -->
         <div class="modal-overlay" id="apptConvertModal">
             <div class="modal modal--wide">
-                <h3>Log Visit</h3>
-                <p class="appt-convert-hint">Fill in what happened at this appointment. This creates a Health Visit record and marks the appointment complete.</p>
+                <h3>Log Visit — Step 1 of 2</h3>
+                <p class="appt-convert-hint">Fill in what happened. Step 2 lets you add per-concern notes and prescriptions.</p>
                 <div class="form-row">
                     <div class="form-group">
                         <label for="acvDate">Date *</label>
@@ -5901,30 +5936,29 @@
                         <input type="time" id="acvTime">
                     </div>
                 </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="acvProvider">Provider</label>
-                        <input type="text" id="acvProvider" placeholder="Doctor / facility name">
-                    </div>
-                    <div class="form-group">
-                        <label for="acvProviderType">Provider Type</label>
-                        <select id="acvProviderType">
-                            <option value="">&#8212; Select &#8212;</option>
-                            <option value="Primary Care">Primary Care</option>
-                            <option value="Dentist">Dentist</option>
-                            <option value="Optometrist">Optometrist</option>
-                            <option value="Specialist">Specialist</option>
-                            <option value="Urgent Care">Urgent Care</option>
-                            <option value="ER">ER</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
+                <div class="form-group">
+                    <label for="acvType">Visit Type</label>
+                    <select id="acvType">
+                        <option value="">&#8212; Select &#8212;</option>
+                        <option>Dr. Visit</option>
+                        <option>Specialist</option>
+                        <option>Follow-up</option>
+                        <option>Physical or Annual</option>
+                        <option>Urgent Care</option>
+                        <option>Emergency</option>
+                        <option>Dental</option>
+                        <option>Eye Exam</option>
+                        <option>Lab or Test</option>
+                        <option>Procedure</option>
+                    </select>
+                </div>
+                <div id="acvFacilityRow" class="form-group" style="display:none;">
+                    <label>Facility</label>
+                    <div id="acvFacilityDisplay" class="acv-contact-display"></div>
                 </div>
                 <div class="form-group">
-                    <label for="acvConcernId">Related Concern</label>
-                    <select id="acvConcernId">
-                        <option value="">&#8212; No concern linked &#8212;</option>
-                    </select>
+                    <label for="acvProviderWho">Who did you see? (optional)</label>
+                    <input type="text" id="acvProviderWho" placeholder="Provider name">
                 </div>
                 <div class="form-group">
                     <label for="acvReason">Reason for Visit</label>
@@ -5938,19 +5972,17 @@
                     <label for="acvOutcome">Outcome / Next Steps</label>
                     <textarea id="acvOutcome" rows="2" placeholder="Results, follow-up instructions..."></textarea>
                 </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="acvCost">Out-of-Pocket Cost ($)</label>
-                        <input type="text" id="acvCost" placeholder="0.00">
-                    </div>
-                    <div class="form-group">
-                        <label for="acvNotes">Notes</label>
-                        <input type="text" id="acvNotes" placeholder="Anything else">
-                    </div>
+                <div class="form-group">
+                    <label for="acvCost">Out-of-Pocket Cost ($)</label>
+                    <input type="text" id="acvCost" placeholder="0.00">
+                </div>
+                <div class="form-group">
+                    <label for="acvNotes">Overall Visit Notes</label>
+                    <textarea id="acvNotes" rows="3" placeholder="General notes about the visit..."></textarea>
                 </div>
                 <div class="modal-buttons">
                     <button class="btn btn-secondary" onclick="closeModal('apptConvertModal')">Cancel</button>
-                    <button class="btn btn-primary" onclick="saveConvertedVisit()">Save Visit</button>
+                    <button class="btn btn-primary" id="acvSaveBtn" onclick="saveConvertedVisit()">Save &amp; Continue &#8594;</button>
                 </div>
             </div>
         </div>
@@ -7241,7 +7273,7 @@
     <script src="js/journal.js?v=350"></script>
     <script src="js/contacts.js?v=350"></script>
     <script src="js/collections.js?v=350"></script>
-    <script src="js/health.js?v=354"></script>
+    <script src="js/health.js?v=355"></script>
     <script src="js/notes.js?v=350"></script>
     <script src="js/lifecalendar.js?v=350"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -7249,7 +7281,7 @@
     <script src="js/secondbrain.js?v=350"></script>
     <script src="js/sbissues.js?v=350"></script>
     <script src="js/places.js?v=350"></script>
-    <script src="js/app.js?v=354"></script>
+    <script src="js/app.js?v=355"></script>
 
 </body>
 </html>

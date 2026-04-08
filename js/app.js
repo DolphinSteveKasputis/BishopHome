@@ -31,7 +31,7 @@ const ALL_PAGES = [
     'person', 'contact',
     'notebook', 'note',
     'health-allergies', 'health-supplements', 'health-vaccinations', 'health-eye',
-    'health-visit', 'health-medications', 'health-conditions', 'health-concerns', 'health-concern', 'health-condition',
+    'health-visit', 'health-visit-step2', 'health-medications', 'health-conditions', 'health-concerns', 'health-concern', 'health-condition',
     'health-bloodwork-detail', 'health-insurance-detail',
     'life-event'
 ];
@@ -355,6 +355,9 @@ function handleRoute() {
     } else if (page === 'health-visit' && id) {
         showPage('health-visit');
         loadHealthVisitDetail(id);
+    } else if (page === 'health-visit-step2' && id) {
+        showPage('health-visit-step2');
+        loadStep2Page(id);
     } else if (page === 'health-medications') {
         showPage('health-medications');
         loadMedicationsPage();

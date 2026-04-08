@@ -1878,7 +1878,11 @@ function saveMedPickerSelection() {
 
     batch.commit().then(function() {
         closeModal('medPickerModal');
-        if (targetType === 'concern') {
+        if (window._medPickerAfterSave) {
+            var cb = window._medPickerAfterSave;
+            window._medPickerAfterSave = null;
+            cb();
+        } else if (targetType === 'concern') {
             loadConcernMeds(targetId);
         } else if (targetType === 'condition') {
             loadConditionMeds(targetId);
@@ -3827,35 +3831,61 @@ function cancelAppointment(id) {
  * User reviews/edits the visit details, then saves — creating the visit
  * and marking the appointment completed with linkedVisitId set.
  */
-function openConvertToVisitModal(apptId) {
+async function openConvertToVisitModal(apptId) {
     var appt = _apptAllRecords.find(function(a) { return a.id === apptId; });
     if (!appt) return;
 
     var modal = document.getElementById('apptConvertModal');
-    modal.dataset.apptId = apptId;
+    modal.dataset.apptId            = apptId;
+    modal.dataset.facilityContactId = appt.facilityContactId || '';
+    modal.dataset.providerContactId = appt.providerContactId || '';
+    modal.dataset.concernIds        = JSON.stringify(appt.concernIds  || []);
+    modal.dataset.conditionIds      = JSON.stringify(appt.conditionIds || []);
 
-    document.getElementById('acvDate').value         = appt.date || '';
-    document.getElementById('acvTime').value         = appt.time || '';
-    document.getElementById('acvProvider').value     = appt.provider || '';
-    document.getElementById('acvProviderType').value = APPT_TYPE_TO_PROVIDER_TYPE[appt.type] || '';
-    // Pre-visit prep notes intentionally do NOT carry over to the visit record
-    document.getElementById('acvReason').value    = '';
-    document.getElementById('acvWhatDone').value  = '';
-    document.getElementById('acvOutcome').value   = '';
-    document.getElementById('acvCost').value      = '';
-    document.getElementById('acvNotes').value     = '';
+    // Date pre-filled to today, time from appointment
+    document.getElementById('acvDate').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('acvTime').value = appt.time || '';
 
-    // Populate concern dropdown
-    var select = document.getElementById('acvConcernId');
-    select.innerHTML = '<option value="">\u2014 No concern linked \u2014</option>';
-    userCol('concerns').orderBy('title').get().then(function(snap) {
-        snap.docs.forEach(function(d) {
-            var opt = document.createElement('option');
-            opt.value = d.id;
-            opt.textContent = d.data().title || d.id;
-            select.appendChild(opt);
+    // Visit type — pre-filled from appointment type
+    document.getElementById('acvType').value = appt.type || '';
+
+    // Clear editable fields
+    ['acvReason','acvWhatDone','acvOutcome','acvCost','acvNotes','acvProviderWho'].forEach(function(id) {
+        document.getElementById(id).value = '';
+    });
+
+    // Facility display row
+    var facilityRow = document.getElementById('acvFacilityRow');
+    var facilityDisplay = document.getElementById('acvFacilityDisplay');
+    if (appt.facilityContactId) {
+        facilityRow.style.display = '';
+        facilityDisplay.textContent = 'Loading\u2026';
+        userCol('people').doc(appt.facilityContactId).get().then(function(snap) {
+            var name = snap.exists ? (snap.data().name || 'Unknown') : 'Unknown';
+            facilityDisplay.innerHTML = '<a href="#contact/' + appt.facilityContactId + '">' + escapeHtml(name) + '</a>';
+        }).catch(function() { facilityDisplay.textContent = appt.facilityText || ''; });
+    } else if (appt.facilityText) {
+        facilityRow.style.display = '';
+        facilityDisplay.textContent = appt.facilityText;
+    } else {
+        facilityRow.style.display = 'none';
+    }
+
+    // Provider — pre-fill "Who did you see?" from providerText or contact name
+    if (appt.providerContactId) {
+        userCol('people').doc(appt.providerContactId).get().then(function(snap) {
+            document.getElementById('acvProviderWho').value =
+                snap.exists ? (snap.data().name || '') : (appt.providerText || '');
+        }).catch(function() {
+            document.getElementById('acvProviderWho').value = appt.providerText || '';
         });
-    }).catch(function() {});
+    } else {
+        document.getElementById('acvProviderWho').value = appt.providerText || '';
+    }
+
+    // Reset save button
+    var saveBtn = document.getElementById('acvSaveBtn');
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save & Continue \u2192'; }
 
     openModal('apptConvertModal');
 }
@@ -3864,32 +3894,280 @@ function saveConvertedVisit() {
     var date = document.getElementById('acvDate').value;
     if (!date) { alert('Date is required.'); return; }
 
+    var modal = document.getElementById('apptConvertModal');
+    var apptId = modal.dataset.apptId;
+
+    var saveBtn = document.getElementById('acvSaveBtn');
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving\u2026'; }
+
     var visitData = {
-        date:         date,
-        provider:     document.getElementById('acvProvider').value.trim(),
-        providerType: document.getElementById('acvProviderType').value,
-        concernId:    document.getElementById('acvConcernId').value || null,
-        reason:       document.getElementById('acvReason').value.trim(),
-        whatWasDone:  document.getElementById('acvWhatDone').value.trim(),
-        outcome:      document.getElementById('acvOutcome').value.trim(),
-        cost:         document.getElementById('acvCost').value.trim(),
-        notes:        document.getElementById('acvNotes').value.trim(),
-        createdAt:    firebase.firestore.FieldValue.serverTimestamp()
+        date:               date,
+        type:               document.getElementById('acvType').value || '',
+        facilityContactId:  modal.dataset.facilityContactId || null,
+        providerText:       document.getElementById('acvProviderWho').value.trim(),
+        providerContactId:  modal.dataset.providerContactId || null,
+        concernIds:         JSON.parse(modal.dataset.concernIds  || '[]'),
+        conditionIds:       JSON.parse(modal.dataset.conditionIds || '[]'),
+        reason:             document.getElementById('acvReason').value.trim(),
+        whatWasDone:        document.getElementById('acvWhatDone').value.trim(),
+        outcome:            document.getElementById('acvOutcome').value.trim(),
+        cost:               document.getElementById('acvCost').value.trim(),
+        notes:              document.getElementById('acvNotes').value.trim(),
+        createdAt:          firebase.firestore.FieldValue.serverTimestamp()
     };
 
-    var apptId = document.getElementById('apptConvertModal').dataset.apptId;
-
     userCol('healthVisits').add(visitData).then(function(ref) {
-        // Mark appointment as converted (read-only) and link back to the new visit
         return userCol('healthAppointments').doc(apptId).update({
             status:        'converted',
             linkedVisitId: ref.id
         }).then(function() { return ref.id; });
     }).then(function(visitId) {
-        document.getElementById('apptConvertModal').classList.remove('open');
-        history.replaceState(null, '', '#health-visit/' + visitId);
-        handleRoute();
-    }).catch(function(err) { alert('Error saving visit: ' + err.message); });
+        closeModal('apptConvertModal');
+        // Transition to Step 2 page
+        location.hash = '#health-visit-step2/' + visitId;
+    }).catch(function(err) {
+        alert('Error saving visit: ' + err.message);
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save & Continue \u2192'; }
+    });
+}
+
+// =================================================================
+//  VISIT STEP 2 — Per-Concern/Condition Notes & Prescriptions
+//  Route: #health-visit-step2/{visitId}
+// =================================================================
+
+/** Current visit being processed in Step 2. */
+var _step2Visit = null;
+
+async function loadStep2Page(visitId) {
+    var accordion = document.getElementById('step2AccordionList');
+    accordion.innerHTML = '<p class="empty-state">Loading\u2026</p>';
+
+    document.getElementById('step2NewConcernForm').style.display   = 'none';
+    document.getElementById('step2NewConditionForm').style.display = 'none';
+    document.getElementById('step2NewConcernTitle').value           = '';
+    document.getElementById('step2NewConcernArea').value            = '';
+    document.getElementById('step2NewConditionName').value          = '';
+
+    try {
+        var snap = await userCol('healthVisits').doc(visitId).get();
+        if (!snap.exists) {
+            accordion.innerHTML = '<p class="empty-state">Visit not found.</p>';
+            return;
+        }
+        _step2Visit = Object.assign({ id: snap.id }, snap.data());
+
+        var concernIds   = _step2Visit.concernIds   || [];
+        var conditionIds = _step2Visit.conditionIds || [];
+
+        if (concernIds.length === 0 && conditionIds.length === 0) {
+            accordion.innerHTML = '<p class="empty-state" style="margin:16px;">No concerns or conditions linked yet. Use the buttons below to add some.</p>';
+        } else {
+            var [concernSnap, conditionSnap] = await Promise.all([
+                concernIds.length   ? userCol('concerns').get()   : Promise.resolve({ docs: [] }),
+                conditionIds.length ? userCol('conditions').get() : Promise.resolve({ docs: [] })
+            ]);
+            var concernMap  = {};
+            concernSnap.docs.forEach(function(d) { concernMap[d.id]  = d.data().title || d.id; });
+            var conditionMap = {};
+            conditionSnap.docs.forEach(function(d) { conditionMap[d.id] = d.data().name  || d.id; });
+
+            accordion.innerHTML = '';
+            concernIds.forEach(function(cid) {
+                accordion.appendChild(_step2BuildAccordionItem('concern',   cid, concernMap[cid]   || cid));
+            });
+            conditionIds.forEach(function(cid) {
+                accordion.appendChild(_step2BuildAccordionItem('condition', cid, conditionMap[cid] || cid));
+            });
+            concernIds.forEach(function(cid)   { _step2LoadMedsForItem('concern',   cid); });
+            conditionIds.forEach(function(cid)  { _step2LoadMedsForItem('condition', cid); });
+        }
+    } catch(err) {
+        accordion.innerHTML = '<p class="empty-state">Error: ' + escapeHtml(err.message) + '</p>';
+        console.error('loadStep2Page:', err);
+    }
+}
+
+function _step2BuildAccordionItem(type, id, name) {
+    var icon = type === 'concern' ? '\u26a0\ufe0f' : '\ud83d\udccb';
+    var div  = document.createElement('div');
+    div.className = 'step2-accordion-item';
+    div.id = 'step2-item-' + type + '-' + id;
+    div.innerHTML =
+        '<div class="step2-accordion-header" onclick="toggleStep2Item(this.parentElement)">' +
+            '<span class="step2-item-icon">' + icon + '</span>' +
+            '<span class="step2-item-name">' +
+                '<span class="health-badge health-badge--' + (type === 'concern' ? 'open' : 'status-active') + '">' +
+                    (type === 'concern' ? 'Concern' : 'Condition') +
+                '</span> ' + escapeHtml(name) +
+            '</span>' +
+            '<span class="step2-chevron">\u25bc</span>' +
+        '</div>' +
+        '<div class="step2-accordion-body">' +
+            '<div class="form-group">' +
+                '<label>Notes from this visit:</label>' +
+                '<textarea id="step2Note-' + type + '-' + id + '" rows="3" placeholder="Notes about this ' + type + ' from today\u2019s visit\u2026"></textarea>' +
+            '</div>' +
+            '<div class="step2-meds-header">' +
+                '<span>Medications</span>' +
+                '<button class="btn btn-primary btn-small" onclick="_step2OpenMedPicker(\'' + type + '\',\'' + id + '\')">+ Add Med</button>' +
+            '</div>' +
+            '<div class="step2-meds-list" id="step2Meds-' + type + '-' + id + '"></div>' +
+        '</div>';
+    return div;
+}
+
+function toggleStep2Item(itemEl) {
+    var body    = itemEl.querySelector('.step2-accordion-body');
+    var chevron = itemEl.querySelector('.step2-chevron');
+    var isOpen  = body.style.display !== 'none';
+    body.style.display = isOpen ? 'none' : '';
+    if (chevron) chevron.textContent = isOpen ? '\u25b6' : '\u25bc';
+}
+
+function _step2LoadMedsForItem(type, id) {
+    var container = document.getElementById('step2Meds-' + type + '-' + id);
+    if (!container) return;
+    container.innerHTML = '';
+    var arrayField = type === 'concern' ? 'concernIds' : 'conditionIds';
+    userCol('medications').where(arrayField, 'array-contains', id).get()
+        .then(function(snap) {
+            snap.docs.forEach(function(d) {
+                var m   = d.data();
+                var row = document.createElement('div');
+                row.className = 'step2-med-row';
+                row.innerHTML =
+                    '<span>' + escapeHtml(m.name || '') + (m.dosage ? ' <small>(' + escapeHtml(m.dosage) + ')</small>' : '') + '</span>' +
+                    '<button class="btn btn-danger btn-small" onclick="_step2UnlinkMed(\'' + d.id + '\',\'' + type + '\',\'' + id + '\')">&#10005;</button>';
+                container.appendChild(row);
+            });
+        })
+        .catch(function(err) { console.error('_step2LoadMedsForItem:', err); });
+}
+
+function _step2OpenMedPicker(type, id) {
+    window._medPickerAfterSave = function() { _step2LoadMedsForItem(type, id); };
+    openMedPicker(type, id);
+}
+
+function _step2UnlinkMed(medId, type, id) {
+    var arrayField = type === 'concern' ? 'concernIds' : 'conditionIds';
+    userCol('medications').doc(medId).update({
+        [arrayField]: firebase.firestore.FieldValue.arrayRemove(id)
+    }).then(function() {
+        _step2LoadMedsForItem(type, id);
+    }).catch(function(err) { alert('Error: ' + err.message); });
+}
+
+function _step2ToggleNewConcernForm() {
+    var form = document.getElementById('step2NewConcernForm');
+    form.style.display = form.style.display === 'none' ? '' : 'none';
+    if (form.style.display !== 'none') document.getElementById('step2NewConcernTitle').focus();
+}
+
+function _step2ToggleNewConditionForm() {
+    var form = document.getElementById('step2NewConditionForm');
+    form.style.display = form.style.display === 'none' ? '' : 'none';
+    if (form.style.display !== 'none') document.getElementById('step2NewConditionName').focus();
+}
+
+async function _step2SaveNewConcern() {
+    if (!_step2Visit) return;
+    var title    = document.getElementById('step2NewConcernTitle').value.trim();
+    if (!title) { alert('Concern title is required.'); return; }
+    var bodyArea = document.getElementById('step2NewConcernArea').value.trim();
+    try {
+        var ref = await userCol('concerns').add({
+            title:     title,
+            bodyArea:  bodyArea,
+            status:    'open',
+            startDate: _step2Visit.date || new Date().toISOString().slice(0, 10),
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        await userCol('healthVisits').doc(_step2Visit.id).update({
+            concernIds: firebase.firestore.FieldValue.arrayUnion(ref.id)
+        });
+        _step2Visit.concernIds = (_step2Visit.concernIds || []).concat(ref.id);
+        var accordion = document.getElementById('step2AccordionList');
+        var emptyEl   = accordion.querySelector('.empty-state');
+        if (emptyEl) emptyEl.remove();
+        accordion.appendChild(_step2BuildAccordionItem('concern', ref.id, title));
+        _step2ToggleNewConcernForm();
+        document.getElementById('step2NewConcernTitle').value = '';
+        document.getElementById('step2NewConcernArea').value  = '';
+    } catch(err) { alert('Error: ' + err.message); }
+}
+
+async function _step2SaveNewCondition() {
+    if (!_step2Visit) return;
+    var name = document.getElementById('step2NewConditionName').value.trim();
+    if (!name) { alert('Condition name is required.'); return; }
+    try {
+        var ref = await userCol('conditions').add({
+            name:      name,
+            status:    'active',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        await userCol('healthVisits').doc(_step2Visit.id).update({
+            conditionIds: firebase.firestore.FieldValue.arrayUnion(ref.id)
+        });
+        _step2Visit.conditionIds = (_step2Visit.conditionIds || []).concat(ref.id);
+        var accordion = document.getElementById('step2AccordionList');
+        var emptyEl   = accordion.querySelector('.empty-state');
+        if (emptyEl) emptyEl.remove();
+        accordion.appendChild(_step2BuildAccordionItem('condition', ref.id, name));
+        _step2ToggleNewConditionForm();
+        document.getElementById('step2NewConditionName').value = '';
+    } catch(err) { alert('Error: ' + err.message); }
+}
+
+async function saveStep2AndDone() {
+    if (!_step2Visit) { location.hash = '#health'; return; }
+
+    var visitId    = _step2Visit.id;
+    var today      = _step2Visit.date || new Date().toISOString().slice(0, 10);
+    var batch      = db.batch();
+    var hasChanges = false;
+
+    (_step2Visit.concernIds || []).forEach(function(cid) {
+        var ta = document.getElementById('step2Note-concern-' + cid);
+        if (!ta) return;
+        var note = ta.value.trim();
+        if (!note) return;
+        batch.set(userCol('concernUpdates').doc(), {
+            concernId: cid,
+            date:      today,
+            note:      note,
+            type:      'visit-note',
+            visitId:   visitId,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        hasChanges = true;
+    });
+
+    (_step2Visit.conditionIds || []).forEach(function(cid) {
+        var ta = document.getElementById('step2Note-condition-' + cid);
+        if (!ta) return;
+        var note = ta.value.trim();
+        if (!note) return;
+        batch.set(userCol('healthConditionLogs').doc(), {
+            conditionId: cid,
+            date:        today,
+            note:        note,
+            type:        'visit-note',
+            visitId:     visitId,
+            createdAt:   firebase.firestore.FieldValue.serverTimestamp()
+        });
+        hasChanges = true;
+    });
+
+    try {
+        if (hasChanges) await batch.commit();
+        _step2Visit = null;
+        location.hash = '#health';
+    } catch(err) {
+        alert('Error saving notes: ' + err.message);
+    }
 }
 
 // =================================================================

@@ -1688,11 +1688,14 @@ function loadConditionLogs(conditionId) {
             }
             container.innerHTML = '';
             logs.forEach(function(u) {
+                var visitTag = u.visitId
+                    ? ' <a class="health-badge health-badge--visit-link" href="#health-visit-step2/' + u.visitId + '" onclick="event.stopPropagation()">Visit \u203a</a>'
+                    : '';
                 var div = document.createElement('div');
                 div.className = 'health-card';
                 div.innerHTML =
                     '<div class="health-card-main">' +
-                        '<div class="health-card-title">' + escapeHtml(u.date || '') + '</div>' +
+                        '<div class="health-card-title">' + escapeHtml(u.date || '') + visitTag + '</div>' +
                         (u.painScale ? '<div class="health-card-meta"><span class="health-badge">Pain: ' + escapeHtml(String(u.painScale)) + '/10</span></div>' : '') +
                         '<div class="health-card-sub">' + escapeHtml(u.note || '') + '</div>' +
                     '</div>' +
@@ -2353,11 +2356,14 @@ function loadConcernUpdates(concernId) {
             }
             container.innerHTML = '';
             updates.forEach(function(u) {
+                var visitTag = u.visitId
+                    ? ' <a class="health-badge health-badge--visit-link" href="#health-visit-step2/' + u.visitId + '" onclick="event.stopPropagation()">Visit \u203a</a>'
+                    : '';
                 var div = document.createElement('div');
                 div.className = 'health-card';
                 div.innerHTML =
                     '<div class="health-card-main">' +
-                        '<div class="health-card-title">' + escapeHtml(u.date || '') + '</div>' +
+                        '<div class="health-card-title">' + escapeHtml(u.date || '') + visitTag + '</div>' +
                         (u.painScale ? '<div class="health-card-meta"><span class="health-badge">Pain: ' + escapeHtml(String(u.painScale)) + '/10</span></div>' : '') +
                         '<div class="health-card-sub">' + escapeHtml(u.note || '') + '</div>' +
                     '</div>' +
@@ -4082,10 +4088,12 @@ async function loadStep2Page(visitId) {
             concernIds.forEach(function(cid) {
                 accordion.appendChild(_step2BuildAccordionItem('concern',   cid, concernMap[cid]   || cid));
                 _step2InitItemVoice('concern',   cid);
+                _step2LoadPriorNotes('concern',  cid);
             });
             conditionIds.forEach(function(cid) {
                 accordion.appendChild(_step2BuildAccordionItem('condition', cid, conditionMap[cid] || cid));
                 _step2InitItemVoice('condition', cid);
+                _step2LoadPriorNotes('condition', cid);
             });
             concernIds.forEach(function(cid)   { _step2LoadMedsForItem('concern',   cid); });
             conditionIds.forEach(function(cid)  { _step2LoadMedsForItem('condition', cid); });
@@ -4101,7 +4109,8 @@ function _step2BuildAccordionItem(type, id, name) {
     var div  = document.createElement('div');
     div.className = 'step2-accordion-item';
     div.id = 'step2-item-' + type + '-' + id;
-    var speakBtnId = 'step2SpeakBtn-' + type + '-' + id;
+    var speakBtnId    = 'step2SpeakBtn-' + type + '-' + id;
+    var priorNotesId  = 'step2PriorNotes-' + type + '-' + id;
     div.innerHTML =
         '<div class="step2-accordion-header" onclick="toggleStep2Item(this.parentElement)">' +
             '<span class="step2-item-icon">' + icon + '</span>' +
@@ -4118,7 +4127,8 @@ function _step2BuildAccordionItem(type, id, name) {
                     'Notes from this visit:' +
                     '<button class="btn btn-secondary btn-small" id="' + speakBtnId + '">\uD83C\uDFA4 Speak</button>' +
                 '</label>' +
-                '<textarea id="step2Note-' + type + '-' + id + '" rows="3" placeholder="Notes about this ' + type + ' from today\u2019s visit\u2026"></textarea>' +
+                '<div class="step2-prior-notes" id="' + priorNotesId + '"></div>' +
+                '<textarea id="step2Note-' + type + '-' + id + '" rows="3" placeholder="Add a note about this ' + type + ' from this visit\u2026"></textarea>' +
             '</div>' +
             '<div class="step2-meds-header">' +
                 '<span>Medications</span>' +
@@ -4135,6 +4145,33 @@ function _step2BuildAccordionItem(type, id, name) {
 /** Call after appending a new accordion item to wire up voice-to-text. */
 function _step2InitItemVoice(type, id) {
     initVoiceToText('step2Note-' + type + '-' + id, 'step2SpeakBtn-' + type + '-' + id);
+}
+
+/**
+ * Load and display any notes already saved for this concern/condition from
+ * the current visit. Shown above the textarea so the user can see what was
+ * previously written before adding more.
+ */
+function _step2LoadPriorNotes(type, id) {
+    if (!_step2Visit) return;
+    var container = document.getElementById('step2PriorNotes-' + type + '-' + id);
+    if (!container) return;
+    var collection = type === 'concern' ? 'concernUpdates'    : 'healthConditionLogs';
+    var idField    = type === 'concern' ? 'concernId'         : 'conditionId';
+    userCol(collection)
+        .where(idField,   '==', id)
+        .where('visitId', '==', _step2Visit.id)
+        .get()
+        .then(function(snap) {
+            if (snap.empty) return;
+            var html = '<div class="step2-prior-notes-label">Previously saved for this visit:</div>';
+            snap.docs.forEach(function(d) {
+                var u = d.data();
+                html += '<div class="step2-prior-note">' + escapeHtml(u.note || '') + '</div>';
+            });
+            container.innerHTML = html;
+        })
+        .catch(function(err) { console.warn('_step2LoadPriorNotes:', err); });
 }
 
 function toggleStep2Item(itemEl) {
@@ -4283,6 +4320,7 @@ async function _step2AddExistingConcern() {
         if (emptyEl) emptyEl.remove();
         accordion.appendChild(_step2BuildAccordionItem('concern', id, name));
         _step2InitItemVoice('concern', id);
+        _step2LoadPriorNotes('concern', id);
         _step2LoadMedsForItem('concern', id);
         _step2ToggleExistingConcernForm();   // hides the form
     } catch(err) { alert('Error: ' + err.message); }
@@ -4305,6 +4343,7 @@ async function _step2AddExistingCondition() {
         if (emptyEl) emptyEl.remove();
         accordion.appendChild(_step2BuildAccordionItem('condition', id, name));
         _step2InitItemVoice('condition', id);
+        _step2LoadPriorNotes('condition', id);
         _step2LoadMedsForItem('condition', id);
         _step2ToggleExistingConditionForm();  // hides the form
     } catch(err) { alert('Error: ' + err.message); }
@@ -4332,6 +4371,7 @@ async function _step2SaveNewConcern() {
         if (emptyEl) emptyEl.remove();
         accordion.appendChild(_step2BuildAccordionItem('concern', ref.id, title));
         _step2InitItemVoice('concern', ref.id);
+        _step2LoadPriorNotes('concern', ref.id);
         _step2ToggleNewConcernForm();
         document.getElementById('step2NewConcernTitle').value = '';
         document.getElementById('step2NewConcernArea').value  = '';
@@ -4357,6 +4397,7 @@ async function _step2SaveNewCondition() {
         if (emptyEl) emptyEl.remove();
         accordion.appendChild(_step2BuildAccordionItem('condition', ref.id, name));
         _step2InitItemVoice('condition', ref.id);
+        _step2LoadPriorNotes('condition', ref.id);
         _step2ToggleNewConditionForm();
         document.getElementById('step2NewConditionName').value = '';
     } catch(err) { alert('Error: ' + err.message); }

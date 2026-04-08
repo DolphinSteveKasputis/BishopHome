@@ -6984,6 +6984,39 @@ a.health-chip--link:hover { filter: brightness(0.93); }
 .step2-new-entity-form select { width: 100%; box-sizing: border-box; }
 .step2-new-entity-actions { display: flex; gap: 8px; }
 
+/* Previously saved notes for this visit, shown above the add-note textarea */
+.step2-prior-notes { margin-bottom: 6px; }
+.step2-prior-notes-label {
+    font-size: 0.75rem;
+    color: #64748b;
+    margin-bottom: 4px;
+    font-style: italic;
+}
+.step2-prior-note {
+    background: #f1f5f9;
+    border-left: 3px solid #3b82f6;
+    padding: 6px 10px;
+    font-size: 0.88rem;
+    border-radius: 0 4px 4px 0;
+    margin-bottom: 4px;
+    white-space: pre-wrap;
+}
+
+/* Clickable "Visit ›" chip on journal entries that came from a visit */
+.health-badge--visit-link {
+    background: #eff6ff;
+    color: #2563eb;
+    border: 1px solid #bfdbfe;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-decoration: none;
+    vertical-align: middle;
+    cursor: pointer;
+}
+.health-badge--visit-link:hover { background: #dbeafe; }
+
 .step2-done-row {
     margin: 20px 16px 40px;
     text-align: right;

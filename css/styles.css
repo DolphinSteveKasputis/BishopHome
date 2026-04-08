@@ -7638,7 +7638,7 @@ a.health-chip--link:hover { filter: brightness(0.93); }
 
 /* Day cells */
 .lc-grid-cell {
-    min-height: 80px;
+    min-height: 130px;
     padding: 4px;
     border-right: 1px solid var(--border, #e5e7eb);
     border-bottom: 1px solid var(--border, #e5e7eb);

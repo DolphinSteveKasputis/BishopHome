@@ -757,7 +757,7 @@ function _lcRenderGrid(year, month, events) {
         var isoDay   = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
         var isToday  = (isoDay === todayStr);
         var dayEvs   = dayMap[day] || [];
-        var showN    = Math.min(2, dayEvs.length);
+        var showN    = Math.min(4, dayEvs.length);
         var overflow = dayEvs.length - showN;
 
         html += '<div class="lc-grid-cell' + (isToday ? ' lc-grid-cell--today' : '') +

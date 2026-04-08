@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=344">
+    <link rel="stylesheet" href="css/styles.css?v=345">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -4639,52 +4639,43 @@
                 <h2>My Health</h2>
             </div>
             <div class="landing-grid" id="healthFeatureGrid">
-                <!-- Row 1 — H2 active -->
-                <a href="#health-visits" class="landing-tile landing-tile--health-visits">
-                    <span class="landing-tile-icon">🏥</span>
-                    <span class="landing-tile-label">Health Visits</span>
-                </a>
-                <a href="#health-medications" class="landing-tile landing-tile--health-medications">
-                    <span class="landing-tile-icon">💊</span>
-                    <span class="landing-tile-label">Medications</span>
-                </a>
-                <!-- Row 2 — H4 Blood Work active; H3 Concerns active -->
-                <a href="#health-bloodwork" class="landing-tile landing-tile--health-bloodwork">
-                    <span class="landing-tile-icon">🩸</span>
-                    <span class="landing-tile-label">Blood Work</span>
+                <!-- Row 1: Conditions, Concerns -->
+                <a href="#health-conditions" class="landing-tile landing-tile--health-conditions">
+                    <span class="landing-tile-icon">📋</span>
+                    <span class="landing-tile-label">Conditions</span>
                 </a>
                 <a href="#health-concerns" class="landing-tile landing-tile--health-concerns">
                     <span class="landing-tile-icon">⚠️</span>
                     <span class="landing-tile-label">Concerns</span>
                 </a>
-                <!-- Row 3 — H3 Conditions active -->
-                <a href="#health-conditions" class="landing-tile landing-tile--health-conditions">
-                    <span class="landing-tile-icon">📋</span>
-                    <span class="landing-tile-label">Conditions</span>
+                <!-- Row 2: Appointments, Health Visits -->
+                <a href="#health-appointments" class="landing-tile landing-tile--health-appointments">
+                    <span class="landing-tile-icon">📅</span>
+                    <span class="landing-tile-label">Appointments</span>
+                </a>
+                <a href="#health-visits" class="landing-tile landing-tile--health-visits">
+                    <span class="landing-tile-icon">🏥</span>
+                    <span class="landing-tile-label">Health Visits</span>
+                </a>
+                <!-- Row 3: Medications, Supplements -->
+                <a href="#health-medications" class="landing-tile landing-tile--health-medications">
+                    <span class="landing-tile-icon">💊</span>
+                    <span class="landing-tile-label">Medications</span>
+                </a>
+                <a href="#health-supplements" class="landing-tile landing-tile--health-supplements">
+                    <span class="landing-tile-icon">🌿</span>
+                    <span class="landing-tile-label">Supplements</span>
+                </a>
+                <!-- Row 4: Blood Work, Vitals -->
+                <a href="#health-bloodwork" class="landing-tile landing-tile--health-bloodwork">
+                    <span class="landing-tile-icon">🩸</span>
+                    <span class="landing-tile-label">Blood Work</span>
                 </a>
                 <a href="#health-vitals" class="landing-tile landing-tile--health-vitals">
                     <span class="landing-tile-icon">💓</span>
                     <span class="landing-tile-label">Vitals</span>
                 </a>
-                <!-- Row 4 — H1 ACTIVE features -->
-                <a href="#health-supplements" class="landing-tile landing-tile--health-supplements">
-                    <span class="landing-tile-icon">🌿</span>
-                    <span class="landing-tile-label">Supplements</span>
-                </a>
-                <a href="#health-vaccinations" class="landing-tile landing-tile--health-vaccinations">
-                    <span class="landing-tile-icon">💉</span>
-                    <span class="landing-tile-label">Vaccinations</span>
-                </a>
-                <!-- Row 5 — H1 ACTIVE features -->
-                <a href="#health-eye" class="landing-tile landing-tile--health-eye">
-                    <span class="landing-tile-icon">👁️</span>
-                    <span class="landing-tile-label">Eye / Glasses</span>
-                </a>
-                <a href="#health-allergies" class="landing-tile landing-tile--health-allergies">
-                    <span class="landing-tile-icon">🚨</span>
-                    <span class="landing-tile-label">Allergies</span>
-                </a>
-                <!-- Row 6 — H5 ACTIVE features -->
+                <!-- Row 5: Insurance, Emergency Info -->
                 <a href="#health-insurance" class="landing-tile landing-tile--health-insurance">
                     <span class="landing-tile-icon">🛡️</span>
                     <span class="landing-tile-label">Insurance</span>
@@ -4693,10 +4684,19 @@
                     <span class="landing-tile-icon">🆘</span>
                     <span class="landing-tile-label">Emergency Info</span>
                 </a>
-                <!-- Row 7 — H6 ACTIVE features -->
-                <a href="#health-appointments" class="landing-tile landing-tile--health-appointments">
-                    <span class="landing-tile-icon">📅</span>
-                    <span class="landing-tile-label">Appointments</span>
+                <!-- Row 6: Vaccinations, Allergies -->
+                <a href="#health-vaccinations" class="landing-tile landing-tile--health-vaccinations">
+                    <span class="landing-tile-icon">💉</span>
+                    <span class="landing-tile-label">Vaccinations</span>
+                </a>
+                <a href="#health-allergies" class="landing-tile landing-tile--health-allergies">
+                    <span class="landing-tile-icon">🚨</span>
+                    <span class="landing-tile-label">Allergies</span>
+                </a>
+                <!-- Row 7: Eye / Glasses -->
+                <a href="#health-eye" class="landing-tile landing-tile--health-eye">
+                    <span class="landing-tile-icon">👁️</span>
+                    <span class="landing-tile-label">Eye / Glasses</span>
                 </a>
             </div>
         </section>
@@ -6887,46 +6887,46 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=344"></script>
-    <script src="js/auth.js?v=344"></script>
-    <script src="js/zones.js?v=344"></script>
-    <script src="js/plants.js?v=344"></script>
-    <script src="js/problems.js?v=344"></script>
-    <script src="js/facts.js?v=344"></script>
-    <script src="js/projects.js?v=344"></script>
-    <script src="js/chemicals.js?v=344"></script>
-    <script src="js/activities.js?v=344"></script>
+    <script src="js/firebase-config.js?v=345"></script>
+    <script src="js/auth.js?v=345"></script>
+    <script src="js/zones.js?v=345"></script>
+    <script src="js/plants.js?v=345"></script>
+    <script src="js/problems.js?v=345"></script>
+    <script src="js/facts.js?v=345"></script>
+    <script src="js/projects.js?v=345"></script>
+    <script src="js/chemicals.js?v=345"></script>
+    <script src="js/activities.js?v=345"></script>
     <!-- Cropper.js — client-side image cropping library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <!-- SortableJS — drag-and-drop list reordering -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    <script src="js/photos.js?v=344"></script>
-    <script src="js/weeds.js?v=344"></script>
-    <script src="js/calendar.js?v=344"></script>
-    <script src="js/gps.js?v=344"></script>
-    <script src="js/settings.js?v=344"></script>
-    <script src="js/house.js?v=344"></script>
-    <script src="js/floorplan.js?v=344"></script>
-    <script src="js/search.js?v=344"></script>
-    <script src="js/activityreport.js?v=344"></script>
-    <script src="js/checklists.js?v=344"></script>
-    <script src="js/bulkactivity.js?v=344"></script>
-    <script src="js/vehicles.js?v=344"></script>
-    <script src="js/garage.js?v=344"></script>
-    <script src="js/structures.js?v=344"></script>
-    <script src="js/moveThings.js?v=344"></script>
-    <script src="js/journal.js?v=344"></script>
-    <script src="js/people.js?v=344"></script>
-    <script src="js/collections.js?v=344"></script>
-    <script src="js/health.js?v=344"></script>
-    <script src="js/notes.js?v=344"></script>
-    <script src="js/lifecalendar.js?v=344"></script>
+    <script src="js/photos.js?v=345"></script>
+    <script src="js/weeds.js?v=345"></script>
+    <script src="js/calendar.js?v=345"></script>
+    <script src="js/gps.js?v=345"></script>
+    <script src="js/settings.js?v=345"></script>
+    <script src="js/house.js?v=345"></script>
+    <script src="js/floorplan.js?v=345"></script>
+    <script src="js/search.js?v=345"></script>
+    <script src="js/activityreport.js?v=345"></script>
+    <script src="js/checklists.js?v=345"></script>
+    <script src="js/bulkactivity.js?v=345"></script>
+    <script src="js/vehicles.js?v=345"></script>
+    <script src="js/garage.js?v=345"></script>
+    <script src="js/structures.js?v=345"></script>
+    <script src="js/moveThings.js?v=345"></script>
+    <script src="js/journal.js?v=345"></script>
+    <script src="js/people.js?v=345"></script>
+    <script src="js/collections.js?v=345"></script>
+    <script src="js/health.js?v=345"></script>
+    <script src="js/notes.js?v=345"></script>
+    <script src="js/lifecalendar.js?v=345"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=344"></script>
-    <script src="js/secondbrain.js?v=344"></script>
-    <script src="js/sbissues.js?v=344"></script>
-    <script src="js/places.js?v=344"></script>
-    <script src="js/app.js?v=344"></script>
+    <script src="js/chat.js?v=345"></script>
+    <script src="js/secondbrain.js?v=345"></script>
+    <script src="js/sbissues.js?v=345"></script>
+    <script src="js/places.js?v=345"></script>
+    <script src="js/app.js?v=345"></script>
 
 </body>
 </html>

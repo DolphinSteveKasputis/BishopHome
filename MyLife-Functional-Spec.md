@@ -445,6 +445,9 @@ Daily entry logging with optional tracking metrics.
 
 A comprehensive medical tracking hub.
 
+**My Health main page tile order** (2-column grid):
+Row 1: Conditions, Concerns | Row 2: Appointments, Health Visits | Row 3: Medications, Supplements | Row 4: Blood Work, Vitals | Row 5: Insurance, Emergency Info | Row 6: Vaccinations, Allergies | Row 7: Eye / Glasses
+
 **Firestore collections** (all under `userCol`):
 
 | Collection | Key Fields |

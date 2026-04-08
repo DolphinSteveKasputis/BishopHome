@@ -12,7 +12,7 @@
  */
 const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'house', 'settings', 'settings-general', 'main', 'search', 'activityreport', 'checklists', 'notes', 'chat', 'vehicles', 'garage', 'structures', 'life', 'journal', 'collections', 'changepassword', 'people', 'contacts', 'places',
                          'health', 'health-visits', 'health-medications', 'health-conditions', 'health-concerns', 'health-bloodwork',
-                         'health-vitals', 'health-insurance', 'health-emergency', 'health-appointments',
+                         'health-vitals', 'health-insurance', 'health-emergency', 'health-appointments', 'health-care-team',
                          'life-calendar'];
 
 /**
@@ -51,7 +51,7 @@ const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'jo
                      'health-allergies', 'health-supplements', 'health-vaccinations', 'health-eye',
                      'health-bloodwork', 'health-bloodwork-detail',
                      'health-vitals', 'health-insurance', 'health-insurance-detail', 'health-emergency',
-                     'health-appointments',
+                     'health-appointments', 'health-care-team',
                      'life-calendar', 'life-event'];
 
 /** Tracks which nav context is currently active ('yard', 'house', or 'life'). */
@@ -371,6 +371,9 @@ function handleRoute() {
     } else if (page === 'health-appointments') {
         showPage('health-appointments');
         loadAppointmentsPage();
+    } else if (page === 'health-care-team') {
+        showPage('health-care-team');
+        loadCareTeam();
     } else if (page === 'health') {
         showPage('health');
         loadHealthPage();

@@ -2935,3 +2935,223 @@ function saveConvertedVisit() {
         handleRoute();
     }).catch(function(err) { alert('Error saving visit: ' + err.message); });
 }
+
+// =================================================================
+//  MY CARE TEAM
+//  Data: userCol('healthCareTeam').doc('default')
+//        { members: [ { role, providerContactId, facilityContactId } ] }
+// =================================================================
+
+/** Index of the member currently being edited in the modal (-1 = new). */
+var _careTeamEditIndex = -1;
+
+/**
+ * Load and render the My Care Team page.
+ * Called by app.js when route is #health-care-team.
+ */
+async function loadCareTeam() {
+    var list    = document.getElementById('careTeamList');
+    var emptyEl = document.getElementById('careTeamEmpty');
+    list.innerHTML = '<p class="empty-state">Loading…</p>';
+    emptyEl.style.display = 'none';
+
+    try {
+        var doc     = await userCol('healthCareTeam').doc('default').get();
+        var members = doc.exists ? (doc.data().members || []) : [];
+
+        list.innerHTML = '';
+
+        if (members.length === 0) {
+            emptyEl.style.display = '';
+            return;
+        }
+
+        // Collect all referenced contact IDs then fetch names in one pass
+        var contactIds = new Set();
+        members.forEach(function(m) {
+            if (m.providerContactId) contactIds.add(m.providerContactId);
+            if (m.facilityContactId) contactIds.add(m.facilityContactId);
+        });
+
+        var contactMap = {};
+        if (contactIds.size > 0) {
+            var snap = await userCol('people').get();
+            snap.forEach(function(d) {
+                if (contactIds.has(d.id)) contactMap[d.id] = d.data().name || 'Unknown';
+            });
+        }
+
+        members.forEach(function(member, idx) {
+            list.appendChild(_buildCareTeamCard(member, idx, contactMap));
+        });
+
+    } catch (err) {
+        console.error('loadCareTeam error:', err);
+        list.innerHTML = '<p class="empty-state">Error loading care team.</p>';
+    }
+}
+
+/** Build a single care team member card. */
+function _buildCareTeamCard(member, idx, contactMap) {
+    var card = document.createElement('div');
+    card.className = 'care-team-card';
+
+    var providerName = member.providerContactId ? (contactMap[member.providerContactId] || 'Unknown') : null;
+    var facilityName = member.facilityContactId ? (contactMap[member.facilityContactId] || 'Unknown') : null;
+
+    var providerHtml = providerName
+        ? '<div class="care-team-row">' +
+              '<span class="care-team-row-label">Provider</span>' +
+              '<a class="care-team-link" href="#contact/' + escapeHtml(member.providerContactId) + '">' +
+                  escapeHtml(providerName) + ' \u2192</a>' +
+          '</div>'
+        : '<div class="care-team-row"><span class="care-team-row-label">Provider</span><span class="care-team-none">\u2014</span></div>';
+
+    var facilityHtml = facilityName
+        ? '<div class="care-team-row">' +
+              '<span class="care-team-row-label">Facility</span>' +
+              '<a class="care-team-link" href="#contact/' + escapeHtml(member.facilityContactId) + '">' +
+                  escapeHtml(facilityName) + ' \u2192</a>' +
+          '</div>'
+        : '<div class="care-team-row"><span class="care-team-row-label">Facility</span><span class="care-team-none">\u2014</span></div>';
+
+    card.innerHTML =
+        '<div class="care-team-card-body">' +
+            '<div class="care-team-role">' + escapeHtml(member.role || 'Unknown Role') + '</div>' +
+            providerHtml +
+            facilityHtml +
+        '</div>' +
+        '<button class="btn btn-secondary btn-small care-team-edit-btn">Edit</button>';
+
+    card.querySelector('.care-team-edit-btn').addEventListener('click', function() {
+        openEditCareTeamMember(idx, member, contactMap);
+    });
+
+    return card;
+}
+
+/** Open the Add Care Team Member modal. */
+function openAddCareTeamMember() {
+    _careTeamEditIndex = -1;
+    document.getElementById('careTeamModalTitle').textContent = 'Add Care Team Member';
+    document.getElementById('careTeamRoleInput').value = '';
+    document.getElementById('careTeamDeleteBtn').style.display = 'none';
+
+    buildContactPicker('careTeamProviderPicker', {
+        filterCategory: 'Medical Professional',
+        placeholder:    'Search doctors, specialists\u2026',
+        allowCreate:    true
+    });
+    buildContactPicker('careTeamFacilityPicker', {
+        filterCategory: 'Medical Facility',
+        placeholder:    'Search clinics, hospitals\u2026',
+        allowCreate:    true
+    });
+
+    openModal('careTeamModal');
+    document.getElementById('careTeamRoleInput').focus();
+}
+
+/** Open the Edit Care Team Member modal. */
+function openEditCareTeamMember(idx, member, contactMap) {
+    _careTeamEditIndex = idx;
+    document.getElementById('careTeamModalTitle').textContent = 'Edit Care Team Member';
+    document.getElementById('careTeamRoleInput').value = member.role || '';
+    document.getElementById('careTeamDeleteBtn').style.display = '';
+
+    var providerName = member.providerContactId ? (contactMap[member.providerContactId] || '') : '';
+    var facilityName = member.facilityContactId ? (contactMap[member.facilityContactId] || '') : '';
+
+    buildContactPicker('careTeamProviderPicker', {
+        filterCategory: 'Medical Professional',
+        placeholder:    'Search doctors, specialists\u2026',
+        allowCreate:    true,
+        initialId:      member.providerContactId || '',
+        initialName:    providerName
+    });
+    buildContactPicker('careTeamFacilityPicker', {
+        filterCategory: 'Medical Facility',
+        placeholder:    'Search clinics, hospitals\u2026',
+        allowCreate:    true,
+        initialId:      member.facilityContactId || '',
+        initialName:    facilityName
+    });
+
+    openModal('careTeamModal');
+    document.getElementById('careTeamRoleInput').focus();
+}
+
+/** Save the care team member (add or update). */
+async function handleCareTeamSave() {
+    var role = document.getElementById('careTeamRoleInput').value.trim();
+    if (!role) { alert('Role is required.'); return; }
+
+    var providerContainer = document.getElementById('careTeamProviderPicker');
+    var facilityContainer = document.getElementById('careTeamFacilityPicker');
+    var providerContactId = (providerContainer && providerContainer._getSelectedId) ? providerContainer._getSelectedId() : '';
+    var facilityContactId = (facilityContainer && facilityContainer._getSelectedId) ? facilityContainer._getSelectedId() : '';
+
+    var newMember = {
+        role:              role,
+        providerContactId: providerContactId || null,
+        facilityContactId: facilityContactId || null
+    };
+
+    try {
+        var docRef  = userCol('healthCareTeam').doc('default');
+        var snap    = await docRef.get();
+        var members = snap.exists ? (snap.data().members || []) : [];
+
+        if (_careTeamEditIndex === -1) {
+            members.push(newMember);
+        } else {
+            members[_careTeamEditIndex] = newMember;
+        }
+
+        await docRef.set({ members: members });
+        closeModal('careTeamModal');
+        loadCareTeam();
+    } catch (err) {
+        console.error('handleCareTeamSave error:', err);
+        alert('Error saving care team member.');
+    }
+}
+
+/** Remove the currently-edited care team member. */
+async function handleCareTeamDelete() {
+    if (_careTeamEditIndex === -1) return;
+    if (!confirm('Remove this care team member?')) return;
+
+    closeModal('careTeamModal');
+    try {
+        var docRef  = userCol('healthCareTeam').doc('default');
+        var snap    = await docRef.get();
+        var members = snap.exists ? (snap.data().members || []) : [];
+        members.splice(_careTeamEditIndex, 1);
+        await docRef.set({ members: members });
+        loadCareTeam();
+    } catch (err) {
+        console.error('handleCareTeamDelete error:', err);
+        alert('Error removing care team member.');
+    }
+}
+
+// Care Team event listeners wired on DOMContentLoaded
+document.addEventListener('DOMContentLoaded', function() {
+    var addBtn = document.getElementById('addCareTeamMemberBtn');
+    if (addBtn) addBtn.addEventListener('click', openAddCareTeamMember);
+
+    var saveBtn = document.getElementById('careTeamSaveBtn');
+    if (saveBtn) saveBtn.addEventListener('click', handleCareTeamSave);
+
+    var cancelBtn = document.getElementById('careTeamCancelBtn');
+    if (cancelBtn) cancelBtn.addEventListener('click', function() { closeModal('careTeamModal'); });
+
+    var deleteBtn = document.getElementById('careTeamDeleteBtn');
+    if (deleteBtn) deleteBtn.addEventListener('click', handleCareTeamDelete);
+
+    var overlay = document.getElementById('careTeamModal');
+    if (overlay) overlay.addEventListener('click', function(e) {
+        if (e.target === this) closeModal('careTeamModal');
+    });
+});

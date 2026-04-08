@@ -454,7 +454,16 @@ Renamed from "People". Tracks personal contacts and medical/service professional
 A comprehensive medical tracking hub.
 
 **My Health main page tile order** (2-column grid):
-Row 1: Conditions, Concerns | Row 2: Appointments, Health Visits | Row 3: Medications, Supplements | Row 4: Blood Work, Vitals | Row 5: Insurance, Emergency Info | Row 6: Vaccinations, Allergies | Row 7: Eye / Glasses
+Row 1: Conditions, Concerns | Row 2: Appointments, Health Visits | Row 3: Medications, Supplements | Row 4: Blood Work, Vitals | Row 5: Insurance, Emergency Info | Row 6: Vaccinations, Allergies | Row 7: Eye / Glasses | Row 8: My Care Team (full-width)
+
+**My Care Team** (`#health-care-team`):
+- Dedicated page listing the user's medical care team
+- Data: `userCol('healthCareTeam').doc('default')` — single document with `members[]` array
+- Each member: `{ role (free text), providerContactId?, facilityContactId? }`
+- Member cards show role, provider (tappable link → `#contact/{id}`), facility (tappable link)
+- "+ Add Member" button → modal with Role input + ContactPicker for provider (Medical Professional) + ContactPicker for facility (Medical Facility)
+- Both provider and facility are optional per member
+- Edit / Remove per member (Remove confirms before deleting)
 
 **Firestore collections** (all under `userCol`):
 

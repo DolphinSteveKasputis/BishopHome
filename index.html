@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=346">
+    <link rel="stylesheet" href="css/styles.css?v=347">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -4704,7 +4704,23 @@
                     <span class="landing-tile-icon">👁️</span>
                     <span class="landing-tile-label">Eye / Glasses</span>
                 </a>
+                <!-- Row 8: My Care Team (full width) -->
+                <a href="#health-care-team" class="landing-tile landing-tile--care-team landing-tile--full">
+                    <span class="landing-tile-icon">👨‍⚕️</span>
+                    <span class="landing-tile-label">My Care Team</span>
+                </a>
             </div>
+        </section>
+
+        <!-- Page: My Care Team (#health-care-team) -->
+        <section class="page hidden" id="page-health-care-team">
+            <div class="page-header">
+                <button class="btn btn-secondary btn-small" onclick="location.hash='#health'">&#8592; My Health</button>
+                <h2>👨‍⚕️ My Care Team</h2>
+                <button class="btn btn-primary btn-small" id="addCareTeamMemberBtn">+ Add Member</button>
+            </div>
+            <div id="careTeamList"></div>
+            <p class="empty-state" id="careTeamEmpty" style="display:none;">No care team members yet. Tap + Add Member to get started.</p>
         </section>
 
         <!-- Page: Allergies (#health-allergies) -->
@@ -4757,6 +4773,32 @@
         </section>
 
         <!-- ─── HEALTH MODALS ────────────────────────────────────────── -->
+
+        <!-- Modal: Add / Edit Care Team Member -->
+        <div class="modal-overlay" id="careTeamModal">
+            <div class="modal">
+                <h3 id="careTeamModalTitle">Add Care Team Member</h3>
+                <div class="form-group">
+                    <label for="careTeamRoleInput">Role *</label>
+                    <input type="text" id="careTeamRoleInput" placeholder="e.g., General Practice, Dentist, Dermatologist">
+                </div>
+                <div class="form-group">
+                    <label>Provider (Medical Professional)</label>
+                    <div id="careTeamProviderPicker"></div>
+                </div>
+                <div class="form-group">
+                    <label>Facility (Medical Facility)</label>
+                    <div id="careTeamFacilityPicker"></div>
+                </div>
+                <p class="form-hint">Both provider and facility are optional — fill in whichever you know.</p>
+                <div class="modal-buttons">
+                    <button class="btn btn-danger" id="careTeamDeleteBtn" style="display:none;">Remove</button>
+                    <div style="flex:1;"></div>
+                    <button class="btn btn-secondary" id="careTeamCancelBtn">Cancel</button>
+                    <button class="btn btn-primary" id="careTeamSaveBtn">Save</button>
+                </div>
+            </div>
+        </div>
 
         <!-- Modal: Add / Edit Allergy -->
         <div class="modal-overlay" id="allergyModal">
@@ -6893,46 +6935,46 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=346"></script>
-    <script src="js/auth.js?v=346"></script>
-    <script src="js/zones.js?v=346"></script>
-    <script src="js/plants.js?v=346"></script>
-    <script src="js/problems.js?v=346"></script>
-    <script src="js/facts.js?v=346"></script>
-    <script src="js/projects.js?v=346"></script>
-    <script src="js/chemicals.js?v=346"></script>
-    <script src="js/activities.js?v=346"></script>
+    <script src="js/firebase-config.js?v=347"></script>
+    <script src="js/auth.js?v=347"></script>
+    <script src="js/zones.js?v=347"></script>
+    <script src="js/plants.js?v=347"></script>
+    <script src="js/problems.js?v=347"></script>
+    <script src="js/facts.js?v=347"></script>
+    <script src="js/projects.js?v=347"></script>
+    <script src="js/chemicals.js?v=347"></script>
+    <script src="js/activities.js?v=347"></script>
     <!-- Cropper.js — client-side image cropping library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <!-- SortableJS — drag-and-drop list reordering -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    <script src="js/photos.js?v=346"></script>
-    <script src="js/weeds.js?v=346"></script>
-    <script src="js/calendar.js?v=346"></script>
-    <script src="js/gps.js?v=346"></script>
-    <script src="js/settings.js?v=346"></script>
-    <script src="js/house.js?v=346"></script>
-    <script src="js/floorplan.js?v=346"></script>
-    <script src="js/search.js?v=346"></script>
-    <script src="js/activityreport.js?v=346"></script>
-    <script src="js/checklists.js?v=346"></script>
-    <script src="js/bulkactivity.js?v=346"></script>
-    <script src="js/vehicles.js?v=346"></script>
-    <script src="js/garage.js?v=346"></script>
-    <script src="js/structures.js?v=346"></script>
-    <script src="js/moveThings.js?v=346"></script>
-    <script src="js/journal.js?v=346"></script>
-    <script src="js/contacts.js?v=346"></script>
-    <script src="js/collections.js?v=346"></script>
-    <script src="js/health.js?v=346"></script>
-    <script src="js/notes.js?v=346"></script>
-    <script src="js/lifecalendar.js?v=346"></script>
+    <script src="js/photos.js?v=347"></script>
+    <script src="js/weeds.js?v=347"></script>
+    <script src="js/calendar.js?v=347"></script>
+    <script src="js/gps.js?v=347"></script>
+    <script src="js/settings.js?v=347"></script>
+    <script src="js/house.js?v=347"></script>
+    <script src="js/floorplan.js?v=347"></script>
+    <script src="js/search.js?v=347"></script>
+    <script src="js/activityreport.js?v=347"></script>
+    <script src="js/checklists.js?v=347"></script>
+    <script src="js/bulkactivity.js?v=347"></script>
+    <script src="js/vehicles.js?v=347"></script>
+    <script src="js/garage.js?v=347"></script>
+    <script src="js/structures.js?v=347"></script>
+    <script src="js/moveThings.js?v=347"></script>
+    <script src="js/journal.js?v=347"></script>
+    <script src="js/contacts.js?v=347"></script>
+    <script src="js/collections.js?v=347"></script>
+    <script src="js/health.js?v=347"></script>
+    <script src="js/notes.js?v=347"></script>
+    <script src="js/lifecalendar.js?v=347"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=346"></script>
-    <script src="js/secondbrain.js?v=346"></script>
-    <script src="js/sbissues.js?v=346"></script>
-    <script src="js/places.js?v=346"></script>
-    <script src="js/app.js?v=346"></script>
+    <script src="js/chat.js?v=347"></script>
+    <script src="js/secondbrain.js?v=347"></script>
+    <script src="js/sbissues.js?v=347"></script>
+    <script src="js/places.js?v=347"></script>
+    <script src="js/app.js?v=347"></script>
 
 </body>
 </html>

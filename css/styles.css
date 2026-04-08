@@ -5913,6 +5913,68 @@ textarea.sb-field { resize: vertical; min-height: 60px; }
     transform: translateY(-3px);
     box-shadow: 0 8px 24px rgba(124, 58, 237, 0.35);
 }
+.landing-tile--care-team {
+    background: linear-gradient(135deg, #0e7490, #67e8f9);
+    color: #fff;
+}
+.landing-tile--care-team:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(14, 116, 144, 0.35);
+}
+/* Full-width tile — spans both columns */
+.landing-tile--full {
+    grid-column: 1 / -1;
+}
+
+/* ── Care Team page ── */
+.care-team-card {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    background: var(--card-bg, #fff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+}
+.care-team-card-body {
+    flex: 1;
+    min-width: 0;
+}
+.care-team-role {
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 6px;
+}
+.care-team-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 3px;
+    font-size: 0.9rem;
+}
+.care-team-row-label {
+    color: #888;
+    font-size: 0.78rem;
+    min-width: 56px;
+    flex-shrink: 0;
+}
+.care-team-link {
+    color: var(--primary, #3b82f6);
+    text-decoration: none;
+    font-weight: 500;
+}
+.care-team-link:hover { text-decoration: underline; }
+.care-team-none {
+    color: #bbb;
+    font-size: 0.88rem;
+}
+.form-hint {
+    font-size: 0.82rem;
+    color: #888;
+    margin: -6px 0 10px;
+}
 
 /* ── Health cards (allergy, supplement, vaccination, eye Rx) ── */
 .health-card {

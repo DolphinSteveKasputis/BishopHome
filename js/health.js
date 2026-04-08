@@ -584,12 +584,30 @@ function loadHealthVisitsPage() {
     list.innerHTML = '<p class="empty-state">Loading\u2026</p>';
 
     userCol('healthVisits').orderBy('date', 'desc').get()
-        .then(function(snap) {
+        .then(async function(snap) {
             _healthVisitCache = snap.docs.map(function(d) {
                 return Object.assign({ id: d.id }, d.data());
             });
+
+            // Collect unique providerContactIds so we can resolve their names
+            var providerIds = [];
+            _healthVisitCache.forEach(function(v) {
+                if (v.providerContactId && providerIds.indexOf(v.providerContactId) === -1) {
+                    providerIds.push(v.providerContactId);
+                }
+            });
+            var contactMap = {};
+            if (providerIds.length > 0) {
+                var contactSnaps = await Promise.all(
+                    providerIds.map(function(id) { return userCol('people').doc(id).get(); })
+                );
+                contactSnaps.forEach(function(s) {
+                    if (s.exists) contactMap[s.id] = s.data().name || '';
+                });
+            }
+
             var filter = document.getElementById('visitTypeFilter');
-            renderVisitList(_healthVisitCache, filter ? filter.value : '');
+            renderVisitList(_healthVisitCache, filter ? filter.value : '', contactMap);
         })
         .catch(function(err) {
             list.innerHTML = '<p class="empty-state">Error loading visits.</p>';
@@ -597,9 +615,10 @@ function loadHealthVisitsPage() {
         });
 }
 
-function renderVisitList(visits, typeFilter) {
+function renderVisitList(visits, typeFilter, contactMap) {
     var list = document.getElementById('visitList');
     if (!list) return;
+    contactMap = contactMap || {};
 
     var filtered = typeFilter
         ? visits.filter(function(v) { return v.providerType === typeFilter; })
@@ -623,11 +642,12 @@ function renderVisitList(visits, typeFilter) {
             list.appendChild(yearDiv);
             lastYear = year;
         }
-        list.appendChild(buildVisitCard(visit));
+        list.appendChild(buildVisitCard(visit, contactMap));
     });
 }
 
-function buildVisitCard(visit) {
+function buildVisitCard(visit, contactMap) {
+    contactMap = contactMap || {};
     var div = document.createElement('div');
     div.className = 'health-card health-card--clickable';
     div.onclick = function() { location.hash = '#health-visit/' + visit.id; };
@@ -641,9 +661,14 @@ function buildVisitCard(visit) {
         ? escapeHtml(visit.reason)
         : '<em style="color:#aaa">No reason noted</em>';
 
+    // Resolve provider display: linked contact > providerText > legacy provider field
+    var providerDisplay = (visit.providerContactId && contactMap[visit.providerContactId])
+        ? contactMap[visit.providerContactId]
+        : (visit.providerText || visit.provider || 'Unknown provider');
+
     div.innerHTML =
         '<div class="health-card-main">' +
-            '<div class="health-card-title">' + escapeHtml(visit.date || '\u2014') + ' \u2014 ' + escapeHtml(visit.provider || 'Unknown provider') + '</div>' +
+            '<div class="health-card-title">' + escapeHtml(visit.date || '\u2014') + ' \u2014 ' + escapeHtml(providerDisplay) + '</div>' +
             '<div class="health-card-meta">' + badge + '</div>' +
             '<div class="health-card-sub">' + sub + '</div>' +
         '</div>' +

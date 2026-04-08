@@ -6699,6 +6699,131 @@ a.health-chip--link:hover { filter: brightness(0.93); }
 .appt-concern-item:hover { background: #f8fafc; }
 .appt-concern-icon { font-size: 0.85rem; line-height: 1; }
 
+/* ── Collapsible section pattern (concern/condition detail) ─── */
+.collapsible-section {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    overflow: hidden;
+}
+.collapsible-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: #f8fafc;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #1e293b;
+    user-select: none;
+}
+.collapsible-header:hover { background: #f1f5f9; }
+.collapsible-chevron { transition: transform 0.15s ease; display: inline-block; }
+.collapsible-section.collapsed .collapsible-chevron { transform: rotate(-90deg); }
+.collapsible-section.collapsed .collapsible-body { display: none !important; }
+.collapsible-body { padding: 12px 16px; }
+
+/* Concern / condition summary pinned card */
+.concern-summary-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+    background: #fff;
+}
+.concern-summary-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.concern-summary-text {
+    font-size: 0.9rem;
+    color: #374151;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    margin-bottom: 10px;
+    min-height: 1.2em;
+}
+.concern-summary-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* Add-button row inside collapsible body */
+.section-add-btn-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+/* Linked medication row on concern/condition pages */
+.linked-med-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 4px;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 0.875rem;
+    gap: 8px;
+}
+.linked-med-row:last-child { border-bottom: none; }
+.linked-med-name { font-weight: 500; }
+.linked-med-dosage { color: #64748b; font-size: 0.8rem; }
+
+/* Med picker modal list */
+.med-picker-list {
+    max-height: 280px;
+    overflow-y: auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 4px 8px;
+    margin: 8px 0;
+    background: #fff;
+}
+.med-picker-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 2px;
+    font-size: 0.875rem;
+    cursor: pointer;
+    border-radius: 4px;
+}
+.med-picker-item:hover { background: #f8fafc; }
+.med-picker-item-info { display: flex; flex-direction: column; }
+.med-picker-item-name { font-weight: 500; }
+.med-picker-item-dosage { font-size: 0.75rem; color: #94a3b8; }
+.med-picker-add-new {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 2px;
+    font-size: 0.875rem;
+    color: #2563eb;
+    cursor: pointer;
+    border-radius: 4px;
+    border-top: 1px solid #e2e8f0;
+    margin-top: 4px;
+}
+.med-picker-add-new:hover { background: #eff6ff; }
+
+/* Concern appt/visit linked items */
+.concern-appt-visit-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 4px;
+    border-bottom: 1px solid #f1f5f9;
+    cursor: pointer;
+    font-size: 0.875rem;
+    gap: 8px;
+}
+.concern-appt-visit-item:last-child { border-bottom: none; }
+.concern-appt-visit-item:hover { background: #f8fafc; }
+.concern-appt-visit-date { font-weight: 500; color: #1e293b; }
+.concern-appt-visit-meta { color: #64748b; font-size: 0.8rem; }
+
 /* ── Convert-to-visit modal hint text ───────────────────────── */
 .appt-convert-hint {
     font-size: 0.85rem;

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=350">
+    <link rel="stylesheet" href="css/styles.css?v=351">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -5229,44 +5229,98 @@
                 <h2 id="concernDetailTitle"></h2>
                 <div class="page-header-actions">
                     <button class="btn btn-secondary btn-small" onclick="editCurrentConcern()">Edit</button>
-                    <button class="btn btn-secondary btn-small" id="concernResolveBtn" onclick="toggleConcernResolved()">Mark Resolved</button>
                     <button class="btn btn-danger btn-small" onclick="deleteCurrentConcern()">Delete</button>
                 </div>
             </div>
 
-            <!-- Concern metadata -->
-            <div class="health-concern-meta">
-                <span id="concernDetailStatus" class="health-badge"></span>
-                <span id="concernDetailBodyArea" class="health-badge health-badge--area"></span>
-                <span id="concernDetailStartDate" class="health-concern-date"></span>
-            </div>
-            <div id="concernDetailResolvedRow" style="display:none;">
-                <span id="concernDetailResolvedDate" class="health-concern-date"></span>
+            <!-- Section 1: Summary (pinned, never collapses) -->
+            <div class="concern-summary-card">
+                <div class="concern-summary-meta">
+                    <span id="concernDetailStatus" class="health-badge"></span>
+                    <span id="concernDetailBodyArea" class="health-badge health-badge--area"></span>
+                    <span id="concernDetailStartDate" class="health-concern-date"></span>
+                    <span id="concernDetailResolvedDate" style="display:none;" class="health-concern-date"></span>
+                </div>
+                <div id="concernDetailSummary" class="concern-summary-text"></div>
+                <div class="concern-summary-actions">
+                    <button class="btn btn-secondary btn-small" id="concernResolveBtn" onclick="toggleConcernResolved()">Mark Resolved</button>
+                </div>
             </div>
 
-            <!-- Summary -->
-            <div class="section-heading">Summary</div>
-            <div class="health-detail-card" id="concernDetailSummary"></div>
-
-            <!-- Journal updates -->
-            <div class="section-header">
-                <h3 class="section-heading">Journal</h3>
-                <button class="btn btn-primary btn-small" onclick="openConcernUpdateModal()">+ Add Entry</button>
+            <!-- Section 2: Journal (starts expanded) -->
+            <div class="collapsible-section" id="concernSectionJournal">
+                <div class="collapsible-header" onclick="toggleSection(this.parentElement)">
+                    <span>Journal</span>
+                    <span class="collapsible-chevron">&#9660;</span>
+                </div>
+                <div class="collapsible-body">
+                    <div class="section-add-btn-row">
+                        <button class="btn btn-primary btn-small" onclick="openConcernUpdateModal()">+ Add Note</button>
+                    </div>
+                    <div id="concernUpdatesList"></div>
+                </div>
             </div>
-            <div id="concernUpdatesList"></div>
 
-            <!-- Linked visits -->
-            <div class="section-heading">Linked Visits</div>
-            <div id="concernLinkedVisits"></div>
-
-            <!-- Photos -->
-            <div class="section-header">
-                <h3 class="section-heading">Photos</h3>
-                <button class="btn btn-primary btn-small" id="addConcernCameraBtn">+ Camera</button>
-                <button class="btn btn-primary btn-small" id="addConcernGalleryBtn">+ Gallery</button>
+            <!-- Section 3: Medications (starts collapsed) -->
+            <div class="collapsible-section collapsed" id="concernSectionMeds">
+                <div class="collapsible-header" onclick="toggleSection(this.parentElement)">
+                    <span>Medications</span>
+                    <span class="collapsible-chevron">&#9660;</span>
+                </div>
+                <div class="collapsible-body" style="display:none;">
+                    <div class="section-add-btn-row">
+                        <button class="btn btn-primary btn-small" onclick="openMedPicker('concern', window.currentHealthConcern && window.currentHealthConcern.id)">+ Add Med</button>
+                    </div>
+                    <div id="concernMedsList"></div>
+                </div>
             </div>
-            <div id="concernPhotoContainer"></div>
-            <p class="empty-state" id="concernPhotoEmptyState">No photos yet.</p>
+
+            <!-- Section 4: Appointments & Visits (starts collapsed) -->
+            <div class="collapsible-section collapsed" id="concernSectionAppts">
+                <div class="collapsible-header" onclick="toggleSection(this.parentElement)">
+                    <span>Appointments &amp; Visits</span>
+                    <span class="collapsible-chevron">&#9660;</span>
+                </div>
+                <div class="collapsible-body" style="display:none;">
+                    <div id="concernApptVisitsList"></div>
+                </div>
+            </div>
+
+            <!-- Section 5: Photos (starts collapsed) -->
+            <div class="collapsible-section collapsed" id="concernSectionPhotos">
+                <div class="collapsible-header" onclick="toggleSection(this.parentElement)">
+                    <span>Photos</span>
+                    <span class="collapsible-chevron">&#9660;</span>
+                </div>
+                <div class="collapsible-body" style="display:none;">
+                    <div class="section-add-btn-row">
+                        <button class="btn btn-primary btn-small" id="addConcernCameraBtn">+ Camera</button>
+                        <button class="btn btn-primary btn-small" id="addConcernGalleryBtn">+ Gallery</button>
+                    </div>
+                    <div id="concernPhotoContainer"></div>
+                    <p class="empty-state" id="concernPhotoEmptyState">No photos yet.</p>
+                </div>
+            </div>
+
+            <!-- Section 6: Facts (starts collapsed) -->
+            <div class="collapsible-section collapsed" id="concernSectionFacts">
+                <div class="collapsible-header" onclick="toggleSection(this.parentElement)">
+                    <span>Facts</span>
+                    <span class="collapsible-chevron">&#9660;</span>
+                </div>
+                <div class="collapsible-body" style="display:none;">
+                    <div class="section-add-btn-row">
+                        <button class="btn btn-primary btn-small" onclick="openAddFactModal('concern', window.currentHealthConcern && window.currentHealthConcern.id)">+ Add Fact</button>
+                    </div>
+                    <div id="concernFactsContainer"></div>
+                    <p class="empty-state" id="concernFactsEmpty">No facts recorded.</p>
+                </div>
+            </div>
+
+            <!-- Promote to Condition stub (Phase 7) -->
+            <div style="margin: 20px 0 32px;">
+                <button class="btn btn-secondary" onclick="alert('Coming soon \u2014 Promote to Condition will be available in a future update.')">&#8679; Promote to Condition</button>
+            </div>
         </section>
 
         <!-- ─── H5: VITALS PAGE ──────────────────────────────────────── -->
@@ -6159,6 +6213,21 @@
             </div>
         </div>
 
+        <!-- Modal: Med Picker (link / unlink medications to a concern or condition) -->
+        <div class="modal-overlay" id="medPickerModal">
+            <div class="modal">
+                <h3>Link Medications</h3>
+                <p class="form-hint">Check medications to link to this concern or condition.</p>
+                <div id="medPickerList" class="med-picker-list">
+                    <p style="margin:8px 0; color:#64748b; font-size:0.85rem;">Loading&hellip;</p>
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn btn-secondary" onclick="closeModal('medPickerModal')">Cancel</button>
+                    <button class="btn btn-primary" onclick="saveMedPickerSelection()">Save</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Page: Journal Main View (#journal) -->
         <section class="page hidden" id="page-journal">
             <div class="page-header">
@@ -6989,7 +7058,7 @@
     <script src="js/journal.js?v=350"></script>
     <script src="js/contacts.js?v=350"></script>
     <script src="js/collections.js?v=350"></script>
-    <script src="js/health.js?v=350"></script>
+    <script src="js/health.js?v=351"></script>
     <script src="js/notes.js?v=350"></script>
     <script src="js/lifecalendar.js?v=350"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>

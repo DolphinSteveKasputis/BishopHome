@@ -740,12 +740,12 @@ async function renderVisitDetail(visit) {
         try {
             var fetches = [];
             concernIds.forEach(function(cid) {
-                fetches.push(userCol('healthConcerns').doc(cid).get().then(function(s) {
+                fetches.push(userCol('concerns').doc(cid).get().then(function(s) {
                     return { id: cid, kind: 'concern', title: s.exists ? (s.data().title || cid) : cid };
                 }));
             });
             conditionIds.forEach(function(cid) {
-                fetches.push(userCol('healthConditions').doc(cid).get().then(function(s) {
+                fetches.push(userCol('conditions').doc(cid).get().then(function(s) {
                     return { id: cid, kind: 'condition', title: s.exists ? (s.data().title || cid) : cid };
                 }));
             });
@@ -1250,7 +1250,9 @@ function saveMed() {
     op.then(function(ref) {
         var savedId   = ref ? ref.id : editId;  // ref is set on add, undefined on update
         var rxPhoto   = document.getElementById('medicationModal').dataset.pendingRxPhoto || '';
-        var afterClose = function() { loadMedicationsPage(); };
+        // If opened from med picker, return to picker instead of navigating to medications
+        var cb = window._medPickerCallback || null;
+        var afterClose = cb ? function() { cb(savedId); } : function() { loadMedicationsPage(); };
 
         if (rxPhoto && savedId) {
             // Attach the scanned Rx receipt image as a photo on this medication
@@ -1481,6 +1483,230 @@ function buildConcernCard(concern) {
     return div;
 }
 
+// ── Collapsible section helper ────────────────────────────────────
+
+function toggleSection(sectionEl) {
+    var isCollapsed = sectionEl.classList.contains('collapsed');
+    sectionEl.classList.toggle('collapsed', !isCollapsed);
+    var body = sectionEl.querySelector('.collapsible-body');
+    if (body) body.style.display = isCollapsed ? '' : 'none';
+}
+
+// ── Med Picker overlay ────────────────────────────────────────────
+
+// Opens the medPickerModal scoped to a concern or condition
+function openMedPicker(targetType, targetId) {
+    var modal = document.getElementById('medPickerModal');
+    modal.dataset.targetType = targetType;
+    modal.dataset.targetId   = targetId;
+
+    var list = document.getElementById('medPickerList');
+    list.innerHTML = '<p class="empty-state">Loading\u2026</p>';
+    openModal('medPickerModal');
+
+    // Load all non-discontinued meds; pre-check ones already linked
+    userCol('medications').get().then(function(snap) {
+        var meds = snap.docs
+            .map(function(d) { return Object.assign({ id: d.id }, d.data()); })
+            .filter(function(m) { return m.status !== 'discontinued'; })
+            .sort(function(a, b) { return (a.name || '').localeCompare(b.name || ''); });
+
+        if (meds.length === 0) {
+            list.innerHTML = '<p class="empty-state">No medications on file.</p>';
+            return;
+        }
+
+        // Determine which meds are already linked (concernIds or conditionIds contains targetId)
+        var arrayField = targetType === 'concern' ? 'concernIds' : 'conditionIds';
+
+        list.innerHTML = '';
+        meds.forEach(function(m) {
+            var linked = Array.isArray(m[arrayField]) && m[arrayField].indexOf(targetId) !== -1;
+            var item = document.createElement('div');
+            item.className = 'med-picker-item';
+            item.innerHTML =
+                '<input type="checkbox" class="med-picker-check" value="' + m.id + '"' +
+                    (linked ? ' checked' : '') + '>' +
+                '<div class="med-picker-item-info">' +
+                    '<div class="med-picker-item-name">' + escapeHtml(m.name || '') + '</div>' +
+                    (m.dosage ? '<div class="med-picker-item-dosage">' + escapeHtml(m.dosage) + '</div>' : '') +
+                '</div>';
+            list.appendChild(item);
+        });
+    }).catch(function(err) {
+        list.innerHTML = '<p class="empty-state">Error loading medications.</p>';
+        console.error('openMedPicker:', err);
+    });
+}
+
+// Called from "Add New Medication" button inside medPickerModal
+function _openMedPickerAddNew() {
+    // Stash a callback so saveMed() can return to the picker instead of navigating away
+    var targetType = document.getElementById('medPickerModal').dataset.targetType;
+    var targetId   = document.getElementById('medPickerModal').dataset.targetId;
+    closeModal('medPickerModal');
+
+    window._medPickerCallback = function(newMedId) {
+        window._medPickerCallback = null;
+        openMedPicker(targetType, targetId);
+    };
+    openMedModal(null);   // open blank add-med modal
+}
+
+// Save the picker selection — diffs old vs new and updates medications
+function saveMedPickerSelection() {
+    var modal      = document.getElementById('medPickerModal');
+    var targetType = modal.dataset.targetType;
+    var targetId   = modal.dataset.targetId;
+    var arrayField = targetType === 'concern' ? 'concernIds' : 'conditionIds';
+
+    var checks = modal.querySelectorAll('.med-picker-check');
+    var nowChecked = [];
+    checks.forEach(function(cb) { if (cb.checked) nowChecked.push(cb.value); });
+
+    // Build the original set from what was pre-checked
+    var wasChecked = [];
+    checks.forEach(function(cb) {
+        // We stored initial state via the checked attribute — read defaultChecked
+        if (cb.defaultChecked) wasChecked.push(cb.value);
+    });
+
+    var toAdd    = nowChecked.filter(function(id) { return wasChecked.indexOf(id) === -1; });
+    var toRemove = wasChecked.filter(function(id) { return nowChecked.indexOf(id) === -1; });
+
+    if (toAdd.length === 0 && toRemove.length === 0) {
+        closeModal('medPickerModal');
+        return;
+    }
+
+    var batch = firebase.firestore().batch();
+    toAdd.forEach(function(medId) {
+        batch.update(userCol('medications').doc(medId), {
+            [arrayField]: firebase.firestore.FieldValue.arrayUnion(targetId)
+        });
+    });
+    toRemove.forEach(function(medId) {
+        batch.update(userCol('medications').doc(medId), {
+            [arrayField]: firebase.firestore.FieldValue.arrayRemove(targetId)
+        });
+    });
+
+    batch.commit().then(function() {
+        closeModal('medPickerModal');
+        if (targetType === 'concern') {
+            loadConcernMeds(targetId);
+        }
+    }).catch(function(err) { alert('Error saving: ' + err.message); });
+}
+
+// Load medications linked to this concern
+function loadConcernMeds(concernId) {
+    var container = document.getElementById('concernMedsList');
+    if (!container) return;
+    container.innerHTML = '<p class="empty-state">Loading\u2026</p>';
+
+    userCol('medications').where('concernIds', 'array-contains', concernId).get()
+        .then(function(snap) {
+            var meds = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
+            meds.sort(function(a, b) { return (a.name || '').localeCompare(b.name || ''); });
+
+            if (meds.length === 0) {
+                container.innerHTML = '<p class="empty-state">No medications linked.</p>';
+                return;
+            }
+            container.innerHTML = '';
+            meds.forEach(function(m) {
+                var row = document.createElement('div');
+                row.className = 'linked-med-row';
+                row.innerHTML =
+                    '<div class="linked-med-info">' +
+                        '<a class="linked-med-name" href="#health-medication/' + m.id + '">' + escapeHtml(m.name || '') + '</a>' +
+                        (m.dosage ? '<span class="linked-med-dosage">' + escapeHtml(m.dosage) + '</span>' : '') +
+                    '</div>' +
+                    '<button class="btn btn-danger btn-small" onclick="removeConcernMed(\'' + m.id + '\',\'' + concernId + '\')">Unlink</button>';
+                container.appendChild(row);
+            });
+        })
+        .catch(function(err) {
+            container.innerHTML = '<p class="empty-state">Error loading medications.</p>';
+            console.error('loadConcernMeds:', err);
+        });
+}
+
+// Unlink a medication from this concern
+function removeConcernMed(medId, concernId) {
+    if (!confirm('Unlink this medication from the concern?')) return;
+    userCol('medications').doc(medId).update({
+        concernIds: firebase.firestore.FieldValue.arrayRemove(concernId)
+    }).then(function() {
+        loadConcernMeds(concernId);
+    }).catch(function(err) { alert('Error: ' + err.message); });
+}
+
+// Load appointments and visits linked to this concern
+async function loadConcernApptVisits(concernId) {
+    var container = document.getElementById('concernApptVisitList');
+    if (!container) return;
+    container.innerHTML = '<p class="empty-state">Loading\u2026</p>';
+
+    try {
+        // Appointments with this concern in concernIds[]
+        var apptSnap = await userCol('appointments').where('concernIds', 'array-contains', concernId).get();
+        // Visits with this concern in concernIds[] (new pattern)
+        var visitSnap = await userCol('healthVisits').where('concernIds', 'array-contains', concernId).get();
+        // Legacy visits where concernId == concernId (single-field)
+        var legacySnap = await userCol('healthVisits').where('concernId', '==', concernId).get();
+
+        var items = [];
+
+        apptSnap.docs.forEach(function(d) {
+            var a = Object.assign({ id: d.id, _kind: 'appt' }, d.data());
+            items.push(a);
+        });
+
+        var visitIds = new Set();
+        visitSnap.docs.forEach(function(d) {
+            if (!visitIds.has(d.id)) {
+                visitIds.add(d.id);
+                items.push(Object.assign({ id: d.id, _kind: 'visit' }, d.data()));
+            }
+        });
+        legacySnap.docs.forEach(function(d) {
+            if (!visitIds.has(d.id)) {
+                visitIds.add(d.id);
+                items.push(Object.assign({ id: d.id, _kind: 'visit' }, d.data()));
+            }
+        });
+
+        items.sort(function(a, b) { return (b.date || '').localeCompare(a.date || ''); });
+
+        if (items.length === 0) {
+            container.innerHTML = '<p class="empty-state">No appointments or visits linked.</p>';
+            return;
+        }
+
+        container.innerHTML = '';
+        items.forEach(function(item) {
+            var div = document.createElement('div');
+            div.className = 'concern-appt-visit-item';
+
+            var isVisit = item._kind === 'visit';
+            var hash    = isVisit ? '#health-visit/' + item.id : '#health-appointments';
+            var label   = isVisit ? (item.type || 'Visit') : (item.appointmentType || 'Appointment');
+            var who     = item.providerText || item.provider || '';
+            var meta    = [label, who].filter(Boolean).join(' \u2014 ');
+
+            div.innerHTML =
+                '<a href="' + hash + '" class="concern-appt-visit-date">' + escapeHtml(item.date || '\u2014') + '</a>' +
+                '<div class="concern-appt-visit-meta">' + escapeHtml(meta) + '</div>';
+            container.appendChild(div);
+        });
+    } catch(err) {
+        container.innerHTML = '<p class="empty-state">Error loading appointments.</p>';
+        console.error('loadConcernApptVisits:', err);
+    }
+}
+
 // ── Concern detail page ───────────────────────────────────────────
 
 function loadConcernDetail(id) {
@@ -1507,26 +1733,39 @@ function renderConcernDetail(concern) {
     statusEl.textContent  = concern.status === 'resolved' ? 'Resolved' : 'Open';
     statusEl.className    = 'health-badge ' + (concern.status === 'resolved' ? 'health-badge--resolved' : 'health-badge--open');
 
-    document.getElementById('concernDetailBodyArea').textContent  = concern.bodyArea  || '';
-    document.getElementById('concernDetailStartDate').textContent = concern.startDate ? 'Since ' + concern.startDate : '';
-    document.getElementById('concernDetailSummary').textContent   = concern.summary   || '\u2014';
+    // Summary card fields
+    var bodyAreaEl = document.getElementById('concernDetailBodyArea');
+    if (bodyAreaEl) bodyAreaEl.textContent = concern.bodyArea || '';
+    var startDateEl = document.getElementById('concernDetailStartDate');
+    if (startDateEl) startDateEl.textContent = concern.startDate ? 'Since ' + concern.startDate : '';
+    var summaryEl = document.getElementById('concernDetailSummary');
+    if (summaryEl) summaryEl.textContent = concern.summary || '\u2014';
 
     // Resolved date row
     var resolvedRow = document.getElementById('concernDetailResolvedRow');
-    if (concern.status === 'resolved' && concern.resolvedDate) {
-        resolvedRow.style.display = '';
-        document.getElementById('concernDetailResolvedDate').textContent = 'Resolved: ' + concern.resolvedDate;
-    } else {
-        resolvedRow.style.display = 'none';
+    if (resolvedRow) {
+        if (concern.status === 'resolved' && concern.resolvedDate) {
+            resolvedRow.style.display = '';
+            document.getElementById('concernDetailResolvedDate').textContent = 'Resolved: ' + concern.resolvedDate;
+        } else {
+            resolvedRow.style.display = 'none';
+        }
     }
 
     // Toggle resolve/reopen button label
     var resolveBtn = document.getElementById('concernResolveBtn');
-    resolveBtn.textContent = concern.status === 'resolved' ? 'Reopen' : 'Mark Resolved';
+    if (resolveBtn) resolveBtn.textContent = concern.status === 'resolved' ? 'Reopen' : 'Mark Resolved';
 
-    // Load journal updates, linked visits, photos
+    // Initialize all collapsible sections as open (body visible)
+    document.querySelectorAll('#page-health-concern .collapsible-section').forEach(function(sec) {
+        var body = sec.querySelector('.collapsible-body');
+        if (body) body.style.display = '';
+    });
+
+    // Load all section content
     loadConcernUpdates(concern.id);
-    loadConcernLinkedVisits(concern.id);
+    loadConcernMeds(concern.id);
+    loadConcernApptVisits(concern.id);
     loadPhotos('concern', concern.id, 'concernPhotoContainer', 'concernPhotoEmptyState');
 }
 
@@ -1566,25 +1805,9 @@ function loadConcernUpdates(concernId) {
         });
 }
 
+// Kept for backward compat — routes to the new combined loader
 function loadConcernLinkedVisits(concernId) {
-    var container = document.getElementById('concernLinkedVisits');
-    if (!container) return;
-    container.innerHTML = '';
-
-    userCol('healthVisits').where('concernId', '==', concernId).get()
-        .then(function(snap) {
-            if (snap.empty) { container.innerHTML = '<p class="empty-state">No visits linked to this concern.</p>'; return; }
-            var visits = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
-            visits.sort(function(a,b) { return (b.date||'').localeCompare(a.date||''); });
-            visits.forEach(function(v) {
-                var div = document.createElement('div');
-                div.className = 'health-linked-item health-linked-item--clickable';
-                div.onclick = function() { location.hash = '#health-visit/' + v.id; };
-                div.textContent = (v.date || '\u2014') + (v.provider ? ' \u2014 ' + v.provider : '') + (v.outcome ? ' | ' + v.outcome : '');
-                container.appendChild(div);
-            });
-        })
-        .catch(function() { container.innerHTML = '<p class="empty-state">\u2014</p>'; });
+    loadConcernApptVisits(concernId);
 }
 
 function openConcernModal(id) {
@@ -2775,8 +2998,8 @@ async function loadAppointmentsPage() {
         var results = await Promise.all([
             userCol('healthAppointments').orderBy('date', 'asc').get(),
             userCol('people').get(),
-            userCol('healthConcerns').get(),
-            userCol('healthConditions').get()
+            userCol('concerns').get(),
+            userCol('conditions').get()
         ]);
         var apptSnap      = results[0];
         var contactSnap   = results[1];
@@ -3009,8 +3232,8 @@ async function openApptModal(id) {
     concernsList.innerHTML = '<p style="margin:4px 0; font-size:0.85rem; color:#64748b;">Loading...</p>';
     try {
         var ccResults = await Promise.all([
-            userCol('healthConcerns').where('status', '==', 'open').get(),
-            userCol('healthConditions').where('status', 'in', ['active', 'managed']).get()
+            userCol('concerns').where('status', '==', 'open').get(),
+            userCol('conditions').where('status', 'in', ['active', 'managed']).get()
         ]);
         var concernSnap   = ccResults[0];
         var conditionSnap = ccResults[1];

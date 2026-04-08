@@ -4072,9 +4072,11 @@ async function loadStep2Page(visitId) {
             accordion.innerHTML = '';
             concernIds.forEach(function(cid) {
                 accordion.appendChild(_step2BuildAccordionItem('concern',   cid, concernMap[cid]   || cid));
+                _step2InitItemVoice('concern',   cid);
             });
             conditionIds.forEach(function(cid) {
                 accordion.appendChild(_step2BuildAccordionItem('condition', cid, conditionMap[cid] || cid));
+                _step2InitItemVoice('condition', cid);
             });
             concernIds.forEach(function(cid)   { _step2LoadMedsForItem('concern',   cid); });
             conditionIds.forEach(function(cid)  { _step2LoadMedsForItem('condition', cid); });
@@ -4090,6 +4092,7 @@ function _step2BuildAccordionItem(type, id, name) {
     var div  = document.createElement('div');
     div.className = 'step2-accordion-item';
     div.id = 'step2-item-' + type + '-' + id;
+    var speakBtnId = 'step2SpeakBtn-' + type + '-' + id;
     div.innerHTML =
         '<div class="step2-accordion-header" onclick="toggleStep2Item(this.parentElement)">' +
             '<span class="step2-item-icon">' + icon + '</span>' +
@@ -4102,16 +4105,27 @@ function _step2BuildAccordionItem(type, id, name) {
         '</div>' +
         '<div class="step2-accordion-body">' +
             '<div class="form-group">' +
-                '<label>Notes from this visit:</label>' +
+                '<label style="display:flex;align-items:center;justify-content:space-between;">' +
+                    'Notes from this visit:' +
+                    '<button class="btn btn-secondary btn-small" id="' + speakBtnId + '">\uD83C\uDFA4 Speak</button>' +
+                '</label>' +
                 '<textarea id="step2Note-' + type + '-' + id + '" rows="3" placeholder="Notes about this ' + type + ' from today\u2019s visit\u2026"></textarea>' +
             '</div>' +
             '<div class="step2-meds-header">' +
                 '<span>Medications</span>' +
-                '<button class="btn btn-primary btn-small" onclick="_step2OpenMedPicker(\'' + type + '\',\'' + id + '\')">+ Add Med</button>' +
+                '<div style="display:flex;gap:6px;">' +
+                    '<button class="btn btn-secondary btn-small" onclick="_step2AddNewMed(\'' + type + '\',\'' + id + '\')">+ New Med</button>' +
+                    '<button class="btn btn-primary btn-small" onclick="_step2OpenMedPicker(\'' + type + '\',\'' + id + '\')">+ Link Existing</button>' +
+                '</div>' +
             '</div>' +
             '<div class="step2-meds-list" id="step2Meds-' + type + '-' + id + '"></div>' +
         '</div>';
     return div;
+}
+
+/** Call after appending a new accordion item to wire up voice-to-text. */
+function _step2InitItemVoice(type, id) {
+    initVoiceToText('step2Note-' + type + '-' + id, 'step2SpeakBtn-' + type + '-' + id);
 }
 
 function toggleStep2Item(itemEl) {
@@ -4145,6 +4159,26 @@ function _step2LoadMedsForItem(type, id) {
 function _step2OpenMedPicker(type, id) {
     window._medPickerAfterSave = function() { _step2LoadMedsForItem(type, id); };
     openMedPicker(type, id);
+}
+
+/**
+ * Open the blank "Add Medication" modal from Step 2.
+ * After the user saves the new med, it is automatically linked to this
+ * concern/condition and the meds list for this accordion item is refreshed.
+ * The user sees the med modal, saves, and lands back on Step 2.
+ */
+function _step2AddNewMed(type, id) {
+    // _medPickerCallback is called by openMedModal's save handler with the new med's ID.
+    window._medPickerCallback = function(newMedId) {
+        window._medPickerCallback = null;
+        var arrayField = type === 'concern' ? 'concernIds' : 'conditionIds';
+        userCol('medications').doc(newMedId).update({
+            [arrayField]: firebase.firestore.FieldValue.arrayUnion(id)
+        }).then(function() {
+            _step2LoadMedsForItem(type, id);
+        }).catch(function(err) { console.error('_step2AddNewMed link error:', err); });
+    };
+    openMedModal(null);   // open blank add-med form; on save, callback fires above
 }
 
 function _step2UnlinkMed(medId, type, id) {
@@ -4238,6 +4272,7 @@ async function _step2AddExistingConcern() {
         var emptyEl   = accordion.querySelector('.empty-state');
         if (emptyEl) emptyEl.remove();
         accordion.appendChild(_step2BuildAccordionItem('concern', id, name));
+        _step2InitItemVoice('concern', id);
         _step2LoadMedsForItem('concern', id);
         _step2ToggleExistingConcernForm();   // hides the form
     } catch(err) { alert('Error: ' + err.message); }
@@ -4259,6 +4294,7 @@ async function _step2AddExistingCondition() {
         var emptyEl   = accordion.querySelector('.empty-state');
         if (emptyEl) emptyEl.remove();
         accordion.appendChild(_step2BuildAccordionItem('condition', id, name));
+        _step2InitItemVoice('condition', id);
         _step2LoadMedsForItem('condition', id);
         _step2ToggleExistingConditionForm();  // hides the form
     } catch(err) { alert('Error: ' + err.message); }
@@ -4285,6 +4321,7 @@ async function _step2SaveNewConcern() {
         var emptyEl   = accordion.querySelector('.empty-state');
         if (emptyEl) emptyEl.remove();
         accordion.appendChild(_step2BuildAccordionItem('concern', ref.id, title));
+        _step2InitItemVoice('concern', ref.id);
         _step2ToggleNewConcernForm();
         document.getElementById('step2NewConcernTitle').value = '';
         document.getElementById('step2NewConcernArea').value  = '';
@@ -4309,6 +4346,7 @@ async function _step2SaveNewCondition() {
         var emptyEl   = accordion.querySelector('.empty-state');
         if (emptyEl) emptyEl.remove();
         accordion.appendChild(_step2BuildAccordionItem('condition', ref.id, name));
+        _step2InitItemVoice('condition', ref.id);
         _step2ToggleNewConditionForm();
         document.getElementById('step2NewConditionName').value = '';
     } catch(err) { alert('Error: ' + err.message); }

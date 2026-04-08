@@ -720,21 +720,27 @@ async function renderVisitDetail(visit) {
         facilityRow.style.display = 'none';
     }
 
-    // Provider row — prefer new contact fields, fall back to legacy provider string
-    var providerEl = document.getElementById('visitDetailProvider');
+    // Provider row — prefer linked contact, fall back to providerText then legacy provider
+    var providerEl  = document.getElementById('visitDetailProvider');
+    var typeEl      = document.getElementById('visitDetailType');
+    // Default type from visit record (legacy or visit type)
+    typeEl.textContent = visit.providerType || visit.type || '\u2014';
+
     if (visit.providerContactId) {
         providerEl.innerHTML = 'Loading\u2026';
         userCol('people').doc(visit.providerContactId).get().then(function(snap) {
             var name = snap.exists ? (snap.data().name || visit.providerContactId) : visit.providerContactId;
             providerEl.innerHTML = '<a href="#contact/' + visit.providerContactId + '" class="appt-contact-link">' + escapeHtml(name) + '</a>';
+            // Pull provider type from contact specialty if available
+            if (snap.exists && snap.data().specialty) {
+                typeEl.textContent = snap.data().specialty;
+            }
         }).catch(function() { providerEl.textContent = visit.providerContactId; });
     } else if (visit.providerText) {
         providerEl.textContent = visit.providerText;
     } else {
         providerEl.textContent = visit.provider || '\u2014';
     }
-
-    document.getElementById('visitDetailType').textContent     = visit.providerType || visit.type || '\u2014';
     document.getElementById('visitDetailReason').textContent   = visit.reason       || '\u2014';
     document.getElementById('visitDetailWhatDone').textContent = visit.whatWasDone  || '\u2014';
     document.getElementById('visitDetailOutcome').textContent  = visit.outcome      || '\u2014';

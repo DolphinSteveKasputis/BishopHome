@@ -5124,29 +5124,17 @@
         <div class="modal-overlay" id="visitModal">
             <div class="modal">
                 <h3 id="visitModalTitle">Add Visit</h3>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="visitDate">Date *</label>
-                        <input type="date" id="visitDate">
-                    </div>
-                    <div class="form-group">
-                        <label for="visitProviderType">Provider Type</label>
-                        <select id="visitProviderType">
-                            <option value="">— Select —</option>
-                            <option>Primary Care</option>
-                            <option>Dentist</option>
-                            <option>Optometrist</option>
-                            <option>Specialist</option>
-                            <option>Urgent Care</option>
-                            <option>ER</option>
-                            <option>Other</option>
-                        </select>
-                    </div>
+                <div class="form-group">
+                    <label for="visitDate">Date *</label>
+                    <input type="date" id="visitDate">
                 </div>
                 <div class="form-group">
                     <label for="visitProvider">Provider / Doctor Name</label>
                     <input type="text" id="visitProvider" placeholder="e.g. Dr. Smith, City Dental">
+                    <p class="form-hint" style="margin:4px 0 0; font-size:0.8rem; color:#94a3b8;">Provider type is pulled automatically from the contact record.</p>
                 </div>
+                <!-- Hidden field kept for legacy saves -->
+                <input type="hidden" id="visitProviderType">
                 <div class="form-group">
                     <label>Concerns &amp; Conditions</label>
                     <div id="visitCCList" class="appt-concerns-list">
@@ -7282,7 +7270,7 @@
     <script src="js/journal.js?v=350"></script>
     <script src="js/contacts.js?v=361"></script>
     <script src="js/collections.js?v=350"></script>
-    <script src="js/health.js?v=365"></script>
+    <script src="js/health.js?v=366"></script>
     <script src="js/notes.js?v=350"></script>
     <script src="js/lifecalendar.js?v=350"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>

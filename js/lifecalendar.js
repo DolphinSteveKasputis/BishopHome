@@ -2201,9 +2201,9 @@ async function _lcSaveEvent(isNew) {
 
     try {
         if (isNew) {
-            var newId = await lcAddEvent(data);
+            await lcAddEvent(data);
             _lcEventDirty = false;
-            window.location.hash = '#life-event/' + newId;
+            window.location.hash = '#life-calendar';
         } else {
             await lcUpdateEvent(_lcEditingEventId, data);
             _lcEventDirty = false;

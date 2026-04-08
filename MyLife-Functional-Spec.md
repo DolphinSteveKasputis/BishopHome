@@ -528,6 +528,14 @@ A notebook-organized note-taking system.
 
 **Tab key**: In the note body textarea, pressing Tab inserts 4 spaces instead of moving focus to the next field.
 
+### Life Main Page (`#life`)
+
+Landing page showing tile shortcuts to Journal, Contacts, Health, Notes, and Calendar. Below the tiles, a **"Coming Up"** section (hidden when empty) shows events within the next 30 days, sorted by date. Two sources are merged:
+- **Annual contact dates** (`peopleImportantDates` where `recurrence == annual`) — shows label, person name (tappable link to `#contact/{id}`), and "turns N" age badge if a birth year is set
+- **Upcoming life calendar events** (`lifeEvents` where `startDate` in next 30 days, excluding attended/missed/didntgo) — shows event title as a tappable link to `#life-event/{id}`
+
+Each item shows a relative time label: "Today!", "Tomorrow", or "In N days".
+
 ### Life Calendar (`lifecalendar.js`)
 
 **Plan document**: `LifeCalendar.md`
@@ -546,7 +554,8 @@ Tracks major life events — trips, milestones, goals, relationships.
 - Category (color-coded), status dropdown, location, people tags, description
 - Mini log textarea (journal-style notes attached to the event)
 - Top-level Save button (next to title) and bottom Save button
-- Save auto-closes and returns to `#life-calendar`
+- Saving a **new** event navigates to `#life-calendar` (not the event detail page)
+- Saving an **edited** event navigates to `#life-calendar`
 
 **Status**: Events auto-transition between upcoming/in-progress/completed/past based on dates.
 

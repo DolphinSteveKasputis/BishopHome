@@ -1188,51 +1188,77 @@ async function loadLifePage() {
     today.setHours(0, 0, 0, 0);
     var endDate = new Date(today);
     endDate.setDate(endDate.getDate() + 30);
+    var todayStr   = today.toISOString().slice(0, 10);
+    var endDateStr = endDate.toISOString().slice(0, 10);
 
     try {
-        var snap = await userCol('peopleImportantDates')
-            .where('recurrence', '==', 'annual')
-            .get();
+        // Load annual contact dates and upcoming life events in parallel
+        var results = await Promise.all([
+            userCol('peopleImportantDates').where('recurrence', '==', 'annual').get(),
+            userCol('lifeEvents').where('startDate', '>=', todayStr).where('startDate', '<=', endDateStr).get()
+        ]);
+        var datesSnap  = results[0];
+        var eventsSnap = results[1];
 
-        if (snap.empty) { section.style.display = 'none'; return; }
-
-        var peopleSnap = await userCol('people').get();
-        var personMap  = {};
-        peopleSnap.forEach(function(doc) { personMap[doc.id] = doc.data().name || 'Unknown'; });
+        // Build person name map only if annual dates exist
+        var personMap = {};
+        if (!datesSnap.empty) {
+            var peopleSnap = await userCol('people').get();
+            peopleSnap.forEach(function(doc) { personMap[doc.id] = doc.data().name || 'Unknown'; });
+        }
 
         var items = [];
-        snap.forEach(function(doc) {
+
+        // Annual dates from contacts
+        datesSnap.forEach(function(doc) {
             var d = doc.data();
             if (!d.month || !d.day) return;
             var next = _nextAnnualOccurrence(d.month, d.day, today, endDate);
             if (!next) return;
-            items.push({ label: d.label || '', personName: personMap[d.personId] || '', personId: d.personId || '', year: d.year || null, nextDate: next });
+            items.push({ _type: 'annual', label: d.label || '', personName: personMap[d.personId] || '', personId: d.personId || '', year: d.year || null, nextDate: next });
+        });
+
+        // Upcoming life calendar events (skip attended/missed/didntgo)
+        eventsSnap.forEach(function(doc) {
+            var d = doc.data();
+            if (d.status === 'attended' || d.status === 'missed' || d.status === 'didntgo') return;
+            items.push({ _type: 'event', _id: doc.id, label: d.title || '', nextDate: new Date(d.startDate) });
         });
 
         if (!items.length) { section.style.display = 'none'; return; }
 
         items.sort(function(a, b) { return a.nextDate - b.nextDate; });
 
-        var MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
         var html = '<h3 class=life-calendar-heading>Coming Up</h3>';
         items.forEach(function(item) {
             var msAway   = item.nextDate - today;
             var daysAway = Math.round(msAway / 86400000);
             var dayLabel = daysAway === 0 ? 'Today!' : daysAway === 1 ? 'Tomorrow' : 'In ' + daysAway + ' days';
-            var ageStr = '';
-            if (item.year) {
-                var age = item.nextDate.getFullYear() - item.year;
-                if (age > 0) ageStr = '<span class=life-cal-age>turns ' + age + '</span>';
+
+            if (item._type === 'event') {
+                html +=
+                    '<div class=life-cal-item>' +
+                        '<div class=life-cal-info>' +
+                            '<a class="life-cal-label life-cal-event-link" href=#life-event/' + escapeHtml(item._id) + '>' + escapeHtml(item.label) + '</a>' +
+                        '</div>' +
+                        '<span class=life-cal-days>' + escapeHtml(dayLabel) + '</span>' +
+                    '</div>';
+            } else {
+                var ageStr = '';
+                if (item.year) {
+                    var age = item.nextDate.getFullYear() - item.year;
+                    if (age > 0) ageStr = '<span class=life-cal-age>turns ' + age + '</span>';
+                }
+                html +=
+                    '<div class=life-cal-item>' +
+                        '<div class=life-cal-info>' +
+                            '<span class=life-cal-label>' + escapeHtml(item.label) + '</span>' +
+                            '<a class=life-cal-person href=#contact/' + escapeHtml(item.personId) + '>' + escapeHtml(item.personName) + '</a>' +
+                            ageStr +
+                        '</div>' +
+                        '<span class=life-cal-days>' + escapeHtml(dayLabel) + '</span>' +
+                    '</div>';
             }
-            html +=
-                '<div class=life-cal-item>' +
-                    '<div class=life-cal-info>' +
-                        '<span class=life-cal-label>' + escapeHtml(item.label) + '</span>' +
-                        '<a class=life-cal-person href=#contact/' + escapeHtml(item.personId) + '>' + escapeHtml(item.personName) + '</a>' +
-                        ageStr +
-                    '</div>' +
-                    '<span class=life-cal-days>' + escapeHtml(dayLabel) + '</span>' +
-                '</div>';
         });
 
         container.innerHTML = html;

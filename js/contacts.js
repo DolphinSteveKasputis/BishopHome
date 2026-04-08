@@ -1170,10 +1170,11 @@ function buildContactPicker(containerId, options) {
     var container = document.getElementById(containerId);
     if (!container) return;
 
-    var filterCat   = options.filterCategory  || null;
-    var placeholder = options.placeholder     || 'Search contacts…';
-    var allowCreate = options.allowCreate     || false;
-    var onSelect    = options.onSelect        || function() {};
+    var filterCat       = options.filterCategory  || null;
+    var placeholder     = options.placeholder     || 'Search contacts…';
+    var allowCreate     = options.allowCreate     || false;
+    var onSelect        = options.onSelect        || function() {};
+    var facilityPickerId = options.facilityPickerId || null;  // show facility staff on focus
     var inputId     = containerId + '_search';
     var hiddenId    = containerId + '_id';
 
@@ -1315,15 +1316,57 @@ function buildContactPicker(containerId, options) {
         _renderDropdown(matches, this.value.trim());
     });
 
+    // Load staff sub-contacts of the currently-selected facility
+    async function _loadFacilityStaff(facilityId) {
+        try {
+            var q    = userCol('people').where('parentPersonId', '==', facilityId);
+            var snap = await q.get();
+            var staff = [];
+            snap.forEach(function(doc) {
+                var d = Object.assign({ id: doc.id }, doc.data());
+                if (!filterCat || d.category === filterCat) staff.push(d);
+            });
+            staff.sort(function(a, b) { return (a.name || '').localeCompare(b.name || ''); });
+            return staff;
+        } catch(e) { return []; }
+    }
+
     searchInput.addEventListener('focus', async function() {
         var query = this.value.trim().toLowerCase();
         if (query.length > 0) {
+            // Re-show filtered results while field has text
             var contacts = await _loadContacts();
             var matches  = contacts.filter(function(c) {
                 return (c.name      || '').toLowerCase().includes(query) ||
                        (c.specialty || '').toLowerCase().includes(query);
             });
             _renderDropdown(matches, this.value.trim());
+        } else if (facilityPickerId) {
+            // If a facility is already selected, show its staff as quick suggestions
+            var facId = (document.getElementById(facilityPickerId + '_id') || {}).value || '';
+            if (facId) {
+                var staff = await _loadFacilityStaff(facId);
+                if (staff.length > 0) {
+                    // Prefix dropdown with a non-selectable header row
+                    var facNameEl = document.getElementById(facilityPickerId + '_search');
+                    var facName   = facNameEl ? facNameEl.value.trim() : 'Facility';
+                    var html = '<div class="contact-picker-section-header">Staff at ' + escapeHtml(facName) + '</div>';
+                    staff.forEach(function(c) {
+                        var sub = c.specialty ? '<span class="contact-picker-sub">' + escapeHtml(c.specialty) + '</span>' : '';
+                        html += '<div class="contact-picker-item" data-id="' + escapeHtml(c.id) + '" data-name="' + escapeHtml(c.name || '') + '">' +
+                                    escapeHtml(c.name || 'Unnamed') + sub +
+                                '</div>';
+                    });
+                    dropdown.innerHTML = html;
+                    dropdown.style.display = '';
+                    dropdown.querySelectorAll('.contact-picker-item').forEach(function(item) {
+                        item.addEventListener('mousedown', function(e) {
+                            e.preventDefault();
+                            _selectContact(this.dataset.id, this.dataset.name);
+                        });
+                    });
+                }
+            }
         }
     });
 

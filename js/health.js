@@ -3725,11 +3725,12 @@ async function openApptModal(id) {
         initialName:    facInitName || undefined
     });
     buildContactPicker('apptProviderPicker', {
-        filterCategory: 'Medical Professional',
-        allowCreate:    true,
-        placeholder:    'Search providers... (optional)',
-        initialId:      provInitId   || undefined,
-        initialName:    provInitName || undefined
+        filterCategory:  'Medical Professional',
+        allowCreate:     true,
+        placeholder:     'Search providers... (optional)',
+        initialId:       provInitId   || undefined,
+        initialName:     provInitName || undefined,
+        facilityPickerId: 'apptFacilityPicker'   // show facility staff on focus
     });
 
     // Load concern/condition checkboxes

@@ -545,14 +545,14 @@ Each item shows a relative time label: "Today!", "Tomorrow", or "In N days".
 Tracks major life events — trips, milestones, goals, relationships.
 
 **Firestore**:
-- `lifeEvents` — `title`, `description`, `startDate`, `endDate?`, `location?`, `categoryId?`, `status` (upcoming/in-progress/completed/past), `peopleIds[]`, `notes?`, `miniLogEnabled`, `createdAt`
+- `lifeEvents` — `title`, `description`, `startDate`, `endDate?`, `startTime?` (HH:MM), `endTime?` (HH:MM), `location?`, `categoryId?`, `status` (upcoming/in-progress/completed/past), `peopleIds[]`, `notes?`, `miniLogEnabled`, `createdAt`
 - `lifeCategories` — `name`, `color`, `createdAt`
 - `lifeEventLogs` — `logDate`, `logTime`, `body`, `eventId`, `mentionedPersonIds[]`, `createdAt`
 
 **Routes**: `#life-calendar` (list), `#life-event/{id}` (detail/edit), `#life-event/new` (create)
 
 **Event Form**:
-- Title, start date, end date (with validation — end date cannot be before start date)
+- Title, start date, end date (with validation — end date cannot be before start date), optional start time, optional end time
 - Category (color-coded), status dropdown, location, people tags, description
 - Mini log textarea (journal-style notes attached to the event)
 - Top-level Save button (next to title) and bottom Save button
@@ -1039,7 +1039,7 @@ All collections live under `/users/{uid}/`. Every module uses `userCol('collecti
 | `journalEntries` | date, entryTime, entryText, mentionedPersonIds[], placeIds[], isCheckin, sourceEventId?, createdAt, updatedAt |
 | `journalTrackingItems` | date, category, value, createdAt |
 | `journalCategories` | name, createdAt |
-| `lifeEvents` | title, description, startDate, endDate?, location?, categoryId?, status, peopleIds[], notes?, miniLogEnabled, createdAt |
+| `lifeEvents` | title, description, startDate, endDate?, startTime?, endTime?, location?, categoryId?, status, peopleIds[], notes?, miniLogEnabled, createdAt |
 | `lifeCategories` | name, color, createdAt |
 | `lifeEventLogs` | logDate, logTime, body, eventId, mentionedPersonIds[], createdAt |
 | `notebooks` | name, color, noteCount, createdAt, updatedAt |

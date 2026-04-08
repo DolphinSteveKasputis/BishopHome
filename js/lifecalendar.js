@@ -502,6 +502,22 @@ function lcRenderCategoryTiles(categories, container) {
 // ============================================================
 
 /**
+ * Format a time string (HH:MM 24-hour) to 12-hour display (e.g. "7:30pm", "2pm").
+ * Returns '' if timeStr is falsy.
+ * @param {string} timeStr - HH:MM
+ * @returns {string}
+ */
+function _lcFormatTime(timeStr) {
+    if (!timeStr) return '';
+    var parts = timeStr.split(':');
+    var h = parseInt(parts[0], 10);
+    var m = parts[1] || '00';
+    var ampm = h >= 12 ? 'pm' : 'am';
+    h = h % 12 || 12;
+    return (m === '00') ? (h + ampm) : (h + ':' + m + ampm);
+}
+
+/**
  * Format a date range for display on event cards.
  * @param {string} startDate - ISO date (YYYY-MM-DD)
  * @param {string} endDate   - ISO date or '' for single-day
@@ -613,11 +629,15 @@ function _lcRenderEventList(events, categories) {
             ? '<span class="lc-event-card-location">' + escapeHtml(ev.location) + '</span>'
             : '';
 
+        var timePrefix = ev.startTime
+            ? '<span class="lc-event-time">' + escapeHtml(_lcFormatTime(ev.startTime)) + '</span> '
+            : '';
+
         return `
             <div class="lc-event-card" data-id="${escapeHtml(ev.id)}" role="button" tabindex="0">
                 <div class="lc-event-card-bar" style="background:${color}"></div>
                 <div class="lc-event-card-body">
-                    <div class="lc-event-card-title">${escapeHtml(ev.title || '')}</div>
+                    <div class="lc-event-card-title">${timePrefix}${escapeHtml(ev.title || '')}</div>
                     <div class="lc-event-card-meta">
                         <span class="lc-event-card-dates">${escapeHtml(dates)}</span>
                         ${location}
@@ -771,10 +791,11 @@ function _lcRenderGrid(year, month, events) {
             var ev    = dayEvs[i];
             var color = colorMap[ev.categoryId] || 'linear-gradient(135deg,#6b7280,#9ca3af)';
             var dgo   = ev.status === 'didntgo';
+            var barTime = ev.startTime ? _lcFormatTime(ev.startTime) + ' ' : '';
             html += '<div class="lc-event-bar' + (dgo ? ' lc-event-bar--didnt-go' : '') +
                     '" data-id="' + escapeHtml(ev.id) + '" style="background:' + color + '"' +
-                    ' title="' + escapeHtml(ev.title || '') + '">' +
-                    '<span class="lc-event-bar-title">' + escapeHtml(ev.title || '') + '</span>' +
+                    ' title="' + escapeHtml((barTime + (ev.title || '')).trim()) + '">' +
+                    '<span class="lc-event-bar-title">' + escapeHtml(barTime) + escapeHtml(ev.title || '') + '</span>' +
                     (dgo ? '<span class="lc-event-bar-x">✗</span>' : '') +
                     '</div>';
         }
@@ -850,10 +871,13 @@ function _lcOpenDayModal(date, events) {
         var color = colorMap[ev.categoryId] || 'linear-gradient(135deg,#6b7280,#9ca3af)';
         var card  = document.createElement('div');
         card.className = 'lc-day-modal-card';
+        var timePrefix = ev.startTime
+            ? '<span class="lc-event-time">' + escapeHtml(_lcFormatTime(ev.startTime)) + '</span> '
+            : '';
         card.innerHTML =
             '<div class="lc-event-card-bar" style="background:' + color + '"></div>' +
             '<div class="lc-event-card-body">' +
-                '<div class="lc-event-card-title">' + escapeHtml(ev.title || '') + '</div>' +
+                '<div class="lc-event-card-title">' + timePrefix + escapeHtml(ev.title || '') + '</div>' +
                 '<div class="lc-event-card-meta">' +
                     '<span class="lc-event-card-dates">' + escapeHtml(_lcFormatDateRange(ev.startDate, ev.endDate)) + '</span>' +
                     '<span class="lc-status-badge lc-status-badge--' + (ev.status || 'upcoming') + '">' +
@@ -1146,8 +1170,10 @@ function _lcRenderEventForm(event, categories, prefillDate) {
     const title    = isNew ? '' : (event.title || '');
     const catId    = isNew ? (categories[0] ? categories[0].id : '') : (event.categoryId || '');
     const startDate = isNew ? (prefillDate || '') : (event.startDate || '');
-    const endDate  = isNew ? '' : (event.endDate || '');
-    const location = isNew ? '' : (event.location || '');
+    const endDate   = isNew ? '' : (event.endDate   || '');
+    const startTime = isNew ? '' : (event.startTime || '');
+    const endTime   = isNew ? '' : (event.endTime   || '');
+    const location  = isNew ? '' : (event.location  || '');
     const cost     = isNew ? '' : (event.cost != null ? event.cost : '');
     const status   = isNew ? 'upcoming' : (event.status || 'upcoming');
     const didntGoReason = isNew ? '' : (event.didntGoReason || '');
@@ -1197,6 +1223,19 @@ function _lcRenderEventForm(event, categories, prefillDate) {
                         <label for="lcEventEndDate">End Date <span class="label-optional">(optional)</span></label>
                         <input type="date" id="lcEventEndDate" class="form-control"
                                value="${escapeHtml(endDate)}">
+                    </div>
+                </div>
+
+                <div class="lc-date-row">
+                    <div class="form-group">
+                        <label for="lcEventStartTime">Start Time <span class="label-optional">(optional)</span></label>
+                        <input type="time" id="lcEventStartTime" class="form-control"
+                               value="${escapeHtml(startTime)}">
+                    </div>
+                    <div class="form-group">
+                        <label for="lcEventEndTime">End Time <span class="label-optional">(optional)</span></label>
+                        <input type="time" id="lcEventEndTime" class="form-control"
+                               value="${escapeHtml(endTime)}">
                     </div>
                 </div>
 
@@ -1426,6 +1465,7 @@ function _lcRenderEventForm(event, categories, prefillDate) {
 
     // Mark dirty on any field change
     ['lcEventTitle','lcEventCategory','lcEventStartDate','lcEventEndDate',
+     'lcEventStartTime','lcEventEndTime',
      'lcEventLocation','lcEventCost','lcEventDidntGoReason',
      'lcEventDescription','lcEventOutcome'].forEach(function(id) {
         var el = document.getElementById(id);
@@ -2168,6 +2208,8 @@ function _lcReadEventForm() {
         categoryId:    document.getElementById('lcEventCategory').value || '',
         startDate:     startDate,
         endDate:       endDate,
+        startTime:     document.getElementById('lcEventStartTime').value || '',
+        endTime:       document.getElementById('lcEventEndTime').value || '',
         location:      (document.getElementById('lcEventLocation').value || '').trim(),
         status:        status,
         didntGoReason: status === 'didntgo'

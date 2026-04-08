@@ -1335,7 +1335,12 @@ function buildConditionCard(doc) {
     var isResolved = doc.status === 'resolved';
     var statusClass = 'health-badge--status-' + (doc.status || 'active');
     var div = document.createElement('div');
-    div.className = 'health-card' + (isResolved ? ' health-card--dim' : '');
+    div.className = 'health-card health-card--clickable' + (isResolved ? ' health-card--dim' : '');
+    div.onclick = function(e) {
+        // Don't navigate if a button inside was clicked
+        if (e.target.closest('button')) return;
+        location.hash = '#health-condition/' + doc.id;
+    };
     div.innerHTML =
         '<div class="health-card-main">' +
             '<div class="health-card-title">' + escapeHtml(doc.name || '') + '</div>' +
@@ -1346,10 +1351,7 @@ function buildConditionCard(doc) {
             (doc.diagnosedDate     ? '<div class="health-card-sub">Diagnosed: ' + escapeHtml(doc.diagnosedDate) + '</div>' : '') +
             (doc.managementNotes   ? '<div class="health-card-sub">' + escapeHtml(doc.managementNotes) + '</div>' : '') +
         '</div>' +
-        '<div class="health-card-actions">' +
-            '<button class="btn btn-secondary btn-small" onclick="openConditionModal(\'' + doc.id + '\')">Edit</button>' +
-            '<button class="btn btn-danger btn-small" onclick="deleteCondition(\'' + doc.id + '\')">Delete</button>' +
-        '</div>';
+        '<div class="health-card-arrow">\u203a</div>';
     return div;
 }
 
@@ -1407,9 +1409,15 @@ function saveCondition() {
         data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
         op = userCol('conditions').add(data);
     }
-    op.then(function() {
+    op.then(function(ref) {
+        var savedId = ref ? ref.id : editId;
         closeModal('conditionModal');
-        loadConditionsPage();
+        // If currently viewing a condition detail page, reload it; otherwise reload the list
+        if (location.hash.startsWith('#health-condition/') && savedId) {
+            loadConditionDetail(savedId);
+        } else {
+            loadConditionsPage();
+        }
     }).catch(function(err) { alert('Error saving: ' + err.message); });
 }
 
@@ -1482,6 +1490,283 @@ function buildConcernCard(concern) {
         '<div class="health-card-arrow">\u203a</div>';
     return div;
 }
+
+// ── Condition detail page ─────────────────────────────────────────
+
+function loadConditionDetail(id) {
+    var titleEl = document.getElementById('conditionDetailTitle');
+    if (titleEl) titleEl.textContent = 'Loading\u2026';
+
+    userCol('conditions').doc(id).get()
+        .then(function(snap) {
+            if (!snap.exists) {
+                alert('Condition not found.');
+                location.hash = '#health-conditions';
+                return;
+            }
+            window.currentHealthCondition = Object.assign({ id: snap.id }, snap.data());
+            renderConditionDetail(window.currentHealthCondition);
+        })
+        .catch(function(err) { console.error('loadConditionDetail:', err); });
+}
+
+function renderConditionDetail(condition) {
+    document.getElementById('conditionDetailTitle').textContent = condition.name || 'Condition';
+
+    var statusEl = document.getElementById('conditionDetailStatus');
+    var statusText = condition.status === 'active' ? 'Active'
+                   : condition.status === 'managed' ? 'Managed'
+                   : condition.status === 'resolved' ? 'Resolved' : (condition.status || '');
+    statusEl.textContent = statusText;
+    statusEl.className   = 'health-badge health-badge--status-' + (condition.status || 'active');
+
+    var catEl = document.getElementById('conditionDetailCategory');
+    if (catEl) catEl.textContent = condition.category || '';
+    var ddEl = document.getElementById('conditionDetailDiagnosedDate');
+    if (ddEl) ddEl.textContent = condition.diagnosedDate ? 'Diagnosed: ' + condition.diagnosedDate : '';
+    var mgEl = document.getElementById('conditionDetailManagementNotes');
+    if (mgEl) mgEl.textContent = condition.managementNotes || condition.notes || '\u2014';
+
+    // Status cycle button label
+    var statusBtn = document.getElementById('conditionStatusBtn');
+    if (statusBtn) {
+        statusBtn.textContent = condition.status === 'active'   ? 'Mark Managed'
+                              : condition.status === 'managed'  ? 'Mark Resolved'
+                              : 'Mark Active';
+    }
+
+    // Initialize Journal section open, rest collapsed
+    var journalSec = document.getElementById('conditionSectionJournal');
+    if (journalSec) {
+        journalSec.classList.remove('collapsed');
+        var body = journalSec.querySelector('.collapsible-body');
+        if (body) body.style.display = '';
+    }
+    ['conditionSectionMeds','conditionSectionAppts','conditionSectionPhotos','conditionSectionFacts','conditionSectionProjects'].forEach(function(secId) {
+        var sec = document.getElementById(secId);
+        if (!sec) return;
+        sec.classList.add('collapsed');
+        var body = sec.querySelector('.collapsible-body');
+        if (body) body.style.display = 'none';
+    });
+
+    // Wire up photo buttons
+    var camBtn = document.getElementById('addConditionCameraBtn');
+    var galBtn = document.getElementById('addConditionGalleryBtn');
+    if (camBtn) camBtn.onclick = function() { openPhotoModal('condition', condition.id, 'camera'); };
+    if (galBtn) galBtn.onclick = function() { openPhotoModal('condition', condition.id, 'gallery'); };
+
+    // Load all section content
+    loadConditionLogs(condition.id);
+    loadConditionMeds(condition.id);
+    loadConditionApptVisits(condition.id);
+    loadPhotos('condition', condition.id, 'conditionPhotoContainer', 'conditionPhotoEmptyState');
+    loadFacts('condition', condition.id, 'conditionFactsContainer', 'conditionFactsEmpty');
+    loadProjects('condition', condition.id, 'conditionProjectsContainer', 'conditionProjectsEmpty');
+}
+
+function cycleConditionStatus() {
+    var condition = window.currentHealthCondition;
+    if (!condition) return;
+    var next = condition.status === 'active'  ? 'managed'
+             : condition.status === 'managed' ? 'resolved'
+             : 'active';
+    userCol('conditions').doc(condition.id).update({ status: next })
+        .then(function() { loadConditionDetail(condition.id); })
+        .catch(function(err) { alert('Error: ' + err.message); });
+}
+
+function editCurrentCondition() {
+    if (window.currentHealthCondition) openConditionModal(window.currentHealthCondition.id);
+}
+
+function deleteCurrentCondition() {
+    if (!window.currentHealthCondition) return;
+    if (!confirm('Delete this condition and all its journal entries? Photos will not be deleted.')) return;
+    var id = window.currentHealthCondition.id;
+    userCol('healthConditionLogs').where('conditionId', '==', id).get()
+        .then(function(snap) {
+            var batch = db.batch();
+            snap.docs.forEach(function(d) { batch.delete(d.ref); });
+            return batch.commit();
+        })
+        .then(function() { return userCol('conditions').doc(id).delete(); })
+        .then(function() { location.hash = '#health-conditions'; })
+        .catch(function(err) { alert('Error deleting: ' + err.message); });
+}
+
+// ── Condition journal logs ────────────────────────────────────────
+
+function loadConditionLogs(conditionId) {
+    var container = document.getElementById('conditionUpdatesList');
+    if (!container) return;
+    container.innerHTML = '<p class="empty-state">Loading\u2026</p>';
+
+    userCol('healthConditionLogs').where('conditionId', '==', conditionId).get()
+        .then(function(snap) {
+            var logs = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
+            logs.sort(function(a, b) { return (b.date || '').localeCompare(a.date || ''); });
+
+            if (logs.length === 0) {
+                container.innerHTML = '<p class="empty-state">No journal entries yet.</p>';
+                return;
+            }
+            container.innerHTML = '';
+            logs.forEach(function(u) {
+                var div = document.createElement('div');
+                div.className = 'health-card';
+                div.innerHTML =
+                    '<div class="health-card-main">' +
+                        '<div class="health-card-title">' + escapeHtml(u.date || '') + '</div>' +
+                        (u.painScale ? '<div class="health-card-meta"><span class="health-badge">Pain: ' + escapeHtml(String(u.painScale)) + '/10</span></div>' : '') +
+                        '<div class="health-card-sub">' + escapeHtml(u.note || '') + '</div>' +
+                    '</div>' +
+                    '<div class="health-card-actions">' +
+                        '<button class="btn btn-danger btn-small" onclick="deleteConditionUpdate(\'' + u.id + '\',\'' + conditionId + '\')">Delete</button>' +
+                    '</div>';
+                container.appendChild(div);
+            });
+        })
+        .catch(function(err) {
+            container.innerHTML = '<p class="empty-state">Error loading journal.</p>';
+            console.error('loadConditionLogs:', err);
+        });
+}
+
+function openConditionUpdateModal() {
+    var today = new Date().toISOString().slice(0, 10);
+    document.getElementById('conditionUpdateDate').value  = today;
+    document.getElementById('conditionUpdateNote').value  = '';
+    document.getElementById('conditionUpdatePain').value  = '';
+    openModal('conditionUpdateModal');
+}
+
+function saveConditionUpdate() {
+    var condition = window.currentHealthCondition;
+    if (!condition) return;
+    var note = document.getElementById('conditionUpdateNote').value.trim();
+    if (!note) { alert('Note is required.'); return; }
+
+    var painRaw = document.getElementById('conditionUpdatePain').value.trim();
+    var pain    = painRaw ? parseInt(painRaw, 10) : null;
+    if (pain !== null && (isNaN(pain) || pain < 1 || pain > 10)) {
+        alert('Pain scale must be 1\u201310 or left blank.'); return;
+    }
+
+    var data = {
+        conditionId: condition.id,
+        date:        document.getElementById('conditionUpdateDate').value || new Date().toISOString().slice(0, 10),
+        note:        note,
+        painScale:   pain,
+        type:        'manual',
+        createdAt:   firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    userCol('healthConditionLogs').add(data)
+        .then(function() {
+            closeModal('conditionUpdateModal');
+            loadConditionLogs(condition.id);
+        })
+        .catch(function(err) { alert('Error saving: ' + err.message); });
+}
+
+function deleteConditionUpdate(logId, conditionId) {
+    if (!confirm('Delete this journal entry?')) return;
+    userCol('healthConditionLogs').doc(logId).delete()
+        .then(function() { loadConditionLogs(conditionId); })
+        .catch(function(err) { alert('Error deleting: ' + err.message); });
+}
+
+// ── Condition medications ─────────────────────────────────────────
+
+function loadConditionMeds(conditionId) {
+    var container = document.getElementById('conditionMedsList');
+    if (!container) return;
+    container.innerHTML = '<p class="empty-state">Loading\u2026</p>';
+
+    userCol('medications').where('conditionIds', 'array-contains', conditionId).get()
+        .then(function(snap) {
+            var meds = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
+            meds.sort(function(a, b) { return (a.name || '').localeCompare(b.name || ''); });
+
+            if (meds.length === 0) {
+                container.innerHTML = '<p class="empty-state">No medications linked.</p>';
+                return;
+            }
+            container.innerHTML = '';
+            meds.forEach(function(m) {
+                var row = document.createElement('div');
+                row.className = 'linked-med-row';
+                row.innerHTML =
+                    '<div class="linked-med-info">' +
+                        '<a class="linked-med-name" href="#health-medication/' + m.id + '">' + escapeHtml(m.name || '') + '</a>' +
+                        (m.dosage ? '<span class="linked-med-dosage">' + escapeHtml(m.dosage) + '</span>' : '') +
+                    '</div>' +
+                    '<button class="btn btn-danger btn-small" onclick="removeConditionMed(\'' + m.id + '\',\'' + conditionId + '\')">Unlink</button>';
+                container.appendChild(row);
+            });
+        })
+        .catch(function(err) {
+            container.innerHTML = '<p class="empty-state">Error loading medications.</p>';
+            console.error('loadConditionMeds:', err);
+        });
+}
+
+function removeConditionMed(medId, conditionId) {
+    if (!confirm('Unlink this medication from the condition?')) return;
+    userCol('medications').doc(medId).update({
+        conditionIds: firebase.firestore.FieldValue.arrayRemove(conditionId)
+    }).then(function() {
+        loadConditionMeds(conditionId);
+    }).catch(function(err) { alert('Error: ' + err.message); });
+}
+
+// ── Condition appointments & visits ──────────────────────────────
+
+async function loadConditionApptVisits(conditionId) {
+    var container = document.getElementById('conditionApptVisitsList');
+    if (!container) return;
+    container.innerHTML = '<p class="empty-state">Loading\u2026</p>';
+
+    try {
+        var apptSnap  = await userCol('appointments').where('conditionIds', 'array-contains', conditionId).get();
+        var visitSnap = await userCol('healthVisits').where('conditionIds', 'array-contains', conditionId).get();
+
+        var items = [];
+        apptSnap.docs.forEach(function(d) {
+            items.push(Object.assign({ id: d.id, _kind: 'appt' }, d.data()));
+        });
+        visitSnap.docs.forEach(function(d) {
+            items.push(Object.assign({ id: d.id, _kind: 'visit' }, d.data()));
+        });
+        items.sort(function(a, b) { return (b.date || '').localeCompare(a.date || ''); });
+
+        if (items.length === 0) {
+            container.innerHTML = '<p class="empty-state">No appointments or visits linked.</p>';
+            return;
+        }
+        container.innerHTML = '';
+        items.forEach(function(item) {
+            var div   = document.createElement('div');
+            div.className = 'concern-appt-visit-item';
+            var isVisit = item._kind === 'visit';
+            var hash    = isVisit ? '#health-visit/' + item.id : '#health-appointments';
+            var label   = isVisit ? (item.type || 'Visit') : (item.appointmentType || 'Appointment');
+            var who     = item.providerText || item.provider || '';
+            var meta    = [label, who].filter(Boolean).join(' \u2014 ');
+            div.innerHTML =
+                '<a href="' + hash + '" class="concern-appt-visit-date">' + escapeHtml(item.date || '\u2014') + '</a>' +
+                '<div class="concern-appt-visit-meta">' + escapeHtml(meta) + '</div>';
+            container.appendChild(div);
+        });
+    } catch(err) {
+        container.innerHTML = '<p class="empty-state">Error loading appointments.</p>';
+        console.error('loadConditionApptVisits:', err);
+    }
+}
+
+// Patch saveCondition to reload detail page if currently viewing one
+var _origSaveCondition = null;
 
 // ── Collapsible section helper ────────────────────────────────────
 
@@ -1595,6 +1880,8 @@ function saveMedPickerSelection() {
         closeModal('medPickerModal');
         if (targetType === 'concern') {
             loadConcernMeds(targetId);
+        } else if (targetType === 'condition') {
+            loadConditionMeds(targetId);
         }
     }).catch(function(err) { alert('Error saving: ' + err.message); });
 }

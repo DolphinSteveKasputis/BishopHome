@@ -31,7 +31,7 @@ const ALL_PAGES = [
     'person', 'contact',
     'notebook', 'note',
     'health-allergies', 'health-supplements', 'health-vaccinations', 'health-eye',
-    'health-visit', 'health-medications', 'health-conditions', 'health-concerns', 'health-concern',
+    'health-visit', 'health-medications', 'health-conditions', 'health-concerns', 'health-concern', 'health-condition',
     'health-bloodwork-detail', 'health-insurance-detail',
     'life-event'
 ];
@@ -367,6 +367,9 @@ function handleRoute() {
     } else if (page === 'health-concern' && id) {
         showPage('health-concern');
         loadConcernDetail(id);
+    } else if (page === 'health-condition' && id) {
+        showPage('health-condition');
+        loadConditionDetail(id);
     // ---------- Appointments route ----------
     } else if (page === 'health-appointments') {
         showPage('health-appointments');

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=352">
+    <link rel="stylesheet" href="css/styles.css?v=353">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -5208,6 +5208,116 @@
             </div>
         </section>
 
+        <!-- Page: Condition Detail (#health-condition/{id}) -->
+        <section class="page hidden" id="page-health-condition">
+            <div class="page-header">
+                <button class="btn btn-secondary btn-small" onclick="location.hash='#health-conditions'">&#8592; Conditions</button>
+                <h2 id="conditionDetailTitle">Condition</h2>
+                <div class="page-header-actions">
+                    <button class="btn btn-secondary btn-small" onclick="editCurrentCondition()">Edit</button>
+                    <button class="btn btn-danger btn-small" onclick="deleteCurrentCondition()">Delete</button>
+                </div>
+            </div>
+
+            <!-- Summary (pinned, never collapses) -->
+            <div class="concern-summary-card">
+                <div class="concern-summary-meta">
+                    <span id="conditionDetailStatus" class="health-badge"></span>
+                    <span id="conditionDetailCategory" class="health-badge health-badge--area"></span>
+                    <span id="conditionDetailDiagnosedDate" class="health-concern-date"></span>
+                </div>
+                <div id="conditionDetailManagementNotes" class="concern-summary-text"></div>
+                <div class="concern-summary-actions">
+                    <button class="btn btn-secondary btn-small" id="conditionStatusBtn" onclick="cycleConditionStatus()">Change Status</button>
+                </div>
+            </div>
+
+            <!-- Section 1: Journal (starts expanded) -->
+            <div class="collapsible-section" id="conditionSectionJournal">
+                <div class="collapsible-header" onclick="toggleSection(this.parentElement)">
+                    <span>Journal</span>
+                    <span class="collapsible-chevron">&#9660;</span>
+                </div>
+                <div class="collapsible-body">
+                    <div class="section-add-btn-row">
+                        <button class="btn btn-primary btn-small" onclick="openConditionUpdateModal()">+ Add Note</button>
+                    </div>
+                    <div id="conditionUpdatesList"></div>
+                </div>
+            </div>
+
+            <!-- Section 2: Medications (starts collapsed) -->
+            <div class="collapsible-section collapsed" id="conditionSectionMeds">
+                <div class="collapsible-header" onclick="toggleSection(this.parentElement)">
+                    <span>Medications</span>
+                    <span class="collapsible-chevron">&#9660;</span>
+                </div>
+                <div class="collapsible-body" style="display:none;">
+                    <div class="section-add-btn-row">
+                        <button class="btn btn-primary btn-small" onclick="openMedPicker('condition', window.currentHealthCondition && window.currentHealthCondition.id)">+ Add Med</button>
+                    </div>
+                    <div id="conditionMedsList"></div>
+                </div>
+            </div>
+
+            <!-- Section 3: Appointments & Visits (starts collapsed) -->
+            <div class="collapsible-section collapsed" id="conditionSectionAppts">
+                <div class="collapsible-header" onclick="toggleSection(this.parentElement)">
+                    <span>Appointments &amp; Visits</span>
+                    <span class="collapsible-chevron">&#9660;</span>
+                </div>
+                <div class="collapsible-body" style="display:none;">
+                    <div id="conditionApptVisitsList"></div>
+                </div>
+            </div>
+
+            <!-- Section 4: Photos (starts collapsed) -->
+            <div class="collapsible-section collapsed" id="conditionSectionPhotos">
+                <div class="collapsible-header" onclick="toggleSection(this.parentElement)">
+                    <span>Photos</span>
+                    <span class="collapsible-chevron">&#9660;</span>
+                </div>
+                <div class="collapsible-body" style="display:none;">
+                    <div class="section-add-btn-row">
+                        <button class="btn btn-primary btn-small" id="addConditionCameraBtn">+ Camera</button>
+                        <button class="btn btn-primary btn-small" id="addConditionGalleryBtn">+ Gallery</button>
+                    </div>
+                    <div id="conditionPhotoContainer"></div>
+                    <p class="empty-state" id="conditionPhotoEmptyState">No photos yet.</p>
+                </div>
+            </div>
+
+            <!-- Section 5: Facts (starts collapsed) -->
+            <div class="collapsible-section collapsed" id="conditionSectionFacts">
+                <div class="collapsible-header" onclick="toggleSection(this.parentElement)">
+                    <span>Facts</span>
+                    <span class="collapsible-chevron">&#9660;</span>
+                </div>
+                <div class="collapsible-body" style="display:none;">
+                    <div class="section-add-btn-row">
+                        <button class="btn btn-primary btn-small" onclick="openAddFactModal('condition', window.currentHealthCondition && window.currentHealthCondition.id)">+ Add Fact</button>
+                    </div>
+                    <div id="conditionFactsContainer"></div>
+                    <p class="empty-state" id="conditionFactsEmpty">No facts recorded.</p>
+                </div>
+            </div>
+
+            <!-- Section 6: Projects (starts collapsed) -->
+            <div class="collapsible-section collapsed" id="conditionSectionProjects">
+                <div class="collapsible-header" onclick="toggleSection(this.parentElement)">
+                    <span>Projects</span>
+                    <span class="collapsible-chevron">&#9660;</span>
+                </div>
+                <div class="collapsible-body" style="display:none;">
+                    <div class="section-add-btn-row">
+                        <button class="btn btn-primary btn-small" onclick="openAddProjectModal('condition', window.currentHealthCondition && window.currentHealthCondition.id)">+ Add Project</button>
+                    </div>
+                    <div id="conditionProjectsContainer"></div>
+                    <p class="empty-state" id="conditionProjectsEmpty">No projects yet.</p>
+                </div>
+            </div>
+        </section>
+
         <!-- Page: Concerns list (#health-concerns) -->
         <section class="page hidden" id="page-health-concerns">
             <div class="page-header">
@@ -6213,6 +6323,31 @@
             </div>
         </div>
 
+        <!-- Modal: Add Condition Journal Entry -->
+        <div class="modal-overlay" id="conditionUpdateModal">
+            <div class="modal">
+                <h3>Add Journal Entry</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="conditionUpdateDate">Date</label>
+                        <input type="date" id="conditionUpdateDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="conditionUpdatePain">Pain Scale (1&ndash;10, optional)</label>
+                        <input type="number" id="conditionUpdatePain" min="1" max="10" placeholder="e.g. 5">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="conditionUpdateNote">Note *</label>
+                    <textarea id="conditionUpdateNote" rows="3" placeholder="How is it today? Any changes?"></textarea>
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn btn-secondary" onclick="closeModal('conditionUpdateModal')">Cancel</button>
+                    <button class="btn btn-primary" onclick="saveConditionUpdate()">Save</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Modal: Med Picker (link / unlink medications to a concern or condition) -->
         <div class="modal-overlay" id="medPickerModal">
             <div class="modal">
@@ -7058,7 +7193,7 @@
     <script src="js/journal.js?v=350"></script>
     <script src="js/contacts.js?v=350"></script>
     <script src="js/collections.js?v=350"></script>
-    <script src="js/health.js?v=352"></script>
+    <script src="js/health.js?v=353"></script>
     <script src="js/notes.js?v=350"></script>
     <script src="js/lifecalendar.js?v=350"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -7066,7 +7201,7 @@
     <script src="js/secondbrain.js?v=350"></script>
     <script src="js/sbissues.js?v=350"></script>
     <script src="js/places.js?v=350"></script>
-    <script src="js/app.js?v=350"></script>
+    <script src="js/app.js?v=353"></script>
 
 </body>
 </html>

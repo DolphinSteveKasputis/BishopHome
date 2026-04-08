@@ -474,6 +474,7 @@ Row 1: Conditions, Concerns | Row 2: Appointments, Health Visits | Row 3: Medica
 | `concerns` | title, bodyArea, startDate, status (open/resolved), resolvedDate, summary |
 | `healthConcernLogs` | concernId, date, note, painScale |
 | `conditions` | name, category, diagnosedDate, diagnosedBy, status (active/managed/resolved), managementNotes |
+| `healthConditionLogs` | conditionId, date, note, painScale, type (manual/system/visit-note), visitId (optional), createdAt |
 | `bloodWork` | date, lab, orderedBy, notes, markers[] (name/value/unit/referenceRange/flagged) |
 | `vitals` | date, time, type (BP/HR/O2/Glucose/Temp/Other), value1, value2, unit, notes |
 | `supplements` | name, dosage, brand, reason, frequency, startDate, endDate, status (active/stopped) |
@@ -489,7 +490,9 @@ Row 1: Conditions, Concerns | Row 2: Appointments, Health Visits | Row 3: Medica
 
 **Concern Detail** (`#health-concern/{id}`): Collapsible-section layout. Summary card at top shows: title, status badge (Open/Resolved), body area, since date, summary text, resolved date (if resolved), Edit + Mark Resolved/Reopen buttons. Six collapsible sections (all open by default, tap header to collapse): **Journal Updates** — chronological log entries (date, pain scale, note); Add Entry button opens `concernUpdateModal`; **Linked Medications** — medications whose `concernIds[]` includes this concern's id; shows name + dosage, Unlink button; "Link Medications" button opens `medPickerModal`; **Appointments & Visits** — appointments from `appointments` where `concernIds array-contains` + visits from `healthVisits` where `concernIds array-contains` (plus legacy `concernId == id`); each row shows date (tappable link) + type/provider meta; **Photos** — photo gallery; **Facts** — key-value facts; **Updates** (journal entries). Med Picker overlay (`medPickerModal`): lists all non-discontinued medications as checkboxes, pre-checked if already linked; "Add New Medication" opens med modal and returns to picker on save (via `window._medPickerCallback`); Save applies `arrayUnion`/`arrayRemove` diffs in a Firestore batch.
 
-**Routes**: `#health`, `#health-visits`, `#health-visit/{id}`, `#health-medications`, `#health-conditions`, `#health-concerns`, `#health-concern/{id}`, `#health-bloodwork`, `#health-bloodwork-detail/{id}`, `#health-vitals`, `#health-supplements`, `#health-vaccinations`, `#health-eye`, `#health-insurance`, `#health-insurance-detail/{id}`, `#health-emergency`, `#health-appointments`, `#health-allergies`
+**Condition Detail** (`#health-condition/{id}`): Collapsible-section layout (mirrors concern detail). Summary card at top shows: name, status badge (Active/Managed/Resolved), category, diagnosed date, management notes, cycle-status button (Active → Managed → Resolved → Active), Edit + Delete buttons. Six collapsible sections — **Journal** (starts expanded): log entries from `healthConditionLogs` (date, pain scale, note, type); Add Note button opens `conditionUpdateModal`; **Medications** (collapsed): medications whose `conditionIds[]` includes this id; Unlink button, "+ Add Med" → `openMedPicker('condition', id)`; **Appointments & Visits** (collapsed): queries `appointments` + `healthVisits` where `conditionIds array-contains id`; **Photos** (collapsed): targetType `condition`; **Facts** (collapsed): targetType `condition`; **Projects** (collapsed): targetType `condition`. Condition cards on the list page are tappable (click navigates to detail; button clicks do not bubble).
+
+**Routes**: `#health`, `#health-visits`, `#health-visit/{id}`, `#health-medications`, `#health-conditions`, `#health-condition/{id}`, `#health-concerns`, `#health-concern/{id}`, `#health-bloodwork`, `#health-bloodwork-detail/{id}`, `#health-vitals`, `#health-supplements`, `#health-vaccinations`, `#health-eye`, `#health-insurance`, `#health-insurance-detail/{id}`, `#health-emergency`, `#health-appointments`, `#health-allergies`
 
 **Blood Work LLM Import**: User pastes lab report text → LLM extracts structured markers (name, value, unit, reference range, flagged status) → editable preview before save.
 
@@ -1036,6 +1039,7 @@ All collections live under `/users/{uid}/`. Every module uses `userCol('collecti
 | `concerns` | title, bodyArea, startDate, status, resolvedDate, summary |
 | `healthConcernLogs` | concernId, date, note, painScale? |
 | `conditions` | name, category, diagnosedDate, diagnosedBy, status, managementNotes |
+| `healthConditionLogs` | conditionId, date, note, painScale?, type, visitId? |
 | `bloodWork` | date, lab, orderedBy, notes, markers[] |
 | `vitals` | date, time, type, value1, value2?, unit, notes |
 | `supplements` | name, dosage, brand, reason, frequency, startDate, endDate, status |

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=362">
+    <link rel="stylesheet" href="css/styles.css?v=369">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -5855,24 +5855,52 @@
 
             <div id="step2AccordionList"></div>
 
-            <!-- Create New Concern inline -->
+            <!-- Concern actions: New or Existing -->
             <div class="step2-create-row" id="step2CreateConcernRow">
-                <button class="btn btn-secondary btn-small" onclick="_step2ToggleNewConcernForm()">+ New Concern</button>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <button class="btn btn-secondary btn-small" onclick="_step2ToggleNewConcernForm()">+ New Concern</button>
+                    <button class="btn btn-secondary btn-small" onclick="_step2ToggleExistingConcernForm()">+ Add Existing Concern</button>
+                </div>
+                <!-- New concern form -->
                 <div id="step2NewConcernForm" class="step2-new-entity-form" style="display:none;">
                     <input type="text" id="step2NewConcernTitle" placeholder="Concern title *">
                     <input type="text" id="step2NewConcernArea" placeholder="Body area (optional)">
-                    <button class="btn btn-primary btn-small" onclick="_step2SaveNewConcern()">Add</button>
-                    <button class="btn btn-secondary btn-small" onclick="_step2ToggleNewConcernForm()">Cancel</button>
+                    <div class="step2-new-entity-actions">
+                        <button class="btn btn-primary btn-small" onclick="_step2SaveNewConcern()">Add</button>
+                        <button class="btn btn-secondary btn-small" onclick="_step2ToggleNewConcernForm()">Cancel</button>
+                    </div>
+                </div>
+                <!-- Add existing concern form -->
+                <div id="step2ExistingConcernForm" class="step2-new-entity-form" style="display:none;">
+                    <select id="step2ExistingConcernSelect"><option value="">— Select a concern —</option></select>
+                    <div class="step2-new-entity-actions">
+                        <button class="btn btn-primary btn-small" onclick="_step2AddExistingConcern()">Add to Visit</button>
+                        <button class="btn btn-secondary btn-small" onclick="_step2ToggleExistingConcernForm()">Cancel</button>
+                    </div>
                 </div>
             </div>
 
-            <!-- Create New Condition inline -->
+            <!-- Condition actions: New or Existing -->
             <div class="step2-create-row" id="step2CreateConditionRow">
-                <button class="btn btn-secondary btn-small" onclick="_step2ToggleNewConditionForm()">+ New Condition</button>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <button class="btn btn-secondary btn-small" onclick="_step2ToggleNewConditionForm()">+ New Condition</button>
+                    <button class="btn btn-secondary btn-small" onclick="_step2ToggleExistingConditionForm()">+ Add Existing Condition</button>
+                </div>
+                <!-- New condition form -->
                 <div id="step2NewConditionForm" class="step2-new-entity-form" style="display:none;">
                     <input type="text" id="step2NewConditionName" placeholder="Condition name *">
-                    <button class="btn btn-primary btn-small" onclick="_step2SaveNewCondition()">Add</button>
-                    <button class="btn btn-secondary btn-small" onclick="_step2ToggleNewConditionForm()">Cancel</button>
+                    <div class="step2-new-entity-actions">
+                        <button class="btn btn-primary btn-small" onclick="_step2SaveNewCondition()">Add</button>
+                        <button class="btn btn-secondary btn-small" onclick="_step2ToggleNewConditionForm()">Cancel</button>
+                    </div>
+                </div>
+                <!-- Add existing condition form -->
+                <div id="step2ExistingConditionForm" class="step2-new-entity-form" style="display:none;">
+                    <select id="step2ExistingConditionSelect"><option value="">— Select a condition —</option></select>
+                    <div class="step2-new-entity-actions">
+                        <button class="btn btn-primary btn-small" onclick="_step2AddExistingCondition()">Add to Visit</button>
+                        <button class="btn btn-secondary btn-small" onclick="_step2ToggleExistingConditionForm()">Cancel</button>
+                    </div>
                 </div>
             </div>
 
@@ -7316,7 +7344,7 @@
     <script src="js/journal.js?v=350"></script>
     <script src="js/contacts.js?v=368"></script>
     <script src="js/collections.js?v=350"></script>
-    <script src="js/health.js?v=366"></script>
+    <script src="js/health.js?v=369"></script>
     <script src="js/notes.js?v=350"></script>
     <script src="js/lifecalendar.js?v=350"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>

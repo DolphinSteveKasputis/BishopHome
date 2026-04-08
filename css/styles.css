@@ -6976,12 +6976,13 @@ a.health-chip--link:hover { filter: brightness(0.93); }
 }
 .step2-new-entity-form {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     gap: 8px;
     margin-top: 8px;
-    align-items: center;
 }
-.step2-new-entity-form input { flex: 1; min-width: 140px; }
+.step2-new-entity-form input,
+.step2-new-entity-form select { width: 100%; box-sizing: border-box; }
+.step2-new-entity-actions { display: flex; gap: 8px; }
 
 .step2-done-row {
     margin: 20px 16px 40px;

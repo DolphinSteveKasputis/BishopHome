@@ -4038,11 +4038,13 @@ async function loadStep2Page(visitId) {
     var accordion = document.getElementById('step2AccordionList');
     accordion.innerHTML = '<p class="empty-state">Loading\u2026</p>';
 
-    document.getElementById('step2NewConcernForm').style.display   = 'none';
-    document.getElementById('step2NewConditionForm').style.display = 'none';
-    document.getElementById('step2NewConcernTitle').value           = '';
-    document.getElementById('step2NewConcernArea').value            = '';
-    document.getElementById('step2NewConditionName').value          = '';
+    document.getElementById('step2NewConcernForm').style.display      = 'none';
+    document.getElementById('step2NewConditionForm').style.display    = 'none';
+    document.getElementById('step2ExistingConcernForm').style.display  = 'none';
+    document.getElementById('step2ExistingConditionForm').style.display = 'none';
+    document.getElementById('step2NewConcernTitle').value              = '';
+    document.getElementById('step2NewConcernArea').value               = '';
+    document.getElementById('step2NewConditionName').value             = '';
 
     try {
         var snap = await userCol('healthVisits').doc(visitId).get();
@@ -4164,6 +4166,102 @@ function _step2ToggleNewConditionForm() {
     var form = document.getElementById('step2NewConditionForm');
     form.style.display = form.style.display === 'none' ? '' : 'none';
     if (form.style.display !== 'none') document.getElementById('step2NewConditionName').focus();
+}
+
+/** Show/hide the "Add Existing Concern" picker, populating it with open concerns not yet on this visit. */
+async function _step2ToggleExistingConcernForm() {
+    var form = document.getElementById('step2ExistingConcernForm');
+    var isHiding = form.style.display !== 'none';
+    form.style.display = isHiding ? 'none' : '';
+    if (isHiding) return;
+
+    // Close the new-concern form if open
+    document.getElementById('step2NewConcernForm').style.display = 'none';
+
+    var sel = document.getElementById('step2ExistingConcernSelect');
+    sel.innerHTML = '<option value="">Loading…</option>';
+    try {
+        var snap = await userCol('concerns').where('status', '==', 'open').get();
+        var already = new Set(_step2Visit ? (_step2Visit.concernIds || []) : []);
+        var opts = '<option value="">— Select a concern —</option>';
+        snap.docs.forEach(function(d) {
+            if (!already.has(d.id)) {
+                opts += '<option value="' + d.id + '">' + escapeHtml(d.data().title || d.id) + '</option>';
+            }
+        });
+        sel.innerHTML = opts;
+    } catch(err) {
+        sel.innerHTML = '<option value="">Error loading</option>';
+    }
+}
+
+/** Show/hide the "Add Existing Condition" picker, populating it with active conditions not yet on this visit. */
+async function _step2ToggleExistingConditionForm() {
+    var form = document.getElementById('step2ExistingConditionForm');
+    var isHiding = form.style.display !== 'none';
+    form.style.display = isHiding ? 'none' : '';
+    if (isHiding) return;
+
+    // Close the new-condition form if open
+    document.getElementById('step2NewConditionForm').style.display = 'none';
+
+    var sel = document.getElementById('step2ExistingConditionSelect');
+    sel.innerHTML = '<option value="">Loading…</option>';
+    try {
+        var snap = await userCol('conditions').where('status', '==', 'active').get();
+        var already = new Set(_step2Visit ? (_step2Visit.conditionIds || []) : []);
+        var opts = '<option value="">— Select a condition —</option>';
+        snap.docs.forEach(function(d) {
+            if (!already.has(d.id)) {
+                opts += '<option value="' + d.id + '">' + escapeHtml(d.data().name || d.id) + '</option>';
+            }
+        });
+        sel.innerHTML = opts;
+    } catch(err) {
+        sel.innerHTML = '<option value="">Error loading</option>';
+    }
+}
+
+/** Link a selected existing concern to this visit. */
+async function _step2AddExistingConcern() {
+    if (!_step2Visit) return;
+    var sel = document.getElementById('step2ExistingConcernSelect');
+    var id  = sel.value;
+    if (!id) { alert('Please select a concern.'); return; }
+    var name = sel.options[sel.selectedIndex].text;
+    try {
+        await userCol('healthVisits').doc(_step2Visit.id).update({
+            concernIds: firebase.firestore.FieldValue.arrayUnion(id)
+        });
+        _step2Visit.concernIds = (_step2Visit.concernIds || []).concat(id);
+        var accordion = document.getElementById('step2AccordionList');
+        var emptyEl   = accordion.querySelector('.empty-state');
+        if (emptyEl) emptyEl.remove();
+        accordion.appendChild(_step2BuildAccordionItem('concern', id, name));
+        _step2LoadMedsForItem('concern', id);
+        _step2ToggleExistingConcernForm();   // hides the form
+    } catch(err) { alert('Error: ' + err.message); }
+}
+
+/** Link a selected existing condition to this visit. */
+async function _step2AddExistingCondition() {
+    if (!_step2Visit) return;
+    var sel = document.getElementById('step2ExistingConditionSelect');
+    var id  = sel.value;
+    if (!id) { alert('Please select a condition.'); return; }
+    var name = sel.options[sel.selectedIndex].text;
+    try {
+        await userCol('healthVisits').doc(_step2Visit.id).update({
+            conditionIds: firebase.firestore.FieldValue.arrayUnion(id)
+        });
+        _step2Visit.conditionIds = (_step2Visit.conditionIds || []).concat(id);
+        var accordion = document.getElementById('step2AccordionList');
+        var emptyEl   = accordion.querySelector('.empty-state');
+        if (emptyEl) emptyEl.remove();
+        accordion.appendChild(_step2BuildAccordionItem('condition', id, name));
+        _step2LoadMedsForItem('condition', id);
+        _step2ToggleExistingConditionForm();  // hides the form
+    } catch(err) { alert('Error: ' + err.message); }
 }
 
 async function _step2SaveNewConcern() {

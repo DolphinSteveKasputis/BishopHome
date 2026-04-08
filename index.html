@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=345">
+    <link rel="stylesheet" href="css/styles.css?v=346">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -83,7 +83,7 @@
         <!-- Life nav (shown when on life-context pages) -->
         <nav class="header-nav hidden" id="lifeNav">
             <a href="#journal" class="nav-link" data-page="journal">Journal</a>
-            <a href="#people" class="nav-link" data-page="people">People</a>
+            <a href="#contacts" class="nav-link" data-page="contacts">Contacts</a>
             <a href="#notes" class="nav-link" data-page="notes">Notes</a>
             <a href="#chat" class="nav-link" data-page="chat">Chat</a>
             <a href="#settings" class="nav-link" data-page="settings">⚙️</a>
@@ -118,7 +118,7 @@
         <!-- Life context links -->
         <div id="mobileNavLife" class="hidden">
             <a href="#journal" class="nav-link" data-page="journal">Journal</a>
-            <a href="#people" class="nav-link" data-page="people">People</a>
+            <a href="#contacts" class="nav-link" data-page="contacts">Contacts</a>
             <a href="#notes" class="nav-link" data-page="notes">Notes</a>
             <a href="#chat" class="nav-link" data-page="chat">Chat</a>
             <a href="#settings" class="nav-link" data-page="settings">⚙️ Settings</a>
@@ -2890,28 +2890,30 @@
          PEOPLE MODALS
          ===================================================== -->
 
-    <!-- Person Add/Edit Modal -->
+    <!-- Contact Add/Edit Modal -->
     <div class="modal-overlay" id="personModal">
         <div class="modal">
-            <h3 id="personModalTitle">Add Person</h3>
+            <h3 id="personModalTitle">Add Contact</h3>
             <div class="form-group">
                 <label for="personNameInput">Name *</label>
-                <input type="text" id="personNameInput" placeholder="Full name">
+                <input type="text" id="personNameInput" placeholder="Full name or organization name">
             </div>
             <div class="form-group">
                 <label for="personNicknameInput">Nickname</label>
                 <input type="text" id="personNicknameInput" placeholder="e.g., Jim (for @Jim shortcut)">
             </div>
             <div class="form-group">
-                <label for="personCategorySelect">Category</label>
+                <label for="personCategorySelect">Contact Type</label>
                 <select id="personCategorySelect"></select>
-                <div id="personCategoryNewGroup" style="display:none; margin-top:6px;">
-                    <input type="text" id="personCategoryNewInput" placeholder="New category name">
-                </div>
+            </div>
+            <!-- Specialty — shown only when Contact Type = Medical Professional -->
+            <div class="form-group" id="personSpecialtyGroup" style="display:none;">
+                <label for="personSpecialtyInput">Specialty</label>
+                <input type="text" id="personSpecialtyInput" placeholder="e.g., Family Medicine, Dermatology, Dentistry">
             </div>
             <div class="form-group">
                 <label for="personHowKnownInput">How do you know them?</label>
-                <input type="text" id="personHowKnownInput" placeholder="e.g., college roommate, neighbor since 2019">
+                <input type="text" id="personHowKnownInput" placeholder="e.g., referred by Dr. Smith, neighbor since 2019">
             </div>
             <div class="form-group">
                 <label for="personPhoneInput">Phone</label>
@@ -2923,7 +2925,11 @@
             </div>
             <div class="form-group">
                 <label for="personAddressInput">Address</label>
-                <input type="text" id="personAddressInput" placeholder="Home address">
+                <input type="text" id="personAddressInput" placeholder="Address">
+            </div>
+            <div class="form-group">
+                <label for="personWebsiteInput">Website</label>
+                <input type="url" id="personWebsiteInput" placeholder="https://...">
             </div>
             <div class="form-group">
                 <label for="personFacebookInput">Facebook URL</label>
@@ -2931,7 +2937,7 @@
             </div>
             <div class="form-group">
                 <label for="personNotesInput">Notes</label>
-                <textarea id="personNotesInput" placeholder="General notes about this person…"></textarea>
+                <textarea id="personNotesInput" placeholder="General notes about this contact…"></textarea>
             </div>
             <div class="modal-buttons">
                 <button class="btn btn-danger" id="personModalDeleteBtn" style="display:none;">Delete</button>
@@ -4507,9 +4513,9 @@
                     <span class="landing-tile-icon">📓</span>
                     <span class="landing-tile-label">Journal</span>
                 </a>
-                <a href="#people" class="landing-tile landing-tile--people">
+                <a href="#contacts" class="landing-tile landing-tile--people">
                     <span class="landing-tile-icon">👥</span>
-                    <span class="landing-tile-label">People</span>
+                    <span class="landing-tile-label">Contacts</span>
                 </a>
                 <a href="#health" class="landing-tile landing-tile--health">
                     <span class="landing-tile-icon">❤️</span>
@@ -6246,26 +6252,26 @@
              PEOPLE PAGES
              ===================================================== -->
 
-        <!-- Page: People List (#people) -->
-        <section class="page hidden" id="page-people">
+        <!-- Page: Contacts List (#contacts) -->
+        <section class="page hidden" id="page-contacts">
             <div class="page-header">
-                <h2>People</h2>
-                <button class="btn btn-primary btn-small" id="addPersonBtn">+ Add Person</button>
+                <h2>Contacts</h2>
+                <button class="btn btn-primary btn-small" id="addContactBtn">+ Add Contact</button>
             </div>
             <!-- Filter / search bar -->
             <div class="people-toolbar">
-                <select id="peopleCategoryFilter">
+                <select id="contactCategoryFilter">
                     <option value="">All Categories</option>
                 </select>
-                <input type="text" id="peopleSearchInput" placeholder="Search by name or nickname…">
+                <input type="text" id="contactSearchInput" placeholder="Search by name, nickname, or specialty…">
             </div>
-            <!-- People list — filled dynamically -->
-            <div id="peopleListContainer"></div>
-            <p class="empty-state" id="peopleListEmpty" style="display:none;"></p>
+            <!-- Contacts list — filled dynamically -->
+            <div id="contactsListContainer"></div>
+            <p class="empty-state" id="contactsListEmpty" style="display:none;"></p>
         </section>
 
-        <!-- Page: Person Detail (#person/{id}) -->
-        <section class="page hidden" id="page-person">
+        <!-- Page: Contact Detail (#contact/{id}) -->
+        <section class="page hidden" id="page-contact">
             <div class="page-header">
                 <h2 id="personDetailName"></h2>
                 <button class="btn btn-secondary btn-small" id="personEditBtn">Edit</button>
@@ -6887,46 +6893,46 @@
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=345"></script>
-    <script src="js/auth.js?v=345"></script>
-    <script src="js/zones.js?v=345"></script>
-    <script src="js/plants.js?v=345"></script>
-    <script src="js/problems.js?v=345"></script>
-    <script src="js/facts.js?v=345"></script>
-    <script src="js/projects.js?v=345"></script>
-    <script src="js/chemicals.js?v=345"></script>
-    <script src="js/activities.js?v=345"></script>
+    <script src="js/firebase-config.js?v=346"></script>
+    <script src="js/auth.js?v=346"></script>
+    <script src="js/zones.js?v=346"></script>
+    <script src="js/plants.js?v=346"></script>
+    <script src="js/problems.js?v=346"></script>
+    <script src="js/facts.js?v=346"></script>
+    <script src="js/projects.js?v=346"></script>
+    <script src="js/chemicals.js?v=346"></script>
+    <script src="js/activities.js?v=346"></script>
     <!-- Cropper.js — client-side image cropping library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <!-- SortableJS — drag-and-drop list reordering -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    <script src="js/photos.js?v=345"></script>
-    <script src="js/weeds.js?v=345"></script>
-    <script src="js/calendar.js?v=345"></script>
-    <script src="js/gps.js?v=345"></script>
-    <script src="js/settings.js?v=345"></script>
-    <script src="js/house.js?v=345"></script>
-    <script src="js/floorplan.js?v=345"></script>
-    <script src="js/search.js?v=345"></script>
-    <script src="js/activityreport.js?v=345"></script>
-    <script src="js/checklists.js?v=345"></script>
-    <script src="js/bulkactivity.js?v=345"></script>
-    <script src="js/vehicles.js?v=345"></script>
-    <script src="js/garage.js?v=345"></script>
-    <script src="js/structures.js?v=345"></script>
-    <script src="js/moveThings.js?v=345"></script>
-    <script src="js/journal.js?v=345"></script>
-    <script src="js/people.js?v=345"></script>
-    <script src="js/collections.js?v=345"></script>
-    <script src="js/health.js?v=345"></script>
-    <script src="js/notes.js?v=345"></script>
-    <script src="js/lifecalendar.js?v=345"></script>
+    <script src="js/photos.js?v=346"></script>
+    <script src="js/weeds.js?v=346"></script>
+    <script src="js/calendar.js?v=346"></script>
+    <script src="js/gps.js?v=346"></script>
+    <script src="js/settings.js?v=346"></script>
+    <script src="js/house.js?v=346"></script>
+    <script src="js/floorplan.js?v=346"></script>
+    <script src="js/search.js?v=346"></script>
+    <script src="js/activityreport.js?v=346"></script>
+    <script src="js/checklists.js?v=346"></script>
+    <script src="js/bulkactivity.js?v=346"></script>
+    <script src="js/vehicles.js?v=346"></script>
+    <script src="js/garage.js?v=346"></script>
+    <script src="js/structures.js?v=346"></script>
+    <script src="js/moveThings.js?v=346"></script>
+    <script src="js/journal.js?v=346"></script>
+    <script src="js/contacts.js?v=346"></script>
+    <script src="js/collections.js?v=346"></script>
+    <script src="js/health.js?v=346"></script>
+    <script src="js/notes.js?v=346"></script>
+    <script src="js/lifecalendar.js?v=346"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="js/chat.js?v=345"></script>
-    <script src="js/secondbrain.js?v=345"></script>
-    <script src="js/sbissues.js?v=345"></script>
-    <script src="js/places.js?v=345"></script>
-    <script src="js/app.js?v=345"></script>
+    <script src="js/chat.js?v=346"></script>
+    <script src="js/secondbrain.js?v=346"></script>
+    <script src="js/sbissues.js?v=346"></script>
+    <script src="js/places.js?v=346"></script>
+    <script src="js/app.js?v=346"></script>
 
 </body>
 </html>

@@ -415,29 +415,37 @@ Daily entry logging with optional tracking metrics.
 
 **Tab key**: In the journal entry textarea, pressing Tab inserts 4 spaces instead of moving focus to the next field.
 
-### People (`people.js`)
+### Contacts (`contacts.js`)
 
-**Plan document**: `People.md`
+Renamed from "People". Tracks personal contacts and medical/service professionals and facilities.
 
-**Firestore**:
-- `people` — `name`, `nickname`, `category`, `phone`, `email`, `address`, `facebookUrl`, `howKnown`, `notes`, `profilePhotoData?`, `parentPersonId?`, `createdAt`
-- `peopleImportantDates` — `personId`, `label` (Birthday/Anniversary/Other), `month`, `day`, `year?`, `notes`, `createdAt`
-- `peopleInteractions` — `personId`, `date`, `notes`, `createdAt`
-- `peopleCategories` — `name`, `createdAt`
+**Firestore** (collection name unchanged: `people`):
+- `people` — `name`, `nickname`, `category` (see below), `specialty?`, `phone`, `email`, `address`, `website?`, `facebookUrl`, `howKnown`, `notes`, `profilePhotoData?`, `parentPersonId?`, `createdAt`
+- `peopleImportantDates` — `personId`, `label`, `month`, `day`, `year?`, `recurrence`, `createdAt`
+- `peopleInteractions` — `personId`, `date`, `text`, `sourceType`, `createdAt`
 
-**Routes**: `#people` (list), `#person/{id}` (detail)
+**Contact type categories** (fixed list, stored in `category` field):
+- **Personal** — family, friends (default for all legacy records)
+- **Medical Professional** — shows `specialty` field (e.g., "Family Medicine", "Dermatology")
+- **Medical Facility** — clinic, hospital, lab, pharmacy
+- **Service Professional** — plumber, electrician, contractor
+- **Other**
 
-**Hierarchy**: Sub-people (`parentPersonId`) allow grouping (e.g., family members under a parent record).
+**Routes**: `#contacts` (list), `#contact/{id}` (detail). Legacy `#people` / `#person/{id}` redirect to the new routes.
 
-**Person detail sections**:
-- Contact info: phone (tel: link), email (mailto: link), address (Google Maps link), Facebook, how known, notes
-- Important dates: birthdays, anniversaries — shown on person detail and referenced in calendar
-- Photos: full gallery, profile photo support (auto-set from first photo)
-- Interactions: dating log of meetings/conversations
-- Shared life events: Life Calendar events tagged with this person (title, date, status)
-- Facts, Projects
+**Hierarchy**: Sub-contacts (`parentPersonId`) allow grouping (e.g., family members under a parent record).
 
-**Last interaction**: Shown on the person card in the list view.
+**Contact detail sections**:
+- Contact info: specialty (Medical Professional only), phone (tel: link), email (mailto: link), address (Google Maps link), website (external link), Facebook, how known, notes
+- Important dates: birthdays, anniversaries — shown on contact detail and referenced in calendar
+- Photos: full gallery, profile photo support
+- Interactions: log of meetings/conversations
+- Shared life events: Life Calendar events tagged with this contact
+- Facts
+
+**ContactPicker component** (`buildContactPicker(containerId, options)`): Reusable searchable dropdown that filters contacts by category. Used by Care Team (Phase 2), Appointments (Phase 3), and other health features. Supports inline contact creation via `allowCreate: true`.
+
+**List view**: Category badge with color coding (green = Personal, blue = Medical Professional, purple = Medical Facility, orange = Service Professional, grey = Other). Specialty shown as subline for Medical Professionals; address shown for Medical Facilities.
 
 ### Health (`health.js`)
 
@@ -861,7 +869,7 @@ The app has three navigation contexts, each with its own nav bar:
 |---------|-----------|
 | **Yard** | Home (zones), Weeds, Products (chemicals), Calendar, Activity Report, Saved Actions, Bulk Activity, Structures, Search |
 | **House** | House (floors), Garage, Vehicles, Checklists |
-| **Life** | Journal, Places, People, Health, Notes, Collections, Life Calendar, SecondBrain, Chat |
+| **Life** | Journal, Places, Contacts, Health, Notes, Collections, Life Calendar, SecondBrain, Chat |
 
 **Shared pages** (retain last active context): Settings, Change Password, GPS Map
 

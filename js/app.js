@@ -10,7 +10,7 @@
  * List of top-level pages that map to nav links.
  * These pages clear the breadcrumb bar when shown.
  */
-const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'house', 'settings', 'settings-general', 'main', 'search', 'activityreport', 'checklists', 'notes', 'chat', 'vehicles', 'garage', 'structures', 'life', 'journal', 'collections', 'changepassword', 'people', 'places',
+const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'house', 'settings', 'settings-general', 'main', 'search', 'activityreport', 'checklists', 'notes', 'chat', 'vehicles', 'garage', 'structures', 'life', 'journal', 'collections', 'changepassword', 'people', 'contacts', 'places',
                          'health', 'health-visits', 'health-medications', 'health-conditions', 'health-concerns', 'health-bloodwork',
                          'health-vitals', 'health-insurance', 'health-emergency', 'health-appointments',
                          'life-calendar'];
@@ -28,7 +28,7 @@ const ALL_PAGES = [
     'journal-entry', 'journal-tracking', 'journal-categories',
     'collection', 'collectionitem',
     'place',
-    'person',
+    'person', 'contact',
     'notebook', 'note',
     'health-allergies', 'health-supplements', 'health-vaccinations', 'health-eye',
     'health-visit', 'health-medications', 'health-conditions', 'health-concerns', 'health-concern',
@@ -44,7 +44,7 @@ const ALL_PAGES = [
 const HOUSE_PAGES = ['house', 'floor', 'room', 'thing', 'subthing', 'item', 'floorplan', 'panel', 'rooms', 'things'];
 const YARD_PAGES  = ['main', 'home', 'zones', 'zone', 'plant', 'weeds', 'weed', 'chemicals', 'chemical', 'actions', 'gpsmap', 'yardmap', 'activityreport', 'checklists',
                      'structures', 'structure', 'structurething', 'structuresubthing'];
-const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'journal-categories', 'people', 'person',
+const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'journal-categories', 'people', 'contacts', 'person', 'contact',
                      'notes', 'notebook', 'note',
                      'health', 'health-visits', 'health-visit',
                      'health-medications', 'health-conditions', 'health-concerns', 'health-concern',
@@ -107,7 +107,8 @@ function showPage(page) {
     if (page === 'panel')      navPage = 'house';
     if (page === 'subthing')   navPage = 'house';
     if (page === 'item')       navPage = 'house';
-    if (page === 'person')     navPage = 'people'; // Sub-page of people
+    if (page === 'person')     navPage = 'people';   // Sub-page of people (legacy)
+    if (page === 'contact')    navPage = 'contacts'; // Sub-page of contacts
     if (page === 'notebook')   navPage = 'notes';  // Sub-page of notes
     if (page === 'note')       navPage = 'notes';  // Sub-page of notes
     if (page === 'main')       navPage = '';       // No link highlighted on the landing page
@@ -278,13 +279,20 @@ function handleRoute() {
     } else if (page === 'collectionitem' && id) {
         showPage('collectionitem');
         loadCollectionItemPage(id);
-    // ---------- Life / People routes ----------
+    // ---------- Life / Contacts routes ----------
+    } else if (page === 'contacts') {
+        showPage('contacts');
+        loadContactsPage();
+    } else if (page === 'contact' && id) {
+        showPage('contact');
+        loadContactDetail(id);
+    // ---------- Life / People routes (legacy aliases — redirect to contacts) ----------
     } else if (page === 'people') {
-        showPage('people');
-        loadPeoplePage();
+        window.location.replace('#contacts');
+        return;
     } else if (page === 'person' && id) {
-        showPage('person');
-        loadPersonDetail(id);
+        window.location.replace('#contact/' + id);
+        return;
     // ---------- Life / Journal routes ----------
     } else if (page === 'life') {
         showPage('life');

@@ -196,6 +196,15 @@ Bishop/
 - Read it at the start of any session to get a complete picture of the app without re-scanning code.
 - It covers: all major sections (Yard/House/Garage/Vehicles/Collections/Life), all shared features (Photos/Facts/Activities/Problems/Projects/Calendar), architecture, routing, Firestore data model, testing credentials, and deployment protocol.
 
+## Planning Documents
+- **`HealthEnhancements.md`** — active plan for the current health section enhancement work (concern/condition linking, medication flow, care team, contacts rename, etc.). Read this when working on health features.
+- **`FutureEnhancements.md`** — parking lot for out-of-scope ideas to revisit later. Add items here instead of building them now.
+
+## FutureEnhancements.md — REQUIRED BEHAVIOR
+- Any time the user says to **"punt"**, **"park"**, **"save for later"**, or otherwise defer a feature idea, add it to `FutureEnhancements.md` immediately.
+- Any time a feature from `FutureEnhancements.md` is fully implemented, **delete it from the doc**.
+- Keep the doc clean — it should only contain things not yet built.
+
 ## Functional Specification — REQUIRED BEHAVIOR
 **IMPORTANT: Keep `MyLife-Functional-Spec.md` up to date as a living document.**
 - Any time a feature is added, changed, or removed, update the spec in the **same commit** as the code change.

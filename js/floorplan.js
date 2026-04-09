@@ -51,6 +51,15 @@ var fpViewH      = 600;  // viewBox height in SVG pixels  (fpSvgH / fpZoom)
 var fpPinchState = null; // active pinch gesture: {startDist, startZoom, midX, midY}
 var fpDragState  = null; // active corner drag: {roomId, ptIndex} — drives segment highlighting
 
+// Type Numbers mode state
+var fpTypeMode   = false;  // true = Room tool in "Type Numbers" sub-mode
+var fpTypeAnchor = null;   // {x, y} feet — the clicked start point
+
+// Direction lookup tables for Type Numbers mode
+var FP_DIR_CW  = { R:'D', D:'L', L:'U', U:'R' };  // turn right 90° (clockwise on screen)
+var FP_DIR_CCW = { R:'U', U:'L', L:'D', D:'R' };  // turn left 90°
+var FP_DIR_VEC = { R:{dx:1,dy:0}, L:{dx:-1,dy:0}, U:{dx:0,dy:-1}, D:{dx:0,dy:1} };
+
 // ============================================================
 // LOAD — entry point called by app.js on #floorplan/{id}
 // ============================================================
@@ -63,6 +72,8 @@ function loadFloorPlanPage(floorId) {
     fpPreviewPoint = null;
     fpSelectedId   = null;
     fpDragState    = null;
+    fpTypeMode     = false;
+    fpTypeAnchor   = null;
 
     // Initialize plan to empty so fpRender() doesn't crash before the Firestore load completes
     fpPlan = { rooms: [], doors: [], windows: [], outlets: [], switches: [], plumbing: [], ceilingFixtures: [] };
@@ -297,6 +308,11 @@ function fpRender() {
     // In-progress drawing preview
     if (fpDrawing && fpDrawPoints.length > 0) {
         fpRenderDrawPreview(svg);
+    }
+
+    // Type Numbers mode preview
+    if (fpTypeMode && fpTypeAnchor) {
+        fpRenderTypePreview(svg);
     }
 
     // Update Edit/Delete button visibility and labels
@@ -589,6 +605,144 @@ function fpClearCoordsBar() {
     if (sepEl) sepEl.style.display = 'none';
 }
 
+// ============================================================
+// TYPE NUMBERS MODE — parse, preview, panel helpers
+// ============================================================
+
+/**
+ * Parse a type-numbers command string into an array of {x,y} points.
+ * anchor — start point in floor feet.
+ * Returns array starting with anchor through each corner placed.
+ */
+function fpParseTypeCommand(str, anchor) {
+    var tokens = str.toUpperCase().replace(/[^0-9.RLUDrlud,\s]/g, '').split(/[\s,]+/).filter(Boolean);
+    if (!tokens.length) return [{ x: anchor.x, y: anchor.y }];
+
+    var i = 0;
+    var dir = 'D'; // default direction: Down
+
+    // Optional first token: direction letter
+    if (tokens[0] === 'R' || tokens[0] === 'L' || tokens[0] === 'U' || tokens[0] === 'D') {
+        dir = tokens[0];
+        i = 1;
+    }
+
+    var pts = [{ x: anchor.x, y: anchor.y }];
+    var cx = anchor.x, cy = anchor.y;
+
+    while (i < tokens.length) {
+        var dist = parseFloat(tokens[i]);
+        if (isNaN(dist) || dist <= 0) break;
+        i++;
+        var vec = FP_DIR_VEC[dir];
+        cx = Math.round((cx + vec.dx * dist) * 10000) / 10000;
+        cy = Math.round((cy + vec.dy * dist) * 10000) / 10000;
+        pts.push({ x: cx, y: cy });
+        if (i >= tokens.length) break;
+        var turn = tokens[i];
+        if (turn === 'R')      { dir = FP_DIR_CW[dir];  i++; }
+        else if (turn === 'L') { dir = FP_DIR_CCW[dir]; i++; }
+        else break;
+    }
+    return pts;
+}
+
+/** Open the Type Numbers panel, anchoring at the given point */
+function fpOpenTypePanel(anchor) {
+    fpTypeAnchor = anchor;
+    var panel = document.getElementById('fpTypePanel');
+    if (!panel) return;
+    document.getElementById('fpTypeX').value = anchor.x.toFixed(2);
+    document.getElementById('fpTypeY').value = anchor.y.toFixed(2);
+    document.getElementById('fpTypeCmd').value = '';
+    document.getElementById('fpTypeStatus').textContent = '';
+    document.getElementById('fpTypeSaveBtn').disabled = true;
+    panel.classList.remove('hidden');
+    document.getElementById('fpTypeCmd').focus();
+    fpRender();
+    fpSetStatus('Type dimensions below. Press Save Room when done.');
+}
+
+/** Close the Type Numbers panel (keeps type mode active for next room) */
+function fpCloseTypePanel() {
+    var panel = document.getElementById('fpTypePanel');
+    if (panel) panel.classList.add('hidden');
+    fpTypeAnchor = null;
+    fpRender();
+}
+
+/** Re-parse command, update status badge, refresh SVG preview */
+function fpUpdateTypePreview() {
+    if (!fpTypeAnchor) return;
+
+    // Allow nudging start X/Y
+    var xVal = parseFloat(document.getElementById('fpTypeX').value);
+    var yVal = parseFloat(document.getElementById('fpTypeY').value);
+    if (!isNaN(xVal) && !isNaN(yVal)) fpTypeAnchor = { x: xVal, y: yVal };
+
+    var pts = fpParseTypeCommand(document.getElementById('fpTypeCmd').value, fpTypeAnchor);
+    var statusEl = document.getElementById('fpTypeStatus');
+    var saveBtn  = document.getElementById('fpTypeSaveBtn');
+
+    if (pts.length >= 3) {
+        var last = pts[pts.length - 1];
+        var gap  = Math.hypot(last.x - fpTypeAnchor.x, last.y - fpTypeAnchor.y);
+        if (gap < 0.26) {
+            statusEl.textContent = '✓ Shape closes';
+            statusEl.className   = 'fp-type-status fp-type-status-ok';
+        } else {
+            statusEl.textContent = '⚠ Off by ' + gap.toFixed(2) + ' ft';
+            statusEl.className   = 'fp-type-status fp-type-status-warn';
+        }
+        if (saveBtn) saveBtn.disabled = false;
+    } else {
+        statusEl.textContent = pts.length > 1 ? 'Keep going…' : '';
+        statusEl.className   = 'fp-type-status';
+        if (saveBtn) saveBtn.disabled = true;
+    }
+    fpRender();
+}
+
+/** Render the type-mode room shape as a dashed preview on the SVG */
+function fpRenderTypePreview(svg) {
+    if (!fpTypeAnchor) return;
+    var cmdEl = document.getElementById('fpTypeCmd');
+    var pts = fpParseTypeCommand(cmdEl ? cmdEl.value : '', fpTypeAnchor);
+
+    if (pts.length >= 2) {
+        var ptsStr = pts.map(function(p) { return fp2px(p.x) + ',' + fp2px(p.y); }).join(' ');
+        fpSvgEl(svg, 'polyline', {
+            points: ptsStr, fill: 'none',
+            stroke: '#0066cc', 'stroke-width': 2,
+            'stroke-dasharray': '6,3', 'pointer-events': 'none'
+        });
+        // Closing line
+        var last = pts[pts.length - 1];
+        var gap  = Math.hypot(last.x - fpTypeAnchor.x, last.y - fpTypeAnchor.y);
+        fpSvgEl(svg, 'line', {
+            x1: fp2px(last.x), y1: fp2px(last.y),
+            x2: fp2px(fpTypeAnchor.x), y2: fp2px(fpTypeAnchor.y),
+            stroke: gap < 0.26 ? '#00aa44' : '#888',
+            'stroke-width': gap < 0.26 ? 2 : 1,
+            'stroke-dasharray': gap < 0.26 ? '' : '4,4',
+            'pointer-events': 'none'
+        });
+    }
+
+    // Anchor dot
+    fpSvgEl(svg, 'circle', {
+        cx: fp2px(fpTypeAnchor.x), cy: fp2px(fpTypeAnchor.y), r: 7,
+        fill: 'white', stroke: '#0066cc', 'stroke-width': 2, 'pointer-events': 'none'
+    });
+    // Corner dots
+    pts.slice(1).forEach(function(p) {
+        fpSvgEl(svg, 'circle', {
+            cx: fp2px(p.x), cy: fp2px(p.y), r: 4,
+            fill: '#0066cc', stroke: '#0066cc', 'stroke-width': 2, 'pointer-events': 'none'
+        });
+    });
+}
+
 /** Show coords bar with position + two colored segment lengths during corner drag */
 function fpShowDragCoordsBar(x, y, lenA, lenB) {
     var bar   = document.getElementById('fpCoordsBar');
@@ -837,6 +991,14 @@ function fpUpdateCoordsBar(x, y, len) {
 // ============================================================
 
 function fpHandleRoomClick(e) {
+    // In type mode: first click sets anchor and opens panel; ignore subsequent canvas clicks
+    if (fpTypeMode) {
+        if (!fpTypeAnchor) {
+            fpOpenTypePanel(fpMouseToFeet(e));
+        }
+        return;
+    }
+
     var pt = fpMouseToFeet(e);
 
     if (!fpDrawing) {
@@ -1335,6 +1497,14 @@ function fpSetTool(tool) {
         fpDrawing      = false;
         fpDrawPoints   = [];
         fpPreviewPoint = null;
+    }
+
+    // Switching tools always exits type mode and closes the panel
+    if (fpTypeMode) {
+        fpTypeMode = false;
+        fpCloseTypePanel();
+        var typeModeBtn = document.getElementById('fpToolTypeMode');
+        if (typeModeBtn) typeModeBtn.classList.remove('active');
     }
 
     // Update button active states
@@ -2665,3 +2835,51 @@ document.getElementById('fpCeilingAddProblemBtn').addEventListener('click', func
         fpZoomTo(1.0, rect.left + rect.width / 2, rect.top + rect.height / 2);
     });
 }());
+
+// ============================================================
+// TYPE NUMBERS MODE — toolbar toggle + panel events
+// ============================================================
+
+document.getElementById('fpToolTypeMode').addEventListener('click', function() {
+    if (fpTypeMode) {
+        // Toggle off
+        fpTypeMode = false;
+        fpCloseTypePanel();
+        this.classList.remove('active');
+        fpSetTool('room');
+    } else {
+        // Activate type mode
+        fpSetTool('room');  // ensure room tool active (also clears type mode momentarily)
+        fpTypeMode = true;
+        this.classList.add('active');
+        // Highlight Room button too
+        var roomBtn = document.getElementById('fpToolRoom');
+        if (roomBtn) roomBtn.classList.add('active');
+        fpSetStatus('Click on the canvas to place the room\'s start corner.');
+    }
+});
+
+document.getElementById('fpTypeSaveBtn').addEventListener('click', function() {
+    if (!fpTypeAnchor) return;
+    var cmd = document.getElementById('fpTypeCmd').value;
+    var pts = fpParseTypeCommand(cmd, fpTypeAnchor);
+    if (pts.length < 3) { alert('Need at least 3 corners.'); return; }
+    // Remove duplicate closing point if shape closes
+    var last = pts[pts.length - 1];
+    if (Math.hypot(last.x - fpTypeAnchor.x, last.y - fpTypeAnchor.y) < 0.26) {
+        pts = pts.slice(0, pts.length - 1);
+    }
+    var color = FP_ROOM_COLORS[(fpPlan.rooms || []).length % FP_ROOM_COLORS.length];
+    fpCloseTypePanel();
+    fpOpenRoomLinkModal(pts, color);
+    fpRender();
+});
+
+document.getElementById('fpTypeCancelBtn').addEventListener('click', function() {
+    fpCloseTypePanel();
+    fpSetStatus('Click on the canvas to place a new start corner, or select another tool.');
+});
+
+document.getElementById('fpTypeCmd').addEventListener('input', fpUpdateTypePreview);
+document.getElementById('fpTypeX').addEventListener('input', fpUpdateTypePreview);
+document.getElementById('fpTypeY').addEventListener('input', fpUpdateTypePreview);

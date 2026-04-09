@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=385">
+    <link rel="stylesheet" href="css/styles.css?v=386">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -1512,6 +1512,7 @@
             <div class="fp-toolbar">
                 <button class="fp-tool-btn active" id="fpToolSelect" data-tool="select">▷ Select</button>
                 <button class="fp-tool-btn" id="fpToolRoom" data-tool="room">⬜ Room</button>
+                <button class="fp-tool-btn fp-type-toggle" id="fpToolTypeMode" title="Type room dimensions as numbers">📐 Type</button>
                 <button class="fp-tool-btn" id="fpToolDoor" data-tool="door">🚪 Door</button>
                 <button class="fp-tool-btn" id="fpToolWindow" data-tool="window">🪟 Window</button>
                 <span class="fp-tool-sep"></span>
@@ -1534,6 +1535,22 @@
             <!-- SVG Canvas -->
             <div class="fp-canvas-wrapper" id="fpCanvasWrapper">
                 <svg id="fpSvg" class="fp-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+            </div>
+
+            <!-- Type Numbers input panel -->
+            <div class="fp-type-panel hidden" id="fpTypePanel">
+                <div class="fp-type-row">
+                    <label class="fp-type-label">Start X (ft): <input type="number" id="fpTypeX" step="0.25" min="0" class="fp-type-num"></label>
+                    <label class="fp-type-label">Start Y (ft): <input type="number" id="fpTypeY" step="0.25" min="0" class="fp-type-num"></label>
+                    <span id="fpTypeStatus" class="fp-type-status"></span>
+                    <div style="margin-left:auto;display:flex;gap:6px;">
+                        <button id="fpTypeSaveBtn" class="btn btn-primary btn-small" disabled>Save Room</button>
+                        <button id="fpTypeCancelBtn" class="btn btn-secondary btn-small">Cancel</button>
+                    </div>
+                </div>
+                <div class="fp-type-row">
+                    <input type="text" id="fpTypeCmd" class="fp-type-cmd" placeholder="e.g.  14, R, 21, R, 14, R, 21  — numbers are feet, R = turn right, L = turn left (start with R/L/U/D for direction, default = Down)">
+                </div>
             </div>
 
             <!-- Status bar -->
@@ -7404,7 +7421,7 @@
     <script src="js/gps.js?v=350"></script>
     <script src="js/settings.js?v=350"></script>
     <script src="js/house.js?v=362"></script>
-    <script src="js/floorplan.js?v=362"></script>
+    <script src="js/floorplan.js?v=363"></script>
     <script src="js/search.js?v=350"></script>
     <script src="js/activityreport.js?v=350"></script>
     <script src="js/checklists.js?v=350"></script>

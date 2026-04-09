@@ -2543,6 +2543,58 @@ button {
 .fp-coords-sep { color: #475569; }
 .fp-coords-len { color: #86efac; }
 
+/* Type Numbers input panel */
+.fp-type-panel {
+    background: #f0f4ff;
+    border-top: 2px solid #3b82f6;
+    padding: 8px 14px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.fp-type-panel.hidden { display: none; }
+.fp-type-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.fp-type-label {
+    font-size: 0.85rem;
+    color: #444;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+.fp-type-num {
+    width: 70px;
+    padding: 3px 6px;
+    border: 1px solid #aaa;
+    border-radius: 4px;
+    font-size: 0.85rem;
+}
+.fp-type-cmd {
+    flex: 1;
+    min-width: 200px;
+    padding: 5px 8px;
+    border: 1px solid #aaa;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-family: monospace;
+}
+.fp-type-status {
+    font-size: 0.85rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.fp-type-status-ok   { color: #15803d; }
+.fp-type-status-warn { color: #c2410c; }
+.fp-tool-type-btn {
+    font-style: italic;
+}
+
 /* Status bar */
 .fp-status {
     padding: 5px 14px;

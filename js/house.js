@@ -1185,24 +1185,6 @@ document.getElementById('editFloorBtn').addEventListener('click', function() {
     openFloorModal(currentFloor.id, currentFloor);
 });
 
-// Floor detail — Delete Floor
-document.getElementById('deleteFloorBtn').addEventListener('click', function() {
-    if (!currentFloor) return;
-
-    // Block if rooms exist
-    userCol('rooms').where('floorId', '==', currentFloor.id).limit(1).get()
-        .then(function(snap) {
-            if (!snap.empty) {
-                alert('This floor has rooms. Delete or move all rooms first.');
-                return;
-            }
-            if (!confirm('Delete "' + (currentFloor.name || 'this floor') + '"? This cannot be undone.')) return;
-            userCol('floors').doc(currentFloor.id).delete()
-                .then(function() { window.location.hash = '#house'; })
-                .catch(function(err) { console.error('Delete floor error:', err); });
-        });
-});
-
 // Floor detail — Add Room
 document.getElementById('addRoomBtn').addEventListener('click', function() {
     openRoomModal(null, null);
@@ -1218,23 +1200,6 @@ document.getElementById('editRoomBtn').addEventListener('click', function() {
 document.getElementById('moveRoomBtn').addEventListener('click', function() {
     if (!currentRoom) return;
     openMoveRoomModal();
-});
-
-// Room detail — Delete Room
-document.getElementById('deleteRoomBtn').addEventListener('click', function() {
-    if (!currentRoom) return;
-
-    if (!confirm('Delete "' + (currentRoom.name || 'this room') + '"? This cannot be undone.')) return;
-
-    userCol('rooms').doc(currentRoom.id).delete()
-        .then(function() {
-            if (currentFloor) {
-                window.location.hash = '#floor/' + currentFloor.id;
-            } else {
-                window.location.hash = '#house';
-            }
-        })
-        .catch(function(err) { console.error('Delete room error:', err); });
 });
 
 // ============================================================
@@ -1644,23 +1609,6 @@ document.getElementById('editThingBtn').addEventListener('click', function() {
 document.getElementById('moveThingBtn').addEventListener('click', function() {
     if (!currentThing) return;
     openMoveThingModal();
-});
-
-// Thing detail — Delete
-document.getElementById('deleteThingBtn').addEventListener('click', function() {
-    if (!currentThing) return;
-
-    if (!confirm('Delete "' + (currentThing.name || 'this thing') + '"? This cannot be undone.')) return;
-
-    userCol('things').doc(currentThing.id).delete()
-        .then(function() {
-            if (currentRoom) {
-                window.location.hash = '#room/' + currentRoom.id;
-            } else {
-                window.location.hash = '#house';
-            }
-        })
-        .catch(function(err) { console.error('Delete thing error:', err); });
 });
 
 // ============================================================

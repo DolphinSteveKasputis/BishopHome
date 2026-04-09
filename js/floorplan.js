@@ -79,6 +79,15 @@ function loadFloorPlanPage(floorId) {
                 (fpFloor.name || 'Floor') + ' — Floor Plan Drawing';
             document.getElementById('fpBackBtn').href = '#floor/' + floorId;
 
+            // Update breadcrumb: House › Floor Name › Floor Plan Drawing
+            if (typeof buildHouseBreadcrumb === 'function') {
+                buildHouseBreadcrumb([
+                    { label: 'House',                         hash: '#house' },
+                    { label: fpFloor.name || 'Floor',         hash: '#floor/' + floorId },
+                    { label: 'Floor Plan Drawing',            hash: null }
+                ]);
+            }
+
             // Load rooms list (for linking shapes + stairs detection)
             var roomsPromise = userCol('rooms').where('floorId', '==', floorId).get()
                 .then(function(snap) {

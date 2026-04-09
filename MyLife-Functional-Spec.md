@@ -186,7 +186,7 @@ See [Shared: Activities](#activities) for the full description. Nuances in the Y
 
 The House section tracks the interior of the home using a 4-level hierarchy: Floor → Room → Thing → Sub-Thing → Item.
 
-**House page (`#house`)** shows: summary stats bar, Floors section (clickable cards), a static **More** section with icon cards linking to Garage (`#garage`), Vehicles (`#vehicles`), and Collections (`#collections`), an Upcoming calendar rollup, and a Breaker Panels section. Garage, Vehicles, and Collections are no longer on the main landing page — they live under House → More.
+**House page (`#house`)** shows: summary stats bar (upcoming calendar events only), **Open Problems** section (clickable cards — each shows description + floor/room/thing location; clicking navigates to that entity), Floors section (clickable cards), a static **More** section with icon cards linking to Garage (`#garage`), Vehicles (`#vehicles`), and Collections (`#collections`), an Upcoming calendar rollup, and a Breaker Panels section. Garage, Vehicles, and Collections are no longer on the main landing page — they live under House → More. Room count removed from stats bar (visible per-floor already).
 
 ### Floors (`house.js`)
 The top level of the house hierarchy.

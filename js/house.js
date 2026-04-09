@@ -145,22 +145,34 @@ function loadHousePage() {
     var todayStr = today.toISOString().slice(0, 10);
     var in30Str  = in30.toISOString().slice(0, 10);
 
-    // Run all four queries in parallel
+    // Run all five queries in parallel
     var floorsQ   = userCol('floors').orderBy('floorNumber', 'asc').get();
     var roomsQ    = userCol('rooms').get();
+    var thingsQ   = userCol('things').get();
     var problemsQ = userCol('problems')
         .where('targetType', 'in', ['floor', 'room', 'thing']).get();
     var eventsQ   = userCol('calendarEvents')
         .where('targetType', 'in', ['floor', 'room', 'thing']).get();
 
-    Promise.all([floorsQ, roomsQ, problemsQ, eventsQ])
+    Promise.all([floorsQ, roomsQ, thingsQ, problemsQ, eventsQ])
         .then(function(results) {
             var floorSnap   = results[0];
             var roomSnap    = results[1];
-            var problemSnap = results[2];
-            var eventSnap   = results[3];
+            var thingSnap   = results[2];
+            var problemSnap = results[3];
+            var eventSnap   = results[4];
 
             emptyState.textContent = '';
+
+            // --- Lookup maps for problem location labels ---
+            var floorById = {};
+            floorSnap.forEach(function(doc) { floorById[doc.id] = doc.data(); });
+
+            var roomById = {};
+            roomSnap.forEach(function(doc) { roomById[doc.id] = doc.data(); });
+
+            var thingById = {};
+            thingSnap.forEach(function(doc) { thingById[doc.id] = doc.data(); });
 
             // --- Room counts per floor ---
             var roomCountByFloor = {};
@@ -171,10 +183,12 @@ function loadHousePage() {
                 }
             });
 
-            // --- Open problem count ---
-            var openProblems = 0;
+            // --- Collect open problems (docs, not just count) ---
+            var openProblemDocs = [];
             problemSnap.forEach(function(doc) {
-                if (doc.data().status === 'open') openProblems++;
+                if (doc.data().status === 'open') {
+                    openProblemDocs.push({ id: doc.id, data: doc.data() });
+                }
             });
 
             // --- Upcoming event count (next 30 days, one-time events only) ---
@@ -190,14 +204,18 @@ function loadHousePage() {
                 }
             });
 
-            // --- Render summary stats bar ---
+            // --- Render summary stats bar (events only; problems have their own section) ---
             renderHouseSummaryStats(statsEl, {
-                openProblems:   openProblems,
-                upcomingEvents: upcomingEvents,
-                recurringEvents: recurringEvents,
-                totalRooms: roomSnap.size,
-                totalThings: 0   // placeholder — not queried separately
+                upcomingEvents:  upcomingEvents,
+                recurringEvents: recurringEvents
             });
+
+            // --- Render open problems section ---
+            var probContainer  = document.getElementById('houseProblemsContainer');
+            var probEmptyState = document.getElementById('houseProblemsEmpty');
+            if (probContainer && probEmptyState) {
+                renderHouseProblems(probContainer, probEmptyState, openProblemDocs, floorById, roomById, thingById);
+            }
 
             // --- Render floor list ---
             if (floorSnap.empty) {
@@ -298,28 +316,12 @@ async function loadHouseCalendarRollup() {
 }
 
 /**
- * Render the summary stats bar on the House home page.
+ * Render the summary stats bar on the House home page (events only).
  * @param {Element} el     - The container element to populate
- * @param {object}  stats  - { openProblems, upcomingEvents, recurringEvents, totalRooms }
+ * @param {object}  stats  - { upcomingEvents, recurringEvents }
  */
 function renderHouseSummaryStats(el, stats) {
     var items = [];
-
-    // Open problems
-    if (stats.openProblems > 0) {
-        items.push(
-            '<span class="house-stat house-stat--problems">' +
-                '<span class="house-stat-num">' + stats.openProblems + '</span>' +
-                '<span class="house-stat-label"> open problem' + (stats.openProblems !== 1 ? 's' : '') + '</span>' +
-            '</span>'
-        );
-    } else {
-        items.push(
-            '<span class="house-stat house-stat--ok">' +
-                '<span class="house-stat-label">No open problems</span>' +
-            '</span>'
-        );
-    }
 
     // Upcoming events (next 30 days)
     if (stats.upcomingEvents > 0 || stats.recurringEvents > 0) {
@@ -345,15 +347,82 @@ function renderHouseSummaryStats(el, stats) {
         );
     }
 
-    // Room count
-    items.push(
-        '<span class="house-stat house-stat--neutral">' +
-            '<span class="house-stat-num">' + stats.totalRooms + '</span>' +
-            '<span class="house-stat-label"> room' + (stats.totalRooms !== 1 ? 's' : '') + '</span>' +
-        '</span>'
-    );
-
     el.innerHTML = items.join('<span class="house-stat-sep">·</span>');
+}
+
+/**
+ * Render open problems from floors/rooms/things as clickable cards.
+ * Each card shows the problem description and its location (floor › room › thing),
+ * and navigates to the owning entity when clicked.
+ *
+ * @param {Element} container  - The card-list container to populate
+ * @param {Element} emptyState - Paragraph shown when there are no open problems
+ * @param {Array}   problems   - Array of { id, data } for open problems
+ * @param {Object}  floorById  - Map of floorId → floor document data
+ * @param {Object}  roomById   - Map of roomId  → room document data
+ * @param {Object}  thingById  - Map of thingId → thing document data
+ */
+function renderHouseProblems(container, emptyState, problems, floorById, roomById, thingById) {
+    container.innerHTML = '';
+
+    if (problems.length === 0) {
+        emptyState.textContent = 'No open problems.';
+        return;
+    }
+    emptyState.textContent = '';
+
+    problems.forEach(function(prob) {
+        var data = prob.data;
+        var card = document.createElement('div');
+        card.className = 'card card--clickable';
+
+        // Build human-readable location label and target hash
+        var locationLabel = '';
+        var hash = null;
+        if (data.targetType === 'floor') {
+            var fl = floorById[data.targetId];
+            locationLabel = fl ? (fl.name || 'Floor') : 'Floor';
+            hash = '#floor/' + data.targetId;
+        } else if (data.targetType === 'room') {
+            var rm = roomById[data.targetId];
+            if (rm) {
+                var fl2 = floorById[rm.floorId];
+                locationLabel = (fl2 ? (fl2.name || 'Floor') + ' › ' : '') + (rm.name || 'Room');
+            } else {
+                locationLabel = 'Room';
+            }
+            hash = '#room/' + data.targetId;
+        } else if (data.targetType === 'thing') {
+            var th = thingById[data.targetId];
+            if (th) {
+                var rm2 = roomById[th.roomId];
+                var fl3 = rm2 ? floorById[rm2.floorId] : null;
+                locationLabel = (fl3  ? (fl3.name  || 'Floor') + ' › ' : '') +
+                                (rm2  ? (rm2.name  || 'Room')  + ' › ' : '') +
+                                (th.name || 'Thing');
+            } else {
+                locationLabel = 'Thing';
+            }
+            hash = '#thing/' + data.targetId;
+        }
+
+        card.innerHTML =
+            '<div class="card-main">' +
+                '<span class="card-title">' + escapeHtml(data.description || 'Problem') + '</span>' +
+                (locationLabel
+                    ? '<span class="house-floor-meta">' + escapeHtml(locationLabel) + '</span>'
+                    : '') +
+            '</div>' +
+            '<span class="card-arrow">›</span>';
+
+        if (hash) {
+            card.addEventListener('click', (function(h) {
+                return function() { window.location.hash = h; };
+            })(hash));
+        }
+
+        container.appendChild(card);
+    });
 }
 
 /**

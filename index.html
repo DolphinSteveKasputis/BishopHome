@@ -4000,6 +4000,22 @@
                     <option value="outward-right">Outward — Right hinge</option>
                 </select>
             </div>
+            <!-- Position from wall — only shown when editing an existing door -->
+            <div class="form-group" id="fpDoorPositionSection" style="display:none;">
+                <label>Position on wall</label>
+                <div style="font-size:0.83rem;color:#94a3b8;margin-bottom:6px;">
+                    Current: <span id="fpDoorPosFromStart">—</span> from start &nbsp;·&nbsp; <span id="fpDoorPosFromEnd">—</span> from end
+                </div>
+                <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                    <input type="text" id="fpDoorPosInput" placeholder='e.g. 16" or 1&apos;4"' style="width:110px;">
+                    <span style="color:#94a3b8;font-size:0.85rem;">from</span>
+                    <select id="fpDoorPosRef" style="width:auto;">
+                        <option value="start">start of wall</option>
+                        <option value="end">end of wall</option>
+                    </select>
+                </div>
+                <small style="color:#94a3b8">Leave blank to keep current position</small>
+            </div>
             <div class="modal-buttons">
                 <button class="btn btn-danger" id="fpDoorDeleteBtn" style="display:none;margin-right:auto">Delete</button>
                 <button class="btn btn-secondary" id="fpDoorCancelBtn">Cancel</button>
@@ -7431,7 +7447,7 @@
     <script src="js/gps.js?v=350"></script>
     <script src="js/settings.js?v=350"></script>
     <script src="js/house.js?v=362"></script>
-    <script src="js/floorplan.js?v=366"></script>
+    <script src="js/floorplan.js?v=367"></script>
     <script src="js/search.js?v=350"></script>
     <script src="js/activityreport.js?v=350"></script>
     <script src="js/checklists.js?v=350"></script>

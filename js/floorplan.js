@@ -732,24 +732,28 @@ function fpMakeDraggableCeilingFixture(el, fix) {
 
 /**
  * Project mouse position (in floor feet) onto a wall segment and return
- * the clamped 0-1 position along it, keeping the marker width away from edges.
+ * the clamped position in FEET along the segment from its start point,
+ * keeping the full marker width inside the wall boundaries.
  */
 function fpProjectOntoWallSegment(mouseX, mouseY, room, segmentIndex, markerWidth) {
     var seg = fpGetSegment(room.points, segmentIndex);
-    if (!seg) return 0.5;
+    if (!seg) return 0;
     var Ax = seg.start.x, Ay = seg.start.y;
     var Bx = seg.end.x,   By = seg.end.y;
     var ABx = Bx - Ax, ABy = By - Ay;
     var len2 = ABx * ABx + ABy * ABy;
-    if (len2 < 0.0001) return 0.5;
+    if (len2 < 0.0001) return 0;
     var len = Math.sqrt(len2);
+    // Dot-product projection → 0-1 fraction, then convert to feet
     var t = ((mouseX - Ax) * ABx + (mouseY - Ay) * ABy) / len2;
-    var halfW = (markerWidth || 0.5) / len / 2;
-    return Math.max(halfW, Math.min(1 - halfW, t));
+    var posFt = t * len;
+    var mw = markerWidth || 0.5;
+    return Math.max(0, Math.min(len - mw, posFt));
 }
 
 /**
  * Makes a door draggable along its wall segment in select mode.
+ * A tap with no movement selects the door; a drag slides it along the wall.
  */
 function fpMakeDraggableDoor(el, door) {
     el.style.cursor = 'ew-resize';
@@ -758,18 +762,22 @@ function fpMakeDraggableDoor(el, door) {
         eDown.preventDefault();
         eDown.stopPropagation();
 
+        var dragged = false;
+
         function onMove(e) {
             var room = (fpPlan.rooms || []).find(function(r) { return r.id === door.roomId; });
             if (!room) return;
             var pt = fpMouseToFeet(e);
             door.position = fpProjectOntoWallSegment(pt.x, pt.y, room, door.segmentIndex, door.width || 3);
             fpDirty = true;
+            dragged = true;
             fpRender();
         }
 
         function onUp() {
             document.removeEventListener('mousemove', onMove);
             document.removeEventListener('mouseup',  onUp);
+            if (!dragged) fpSelectMarker('door', door.id);
         }
 
         document.addEventListener('mousemove', onMove);
@@ -779,6 +787,7 @@ function fpMakeDraggableDoor(el, door) {
 
 /**
  * Makes a window draggable along its wall segment in select mode.
+ * A tap with no movement selects the window; a drag slides it along the wall.
  */
 function fpMakeDraggableWindow(el, win) {
     el.style.cursor = 'ew-resize';
@@ -787,18 +796,22 @@ function fpMakeDraggableWindow(el, win) {
         eDown.preventDefault();
         eDown.stopPropagation();
 
+        var dragged = false;
+
         function onMove(e) {
             var room = (fpPlan.rooms || []).find(function(r) { return r.id === win.roomId; });
             if (!room) return;
             var pt = fpMouseToFeet(e);
             win.position = fpProjectOntoWallSegment(pt.x, pt.y, room, win.segmentIndex, win.width || 2);
             fpDirty = true;
+            dragged = true;
             fpRender();
         }
 
         function onUp() {
             document.removeEventListener('mousemove', onMove);
             document.removeEventListener('mouseup',  onUp);
+            if (!dragged) fpSelectMarker('window', win.id);
         }
 
         document.addEventListener('mousemove', onMove);
@@ -1145,13 +1158,6 @@ function fpRenderDoor(svg, door) {
         style: 'cursor:pointer'
     });
 
-    // Click: select the door
-    hitLine.addEventListener('click', function(e) {
-        if (fpActiveTool !== 'select') return;
-        e.stopPropagation();
-        fpSelectMarker('door', door.id);
-    });
-
     fpMakeDraggableDoor(hitLine, door);
 }
 
@@ -1206,11 +1212,6 @@ function fpRenderWindow(svg, win) {
         x1: h.x, y1: h.y, x2: oe.x, y2: oe.y,
         stroke: 'transparent', 'stroke-width': 14,
         style: 'cursor:pointer'
-    });
-    hitLine.addEventListener('click', function(e) {
-        if (fpActiveTool !== 'select') return;
-        e.stopPropagation();
-        fpSelectMarker('window', win.id);
     });
     fpMakeDraggableWindow(hitLine, win);
 }
@@ -1762,6 +1763,25 @@ function fpOpenDoorEditModal(door) {
     document.getElementById('fpDoorInseamInput').value = fpFmtFeetIn(door.inseamWidth || Math.max((door.width || 3) - 2/12, 0.5));
     var swing = (door.swingInward ? 'inward' : 'outward') + '-' + (door.swingLeft ? 'left' : 'right');
     document.getElementById('fpDoorSwingSelect').value = swing;
+
+    // Position-from-wall section
+    var posSection = document.getElementById('fpDoorPositionSection');
+    var room = (fpPlan.rooms || []).find(function(r) { return r.id === door.roomId; });
+    var seg  = room ? fpGetSegment(room.points, door.segmentIndex) : null;
+    if (seg) {
+        var segLen   = fpSegLength(seg);
+        var fromStart = door.position;
+        var fromEnd   = segLen - door.position - (door.width || 3);
+        document.getElementById('fpDoorPosFromStart').textContent = fpFmtFeetIn(Math.max(0, fromStart));
+        document.getElementById('fpDoorPosFromEnd').textContent   = fpFmtFeetIn(Math.max(0, fromEnd));
+        document.getElementById('fpDoorPosInput').value = '';
+        document.getElementById('fpDoorPosRef').value   = 'start';
+        m.dataset.segLen = segLen.toFixed(4);
+        posSection.style.display = '';
+    } else {
+        posSection.style.display = 'none';
+    }
+
     document.getElementById('fpDoorDeleteBtn').style.display = '';
     openModal('fpDoorModal');
 }
@@ -1792,6 +1812,17 @@ document.getElementById('fpDoorSaveBtn').addEventListener('click', function() {
             existing.inseamWidth = inseamVal;
             existing.swingInward = swing.startsWith('inward');
             existing.swingLeft   = swing.endsWith('left');
+            // Apply position-from-wall if the user typed a value
+            var posRaw = fpParseFeetIn(document.getElementById('fpDoorPosInput').value);
+            if (!isNaN(posRaw) && posRaw >= 0) {
+                var segLen = parseFloat(m.dataset.segLen) || 0;
+                var ref    = document.getElementById('fpDoorPosRef').value;
+                if (ref === 'end' && segLen > 0) {
+                    existing.position = Math.max(0, segLen - posRaw - frameVal);
+                } else {
+                    existing.position = Math.max(0, posRaw);
+                }
+            }
         }
     } else {
         var door = {

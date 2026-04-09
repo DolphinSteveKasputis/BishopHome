@@ -50,6 +50,7 @@ var fpViewW      = 800;  // viewBox width  in SVG pixels  (fpSvgW / fpZoom)
 var fpViewH      = 600;  // viewBox height in SVG pixels  (fpSvgH / fpZoom)
 var fpPinchState = null; // active pinch gesture: {startDist, startZoom, midX, midY}
 var fpDragState  = null; // active corner drag: {roomId, ptIndex} — drives segment highlighting
+var fpCornerEditState = null; // active corner length edit: {room, ptIndex, isAHorizontal, signA, signB}
 
 // Type Numbers mode state
 var fpTypeMode   = false;  // true = Room tool in "Type Numbers" sub-mode
@@ -71,7 +72,8 @@ function loadFloorPlanPage(floorId) {
     fpDrawPoints   = [];
     fpPreviewPoint = null;
     fpSelectedId   = null;
-    fpDragState    = null;
+    fpDragState       = null;
+    fpCornerEditState = null;
     fpTypeMode     = false;
     fpTypeAnchor   = null;
 
@@ -413,7 +415,7 @@ function fpRenderRoom(svg, room) {
         if (fpActiveTool === 'room') {
             fpHandleRoomClick(e);
         } else if (fpActiveTool === 'select') {
-            fpSelectShape(room.id);
+            // Selection handled by mousedown (to support drag-to-move)
         } else if (fpActiveTool === 'door') {
             fpPlaceMarkerOnWall(e, room, 'door');
         } else if (fpActiveTool === 'window') {
@@ -428,6 +430,9 @@ function fpRenderRoom(svg, room) {
             fpPlaceCeilingFixtureInRoom(e, room);
         }
     });
+
+    // Make polygon body draggable in select mode (also handles selection)
+    fpMakeDraggableRoom(poly, room);
 
     // Double-click: navigate to connected floor (stairs) or room detail
     poly.addEventListener('dblclick', function(e) {
@@ -490,9 +495,15 @@ function fpRenderRoom(svg, room) {
         dimText.textContent = bbox.w.toFixed(0) + '\xd7' + bbox.h.toFixed(0) + ' ft  (' + areaFt.toFixed(0) + ' sq ft)';
     }
 
-    // Highlighted segments + colored handles during corner drag
-    if (isSelected && fpDragState && fpDragState.roomId === room.id) {
-        var di   = fpDragState.ptIndex;
+    // Highlighted segments + colored handles during corner drag OR corner edit
+    var dragInfo = null;
+    if (fpDragState && fpDragState.roomId === room.id) {
+        dragInfo = { ptIndex: fpDragState.ptIndex };
+    } else if (fpCornerEditState && fpCornerEditState.room === room) {
+        dragInfo = { ptIndex: fpCornerEditState.ptIndex };
+    }
+    if (isSelected && dragInfo) {
+        var di   = dragInfo.ptIndex;
         var nPts = room.points.length;
         var dPrev = room.points[(di - 1 + nPts) % nPts];
         var dCurr = room.points[di];
@@ -515,10 +526,10 @@ function fpRenderRoom(svg, room) {
     // Corner drag handles when selected
     if (isSelected) {
         room.points.forEach(function(p, i) {
-            // During drag: color the prev/next anchor points to match their segment color
+            // During drag or corner edit: color the prev/next anchor points to match their segment color
             var handleStroke = '#0066cc';
-            if (fpDragState && fpDragState.roomId === room.id) {
-                var di2  = fpDragState.ptIndex;
+            if (dragInfo) {
+                var di2   = dragInfo.ptIndex;
                 var nPts2 = room.points.length;
                 if (i === (di2 - 1 + nPts2) % nPts2) handleStroke = FP_DRAG_COLOR_A;
                 if (i === (di2 + 1) % nPts2)          handleStroke = FP_DRAG_COLOR_B;
@@ -592,6 +603,285 @@ function fpMakeDraggableHandle(handle, room, ptIndex) {
         document.addEventListener('mousemove', onMove);
         document.addEventListener('mouseup', onUp);
     });
+
+    // Double-click a corner handle → enter inline length editing mode
+    handle.addEventListener('dblclick', function(e) {
+        e.stopPropagation();
+        e.preventDefault();
+        fpEnterCornerEdit(room, ptIndex);
+    });
+}
+
+/**
+ * Makes a room polygon body draggable in select mode.
+ * Dragging the body (not corner handles) translates all room points.
+ * A pure click (no movement) selects the room.
+ */
+function fpMakeDraggableRoom(poly, room) {
+    poly.addEventListener('mousedown', function(eDown) {
+        if (fpActiveTool !== 'select') return;
+        eDown.preventDefault();
+        eDown.stopPropagation();
+
+        var startPt     = fpMouseToFeet(eDown);
+        var startPoints = room.points.map(function(p) { return { x: p.x, y: p.y }; });
+        var dragged     = false;
+
+        function onMove(e) {
+            var cur = fpMouseToFeet(e);
+            var dx  = cur.x - startPt.x;
+            var dy  = cur.y - startPt.y;
+            if (!dragged && Math.hypot(dx, dy) > 0.15) {
+                dragged = true;
+                fpSelectShape(room.id);
+            }
+            if (!dragged) return;
+            room.points = startPoints.map(function(p) {
+                return {
+                    x: fpSnap(Math.max(0, Math.min(fpPlan.widthFt,  p.x + dx))),
+                    y: fpSnap(Math.max(0, Math.min(fpPlan.heightFt, p.y + dy)))
+                };
+            });
+            fpDirty = true;
+            fpRender();
+        }
+
+        function onUp() {
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup',  onUp);
+            if (!dragged) fpSelectShape(room.id);
+        }
+
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup',   onUp);
+    });
+}
+
+/**
+ * Makes a ceiling fixture draggable in select mode.
+ * Attaches mousedown to the fixture group element.
+ */
+function fpMakeDraggableCeilingFixture(el, fix) {
+    el.style.cursor = 'move';
+    el.addEventListener('mousedown', function(eDown) {
+        if (fpActiveTool !== 'select') return;
+        eDown.preventDefault();
+        eDown.stopPropagation();
+
+        var startPt  = fpMouseToFeet(eDown);
+        var startX   = fix.x, startY = fix.y;
+        var dragged  = false;
+
+        function onMove(e) {
+            var cur = fpMouseToFeet(e);
+            dragged = true;
+            fix.x = fpSnap(Math.max(0, Math.min(fpPlan.widthFt,  startX + cur.x - startPt.x)));
+            fix.y = fpSnap(Math.max(0, Math.min(fpPlan.heightFt, startY + cur.y - startPt.y)));
+            fpDirty = true;
+            fpRender();
+        }
+
+        function onUp() {
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup',  onUp);
+            if (!dragged) {
+                fpSelectMarker('ceiling', fix.id);
+            }
+        }
+
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup',   onUp);
+    });
+}
+
+/**
+ * Project mouse position (in floor feet) onto a wall segment and return
+ * the clamped 0-1 position along it, keeping the marker width away from edges.
+ */
+function fpProjectOntoWallSegment(mouseX, mouseY, room, segmentIndex, markerWidth) {
+    var seg = fpGetSegment(room.points, segmentIndex);
+    if (!seg) return 0.5;
+    var Ax = seg.start.x, Ay = seg.start.y;
+    var Bx = seg.end.x,   By = seg.end.y;
+    var ABx = Bx - Ax, ABy = By - Ay;
+    var len2 = ABx * ABx + ABy * ABy;
+    if (len2 < 0.0001) return 0.5;
+    var len = Math.sqrt(len2);
+    var t = ((mouseX - Ax) * ABx + (mouseY - Ay) * ABy) / len2;
+    var halfW = (markerWidth || 0.5) / len / 2;
+    return Math.max(halfW, Math.min(1 - halfW, t));
+}
+
+/**
+ * Makes a door draggable along its wall segment in select mode.
+ */
+function fpMakeDraggableDoor(el, door) {
+    el.style.cursor = 'ew-resize';
+    el.addEventListener('mousedown', function(eDown) {
+        if (fpActiveTool !== 'select') return;
+        eDown.preventDefault();
+        eDown.stopPropagation();
+
+        function onMove(e) {
+            var room = (fpPlan.rooms || []).find(function(r) { return r.id === door.roomId; });
+            if (!room) return;
+            var pt = fpMouseToFeet(e);
+            door.position = fpProjectOntoWallSegment(pt.x, pt.y, room, door.segmentIndex, door.width || 3);
+            fpDirty = true;
+            fpRender();
+        }
+
+        function onUp() {
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup',  onUp);
+        }
+
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup',   onUp);
+    });
+}
+
+/**
+ * Makes a window draggable along its wall segment in select mode.
+ */
+function fpMakeDraggableWindow(el, win) {
+    el.style.cursor = 'ew-resize';
+    el.addEventListener('mousedown', function(eDown) {
+        if (fpActiveTool !== 'select') return;
+        eDown.preventDefault();
+        eDown.stopPropagation();
+
+        function onMove(e) {
+            var room = (fpPlan.rooms || []).find(function(r) { return r.id === win.roomId; });
+            if (!room) return;
+            var pt = fpMouseToFeet(e);
+            win.position = fpProjectOntoWallSegment(pt.x, pt.y, room, win.segmentIndex, win.width || 2);
+            fpDirty = true;
+            fpRender();
+        }
+
+        function onUp() {
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup',  onUp);
+        }
+
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup',   onUp);
+    });
+}
+
+// ============================================================
+// CORNER INLINE LENGTH EDITING
+// ============================================================
+
+/**
+ * Enter inline corner length editing mode — show editable inputs in the coords bar.
+ */
+function fpEnterCornerEdit(room, ptIndex) {
+    var n      = room.points.length;
+    var corner = room.points[ptIndex];
+    var prev   = room.points[(ptIndex - 1 + n) % n];
+    var next   = room.points[(ptIndex + 1) % n];
+
+    var isAHorizontal = Math.abs(corner.y - prev.y) < 0.01;
+    var signA = isAHorizontal
+        ? (corner.x >= prev.x ? 1 : -1)
+        : (corner.y >= prev.y ? 1 : -1);
+    var signB = isAHorizontal
+        ? (next.y >= corner.y ? 1 : -1)
+        : (next.x >= corner.x ? 1 : -1);
+
+    fpCornerEditState = { room: room, ptIndex: ptIndex, isAHorizontal: isAHorizontal,
+                          signA: signA, signB: signB };
+
+    // Select the room so handles are visible
+    fpSelectedId   = room.id;
+    fpSelectedType = 'room';
+
+    var lenA = Math.hypot(corner.x - prev.x, corner.y - prev.y);
+    var lenB = Math.hypot(next.x - corner.x, next.y - corner.y);
+
+    fpShowCornerEditInputs(lenA, lenB, corner);
+    fpRender(); // show highlighted segments
+}
+
+/**
+ * Render the coords bar with two editable number inputs (cyan + orange).
+ */
+function fpShowCornerEditInputs(lenA, lenB, corner) {
+    var bar   = document.getElementById('fpCoordsBar');
+    var posEl = document.getElementById('fpCoordsPos');
+    var lenEl = document.getElementById('fpCoordsLen');
+    var sepEl = bar ? bar.querySelector('.fp-coords-sep') : null;
+    if (!bar || !posEl || !lenEl) return;
+
+    posEl.textContent = 'Edit corner: ' + corner.x.toFixed(2) + ', ' + corner.y.toFixed(2) + ' ft  (Enter or Esc to finish)';
+    if (sepEl) sepEl.style.display = '';
+    lenEl.style.display = '';
+
+    var inputStyle = 'font-family:monospace;font-size:0.9rem;background:#1e293b;border-radius:3px;padding:2px 5px;width:65px;';
+    lenEl.innerHTML =
+        '<input id="fpEditLenA" type="number" step="0.25" min="0.25" value="' + lenA.toFixed(2) + '" ' +
+        'style="' + inputStyle + 'color:#22d3ee;border:1px solid #22d3ee;">' +
+        '<span style="margin:0 4px;color:#ccc;opacity:0.7">ft</span>' +
+        '<span style="margin:0 6px;color:#475569">|</span>' +
+        '<input id="fpEditLenB" type="number" step="0.25" min="0.25" value="' + lenB.toFixed(2) + '" ' +
+        'style="' + inputStyle + 'color:#fb923c;border:1px solid #fb923c;">' +
+        '<span style="margin:0 4px;color:#ccc;opacity:0.7">ft</span>';
+
+    function applyAndUpdate() {
+        if (!fpCornerEditState) return;
+        var vA = parseFloat(document.getElementById('fpEditLenA').value);
+        var vB = parseFloat(document.getElementById('fpEditLenB').value);
+        if (!isNaN(vA) && vA >= 0.25 && !isNaN(vB) && vB >= 0.25) {
+            fpApplyCornerLengths(fpCornerEditState, vA, vB);
+            var c = fpCornerEditState.room.points[fpCornerEditState.ptIndex];
+            posEl.textContent = 'Edit corner: ' + c.x.toFixed(2) + ', ' + c.y.toFixed(2) + ' ft  (Enter or Esc to finish)';
+        }
+    }
+
+    function onKeyDown(e) {
+        if (e.key === 'Enter' || e.key === 'Escape') { fpExitCornerEdit(); e.preventDefault(); }
+    }
+
+    document.getElementById('fpEditLenA').addEventListener('input',   applyAndUpdate);
+    document.getElementById('fpEditLenA').addEventListener('keydown', onKeyDown);
+    document.getElementById('fpEditLenB').addEventListener('input',   applyAndUpdate);
+    document.getElementById('fpEditLenB').addEventListener('keydown', onKeyDown);
+}
+
+/**
+ * Apply new lenA and lenB to the corner in fpCornerEditState.
+ * Since all segments are axis-aligned, lenA controls one axis and lenB controls the other.
+ */
+function fpApplyCornerLengths(state, lenA, lenB) {
+    var n      = state.room.points.length;
+    var corner = state.room.points[state.ptIndex];
+    var prev   = state.room.points[(state.ptIndex - 1 + n) % n];
+    var next   = state.room.points[(state.ptIndex + 1) % n];
+
+    var newCorner = { x: corner.x, y: corner.y };
+
+    if (state.isAHorizontal) {
+        // A is horizontal → lenA controls X; B is vertical → lenB controls Y
+        newCorner.x = Math.round((prev.x + state.signA * lenA) * 10000) / 10000;
+        newCorner.y = Math.round((next.y  - state.signB * lenB) * 10000) / 10000;
+    } else {
+        // A is vertical → lenA controls Y; B is horizontal → lenB controls X
+        newCorner.y = Math.round((prev.y + state.signA * lenA) * 10000) / 10000;
+        newCorner.x = Math.round((next.x  - state.signB * lenB) * 10000) / 10000;
+    }
+
+    state.room.points[state.ptIndex] = newCorner;
+    fpDirty = true;
+    fpRender();
+}
+
+/** Exit corner length edit mode */
+function fpExitCornerEdit() {
+    fpCornerEditState = null;
+    fpClearCoordsBar();
+    fpRender();
 }
 
 /** Clear the coords bar back to a blank state */
@@ -802,6 +1092,14 @@ function fpRenderDoor(svg, door) {
         fill: 'none', stroke: '#888', 'stroke-width': 1,
         'stroke-dasharray': '4,3', 'pointer-events': 'none'
     });
+
+    // 4. Transparent hit-area line for drag interaction (wider stroke, pointer events enabled)
+    var hitLine = fpSvgEl(svg, 'line', {
+        x1: h.x, y1: h.y, x2: oe.x, y2: oe.y,
+        stroke: 'transparent', 'stroke-width': 10,
+        style: 'cursor:ew-resize'
+    });
+    fpMakeDraggableDoor(hitLine, door);
 }
 
 // ============================================================
@@ -849,6 +1147,14 @@ function fpRenderWindow(svg, win) {
         x2: oe.x + off * info.nx, y2: oe.y + off * info.ny,
         stroke: '#4488cc', 'stroke-width': 1.5, 'pointer-events': 'none'
     });
+
+    // Transparent hit-area line for drag interaction
+    var winHitLine = fpSvgEl(svg, 'line', {
+        x1: h.x, y1: h.y, x2: oe.x, y2: oe.y,
+        stroke: 'transparent', 'stroke-width': 10,
+        style: 'cursor:ew-resize'
+    });
+    fpMakeDraggableWindow(winHitLine, win);
 }
 
 // ============================================================
@@ -943,6 +1249,7 @@ function fpUpdateCoordsBar(x, y, len) {
         } else if (fpActiveTool === 'select' && e.target === svg) {
             // Background click → deselect
             fpSelectedId = null;
+            if (fpCornerEditState) fpExitCornerEdit();
             fpSetStatus('Ready.');
             fpRender();
         }
@@ -1466,6 +1773,7 @@ FP_ALL_TOOLS.forEach(function(id) {
 // If the cursor is near the first point (3+ corners placed), the shape closes instead.
 document.addEventListener('keydown', function(e) {
     if (e.key !== 'Enter') return;
+    if (fpCornerEditState) return; // corner edit inputs handle their own Enter
     if (!fpDrawing || !fpPreviewPoint) return;
     // Don't fire if focus is inside a text input or modal
     var tag = document.activeElement && document.activeElement.tagName;
@@ -1498,6 +1806,9 @@ function fpSetTool(tool) {
         fpDrawPoints   = [];
         fpPreviewPoint = null;
     }
+
+    // Switching tools always exits corner edit mode
+    if (fpCornerEditState) fpExitCornerEdit();
 
     // Switching tools always exits type mode and closes the panel
     if (fpTypeMode) {
@@ -2549,11 +2860,10 @@ function fpRenderCeilingFixture(svg, fix) {
     lbl.textContent = fix.label || (isFan ? 'Fan' : 'Light');
 
     // Click — select (single) or navigate to Thing (double via dblclick on svg)
+    // Note: selection is also handled by fpMakeDraggableCeilingFixture mousedown/onUp below
     g.addEventListener('click', function(e) {
         e.stopPropagation();
-        if (fpActiveTool === 'select') {
-            fpSelectMarker('ceiling', fix.id);
-        }
+        // Selection handled by mousedown (to support drag-to-move)
     });
 
     g.addEventListener('dblclick', function(e) {
@@ -2562,6 +2872,9 @@ function fpRenderCeilingFixture(svg, fix) {
             window.location.hash = '#thing/' + fix.thingId;
         }
     });
+
+    // Make the fixture draggable in select mode
+    fpMakeDraggableCeilingFixture(g, fix);
 }
 
 // ---- Placement — click inside a room ----

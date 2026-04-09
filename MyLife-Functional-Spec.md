@@ -288,17 +288,54 @@ An interactive drawing tool for each floor.
 **Features**:
 - SVG-based canvas with optional grid overlay
 - Snap-to-grid in 0.25 ft (3-inch) increments; grid displays 4 tiers: 5ft dark, 1ft medium, 0.5ft light, 0.25ft very faint
-- **Coords bar**: always visible above canvas while the Room tool is active — shows current position (x, y in ft) and current segment length in large monospace text; updates live as the cursor moves
+- **Coords bar**: always visible above canvas (fixed height, never hidden) — shows position + segment info during draw/drag/edit; blank when idle; prevents layout jump
 - The SVG cursor label also shows position + segment length (smaller, near the cursor)
 - Rectilinear room polygons (all angles are 90°, but L/T/U shapes are possible)
 - **Room link modal**: always does a fresh Firestore query when opened so rooms added after the page loaded appear; existing unplaced rooms listed first (pre-selected if any exist); "Create new room" option at the bottom; new-name field only shown when "Create new" is selected
 - **Dimensions auto-save**: when dimensions are confirmed in the Dimensions modal, the plan is immediately saved to Firestore (no need to also click the Save button). The floor detail thumbnail shows "Floor plan dimensions set — click Edit Floor Plan to draw rooms" once saved but before any rooms are drawn.
-- Doors: placed on room walls, show swing direction
-- Windows: placed on walls with width and position
+- Doors: placed on room walls, show swing direction; can be dragged to slide along the current wall
+- Windows: placed on walls with width and position; can be dragged to slide along the current wall
 - Electrical markers: outlets and switches
 - Plumbing markers: toilets, sinks, bathtubs, showers, floor drains, water heater, washer/dryer hookup
-- Ceiling fixtures (lights, ceiling fans) shown as symbols inside rooms
+- Ceiling fixtures (lights, ceiling fans) shown as symbols inside rooms; can be dragged to reposition
 - Stairs shown with hatch pattern and label
+
+**Drawing — Free Draw mode**:
+- Click to place corners; Enter key places a corner at the current cursor position (no need to click exactly)
+- Close-shape hit radius is 20px (generous) — cursor snaps visually when near the first point
+- When drawing, the coords bar shows live position and current segment length
+
+**Drawing — Type Numbers mode** (📐 Type button in toolbar):
+- Click canvas to set anchor point (snapped to grid)
+- Type a command string describing wall segments, e.g. `14, R, 21, R, 14, R, 21`
+  - Numbers = distance in feet (decimals OK); R/L = turn right/left 90°
+  - Optional first token sets starting direction: R, L, U, D (default = Down)
+- Live SVG preview updates on every keystroke; dashed line shows whether the shape closes
+- Status badge: green "✓ Shape closes" or orange "⚠ Off by X.XX ft"
+- Start X / Start Y inputs let you nudge the anchor position in real-time
+- Save Room button creates the room polygon exactly as Free Draw mode does
+
+**Zoom**:
+- Zoom slider (25%–800%) in the toolbar header; label shows current percentage
+- Mouse wheel zooms centered on cursor position
+- Two-finger pinch zooms centered on midpoint between fingers
+- Double-clicking the zoom label resets zoom to 100%
+- Zoom resets to 100% when loading a new floor plan
+
+**Select mode — drag and drop**:
+- Drag a room polygon body to translate all corners (move the entire room)
+- Drag a ceiling fixture to reposition it anywhere on the plan
+- Drag a door or window marker to slide it along its current wall segment
+
+**Select mode — corner drag**:
+- Drag a corner handle dot to move that corner
+- Coords bar shows position + two colored wall lengths: cyan = previous wall, orange = next wall
+- The two wall segments and neighboring handle dots highlight in cyan/orange during drag
+
+**Select mode — corner edit (double-click)**:
+- Double-click a corner handle → coords bar shows two editable number inputs (cyan/orange) for the two wall lengths
+- Typing new lengths moves the corner while keeping neighboring walls orthogonal
+- Press Enter or Escape (or click elsewhere) to exit corner edit mode
 
 ### Breaker Panel (`house.js`)
 Tracks the electrical breaker panel as a grid of slots.

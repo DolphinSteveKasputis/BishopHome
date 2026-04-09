@@ -370,7 +370,7 @@ function renderHouseProblems(container, problems) {
     card.innerHTML =
         '<div class="card-main">' +
             '<span class="card-title">Open Problems</span>' +
-            '<span class="house-floor-meta">' + escapeHtml(metaText) + '</span>' +
+            '<span class="house-floor-meta"> &middot; ' + escapeHtml(metaText) + '</span>' +
         '</div>' +
         '<span class="card-arrow">›</span>';
 

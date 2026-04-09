@@ -57,19 +57,23 @@ function loadFloorPlanPage(floorId) {
     // Reset toolbar to select
     fpSetTool('select');
 
-    // Set back button and base title immediately (synchronous — before any async)
+    // Set back button immediately
     document.getElementById('fpBackBtn').href = '#floor/' + floorId;
-    document.getElementById('fpFloorTitle').textContent = 'Floor Plan';
 
-    // Load floor record to get the floor name for the title
+    // Set title — use currentFloor if available (user navigated from floor detail),
+    // otherwise fall back to a Firestore fetch
+    var knownFloorName = (window.currentFloor && window.currentFloor.id === floorId)
+        ? window.currentFloor.name : null;
+    document.getElementById('fpFloorTitle').textContent =
+        (knownFloorName || 'Floor') + ' — Floor Plan';
+
+    // Load floor record (also updates title if navigated directly by URL)
     userCol('floors').doc(floorId).get()
         .then(function(doc) {
             if (!doc.exists) { window.location.hash = '#house'; return; }
             fpFloor = Object.assign({ id: doc.id }, doc.data());
-            // Update title with actual floor name
             document.getElementById('fpFloorTitle').textContent =
                 (fpFloor.name || 'Floor') + ' — Floor Plan';
-            // Ensure back button still points to this floor (in case of re-entry)
             document.getElementById('fpBackBtn').href = '#floor/' + floorId;
 
             // Load rooms list (for linking shapes + stairs detection)

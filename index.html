@@ -876,6 +876,8 @@
             <div id="houseSummaryStats" class="house-summary-stats"></div>
             <!-- Open Problems panel — single clickable card rendered by renderHouseProblems() -->
             <div class="card-list" id="houseProblemsContainer"></div>
+            <!-- All Projects panel — single clickable card rendered by renderHouseProjects() -->
+            <div class="card-list" id="houseProjectsContainer"></div>
             <!-- Floors section -->
             <div class="section-header">
                 <h3 class="section-heading">Floors</h3>
@@ -921,6 +923,15 @@
             </div>
             <div class="card-list" id="panelListContainer"></div>
             <p class="empty-state" id="panelEmptyState"></p>
+        </section>
+
+        <!-- Page: House All Projects list -->
+        <section class="page hidden" id="page-house-projects">
+            <div class="page-header">
+                <h2>All Projects</h2>
+            </div>
+            <div class="card-list" id="houseProjectsListContainer"></div>
+            <p class="empty-state" id="houseProjectsListEmpty"></p>
         </section>
 
         <!-- Page: House Open Problems list -->
@@ -7366,7 +7377,7 @@
     <script src="js/calendar.js?v=350"></script>
     <script src="js/gps.js?v=350"></script>
     <script src="js/settings.js?v=350"></script>
-    <script src="js/house.js?v=360"></script>
+    <script src="js/house.js?v=361"></script>
     <script src="js/floorplan.js?v=350"></script>
     <script src="js/search.js?v=350"></script>
     <script src="js/activityreport.js?v=350"></script>
@@ -7387,7 +7398,7 @@
     <script src="js/secondbrain.js?v=350"></script>
     <script src="js/sbissues.js?v=350"></script>
     <script src="js/places.js?v=350"></script>
-    <script src="js/app.js?v=364"></script>
+    <script src="js/app.js?v=365"></script>
 
 </body>
 </html>

@@ -188,6 +188,8 @@ The House section tracks the interior of the home using a 4-level hierarchy: Flo
 
 **House page (`#house`)** shows: summary stats bar (upcoming calendar events only), **Open Problems** single panel card (shows count; clicking navigates to `#house-problems`), Floors section (clickable cards), a static **More** section with icon cards linking to Garage (`#garage`), Vehicles (`#vehicles`), and Collections (`#collections`), an Upcoming calendar rollup, and a Breaker Panels section. Garage, Vehicles, and Collections are no longer on the main landing page — they live under House → More. Room count removed from stats bar (visible per-floor already).
 
+**House Projects page (`#house-projects`)**: Lists all projects from floors, rooms, and things. Each card shows the project title and location path. Clicking navigates to the owning entity. Breadcrumb: House › All Projects.
+
 **House Problems page (`#house-problems`)**: Lists all open problems from floors, rooms, and things. Each card shows the problem description and a location path (Floor › Room › Thing). Clicking a card navigates to the owning entity. Breadcrumb: House › Open Problems.
 
 ### Floors (`house.js`)

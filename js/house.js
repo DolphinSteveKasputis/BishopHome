@@ -145,22 +145,25 @@ function loadHousePage() {
     var todayStr = today.toISOString().slice(0, 10);
     var in30Str  = in30.toISOString().slice(0, 10);
 
-    // Run all five queries in parallel
+    // Run all six queries in parallel
     var floorsQ   = userCol('floors').orderBy('floorNumber', 'asc').get();
     var roomsQ    = userCol('rooms').get();
     var thingsQ   = userCol('things').get();
     var problemsQ = userCol('problems')
         .where('targetType', 'in', ['floor', 'room', 'thing']).get();
+    var projectsQ = userCol('projects')
+        .where('targetType', 'in', ['floor', 'room', 'thing']).get();
     var eventsQ   = userCol('calendarEvents')
         .where('targetType', 'in', ['floor', 'room', 'thing']).get();
 
-    Promise.all([floorsQ, roomsQ, thingsQ, problemsQ, eventsQ])
+    Promise.all([floorsQ, roomsQ, thingsQ, problemsQ, projectsQ, eventsQ])
         .then(function(results) {
             var floorSnap   = results[0];
             var roomSnap    = results[1];
             var thingSnap   = results[2];
             var problemSnap = results[3];
-            var eventSnap   = results[4];
+            var projectSnap = results[4];
+            var eventSnap   = results[5];
 
             emptyState.textContent = '';
 
@@ -210,10 +213,22 @@ function loadHousePage() {
                 recurringEvents: recurringEvents
             });
 
+            // --- Collect all projects ---
+            var allProjectDocs = [];
+            projectSnap.forEach(function(doc) {
+                allProjectDocs.push({ id: doc.id, data: doc.data() });
+            });
+
             // --- Render single Open Problems panel card ---
             var probContainer = document.getElementById('houseProblemsContainer');
             if (probContainer) {
                 renderHouseProblems(probContainer, openProblemDocs);
+            }
+
+            // --- Render single All Projects panel card ---
+            var projContainer = document.getElementById('houseProjectsContainer');
+            if (projContainer) {
+                renderHouseProjects(projContainer, allProjectDocs);
             }
 
             // --- Render floor list ---
@@ -385,6 +400,102 @@ function renderHouseProblems(container, problems) {
  * Build a human-readable location path for a house problem.
  * Returns a string like "Main Floor › Living Room › Couch".
  */
+/**
+ * Render a single "All Projects" panel card on the house home page.
+ * Clicking it navigates to #house-projects where all projects are listed.
+ */
+function renderHouseProjects(container, projects) {
+    container.innerHTML = '';
+
+    var card = document.createElement('div');
+    card.className = 'card card--clickable';
+
+    var count    = projects.length;
+    var metaText = count === 0
+        ? 'No projects'
+        : count + ' project' + (count !== 1 ? 's' : '');
+
+    card.innerHTML =
+        '<div class="card-main">' +
+            '<span class="card-title">All Projects</span>' +
+            '<span class="house-floor-meta"> &middot; ' + escapeHtml(metaText) + '</span>' +
+        '</div>' +
+        '<span class="card-arrow">›</span>';
+
+    card.addEventListener('click', function() {
+        window.location.hash = '#house-projects';
+    });
+
+    container.appendChild(card);
+}
+
+/**
+ * Load the House Projects list page (#house-projects).
+ * Shows all projects across floors, rooms, and things.
+ * Each card links to the owning entity.
+ */
+async function loadHouseProjectsPage() {
+    var container  = document.getElementById('houseProjectsListContainer');
+    var emptyState = document.getElementById('houseProjectsListEmpty');
+    var bar        = document.getElementById('breadcrumbBar');
+
+    if (!container) return;
+    container.innerHTML = '<p class="empty-state">Loading…</p>';
+    if (emptyState) emptyState.textContent = '';
+    if (bar) bar.innerHTML = '<a href="#house">House</a><span class="separator">&rsaquo;</span><span>All Projects</span>';
+
+    try {
+        var [projectSnap, floorSnap, roomSnap, thingSnap] = await Promise.all([
+            userCol('projects').where('targetType', 'in', ['floor', 'room', 'thing']).get(),
+            userCol('floors').get(),
+            userCol('rooms').get(),
+            userCol('things').get()
+        ]);
+
+        var floorById = {};
+        floorSnap.forEach(function(d) { floorById[d.id] = d.data(); });
+        var roomById = {};
+        roomSnap.forEach(function(d) { roomById[d.id] = d.data(); });
+        var thingById = {};
+        thingSnap.forEach(function(d) { thingById[d.id] = d.data(); });
+
+        var projects = [];
+        projectSnap.forEach(function(d) { projects.push({ id: d.id, data: d.data() }); });
+
+        container.innerHTML = '';
+
+        if (projects.length === 0) {
+            if (emptyState) emptyState.textContent = 'No projects yet.';
+            return;
+        }
+
+        projects.forEach(function(proj) {
+            var data     = proj.data;
+            var location = _houseProblemLocation(data, floorById, roomById, thingById);
+            var hash     = '#' + (data.targetType || 'house') + '/' + data.targetId;
+
+            var card = document.createElement('div');
+            card.className = 'card card--clickable';
+            card.innerHTML =
+                '<div class="card-main">' +
+                    '<span class="card-title">' + escapeHtml(data.title || 'Project') + '</span>' +
+                    (location ? '<span class="house-floor-meta">' + escapeHtml(location) + '</span>' : '') +
+                '</div>' +
+                '<span class="card-arrow">›</span>';
+
+            card.addEventListener('click', (function(h) {
+                return function() { window.location.hash = h; };
+            })(hash));
+
+            container.appendChild(card);
+        });
+
+    } catch (err) {
+        console.error('loadHouseProjectsPage error:', err);
+        container.innerHTML = '<p class="empty-state" style="color:var(--danger)">Failed to load projects.</p>';
+    }
+}
+
 function _houseProblemLocation(data, floorById, roomById, thingById) {
     if (data.targetType === 'floor') {
         var fl = floorById[data.targetId];

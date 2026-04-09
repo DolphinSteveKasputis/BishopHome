@@ -1912,6 +1912,7 @@ document.getElementById('fpDoorSaveBtn').addEventListener('click', function() {
     if (isNaN(inseamVal) || inseamVal <= 0) inseamVal = Math.max(frameVal - 2/12, 0.5);
 
     var isEdit = m.dataset.mode === 'edit';
+    var newDoorId = null;
     if (isEdit) {
         var existing = (fpPlan.doors || []).find(function(d) { return d.id === m.dataset.editId; });
         if (existing) {
@@ -1944,11 +1945,13 @@ document.getElementById('fpDoorSaveBtn').addEventListener('click', function() {
         };
         if (!fpPlan.doors) fpPlan.doors = [];
         fpPlan.doors.push(door);
+        newDoorId = door.id;
     }
     fpDirty = true;
     closeModal('fpDoorModal');
+    if (newDoorId) { fpSetTool('select'); fpSelectedId = newDoorId; fpSelectedType = 'door'; }
     fpRender();
-    fpSetStatus('Door ' + (isEdit ? 'updated' : 'placed') + '.  Switch to Select tool to navigate or select rooms.');
+    fpSetStatus('Door ' + (isEdit ? 'updated' : 'placed — drag to reposition or use Edit Marker to set exact position') + '.');
 });
 
 document.getElementById('fpDoorCancelBtn').addEventListener('click', function() {
@@ -1973,6 +1976,7 @@ document.getElementById('fpWindowSaveBtn').addEventListener('click', function() 
     if (isNaN(inseamVal) || inseamVal <= 0) inseamVal = Math.max(frameVal - 4/12, 0.5);
 
     var isEdit = m.dataset.mode === 'edit';
+    var newWinId = null;
     if (isEdit) {
         var existing = (fpPlan.windows || []).find(function(w) { return w.id === m.dataset.editId; });
         if (existing) {
@@ -2001,11 +2005,13 @@ document.getElementById('fpWindowSaveBtn').addEventListener('click', function() 
         };
         if (!fpPlan.windows) fpPlan.windows = [];
         fpPlan.windows.push(win);
+        newWinId = win.id;
     }
     fpDirty = true;
     closeModal('fpWindowModal');
+    if (newWinId) { fpSetTool('select'); fpSelectedId = newWinId; fpSelectedType = 'window'; }
     fpRender();
-    fpSetStatus('Window ' + (isEdit ? 'updated' : 'placed') + '.  Switch to Select tool to navigate or select rooms.');
+    fpSetStatus('Window ' + (isEdit ? 'updated' : 'placed — drag to reposition or use Edit Marker to set exact position') + '.');
 });
 
 document.getElementById('fpWindowCancelBtn').addEventListener('click', function() {
@@ -2962,6 +2968,7 @@ document.getElementById('fpOutletSaveBtn').addEventListener('click', function() 
         }
     }
 
+    var newOutletId = null;
     if (editId) {
         // Update existing
         var outlet = (fpPlan.outlets || []).find(function(m) { return m.id === editId; });
@@ -2971,12 +2978,14 @@ document.getElementById('fpOutletSaveBtn').addEventListener('click', function() 
         props.id = fpGenId();
         if (!fpPlan.outlets) fpPlan.outlets = [];
         fpPlan.outlets.push(props);
+        newOutletId = props.id;
     }
 
     fpDirty = true;
     closeModal('fpOutletModal');
+    if (newOutletId) { fpSetTool('select'); fpSelectedId = newOutletId; fpSelectedType = 'outlet'; }
     fpRender();
-    fpSetStatus('Outlet saved.');
+    fpSetStatus('Outlet ' + (editId ? 'updated' : 'placed — drag to reposition or use Edit Marker to set exact position') + '.');
 });
 
 document.getElementById('fpOutletCancelBtn').addEventListener('click', function() {
@@ -3081,6 +3090,7 @@ document.getElementById('fpSwitchSaveBtn').addEventListener('click', function() 
         }
     }
 
+    var newSwitchId = null;
     if (editId) {
         var sw = (fpPlan.switches || []).find(function(m) { return m.id === editId; });
         if (sw) Object.assign(sw, props);
@@ -3088,12 +3098,14 @@ document.getElementById('fpSwitchSaveBtn').addEventListener('click', function() 
         props.id = fpGenId();
         if (!fpPlan.switches) fpPlan.switches = [];
         fpPlan.switches.push(props);
+        newSwitchId = props.id;
     }
 
     fpDirty = true;
     closeModal('fpSwitchModal');
+    if (newSwitchId) { fpSetTool('select'); fpSelectedId = newSwitchId; fpSelectedType = 'switch'; }
     fpRender();
-    fpSetStatus('Switch saved.');
+    fpSetStatus('Switch ' + (editId ? 'updated' : 'placed — drag to reposition or use Edit Marker to set exact position') + '.');
 });
 
 document.getElementById('fpSwitchCancelBtn').addEventListener('click', function() {
@@ -3148,6 +3160,7 @@ document.getElementById('fpPlumbingSaveBtn').addEventListener('click', function(
         y:           parseFloat(modal.dataset.y)
     };
 
+    var newPlumbingId = null;
     if (mode === 'edit' && editId) {
         var fix = (fpPlan.plumbing || []).find(function(m) { return m.id === editId; });
         if (fix) Object.assign(fix, props);
@@ -3155,12 +3168,14 @@ document.getElementById('fpPlumbingSaveBtn').addEventListener('click', function(
         props.id = fpGenId();
         if (!fpPlan.plumbing) fpPlan.plumbing = [];
         fpPlan.plumbing.push(props);
+        newPlumbingId = props.id;
     }
 
     fpDirty = true;
     closeModal('fpPlumbingModal');
+    if (newPlumbingId) { fpSetTool('select'); fpSelectedId = newPlumbingId; fpSelectedType = 'plumbing'; }
     fpRender();
-    fpSetStatus('Plumbing fixture saved.');
+    fpSetStatus('Plumbing fixture ' + (editId ? 'updated' : 'placed — drag to reposition') + '.');
 });
 
 document.getElementById('fpPlumbingCancelBtn').addEventListener('click', function() {
@@ -3417,6 +3432,7 @@ document.getElementById('fpCeilingSaveBtn').addEventListener('click', function()
     }
 
     function addFixture(thingId, label, cat) {
+        var newCeilingId = null;
         if (editId) {
             // Update existing
             var cf = (fpPlan.ceilingFixtures || []).find(function(m) { return m.id === editId; });
@@ -3430,7 +3446,7 @@ document.getElementById('fpCeilingSaveBtn').addEventListener('click', function()
         } else {
             // Add new
             if (!fpPlan.ceilingFixtures) fpPlan.ceilingFixtures = [];
-            fpPlan.ceilingFixtures.push({
+            var newCf = {
                 id:        fpGenId(),
                 roomId:    roomId,
                 thingId:   thingId,
@@ -3440,12 +3456,15 @@ document.getElementById('fpCeilingSaveBtn').addEventListener('click', function()
                 panelId:   panelId,
                 x:         x,
                 y:         y
-            });
+            };
+            fpPlan.ceilingFixtures.push(newCf);
+            newCeilingId = newCf.id;
         }
         fpDirty = true;
         closeModal('fpCeilingModal');
+        if (newCeilingId) { fpSetTool('select'); fpSelectedId = newCeilingId; fpSelectedType = 'ceiling'; }
         fpRender();
-        fpSetStatus('"' + label + '" placed. Double-click the symbol to go to the Thing page.');
+        fpSetStatus('"' + label + '" ' + (editId ? 'updated' : 'placed — drag to reposition') + '. Double-click the symbol to go to the Thing page.');
     }
 
     if (select.value) {

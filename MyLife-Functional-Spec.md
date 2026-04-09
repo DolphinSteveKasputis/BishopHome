@@ -335,6 +335,7 @@ An interactive drawing tool for each floor.
 - Drag a ceiling fixture to reposition it anywhere on the plan
 - Drag a door, window, outlet, or switch marker to slide it along its current wall segment
 - Tap (no drag) any marker in select mode to select it; dragging does not trigger a selection
+- **Auto-select on add**: after placing a new marker (door, window, outlet, switch, plumbing, ceiling fixture), the tool automatically switches to Select and the new item is pre-selected — ready to drag immediately without extra clicks
 
 **Select mode — corner drag**:
 - Drag a corner handle dot to move that corner

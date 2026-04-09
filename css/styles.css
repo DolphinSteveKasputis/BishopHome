@@ -454,6 +454,14 @@ button {
     color: #333;
 }
 
+/* Secondary line below card-title — entity/location label */
+.card-meta {
+    display: block;
+    font-size: 0.8rem;
+    color: #666;
+    margin-top: 2px;
+}
+
 .card-title--link {
     color: #2e7d32;
     cursor: pointer;

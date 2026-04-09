@@ -77,7 +77,6 @@ async function loadZoneDetail(zoneId) {
     const plantEmptyState = document.getElementById('zonePlantEmptyState');
     const addSubZoneBtn = document.getElementById('addSubZoneBtn');
     const editZoneBtn = document.getElementById('editZoneBtn');
-    const deleteZoneBtn = document.getElementById('deleteZoneBtn');
 
     try {
         // Get the zone document
@@ -104,9 +103,8 @@ async function loadZoneDetail(zoneId) {
             addSubZoneBtn.style.display = 'none';
         }
 
-        // Show edit and delete buttons
+        // Show edit button (delete is now inside the edit modal)
         editZoneBtn.style.display = 'inline-flex';
-        deleteZoneBtn.style.display = 'inline-flex';
 
         // Show "View All Plants" button
         document.getElementById('viewAllPlantsBtn').style.display = 'inline-flex';
@@ -261,6 +259,8 @@ function openAddZoneModal(parentId, parentLevel) {
     const modal = document.getElementById('zoneModal');
     const modalTitle = document.getElementById('zoneModalTitle');
     const nameInput = document.getElementById('zoneNameInput');
+    const deleteBtn = document.getElementById('zoneModalDeleteBtn');
+    if (deleteBtn) deleteBtn.style.display = 'none';
     const saveBtn = document.getElementById('zoneModalSaveBtn');
 
     modalTitle.textContent = parentId ? 'Add Sub-zone' : 'Add Zone';
@@ -284,6 +284,8 @@ function openEditZoneModal(zoneId, currentName) {
     const modal = document.getElementById('zoneModal');
     const modalTitle = document.getElementById('zoneModalTitle');
     const nameInput = document.getElementById('zoneNameInput');
+    const deleteBtn = document.getElementById('zoneModalDeleteBtn');
+    if (deleteBtn) deleteBtn.style.display = 'inline-flex';
 
     modalTitle.textContent = 'Edit Zone';
     nameInput.value = currentName;
@@ -506,9 +508,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // "Delete Zone" button on zone detail page
-    document.getElementById('deleteZoneBtn').addEventListener('click', function() {
+    // "Delete Zone" button inside the edit modal
+    document.getElementById('zoneModalDeleteBtn').addEventListener('click', function() {
         if (window.currentZone) {
+            closeModal('zoneModal');
             handleDeleteZone(window.currentZone.id);
         }
     });

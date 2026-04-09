@@ -433,7 +433,7 @@ async function loadYardProblemsPage() {
             card.innerHTML =
                 '<div class="card-main">' +
                     '<span class="card-title">' + escapeHtml(data.description || 'Problem') + '</span>' +
-                    (targetName ? '<span class="house-floor-meta">' + escapeHtml(targetName) + '</span>' : '') +
+                    (targetName ? '<span class="card-meta">' + escapeHtml(targetName) + '</span>' : '') +
                 '</div>' +
                 '<span class="card-arrow">›</span>';
             card.addEventListener('click', (function(h) {

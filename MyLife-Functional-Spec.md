@@ -116,6 +116,8 @@ Zones are the organizational backbone of the yard. They form a hierarchy up to 3
 - Plants in zone (list with "View All Plants" option — see Plants)
 - [Shared] Facts, Problems, Projects, Activities, Photos, Calendar Events
 
+**Edit/Delete modal**: The zone detail page has an Edit button that opens a modal pre-filled with the zone name. The Delete button is inside this edit modal (not on the detail page directly) — it appears only in edit mode, not when adding a new zone.
+
 **Zone reassignment**: Plants and sub-zones can be moved to a different parent zone via a modal picker that shows the full hierarchy with indentation.
 
 ### Plants (`plants.js`)

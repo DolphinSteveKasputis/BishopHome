@@ -747,43 +747,72 @@ function fpFinishRoom(dblClickPt) {
 // ============================================================
 
 function fpOpenRoomLinkModal(points, color) {
-    var select = document.getElementById('fpRoomLinkSelect');
-    select.innerHTML = '';
+    var select   = document.getElementById('fpRoomLinkSelect');
+    var modal    = document.getElementById('fpRoomLinkModal');
+    var newGroup = document.getElementById('fpRoomLinkNewNameGroup');
 
-    // Only offer rooms not already on this floor plan
-    var usedIds      = (fpPlan.rooms || []).map(function(r) { return r.roomId; });
-    var unplaced     = fpRoomList.filter(function(r) { return !usedIds.includes(r.id); });
-
-    // Existing unplaced rooms listed first
-    unplaced.forEach(function(room) {
-        var opt = document.createElement('option');
-        opt.value       = room.id;
-        opt.textContent = room.name;
-        select.appendChild(opt);
-    });
-
-    // "Create new room" at the bottom
-    var newOpt = document.createElement('option');
-    newOpt.value       = '';
-    newOpt.textContent = '＋ Create a new room…';
-    select.appendChild(newOpt);
-
-    // Default: first existing room if any; otherwise "Create new"
-    select.value = unplaced.length > 0 ? unplaced[0].id : '';
-
-    var modal = document.getElementById('fpRoomLinkModal');
+    // Store pending shape data immediately
     modal.dataset.pendingPoints = JSON.stringify(points);
     modal.dataset.pendingColor  = color;
-
     document.getElementById('fpRoomLinkNewName').value = '';
-    var newGroup = document.getElementById('fpRoomLinkNewNameGroup');
-    newGroup.style.display = select.value === '' ? '' : 'none';
 
-    select.onchange = function() {
-        newGroup.style.display = select.value === '' ? '' : 'none';
-    };
-
+    // Show modal with a loading state while we fetch rooms
+    select.innerHTML = '<option value="">Loading rooms…</option>';
+    newGroup.style.display = 'none';
     openModal('fpRoomLinkModal');
+
+    // Always do a fresh query so we get rooms added after the page loaded
+    userCol('rooms').where('floorId', '==', fpFloorId).get()
+        .then(function(snap) {
+            // Refresh fpRoomList from this fresh query
+            fpRoomList = [];
+            snap.forEach(function(d) {
+                fpRoomList.push(Object.assign({ id: d.id }, d.data()));
+            });
+            fpRoomList.sort(function(a, b) {
+                var ta = a.createdAt ? a.createdAt.toMillis() : 0;
+                var tb = b.createdAt ? b.createdAt.toMillis() : 0;
+                return ta - tb;
+            });
+
+            select.innerHTML = '';
+
+            // Only offer rooms not already on this floor plan
+            var usedIds  = (fpPlan.rooms || []).map(function(r) { return r.roomId; });
+            var unplaced = fpRoomList.filter(function(r) { return !usedIds.includes(r.id); });
+
+            // Existing unplaced rooms listed first
+            unplaced.forEach(function(room) {
+                var opt = document.createElement('option');
+                opt.value       = room.id;
+                opt.textContent = room.name;
+                select.appendChild(opt);
+            });
+
+            // "Create new room" at the bottom
+            var newOpt = document.createElement('option');
+            newOpt.value       = '';
+            newOpt.textContent = '＋ Create a new room…';
+            select.appendChild(newOpt);
+
+            // Default: first existing room if any; otherwise "Create new"
+            select.value = unplaced.length > 0 ? unplaced[0].id : '';
+
+            newGroup.style.display = select.value === '' ? '' : 'none';
+            select.onchange = function() {
+                newGroup.style.display = select.value === '' ? '' : 'none';
+            };
+        })
+        .catch(function(err) {
+            console.error('fpOpenRoomLinkModal rooms query error:', err);
+            select.innerHTML = '';
+            var newOpt = document.createElement('option');
+            newOpt.value = '';
+            newOpt.textContent = '＋ Create a new room…';
+            select.appendChild(newOpt);
+            select.value = '';
+            newGroup.style.display = '';
+        });
 }
 
 document.getElementById('fpRoomLinkSaveBtn').addEventListener('click', function() {
@@ -1072,14 +1101,16 @@ document.getElementById('fpDimensionsSaveBtn').addEventListener('click', functio
         alert('Enter valid dimensions (positive numbers).');
         return;
     }
-    if (!fpPlan) fpPlan = { rooms: [], doors: [], windows: [] };
+    if (!fpPlan) fpPlan = { rooms: [], doors: [], windows: [], outlets: [], switches: [], plumbing: [], ceilingFixtures: [] };
     fpPlan.widthFt  = w;
     fpPlan.heightFt = h;
     fpDirty = true;
     closeModal('fpDimensionsModal');
     fpInitSvg();
     fpRender();
-    fpSetStatus('Canvas resized to ' + w + ' × ' + h + ' ft.');
+    fpSetStatus('Canvas resized to ' + w + ' × ' + h + ' ft. Saving…');
+    // Auto-save so dimensions are persisted even before any rooms are drawn
+    fpSave();
 });
 
 document.getElementById('fpDimensionsCancelBtn').addEventListener('click', function() {
@@ -1245,8 +1276,17 @@ function fpLoadAndRenderThumbnail(floorId, containerId, emptyId) {
 
     userCol('floorPlans').doc(floorId).get()
         .then(function(doc) {
-            if (!doc.exists || !(doc.data().rooms || []).length) {
+            if (!doc.exists || !doc.data().widthFt) {
+                // No plan at all
                 if (emptyEl) emptyEl.style.display = '';
+                return;
+            }
+            if (!(doc.data().rooms || []).length) {
+                // Dimensions set but no rooms drawn yet
+                if (emptyEl) {
+                    emptyEl.style.display = '';
+                    emptyEl.textContent = 'Floor plan dimensions set — click "Edit Floor Plan" to draw rooms.';
+                }
                 return;
             }
             if (emptyEl) emptyEl.style.display = 'none';

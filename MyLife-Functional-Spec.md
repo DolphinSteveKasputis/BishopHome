@@ -291,7 +291,8 @@ An interactive drawing tool for each floor.
 - **Coords bar**: always visible above canvas while the Room tool is active — shows current position (x, y in ft) and current segment length in large monospace text; updates live as the cursor moves
 - The SVG cursor label also shows position + segment length (smaller, near the cursor)
 - Rectilinear room polygons (all angles are 90°, but L/T/U shapes are possible)
-- **Room link modal**: after drawing a shape, existing unplaced rooms appear first in the dropdown (pre-selected if any exist); "Create new room" option is at the bottom; new-name field only shown when "Create new" is selected
+- **Room link modal**: always does a fresh Firestore query when opened so rooms added after the page loaded appear; existing unplaced rooms listed first (pre-selected if any exist); "Create new room" option at the bottom; new-name field only shown when "Create new" is selected
+- **Dimensions auto-save**: when dimensions are confirmed in the Dimensions modal, the plan is immediately saved to Firestore (no need to also click the Save button). The floor detail thumbnail shows "Floor plan dimensions set — click Edit Floor Plan to draw rooms" once saved but before any rooms are drawn.
 - Doors: placed on room walls, show swing direction
 - Windows: placed on walls with width and position
 - Electrical markers: outlets and switches

@@ -67,6 +67,12 @@ var _lcSearchQuery    = '';
 /** All events loaded for the calendar page (unfiltered). */
 var _lcAllEvents      = [];
 
+/**
+ * Health appointments loaded for the calendar page.
+ * Normalized into a calendar-compatible shape (see _lcNormalizeAppointment).
+ */
+var _lcAllAppointments = [];
+
 // ---------- LC-9: Grid view state ----------
 
 /** Current view mode. null until first page load, then 'list' or 'grid'. */
@@ -562,6 +568,66 @@ function _lcStatusLabel(status) {
     return 'Upcoming';
 }
 
+// Fixed gradient color used for all appointment bars/cards.
+var LC_APPT_COLOR = 'linear-gradient(135deg,#ef4444,#f87171)';
+
+/**
+ * Normalize a healthAppointments Firestore document into a calendar-compatible
+ * event object so it can be rendered alongside life events.
+ * @param {string} id   - Firestore document ID
+ * @param {Object} data - Firestore document data
+ * @returns {Object}
+ */
+function _lcNormalizeAppointment(id, data) {
+    var provider = data.providerText || data.facilityText || '';
+    var title    = data.type || 'Appointment';
+    if (provider) title += ' – ' + provider;
+    return {
+        id:          id,
+        _kind:       'appt',
+        _apptStatus: data.status || 'scheduled',
+        startDate:   data.date   || '',
+        startTime:   data.time   || '',
+        title:       title,
+        notes:       data.notes  || ''
+    };
+}
+
+/**
+ * Return appointments to include for the current view.
+ * - Grid view:  all appointments except cancelled (shows past ones too)
+ * - List view:  filtered by status to match the user's current status filter
+ * @param {boolean} forGrid
+ * @returns {Array}
+ */
+function _lcGetAppointmentsForView(forGrid) {
+    return _lcAllAppointments.filter(function(a) {
+        if (a._apptStatus === 'cancelled') return false;
+
+        if (forGrid) {
+            // Grid shows all non-cancelled regardless of status filter
+            // Category filter suppresses appointments when a specific category is selected
+            if (_lcCategoryFilter) return false;
+            return true;
+        }
+
+        // List view — map appointment status to the life-event status filter
+        // scheduled = upcoming, completed = attended, converted = treated like attended
+        if (_lcStatusFilter === 'upcoming'          && a._apptStatus !== 'scheduled')  return false;
+        if (_lcStatusFilter === 'upcoming+attended' && a._apptStatus === 'cancelled')  return false;
+        if (_lcStatusFilter === 'attended'          && a._apptStatus !== 'completed')  return false;
+        if (_lcStatusFilter === 'missed')  return false; // no "missed" concept for appointments
+        // Category filter: appointments have no category → exclude when a category is selected
+        if (_lcCategoryFilter) return false;
+        // Search filter
+        if (_lcSearchQuery) {
+            var q = _lcSearchQuery.toLowerCase();
+            if (!(a.title || '').toLowerCase().includes(q)) return false;
+        }
+        return true;
+    });
+}
+
 /**
  * Return the current events array with all filters applied (unsorted).
  * Shared by both list and grid render paths.
@@ -595,18 +661,23 @@ function _lcApplyFilters() {
     var filtered = _lcGetFilteredEvents();
 
     if (_lcViewMode === 'grid') {
-        _lcRenderGrid(_lcGridYear, _lcGridMonth, filtered);
+        // Grid: merge all non-cancelled appointments (past ones included) with filtered events
+        var appts = _lcGetAppointmentsForView(true);
+        _lcRenderGrid(_lcGridYear, _lcGridMonth, filtered.concat(appts));
     } else {
+        // List: merge status-filtered appointments with filtered events
+        var appts = _lcGetAppointmentsForView(false);
+        var all = filtered.concat(appts);
         // Sort: past-only views → newest first; everything else → soonest first
         var descending = (_lcStatusFilter === 'attended' || _lcStatusFilter === 'missed');
-        filtered.sort(function(a, b) {
+        all.sort(function(a, b) {
             var aDate = a.startDate || '';
             var bDate = b.startDate || '';
             if (aDate < bDate) return descending ? 1 : -1;
             if (aDate > bDate) return descending ? -1 : 1;
             return 0;
         });
-        _lcRenderEventList(filtered, _lcAllCategories);
+        _lcRenderEventList(all, _lcAllCategories);
     }
 }
 
@@ -629,23 +700,52 @@ function _lcRenderEventList(events, categories) {
     categories.forEach(function(c) { colorMap[c.id] = c.color || ''; });
 
     list.innerHTML = events.map(function(ev) {
-        var color     = colorMap[ev.categoryId] || 'linear-gradient(135deg,#6b7280,#9ca3af)';
-        var dates     = _lcFormatDateRange(ev.startDate, ev.endDate);
-        var statusLbl = _lcStatusLabel(ev.status);
-        var statusCls = 'lc-status-badge--' + (ev.status || 'upcoming');
-        var location  = ev.location
+        var isAppt = ev._kind === 'appt';
+
+        // Color: appointments use a fixed health-red; life events use category color
+        var color  = isAppt
+            ? LC_APPT_COLOR
+            : (colorMap[ev.categoryId] || 'linear-gradient(135deg,#6b7280,#9ca3af)');
+
+        // Dates: appointments have only a single date
+        var dates  = _lcFormatDateRange(ev.startDate, isAppt ? '' : ev.endDate);
+
+        // Status badge
+        var statusLbl, statusCls;
+        if (isAppt) {
+            var apptStatusMap = {
+                scheduled: ['Scheduled', 'upcoming'],
+                completed: ['Completed', 'attended'],
+                cancelled: ['Cancelled', 'didntgo'],
+                converted: ['Converted', 'attended']
+            };
+            var apptMapped = apptStatusMap[ev._apptStatus] || ['Appointment', 'upcoming'];
+            statusLbl = apptMapped[0];
+            statusCls = 'lc-status-badge--' + apptMapped[1];
+        } else {
+            statusLbl = _lcStatusLabel(ev.status);
+            statusCls = 'lc-status-badge--' + (ev.status || 'upcoming');
+        }
+
+        var location = (!isAppt && ev.location)
             ? '<span class="lc-event-card-location">' + escapeHtml(ev.location) + '</span>'
             : '';
+
+        // Small "Appt" pill for appointment cards so they're visually distinct
+        var apptBadge = isAppt ? '<span class="lc-appt-badge">Appt</span> ' : '';
 
         var timePrefix = ev.startTime
             ? '<span class="lc-event-time">' + escapeHtml(_lcFormatTime(ev.startTime)) + '</span> '
             : '';
 
+        // data- attribute drives click navigation: appointments go to health-appointments page
+        var dataAttr = isAppt ? 'data-appt="true"' : ('data-id="' + escapeHtml(ev.id) + '"');
+
         return `
-            <div class="lc-event-card" data-id="${escapeHtml(ev.id)}" role="button" tabindex="0">
+            <div class="lc-event-card" ${dataAttr} role="button" tabindex="0">
                 <div class="lc-event-card-bar" style="background:${color}"></div>
                 <div class="lc-event-card-body">
-                    <div class="lc-event-card-title">${timePrefix}${escapeHtml(ev.title || '')}</div>
+                    <div class="lc-event-card-title">${apptBadge}${timePrefix}${escapeHtml(ev.title || '')}</div>
                     <div class="lc-event-card-meta">
                         <span class="lc-event-card-dates">${escapeHtml(dates)}</span>
                         ${location}
@@ -656,14 +756,17 @@ function _lcRenderEventList(events, categories) {
         `;
     }).join('');
 
-    // Wire click handlers
+    // Wire click handlers — appointments navigate to health-appointments, events to event detail
     list.querySelectorAll('.lc-event-card').forEach(function(card) {
-        card.addEventListener('click', function() {
-            window.location.hash = '#life-event/' + this.dataset.id;
-        });
-        card.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' || e.key === ' ') window.location.hash = '#life-event/' + this.dataset.id;
-        });
+        function go() {
+            if (card.dataset.appt) {
+                window.location.hash = '#health-appointments';
+            } else {
+                window.location.hash = '#life-event/' + card.dataset.id;
+            }
+        }
+        card.addEventListener('click', go);
+        card.addEventListener('keydown', function(e) { if (e.key === 'Enter' || e.key === ' ') go(); });
     });
 }
 
@@ -794,14 +897,17 @@ function _lcRenderGrid(year, month, events) {
         // Date number (circled if today)
         html += '<span class="lc-grid-day-num' + (isToday ? ' lc-grid-day-num--today' : '') + '">' + day + '</span>';
 
-        // Up to 2 event bars
+        // Up to 4 event bars
         for (var i = 0; i < showN; i++) {
-            var ev    = dayEvs[i];
-            var color = colorMap[ev.categoryId] || 'linear-gradient(135deg,#6b7280,#9ca3af)';
-            var dgo   = ev.status === 'didntgo';
+            var ev      = dayEvs[i];
+            var isAppt  = ev._kind === 'appt';
+            var color   = isAppt ? LC_APPT_COLOR : (colorMap[ev.categoryId] || 'linear-gradient(135deg,#6b7280,#9ca3af)');
+            var dgo     = ev.status === 'didntgo';
             var barTime = ev.startTime ? _lcFormatTime(ev.startTime) + ' ' : '';
-            html += '<div class="lc-event-bar' + (dgo ? ' lc-event-bar--didnt-go' : '') +
-                    '" data-id="' + escapeHtml(ev.id) + '" style="background:' + color + '"' +
+            // Appointments use data-appt="true"; life events use data-id
+            var dataAttr = isAppt ? ' data-appt="true"' : (' data-id="' + escapeHtml(ev.id) + '"');
+            html += '<div class="lc-event-bar' + (dgo ? ' lc-event-bar--didnt-go' : '') + (isAppt ? ' lc-event-bar--appt' : '') +
+                    '"' + dataAttr + ' style="background:' + color + '"' +
                     ' title="' + escapeHtml((barTime + (ev.title || '')).trim()) + '">' +
                     '<span class="lc-event-bar-title">' + escapeHtml(barTime) + escapeHtml(ev.title || '') + '</span>' +
                     (dgo ? '<span class="lc-event-bar-x">✗</span>' : '') +
@@ -819,11 +925,15 @@ function _lcRenderGrid(year, month, events) {
     html += '</div>';
     container.innerHTML = html;
 
-    // Wire event bar clicks → navigate directly
+    // Wire event bar clicks → navigate directly (appointments go to health-appointments)
     container.querySelectorAll('.lc-event-bar').forEach(function(bar) {
         bar.addEventListener('click', function(e) {
             e.stopPropagation();
-            window.location.hash = '#life-event/' + this.dataset.id;
+            if (this.dataset.appt) {
+                window.location.hash = '#health-appointments';
+            } else {
+                window.location.hash = '#life-event/' + this.dataset.id;
+            }
         });
     });
 
@@ -874,32 +984,51 @@ function _lcOpenDayModal(date, events) {
     var list = document.getElementById('lcDayModalList');
     list.innerHTML = '';
 
-    // Event cards
+    // Event + appointment cards
     events.forEach(function(ev) {
-        var color = colorMap[ev.categoryId] || 'linear-gradient(135deg,#6b7280,#9ca3af)';
-        var card  = document.createElement('div');
+        var isAppt = ev._kind === 'appt';
+        var color  = isAppt ? LC_APPT_COLOR : (colorMap[ev.categoryId] || 'linear-gradient(135deg,#6b7280,#9ca3af)');
+        var card   = document.createElement('div');
         card.className = 'lc-day-modal-card';
         var timePrefix = ev.startTime
             ? '<span class="lc-event-time">' + escapeHtml(_lcFormatTime(ev.startTime)) + '</span> '
             : '';
+        var apptBadge = isAppt ? '<span class="lc-appt-badge">Appt</span> ' : '';
+        var statusLabel, statusClass;
+        if (isAppt) {
+            var apptStatusMap = { scheduled: ['Scheduled','upcoming'], completed: ['Completed','attended'],
+                                  cancelled: ['Cancelled','didntgo'],  converted:  ['Converted','attended'] };
+            var m = apptStatusMap[ev._apptStatus] || ['Appointment','upcoming'];
+            statusLabel = m[0]; statusClass = m[1];
+        } else {
+            statusLabel = _lcStatusLabel(ev.status);
+            statusClass = ev.status || 'upcoming';
+        }
         card.innerHTML =
             '<div class="lc-event-card-bar" style="background:' + color + '"></div>' +
             '<div class="lc-event-card-body">' +
-                '<div class="lc-event-card-title">' + timePrefix + escapeHtml(ev.title || '') + '</div>' +
+                '<div class="lc-event-card-title">' + apptBadge + timePrefix + escapeHtml(ev.title || '') + '</div>' +
                 '<div class="lc-event-card-meta">' +
-                    '<span class="lc-event-card-dates">' + escapeHtml(_lcFormatDateRange(ev.startDate, ev.endDate)) + '</span>' +
-                    '<span class="lc-status-badge lc-status-badge--' + (ev.status || 'upcoming') + '">' +
-                        escapeHtml(_lcStatusLabel(ev.status)) +
+                    '<span class="lc-event-card-dates">' + escapeHtml(_lcFormatDateRange(ev.startDate, isAppt ? '' : ev.endDate)) + '</span>' +
+                    '<span class="lc-status-badge lc-status-badge--' + statusClass + '">' +
+                        escapeHtml(statusLabel) +
                     '</span>' +
                 '</div>' +
             '</div>';
-        card.addEventListener('click', (function(id) {
-            return function() {
+        if (isAppt) {
+            card.addEventListener('click', function() {
                 closeModal('lcDayModal');
-                // Defer navigation so closeModal's history.back() resolves first
-                setTimeout(function() { window.location.hash = '#life-event/' + id; }, 50);
-            };
-        })(ev.id));
+                setTimeout(function() { window.location.hash = '#health-appointments'; }, 50);
+            });
+        } else {
+            card.addEventListener('click', (function(id) {
+                return function() {
+                    closeModal('lcDayModal');
+                    // Defer navigation so closeModal's history.back() resolves first
+                    setTimeout(function() { window.location.hash = '#life-event/' + id; }, 50);
+                };
+            })(ev.id));
+        }
         list.appendChild(card);
     });
 
@@ -946,15 +1075,19 @@ async function loadLifeCalendarPage() {
         // Seed default categories if this is the first visit
         await lcEnsureDefaultCategories();
 
-        // Load categories and events in parallel
-        var [categories, eventsSnap] = await Promise.all([
+        // Load categories, events, and health appointments in parallel
+        var [categories, eventsSnap, apptsSnap] = await Promise.all([
             lcLoadCategories(),
-            userCol('lifeEvents').get()
+            userCol('lifeEvents').get(),
+            userCol('healthAppointments').get()
         ]);
 
         // Cache for filter re-use
-        _lcAllCategories = categories;
-        _lcAllEvents = eventsSnap.docs.map(function(d) { return { id: d.id, ...d.data() }; });
+        _lcAllCategories  = categories;
+        _lcAllEvents      = eventsSnap.docs.map(function(d) { return { id: d.id, ...d.data() }; });
+        _lcAllAppointments = apptsSnap.docs
+            .map(function(d) { return _lcNormalizeAppointment(d.id, d.data()); })
+            .filter(function(a) { return !!a.startDate; }); // only appointments with a date
 
         // Set default view based on screen size (only on first visit)
         if (_lcViewMode === null) {

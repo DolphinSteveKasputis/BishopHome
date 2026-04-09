@@ -7528,6 +7528,20 @@ a.health-chip--link:hover { filter: brightness(0.93); }
     overflow: hidden;
     text-overflow: ellipsis;
 }
+/* Small pill badge on appointment cards to distinguish them from life events */
+.lc-appt-badge {
+    display: inline-block;
+    background: #fee2e2;
+    color: #991b1b;
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: 4px;
+    vertical-align: middle;
+    margin-right: 3px;
+    letter-spacing: 0.02em;
+}
+
 /* Time prefix shown before event title in list cards and grid bars */
 .lc-event-time {
     font-weight: 500;

@@ -549,6 +549,13 @@ Tracks major life events — trips, milestones, goals, relationships.
 - `lifeCategories` — `name`, `color`, `createdAt`
 - `lifeEventLogs` — `logDate`, `logTime`, `body`, `eventId`, `mentionedPersonIds[]`, `createdAt`
 
+**Health Appointments in Calendar**: `healthAppointments` are loaded alongside `lifeEvents` and displayed in both list and grid views.
+- Appointments are normalized to a common shape (`_kind: 'appt'`) with `startDate`, `startTime`, and a title built from `type` + provider name
+- Shown in red (`linear-gradient(135deg,#ef4444,#f87171)`) with an **Appt** pill badge
+- **List view**: filtered by status (scheduled = Upcoming, completed = Attended; missed filter excludes appointments); hidden when a category filter is active
+- **Grid view**: all non-cancelled appointments always appear regardless of status filter (past appointments visible when browsing past months)
+- Clicking an appointment card or grid bar navigates to `#health-appointments`
+
 **Routes**: `#life-calendar` (list), `#life-event/{id}` (detail/edit), `#life-event/new` (create)
 
 **Event Form**:

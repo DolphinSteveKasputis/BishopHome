@@ -8,7 +8,7 @@
 // ============================================================
 
 // ---- Constants ----
-var FP_SNAP_FEET          = 0.5;   // snap grid: 0.5 ft (6-inch increments)
+var FP_SNAP_FEET          = 0.25;  // snap grid: 0.25 ft (3-inch increments)
 var FP_WALL_SNAP_PX       = 12;    // pixels — snap-to-wall proximity threshold
 var FP_CLOSE_PX           = 12;    // pixels — click near first point to close shape
 var FP_MAX_PX_PER_FOOT    = 30;    // cap pixels-per-foot so huge floors still fit
@@ -228,25 +228,31 @@ function fpRender() {
 function fpRenderGrid(svg) {
     var g = fpSvgG(svg, 'fp-grid');
 
+    // 4-tier grid: 5ft dark, 1ft medium, 0.5ft light, 0.25ft very faint
     for (var x = 0; x <= fpPlan.widthFt; x += FP_SNAP_FEET) {
-        var isMajor = (Math.round(x) === x && Math.round(x) % 5 === 0);
-        var isFoot  = (Math.round(x) === x);
+        var isMajor  = (Math.round(x * 100) % 500 === 0);   // 5ft
+        var isFoot   = (Math.round(x * 100) % 100 === 0);   // 1ft
+        var isHalf   = (Math.round(x * 100) % 50  === 0);   // 0.5ft
+        // 0.25ft is everything else
+        var stroke = isMajor ? '#bbb' : (isFoot ? '#ddd' : (isHalf ? '#e8e8e8' : '#f0f0f0'));
+        var sw     = isMajor ? 1 : 0.5;
         fpSvgEl(g, 'line', {
             x1: x * fpPixPerFoot, y1: 0,
             x2: x * fpPixPerFoot, y2: fpSvgH,
-            stroke: isMajor ? '#bbb' : (isFoot ? '#ddd' : '#eee'),
-            'stroke-width': isMajor ? 1 : 0.5
+            stroke: stroke, 'stroke-width': sw
         });
     }
 
     for (var y = 0; y <= fpPlan.heightFt; y += FP_SNAP_FEET) {
-        var isMajorY = (Math.round(y) === y && Math.round(y) % 5 === 0);
-        var isFootY  = (Math.round(y) === y);
+        var isMajorY = (Math.round(y * 100) % 500 === 0);
+        var isFootY  = (Math.round(y * 100) % 100 === 0);
+        var isHalfY  = (Math.round(y * 100) % 50  === 0);
+        var strokeY  = isMajorY ? '#bbb' : (isFootY ? '#ddd' : (isHalfY ? '#e8e8e8' : '#f0f0f0'));
+        var swY      = isMajorY ? 1 : 0.5;
         fpSvgEl(g, 'line', {
             x1: 0, y1: y * fpPixPerFoot,
             x2: fpSvgW, y2: y * fpPixPerFoot,
-            stroke: isMajorY ? '#bbb' : (isFootY ? '#ddd' : '#eee'),
-            'stroke-width': isMajorY ? 1 : 0.5
+            stroke: strokeY, 'stroke-width': swY
         });
     }
 
@@ -553,14 +559,45 @@ function fpRenderDrawPreview(svg) {
         });
     });
 
-    // Coordinate label at cursor
+    // Coordinate + length label at cursor (SVG)
     if (fpPreviewPoint && pts.length > 0) {
-        var cur = pts[pts.length - 1];
+        var cur  = pts[pts.length - 1];
+        var prev = fpDrawPoints.length > 0 ? fpDrawPoints[fpDrawPoints.length - 1] : null;
+        var segLen = prev ? Math.sqrt(Math.pow(cur.x - prev.x, 2) + Math.pow(cur.y - prev.y, 2)) : 0;
         var lbl = fpSvgEl(svg, 'text', {
             x: fp2px(cur.x) + 8, y: fp2px(cur.y) - 6,
             'font-size': 10, fill: '#0066cc', 'pointer-events': 'none'
         });
-        lbl.textContent = cur.x.toFixed(1) + ', ' + cur.y.toFixed(1) + ' ft';
+        lbl.textContent = cur.x.toFixed(2) + ', ' + cur.y.toFixed(2) + ' ft'
+            + (prev ? '  (' + segLen.toFixed(2) + ' ft)' : '');
+
+        // Update the coords bar above the canvas
+        fpUpdateCoordsBar(cur.x, cur.y, prev ? segLen : null);
+    }
+}
+
+/**
+ * Update the coords bar display above the SVG canvas.
+ * @param {number} x        - Current cursor X in feet
+ * @param {number} y        - Current cursor Y in feet
+ * @param {number|null} len - Length of current segment in feet, or null if no segment yet
+ */
+function fpUpdateCoordsBar(x, y, len) {
+    var bar     = document.getElementById('fpCoordsBar');
+    var posEl   = document.getElementById('fpCoordsPos');
+    var lenEl   = document.getElementById('fpCoordsLen');
+    var sepEl   = bar ? bar.querySelector('.fp-coords-sep') : null;
+    if (!bar || !posEl || !lenEl) return;
+
+    posEl.textContent = 'Position: ' + x.toFixed(2) + ', ' + y.toFixed(2) + ' ft';
+    if (len !== null) {
+        lenEl.textContent  = 'Segment: ' + len.toFixed(2) + ' ft';
+        if (sepEl) sepEl.style.display = '';
+        lenEl.style.display = '';
+    } else {
+        lenEl.textContent  = '';
+        if (sepEl) sepEl.style.display = 'none';
+        lenEl.style.display = 'none';
     }
 }
 
@@ -599,14 +636,26 @@ function fpRenderDrawPreview(svg) {
         }
     });
 
-    // Mouse move — live preview while drawing
+    // Mouse move — live preview while drawing; also update coords bar when tool is room
     svg.addEventListener('mousemove', function(e) {
-        if (!fpPlan || !fpDrawing) return;
+        if (!fpPlan) return;
+
+        // Show coords bar whenever the room tool is active (even before first click)
+        if (fpActiveTool === 'room') {
+            var bar = document.getElementById('fpCoordsBar');
+            if (bar) bar.classList.remove('hidden');
+            if (!fpDrawing) {
+                // Just update position, no segment yet
+                var rawPt = fpMouseToFeet(e);
+                fpUpdateCoordsBar(rawPt.x, rawPt.y, null);
+            }
+        }
+
+        if (!fpDrawing) return;
         fpPreviewPoint = fpMouseToFeet(e);
         if (fpDrawPoints.length > 0) {
             var constrained = fpConstrainToAxis(fpPreviewPoint, fpDrawPoints[fpDrawPoints.length - 1]);
-            fpSetStatus('Drawing: (' + constrained.x.toFixed(1) + ', ' + constrained.y.toFixed(1) +
-                ' ft)  |  Click to place corner  |  Double-click to close shape  |  Esc to cancel');
+            fpSetStatus('Click to place corner  |  Double-click to close  |  Esc to cancel');
         }
         fpRender();
     });
@@ -699,18 +748,28 @@ function fpFinishRoom(dblClickPt) {
 
 function fpOpenRoomLinkModal(points, color) {
     var select = document.getElementById('fpRoomLinkSelect');
-    select.innerHTML = '<option value="">— Create a new room —</option>';
+    select.innerHTML = '';
 
     // Only offer rooms not already on this floor plan
-    var usedIds = (fpPlan.rooms || []).map(function(r) { return r.roomId; });
-    fpRoomList.forEach(function(room) {
-        if (!usedIds.includes(room.id)) {
-            var opt = document.createElement('option');
-            opt.value = room.id;
-            opt.textContent = room.name;
-            select.appendChild(opt);
-        }
+    var usedIds      = (fpPlan.rooms || []).map(function(r) { return r.roomId; });
+    var unplaced     = fpRoomList.filter(function(r) { return !usedIds.includes(r.id); });
+
+    // Existing unplaced rooms listed first
+    unplaced.forEach(function(room) {
+        var opt = document.createElement('option');
+        opt.value       = room.id;
+        opt.textContent = room.name;
+        select.appendChild(opt);
     });
+
+    // "Create new room" at the bottom
+    var newOpt = document.createElement('option');
+    newOpt.value       = '';
+    newOpt.textContent = '＋ Create a new room…';
+    select.appendChild(newOpt);
+
+    // Default: first existing room if any; otherwise "Create new"
+    select.value = unplaced.length > 0 ? unplaced[0].id : '';
 
     var modal = document.getElementById('fpRoomLinkModal');
     modal.dataset.pendingPoints = JSON.stringify(points);
@@ -818,8 +877,8 @@ function fpOpenRoomEditModal() {
         var tr = document.createElement('tr');
         tr.innerHTML =
             '<td>Corner ' + (i + 1) + '</td>' +
-            '<td><input type="number" step="0.5" class="fp-corner-x" data-idx="' + i + '" value="' + p.x + '" style="width:70px"> ft</td>' +
-            '<td><input type="number" step="0.5" class="fp-corner-y" data-idx="' + i + '" value="' + p.y + '" style="width:70px"> ft</td>';
+            '<td><input type="number" step="0.25" class="fp-corner-x" data-idx="' + i + '" value="' + p.x + '" style="width:70px"> ft</td>' +
+            '<td><input type="number" step="0.25" class="fp-corner-y" data-idx="' + i + '" value="' + p.y + '" style="width:70px"> ft</td>';
         tbody.appendChild(tr);
     });
 
@@ -1053,6 +1112,10 @@ function fpSetTool(tool) {
         var btn = document.getElementById(id);
         if (btn) btn.classList.toggle('active', btn.dataset.tool === tool);
     });
+
+    // Show/hide coords bar based on tool
+    var coordsBar = document.getElementById('fpCoordsBar');
+    if (coordsBar) coordsBar.classList.toggle('hidden', tool !== 'room');
 
     var svg = document.getElementById('fpSvg');
     svg.style.cursor = (tool === 'select') ? 'default' : 'crosshair';

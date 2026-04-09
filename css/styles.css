@@ -2501,6 +2501,23 @@ button {
     background: #f8f8f8;
 }
 
+/* Live drawing coords bar — shown above canvas while drawing */
+.fp-coords-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 14px;
+    background: #1e293b;
+    color: #7dd3fc;
+    font-family: monospace;
+    font-size: 1rem;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+.fp-coords-bar.hidden { display: none; }
+.fp-coords-sep { color: #475569; }
+.fp-coords-len { color: #86efac; }
+
 /* Status bar */
 .fp-status {
     padding: 5px 14px;

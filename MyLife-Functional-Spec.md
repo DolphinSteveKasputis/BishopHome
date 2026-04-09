@@ -287,8 +287,11 @@ An interactive drawing tool for each floor.
 
 **Features**:
 - SVG-based canvas with optional grid overlay
-- Snap-to-grid in 1 ft or 6-inch increments
+- Snap-to-grid in 0.25 ft (3-inch) increments; grid displays 4 tiers: 5ft dark, 1ft medium, 0.5ft light, 0.25ft very faint
+- **Coords bar**: always visible above canvas while the Room tool is active — shows current position (x, y in ft) and current segment length in large monospace text; updates live as the cursor moves
+- The SVG cursor label also shows position + segment length (smaller, near the cursor)
 - Rectilinear room polygons (all angles are 90°, but L/T/U shapes are possible)
+- **Room link modal**: after drawing a shape, existing unplaced rooms appear first in the dropdown (pre-selected if any exist); "Create new room" option is at the bottom; new-name field only shown when "Create new" is selected
 - Doors: placed on room walls, show swing direction
 - Windows: placed on walls with width and position
 - Electrical markers: outlets and switches

@@ -565,21 +565,15 @@ function fpMakeDraggableHandle(handle, room, ptIndex) {
         eDown.stopPropagation();
 
         fpDragState = { roomId: room.id, ptIndex: ptIndex };
+        var dragged = false;
 
-        // Show coords bar immediately with current position + segment lengths
-        var pt0  = room.points[ptIndex];
-        var n0   = room.points.length;
-        var prv0 = room.points[(ptIndex - 1 + n0) % n0];
-        var nxt0 = room.points[(ptIndex + 1) % n0];
-        fpShowDragCoordsBar(pt0.x, pt0.y,
-            Math.hypot(pt0.x - prv0.x, pt0.y - prv0.y),
-            Math.hypot(nxt0.x - pt0.x, nxt0.y - pt0.y));
-        fpRender();  // draw highlighted segments before first mousemove
+        fpRender();  // draw highlighted segments immediately (no coords bar yet)
 
         function onMove(eMove) {
             var pt = fpMouseToFeet(eMove);
             room.points[ptIndex] = pt;
             fpDirty = true;
+            dragged = true;
 
             // Update coords bar: position + two colored segment lengths
             var n    = room.points.length;
@@ -596,8 +590,12 @@ function fpMakeDraggableHandle(handle, room, ptIndex) {
             document.removeEventListener('mousemove', onMove);
             document.removeEventListener('mouseup', onUp);
             fpDragState = null;
-            fpClearCoordsBar();
-            fpRender();
+            if (dragged) {
+                // Only clear/re-render if we actually moved the point
+                fpClearCoordsBar();
+                fpRender();
+            }
+            // If not dragged (tap/click), skip clear so dblclick can show edit inputs cleanly
         }
 
         document.addEventListener('mousemove', onMove);

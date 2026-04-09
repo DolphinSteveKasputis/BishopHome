@@ -210,11 +210,10 @@ function loadHousePage() {
                 recurringEvents: recurringEvents
             });
 
-            // --- Render open problems section ---
-            var probContainer  = document.getElementById('houseProblemsContainer');
-            var probEmptyState = document.getElementById('houseProblemsEmpty');
-            if (probContainer && probEmptyState) {
-                renderHouseProblems(probContainer, probEmptyState, openProblemDocs, floorById, roomById, thingById);
+            // --- Render single Open Problems panel card ---
+            var probContainer = document.getElementById('houseProblemsContainer');
+            if (probContainer) {
+                renderHouseProblems(probContainer, openProblemDocs);
             }
 
             // --- Render floor list ---
@@ -351,78 +350,133 @@ function renderHouseSummaryStats(el, stats) {
 }
 
 /**
- * Render open problems from floors/rooms/things as clickable cards.
- * Each card shows the problem description and its location (floor › room › thing),
- * and navigates to the owning entity when clicked.
+ * Render a single "Open Problems" panel card on the house home page.
+ * Clicking it navigates to #house-problems where all problems are listed.
  *
- * @param {Element} container  - The card-list container to populate
- * @param {Element} emptyState - Paragraph shown when there are no open problems
- * @param {Array}   problems   - Array of { id, data } for open problems
- * @param {Object}  floorById  - Map of floorId → floor document data
- * @param {Object}  roomById   - Map of roomId  → room document data
- * @param {Object}  thingById  - Map of thingId → thing document data
+ * @param {Element} container - The card-list container to populate
+ * @param {Array}   problems  - Array of { id, data } for open problems
  */
-function renderHouseProblems(container, emptyState, problems, floorById, roomById, thingById) {
+function renderHouseProblems(container, problems) {
     container.innerHTML = '';
 
-    if (problems.length === 0) {
-        emptyState.textContent = 'No open problems.';
-        return;
+    var card = document.createElement('div');
+    card.className = 'card card--clickable';
+
+    var count = problems.length;
+    var metaText = count === 0
+        ? 'No open problems'
+        : count + ' open problem' + (count !== 1 ? 's' : '');
+
+    card.innerHTML =
+        '<div class="card-main">' +
+            '<span class="card-title">Open Problems</span>' +
+            '<span class="house-floor-meta">' + escapeHtml(metaText) + '</span>' +
+        '</div>' +
+        '<span class="card-arrow">›</span>';
+
+    card.addEventListener('click', function() {
+        window.location.hash = '#house-problems';
+    });
+
+    container.appendChild(card);
+}
+
+/**
+ * Build a human-readable location path for a house problem.
+ * Returns a string like "Main Floor › Living Room › Couch".
+ */
+function _houseProblemLocation(data, floorById, roomById, thingById) {
+    if (data.targetType === 'floor') {
+        var fl = floorById[data.targetId];
+        return fl ? (fl.name || 'Floor') : 'Floor';
     }
-    emptyState.textContent = '';
+    if (data.targetType === 'room') {
+        var rm = roomById[data.targetId];
+        if (!rm) return 'Room';
+        var fl2 = floorById[rm.floorId];
+        return (fl2 ? (fl2.name || 'Floor') + ' › ' : '') + (rm.name || 'Room');
+    }
+    if (data.targetType === 'thing') {
+        var th = thingById[data.targetId];
+        if (!th) return 'Thing';
+        var rm2 = roomById[th.roomId];
+        var fl3 = rm2 ? floorById[rm2.floorId] : null;
+        return (fl3 ? (fl3.name || 'Floor') + ' › ' : '') +
+               (rm2 ? (rm2.name || 'Room')  + ' › ' : '') +
+               (th.name || 'Thing');
+    }
+    return '';
+}
 
-    problems.forEach(function(prob) {
-        var data = prob.data;
-        var card = document.createElement('div');
-        card.className = 'card card--clickable';
+/**
+ * Load the House Open Problems list page (#house-problems).
+ * Shows all open problems across floors, rooms, and things.
+ * Each card links to the owning entity.
+ */
+async function loadHouseProblemsPage() {
+    var container  = document.getElementById('houseProblemsListContainer');
+    var emptyState = document.getElementById('houseProblemsListEmpty');
+    var bar        = document.getElementById('breadcrumbBar');
 
-        // Build human-readable location label and target hash
-        var locationLabel = '';
-        var hash = null;
-        if (data.targetType === 'floor') {
-            var fl = floorById[data.targetId];
-            locationLabel = fl ? (fl.name || 'Floor') : 'Floor';
-            hash = '#floor/' + data.targetId;
-        } else if (data.targetType === 'room') {
-            var rm = roomById[data.targetId];
-            if (rm) {
-                var fl2 = floorById[rm.floorId];
-                locationLabel = (fl2 ? (fl2.name || 'Floor') + ' › ' : '') + (rm.name || 'Room');
-            } else {
-                locationLabel = 'Room';
-            }
-            hash = '#room/' + data.targetId;
-        } else if (data.targetType === 'thing') {
-            var th = thingById[data.targetId];
-            if (th) {
-                var rm2 = roomById[th.roomId];
-                var fl3 = rm2 ? floorById[rm2.floorId] : null;
-                locationLabel = (fl3  ? (fl3.name  || 'Floor') + ' › ' : '') +
-                                (rm2  ? (rm2.name  || 'Room')  + ' › ' : '') +
-                                (th.name || 'Thing');
-            } else {
-                locationLabel = 'Thing';
-            }
-            hash = '#thing/' + data.targetId;
+    if (!container) return;
+    container.innerHTML = '<p class="empty-state">Loading…</p>';
+    if (emptyState) emptyState.textContent = '';
+    if (bar) bar.innerHTML = '<a href="#house">House</a><span class="separator">&rsaquo;</span><span>Open Problems</span>';
+
+    try {
+        var [problemSnap, floorSnap, roomSnap, thingSnap] = await Promise.all([
+            userCol('problems').where('targetType', 'in', ['floor', 'room', 'thing']).get(),
+            userCol('floors').get(),
+            userCol('rooms').get(),
+            userCol('things').get()
+        ]);
+
+        // Build lookup maps
+        var floorById = {};
+        floorSnap.forEach(function(d) { floorById[d.id] = d.data(); });
+        var roomById = {};
+        roomSnap.forEach(function(d) { roomById[d.id] = d.data(); });
+        var thingById = {};
+        thingSnap.forEach(function(d) { thingById[d.id] = d.data(); });
+
+        // Collect open problems
+        var openProblems = [];
+        problemSnap.forEach(function(d) {
+            if (d.data().status === 'open') openProblems.push({ id: d.id, data: d.data() });
+        });
+
+        container.innerHTML = '';
+
+        if (openProblems.length === 0) {
+            if (emptyState) emptyState.textContent = 'No open problems — all clear!';
+            return;
         }
 
-        card.innerHTML =
-            '<div class="card-main">' +
-                '<span class="card-title">' + escapeHtml(data.description || 'Problem') + '</span>' +
-                (locationLabel
-                    ? '<span class="house-floor-meta">' + escapeHtml(locationLabel) + '</span>'
-                    : '') +
-            '</div>' +
-            '<span class="card-arrow">›</span>';
+        openProblems.forEach(function(prob) {
+            var data     = prob.data;
+            var location = _houseProblemLocation(data, floorById, roomById, thingById);
+            var hash     = '#' + (data.targetType || 'house') + '/' + data.targetId;
 
-        if (hash) {
+            var card = document.createElement('div');
+            card.className = 'card card--clickable';
+            card.innerHTML =
+                '<div class="card-main">' +
+                    '<span class="card-title">' + escapeHtml(data.description || 'Problem') + '</span>' +
+                    (location ? '<span class="house-floor-meta">' + escapeHtml(location) + '</span>' : '') +
+                '</div>' +
+                '<span class="card-arrow">›</span>';
+
             card.addEventListener('click', (function(h) {
                 return function() { window.location.hash = h; };
             })(hash));
-        }
 
-        container.appendChild(card);
-    });
+            container.appendChild(card);
+        });
+
+    } catch (err) {
+        console.error('loadHouseProblemsPage error:', err);
+        container.innerHTML = '<p class="empty-state" style="color:var(--danger)">Failed to load problems.</p>';
+    }
 }
 
 /**

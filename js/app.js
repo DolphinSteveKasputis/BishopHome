@@ -21,7 +21,7 @@ const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'h
 const ALL_PAGES = [
     ...TOP_LEVEL_PAGES,
     'zone', 'plant', 'weed', 'chemical', 'gpsmap', 'yardmap',
-    'floor', 'room', 'thing', 'subthing', 'item', 'floorplan', 'panel', 'rooms', 'things',
+    'floor', 'room', 'thing', 'subthing', 'item', 'floorplan', 'panel', 'rooms', 'things', 'house-problems',
     'backup', 'vehicle',
     'garageroom', 'garagething', 'garagesubthing',
     'structure', 'structurething', 'structuresubthing',
@@ -41,7 +41,7 @@ const ALL_PAGES = [
  * Yard-context pages — switching to any of these shows the yard nav.
  * Shared pages (calendar, settings) keep whichever context was last active.
  */
-const HOUSE_PAGES = ['house', 'floor', 'room', 'thing', 'subthing', 'item', 'floorplan', 'panel', 'rooms', 'things'];
+const HOUSE_PAGES = ['house', 'floor', 'room', 'thing', 'subthing', 'item', 'floorplan', 'panel', 'rooms', 'things', 'house-problems'];
 const YARD_PAGES  = ['main', 'home', 'zones', 'zone', 'plant', 'weeds', 'weed', 'chemicals', 'chemical', 'actions', 'gpsmap', 'yardmap', 'activityreport', 'checklists',
                      'structures', 'structure', 'structurething', 'structuresubthing'];
 const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'journal-categories', 'people', 'contacts', 'person', 'contact',
@@ -194,6 +194,9 @@ function handleRoute() {
     } else if (page === 'things') {
         showPage('things');
         loadThingsPage();
+    } else if (page === 'house-problems') {
+        showPage('house-problems');
+        loadHouseProblemsPage();
     } else if (page === 'floor' && id) {
         showPage('floor');
         loadFloorDetail(id);

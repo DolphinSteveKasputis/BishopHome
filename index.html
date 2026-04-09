@@ -875,12 +875,8 @@
             </div>
             <!-- Summary stats bar (events only after problems moved to own section) -->
             <div id="houseSummaryStats" class="house-summary-stats"></div>
-            <!-- Open Problems section — rendered by renderHouseProblems() -->
-            <div class="section-header" id="houseProblemsHeader">
-                <h3 class="section-heading">Open Problems</h3>
-            </div>
+            <!-- Open Problems panel — single clickable card rendered by renderHouseProblems() -->
             <div class="card-list" id="houseProblemsContainer"></div>
-            <p class="empty-state" id="houseProblemsEmpty"></p>
             <!-- Floors section -->
             <div class="section-header">
                 <h3 class="section-heading">Floors</h3>
@@ -925,6 +921,15 @@
             </div>
             <div class="card-list" id="panelListContainer"></div>
             <p class="empty-state" id="panelEmptyState"></p>
+        </section>
+
+        <!-- Page: House Open Problems list -->
+        <section class="page hidden" id="page-house-problems">
+            <div class="page-header">
+                <h2>Open Problems</h2>
+            </div>
+            <div class="card-list" id="houseProblemsListContainer"></div>
+            <p class="empty-state" id="houseProblemsListEmpty"></p>
         </section>
 
         <!-- Page: Breaker Panel Detail (Phase H12) -->
@@ -7361,7 +7366,7 @@
     <script src="js/calendar.js?v=350"></script>
     <script src="js/gps.js?v=350"></script>
     <script src="js/settings.js?v=350"></script>
-    <script src="js/house.js?v=357"></script>
+    <script src="js/house.js?v=358"></script>
     <script src="js/floorplan.js?v=350"></script>
     <script src="js/search.js?v=350"></script>
     <script src="js/activityreport.js?v=350"></script>
@@ -7382,7 +7387,7 @@
     <script src="js/secondbrain.js?v=350"></script>
     <script src="js/sbissues.js?v=350"></script>
     <script src="js/places.js?v=350"></script>
-    <script src="js/app.js?v=363"></script>
+    <script src="js/app.js?v=364"></script>
 
 </body>
 </html>

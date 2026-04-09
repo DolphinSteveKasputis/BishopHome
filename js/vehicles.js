@@ -28,6 +28,10 @@ function loadVehiclesPage() {
     var toggle     = document.getElementById('showArchivedToggle');
 
     container.innerHTML = '<p class="empty-state">Loading&hellip;</p>';
+
+    // Breadcrumb: House › Vehicles
+    var bar = document.getElementById('breadcrumbBar');
+    if (bar) bar.innerHTML = '<a href="#house">House</a><span class="separator">&rsaquo;</span><span>Vehicles</span>';
     if (archived) archived.innerHTML = '';
 
     // Reset the archived toggle so it doesn't stay checked between navigations
@@ -292,6 +296,8 @@ function renderVehicleDetail(vehicle) {
     var crumb = document.getElementById('breadcrumbBar');
     if (crumb) {
         crumb.innerHTML =
+            '<a href="#house">House</a>' +
+            '<span class="separator">&rsaquo;</span>' +
             '<a href="#vehicles">Vehicles</a>' +
             '<span class="separator">&rsaquo;</span>' +
             '<span>' + escapeHtml(title) + '</span>';

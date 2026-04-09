@@ -46,6 +46,10 @@ function loadCollectionsPage() {
     if (!container) return;
     container.innerHTML = '<p class="empty-state">Loading&hellip;</p>';
 
+    // Breadcrumb: House › Collections
+    var bar = document.getElementById('breadcrumbBar');
+    if (bar) bar.innerHTML = '<a href="#house">House</a><span class="separator">&rsaquo;</span><span>Collections</span>';
+
     // Wire up Add Collection button (clone to remove stale listeners)
     var addBtn = document.getElementById('addCollectionBtn');
     if (addBtn) {
@@ -320,7 +324,7 @@ function loadCollectionPage(id) {
     nameEl.textContent  = 'Loading…';
     statsEl.textContent = '';
     listEl.innerHTML    = '<p class="empty-state">Loading&hellip;</p>';
-    if (crumbEl) crumbEl.innerHTML = '<a href="#collections">Collections</a>';
+    if (crumbEl) crumbEl.innerHTML = '<a href="#house">House</a><span class="separator">&rsaquo;</span><a href="#collections">Collections</a>';
 
     userCol('collections').doc(id).get()
         .then(function(doc) {
@@ -337,6 +341,8 @@ function loadCollectionPage(id) {
             // Update breadcrumb with collection name
             if (crumbEl) {
                 crumbEl.innerHTML =
+                    '<a href="#house">House</a>' +
+                    '<span class="separator">&rsaquo;</span>' +
                     '<a href="#collections">Collections</a>' +
                     '<span class="separator">&rsaquo;</span>' +
                     '<span>' + escapeHtml(data.name || 'Collection') + '</span>';
@@ -902,7 +908,10 @@ function loadCollectionItemPage(id) {
                     // Breadcrumb
                     if (crumbEl) {
                         crumbEl.innerHTML =
-                            '<a href="#collections">Collections</a> &rsaquo; ' +
+                            '<a href="#house">House</a>' +
+                            '<span class="separator">&rsaquo;</span>' +
+                            '<a href="#collections">Collections</a>' +
+                            '<span class="separator">&rsaquo;</span>' +
                             '<a href="#collection/' + itemData.collectionId + '">' +
                                 escapeHtml(colData.name || 'Collection') +
                             '</a>';

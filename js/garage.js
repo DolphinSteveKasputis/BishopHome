@@ -44,6 +44,10 @@ function loadGaragePage() {
     var container = document.getElementById('garageRoomsList');
     container.innerHTML = '<p class="empty-state">Loading…</p>';
 
+    // Breadcrumb: House › Garage
+    var bar = document.getElementById('breadcrumbBar');
+    if (bar) bar.innerHTML = '<a href="#house">House</a><span class="separator">&rsaquo;</span><span>Garage</span>';
+
     userCol('garageRooms').orderBy('order').get()
         .then(function(snapshot) {
             if (snapshot.empty) {
@@ -136,8 +140,9 @@ function loadGarageRoomPage(roomId) {
 function renderGarageRoomPage(room) {
     document.getElementById('garageRoomName').textContent = room.name || 'Room';
 
-    // Breadcrumb: Garage › Room Name
+    // Breadcrumb: House › Garage › Room Name
     buildGarageBreadcrumb([
+        { label: 'House',  hash: '#house' },
         { label: 'Garage', hash: '#garage' },
         { label: room.name || 'Room', hash: null }
     ]);
@@ -425,8 +430,9 @@ function renderGarageThingPage(thing, room) {
     document.getElementById('garageThingMeta').textContent =
         (room.name || 'Garage') + (catLabel ? ' · ' + catLabel : '');
 
-    // Breadcrumb: Garage › Room Name › Thing Name
+    // Breadcrumb: House › Garage › Room Name › Thing Name
     buildGarageBreadcrumb([
+        { label: 'House',            hash: '#house' },
         { label: 'Garage',           hash: '#garage' },
         { label: room.name || 'Room', hash: '#garageroom/' + room.id },
         { label: thing.name || 'Thing', hash: null }
@@ -683,8 +689,9 @@ function renderGarageSubThingPage(subThing, thing, room) {
     document.getElementById('garageSubThingMeta').textContent =
         (room.name || 'Garage') + ' › ' + (thing.name || 'Thing');
 
-    // Breadcrumb: Garage › Room Name › Thing Name › Item Name
+    // Breadcrumb: House › Garage › Room Name › Thing Name › Item Name
     buildGarageBreadcrumb([
+        { label: 'House',               hash: '#house' },
         { label: 'Garage',              hash: '#garage' },
         { label: room.name  || 'Room',  hash: room.id  ? '#garageroom/'  + room.id  : null },
         { label: thing.name || 'Thing', hash: thing.id ? '#garagething/' + thing.id : null },

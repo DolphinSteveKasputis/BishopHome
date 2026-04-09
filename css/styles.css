@@ -2170,6 +2170,20 @@ button {
 /* ---------- House / Interior Feature ---------- */
 
 /* Small floor number badge shown next to the floor name in cards */
+/* "More" section cards on the house page (Garage, Vehicles, Collections) */
+.house-more-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: inherit;
+}
+.house-more-icon {
+    font-size: 1.4rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
 .house-floor-num {
     font-size: 0.8rem;
     color: #888;

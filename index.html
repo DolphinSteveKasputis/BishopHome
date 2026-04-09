@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=380">
+    <link rel="stylesheet" href="css/styles.css?v=381">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -158,21 +158,9 @@
                     <span class="landing-tile-icon">🏠</span>
                     <span class="landing-tile-label">House</span>
                 </a>
-                <a href="#garage" class="landing-tile landing-tile--garage">
-                    <span class="landing-tile-icon">🚗</span>
-                    <span class="landing-tile-label">Garage</span>
-                </a>
-                <a href="#vehicles" class="landing-tile landing-tile--vehicles">
-                    <span class="landing-tile-icon">🚙</span>
-                    <span class="landing-tile-label">Vehicles</span>
-                </a>
                 <a href="#life" class="landing-tile landing-tile--life">
                     <span class="landing-tile-icon">🧠</span>
                     <span class="landing-tile-label">Life</span>
-                </a>
-                <a href="#collections" class="landing-tile landing-tile--collections">
-                    <span class="landing-tile-icon">📦</span>
-                    <span class="landing-tile-label">Collections</span>
                 </a>
             </div>
         </section>
@@ -893,6 +881,28 @@
             </div>
             <div class="card-list" id="floorListContainer"></div>
             <p class="empty-state" id="floorEmptyState"></p>
+
+            <!-- More section — quick-nav to less-frequent areas -->
+            <div class="section-header">
+                <h3 class="section-heading">More</h3>
+            </div>
+            <div class="card-list">
+                <a href="#garage" class="card card--clickable house-more-card">
+                    <span class="house-more-icon">🚗</span>
+                    <div class="card-main"><span class="card-title">Garage</span></div>
+                    <span class="card-arrow">›</span>
+                </a>
+                <a href="#vehicles" class="card card--clickable house-more-card">
+                    <span class="house-more-icon">🚙</span>
+                    <div class="card-main"><span class="card-title">Vehicles</span></div>
+                    <span class="card-arrow">›</span>
+                </a>
+                <a href="#collections" class="card card--clickable house-more-card">
+                    <span class="house-more-icon">📦</span>
+                    <div class="card-main"><span class="card-title">Collections</span></div>
+                    <span class="card-arrow">›</span>
+                </a>
+            </div>
 
             <!-- Upcoming Calendar Events rollup (next 14 days) -->
             <div class="section-header">

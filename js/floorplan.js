@@ -49,6 +49,7 @@ var fpViewY      = 0;    // viewBox origin Y in SVG pixels
 var fpViewW      = 800;  // viewBox width  in SVG pixels  (fpSvgW / fpZoom)
 var fpViewH      = 600;  // viewBox height in SVG pixels  (fpSvgH / fpZoom)
 var fpPinchState = null; // active pinch gesture: {startDist, startZoom, midX, midY}
+var fpDragState  = null; // active corner drag: {roomId, ptIndex} — drives segment highlighting
 
 // ============================================================
 // LOAD — entry point called by app.js on #floorplan/{id}
@@ -472,12 +473,42 @@ function fpRenderRoom(svg, room) {
         dimText.textContent = bbox.w.toFixed(0) + '\xd7' + bbox.h.toFixed(0) + ' ft  (' + areaFt.toFixed(0) + ' sq ft)';
     }
 
+    // Highlighted segments + colored handles during corner drag
+    if (isSelected && fpDragState && fpDragState.roomId === room.id) {
+        var di   = fpDragState.ptIndex;
+        var nPts = room.points.length;
+        var dPrev = room.points[(di - 1 + nPts) % nPts];
+        var dCurr = room.points[di];
+        var dNext = room.points[(di + 1) % nPts];
+
+        // Segment A: previous → dragged (cyan)
+        fpSvgEl(svg, 'line', {
+            x1: fp2px(dPrev.x), y1: fp2px(dPrev.y),
+            x2: fp2px(dCurr.x), y2: fp2px(dCurr.y),
+            stroke: FP_DRAG_COLOR_A, 'stroke-width': 3, 'pointer-events': 'none'
+        });
+        // Segment B: dragged → next (orange)
+        fpSvgEl(svg, 'line', {
+            x1: fp2px(dCurr.x), y1: fp2px(dCurr.y),
+            x2: fp2px(dNext.x), y2: fp2px(dNext.y),
+            stroke: FP_DRAG_COLOR_B, 'stroke-width': 3, 'pointer-events': 'none'
+        });
+    }
+
     // Corner drag handles when selected
     if (isSelected) {
         room.points.forEach(function(p, i) {
+            // During drag: color the prev/next anchor points to match their segment color
+            var handleStroke = '#0066cc';
+            if (fpDragState && fpDragState.roomId === room.id) {
+                var di2  = fpDragState.ptIndex;
+                var nPts2 = room.points.length;
+                if (i === (di2 - 1 + nPts2) % nPts2) handleStroke = FP_DRAG_COLOR_A;
+                if (i === (di2 + 1) % nPts2)          handleStroke = FP_DRAG_COLOR_B;
+            }
             var handle = fpSvgEl(svg, 'circle', {
                 cx: fp2px(p.x), cy: fp2px(p.y), r: 6,
-                fill: 'white', stroke: '#0066cc', 'stroke-width': 2,
+                fill: 'white', stroke: handleStroke, 'stroke-width': 2,
                 style: 'cursor:move'
             });
             handle.dataset.roomId  = room.id;
@@ -496,26 +527,73 @@ function fpConnectedFloorName(floorId) {
 /**
  * Allow a corner handle to be dragged to reshape a room.
  */
+// Colors used for the two segments adjacent to a dragged corner
+var FP_DRAG_COLOR_A = '#22d3ee';  // cyan  — segment: previous point → dragged point
+var FP_DRAG_COLOR_B = '#fb923c';  // orange — segment: dragged point → next point
+
 function fpMakeDraggableHandle(handle, room, ptIndex) {
     handle.addEventListener('mousedown', function(eDown) {
         eDown.preventDefault();
         eDown.stopPropagation();
 
+        fpDragState = { roomId: room.id, ptIndex: ptIndex };
+
+        // Show coords bar immediately with current position + segment lengths
+        var pt0  = room.points[ptIndex];
+        var n0   = room.points.length;
+        var prv0 = room.points[(ptIndex - 1 + n0) % n0];
+        var nxt0 = room.points[(ptIndex + 1) % n0];
+        fpShowDragCoordsBar(pt0.x, pt0.y,
+            Math.hypot(pt0.x - prv0.x, pt0.y - prv0.y),
+            Math.hypot(nxt0.x - pt0.x, nxt0.y - pt0.y));
+        fpRender();  // draw highlighted segments before first mousemove
+
         function onMove(eMove) {
             var pt = fpMouseToFeet(eMove);
             room.points[ptIndex] = pt;
             fpDirty = true;
+
+            // Update coords bar: position + two colored segment lengths
+            var n    = room.points.length;
+            var prev = room.points[(ptIndex - 1 + n) % n];
+            var next = room.points[(ptIndex + 1) % n];
+            var lenA = Math.hypot(pt.x - prev.x, pt.y - prev.y);
+            var lenB = Math.hypot(next.x - pt.x, next.y - pt.y);
+            fpShowDragCoordsBar(pt.x, pt.y, lenA, lenB);
+
             fpRender();
         }
 
         function onUp() {
             document.removeEventListener('mousemove', onMove);
             document.removeEventListener('mouseup', onUp);
+            fpDragState = null;
+            // Hide coords bar when drag ends
+            var bar = document.getElementById('fpCoordsBar');
+            if (bar) bar.classList.add('hidden');
+            fpRender();
         }
 
         document.addEventListener('mousemove', onMove);
         document.addEventListener('mouseup', onUp);
     });
+}
+
+/** Show coords bar with position + two colored segment lengths during corner drag */
+function fpShowDragCoordsBar(x, y, lenA, lenB) {
+    var bar   = document.getElementById('fpCoordsBar');
+    var posEl = document.getElementById('fpCoordsPos');
+    var lenEl = document.getElementById('fpCoordsLen');
+    var sepEl = bar ? bar.querySelector('.fp-coords-sep') : null;
+    if (!bar || !posEl || !lenEl) return;
+    bar.classList.remove('hidden');
+    posEl.textContent = 'Position: ' + x.toFixed(2) + ', ' + y.toFixed(2) + ' ft';
+    if (sepEl) sepEl.style.display = '';
+    lenEl.innerHTML =
+        '<span style="color:' + FP_DRAG_COLOR_A + '">' + lenA.toFixed(2) + ' ft</span>' +
+        '<span style="margin:0 8px;opacity:0.5">|</span>' +
+        '<span style="color:' + FP_DRAG_COLOR_B + '">' + lenB.toFixed(2) + ' ft</span>';
+    lenEl.style.display = '';
 }
 
 // ============================================================

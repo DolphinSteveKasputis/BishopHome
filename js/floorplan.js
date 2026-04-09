@@ -42,6 +42,14 @@ var fpPixPerFoot   = 20;
 var fpSvgW         = 800;
 var fpSvgH         = 600;
 
+// Zoom state (viewBox-based — no CSS transforms needed)
+var fpZoom       = 1.0;  // current zoom level (1 = fit to window)
+var fpViewX      = 0;    // viewBox origin X in SVG pixels
+var fpViewY      = 0;    // viewBox origin Y in SVG pixels
+var fpViewW      = 800;  // viewBox width  in SVG pixels  (fpSvgW / fpZoom)
+var fpViewH      = 600;  // viewBox height in SVG pixels  (fpSvgH / fpZoom)
+var fpPinchState = null; // active pinch gesture: {startDist, startZoom, midX, midY}
+
 // ============================================================
 // LOAD — entry point called by app.js on #floorplan/{id}
 // ============================================================
@@ -170,7 +178,63 @@ function fpInitSvg() {
 
     svg.setAttribute('width',   fpSvgW);
     svg.setAttribute('height',  fpSvgH);
-    svg.setAttribute('viewBox', '0 0 ' + fpSvgW + ' ' + fpSvgH);
+
+    // Reset zoom to fit-to-window whenever a plan is (re)loaded
+    fpZoom  = 1.0;
+    fpViewX = 0; fpViewY = 0;
+    fpViewW = fpSvgW; fpViewH = fpSvgH;
+    fpApplyViewBox();
+}
+
+/**
+ * Write the current zoom state back to the SVG viewBox attribute
+ * and update the zoom slider/label.
+ */
+function fpApplyViewBox() {
+    var svg = document.getElementById('fpSvg');
+    if (!svg) return;
+    svg.setAttribute('viewBox', fpViewX + ' ' + fpViewY + ' ' + fpViewW + ' ' + fpViewH);
+    var slider = document.getElementById('fpZoomSlider');
+    if (slider) slider.value = fpZoom;
+    var label  = document.getElementById('fpZoomLabel');
+    if (label)  label.textContent = Math.round(fpZoom * 100) + '%';
+}
+
+/**
+ * Zoom to a new level, keeping the screen point (clientX, clientY) fixed.
+ * Used by mouse-wheel, pinch, and the slider (which passes the canvas centre).
+ */
+function fpZoomTo(newZoom, clientX, clientY) {
+    if (!fpPlan || !fpPlan.widthFt) return;
+    newZoom = Math.max(0.25, Math.min(8, newZoom));
+
+    var svg  = document.getElementById('fpSvg');
+    var rect = svg.getBoundingClientRect();
+    var physW = rect.width, physH = rect.height;
+    if (!physW || !physH) return;
+
+    // SVG-pixel coordinate currently under the focal point
+    var fracX = (clientX - rect.left) / physW;
+    var fracY = (clientY - rect.top)  / physH;
+    var svgCx = fpViewX + fracX * fpViewW;
+    var svgCy = fpViewY + fracY * fpViewH;
+
+    // New viewBox dimensions
+    var newViewW = fpSvgW / newZoom;
+    var newViewH = fpSvgH / newZoom;
+
+    // Shift origin so the focal SVG coord stays under the cursor
+    fpViewX = svgCx - fracX * newViewW;
+    fpViewY = svgCy - fracY * newViewH;
+
+    // Clamp so we don't scroll outside the floor
+    fpViewX = Math.max(0, Math.min(fpSvgW - newViewW, fpViewX));
+    fpViewY = Math.max(0, Math.min(fpSvgH - newViewH, fpViewY));
+
+    fpViewW = newViewW;
+    fpViewH = newViewH;
+    fpZoom  = newZoom;
+    fpApplyViewBox();
 }
 
 // ============================================================
@@ -1402,13 +1466,17 @@ function fp2px(ft) { return ft * fpPixPerFoot; }
 /** Snap a feet value to the grid (FP_SNAP_FEET increments) */
 function fpSnap(ft) { return Math.round(ft / FP_SNAP_FEET) * FP_SNAP_FEET; }
 
-/** Convert SVG mouse event coords to snapped feet */
+/** Convert SVG mouse event coords to snapped feet, accounting for zoom/pan */
 function fpMouseToFeet(e) {
     var svg  = document.getElementById('fpSvg');
     var rect = svg.getBoundingClientRect();
+    var physW = rect.width, physH = rect.height;
+    // Map screen pixel → SVG viewBox pixel → floor feet
+    var svgX = fpViewX + (e.clientX - rect.left) / physW * fpViewW;
+    var svgY = fpViewY + (e.clientY - rect.top)  / physH * fpViewH;
     return {
-        x: Math.max(0, Math.min(fpPlan.widthFt,  fpSnap((e.clientX - rect.left)  / fpPixPerFoot))),
-        y: Math.max(0, Math.min(fpPlan.heightFt, fpSnap((e.clientY - rect.top)   / fpPixPerFoot)))
+        x: Math.max(0, Math.min(fpPlan.widthFt,  fpSnap(svgX / fpPixPerFoot))),
+        y: Math.max(0, Math.min(fpPlan.heightFt, fpSnap(svgY / fpPixPerFoot)))
     };
 }
 
@@ -2433,3 +2501,66 @@ document.getElementById('fpCeilingAddProblemBtn').addEventListener('click', func
         });
     }
 });
+
+// ============================================================
+// ZOOM — mouse wheel, pinch gesture, slider
+// ============================================================
+
+(function() {
+    var wrap = document.getElementById('fpCanvasWrapper');
+
+    // Mouse wheel — zoom centred on cursor position
+    wrap.addEventListener('wheel', function(e) {
+        e.preventDefault();
+        var factor = e.deltaY < 0 ? 1.12 : 0.89;
+        fpZoomTo(fpZoom * factor, e.clientX, e.clientY);
+    }, { passive: false });
+
+    // Two-finger pinch — zoom centred on finger midpoint
+    wrap.addEventListener('touchstart', function(e) {
+        if (e.touches.length === 2) {
+            var t0 = e.touches[0], t1 = e.touches[1];
+            fpPinchState = {
+                startDist: Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY),
+                startZoom: fpZoom,
+                midX: (t0.clientX + t1.clientX) / 2,
+                midY: (t0.clientY + t1.clientY) / 2
+            };
+            e.preventDefault();
+        } else {
+            fpPinchState = null;
+        }
+    }, { passive: false });
+
+    wrap.addEventListener('touchmove', function(e) {
+        if (fpPinchState && e.touches.length === 2) {
+            var t0 = e.touches[0], t1 = e.touches[1];
+            var dist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
+            fpZoomTo(
+                fpPinchState.startZoom * dist / fpPinchState.startDist,
+                fpPinchState.midX, fpPinchState.midY
+            );
+            e.preventDefault();
+        }
+    }, { passive: false });
+
+    wrap.addEventListener('touchend', function(e) {
+        if (e.touches.length < 2) fpPinchState = null;
+    });
+
+    // Zoom slider
+    document.getElementById('fpZoomSlider').addEventListener('input', function() {
+        var newZoom = parseFloat(this.value);
+        var svg  = document.getElementById('fpSvg');
+        var rect = svg.getBoundingClientRect();
+        // Zoom towards the centre of the canvas
+        fpZoomTo(newZoom, rect.left + rect.width / 2, rect.top + rect.height / 2);
+    });
+
+    // Double-click zoom label → reset to 100%
+    document.getElementById('fpZoomLabel').addEventListener('dblclick', function() {
+        var svg  = document.getElementById('fpSvg');
+        var rect = svg.getBoundingClientRect();
+        fpZoomTo(1.0, rect.left + rect.width / 2, rect.top + rect.height / 2);
+    });
+}());

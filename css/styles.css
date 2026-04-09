@@ -2449,6 +2449,30 @@ button {
     user-select: none;
 }
 
+/* Zoom control */
+.fp-zoom-control {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.fp-zoom-label {
+    font-size: 0.8rem;
+    color: #555;
+    min-width: 38px;
+    text-align: right;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+.fp-zoom-slider {
+    width: 80px;
+    cursor: pointer;
+    accent-color: #2e7d32;
+}
+@media (max-width: 480px) {
+    .fp-zoom-slider { width: 55px; }
+}
+
 /* Tool toolbar */
 .fp-toolbar {
     display: flex;

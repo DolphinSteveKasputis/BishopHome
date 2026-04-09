@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=383">
+    <link rel="stylesheet" href="css/styles.css?v=384">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -1500,6 +1500,10 @@
                     <label class="fp-grid-label">
                         <input type="checkbox" id="fpGridToggle" checked> Grid
                     </label>
+                    <div class="fp-zoom-control">
+                        <span id="fpZoomLabel" class="fp-zoom-label" title="Double-click to reset to 100%">100%</span>
+                        <input type="range" id="fpZoomSlider" class="fp-zoom-slider" min="0.25" max="8" step="0.05" value="1">
+                    </div>
                     <button id="fpSaveBtn" class="btn btn-primary btn-small">Save</button>
                 </div>
             </div>
@@ -7400,7 +7404,7 @@
     <script src="js/gps.js?v=350"></script>
     <script src="js/settings.js?v=350"></script>
     <script src="js/house.js?v=362"></script>
-    <script src="js/floorplan.js?v=358"></script>
+    <script src="js/floorplan.js?v=359"></script>
     <script src="js/search.js?v=350"></script>
     <script src="js/activityreport.js?v=350"></script>
     <script src="js/checklists.js?v=350"></script>

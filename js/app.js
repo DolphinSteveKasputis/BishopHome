@@ -21,7 +21,7 @@ const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'h
 const ALL_PAGES = [
     ...TOP_LEVEL_PAGES,
     'zone', 'plant', 'weed', 'chemical', 'gpsmap', 'yardmap',
-    'floor', 'room', 'thing', 'subthing', 'item', 'floorplan', 'panel', 'rooms', 'things', 'house-problems', 'house-projects',
+    'floor', 'room', 'thing', 'subthing', 'item', 'floorplan', 'panel', 'rooms', 'things', 'house-problems', 'house-projects', 'yard-projects',
     'backup', 'vehicle',
     'garageroom', 'garagething', 'garagesubthing',
     'structure', 'structurething', 'structuresubthing',
@@ -43,7 +43,7 @@ const ALL_PAGES = [
  */
 const HOUSE_PAGES = ['house', 'floor', 'room', 'thing', 'subthing', 'item', 'floorplan', 'panel', 'rooms', 'things', 'house-problems', 'house-projects'];
 const YARD_PAGES  = ['main', 'home', 'zones', 'zone', 'plant', 'weeds', 'weed', 'chemicals', 'chemical', 'actions', 'gpsmap', 'yardmap', 'activityreport', 'checklists',
-                     'structures', 'structure', 'structurething', 'structuresubthing'];
+                     'structures', 'structure', 'structurething', 'structuresubthing', 'yard-projects'];
 const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'journal-categories', 'people', 'contacts', 'person', 'contact',
                      'notes', 'notebook', 'note',
                      'health', 'health-visits', 'health-visit', 'health-visit-step2',
@@ -194,6 +194,9 @@ function handleRoute() {
     } else if (page === 'things') {
         showPage('things');
         loadThingsPage();
+    } else if (page === 'yard-projects') {
+        showPage('yard-projects');
+        loadYardProjectsPage();
     } else if (page === 'house-projects') {
         showPage('house-projects');
         loadHouseProjectsPage();

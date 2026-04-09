@@ -238,7 +238,8 @@ async function loadAllProjects() {
     var showCompleted = checkbox ? checkbox.checked : false;
 
     try {
-        var snapshot = await userCol('projects').get();
+        var snapshot = await userCol('projects')
+            .where('targetType', 'in', ['zone', 'plant', 'weed']).get();
 
         // Capture which projects are currently expanded before clearing
         var expandedIds = {};
@@ -325,6 +326,52 @@ async function loadAllProjects() {
         emptyState.textContent = 'Error loading projects.';
         emptyState.style.display = 'block';
     }
+}
+
+// ---------- Yard Projects Panel + Page ----------
+
+/**
+ * Render the single "All Projects" panel card on the Yard home page.
+ * Shows a project count; clicking navigates to #yard-projects.
+ */
+async function renderYardProjectsPanel() {
+    var container = document.getElementById('yardProjectsPanelContainer');
+    if (!container) return;
+
+    try {
+        var snap = await userCol('projects')
+            .where('targetType', 'in', ['zone', 'plant', 'weed']).get();
+        var count = snap.size;
+
+        var card = document.createElement('div');
+        card.className = 'card card--clickable';
+        var metaText = count === 0
+            ? 'No projects'
+            : count + ' project' + (count !== 1 ? 's' : '');
+        card.innerHTML =
+            '<div class="card-main">' +
+                '<span class="card-title">All Projects</span>' +
+                '<span class="house-floor-meta"> &middot; ' + escapeHtml(metaText) + '</span>' +
+            '</div>' +
+            '<span class="card-arrow">›</span>';
+        card.addEventListener('click', function() {
+            window.location.hash = '#yard-projects';
+        });
+        container.innerHTML = '';
+        container.appendChild(card);
+    } catch (err) {
+        console.error('renderYardProjectsPanel error:', err);
+    }
+}
+
+/**
+ * Load the Yard All Projects list page (#yard-projects).
+ * Sets the breadcrumb then delegates to loadAllProjects() for rendering.
+ */
+function loadYardProjectsPage() {
+    var bar = document.getElementById('breadcrumbBar');
+    if (bar) bar.innerHTML = '<a href="#home">Yard</a><span class="separator">&rsaquo;</span><span>All Projects</span>';
+    loadAllProjects();
 }
 
 // ---------- Create a Project Card Element ----------
@@ -1035,9 +1082,9 @@ function reloadProjectsForCurrentTarget(targetType, targetId) {
         loadProjects(targetType, targetId, ids[0], ids[1]);
     }
 
-    // Also refresh home page "All Projects" if it's visible
-    var homePage = document.getElementById('page-home');
-    if (homePage && !homePage.classList.contains('hidden')) {
+    // Also refresh yard projects page if it's currently visible
+    var yardProjectsPage = document.getElementById('page-yard-projects');
+    if (yardProjectsPage && !yardProjectsPage.classList.contains('hidden')) {
         loadAllProjects();
     }
 }

@@ -45,9 +45,9 @@ async function loadZonesList() {
             container.appendChild(card);
         });
 
-        // Load rolled-up projects and upcoming calendar events for the My Yard page
-        if (typeof loadAllProjects === 'function') {
-            loadAllProjects();
+        // Load the All Projects panel card and upcoming calendar events for the My Yard page
+        if (typeof renderYardProjectsPanel === 'function') {
+            renderYardProjectsPanel();
         }
         if (typeof loadHomeCalendar === 'function') {
             loadHomeCalendar();

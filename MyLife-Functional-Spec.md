@@ -168,6 +168,13 @@ See [Shared: Activities](#activities) for the full description. Nuances in the Y
 - Multi-chemical selection: checklist of all chemicals, any number can be linked
 - Saved Actions: reusable templates to pre-fill activity description + chemical selection
 
+### Yard Projects Page (`projects.js`)
+**Route**: `#yard-projects`
+
+The yard main page (`#home`) shows a single **All Projects** panel card (shows count; clicking navigates to `#yard-projects`). The yard projects page lists all projects whose `targetType` is `zone`, `plant`, or `weed`. Each project card is expandable and shows its title, target entity, and checklist. The panel replaces the old inline projects section on the yard home page.
+
+**Breadcrumb**: Yard › All Projects
+
 ### Activity Reports (`activityreport.js`)
 - **Route**: `#activityreport`
 - Filter activities by date range, grouped by type and target entity

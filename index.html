@@ -238,15 +238,8 @@
             <div class="card-list" id="zoneListContainer"></div>
             <p class="empty-state" id="zoneEmptyState">Loading...</p>
 
-            <!-- All Projects (rolled up from entire yard) -->
-            <div class="section-header">
-                <h3 class="section-heading">All Projects</h3>
-                <div class="section-header-actions">
-                    <label class="show-toggle"><input type="checkbox" id="showCompletedHomeProjects"> Show completed</label>
-                </div>
-            </div>
-            <div id="homeProjectsContainer"></div>
-            <p class="empty-state" id="homeProjectsEmptyState"></p>
+            <!-- All Projects panel — single clickable card -->
+            <div class="card-list" id="yardProjectsPanelContainer"></div>
 
             <!-- Upcoming Calendar Events -->
             <div class="section-header">
@@ -254,6 +247,18 @@
             </div>
             <div id="homeCalendarContainer"></div>
             <p class="empty-state" id="homeCalendarEmptyState"></p>
+        </section>
+
+        <!-- Page: Yard All Projects list -->
+        <section class="page hidden" id="page-yard-projects">
+            <div class="page-header">
+                <h2>All Projects</h2>
+            </div>
+            <div class="section-header-actions" style="padding: 0 16px 8px;">
+                <label class="show-toggle"><input type="checkbox" id="showCompletedHomeProjects"> Show completed</label>
+            </div>
+            <div id="homeProjectsContainer"></div>
+            <p class="empty-state" id="homeProjectsEmptyState"></p>
         </section>
 
         <!-- Page: Zone detail (sub-zones + plants) -->
@@ -7361,11 +7366,11 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="js/firebase-config.js?v=350"></script>
     <script src="js/auth.js?v=350"></script>
-    <script src="js/zones.js?v=350"></script>
+    <script src="js/zones.js?v=351"></script>
     <script src="js/plants.js?v=350"></script>
     <script src="js/problems.js?v=350"></script>
     <script src="js/facts.js?v=350"></script>
-    <script src="js/projects.js?v=350"></script>
+    <script src="js/projects.js?v=351"></script>
     <script src="js/chemicals.js?v=350"></script>
     <script src="js/activities.js?v=350"></script>
     <!-- Cropper.js — client-side image cropping library -->
@@ -7398,7 +7403,7 @@
     <script src="js/secondbrain.js?v=350"></script>
     <script src="js/sbissues.js?v=350"></script>
     <script src="js/places.js?v=350"></script>
-    <script src="js/app.js?v=365"></script>
+    <script src="js/app.js?v=366"></script>
 
 </body>
 </html>

@@ -632,6 +632,7 @@ function fpMakeDraggableHandle(handle, room, ptIndex) {
                 // Only clear/re-render if we actually moved the point
                 fpClearCoordsBar();
                 fpRender();
+                fpSilentSave();
             }
             // If not dragged (tap/click), skip clear so dblclick can show edit inputs cleanly
         }
@@ -685,7 +686,8 @@ function fpMakeDraggableRoom(poly, room) {
         function onUp() {
             document.removeEventListener('mousemove', onMove);
             document.removeEventListener('mouseup',  onUp);
-            if (!dragged) fpSelectShape(room.id);
+            if (dragged) fpSilentSave();
+            else fpSelectShape(room.id);
         }
 
         document.addEventListener('mousemove', onMove);
@@ -720,9 +722,8 @@ function fpMakeDraggableCeilingFixture(el, fix) {
         function onUp() {
             document.removeEventListener('mousemove', onMove);
             document.removeEventListener('mouseup',  onUp);
-            if (!dragged) {
-                fpSelectMarker('ceiling', fix.id);
-            }
+            if (dragged) fpSilentSave();
+            else fpSelectMarker('ceiling', fix.id);
         }
 
         document.addEventListener('mousemove', onMove);
@@ -777,7 +778,8 @@ function fpMakeDraggableDoor(el, door) {
         function onUp() {
             document.removeEventListener('mousemove', onMove);
             document.removeEventListener('mouseup',  onUp);
-            if (!dragged) fpSelectMarker('door', door.id);
+            if (dragged) fpSilentSave();
+            else fpSelectMarker('door', door.id);
         }
 
         document.addEventListener('mousemove', onMove);
@@ -811,7 +813,8 @@ function fpMakeDraggableWindow(el, win) {
         function onUp() {
             document.removeEventListener('mousemove', onMove);
             document.removeEventListener('mouseup',  onUp);
-            if (!dragged) fpSelectMarker('window', win.id);
+            if (dragged) fpSilentSave();
+            else fpSelectMarker('window', win.id);
         }
 
         document.addEventListener('mousemove', onMove);
@@ -1788,7 +1791,7 @@ function fpOpenDoorEditModal(door) {
         var fromEnd   = segLen - door.position - (door.width || 3);
         document.getElementById('fpDoorPosFromStart').textContent = fpFmtFeetIn(Math.max(0, fromStart));
         document.getElementById('fpDoorPosFromEnd').textContent   = fpFmtFeetIn(Math.max(0, fromEnd));
-        document.getElementById('fpDoorPosInput').value = '';
+        document.getElementById('fpDoorPosInput').value = fpFmtFeetIn(Math.max(0, fromStart));
         document.getElementById('fpDoorPosRef').value   = 'start';
         m.dataset.segLen = segLen.toFixed(4);
         posSection.style.display = '';
@@ -1821,7 +1824,7 @@ function fpOpenWindowEditModal(win) {
         var fromEnd   = segLen - win.position - (win.width || 3);
         document.getElementById('fpWindowPosFromStart').textContent = fpFmtFeetIn(Math.max(0, fromStart));
         document.getElementById('fpWindowPosFromEnd').textContent   = fpFmtFeetIn(Math.max(0, fromEnd));
-        document.getElementById('fpWindowPosInput').value = '';
+        document.getElementById('fpWindowPosInput').value = fpFmtFeetIn(Math.max(0, fromStart));
         document.getElementById('fpWindowPosRef').value   = 'start';
         m.dataset.segLen = segLen.toFixed(4);
         posSection.style.display = '';
@@ -2100,6 +2103,25 @@ document.getElementById('fpSaveBtn').addEventListener('click', function() {
 // ============================================================
 // SAVE TO FIRESTORE
 // ============================================================
+
+/** Save without any button/status UI — used after drags to persist position changes. */
+function fpSilentSave() {
+    if (!fpFloorId || !fpPlan || !fpDirty) return;
+    userCol('floorPlans').doc(fpFloorId).set({
+        widthFt:         fpPlan.widthFt,
+        heightFt:        fpPlan.heightFt,
+        rooms:           fpPlan.rooms            || [],
+        doors:           fpPlan.doors            || [],
+        windows:         fpPlan.windows          || [],
+        outlets:         fpPlan.outlets          || [],
+        switches:        fpPlan.switches         || [],
+        plumbing:        fpPlan.plumbing         || [],
+        ceilingFixtures: fpPlan.ceilingFixtures  || [],
+        updatedAt:       firebase.firestore.FieldValue.serverTimestamp()
+    })
+    .then(function() { fpDirty = false; })
+    .catch(function(err) { console.error('fpSilentSave error:', err); });
+}
 
 function fpSave() {
     if (!fpFloorId || !fpPlan) return;

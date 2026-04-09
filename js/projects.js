@@ -328,6 +328,127 @@ async function loadAllProjects() {
     }
 }
 
+// ---------- Yard Problems Panel + Page ----------
+
+/**
+ * Render the single "All Problems" panel card on the Yard home page.
+ * Shows an open-problem count; clicking navigates to #yard-problems.
+ */
+async function renderYardProblemsPanel() {
+    var container = document.getElementById('yardProblemsPanelContainer');
+    if (!container) return;
+
+    try {
+        var snap = await userCol('problems')
+            .where('targetType', 'in', ['zone', 'plant', 'weed'])
+            .where('status', '==', 'open')
+            .get();
+        var count = snap.size;
+
+        var card = document.createElement('div');
+        card.className = 'card card--clickable';
+        var metaText = count === 0
+            ? 'No open problems'
+            : count + ' open problem' + (count !== 1 ? 's' : '');
+        card.innerHTML =
+            '<div class="card-main">' +
+                '<span class="card-title">Open Problems</span>' +
+                '<span class="house-floor-meta"> &middot; ' + escapeHtml(metaText) + '</span>' +
+            '</div>' +
+            '<span class="card-arrow">›</span>';
+        card.addEventListener('click', function() {
+            window.location.hash = '#yard-problems';
+        });
+        container.innerHTML = '';
+        container.appendChild(card);
+    } catch (err) {
+        console.error('renderYardProblemsPanel error:', err);
+    }
+}
+
+/**
+ * Load the Yard Open Problems list page (#yard-problems).
+ * Shows all open problems across zones, plants, and weeds.
+ * Each card links to the owning entity.
+ */
+async function loadYardProblemsPage() {
+    var container  = document.getElementById('yardProblemsListContainer');
+    var emptyState = document.getElementById('yardProblemsListEmpty');
+    var bar        = document.getElementById('breadcrumbBar');
+
+    if (!container) return;
+    container.innerHTML = '<p class="empty-state">Loading…</p>';
+    if (emptyState) emptyState.textContent = '';
+    if (bar) bar.innerHTML = '<a href="#home">Yard</a><span class="separator">&rsaquo;</span><span>Open Problems</span>';
+
+    try {
+        var [problemSnap, zoneSnap, plantSnap, weedSnap] = await Promise.all([
+            userCol('problems').where('targetType', 'in', ['zone', 'plant', 'weed'])
+                               .where('status', '==', 'open').get(),
+            userCol('zones').get(),
+            userCol('plants').get(),
+            userCol('weeds').get()
+        ]);
+
+        // Build lookup maps
+        var zoneById  = {};
+        zoneSnap.forEach(function(d)  { zoneById[d.id]  = d.data(); });
+        var plantById = {};
+        plantSnap.forEach(function(d) { plantById[d.id] = d.data(); });
+        var weedById  = {};
+        weedSnap.forEach(function(d)  { weedById[d.id]  = d.data(); });
+
+        // Collect open problems
+        var openProblems = [];
+        problemSnap.forEach(function(d) { openProblems.push({ id: d.id, data: d.data() }); });
+
+        container.innerHTML = '';
+
+        if (openProblems.length === 0) {
+            if (emptyState) emptyState.textContent = 'No open problems — all clear!';
+            return;
+        }
+
+        openProblems.forEach(function(prob) {
+            var data = prob.data;
+            var targetName = '';
+            if (data.targetType === 'zone') {
+                var z = zoneById[data.targetId];
+                targetName = z ? (z.name || 'Zone') : 'Zone';
+            } else if (data.targetType === 'plant') {
+                var pl = plantById[data.targetId];
+                targetName = pl ? (pl.name || 'Plant') : 'Plant';
+                if (pl && pl.zoneId && zoneById[pl.zoneId]) {
+                    targetName = (zoneById[pl.zoneId].name || 'Zone') + ' › ' + targetName;
+                }
+            } else if (data.targetType === 'weed') {
+                var w = weedById[data.targetId];
+                targetName = w ? (w.name || 'Weed') : 'Weed';
+            }
+
+            var hash = '#' + (data.targetType || 'zone') + '/' + data.targetId;
+
+            var card = document.createElement('div');
+            card.className = 'card card--clickable';
+            card.innerHTML =
+                '<div class="card-main">' +
+                    '<span class="card-title">' + escapeHtml(data.description || 'Problem') + '</span>' +
+                    (targetName ? '<span class="house-floor-meta">' + escapeHtml(targetName) + '</span>' : '') +
+                '</div>' +
+                '<span class="card-arrow">›</span>';
+            card.addEventListener('click', (function(h) {
+                return function() { window.location.hash = h; };
+            })(hash));
+
+            container.appendChild(card);
+        });
+
+    } catch (err) {
+        console.error('loadYardProblemsPage error:', err);
+        container.innerHTML = '<p class="empty-state" style="color:var(--danger)">Failed to load problems.</p>';
+    }
+}
+
 // ---------- Yard Projects Panel + Page ----------
 
 /**

@@ -45,7 +45,10 @@ async function loadZonesList() {
             container.appendChild(card);
         });
 
-        // Load the All Projects panel card and upcoming calendar events for the My Yard page
+        // Load the More section panels (All Problems, All Projects) and upcoming calendar events
+        if (typeof renderYardProblemsPanel === 'function') {
+            renderYardProblemsPanel();
+        }
         if (typeof renderYardProjectsPanel === 'function') {
             renderYardProjectsPanel();
         }

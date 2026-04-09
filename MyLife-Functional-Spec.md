@@ -168,10 +168,22 @@ See [Shared: Activities](#activities) for the full description. Nuances in the Y
 - Multi-chemical selection: checklist of all chemicals, any number can be linked
 - Saved Actions: reusable templates to pre-fill activity description + chemical selection
 
+### Yard "More" Section (`#home`)
+The yard main page has a **More** section below the zone list containing two panel cards:
+- **Open Problems** — shows count of open problems across zones, plants, and weeds; clicking navigates to `#yard-problems`
+- **All Projects** — shows count of all projects across zones, plants, and weeds; clicking navigates to `#yard-projects`
+
+### Yard Problems Page (`projects.js`)
+**Route**: `#yard-problems`
+
+Lists all open problems (`status === 'open'`) across zones, plants, and weeds. Each card shows the problem description and a location label (for plants: "Zone › Plant Name"; for zones/weeds: the entity name). Clicking navigates to the owning entity's detail page.
+
+**Breadcrumb**: Yard › Open Problems
+
 ### Yard Projects Page (`projects.js`)
 **Route**: `#yard-projects`
 
-The yard main page (`#home`) shows a single **All Projects** panel card (shows count; clicking navigates to `#yard-projects`). The yard projects page lists all projects whose `targetType` is `zone`, `plant`, or `weed`. Each project card is expandable and shows its title, target entity, and checklist. The panel replaces the old inline projects section on the yard home page.
+Lists all projects whose `targetType` is `zone`, `plant`, or `weed`. Each project card is expandable and shows its title, target entity, and checklist.
 
 **Breadcrumb**: Yard › All Projects
 

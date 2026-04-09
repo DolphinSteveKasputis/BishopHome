@@ -822,6 +822,74 @@ function fpMakeDraggableWindow(el, win) {
     });
 }
 
+/**
+ * Makes an outlet draggable along its wall segment in select mode.
+ * Tap = select; drag = slide. Silent-saves on drag up.
+ */
+function fpMakeDraggableOutlet(el, outlet) {
+    el.style.cursor = 'grab';
+    el.addEventListener('mousedown', function(eDown) {
+        if (fpActiveTool !== 'select') return;
+        eDown.preventDefault();
+        eDown.stopPropagation();
+        var dragged = false;
+
+        function onMove(e) {
+            var room = (fpPlan.rooms || []).find(function(r) { return r.id === outlet.roomId; });
+            if (!room) return;
+            var pt = fpMouseToFeet(e);
+            outlet.position = fpProjectOntoWallSegment(pt.x, pt.y, room, outlet.segmentIndex, 0);
+            fpDirty = true;
+            dragged = true;
+            fpRender();
+        }
+
+        function onUp() {
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup',  onUp);
+            if (dragged) fpSilentSave();
+            else fpSelectMarker('outlet', outlet.id);
+        }
+
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup',   onUp);
+    });
+}
+
+/**
+ * Makes a switch draggable along its wall segment in select mode.
+ * Tap = select; drag = slide. Silent-saves on drag up.
+ */
+function fpMakeDraggableSwitch(el, sw) {
+    el.style.cursor = 'grab';
+    el.addEventListener('mousedown', function(eDown) {
+        if (fpActiveTool !== 'select') return;
+        eDown.preventDefault();
+        eDown.stopPropagation();
+        var dragged = false;
+
+        function onMove(e) {
+            var room = (fpPlan.rooms || []).find(function(r) { return r.id === sw.roomId; });
+            if (!room) return;
+            var pt = fpMouseToFeet(e);
+            sw.position = fpProjectOntoWallSegment(pt.x, pt.y, room, sw.segmentIndex, 0);
+            fpDirty = true;
+            dragged = true;
+            fpRender();
+        }
+
+        function onUp() {
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup',  onUp);
+            if (dragged) fpSilentSave();
+            else fpSelectMarker('switch', sw.id);
+        }
+
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup',   onUp);
+    });
+}
+
 // ============================================================
 // CORNER INLINE LENGTH EDITING
 // ============================================================
@@ -2464,16 +2532,13 @@ function fpRenderOutlet(svg, outlet) {
     var isSelected = (fpSelectedId === outlet.id && fpSelectedType === 'outlet');
     var r = 6;
 
-    // Circle body
+    // Circle body (no pointer events — hit area handles interaction)
     fpSvgEl(svg, 'circle', {
         cx: cx, cy: cy, r: r,
         fill: isSelected ? '#ffcc00' : 'white',
         stroke: isSelected ? '#cc8800' : '#333',
         'stroke-width': isSelected ? 2.5 : 1.5,
-        style: 'cursor:pointer'
-    }).addEventListener('click', function(e) {
-        e.stopPropagation();
-        if (fpActiveTool === 'select') fpSelectMarker('outlet', outlet.id);
+        'pointer-events': 'none'
     });
 
     // Two small slots (horizontal ticks across the wall direction)
@@ -2510,6 +2575,12 @@ function fpRenderOutlet(svg, outlet) {
         });
         cb.textContent = outlet.circuit;
     }
+
+    // Transparent hit area — larger than the visible circle, handles drag + select
+    var outletHit = fpSvgEl(svg, 'circle', {
+        cx: cx, cy: cy, r: 12, fill: 'transparent', stroke: 'transparent'
+    });
+    fpMakeDraggableOutlet(outletHit, outlet);
 }
 
 // ---- Switch Rendering ----
@@ -2529,17 +2600,14 @@ function fpRenderSwitch(svg, sw) {
     var isSelected = (fpSelectedId === sw.id && fpSelectedType === 'switch');
     var hw = 7, hh = 9;  // half-width, half-height of the rectangle
 
-    // Rectangle
+    // Rectangle (no pointer events — hit area handles interaction)
     fpSvgEl(svg, 'rect', {
         x: cx - hw, y: cy - hh,
         width: hw * 2, height: hh * 2,
         fill: isSelected ? '#ffcc00' : 'white',
         stroke: isSelected ? '#cc8800' : '#333',
         'stroke-width': isSelected ? 2 : 1.5,
-        rx: 1, style: 'cursor:pointer'
-    }).addEventListener('click', function(e) {
-        e.stopPropagation();
-        if (fpActiveTool === 'select') fpSelectMarker('switch', sw.id);
+        rx: 1, 'pointer-events': 'none'
     });
 
     // 'S' label
@@ -2569,6 +2637,13 @@ function fpRenderSwitch(svg, sw) {
         });
         cb.textContent = sw.circuit;
     }
+
+    // Transparent hit area — handles drag + select
+    var switchHit = fpSvgEl(svg, 'rect', {
+        x: cx - 14, y: cy - 14, width: 28, height: 28,
+        fill: 'transparent', stroke: 'transparent'
+    });
+    fpMakeDraggableSwitch(switchHit, sw);
 }
 
 // ---- Plumbing Rendering ----
@@ -2811,9 +2886,26 @@ function fpOpenOutletModal(editId, data) {
         document.getElementById('fpOutletTypeSelect').value  = data.type  || 'standard';
         document.getElementById('fpOutletNotesInput').value  = data.notes || '';
         // Store wall position from existing marker
-        modal.dataset.roomId     = data.roomId;
-        modal.dataset.segIndex   = data.segmentIndex;
-        modal.dataset.position   = data.position;
+        modal.dataset.roomId   = data.roomId;
+        modal.dataset.segIndex = data.segmentIndex;
+        modal.dataset.position = data.position;
+        // Position-from-wall section
+        var outletPosSection = document.getElementById('fpOutletPositionSection');
+        var outletRoom = (fpPlan.rooms || []).find(function(r) { return r.id === data.roomId; });
+        var outletSeg  = outletRoom ? fpGetSegment(outletRoom.points, data.segmentIndex) : null;
+        if (outletSeg) {
+            var outletSegLen  = fpSegLength(outletSeg);
+            var outletFromStart = data.position;
+            var outletFromEnd   = outletSegLen - data.position;
+            document.getElementById('fpOutletPosFromStart').textContent = fpFmtFeetIn(Math.max(0, outletFromStart));
+            document.getElementById('fpOutletPosFromEnd').textContent   = fpFmtFeetIn(Math.max(0, outletFromEnd));
+            document.getElementById('fpOutletPosInput').value = fpFmtFeetIn(Math.max(0, outletFromStart));
+            document.getElementById('fpOutletPosRef').value   = 'start';
+            modal.dataset.segLen = outletSegLen.toFixed(4);
+            outletPosSection.style.display = '';
+        } else {
+            outletPosSection.style.display = 'none';
+        }
         // Show problems section
         document.getElementById('fpOutletProblemsSection').style.display = '';
         loadProblems('outlet', editId,
@@ -2826,6 +2918,7 @@ function fpOpenOutletModal(editId, data) {
         modal.dataset.roomId   = data.roomId;
         modal.dataset.segIndex = data.segmentIndex;
         modal.dataset.position = data.position;
+        document.getElementById('fpOutletPositionSection').style.display = 'none';
         document.getElementById('fpOutletProblemsSection').style.display = 'none';
     }
 
@@ -2854,6 +2947,20 @@ document.getElementById('fpOutletSaveBtn').addEventListener('click', function() 
         segmentIndex: parseInt(modal.dataset.segIndex, 10),
         position:     parseFloat(modal.dataset.position)
     };
+
+    // Apply position-from-wall if the user typed a value (edit mode only)
+    if (editId) {
+        var posRawOutlet = fpParseFeetIn(document.getElementById('fpOutletPosInput').value);
+        if (!isNaN(posRawOutlet) && posRawOutlet >= 0) {
+            var segLenOutlet = parseFloat(modal.dataset.segLen) || 0;
+            var refOutlet    = document.getElementById('fpOutletPosRef').value;
+            if (refOutlet === 'end' && segLenOutlet > 0) {
+                props.position = Math.max(0, segLenOutlet - posRawOutlet);
+            } else {
+                props.position = Math.max(0, posRawOutlet);
+            }
+        }
+    }
 
     if (editId) {
         // Update existing
@@ -2902,6 +3009,23 @@ function fpOpenSwitchModal(editId, data) {
         modal.dataset.roomId   = data.roomId;
         modal.dataset.segIndex = data.segmentIndex;
         modal.dataset.position = data.position;
+        // Position-from-wall section
+        var switchPosSection = document.getElementById('fpSwitchPositionSection');
+        var switchRoom = (fpPlan.rooms || []).find(function(r) { return r.id === data.roomId; });
+        var switchSeg  = switchRoom ? fpGetSegment(switchRoom.points, data.segmentIndex) : null;
+        if (switchSeg) {
+            var switchSegLen    = fpSegLength(switchSeg);
+            var switchFromStart = data.position;
+            var switchFromEnd   = switchSegLen - data.position;
+            document.getElementById('fpSwitchPosFromStart').textContent = fpFmtFeetIn(Math.max(0, switchFromStart));
+            document.getElementById('fpSwitchPosFromEnd').textContent   = fpFmtFeetIn(Math.max(0, switchFromEnd));
+            document.getElementById('fpSwitchPosInput').value = fpFmtFeetIn(Math.max(0, switchFromStart));
+            document.getElementById('fpSwitchPosRef').value   = 'start';
+            modal.dataset.segLen = switchSegLen.toFixed(4);
+            switchPosSection.style.display = '';
+        } else {
+            switchPosSection.style.display = 'none';
+        }
         document.getElementById('fpSwitchProblemsSection').style.display = '';
         loadProblems('switch', editId,
             'fpSwitchProblemsContainer', 'fpSwitchProblemsEmptyState');
@@ -2913,6 +3037,7 @@ function fpOpenSwitchModal(editId, data) {
         modal.dataset.roomId   = data.roomId;
         modal.dataset.segIndex = data.segmentIndex;
         modal.dataset.position = data.position;
+        document.getElementById('fpSwitchPositionSection').style.display = 'none';
         document.getElementById('fpSwitchProblemsSection').style.display = 'none';
     }
 
@@ -2941,6 +3066,20 @@ document.getElementById('fpSwitchSaveBtn').addEventListener('click', function() 
         segmentIndex: parseInt(modal.dataset.segIndex, 10),
         position:     parseFloat(modal.dataset.position)
     };
+
+    // Apply position-from-wall if typed (edit mode only)
+    if (editId) {
+        var posRawSwitch = fpParseFeetIn(document.getElementById('fpSwitchPosInput').value);
+        if (!isNaN(posRawSwitch) && posRawSwitch >= 0) {
+            var segLenSwitch = parseFloat(modal.dataset.segLen) || 0;
+            var refSwitch    = document.getElementById('fpSwitchPosRef').value;
+            if (refSwitch === 'end' && segLenSwitch > 0) {
+                props.position = Math.max(0, segLenSwitch - posRawSwitch);
+            } else {
+                props.position = Math.max(0, posRawSwitch);
+            }
+        }
+    }
 
     if (editId) {
         var sw = (fpPlan.switches || []).find(function(m) { return m.id === editId; });

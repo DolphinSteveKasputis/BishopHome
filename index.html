@@ -4091,6 +4091,22 @@
                 <label for="fpOutletNotesInput">Notes</label>
                 <textarea id="fpOutletNotesInput" rows="2" placeholder="Optional notes"></textarea>
             </div>
+            <!-- Position from wall — only shown when editing an existing outlet -->
+            <div class="form-group" id="fpOutletPositionSection" style="display:none;">
+                <label>Position on wall</label>
+                <div style="font-size:0.83rem;color:#94a3b8;margin-bottom:6px;">
+                    Current: <span id="fpOutletPosFromStart">—</span> from start &nbsp;·&nbsp; <span id="fpOutletPosFromEnd">—</span> from end
+                </div>
+                <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                    <input type="text" id="fpOutletPosInput" placeholder='e.g. 16" or 1&apos;4"' style="width:110px;">
+                    <span style="color:#94a3b8;font-size:0.85rem;">from</span>
+                    <select id="fpOutletPosRef" style="width:auto;">
+                        <option value="start">start of wall</option>
+                        <option value="end">end of wall</option>
+                    </select>
+                </div>
+                <small style="color:#94a3b8">Leave blank to keep current position</small>
+            </div>
             <!-- Problems section (shown in edit mode) -->
             <div id="fpOutletProblemsSection" style="display:none">
                 <div class="section-header" style="margin-top:12px">
@@ -4135,6 +4151,22 @@
             <div class="form-group">
                 <label for="fpSwitchNotesInput">Notes</label>
                 <textarea id="fpSwitchNotesInput" rows="2" placeholder="Optional notes"></textarea>
+            </div>
+            <!-- Position from wall — only shown when editing an existing switch -->
+            <div class="form-group" id="fpSwitchPositionSection" style="display:none;">
+                <label>Position on wall</label>
+                <div style="font-size:0.83rem;color:#94a3b8;margin-bottom:6px;">
+                    Current: <span id="fpSwitchPosFromStart">—</span> from start &nbsp;·&nbsp; <span id="fpSwitchPosFromEnd">—</span> from end
+                </div>
+                <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                    <input type="text" id="fpSwitchPosInput" placeholder='e.g. 16" or 1&apos;4"' style="width:110px;">
+                    <span style="color:#94a3b8;font-size:0.85rem;">from</span>
+                    <select id="fpSwitchPosRef" style="width:auto;">
+                        <option value="start">start of wall</option>
+                        <option value="end">end of wall</option>
+                    </select>
+                </div>
+                <small style="color:#94a3b8">Leave blank to keep current position</small>
             </div>
             <!-- Problems section (shown in edit mode) -->
             <div id="fpSwitchProblemsSection" style="display:none">
@@ -7471,7 +7503,7 @@
     <script src="js/gps.js?v=350"></script>
     <script src="js/settings.js?v=350"></script>
     <script src="js/house.js?v=362"></script>
-    <script src="js/floorplan.js?v=370"></script>
+    <script src="js/floorplan.js?v=371"></script>
     <script src="js/search.js?v=350"></script>
     <script src="js/activityreport.js?v=350"></script>
     <script src="js/checklists.js?v=350"></script>

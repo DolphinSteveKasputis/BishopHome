@@ -283,7 +283,7 @@ Things, Sub-Things, and Items can all be added via `+Photo` button:
 ### Floor Plan (`floorplan.js`)
 An interactive drawing tool for each floor.
 
-**Firestore**: `floorPlans` — `floorId`, `widthFt`, `heightFt`, `rooms[]`, `doors[]`, `windows[]`, `updatedAt`
+**Firestore**: `floorPlans` — `floorId`, `widthFt`, `heightFt`, `rooms[]`, `doors[]`, `windows[]`, `outlets[]`, `switches[]`, `plumbing[]`, `ceilingFixtures[]`, `updatedAt`
 
 **Features**:
 - SVG-based canvas with optional grid overlay
@@ -293,12 +293,20 @@ An interactive drawing tool for each floor.
 - Rectilinear room polygons (all angles are 90°, but L/T/U shapes are possible)
 - **Room link modal**: always does a fresh Firestore query when opened so rooms added after the page loaded appear; existing unplaced rooms listed first (pre-selected if any exist); "Create new room" option at the bottom; new-name field only shown when "Create new" is selected
 - **Dimensions auto-save**: when dimensions are confirmed in the Dimensions modal, the plan is immediately saved to Firestore (no need to also click the Save button). The floor detail thumbnail shows "Floor plan dimensions set — click Edit Floor Plan to draw rooms" once saved but before any rooms are drawn.
-- Doors: placed on room walls, show swing direction; can be dragged to slide along the current wall
-- Windows: placed on walls with width and position; can be dragged to slide along the current wall
-- Electrical markers: outlets and switches
+- **Doors**: placed on room walls; show swing arc + hinge dot + jamb tick marks at each end; frame width and inseam (clear opening) tracked separately; darker color when unselected for visibility; can be dragged to slide along wall; silent-save after drag
+- **Windows**: placed on room walls; total frame width and inseam (e.g., for blind sizing) tracked separately; can be dragged to slide along wall; silent-save after drag
+- **Electrical markers** (outlets and switches): placed on room walls; can be dragged to slide along the wall in select mode; tap to select, drag to reposition; silent-save after drag
 - Plumbing markers: toilets, sinks, bathtubs, showers, floor drains, water heater, washer/dryer hookup
 - Ceiling fixtures (lights, ceiling fans) shown as symbols inside rooms; can be dragged to reposition
 - Stairs shown with hatch pattern and label
+- **Auto-save on drag**: all marker drags (doors, windows, outlets, switches, ceiling fixtures) silently save to Firestore on mouse-up — position persists across navigation without pressing Save
+
+**Width/position input format**: doors and windows accept feet+inches notation (`32"`, `2'8"`, `3'`) as well as decimal feet.
+
+**Position from wall (doors, windows, outlets, switches)**:
+- In the Edit Marker modal, a "Position on Wall" section shows the current distance from start and distance from end of the wall (in feet+inches, read-only labels)
+- An editable "Position" input lets the user type an exact distance from the start or end; the radio buttons toggle which end the distance is measured from
+- Saving applies the override, clamping to valid range; position section is hidden when adding a new marker (drag to place, then edit to set exact position)
 
 **Drawing — Free Draw mode**:
 - Click to place corners; Enter key places a corner at the current cursor position (no need to click exactly)
@@ -325,7 +333,8 @@ An interactive drawing tool for each floor.
 **Select mode — drag and drop**:
 - Drag a room polygon body to translate all corners (move the entire room)
 - Drag a ceiling fixture to reposition it anywhere on the plan
-- Drag a door or window marker to slide it along its current wall segment
+- Drag a door, window, outlet, or switch marker to slide it along its current wall segment
+- Tap (no drag) any marker in select mode to select it; dragging does not trigger a selection
 
 **Select mode — corner drag**:
 - Drag a corner handle dot to move that corner

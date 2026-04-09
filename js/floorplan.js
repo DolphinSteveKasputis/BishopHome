@@ -65,7 +65,7 @@ function loadFloorPlanPage(floorId) {
     var knownFloorName = (window.currentFloor && window.currentFloor.id === floorId)
         ? window.currentFloor.name : null;
     document.getElementById('fpFloorTitle').textContent =
-        (knownFloorName || 'Floor') + ' — Floor Plan';
+        (knownFloorName || 'Floor') + ' — Floor Plan Drawing';
 
     // Load floor record (also updates title if navigated directly by URL)
     userCol('floors').doc(floorId).get()
@@ -73,7 +73,7 @@ function loadFloorPlanPage(floorId) {
             if (!doc.exists) { window.location.hash = '#house'; return; }
             fpFloor = Object.assign({ id: doc.id }, doc.data());
             document.getElementById('fpFloorTitle').textContent =
-                (fpFloor.name || 'Floor') + ' — Floor Plan';
+                (fpFloor.name || 'Floor') + ' — Floor Plan Drawing';
             document.getElementById('fpBackBtn').href = '#floor/' + floorId;
 
             // Load rooms list (for linking shapes + stairs detection)

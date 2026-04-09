@@ -1260,8 +1260,8 @@ function renderThingDetail(thing, room, floor) {
 
     var meta     = document.getElementById('thingMeta');
     var catLabel = THING_CATEGORIES[thing.category] || thing.category || '';
-    meta.textContent = (floor.name || '') + ' \u203a ' + (room.name || '') +
-                       (catLabel ? ' \u00b7 ' + catLabel : '');
+    // Only show category — floor/room path is already in the clickable breadcrumb bar above
+    meta.textContent = catLabel;
 
     // Inventory details card
     renderInventoryDetails(thing, 'thingDetailsSection');

@@ -54,6 +54,9 @@ function loadFloorPlanPage(floorId) {
     fpPreviewPoint = null;
     fpSelectedId   = null;
 
+    // Initialize plan to empty so fpRender() doesn't crash before the Firestore load completes
+    fpPlan = { rooms: [], doors: [], windows: [], outlets: [], switches: [], plumbing: [], ceilingFixtures: [] };
+
     // Reset toolbar to select
     fpSetTool('select');
 

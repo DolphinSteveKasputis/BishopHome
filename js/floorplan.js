@@ -1215,15 +1215,32 @@ FP_ALL_TOOLS.forEach(function(id) {
     if (btn) btn.addEventListener('click', function() { fpSetTool(btn.dataset.tool); });
 });
 
-// Enter key closes the in-progress room shape (same as clicking the first point)
+// Enter key = place a corner at the current cursor position while drawing a room.
+// If the cursor is near the first point (3+ corners placed), the shape closes instead.
 document.addEventListener('keydown', function(e) {
     if (e.key !== 'Enter') return;
-    if (!fpDrawing || fpDrawPoints.length < 3) return;
+    if (!fpDrawing || !fpPreviewPoint) return;
     // Don't fire if focus is inside a text input or modal
     var tag = document.activeElement && document.activeElement.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
     e.preventDefault();
-    fpFinishRoom(null);
+
+    var pt = fpPreviewPoint;
+
+    // If 3+ corners and preview is near the first point → close the shape
+    if (fpDrawPoints.length >= 3) {
+        var first = fpDrawPoints[0];
+        var dx = (pt.x - first.x) * fpPixPerFoot;
+        var dy = (pt.y - first.y) * fpPixPerFoot;
+        if (Math.abs(dx) < FP_CLOSE_PX && Math.abs(dy) < FP_CLOSE_PX) {
+            fpFinishRoom(null);
+            return;
+        }
+    }
+
+    // Otherwise place a corner at the current snapped cursor position
+    fpDrawPoints.push(pt);
+    fpRender();
 });
 
 function fpSetTool(tool) {

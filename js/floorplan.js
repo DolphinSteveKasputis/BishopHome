@@ -1119,8 +1119,9 @@ function fpRenderDoor(svg, door) {
     var panelX = h.x - sw * info.ny * fp2px(door.width);
     var panelY = h.y + sw * info.nx * fp2px(door.width);
 
-    var isSelected = fpSelectedId === door.id && fpSelectedType === 'door';
-    var strokeColor = isSelected ? '#f59e0b' : '#333';  // amber when selected
+    var isSelected  = fpSelectedId === door.id && fpSelectedType === 'door';
+    var strokeColor = isSelected ? '#f59e0b' : '#1e293b';  // amber when selected, near-black otherwise
+    var jambLen     = 5;  // px — length of jamb tick marks on each side of opening
 
     // 1. Gap (erase the wall at the opening — match SVG background #f8f8f8)
     fpSvgEl(svg, 'line', {
@@ -1128,24 +1129,34 @@ function fpRenderDoor(svg, door) {
         stroke: '#f8f8f8', 'stroke-width': 8, 'pointer-events': 'none'
     });
 
-    // 2. Door panel (solid line from hinge perpendicular into room)
+    // 2. Jamb marks — short perpendicular ticks at each end of the opening,
+    //    drawn on both sides of the wall to clearly show the door frame.
+    [h, oe].forEach(function(pt) {
+        fpSvgEl(svg, 'line', {
+            x1: pt.x - info.nx * jambLen, y1: pt.y - info.ny * jambLen,
+            x2: pt.x + info.nx * jambLen, y2: pt.y + info.ny * jambLen,
+            stroke: strokeColor, 'stroke-width': isSelected ? 2.5 : 2, 'pointer-events': 'none'
+        });
+    });
+
+    // 3. Door panel (solid line from hinge perpendicular into room)
     fpSvgEl(svg, 'line', {
         x1: h.x, y1: h.y, x2: panelX, y2: panelY,
         stroke: strokeColor, 'stroke-width': isSelected ? 3 : 2.5, 'pointer-events': 'none'
     });
 
-    // 3. Swing arc (quarter circle from panel end to opening end)
+    // 4. Swing arc (quarter circle from panel end to opening end)
     var sweepFlag = door.swingLeft ? 0 : 1;
     var r = fp2px(door.width);
     fpSvgEl(svg, 'path', {
         d: 'M ' + panelX + ' ' + panelY +
            ' A ' + r + ' ' + r + ' 0 0 ' + sweepFlag + ' ' + oe.x + ' ' + oe.y,
-        fill: 'none', stroke: isSelected ? '#f59e0b' : '#666',
+        fill: 'none', stroke: isSelected ? '#f59e0b' : '#334155',
         'stroke-width': isSelected ? 2 : 1.5,
         'stroke-dasharray': '5,3', 'pointer-events': 'none'
     });
 
-    // 4. Hinge dot
+    // 5. Hinge dot
     fpSvgEl(svg, 'circle', {
         cx: h.x, cy: h.y, r: isSelected ? 4 : 3,
         fill: strokeColor, 'pointer-events': 'none'

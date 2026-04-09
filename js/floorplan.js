@@ -10,7 +10,7 @@
 // ---- Constants ----
 var FP_SNAP_FEET          = 0.25;  // snap grid: 0.25 ft (3-inch increments)
 var FP_WALL_SNAP_PX       = 12;    // pixels — snap-to-wall proximity threshold
-var FP_CLOSE_PX           = 12;    // pixels — click near first point to close shape
+var FP_CLOSE_PX           = 20;    // pixels — click near first point to close shape
 var FP_MAX_PX_PER_FOOT    = 30;    // cap pixels-per-foot so huge floors still fit
 
 // Auto-assigned color palette for new rooms
@@ -1149,6 +1149,17 @@ var FP_ALL_TOOLS = ['fpToolSelect','fpToolRoom','fpToolDoor','fpToolWindow','fpT
 FP_ALL_TOOLS.forEach(function(id) {
     var btn = document.getElementById(id);
     if (btn) btn.addEventListener('click', function() { fpSetTool(btn.dataset.tool); });
+});
+
+// Enter key closes the in-progress room shape (same as clicking the first point)
+document.addEventListener('keydown', function(e) {
+    if (e.key !== 'Enter') return;
+    if (!fpDrawing || fpDrawPoints.length < 3) return;
+    // Don't fire if focus is inside a text input or modal
+    var tag = document.activeElement && document.activeElement.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    e.preventDefault();
+    fpFinishRoom(null);
 });
 
 function fpSetTool(tool) {

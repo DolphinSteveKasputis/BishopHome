@@ -4028,10 +4028,34 @@
     <div class="modal-overlay" id="fpWindowModal">
         <div class="modal">
             <h3 id="fpWindowModalTitle">Add Window</h3>
-            <div class="form-group">
-                <label for="fpWindowWidthInput">Width</label>
-                <input type="text" id="fpWindowWidthInput" placeholder="e.g. 3', 36&quot;, 2'6&quot;" value="3'">
-                <small style="color:#94a3b8">Accepts feet and inches</small>
+            <p style="font-size:0.82rem;color:#94a3b8;margin:-4px 0 10px;">Accepts feet and inches: <code>3'</code>, <code>36"</code>, <code>2'6"</code></p>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="fpWindowWidthInput">Frame/total width</label>
+                    <input type="text" id="fpWindowWidthInput" placeholder="e.g. 3' or 36&quot;" value="3'">
+                    <small style="color:#94a3b8">Used for floor plan drawing</small>
+                </div>
+                <div class="form-group">
+                    <label for="fpWindowInseamInput">Inseam (glass width)</label>
+                    <input type="text" id="fpWindowInseamInput" placeholder="e.g. 32&quot; or 2'8&quot;" value='32"'>
+                    <small style="color:#94a3b8">For blind sizing, etc.</small>
+                </div>
+            </div>
+            <!-- Position from wall — only shown when editing an existing window -->
+            <div class="form-group" id="fpWindowPositionSection" style="display:none;">
+                <label>Position on wall</label>
+                <div style="font-size:0.83rem;color:#94a3b8;margin-bottom:6px;">
+                    Current: <span id="fpWindowPosFromStart">—</span> from start &nbsp;·&nbsp; <span id="fpWindowPosFromEnd">—</span> from end
+                </div>
+                <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                    <input type="text" id="fpWindowPosInput" placeholder='e.g. 16" or 1&apos;4"' style="width:110px;">
+                    <span style="color:#94a3b8;font-size:0.85rem;">from</span>
+                    <select id="fpWindowPosRef" style="width:auto;">
+                        <option value="start">start of wall</option>
+                        <option value="end">end of wall</option>
+                    </select>
+                </div>
+                <small style="color:#94a3b8">Leave blank to keep current position</small>
             </div>
             <div class="modal-buttons">
                 <button class="btn btn-danger" id="fpWindowDeleteBtn" style="display:none;margin-right:auto">Delete</button>
@@ -7447,7 +7471,7 @@
     <script src="js/gps.js?v=350"></script>
     <script src="js/settings.js?v=350"></script>
     <script src="js/house.js?v=362"></script>
-    <script src="js/floorplan.js?v=367"></script>
+    <script src="js/floorplan.js?v=368"></script>
     <script src="js/search.js?v=350"></script>
     <script src="js/activityreport.js?v=350"></script>
     <script src="js/checklists.js?v=350"></script>

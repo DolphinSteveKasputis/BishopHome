@@ -1743,7 +1743,10 @@ function fpPlaceMarkerOnWall(e, room, markerType) {
         wModal.dataset.segIndex = bestSeg;
         wModal.dataset.position = bestT.toFixed(3);
         document.getElementById('fpWindowModalTitle').textContent = 'Add Window';
-        document.getElementById('fpWindowWidthInput').value = "3'";
+        document.getElementById('fpWindowWidthInput').value  = "3'";
+        document.getElementById('fpWindowInseamInput').value = '32"';
+        document.getElementById('fpWindowDeleteBtn').style.display = 'none';
+        document.getElementById('fpWindowPositionSection').style.display = 'none';
         openModal('fpWindowModal');
     } else if (markerType === 'outlet') {
         fpOpenOutletModal(null, { roomId: room.id, segmentIndex: bestSeg, position: bestT });
@@ -1791,8 +1794,30 @@ function fpOpenWindowEditModal(win) {
     var m = document.getElementById('fpWindowModal');
     m.dataset.mode   = 'edit';
     m.dataset.editId = win.id;
+    m.dataset.roomId = win.roomId;
     document.getElementById('fpWindowModalTitle').textContent = 'Edit Window';
-    document.getElementById('fpWindowWidthInput').value = fpFmtFeetIn(win.width || 3);
+    document.getElementById('fpWindowWidthInput').value  = fpFmtFeetIn(win.width || 3);
+    document.getElementById('fpWindowInseamInput').value = fpFmtFeetIn(win.inseamWidth || Math.max((win.width || 3) - 4/12, 0.5));
+    document.getElementById('fpWindowDeleteBtn').style.display = '';
+
+    // Position-from-wall section
+    var posSection = document.getElementById('fpWindowPositionSection');
+    var room = (fpPlan.rooms || []).find(function(r) { return r.id === win.roomId; });
+    var seg  = room ? fpGetSegment(room.points, win.segmentIndex) : null;
+    if (seg) {
+        var segLen    = fpSegLength(seg);
+        var fromStart = win.position;
+        var fromEnd   = segLen - win.position - (win.width || 3);
+        document.getElementById('fpWindowPosFromStart').textContent = fpFmtFeetIn(Math.max(0, fromStart));
+        document.getElementById('fpWindowPosFromEnd').textContent   = fpFmtFeetIn(Math.max(0, fromEnd));
+        document.getElementById('fpWindowPosInput').value = '';
+        document.getElementById('fpWindowPosRef').value   = 'start';
+        m.dataset.segLen = segLen.toFixed(4);
+        posSection.style.display = '';
+    } else {
+        posSection.style.display = 'none';
+    }
+
     openModal('fpWindowModal');
 }
 
@@ -1859,21 +1884,38 @@ document.getElementById('fpDoorDeleteBtn').addEventListener('click', function() 
 });
 
 document.getElementById('fpWindowSaveBtn').addEventListener('click', function() {
-    var m    = document.getElementById('fpWindowModal');
-    var wVal = fpParseFeetIn(document.getElementById('fpWindowWidthInput').value);
-    if (isNaN(wVal) || wVal <= 0) wVal = 3;
+    var m         = document.getElementById('fpWindowModal');
+    var frameVal  = fpParseFeetIn(document.getElementById('fpWindowWidthInput').value);
+    var inseamVal = fpParseFeetIn(document.getElementById('fpWindowInseamInput').value);
+    if (isNaN(frameVal)  || frameVal  <= 0) frameVal  = isNaN(inseamVal) ? 3 : inseamVal + 4/12;
+    if (isNaN(inseamVal) || inseamVal <= 0) inseamVal = Math.max(frameVal - 4/12, 0.5);
 
     var isEdit = m.dataset.mode === 'edit';
     if (isEdit) {
         var existing = (fpPlan.windows || []).find(function(w) { return w.id === m.dataset.editId; });
-        if (existing) existing.width = wVal;
+        if (existing) {
+            existing.width       = frameVal;
+            existing.inseamWidth = inseamVal;
+            // Apply position-from-wall if the user typed a value
+            var posRaw = fpParseFeetIn(document.getElementById('fpWindowPosInput').value);
+            if (!isNaN(posRaw) && posRaw >= 0) {
+                var segLen = parseFloat(m.dataset.segLen) || 0;
+                var ref    = document.getElementById('fpWindowPosRef').value;
+                if (ref === 'end' && segLen > 0) {
+                    existing.position = Math.max(0, segLen - posRaw - frameVal);
+                } else {
+                    existing.position = Math.max(0, posRaw);
+                }
+            }
+        }
     } else {
         var win = {
             id:           fpGenId(),
             roomId:       m.dataset.roomId,
             segmentIndex: parseInt(m.dataset.segIndex, 10),
             position:     parseFloat(m.dataset.position),
-            width:        wVal
+            width:        frameVal,
+            inseamWidth:  inseamVal
         };
         if (!fpPlan.windows) fpPlan.windows = [];
         fpPlan.windows.push(win);

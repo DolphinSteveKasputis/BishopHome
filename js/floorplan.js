@@ -57,13 +57,19 @@ function loadFloorPlanPage(floorId) {
     // Reset toolbar to select
     fpSetTool('select');
 
-    // Load floor record for the title
+    // Set back button and base title immediately (synchronous — before any async)
+    document.getElementById('fpBackBtn').href = '#floor/' + floorId;
+    document.getElementById('fpFloorTitle').textContent = 'Floor Plan';
+
+    // Load floor record to get the floor name for the title
     userCol('floors').doc(floorId).get()
         .then(function(doc) {
             if (!doc.exists) { window.location.hash = '#house'; return; }
             fpFloor = Object.assign({ id: doc.id }, doc.data());
+            // Update title with actual floor name
             document.getElementById('fpFloorTitle').textContent =
                 (fpFloor.name || 'Floor') + ' — Floor Plan';
+            // Ensure back button still points to this floor (in case of re-entry)
             document.getElementById('fpBackBtn').href = '#floor/' + floorId;
 
             // Load rooms list (for linking shapes + stairs detection)
@@ -233,8 +239,8 @@ function fpRenderGrid(svg) {
         var isMajor  = (Math.round(x * 100) % 500 === 0);   // 5ft
         var isFoot   = (Math.round(x * 100) % 100 === 0);   // 1ft
         var isHalf   = (Math.round(x * 100) % 50  === 0);   // 0.5ft
-        // 0.25ft is everything else
-        var stroke = isMajor ? '#bbb' : (isFoot ? '#ddd' : (isHalf ? '#e8e8e8' : '#f0f0f0'));
+        // 0.25ft is everything else — colors darkened to be visible on #f8f8f8 background
+        var stroke = isMajor ? '#999' : (isFoot ? '#bbb' : (isHalf ? '#ddd' : '#e8e8e8'));
         var sw     = isMajor ? 1 : 0.5;
         fpSvgEl(g, 'line', {
             x1: x * fpPixPerFoot, y1: 0,
@@ -247,7 +253,7 @@ function fpRenderGrid(svg) {
         var isMajorY = (Math.round(y * 100) % 500 === 0);
         var isFootY  = (Math.round(y * 100) % 100 === 0);
         var isHalfY  = (Math.round(y * 100) % 50  === 0);
-        var strokeY  = isMajorY ? '#bbb' : (isFootY ? '#ddd' : (isHalfY ? '#e8e8e8' : '#f0f0f0'));
+        var strokeY  = isMajorY ? '#999' : (isFootY ? '#bbb' : (isHalfY ? '#ddd' : '#e8e8e8'));
         var swY      = isMajorY ? 1 : 0.5;
         fpSvgEl(g, 'line', {
             x1: 0, y1: y * fpPixPerFoot,

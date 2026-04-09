@@ -559,6 +559,44 @@ function fpConnectedFloorName(floorId) {
 var FP_DRAG_COLOR_A = '#22d3ee';  // cyan  — segment: previous point → dragged point
 var FP_DRAG_COLOR_B = '#fb923c';  // orange — segment: dragged point → next point
 
+// ============================================================
+// FEET + INCHES UTILITIES
+// ============================================================
+
+/**
+ * Parse a measurement string → decimal feet.
+ * Accepted formats:
+ *   "3"       → 3 ft (bare number = feet)
+ *   "3'"      → 3 ft
+ *   "32in" or "32\"" → 32 ÷ 12 ft
+ *   "2'8\""   → 2 + 8/12 ft
+ *   "2'8in"   → 2 + 8/12 ft
+ *   "2' 8\""  → same
+ *   "2.5"     → 2.5 ft
+ */
+function fpParseFeetIn(str) {
+    if (typeof str === 'number') return str;
+    str = (str || '').trim();
+    // feet + inches: 2'8" or 2'8in or 2' 8" etc.
+    var m = str.match(/^(\d+(?:\.\d+)?)['\u2019]\s*(\d+(?:\.\d+)?)\s*(?:in|")?$/i);
+    if (m) return parseFloat(m[1]) + parseFloat(m[2]) / 12;
+    // bare inches: 32in or 32"
+    var m2 = str.match(/^(\d+(?:\.\d+)?)\s*(?:in|")$/i);
+    if (m2) return parseFloat(m2[1]) / 12;
+    // feet: 3' or 3ft or plain 3
+    var m3 = str.match(/^(\d+(?:\.\d+)?)\s*(?:'|\u2019|ft)?$/i);
+    if (m3) return parseFloat(m3[1]);
+    return NaN;
+}
+
+/** Format decimal feet → feet+inches string, e.g. 2.667 → "2' 8\"" */
+function fpFmtFeetIn(ft) {
+    var totalIn = Math.round(ft * 12);
+    var f = Math.floor(totalIn / 12);
+    var i = totalIn % 12;
+    return f + '\' ' + i + '"';
+}
+
 function fpMakeDraggableHandle(handle, room, ptIndex) {
     handle.addEventListener('mousedown', function(eDown) {
         eDown.preventDefault();
@@ -1068,35 +1106,52 @@ function fpRenderDoor(svg, door) {
     var panelX = h.x - sw * info.ny * fp2px(door.width);
     var panelY = h.y + sw * info.nx * fp2px(door.width);
 
-    // 1. Gap (erase the wall at the opening)
+    var isSelected = fpSelectedId === door.id && fpSelectedType === 'door';
+    var strokeColor = isSelected ? '#f59e0b' : '#333';  // amber when selected
+
+    // 1. Gap (erase the wall at the opening — match SVG background #f8f8f8)
     fpSvgEl(svg, 'line', {
         x1: h.x, y1: h.y, x2: oe.x, y2: oe.y,
-        stroke: '#f8f8f8', 'stroke-width': 6, 'pointer-events': 'none'
+        stroke: '#f8f8f8', 'stroke-width': 8, 'pointer-events': 'none'
     });
 
-    // 2. Door panel (thin line from hinge perpendicular)
+    // 2. Door panel (solid line from hinge perpendicular into room)
     fpSvgEl(svg, 'line', {
         x1: h.x, y1: h.y, x2: panelX, y2: panelY,
-        stroke: '#444', 'stroke-width': 1.5, 'pointer-events': 'none'
+        stroke: strokeColor, 'stroke-width': isSelected ? 3 : 2.5, 'pointer-events': 'none'
     });
 
     // 3. Swing arc (quarter circle from panel end to opening end)
-    // Large-arc = 0 (quarter), sweep-flag depends on swingLeft
     var sweepFlag = door.swingLeft ? 0 : 1;
     var r = fp2px(door.width);
     fpSvgEl(svg, 'path', {
         d: 'M ' + panelX + ' ' + panelY +
            ' A ' + r + ' ' + r + ' 0 0 ' + sweepFlag + ' ' + oe.x + ' ' + oe.y,
-        fill: 'none', stroke: '#888', 'stroke-width': 1,
-        'stroke-dasharray': '4,3', 'pointer-events': 'none'
+        fill: 'none', stroke: isSelected ? '#f59e0b' : '#666',
+        'stroke-width': isSelected ? 2 : 1.5,
+        'stroke-dasharray': '5,3', 'pointer-events': 'none'
     });
 
-    // 4. Transparent hit-area line for drag interaction (wider stroke, pointer events enabled)
+    // 4. Hinge dot
+    fpSvgEl(svg, 'circle', {
+        cx: h.x, cy: h.y, r: isSelected ? 4 : 3,
+        fill: strokeColor, 'pointer-events': 'none'
+    });
+
+    // 5. Transparent hit-area line for drag + click (wider stroke, pointer events enabled)
     var hitLine = fpSvgEl(svg, 'line', {
         x1: h.x, y1: h.y, x2: oe.x, y2: oe.y,
-        stroke: 'transparent', 'stroke-width': 10,
-        style: 'cursor:ew-resize'
+        stroke: 'transparent', 'stroke-width': 14,
+        style: 'cursor:pointer'
     });
+
+    // Click: select the door
+    hitLine.addEventListener('click', function(e) {
+        if (fpActiveTool !== 'select') return;
+        e.stopPropagation();
+        fpSelectMarker('door', door.id);
+    });
+
     fpMakeDraggableDoor(hitLine, door);
 }
 
@@ -1146,13 +1201,18 @@ function fpRenderWindow(svg, win) {
         stroke: '#4488cc', 'stroke-width': 1.5, 'pointer-events': 'none'
     });
 
-    // Transparent hit-area line for drag interaction
-    var winHitLine = fpSvgEl(svg, 'line', {
+    // Transparent hit-area line for drag + click
+    var hitLine = fpSvgEl(svg, 'line', {
         x1: h.x, y1: h.y, x2: oe.x, y2: oe.y,
-        stroke: 'transparent', 'stroke-width': 10,
-        style: 'cursor:ew-resize'
+        stroke: 'transparent', 'stroke-width': 14,
+        style: 'cursor:pointer'
     });
-    fpMakeDraggableWindow(winHitLine, win);
+    hitLine.addEventListener('click', function(e) {
+        if (fpActiveTool !== 'select') return;
+        e.stopPropagation();
+        fpSelectMarker('window', win.id);
+    });
+    fpMakeDraggableWindow(hitLine, win);
 }
 
 // ============================================================
@@ -1610,6 +1670,14 @@ function fpDeleteSelected() {
         if (!confirm('Delete this plumbing fixture?')) return;
         fpPlan.plumbing = (fpPlan.plumbing || []).filter(function(m) { return m.id !== fpSelectedId; });
         fpSetStatus('Plumbing fixture removed.');
+    } else if (fpSelectedType === 'door') {
+        if (!confirm('Delete this door?')) return;
+        fpPlan.doors = (fpPlan.doors || []).filter(function(d) { return d.id !== fpSelectedId; });
+        fpSetStatus('Door removed.');
+    } else if (fpSelectedType === 'window') {
+        if (!confirm('Delete this window?')) return;
+        fpPlan.windows = (fpPlan.windows || []).filter(function(w) { return w.id !== fpSelectedId; });
+        fpSetStatus('Window removed.');
     } else if (fpSelectedType === 'ceiling') {
         if (!confirm('Remove this ceiling fixture from the floor plan?\n(The Thing record is NOT deleted.)')) return;
         fpPlan.ceilingFixtures = (fpPlan.ceilingFixtures || []).filter(function(m) { return m.id !== fpSelectedId; });
@@ -1655,18 +1723,26 @@ function fpPlaceMarkerOnWall(e, room, markerType) {
 
     if (markerType === 'door') {
         var dModal = document.getElementById('fpDoorModal');
-        dModal.dataset.roomId     = room.id;
-        dModal.dataset.segIndex   = bestSeg;
-        dModal.dataset.position   = bestT.toFixed(3);
-        document.getElementById('fpDoorWidthInput').value = 3;
+        dModal.dataset.mode    = 'add';
+        dModal.dataset.editId  = '';
+        dModal.dataset.roomId  = room.id;
+        dModal.dataset.segIndex = bestSeg;
+        dModal.dataset.position = bestT.toFixed(3);
+        document.getElementById('fpDoorModalTitle').textContent = 'Add Door';
+        document.getElementById('fpDoorFrameInput').value  = "3'";
+        document.getElementById('fpDoorInseamInput').value = '32"';
         document.getElementById('fpDoorSwingSelect').value = 'inward-left';
+        document.getElementById('fpDoorDeleteBtn').style.display = 'none';
         openModal('fpDoorModal');
     } else if (markerType === 'window') {
         var wModal = document.getElementById('fpWindowModal');
-        wModal.dataset.roomId   = room.id;
+        wModal.dataset.mode    = 'add';
+        wModal.dataset.editId  = '';
+        wModal.dataset.roomId  = room.id;
         wModal.dataset.segIndex = bestSeg;
         wModal.dataset.position = bestT.toFixed(3);
-        document.getElementById('fpWindowWidthInput').value = 3;
+        document.getElementById('fpWindowModalTitle').textContent = 'Add Window';
+        document.getElementById('fpWindowWidthInput').value = "3'";
         openModal('fpWindowModal');
     } else if (markerType === 'outlet') {
         fpOpenOutletModal(null, { roomId: room.id, segmentIndex: bestSeg, position: bestT });
@@ -1675,49 +1751,120 @@ function fpPlaceMarkerOnWall(e, room, markerType) {
     }
 }
 
-document.getElementById('fpDoorSaveBtn').addEventListener('click', function() {
+/** Open the door modal in edit mode for an existing door. */
+function fpOpenDoorEditModal(door) {
     var m = document.getElementById('fpDoorModal');
+    m.dataset.mode   = 'edit';
+    m.dataset.editId = door.id;
+    m.dataset.roomId = door.roomId;
+    document.getElementById('fpDoorModalTitle').textContent = 'Edit Door';
+    document.getElementById('fpDoorFrameInput').value  = fpFmtFeetIn(door.width || 3);
+    document.getElementById('fpDoorInseamInput').value = fpFmtFeetIn(door.inseamWidth || Math.max((door.width || 3) - 2/12, 0.5));
+    var swing = (door.swingInward ? 'inward' : 'outward') + '-' + (door.swingLeft ? 'left' : 'right');
+    document.getElementById('fpDoorSwingSelect').value = swing;
+    document.getElementById('fpDoorDeleteBtn').style.display = '';
+    openModal('fpDoorModal');
+}
+
+/** Open the window modal in edit mode for an existing window. */
+function fpOpenWindowEditModal(win) {
+    var m = document.getElementById('fpWindowModal');
+    m.dataset.mode   = 'edit';
+    m.dataset.editId = win.id;
+    document.getElementById('fpWindowModalTitle').textContent = 'Edit Window';
+    document.getElementById('fpWindowWidthInput').value = fpFmtFeetIn(win.width || 3);
+    openModal('fpWindowModal');
+}
+
+document.getElementById('fpDoorSaveBtn').addEventListener('click', function() {
+    var m     = document.getElementById('fpDoorModal');
     var swing = document.getElementById('fpDoorSwingSelect').value;
-    var door = {
-        id:           fpGenId(),
-        roomId:       m.dataset.roomId,
-        segmentIndex: parseInt(m.dataset.segIndex, 10),
-        position:     parseFloat(m.dataset.position),
-        width:        parseFloat(document.getElementById('fpDoorWidthInput').value) || 3,
-        swingInward:  swing.startsWith('inward'),
-        swingLeft:    swing.endsWith('left')
-    };
-    if (!fpPlan.doors) fpPlan.doors = [];
-    fpPlan.doors.push(door);
+    var frameVal  = fpParseFeetIn(document.getElementById('fpDoorFrameInput').value);
+    var inseamVal = fpParseFeetIn(document.getElementById('fpDoorInseamInput').value);
+    if (isNaN(frameVal)  || frameVal  <= 0) frameVal  = isNaN(inseamVal) ? 3 : inseamVal + 2/12;
+    if (isNaN(inseamVal) || inseamVal <= 0) inseamVal = Math.max(frameVal - 2/12, 0.5);
+
+    var isEdit = m.dataset.mode === 'edit';
+    if (isEdit) {
+        var existing = (fpPlan.doors || []).find(function(d) { return d.id === m.dataset.editId; });
+        if (existing) {
+            existing.width       = frameVal;
+            existing.inseamWidth = inseamVal;
+            existing.swingInward = swing.startsWith('inward');
+            existing.swingLeft   = swing.endsWith('left');
+        }
+    } else {
+        var door = {
+            id:           fpGenId(),
+            roomId:       m.dataset.roomId,
+            segmentIndex: parseInt(m.dataset.segIndex, 10),
+            position:     parseFloat(m.dataset.position),
+            width:        frameVal,
+            inseamWidth:  inseamVal,
+            swingInward:  swing.startsWith('inward'),
+            swingLeft:    swing.endsWith('left')
+        };
+        if (!fpPlan.doors) fpPlan.doors = [];
+        fpPlan.doors.push(door);
+    }
     fpDirty = true;
     closeModal('fpDoorModal');
     fpRender();
-    fpSetStatus('Door placed.  Switch to Select tool to navigate or select rooms.');
+    fpSetStatus('Door ' + (isEdit ? 'updated' : 'placed') + '.  Switch to Select tool to navigate or select rooms.');
 });
 
 document.getElementById('fpDoorCancelBtn').addEventListener('click', function() {
     closeModal('fpDoorModal');
 });
 
+document.getElementById('fpDoorDeleteBtn').addEventListener('click', function() {
+    var m = document.getElementById('fpDoorModal');
+    if (!confirm('Delete this door?')) return;
+    fpPlan.doors = (fpPlan.doors || []).filter(function(d) { return d.id !== m.dataset.editId; });
+    fpDirty = true;
+    fpSelectedId = null;
+    closeModal('fpDoorModal');
+    fpRender();
+});
+
 document.getElementById('fpWindowSaveBtn').addEventListener('click', function() {
-    var m = document.getElementById('fpWindowModal');
-    var win = {
-        id:           fpGenId(),
-        roomId:       m.dataset.roomId,
-        segmentIndex: parseInt(m.dataset.segIndex, 10),
-        position:     parseFloat(m.dataset.position),
-        width:        parseFloat(document.getElementById('fpWindowWidthInput').value) || 3
-    };
-    if (!fpPlan.windows) fpPlan.windows = [];
-    fpPlan.windows.push(win);
+    var m    = document.getElementById('fpWindowModal');
+    var wVal = fpParseFeetIn(document.getElementById('fpWindowWidthInput').value);
+    if (isNaN(wVal) || wVal <= 0) wVal = 3;
+
+    var isEdit = m.dataset.mode === 'edit';
+    if (isEdit) {
+        var existing = (fpPlan.windows || []).find(function(w) { return w.id === m.dataset.editId; });
+        if (existing) existing.width = wVal;
+    } else {
+        var win = {
+            id:           fpGenId(),
+            roomId:       m.dataset.roomId,
+            segmentIndex: parseInt(m.dataset.segIndex, 10),
+            position:     parseFloat(m.dataset.position),
+            width:        wVal
+        };
+        if (!fpPlan.windows) fpPlan.windows = [];
+        fpPlan.windows.push(win);
+    }
     fpDirty = true;
     closeModal('fpWindowModal');
     fpRender();
-    fpSetStatus('Window placed.');
+    fpSetStatus('Window ' + (isEdit ? 'updated' : 'placed') + '.  Switch to Select tool to navigate or select rooms.');
 });
 
 document.getElementById('fpWindowCancelBtn').addEventListener('click', function() {
     closeModal('fpWindowModal');
+});
+
+document.getElementById('fpWindowDeleteBtn').addEventListener('click', function() {
+    var m = document.getElementById('fpWindowModal');
+    if (!confirm('Delete this window?')) return;
+    fpPlan.windows = (fpPlan.windows || []).filter(function(w) { return w.id !== m.dataset.editId; });
+    fpDirty = true;
+    fpSelectedId = null;
+    closeModal('fpWindowModal');
+    fpRender();
 });
 
 // ============================================================
@@ -2470,6 +2617,14 @@ function fpOpenMarkerEditModal(type, id) {
         var cf = (fpPlan.ceilingFixtures || []).find(function(m) { return m.id === id; });
         if (!cf) return;
         fpOpenCeilingModal(id, cf);
+    } else if (type === 'door') {
+        var d = (fpPlan.doors || []).find(function(m) { return m.id === id; });
+        if (!d) return;
+        fpOpenDoorEditModal(d);
+    } else if (type === 'window') {
+        var w = (fpPlan.windows || []).find(function(m) { return m.id === id; });
+        if (!w) return;
+        fpOpenWindowEditModal(w);
     }
 }
 

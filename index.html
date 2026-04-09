@@ -3977,23 +3977,31 @@
     <!-- Door Modal -->
     <div class="modal-overlay" id="fpDoorModal">
         <div class="modal">
-            <h3>Add Door</h3>
+            <h3 id="fpDoorModalTitle">Add Door</h3>
+            <p style="font-size:0.82rem;color:#94a3b8;margin:-4px 0 10px;">Accepts feet and inches: <code>3'</code>, <code>32"</code>, <code>2'8"</code></p>
             <div class="form-row">
                 <div class="form-group">
-                    <label for="fpDoorWidthInput">Width (feet)</label>
-                    <input type="number" id="fpDoorWidthInput" min="1" max="12" step="0.5" value="3">
+                    <label for="fpDoorFrameInput">Frame/jamb width</label>
+                    <input type="text" id="fpDoorFrameInput" placeholder="e.g. 3' or 34&quot;" value="3'">
+                    <small style="color:#94a3b8">Used for floor plan drawing</small>
                 </div>
                 <div class="form-group">
-                    <label for="fpDoorSwingSelect">Swing direction</label>
-                    <select id="fpDoorSwingSelect">
-                        <option value="inward-left">Inward — Left hinge</option>
-                        <option value="inward-right">Inward — Right hinge</option>
-                        <option value="outward-left">Outward — Left hinge</option>
-                        <option value="outward-right">Outward — Right hinge</option>
-                    </select>
+                    <label for="fpDoorInseamInput">Clear opening (inseam)</label>
+                    <input type="text" id="fpDoorInseamInput" placeholder="e.g. 32&quot; or 2'8&quot;" value='32"'>
+                    <small style="color:#94a3b8">What fits through the door</small>
                 </div>
             </div>
+            <div class="form-group">
+                <label for="fpDoorSwingSelect">Swing direction</label>
+                <select id="fpDoorSwingSelect">
+                    <option value="inward-left">Inward — Left hinge</option>
+                    <option value="inward-right">Inward — Right hinge</option>
+                    <option value="outward-left">Outward — Left hinge</option>
+                    <option value="outward-right">Outward — Right hinge</option>
+                </select>
+            </div>
             <div class="modal-buttons">
+                <button class="btn btn-danger" id="fpDoorDeleteBtn" style="display:none;margin-right:auto">Delete</button>
                 <button class="btn btn-secondary" id="fpDoorCancelBtn">Cancel</button>
                 <button class="btn btn-primary" id="fpDoorSaveBtn">Place Door</button>
             </div>
@@ -4003,12 +4011,14 @@
     <!-- Window Modal -->
     <div class="modal-overlay" id="fpWindowModal">
         <div class="modal">
-            <h3>Add Window</h3>
+            <h3 id="fpWindowModalTitle">Add Window</h3>
             <div class="form-group">
-                <label for="fpWindowWidthInput">Width (feet)</label>
-                <input type="number" id="fpWindowWidthInput" min="1" max="20" step="0.5" value="3">
+                <label for="fpWindowWidthInput">Width</label>
+                <input type="text" id="fpWindowWidthInput" placeholder="e.g. 3', 36&quot;, 2'6&quot;" value="3'">
+                <small style="color:#94a3b8">Accepts feet and inches</small>
             </div>
             <div class="modal-buttons">
+                <button class="btn btn-danger" id="fpWindowDeleteBtn" style="display:none;margin-right:auto">Delete</button>
                 <button class="btn btn-secondary" id="fpWindowCancelBtn">Cancel</button>
                 <button class="btn btn-primary" id="fpWindowSaveBtn">Place Window</button>
             </div>
@@ -7421,7 +7431,7 @@
     <script src="js/gps.js?v=350"></script>
     <script src="js/settings.js?v=350"></script>
     <script src="js/house.js?v=362"></script>
-    <script src="js/floorplan.js?v=365"></script>
+    <script src="js/floorplan.js?v=366"></script>
     <script src="js/search.js?v=350"></script>
     <script src="js/activityreport.js?v=350"></script>
     <script src="js/checklists.js?v=350"></script>

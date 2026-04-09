@@ -62,6 +62,7 @@ function loadFloorPlanPage(floorId) {
     fpDrawPoints   = [];
     fpPreviewPoint = null;
     fpSelectedId   = null;
+    fpDragState    = null;
 
     // Initialize plan to empty so fpRender() doesn't crash before the Firestore load completes
     fpPlan = { rooms: [], doors: [], windows: [], outlets: [], switches: [], plumbing: [], ceilingFixtures: [] };
@@ -568,15 +569,24 @@ function fpMakeDraggableHandle(handle, room, ptIndex) {
             document.removeEventListener('mousemove', onMove);
             document.removeEventListener('mouseup', onUp);
             fpDragState = null;
-            // Hide coords bar when drag ends
-            var bar = document.getElementById('fpCoordsBar');
-            if (bar) bar.classList.add('hidden');
+            fpClearCoordsBar();
             fpRender();
         }
 
         document.addEventListener('mousemove', onMove);
         document.addEventListener('mouseup', onUp);
     });
+}
+
+/** Clear the coords bar back to a blank state */
+function fpClearCoordsBar() {
+    var posEl = document.getElementById('fpCoordsPos');
+    var lenEl = document.getElementById('fpCoordsLen');
+    var bar   = document.getElementById('fpCoordsBar');
+    var sepEl = bar ? bar.querySelector('.fp-coords-sep') : null;
+    if (posEl) posEl.textContent = '';
+    if (lenEl) { lenEl.innerHTML = ''; lenEl.style.display = 'none'; }
+    if (sepEl) sepEl.style.display = 'none';
 }
 
 /** Show coords bar with position + two colored segment lengths during corner drag */
@@ -586,7 +596,6 @@ function fpShowDragCoordsBar(x, y, lenA, lenB) {
     var lenEl = document.getElementById('fpCoordsLen');
     var sepEl = bar ? bar.querySelector('.fp-coords-sep') : null;
     if (!bar || !posEl || !lenEl) return;
-    bar.classList.remove('hidden');
     posEl.textContent = 'Position: ' + x.toFixed(2) + ', ' + y.toFixed(2) + ' ft';
     if (sepEl) sepEl.style.display = '';
     lenEl.innerHTML =
@@ -804,10 +813,8 @@ function fpUpdateCoordsBar(x, y, len) {
     svg.addEventListener('mousemove', function(e) {
         if (!fpPlan) return;
 
-        // Show coords bar whenever the room tool is active (even before first click)
+        // Update coords bar whenever the room tool is active
         if (fpActiveTool === 'room') {
-            var bar = document.getElementById('fpCoordsBar');
-            if (bar) bar.classList.remove('hidden');
             if (!fpDrawing) {
                 // Just update position, no segment yet
                 var rawPt = fpMouseToFeet(e);
@@ -1336,9 +1343,8 @@ function fpSetTool(tool) {
         if (btn) btn.classList.toggle('active', btn.dataset.tool === tool);
     });
 
-    // Show/hide coords bar based on tool
-    var coordsBar = document.getElementById('fpCoordsBar');
-    if (coordsBar) coordsBar.classList.toggle('hidden', tool !== 'room');
+    // Clear coords bar when switching tools (bar is always visible)
+    if (tool !== 'room') fpClearCoordsBar();
 
     var svg = document.getElementById('fpSvg');
     svg.style.cursor = (tool === 'select') ? 'default' : 'crosshair';

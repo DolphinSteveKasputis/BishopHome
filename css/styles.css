@@ -2537,6 +2537,7 @@ button {
     font-size: 1rem;
     font-weight: 600;
     flex-shrink: 0;
+    min-height: 2.25rem;  /* keeps height constant whether content is present or not */
 }
 .fp-coords-bar.hidden { display: none; }
 .fp-coords-sep { color: #475569; }

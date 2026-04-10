@@ -1810,6 +1810,12 @@ function fpDeleteSelected() {
         fpPlan.outlets          = (fpPlan.outlets          || []).filter(function(m) { return m.roomId !== fpSelectedId; });
         fpPlan.switches         = (fpPlan.switches         || []).filter(function(m) { return m.roomId !== fpSelectedId; });
         fpPlan.plumbing         = (fpPlan.plumbing         || []).filter(function(m) { return m.roomId !== fpSelectedId; });
+        // Collect IDs of fixtures being removed so we can scrub them from wall plate targets
+        var removedFixtureIds = [];
+        (fpPlan.ceilingFixtures || []).forEach(function(m) { if (m.roomId === fpSelectedId) removedFixtureIds.push(m.id); });
+        (fpPlan.recessedLights  || []).forEach(function(m) { if (m.roomId === fpSelectedId) removedFixtureIds.push(m.id); });
+        fpScrubTargetIds(removedFixtureIds);
+
         fpPlan.ceilingFixtures  = (fpPlan.ceilingFixtures  || []).filter(function(m) { return m.roomId !== fpSelectedId; });
         fpPlan.recessedLights   = (fpPlan.recessedLights   || []).filter(function(m) { return m.roomId !== fpSelectedId; });
         fpPlan.wallPlates       = (fpPlan.wallPlates       || []).filter(function(m) { return m.roomId !== fpSelectedId; });
@@ -1836,10 +1842,12 @@ function fpDeleteSelected() {
         fpSetStatus('Window removed.');
     } else if (fpSelectedType === 'ceiling') {
         if (!confirm('Remove this ceiling fixture from the floor plan?\n(The Thing record is NOT deleted.)')) return;
+        fpScrubTargetIds(fpSelectedId);
         fpPlan.ceilingFixtures = (fpPlan.ceilingFixtures || []).filter(function(m) { return m.id !== fpSelectedId; });
         fpSetStatus('Ceiling fixture removed from floor plan.');
     } else if (fpSelectedType === 'recessedLight') {
         if (!confirm('Delete this recessed light?')) return;
+        fpScrubTargetIds(fpSelectedId);
         fpPlan.recessedLights = (fpPlan.recessedLights || []).filter(function(m) { return m.id !== fpSelectedId; });
         fpDirty = true;
         fpSelectedId = null;
@@ -2273,6 +2281,26 @@ document.getElementById('fpSaveBtn').addEventListener('click', function() {
 // ============================================================
 
 /** Save without any button/status UI — used after drags to persist position changes. */
+/**
+ * Remove one or more fixture IDs from every wall plate slot's targetIds[].
+ * Call this whenever a recessed light or ceiling fixture is deleted so no
+ * orphaned target references remain in wall plates.
+ *
+ * @param {string|string[]} ids  - single ID or array of IDs to scrub
+ */
+function fpScrubTargetIds(ids) {
+    var toRemove = Array.isArray(ids) ? ids : [ids];
+    if (!toRemove.length) return;
+    (fpPlan.wallPlates || []).forEach(function(plate) {
+        (plate.slots || []).forEach(function(slot) {
+            if (!slot.targetIds || !slot.targetIds.length) return;
+            slot.targetIds = slot.targetIds.filter(function(tid) {
+                return toRemove.indexOf(tid) < 0;
+            });
+        });
+    });
+}
+
 function fpSilentSave() {
     if (!fpFloorId || !fpPlan || !fpDirty) return;
     userCol('floorPlans').doc(fpFloorId).set({
@@ -3788,6 +3816,7 @@ document.getElementById('fpRecessedDeleteBtn').addEventListener('click', functio
     var editId = modal.dataset.editId;
     if (!editId) return;
     if (!confirm('Delete this recessed light?')) return;
+    fpScrubTargetIds(editId);
     fpPlan.recessedLights = (fpPlan.recessedLights || []).filter(function(m) { return m.id !== editId; });
     fpDirty       = true;
     fpSelectedId  = null;

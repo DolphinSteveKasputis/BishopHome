@@ -226,12 +226,12 @@ function renderFloorPlanItemPage(item, itemType, planId, plan) {
         });
 
     // ---- Load all cross-entity feature sections ----
-    // targetType = itemType, targetId = itemId
-    loadProblems(  itemType, itemId, 'fpItemProblemsContainer',  'fpItemProblemsEmptyState');
-    loadFacts(     itemType, itemId, 'fpItemFactsContainer',     'fpItemFactsEmptyState');
-    loadProjects(  itemType, itemId, 'fpItemProjectsContainer',  'fpItemProjectsEmptyState');
-    loadActivities(itemType, itemId, 'fpItemActivityContainer',  'fpItemActivityEmptyState');
-    loadPhotos(    itemType, itemId, 'fpItemPhotoContainer',     'fpItemPhotoEmptyState');
+    // targetType = itemType, targetId = item.id
+    loadProblems(  itemType, item.id, 'fpItemProblemsContainer',  'fpItemProblemsEmptyState');
+    loadFacts(     itemType, item.id, 'fpItemFactsContainer',     'fpItemFactsEmptyState');
+    loadProjects(  itemType, item.id, 'fpItemProjectsContainer',  'fpItemProjectsEmptyState');
+    loadActivities(itemType, item.id, 'fpItemActivityContainer',  'fpItemActivityEmptyState');
+    loadPhotos(    itemType, item.id, 'fpItemPhotoContainer',     'fpItemPhotoEmptyState');
 }
 
 // ============================================================

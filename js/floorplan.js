@@ -1308,50 +1308,74 @@ function fpRenderDoor(svg, door) {
         });
 
     } else if (subtype === 'french') {
-        // --- French door: two panels, each half width, hinged at h and oe ---
-        var halfPx = fp2px(door.width) / 2;
+        // --- French door: two panels, each half width, perpendicular to wall ---
+        // Each panel hinge is at the jamb end; the panel swings 90° into (or out of) the room.
+        // In plan view: two lines pointing into the room + two quarter-circle arcs sweeping
+        // from the closed position (center divider) to the open position (perpendicular tip).
 
-        // Center divider post at midpoint of opening
-        var midX = (h.x + oe.x) / 2;
-        var midY = (h.y + oe.y) / 2;
+        var frHalfPx = fp2px(door.width) / 2;
+        var frMidX   = (h.x + oe.x) / 2;
+        var frMidY   = (h.y + oe.y) / 2;
+
+        // Room-normal direction: (info.nx, info.ny) is the left-hand wall normal.
+        // Inward panels point in the left-hand normal direction; outward panels flip it.
+        var frDir = door.swingInward !== false ? 1 : -1;
+        var frNx  = frDir * info.nx;
+        var frNy  = frDir * info.ny;
+
+        // Open-position panel tips (perpendicular into/out of room, half-width from hinge)
+        var lOpenX = h.x  + frNx * frHalfPx;
+        var lOpenY = h.y  + frNy * frHalfPx;
+        var rOpenX = oe.x + frNx * frHalfPx;
+        var rOpenY = oe.y + frNy * frHalfPx;
+
+        // For a quarter-circle arc from the open tip to the center:
+        //   center of arc = hinge point (h or oe), radius = frHalfPx
+        //   Going from open-tip → mid sweeps 90°.
+        // Sweep flag: determined by cross product of (openTip-hinge) × (mid-hinge).
+        //   If cross > 0 in SVG coords (Y-down), CW arc (sweep=1) stays on the room side.
+        // Left panel: (lOpen-h) × (mid-h)
+        var lCrossZ = (lOpenX - h.x) * (frMidY - h.y) - (lOpenY - h.y) * (frMidX - h.x);
+        var lSweep  = lCrossZ > 0 ? 0 : 1;
+        // Right panel: (rOpen-oe) × (mid-oe)
+        var rCrossZ = (rOpenX - oe.x) * (frMidY - oe.y) - (rOpenY - oe.y) * (frMidX - oe.x);
+        var rSweep  = rCrossZ > 0 ? 0 : 1;
+
+        // Center divider post
         fpSvgEl(svg, 'line', {
-            x1: midX - info.nx * jambLen, y1: midY - info.ny * jambLen,
-            x2: midX + info.nx * jambLen, y2: midY + info.ny * jambLen,
+            x1: frMidX - info.nx * jambLen, y1: frMidY - info.ny * jambLen,
+            x2: frMidX + info.nx * jambLen, y2: frMidY + info.ny * jambLen,
             stroke: strokeColor, 'stroke-width': isSelected ? 2.5 : 2, 'pointer-events': 'none'
         });
 
-        // Left panel (hinge at h, swings toward room)
-        var lPanelX = h.x - sw * info.ny * halfPx;
-        var lPanelY = h.y + sw * info.nx * halfPx;
+        // Left panel — line from hinge to open-position tip
         fpSvgEl(svg, 'line', {
-            x1: h.x, y1: h.y, x2: lPanelX, y2: lPanelY,
+            x1: h.x, y1: h.y, x2: lOpenX, y2: lOpenY,
             stroke: strokeColor, 'stroke-width': isSelected ? 3 : 2.5, 'pointer-events': 'none'
         });
-        var lSweep = door.swingLeft ? 0 : 1;
+        // Left arc: from open tip sweeping to center (quarter circle, radius=half door width)
         fpSvgEl(svg, 'path', {
-            d: 'M ' + lPanelX + ' ' + lPanelY + ' A ' + halfPx + ' ' + halfPx + ' 0 0 ' + lSweep + ' ' + midX + ' ' + midY,
+            d: 'M ' + lOpenX + ' ' + lOpenY + ' A ' + frHalfPx + ' ' + frHalfPx + ' 0 0 ' + lSweep + ' ' + frMidX + ' ' + frMidY,
             fill: 'none', stroke: isSelected ? '#f59e0b' : '#334155',
             'stroke-width': isSelected ? 2 : 1.5, 'stroke-dasharray': '5,3', 'pointer-events': 'none'
         });
-        fpSvgEl(svg, 'circle', { cx: h.x, cy: h.y, r: isSelected ? 4 : 3, fill: strokeColor, 'pointer-events': 'none' });
+        fpSvgEl(svg, 'circle', { cx: h.x,  cy: h.y,  r: isSelected ? 4 : 3, fill: strokeColor, 'pointer-events': 'none' });
 
-        // Right panel (hinge at oe, swings toward room)
-        var rPanelX = oe.x - sw * info.ny * halfPx;
-        var rPanelY = oe.y + sw * info.nx * halfPx;
+        // Right panel — line from hinge to open-position tip
         fpSvgEl(svg, 'line', {
-            x1: oe.x, y1: oe.y, x2: rPanelX, y2: rPanelY,
+            x1: oe.x, y1: oe.y, x2: rOpenX, y2: rOpenY,
             stroke: strokeColor, 'stroke-width': isSelected ? 3 : 2.5, 'pointer-events': 'none'
         });
-        var rSweep = door.swingLeft ? 1 : 0;
+        // Right arc: from open tip sweeping to center
         fpSvgEl(svg, 'path', {
-            d: 'M ' + rPanelX + ' ' + rPanelY + ' A ' + halfPx + ' ' + halfPx + ' 0 0 ' + rSweep + ' ' + midX + ' ' + midY,
+            d: 'M ' + rOpenX + ' ' + rOpenY + ' A ' + frHalfPx + ' ' + frHalfPx + ' 0 0 ' + rSweep + ' ' + frMidX + ' ' + frMidY,
             fill: 'none', stroke: isSelected ? '#f59e0b' : '#334155',
             'stroke-width': isSelected ? 2 : 1.5, 'stroke-dasharray': '5,3', 'pointer-events': 'none'
         });
         fpSvgEl(svg, 'circle', { cx: oe.x, cy: oe.y, r: isSelected ? 4 : 3, fill: strokeColor, 'pointer-events': 'none' });
 
         // Type label
-        var lblFR = fpSvgEl(svg, 'text', { x: midX, y: midY - 8, 'text-anchor': 'middle', 'font-size': 7, fill: strokeColor, 'pointer-events': 'none' });
+        var lblFR = fpSvgEl(svg, 'text', { x: frMidX, y: frMidY - 8, 'text-anchor': 'middle', 'font-size': 7, fill: strokeColor, 'pointer-events': 'none' });
         lblFR.textContent = 'FR';
 
     } else if (subtype === 'sliding') {
@@ -2092,8 +2116,11 @@ function fpPlaceMarkerOnWall(e, room, markerType) {
         document.getElementById('fpDoorModalTitle').textContent = 'Add Door';
         document.getElementById('fpDoorFrameInput').value  = "3'";
         document.getElementById('fpDoorInseamInput').value = '32"';
+        document.getElementById('fpDoorSubtypeSelect').value = 'single';
         document.getElementById('fpDoorSwingSelect').value = 'inward-left';
+        document.getElementById('fpDoorFrenchSwingSelect').value = 'inward';
         document.getElementById('fpDoorDeleteBtn').style.display = 'none';
+        fpDoorUpdateSwingControls('single');
         openModal('fpDoorModal');
     } else if (markerType === 'window') {
         var wModal = document.getElementById('fpWindowModal');
@@ -2126,9 +2153,13 @@ function fpOpenDoorEditModal(door) {
     document.getElementById('fpDoorModalTitle').textContent = 'Edit Door';
     document.getElementById('fpDoorFrameInput').value  = fpFmtFeetIn(door.width || 3);
     document.getElementById('fpDoorInseamInput').value = fpFmtFeetIn(door.inseamWidth || Math.max((door.width || 3) - 2/12, 0.5));
-    var swing = (door.swingInward ? 'inward' : 'outward') + '-' + (door.swingLeft ? 'left' : 'right');
-    document.getElementById('fpDoorSwingSelect').value   = swing;
-    document.getElementById('fpDoorSubtypeSelect').value = door.subtype || 'single';
+    var sub = door.subtype || 'single';
+    document.getElementById('fpDoorSubtypeSelect').value = sub;
+    // Set swing values and show/hide the right swing control
+    var swing = (door.swingInward !== false ? 'inward' : 'outward') + '-' + (door.swingLeft !== false ? 'left' : 'right');
+    document.getElementById('fpDoorSwingSelect').value       = swing;
+    document.getElementById('fpDoorFrenchSwingSelect').value = door.swingInward !== false ? 'inward' : 'outward';
+    fpDoorUpdateSwingControls(sub);
 
     // Position-from-wall section
     var posSection = document.getElementById('fpDoorPositionSection');
@@ -2513,8 +2544,21 @@ function fpOpenPlumbingEndpointEditModal(ep) {
 }
 
 document.getElementById('fpDoorSaveBtn').addEventListener('click', function() {
-    var m     = document.getElementById('fpDoorModal');
-    var swing = document.getElementById('fpDoorSwingSelect').value;
+    var m       = document.getElementById('fpDoorModal');
+    var sub     = document.getElementById('fpDoorSubtypeSelect').value || 'single';
+    // Read the correct swing control based on subtype
+    var swingInward, swingLeft;
+    if (sub === 'french') {
+        swingInward = document.getElementById('fpDoorFrenchSwingSelect').value === 'inward';
+        swingLeft   = true;  // not used for french rendering, but keep field consistent
+    } else if (sub === 'sliding') {
+        swingInward = true;
+        swingLeft   = true;
+    } else {
+        var swing   = document.getElementById('fpDoorSwingSelect').value;
+        swingInward = swing.startsWith('inward');
+        swingLeft   = swing.endsWith('left');
+    }
     var frameVal  = fpParseFeetIn(document.getElementById('fpDoorFrameInput').value);
     var inseamVal = fpParseFeetIn(document.getElementById('fpDoorInseamInput').value);
     if (isNaN(frameVal)  || frameVal  <= 0) frameVal  = isNaN(inseamVal) ? 3 : inseamVal + 2/12;
@@ -2527,9 +2571,9 @@ document.getElementById('fpDoorSaveBtn').addEventListener('click', function() {
         if (existing) {
             existing.width       = frameVal;
             existing.inseamWidth = inseamVal;
-            existing.swingInward = swing.startsWith('inward');
-            existing.swingLeft   = swing.endsWith('left');
-            existing.subtype     = document.getElementById('fpDoorSubtypeSelect').value || 'single';
+            existing.swingInward = swingInward;
+            existing.swingLeft   = swingLeft;
+            existing.subtype     = sub;
             // Apply position-from-wall if the user typed a value
             var posRaw = fpParseFeetIn(document.getElementById('fpDoorPosInput').value);
             if (!isNaN(posRaw) && posRaw >= 0) {
@@ -2550,9 +2594,9 @@ document.getElementById('fpDoorSaveBtn').addEventListener('click', function() {
             position:     parseFloat(m.dataset.position),
             width:        frameVal,
             inseamWidth:  inseamVal,
-            swingInward:  swing.startsWith('inward'),
-            swingLeft:    swing.endsWith('left'),
-            subtype:      document.getElementById('fpDoorSubtypeSelect').value || 'single',
+            swingInward:  swingInward,
+            swingLeft:    swingLeft,
+            subtype:      sub,
             name:         fpAutoName(fpPlan.doors, 'Door')
         };
         if (!fpPlan.doors) fpPlan.doors = [];
@@ -2568,6 +2612,33 @@ document.getElementById('fpDoorSaveBtn').addEventListener('click', function() {
 
 document.getElementById('fpDoorCancelBtn').addEventListener('click', function() {
     closeModal('fpDoorModal');
+});
+
+/**
+ * Show/hide the appropriate swing control based on door subtype.
+ * Sliding has no swing. French has inward/outward only. Single/Pocket have all options.
+ */
+function fpDoorUpdateSwingControls(subtype) {
+    var grp        = document.getElementById('fpDoorSwingGroup');
+    var singleSel  = document.getElementById('fpDoorSwingSelect');
+    var frenchSel  = document.getElementById('fpDoorFrenchSwingSelect');
+    if (subtype === 'sliding') {
+        grp.style.display = 'none';
+    } else if (subtype === 'french') {
+        grp.style.display = '';
+        singleSel.style.display = 'none';
+        frenchSel.style.display = '';
+    } else {
+        // single, pocket
+        grp.style.display = '';
+        singleSel.style.display = '';
+        frenchSel.style.display = 'none';
+    }
+}
+
+// Update swing controls immediately when door type changes in the modal
+document.getElementById('fpDoorSubtypeSelect').addEventListener('change', function() {
+    fpDoorUpdateSwingControls(this.value);
 });
 
 document.getElementById('fpDoorDeleteBtn').addEventListener('click', function() {

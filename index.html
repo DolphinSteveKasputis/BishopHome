@@ -4023,21 +4023,28 @@
                 </div>
             </div>
             <div class="form-group">
-                <label for="fpDoorSwingSelect">Swing direction</label>
-                <select id="fpDoorSwingSelect">
-                    <option value="inward-left">Inward — Left hinge</option>
-                    <option value="inward-right">Inward — Right hinge</option>
-                    <option value="outward-left">Outward — Left hinge</option>
-                    <option value="outward-right">Outward — Right hinge</option>
-                </select>
-            </div>
-            <div class="form-group">
                 <label for="fpDoorSubtypeSelect">Door type</label>
                 <select id="fpDoorSubtypeSelect">
                     <option value="single">Single swing</option>
                     <option value="french">French (double swing)</option>
                     <option value="sliding">Sliding</option>
                     <option value="pocket">Pocket</option>
+                </select>
+            </div>
+            <!-- Swing direction — hidden for Sliding; shown for Single/Pocket/French -->
+            <div class="form-group" id="fpDoorSwingGroup">
+                <label for="fpDoorSwingSelect">Swing direction</label>
+                <!-- Single/Pocket: 4 options (inward/outward × left hinge/right hinge) -->
+                <select id="fpDoorSwingSelect" style="display:none">
+                    <option value="inward-left">Inward — Left hinge</option>
+                    <option value="inward-right">Inward — Right hinge</option>
+                    <option value="outward-left">Outward — Left hinge</option>
+                    <option value="outward-right">Outward — Right hinge</option>
+                </select>
+                <!-- French: inward/outward only -->
+                <select id="fpDoorFrenchSwingSelect" style="display:none">
+                    <option value="inward">Inward (into room)</option>
+                    <option value="outward">Outward (out of room)</option>
                 </select>
             </div>
             <!-- Position from wall — only shown when editing an existing door -->
@@ -7707,7 +7714,7 @@
     <script src="js/gps.js?v=350"></script>
     <script src="js/settings.js?v=350"></script>
     <script src="js/house.js?v=362"></script>
-    <script src="js/floorplan.js?v=383"></script>
+    <script src="js/floorplan.js?v=384"></script>
     <script src="js/search.js?v=350"></script>
     <script src="js/activityreport.js?v=350"></script>
     <script src="js/checklists.js?v=350"></script>

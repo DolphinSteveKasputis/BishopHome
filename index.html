@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=390">
+    <link rel="stylesheet" href="css/styles.css?v=392">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -895,6 +895,8 @@
             <div class="card-list" id="houseProblemsContainer"></div>
             <!-- All Projects panel — single clickable card rendered by renderHouseProjects() -->
             <div class="card-list" id="houseProjectsContainer"></div>
+            <!-- Floor Plan Item Rollup: Open Concerns + Active Projects (whole house) -->
+            <div id="houseFpRollupContainer"></div>
             <!-- Floors section -->
             <div class="section-header">
                 <h3 class="section-heading">Floors</h3>
@@ -1037,6 +1039,8 @@
             <div id="floorPlanThumbnailContainer" class="fp-thumbnail-wrapper" title="Click to open floor plan editor">
                 <p class="empty-state" id="floorPlanThumbnailEmpty">No floor plan drawn yet. Click "Edit Floor Plan" to start drawing.</p>
             </div>
+            <!-- Floor Plan Item Rollup: Open Concerns + Active Projects (this floor) -->
+            <div id="floorFpRollupContainer"></div>
 
             <!-- Rooms section -->
             <div class="section-header">
@@ -1204,6 +1208,8 @@
             </div>
             <div id="roomFloorPlanItemsContainer"></div>
             <p class="empty-state" id="roomFloorPlanItemsEmptyState"></p>
+            <!-- Floor Plan Item Rollup: Open Concerns + Active Projects (items in this room) -->
+            <div id="roomFpRollupContainer"></div>
         </section>
 
         <!-- Page: Thing Detail -->
@@ -7788,9 +7794,9 @@
     <script src="js/calendar.js?v=350"></script>
     <script src="js/gps.js?v=350"></script>
     <script src="js/settings.js?v=350"></script>
-    <script src="js/house.js?v=391"></script>
-    <script src="js/floorplan.js?v=391"></script>
-    <script src="js/floorplanitem.js?v=391"></script>
+    <script src="js/house.js?v=392"></script>
+    <script src="js/floorplan.js?v=392"></script>
+    <script src="js/floorplanitem.js?v=392"></script>
     <script src="js/search.js?v=350"></script>
     <script src="js/activityreport.js?v=350"></script>
     <script src="js/checklists.js?v=350"></script>

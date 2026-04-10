@@ -395,6 +395,18 @@ A detail page for any individual floor plan object (door, window, fixture, reces
 - Each row shows: type icon + type label + item display name + "Details →" link to `#floorplanitem/{planId}/{itemType}/{itemId}`
 - Empty state shown if no floor plan exists or room has no items
 
+**Floor Plan Item Rollup — Open Concerns and Active Projects (Phase 4)**:
+- Rendered by `loadFpItemRollup()` (room/floor scope) and `loadFpItemRollupForHouse()` (house scope) in `house.js`
+- **Room detail page** (`page-room`): "Open Concerns — Items in this Room" + "Active Projects — Items in this Room"
+- **Floor detail page** (`page-floor`): "Open Concerns — Items on this Floor" + "Active Projects — Items on this Floor" — appears below the floor plan thumbnail
+- **House detail page** (`page-house`): "Open Concerns — Whole House" + "Active Projects — Whole House" — appears after the Projects panel
+- Each section is **collapsed by default**; click header to expand. Section only renders if count > 0.
+- Header shows a blue count badge; arrow rotates 90° when expanded.
+- Expanded view: rows with type icon + item display name + concern/project title + "Details →" link to `#floorplanitem/{planId}/{itemType}/{itemId}`
+- Data: queries `problems` where `targetType in FP_ITEM_TYPES` and `status == 'open'`; queries `projects` where `targetType in FP_ITEM_TYPES` then filters `status !== 'complete'` in-memory
+- Room scope uses `shape.roomId === room.id` to find the fp shape, then filters items by `item.roomId === shape.id`
+- House scope loads all floor plan docs in parallel via `Promise.all`
+
 ### Breaker Panel (`house.js`)
 Tracks the electrical breaker panel as a grid of slots.
 

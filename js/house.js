@@ -231,6 +231,9 @@ function loadHousePage() {
                 renderHouseProjects(projContainer, allProjectDocs);
             }
 
+            // --- Load fp item rollup: Open Concerns + Active Projects for whole house ---
+            loadFpItemRollupForHouse('houseFpRollupContainer');
+
             // --- Render floor list ---
             if (floorSnap.empty) {
                 emptyState.textContent = 'No floors yet. Add a floor to get started.';
@@ -689,6 +692,9 @@ function renderFloorDetail(floor) {
         loadEventsForTarget('floor', floor.id,
             'floorCalendarEventsContainer', 'floorCalendarEventsEmptyState', months);
     }
+
+    // Load fp item rollup: Open Concerns + Active Projects for all items on this floor
+    loadFpItemRollup('floor', floor.id, floor.id, 'floorFpRollupContainer');
 }
 
 // ============================================================
@@ -860,6 +866,300 @@ function renderRoomDetail(room, floor) {
 
     // Load floor plan items that belong to this room
     loadRoomFloorPlanItems(room.id, floor.id);
+
+    // Load fp item rollup: Open Concerns + Active Projects for items in this room
+    loadFpItemRollup('room', room.id, floor.id, 'roomFpRollupContainer');
+}
+
+// ============================================================
+// FLOOR PLAN ITEM ROLLUP (Open Concerns + Active Projects)
+// ============================================================
+
+// All fp item targetType values — used for Firestore 'in' queries
+var FP_ITEM_TYPES = ['door', 'window', 'ceiling', 'recessedLight', 'wallplate', 'fixture', 'plumbingEndpoint', 'plumbing'];
+
+// Icon map for fp item types (mirrors loadRoomFloorPlanItems typeIconMap)
+var FP_TYPE_ICONS = {
+    door:             '🚪',
+    window:           '🪟',
+    fixture:          '🛁',
+    ceiling:          '💡',
+    recessedLight:    '◎',
+    wallplate:        '🔌',
+    plumbingEndpoint: '🔧',
+    plumbing:         '〰️'
+};
+
+/**
+ * Return a human-readable display name for a fp item.
+ * Falls back to type label if item.name is blank.
+ */
+function fpRollupGetName(item, itemType) {
+    if (item.name && item.name.trim()) return item.name.trim();
+    if (itemType === 'door') {
+        var doorLabels = { single: 'Door', french: 'French Door', sliding: 'Sliding Door', pocket: 'Pocket Door' };
+        return doorLabels[item.subtype] || 'Door';
+    }
+    if (itemType === 'window')           return 'Window';
+    if (itemType === 'ceiling') {
+        var ceilLabels = { fan: 'Ceiling Fan', 'fan-light': 'Fan/Light', 'flush-mount': 'Flush Mount', 'drop-light': 'Drop Light', chandelier: 'Chandelier', generic: 'Ceiling Fixture' };
+        return ceilLabels[item.subtype] || 'Ceiling Fixture';
+    }
+    if (itemType === 'recessedLight')    return 'Recessed Light';
+    if (itemType === 'wallplate')        return 'Wall Plate';
+    if (itemType === 'fixture') {
+        var fixLabels = { toilet: 'Toilet', sink: 'Sink', tub: 'Tub/Shower' };
+        return fixLabels[item.fixtureType] || 'Fixture';
+    }
+    if (itemType === 'plumbingEndpoint') return item.endpointType === 'spigot' ? 'Spigot' : 'Stub-out';
+    if (itemType === 'plumbing')         return 'Plumbing';
+    return 'Item';
+}
+
+/**
+ * Render a single collapsible rollup section (concerns or projects) into container.
+ * Does nothing if rows array is empty.
+ *
+ * @param {HTMLElement} container  — parent div to append the section into
+ * @param {string}      title      — section heading text (without count)
+ * @param {Array}       rows       — [{icon, typeLabel, itemName, title, detailsUrl}]
+ */
+function fpRenderRollupSection(container, title, rows) {
+    if (!rows.length) return;
+
+    var section = document.createElement('div');
+    section.className = 'fp-rollup-section';
+
+    var header = document.createElement('div');
+    header.className = 'fp-rollup-header';
+    header.innerHTML =
+        escapeHtml(title) +
+        ' <span class="fp-rollup-count">' + rows.length + '</span>' +
+        '<span class="fp-rollup-arrow">›</span>';
+    header.addEventListener('click', function() {
+        section.classList.toggle('open');
+    });
+    section.appendChild(header);
+
+    var body = document.createElement('div');
+    body.className = 'fp-rollup-body';
+
+    rows.forEach(function(row) {
+        var div = document.createElement('div');
+        div.className = 'fp-rollup-row';
+        div.innerHTML =
+            '<span class="fp-rollup-item-type">' + (row.icon || '') + ' ' + escapeHtml(row.typeLabel) + '</span>' +
+            '<span class="fp-rollup-item-name">' + escapeHtml(row.itemName) + '</span>' +
+            '<span class="fp-rollup-concern">' + escapeHtml(row.title) + '</span>' +
+            '<a href="' + row.detailsUrl + '" class="btn btn-secondary btn-small fp-rollup-details-btn">Details \u2192</a>';
+        body.appendChild(div);
+    });
+
+    section.appendChild(body);
+    container.appendChild(section);
+}
+
+/**
+ * Load and render the Open Concerns + Active Projects rollup for room or floor scope.
+ *
+ * @param {'room'|'floor'} scopeType  — 'room' filters to one room shape; 'floor' covers all rooms
+ * @param {string}         scopeId    — room.id (Firestore) for room scope, floor.id for floor scope
+ * @param {string}         floorId    — Firestore floor ID (= floorPlans doc ID)
+ * @param {string}         containerId — ID of the wrapping div to render into
+ */
+async function loadFpItemRollup(scopeType, scopeId, floorId, containerId) {
+    var container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = '';
+
+    try {
+        // 1. Load the floor plan doc for this floor
+        var planDoc = await userCol('floorPlans').doc(floorId).get();
+        if (!planDoc.exists) return;
+        var plan = planDoc.data();
+        var planId = floorId;
+
+        // 2. Build itemId → { item, itemType, planId } map scoped to room or floor
+        var itemMap = {};
+
+        function collectItems(arr, itemType, shapeFilter) {
+            (arr || []).forEach(function(item) {
+                if (!shapeFilter || shapeFilter(item)) {
+                    itemMap[item.id] = { item: item, itemType: itemType, planId: planId };
+                }
+            });
+        }
+
+        if (scopeType === 'room') {
+            // Find the fp room shape whose .roomId === Firestore room ID
+            var shape = (plan.rooms || []).find(function(r) { return r.roomId === scopeId; });
+            if (!shape) return;
+            var shapeId = shape.id;
+            var roomFilter = function(item) { return item.roomId === shapeId; };
+            collectItems(plan.doors,             'door',             roomFilter);
+            collectItems(plan.windows,           'window',           roomFilter);
+            collectItems(plan.fixtures,          'fixture',          roomFilter);
+            collectItems(plan.ceilingFixtures,   'ceiling',          roomFilter);
+            collectItems(plan.recessedLights,    'recessedLight',    roomFilter);
+            collectItems(plan.wallPlates,        'wallplate',        roomFilter);
+            collectItems(plan.plumbingEndpoints, 'plumbingEndpoint', roomFilter);
+            collectItems(plan.plumbing,          'plumbing',         roomFilter);
+        } else {
+            // Floor scope: collect all items across all rooms in this plan
+            collectItems(plan.doors,             'door',             null);
+            collectItems(plan.windows,           'window',           null);
+            collectItems(plan.fixtures,          'fixture',          null);
+            collectItems(plan.ceilingFixtures,   'ceiling',          null);
+            collectItems(plan.recessedLights,    'recessedLight',    null);
+            collectItems(plan.wallPlates,        'wallplate',        null);
+            collectItems(plan.plumbingEndpoints, 'plumbingEndpoint', null);
+            collectItems(plan.plumbing,          'plumbing',         null);
+        }
+
+        var itemIds = Object.keys(itemMap);
+        if (!itemIds.length) return;
+
+        // 3. Query open problems and active projects in parallel
+        var results = await Promise.all([
+            userCol('problems').where('targetType', 'in', FP_ITEM_TYPES).where('status', '==', 'open').get(),
+            userCol('projects').where('targetType', 'in', FP_ITEM_TYPES).get()
+        ]);
+        var problemSnap = results[0];
+        var projectSnap = results[1];
+
+        // 4. Filter to only items in scope, build display rows
+        var concernRows = [];
+        problemSnap.forEach(function(doc) {
+            var d = doc.data();
+            if (!itemMap[d.targetId]) return;
+            var entry = itemMap[d.targetId];
+            concernRows.push({
+                icon:       FP_TYPE_ICONS[entry.itemType] || '',
+                typeLabel:  fpRollupGetName(entry.item, entry.itemType),
+                itemName:   fpRollupGetName(entry.item, entry.itemType),
+                title:      d.description || '(no description)',
+                detailsUrl: '#floorplanitem/' + entry.planId + '/' + entry.itemType + '/' + d.targetId
+            });
+        });
+
+        var projectRows = [];
+        projectSnap.forEach(function(doc) {
+            var d = doc.data();
+            if (!itemMap[d.targetId]) return;
+            if (d.status === 'complete') return;
+            var entry = itemMap[d.targetId];
+            projectRows.push({
+                icon:       FP_TYPE_ICONS[entry.itemType] || '',
+                typeLabel:  fpRollupGetName(entry.item, entry.itemType),
+                itemName:   fpRollupGetName(entry.item, entry.itemType),
+                title:      d.title || '(no title)',
+                detailsUrl: '#floorplanitem/' + entry.planId + '/' + entry.itemType + '/' + d.targetId
+            });
+        });
+
+        // 5. Render the two collapsible sections
+        var scopeLabel = scopeType === 'room' ? 'Items in this Room' : 'Items on this Floor';
+        fpRenderRollupSection(container, 'Open Concerns \u2014 ' + scopeLabel, concernRows);
+        fpRenderRollupSection(container, 'Active Projects \u2014 ' + scopeLabel, projectRows);
+
+    } catch (err) {
+        console.error('loadFpItemRollup error:', err);
+    }
+}
+
+/**
+ * Load and render the Open Concerns + Active Projects rollup for the whole house.
+ * Loads all floor plan docs in parallel, collects items from every floor.
+ *
+ * @param {string} containerId — ID of the wrapping div to render into
+ */
+async function loadFpItemRollupForHouse(containerId) {
+    var container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = '';
+
+    try {
+        // 1. Load all floors to get their IDs
+        var floorSnap = await userCol('floors').get();
+        if (floorSnap.empty) return;
+
+        var floorIds = [];
+        floorSnap.forEach(function(doc) { floorIds.push(doc.id); });
+
+        // 2. Load all floorPlan docs in parallel
+        var planDocs = await Promise.all(
+            floorIds.map(function(fid) { return userCol('floorPlans').doc(fid).get(); })
+        );
+
+        // 3. Collect all items across every floor plan
+        var itemMap = {};   // itemId → { item, itemType, planId }
+        planDocs.forEach(function(planDoc) {
+            if (!planDoc.exists) return;
+            var plan   = planDoc.data();
+            var planId = planDoc.id;
+
+            function collectAll(arr, itemType) {
+                (arr || []).forEach(function(item) {
+                    itemMap[item.id] = { item: item, itemType: itemType, planId: planId };
+                });
+            }
+            collectAll(plan.doors,             'door');
+            collectAll(plan.windows,           'window');
+            collectAll(plan.fixtures,          'fixture');
+            collectAll(plan.ceilingFixtures,   'ceiling');
+            collectAll(plan.recessedLights,    'recessedLight');
+            collectAll(plan.wallPlates,        'wallplate');
+            collectAll(plan.plumbingEndpoints, 'plumbingEndpoint');
+            collectAll(plan.plumbing,          'plumbing');
+        });
+
+        if (!Object.keys(itemMap).length) return;
+
+        // 4. Query open problems and active projects in parallel
+        var results = await Promise.all([
+            userCol('problems').where('targetType', 'in', FP_ITEM_TYPES).where('status', '==', 'open').get(),
+            userCol('projects').where('targetType', 'in', FP_ITEM_TYPES).get()
+        ]);
+        var problemSnap = results[0];
+        var projectSnap = results[1];
+
+        // 5. Filter to items in scope, build display rows
+        var concernRows = [];
+        problemSnap.forEach(function(doc) {
+            var d = doc.data();
+            if (!itemMap[d.targetId]) return;
+            var entry = itemMap[d.targetId];
+            concernRows.push({
+                icon:       FP_TYPE_ICONS[entry.itemType] || '',
+                typeLabel:  fpRollupGetName(entry.item, entry.itemType),
+                itemName:   fpRollupGetName(entry.item, entry.itemType),
+                title:      d.description || '(no description)',
+                detailsUrl: '#floorplanitem/' + entry.planId + '/' + entry.itemType + '/' + d.targetId
+            });
+        });
+
+        var projectRows = [];
+        projectSnap.forEach(function(doc) {
+            var d = doc.data();
+            if (!itemMap[d.targetId]) return;
+            if (d.status === 'complete') return;
+            var entry = itemMap[d.targetId];
+            projectRows.push({
+                icon:       FP_TYPE_ICONS[entry.itemType] || '',
+                typeLabel:  fpRollupGetName(entry.item, entry.itemType),
+                itemName:   fpRollupGetName(entry.item, entry.itemType),
+                title:      d.title || '(no title)',
+                detailsUrl: '#floorplanitem/' + entry.planId + '/' + entry.itemType + '/' + d.targetId
+            });
+        });
+
+        // 6. Render the two collapsible sections
+        fpRenderRollupSection(container, 'Open Concerns \u2014 Whole House', concernRows);
+        fpRenderRollupSection(container, 'Active Projects \u2014 Whole House', projectRows);
+
+    } catch (err) {
+        console.error('loadFpItemRollupForHouse error:', err);
+    }
 }
 
 // ============================================================

@@ -38,7 +38,7 @@ var fpSelectedId   = null;   // ID of selected room shape or marker
 var fpSelectedType = 'room'; // 'room' | 'outlet' | 'switch' | 'plumbing' | 'ceiling' | 'recessedLight' | 'door' | 'window' | 'wallplate'
 
 // Electrical mode state
-var fpElectricalMode = false;  // true = electrical overlay active
+var fpActiveMode = 'layout';   // 'layout' | 'electrical' — which layer is being edited
 var fpElecFade       = true;   // true = dim structural elements in electrical mode
 var fpTargetEditMode     = false;   // true = in fixture-picking mode for a specific slot
 var fpTargetEditPlateId  = null;    // plate ID being edited
@@ -325,7 +325,7 @@ function fpRender() {
 
     // ---- Structural group (may be faded in electrical mode) ----
     var structG = fpSvgG(svg, 'fp-structural');
-    if (fpElectricalMode && fpElecFade) {
+    if (fpActiveMode === 'electrical' && fpElecFade) {
         structG.setAttribute('opacity', '0.25');
     }
 
@@ -356,7 +356,7 @@ function fpRender() {
     (fpPlan.wallPlates || []).forEach(function(m) { fpRenderWallPlate(svg, m); });
 
     // ---- Wiring lines (electrical mode + a wall plate is selected) ----
-    if (fpElectricalMode && fpSelectedType === 'wallplate' && fpSelectedId) {
+    if (fpActiveMode === 'electrical' && fpSelectedType === 'wallplate' && fpSelectedId) {
         fpRenderWiringLines(svg);
     }
 
@@ -376,22 +376,8 @@ function fpRender() {
         fpRenderTypePreview(svg);
     }
 
-    // Update Edit/Delete button visibility and labels
-    var showSel = !!(fpSelectedId && fpActiveTool === 'select');
-    document.getElementById('fpEditRoomBtn').style.display   = showSel ? '' : 'none';
-    document.getElementById('fpDeleteRoomBtn').style.display = showSel ? '' : 'none';
-    if (showSel) {
-        document.getElementById('fpEditRoomBtn').textContent =
-            fpSelectedType === 'room' ? 'Edit Room' : 'Edit Marker';
-    }
-
-    // Show "Edit Targets" button when a wall plate is selected in electrical mode
-    var editTargetsBtn = document.getElementById('fpEditTargetsBtn');
-    if (editTargetsBtn) {
-        var showTargets = showSel && fpSelectedType === 'wallplate' && fpElectricalMode;
-        editTargetsBtn.style.display = showTargets ? '' : 'none';
-        editTargetsBtn.textContent   = 'Edit Targets';
-    }
+    // Update Row 3 properties bar based on current selection
+    fpUpdatePropsBar();
 }
 
 // ============================================================
@@ -728,6 +714,7 @@ function fpMakeDraggableHandle(handle, room, ptIndex) {
 function fpMakeDraggableRoom(poly, room) {
     poly.addEventListener('mousedown', function(eDown) {
         if (fpActiveTool !== 'select') return;
+        if (fpActiveMode !== 'layout') return;
         eDown.preventDefault();
         eDown.stopPropagation();
 
@@ -774,6 +761,7 @@ function fpMakeDraggableCeilingFixture(el, fix) {
     el.style.cursor = 'move';
     el.addEventListener('mousedown', function(eDown) {
         if (fpActiveTool !== 'select') return;
+        if (fpActiveMode !== 'electrical') return;
         eDown.preventDefault();
         eDown.stopPropagation();
 
@@ -831,6 +819,7 @@ function fpMakeDraggableDoor(el, door) {
     el.style.cursor = 'ew-resize';
     el.addEventListener('mousedown', function(eDown) {
         if (fpActiveTool !== 'select') return;
+        if (fpActiveMode !== 'layout') return;
         eDown.preventDefault();
         eDown.stopPropagation();
 
@@ -866,6 +855,7 @@ function fpMakeDraggableWindow(el, win) {
     el.style.cursor = 'ew-resize';
     el.addEventListener('mousedown', function(eDown) {
         if (fpActiveTool !== 'select') return;
+        if (fpActiveMode !== 'layout') return;
         eDown.preventDefault();
         eDown.stopPropagation();
 
@@ -2170,7 +2160,7 @@ document.getElementById('fpDimensionsCancelBtn').addEventListener('click', funct
 // TOOL SELECTION
 // ============================================================
 
-var FP_ALL_TOOLS = ['fpToolSelect','fpToolRoom','fpToolDoor','fpToolWindow','fpToolWallPlate','fpToolPlumbing','fpToolCeiling','fpToolRecessed'];
+var FP_ALL_TOOLS = ['fpToolSelect','fpToolRoom','fpToolDoor','fpToolWindow','fpToolWallPlate','fpToolCeiling','fpToolRecessed'];
 
 FP_ALL_TOOLS.forEach(function(id) {
     var btn = document.getElementById(id);
@@ -2260,17 +2250,7 @@ document.getElementById('fpGridToggle').addEventListener('change', function() {
     fpRender();
 });
 
-document.getElementById('fpEditRoomBtn').addEventListener('click', function() {
-    if (fpSelectedType === 'room') {
-        fpOpenRoomEditModal();
-    } else {
-        fpOpenMarkerEditModal(fpSelectedType, fpSelectedId);
-    }
-});
-
-document.getElementById('fpDeleteRoomBtn').addEventListener('click', function() {
-    fpDeleteSelected();
-});
+// fpEditRoomBtn and fpDeleteRoomBtn removed from toolbar — now built dynamically in fpUpdatePropsBar()
 
 document.getElementById('fpSaveBtn').addEventListener('click', function() {
     fpSave();
@@ -3696,6 +3676,7 @@ function fpMakeDraggableRecessedLight(el, light) {
     el.style.cursor = 'move';
     el.addEventListener('mousedown', function(eDown) {
         if (fpActiveTool !== 'select') return;
+        if (fpActiveMode !== 'electrical') return;
         eDown.preventDefault();
         eDown.stopPropagation();
 
@@ -3949,7 +3930,7 @@ function fpRenderWallPlate(svg, plate) {
     });
 
     // 3-way badge — pill shape above plate; only shown in electrical mode
-    var showBadge = isThreeWay && fpElectricalMode;
+    var showBadge = isThreeWay && fpActiveMode === 'electrical';
     if (showBadge) {
         var badgeW = 24, badgeH = 9, badgeY = cy - hh - 13;
         // Pill background
@@ -3985,6 +3966,7 @@ function fpMakeDraggableWallPlate(el, plate) {
     el.style.cursor = 'ew-resize';
     el.addEventListener('mousedown', function(eDown) {
         if (fpActiveTool !== 'select') return;
+        if (fpActiveMode !== 'electrical') return;
         eDown.preventDefault();
         eDown.stopPropagation();
         var dragged = false;
@@ -4298,42 +4280,11 @@ document.getElementById('fpWallPlateAddProblemBtn').addEventListener('click', fu
 
 /**
  * Toggle electrical mode on/off.
- * When on: "⚡ Elec" button goes active, Recessed tool stays visible,
- * a "Dim" toggle appears, and wiring lines render for the selected plate.
+ * Mode switching is now handled by fpSetMode() — see Mode Management section.
+ * This stub kept in case any old call sites reference it; it defers to fpSetMode.
  */
 function fpToggleElectricalMode() {
-    fpElectricalMode = !fpElectricalMode;
-
-    // Elec button: amber when ON, gray when OFF
-    var btn = document.getElementById('fpElecModeBtn');
-    if (btn) btn.classList.toggle('elec-on', fpElectricalMode);
-
-    // Box around the electrical controls group when ON
-    var grp = document.getElementById('fpElecGroup');
-    if (grp) grp.classList.toggle('elec-active', fpElectricalMode);
-
-    // Dim toggle only visible when electrical mode is ON
-    var dimWrap = document.getElementById('fpElecDimWrap');
-    if (dimWrap) dimWrap.style.display = fpElectricalMode ? 'flex' : 'none';
-
-    // Hide structural tools when electrical mode is ON
-    var structTools = document.querySelectorAll('.fp-structural-tool');
-    structTools.forEach(function(el) {
-        el.style.display = fpElectricalMode ? 'none' : '';
-    });
-
-    if (!fpElectricalMode) {
-        // Exit target edit mode if turning off
-        if (fpTargetEditMode) fpExitTargetEditMode();
-        // If on Recessed tool, drop back to Select
-        if (fpActiveTool === 'recessed') fpSetTool('select');
-    } else {
-        // If currently on a structural-only tool, drop back to Select
-        var structOnlyTools = ['room', 'door', 'window', 'plumbing'];
-        if (structOnlyTools.indexOf(fpActiveTool) >= 0) fpSetTool('select');
-    }
-
-    fpRender();
+    fpSetMode(fpActiveMode === 'layout' ? 'electrical' : 'layout');
 }
 
 /**
@@ -4600,32 +4551,140 @@ function fpRenderTargetEditOverlay(svg) {
     });
 }
 
-// ---- Electrical mode button wiring ----
+// ---- Mode bar wiring (Row 1) ----
 
 (function() {
-    var elecBtn = document.getElementById('fpElecModeBtn');
-    if (elecBtn) elecBtn.addEventListener('click', fpToggleElectricalMode);
+    var btnLayout = document.getElementById('fpModeLayout');
+    if (btnLayout) btnLayout.addEventListener('click', function() { fpSetMode('layout'); });
+
+    var btnElec = document.getElementById('fpModeElectrical');
+    if (btnElec) btnElec.addEventListener('click', function() { fpSetMode('electrical'); });
 
     var dimCheck = document.getElementById('fpElecDimCheck');
     if (dimCheck) dimCheck.addEventListener('change', fpToggleElecFade);
-    // Note: fpTargetEditDoneBtn has been removed from the toolbar.
-    // The Done button is now built dynamically inside fpUpdateTargetEditPanel().
+
+    // Initialize Row 2 tool group visibility for starting mode (layout)
+    document.querySelectorAll('.fp-elec-tool').forEach(function(el) { el.style.display = 'none'; });
 }());
 
-// ---- "Edit Targets" button in status bar ----
-// Show/hide based on selection state (called from fpRender via fpSelectMarker)
-// The button lives in the toolbar next to Edit Marker
-(function() {
-    var editTargetsBtn = document.getElementById('fpEditTargetsBtn');
-    if (!editTargetsBtn) return;
-    editTargetsBtn.addEventListener('click', function() {
-        if (fpTargetEditMode) {
-            fpExitTargetEditMode();
+// ============================================================
+// MODE MANAGEMENT
+// ============================================================
+
+/**
+ * Switch the active editing mode.
+ * Clears selection, resets tool to Select, exits any special modes.
+ * mode: 'layout' | 'electrical'
+ */
+function fpSetMode(mode) {
+    if (fpActiveMode === mode) return;
+
+    // Exit special states cleanly
+    if (fpTargetEditMode) fpExitTargetEditMode();
+    // fpSetTool('select') below will also cancel any active drawing
+
+    // Clear selection before switching
+    fpSelectedId   = null;
+    fpSelectedType = 'room';
+
+    // Apply the new mode
+    fpActiveMode = mode;
+
+    // Update Row 1 button active states
+    var btnLayout = document.getElementById('fpModeLayout');
+    var btnElec   = document.getElementById('fpModeElectrical');
+    if (btnLayout) btnLayout.classList.toggle('active', mode === 'layout');
+    if (btnElec)   btnElec.classList.toggle('active', mode === 'electrical');
+
+    // Show/hide Row 2 tool groups
+    document.querySelectorAll('.fp-layout-tool').forEach(function(el) {
+        el.style.display = (mode === 'layout') ? '' : 'none';
+    });
+    document.querySelectorAll('.fp-elec-tool').forEach(function(el) {
+        el.style.display = (mode === 'electrical') ? '' : 'none';
+    });
+
+    // Reset to Select tool (this also cancels drawing, exits type/corner edit, calls fpRender)
+    fpSetTool('select');
+}
+
+// ============================================================
+// ROW 3 — PROPERTIES BAR
+// ============================================================
+
+/**
+ * Rebuild the Row 3 properties bar based on what is currently selected.
+ * Called at the end of every fpRender().
+ * Phase 1: read-only type label + action buttons (Edit Marker, Edit Targets, Remove).
+ */
+function fpUpdatePropsBar() {
+    var bar = document.getElementById('fpPropsBar');
+    if (!bar) return;
+
+    // Hide bar when nothing is selected or not in select mode
+    if (!fpSelectedId || fpActiveTool !== 'select') {
+        bar.style.display = 'none';
+        return;
+    }
+
+    bar.style.display = 'flex';
+    bar.innerHTML = '';
+
+    var type = fpSelectedType;
+
+    // Human-readable type label
+    var labelMap = {
+        'room':         'Room',
+        'door':         'Door',
+        'window':       'Window',
+        'plumbing':     'Plumbing',
+        'ceiling':      'Ceiling Fixture',
+        'recessedLight':'Recessed Light',
+        'wallplate':    'Wall Plate',
+        'outlet':       'Outlet',
+        'switch':       'Switch'
+    };
+    var lbl = document.createElement('span');
+    lbl.className   = 'fp-props-label';
+    lbl.textContent = labelMap[type] || type;
+    bar.appendChild(lbl);
+
+    // Separator
+    var sep = document.createElement('span');
+    sep.className = 'fp-props-sep';
+    bar.appendChild(sep);
+
+    // Edit button (Edit Room for rooms, Edit Marker for everything else)
+    var editBtn = document.createElement('button');
+    editBtn.className   = 'btn btn-secondary btn-small';
+    editBtn.textContent = (type === 'room') ? 'Edit Room' : 'Edit Marker';
+    editBtn.addEventListener('click', function() {
+        if (type === 'room') {
+            fpOpenRoomEditModal();
         } else {
-            fpEnterTargetEditMode();
+            fpOpenMarkerEditModal(type, fpSelectedId);
         }
     });
-}());
+    bar.appendChild(editBtn);
+
+    // Edit Targets button — wall plates in electrical mode only, not while already editing
+    if (type === 'wallplate' && fpActiveMode === 'electrical' && !fpTargetEditMode) {
+        var targBtn = document.createElement('button');
+        targBtn.className   = 'btn btn-secondary btn-small';
+        targBtn.textContent = 'Edit Targets';
+        targBtn.addEventListener('click', fpEnterTargetEditMode);
+        bar.appendChild(targBtn);
+    }
+
+    // Remove button — everything except rooms (rooms have their own delete flow)
+    if (type !== 'room') {
+        var removeBtn = document.createElement('button');
+        removeBtn.className   = 'btn btn-danger btn-small';
+        removeBtn.textContent = 'Remove';
+        removeBtn.addEventListener('click', function() { fpDeleteSelected(); });
+        bar.appendChild(removeBtn);
+    }
+}
 
 // ============================================================
 // ZOOM — mouse wheel, pinch gesture, slider

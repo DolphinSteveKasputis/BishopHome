@@ -309,13 +309,18 @@ An interactive drawing tool for each floor.
 - An editable "Position" input lets the user type an exact distance from the start or end; the radio buttons toggle which end the distance is measured from
 - Saving applies the override, clamping to valid range; position section is hidden when adding a new marker
 
-**Electrical Mode** (⚡ Elec toggle in toolbar):
-- Activates an electrical overlay on the floor plan
-- **Elec button**: amber/highlighted when ON, gray when OFF — visually obvious toggle state
-- **Toolbar changes when ON**: structural tools (Room, Type, Door, Window, Plumbing) are hidden; the electrical controls (Elec, Dim, Edit Marker, Edit Targets, Remove) are grouped inside an amber-bordered box; switching to a structural tool while turning Elec off resets to Select
-- **Dim toggle**: when ON (default), structural elements (walls, doors, windows, plumbing) render at 25% opacity so electrical elements pop visually; Dim checkbox in toolbar toggles this on/off
+**3-Row Toolbar**:
+- **Row 1 — Mode bar** (dark navy background): pill-style `Layout` and `Electrical` buttons; active mode highlighted blue; exactly one mode active at all times; Layout is the default
+- **Row 2 — Tool bar**: tools shown depend on active mode; Select always visible; Layout tools (Room, Type, Door, Window) only in Layout mode; Electrical tools (Plate, Ceiling, Recessed, Dim toggle) only in Electrical mode
+- **Row 3 — Properties bar** (amber tint): appears when an item is selected; shows item type label + action buttons (Edit Marker/Room, Edit Targets for wall plates, Remove); hidden when nothing is selected
+- Switching modes clears selection, resets to Select tool, exits any drawing or target-edit session
+- Layout items (rooms, doors, windows) can only be clicked/dragged in Layout mode; electrical items only in Electrical mode
+
+**Electrical Overlay**:
+- Active when Electrical mode is selected in Row 1
+- **Dim toggle**: checkbox in Electrical Row 2; when checked (default), structural elements render at 25% opacity so electrical elements pop visually
 - **Wiring lines**: when a wall plate is selected in electrical mode, dashed colored lines draw from the plate to each fixture per slot (blue, red, purple, cyan for up to 4 slots)
-- **Edit Targets**: selecting a wall plate in electrical mode reveals an "Edit Targets" button; pressing it enters target-selection mode — recessed lights and ceiling fixtures show rings (amber ring + warm fill + center dot = linked, dashed teal ring + faint fill = available); click any fixture to toggle the link; press Done or the button again to exit and save
+- **Edit Targets**: selecting a wall plate in electrical mode shows "Edit Targets" in Row 3; pressing it enters target-selection mode — recessed lights and ceiling fixtures show rings (amber ring + warm fill + center dot = linked, dashed teal ring + faint fill = available); click any fixture to toggle the link; Done or Escape exits and saves
 - **3-way auto-detection**: if two or more wall plates share the same target fixture, those plates automatically display a purple "3-way" badge above the plate symbol; badge only visible in electrical mode
 
 **Drawing — Free Draw mode**:

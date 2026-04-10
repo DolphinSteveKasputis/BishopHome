@@ -44,3 +44,14 @@ When a doctor gives you something to do (e.g., "schedule a dermatologist appoint
 - Consider a Speak button for quick capture right from the visit screen
 
 Related to: Health Visits, Health main page.
+
+---
+
+## Floor Plan: Plumbing Pipe Routing Lines
+
+Draw actual pipe routes on the floor plan (supply and drain lines) connecting fixtures to each other and to the main supply/stack. Each line segment would have a type (cold supply, hot supply, drain/vent) and color-coded rendering (blue, red, gray). This is intentionally deferred because:
+- Most plumbing is implied by the fixture placement
+- The UX for routing lines is a significant separate project (similar to the wiring line UX for electrical)
+- Current approach: show plumbing endpoints (spigots, stub-outs) as colored symbols only, no routing
+
+Related to: Floor Plan — Plumbing mode.

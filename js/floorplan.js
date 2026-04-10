@@ -5834,6 +5834,8 @@ function fpUpdatePropsBar() {
         detailBtn.className   = 'btn btn-secondary btn-small';
         detailBtn.textContent = 'Details →';
         detailBtn.addEventListener('click', function() {
+            // Auto-save any pending changes before leaving the floor plan
+            if (fpDirty) fpSilentSave();
             window.location.hash = '#floorplanitem/' + fpFloorId + '/' + type + '/' + fpSelectedId;
         });
         bar.appendChild(detailBtn);

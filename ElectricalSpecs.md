@@ -28,6 +28,14 @@ they control. Electrical elements are always stored and rendered, but the wiring
 | Wiring line visibility | Only shown for the currently-selected wall plate | 2026-04-09 |
 | Wiring UX | Select plate → "Edit Targets" → click fixtures to toggle; Done/Escape | 2026-04-09 |
 | 3-way detection | Auto-badge on plates that share a common target | 2026-04-09 |
+| External switch targets | Slot-level flag (`external: true`); targets stored in `electricalTargets` Firestore collection for reverse lookup | 2026-04-10 |
+| External target location | Use existing floor/room/item system; Outside floor + rooms covers all outdoor devices | 2026-04-10 |
+| Target add UX (Option A) | Must add fp item to target floor plan first, then come back and link it from the slot | 2026-04-10 |
+| Reverse lookup | `electricalTargets` collection stores `roomId`; room detail page queries by roomId | 2026-04-10 |
+| Solar light | New ceiling fixture subtype `solar`; drag-and-drop like other ceiling fixtures | 2026-04-10 |
+| Sprinkler head | New plumbing endpoint subtype `sprinkler`; drag-and-drop like spigot/stub-out | 2026-04-10 |
+| Sprinkler pipe layout | Deferred — see FutureEnhancements.md | 2026-04-10 |
+| Orphaned items report | Deferred — see FutureEnhancements.md | 2026-04-10 |
 
 ---
 
@@ -76,6 +84,123 @@ No new Firestore collections needed.
 No separate wiring collection. A wall plate's `targetIds` array lists the IDs of every
 fixture (recessedLight, ceilingFixture) it controls. Wiring lines are rendered at runtime
 from this array when a plate is selected in electrical mode.
+
+---
+
+## External Switch Targets
+
+### Overview
+
+A wall plate **slot** can be marked `external: true` to indicate it controls something
+**outside the current room** — another room on the same floor, a room on a different floor,
+or an outdoor area (via the "Outside" floor). External targets are proper named entities
+stored in Firestore so they can be found from both directions:
+- From the switch: "what does slot 2 control?"
+- From the room: "what switch controls the firepit flood light?"
+
+### Updated Wall Plate Slot Shape
+
+```javascript
+{
+  type:      'switch' | 'outlet',
+  subtype:   String,
+  external:  Boolean,              // NEW — true if this slot controls items outside this room
+  controls:  String,               // free text notes (kept as fallback / extra description)
+  breakerId: String,
+  panelId:   String,
+  electricalTargetIds: [String]    // NEW — IDs of electricalTarget Firestore docs
+}
+```
+
+### `electricalTargets` Firestore Collection
+
+Each document represents one controlled item (a floor plan fixture/light in any room):
+
+```javascript
+{
+  id:                        String,   // auto Firestore ID
+  name:                      String,   // display name, e.g. "Firepit flood light"
+  // --- Where is it (for navigation and display) ---
+  floorId:                   String,   // Firestore floors doc ID
+  roomId:                    String,   // Firestore rooms doc ID (for reverse-lookup query)
+  planId:                    String,   // Firestore floorPlans doc ID
+  fpItemId:                  String,   // item.id within that floor plan
+  // --- Who controls it (reverse lookup) ---
+  controlledByPlanId:        String,   // floorPlan doc ID of the controlling wall plate
+  controlledByWallPlateId:   String,   // wall plate ID
+  controlledBySlotIndex:     Number    // 0-based slot index on that plate
+}
+```
+
+One document per target. If a single slot controls 2 outdoor lights, that slot has 2
+entries in `electricalTargetIds` and 2 documents in the collection.
+
+### Location Picker UX (Option A — Pre-create First)
+
+When adding an external target to a slot:
+1. **Floor** — pick from existing floors (1st Floor, 2nd Floor, Outside, …)
+2. **Room** — pick from rooms in that floor
+3. **Item** — pick from floor plan items in that room (recessed lights, ceiling fixtures,
+   solar lights, etc.)
+4. **Name** — defaults to the item's display name; editable
+
+If the item doesn't exist yet in the target floor plan, the user must first navigate to
+that floor plan, add the item, then return to the wall plate and add the target. The slot's
+`controls` text field can be used as a temporary note ("Back porch flood — add when drawn").
+
+### Reverse Lookup on Room Pages
+
+The room detail page includes a small **"Electrical Controls"** section that queries:
+```
+userCol('electricalTargets').where('roomId', '==', currentRoomId)
+```
+Each result shows:
+- Item name + link to item detail page (`#floorplanitem/...`)
+- "Controlled by:" link to the wall plate's floor plan + plate info
+
+This means the Outside > Firepit Area room page will list all solar lights and flood
+lights in that area and which switch(es) control them.
+
+### Slot Symbol Update
+
+Slots with `external: true` append `*` to the normal symbol:
+- single-pole external → **S\***
+- 3-way external → **3S\***
+- dimmer external → **D\***
+- smart external → **⚡\***
+
+---
+
+## New Item Types
+
+### Solar Light (Ceiling Fixture Subtype)
+
+Added to `fpPlan.ceilingFixtures[]` as `subtype: 'solar'`.
+
+```javascript
+{ id, roomId, x, y, subtype: 'solar', label, notes }
+```
+
+Rendered the same as other ceiling fixtures but with a distinct sun-style symbol.
+Intended for use on the Outside floor's room floor plans. Full Facts/Problems/Activities
+support via `targetType: 'ceiling', targetId: id`.
+
+Ceiling fixture subtype list (updated):
+`fan`, `fan-light`, `flush-mount`, `drop-light`, `chandelier`, `solar`, `generic`
+
+### Sprinkler Head (Plumbing Endpoint Subtype)
+
+Added to `fpPlan.plumbingEndpoints[]` as `endpointType: 'sprinkler'`.
+
+```javascript
+{ id, roomId, x, y, endpointType: 'sprinkler', label, notes }
+```
+
+Rendered with a distinct spray-arc symbol. Intended for use on outdoor room floor plans.
+Full Facts/Problems/Activities support via `targetType: 'plumbingEndpoint', targetId: id`.
+
+Plumbing endpoint subtype list (updated):
+`spigot`, `stub-out`, `sprinkler`
 
 ---
 
@@ -164,3 +289,5 @@ plates automatically show the "3-way" badge as soon as they share that light as 
 - **AFCI/GFCI indicators**: Visual badge when a slot is on a protected circuit
 - **Dimmer load calculation**: Warn if total wattage on dimmer exceeds rating
 - **Smart switch pairing**: Link smart switches to hub/app name
+- **Orphaned items report**: View all unlinked switches + all fixtures not targeted by any switch — see FutureEnhancements.md
+- **Sprinkler system layout**: Draw irrigation pipe routes, zone valves, scheduling — see FutureEnhancements.md

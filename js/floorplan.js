@@ -2392,6 +2392,26 @@ function fpRenderPlumbingEndpoint(svg, ep) {
         });
         spLbl.textContent = 'SP';
 
+    } else if (ep.endpointType === 'sprinkler') {
+        // Sprinkler head: circle + spray arc above + SPR label
+        fpSvgEl(g, 'circle', {
+            cx: cx, cy: cy, r: 9,
+            fill: '#e0f2fe', stroke: strokeColor, 'stroke-width': strokeW, 'pointer-events': 'none'
+        });
+        // Spray arc — a quadratic curve fanning upward from the circle
+        var arcPath = 'M ' + (cx - 6) + ' ' + (cy - 5) +
+                      ' Q ' + cx + ' ' + (cy - 13) + ' ' + (cx + 6) + ' ' + (cy - 5);
+        fpSvgEl(g, 'path', {
+            d: arcPath, fill: 'none',
+            stroke: strokeColor, 'stroke-width': 1.5, 'pointer-events': 'none'
+        });
+        // SPR label
+        var sprLbl = fpSvgEl(g, 'text', {
+            x: cx, y: cy + 4, 'text-anchor': 'middle', 'font-size': 5.5,
+            'font-weight': 'bold', fill: strokeColor, 'pointer-events': 'none'
+        });
+        sprLbl.textContent = 'SPR';
+
     } else {
         // stub-out: circle with letter(s) for cold/hot/both
         var subtypeColors = { cold: '#0369a1', hot: '#b91c1c', both: '#6b21a8' };
@@ -2768,7 +2788,7 @@ document.getElementById('fpDimensionsCancelBtn').addEventListener('click', funct
 // TOOL SELECTION
 // ============================================================
 
-var FP_ALL_TOOLS = ['fpToolSelect','fpToolRoom','fpToolDoor','fpToolWindow','fpToolWallPlate','fpToolCeiling','fpToolRecessed','fpToolToilet','fpToolSink','fpToolTub','fpToolSpigot','fpToolStubout'];
+var FP_ALL_TOOLS = ['fpToolSelect','fpToolRoom','fpToolDoor','fpToolWindow','fpToolWallPlate','fpToolCeiling','fpToolRecessed','fpToolToilet','fpToolSink','fpToolTub','fpToolSpigot','fpToolStubout','fpToolSprinkler'];
 
 FP_ALL_TOOLS.forEach(function(id) {
     var btn = document.getElementById(id);
@@ -4107,6 +4127,18 @@ function fpRenderCeilingFixture(svg, fix) {
             fill: 'none', stroke: strokeColor, 'stroke-width': strokeW, 'pointer-events': 'none'
         });
 
+    } else if (subtype === 'solar') {
+        // Solar light: sun symbol — 6 radiating rays + filled center circle
+        for (var si = 0; si < 6; si++) {
+            var srad = si * Math.PI / 3;
+            fpSvgEl(g, 'line', {
+                x1: cx + Math.cos(srad) * 6,  y1: cy + Math.sin(srad) * 6,
+                x2: cx + Math.cos(srad) * 13, y2: cy + Math.sin(srad) * 13,
+                stroke: strokeColor, 'stroke-width': strokeW, 'pointer-events': 'none'
+            });
+        }
+        fpSvgEl(g, 'circle', { cx: cx, cy: cy, r: 5, fill: strokeColor, 'pointer-events': 'none' });
+
     } else {
         // generic (default): 8-ray starburst + inner filled circle
         for (var i = 0; i < 8; i++) {
@@ -4131,7 +4163,7 @@ function fpRenderCeilingFixture(svg, fix) {
     // Default label text based on subtype
     var defaultLabels = {
         'fan': 'Fan', 'fan-light': 'Fan/Lt', 'drop-light': 'Pendant',
-        'chandelier': 'Chand', 'flush-mount': 'Flush', 'generic': 'Light'
+        'chandelier': 'Chand', 'flush-mount': 'Flush', 'solar': 'Solar', 'generic': 'Light'
     };
 
     // Label below
@@ -4673,6 +4705,8 @@ function fpRenderWallPlate(svg, plate) {
 
         var key    = (slot.type || 'switch') + '/' + (slot.subtype || 'single-pole');
         var symbol = FP_PLATE_SYMBOLS[key] || 'S';
+        // Append * for external switch slots (controls items outside this room)
+        if (slot.type === 'switch' && slot.external) symbol += '*';
 
         if (slot.type === 'outlet' && slot.subtype === 'standard') {
             // Standard outlet: two small dots
@@ -4872,7 +4906,7 @@ function fpWallPlateAddSlotRow(slot, index) {
         fpWallPlateUpdateAddBtn();
     });
 
-    // When type changes, rebuild subtype options
+    // When type changes, rebuild subtype options and show/hide external row
     typeSel.addEventListener('change', function() {
         var subs = typeSel.value === 'outlet' ? outletSubs : switchSubs;
         subSel.innerHTML = '';
@@ -4881,15 +4915,316 @@ function fpWallPlateAddSlotRow(slot, index) {
             opt.value = o.v; opt.textContent = o.l;
             subSel.appendChild(opt);
         });
+        // External targets only relevant for switches
+        extRow.style.display = typeSel.value === 'switch' ? '' : 'none';
     });
 
-    row.appendChild(typeSel);
-    row.appendChild(subSel);
-    row.appendChild(ctrlInput);
-    row.appendChild(bkrSel);
-    row.appendChild(removeBtn);
+    // Main row (type + subtype + controls + breaker + remove)
+    var mainRow = document.createElement('div');
+    mainRow.className = 'fp-slot-main-row';
+    mainRow.appendChild(typeSel);
+    mainRow.appendChild(subSel);
+    mainRow.appendChild(ctrlInput);
+    mainRow.appendChild(bkrSel);
+    mainRow.appendChild(removeBtn);
+    row.appendChild(mainRow);
+
+    // External targets row (switch slots only)
+    var extRow = document.createElement('div');
+    extRow.className = 'fp-slot-external-row';
+    extRow.style.display = (slot.type === 'outlet') ? 'none' : '';
+
+    // "External" checkbox
+    var extLabel = document.createElement('label');
+    extLabel.className = 'fp-slot-external-label';
+    var extCb = document.createElement('input');
+    extCb.type = 'checkbox'; extCb.className = 'fp-slot-external-cb';
+    extCb.checked = slot.external || false;
+    extLabel.appendChild(extCb);
+    extLabel.appendChild(document.createTextNode(' External (controls items outside this room)'));
+    extRow.appendChild(extLabel);
+
+    // External targets list (shown when checkbox checked)
+    var extTargetsDiv = document.createElement('div');
+    extTargetsDiv.className = 'fp-slot-external-targets';
+    extTargetsDiv.style.display = slot.external ? '' : 'none';
+
+    var chipsDiv = document.createElement('div');
+    chipsDiv.className = 'fp-ext-target-chips';
+    extTargetsDiv.appendChild(chipsDiv);
+
+    var addExtBtn = document.createElement('button');
+    addExtBtn.type = 'button';
+    addExtBtn.className = 'btn btn-secondary btn-small fp-add-external-btn';
+    addExtBtn.textContent = '+ Add External Target';
+    addExtBtn.addEventListener('click', function() {
+        fpOpenExternalTargetModal(row);
+    });
+    extTargetsDiv.appendChild(addExtBtn);
+    extRow.appendChild(extTargetsDiv);
+
+    // Toggle targets div on checkbox change
+    extCb.addEventListener('change', function() {
+        extTargetsDiv.style.display = extCb.checked ? '' : 'none';
+    });
+
+    // Store existing external targets as JSON in dataset and render chips
+    row.dataset.externalTargets = JSON.stringify(slot.externalTargets || []);
+    fpWallPlateRenderTargetChips(row);
+
+    row.appendChild(extRow);
     container.appendChild(row);
 }
+
+/**
+ * Render external target chips inside a slot row based on row.dataset.externalTargets.
+ */
+function fpWallPlateRenderTargetChips(row) {
+    var chipsDiv = row.querySelector('.fp-ext-target-chips');
+    if (!chipsDiv) return;
+    chipsDiv.innerHTML = '';
+    var targets = [];
+    try { targets = JSON.parse(row.dataset.externalTargets || '[]'); } catch(e) {}
+    targets.forEach(function(t) {
+        var chip = document.createElement('span');
+        chip.className = 'fp-ext-target-chip';
+        var loc = [t.roomName, t.floorName].filter(Boolean).join(', ');
+        chip.textContent = t.name + (loc ? ' (' + loc + ')' : '');
+        var rmBtn = document.createElement('button');
+        rmBtn.type = 'button'; rmBtn.textContent = '✕'; rmBtn.className = 'fp-ext-chip-remove';
+        rmBtn.addEventListener('click', function() {
+            var arr = [];
+            try { arr = JSON.parse(row.dataset.externalTargets || '[]'); } catch(e) {}
+            arr = arr.filter(function(x) { return x.id !== t.id; });
+            row.dataset.externalTargets = JSON.stringify(arr);
+            fpWallPlateRenderTargetChips(row);
+        });
+        chip.appendChild(rmBtn);
+        chipsDiv.appendChild(chip);
+    });
+}
+
+// ============================================================
+// EXTERNAL TARGET MODAL
+// ============================================================
+
+// The slot row DOM element currently being targeted
+var fpExtTargetCurrentRow = null;
+
+/**
+ * Open the external target modal for a given slot row.
+ * Loads all floors into the floor picker, then chains room + item loading.
+ */
+function fpOpenExternalTargetModal(slotRow) {
+    fpExtTargetCurrentRow = slotRow;
+
+    // Reset the modal state
+    var floorSel = document.getElementById('fpExtTargetFloorSelect');
+    var roomSel  = document.getElementById('fpExtTargetRoomSelect');
+    var itemSel  = document.getElementById('fpExtTargetItemSelect');
+    var nameInp  = document.getElementById('fpExtTargetNameInput');
+    var saveBtn  = document.getElementById('fpExtTargetSaveBtn');
+
+    floorSel.innerHTML = '<option value="">— Select floor —</option>';
+    roomSel.innerHTML  = '<option value="">— Select room —</option>';
+    itemSel.innerHTML  = '<option value="">— Select item —</option>';
+    nameInp.value      = '';
+    saveBtn.disabled   = true;
+
+    document.getElementById('fpExtTargetRoomGroup').style.display = 'none';
+    document.getElementById('fpExtTargetItemGroup').style.display = 'none';
+    document.getElementById('fpExtTargetNameGroup').style.display = 'none';
+
+    // Load all floors
+    userCol('floors').orderBy('name').get()
+        .then(function(snap) {
+            snap.forEach(function(doc) {
+                var opt = document.createElement('option');
+                opt.value       = doc.id;
+                opt.textContent = doc.data().name || 'Floor';
+                floorSel.appendChild(opt);
+            });
+        })
+        .catch(function(err) { console.error('fpOpenExternalTargetModal floors error:', err); });
+
+    openModal('fpExternalTargetModal');
+}
+
+// Floor selected → load rooms
+document.getElementById('fpExtTargetFloorSelect').addEventListener('change', function() {
+    var floorId = this.value;
+    var roomSel = document.getElementById('fpExtTargetRoomSelect');
+    var itemSel = document.getElementById('fpExtTargetItemSelect');
+    var nameInp = document.getElementById('fpExtTargetNameInput');
+    var saveBtn = document.getElementById('fpExtTargetSaveBtn');
+
+    roomSel.innerHTML = '<option value="">— Select room —</option>';
+    itemSel.innerHTML = '<option value="">— Select item —</option>';
+    nameInp.value     = '';
+    saveBtn.disabled  = true;
+    document.getElementById('fpExtTargetItemGroup').style.display = 'none';
+    document.getElementById('fpExtTargetNameGroup').style.display = 'none';
+
+    if (!floorId) {
+        document.getElementById('fpExtTargetRoomGroup').style.display = 'none';
+        return;
+    }
+
+    document.getElementById('fpExtTargetRoomGroup').style.display = '';
+
+    userCol('rooms').where('floorId', '==', floorId).orderBy('name').get()
+        .then(function(snap) {
+            snap.forEach(function(doc) {
+                var opt = document.createElement('option');
+                opt.value       = doc.id;
+                opt.dataset.name = doc.data().name || 'Room';
+                opt.textContent  = doc.data().name || 'Room';
+                roomSel.appendChild(opt);
+            });
+        })
+        .catch(function(err) { console.error('fpExtTargetFloor rooms error:', err); });
+});
+
+// Room selected → load floor plan items
+document.getElementById('fpExtTargetRoomSelect').addEventListener('change', function() {
+    var roomId  = this.value;
+    var floorSel = document.getElementById('fpExtTargetFloorSelect');
+    var floorId  = floorSel.value;
+    var itemSel  = document.getElementById('fpExtTargetItemSelect');
+    var nameInp  = document.getElementById('fpExtTargetNameInput');
+    var saveBtn  = document.getElementById('fpExtTargetSaveBtn');
+
+    itemSel.innerHTML = '<option value="">— Select item —</option>';
+    nameInp.value     = '';
+    saveBtn.disabled  = true;
+    document.getElementById('fpExtTargetNameGroup').style.display = 'none';
+
+    if (!roomId) {
+        document.getElementById('fpExtTargetItemGroup').style.display = 'none';
+        return;
+    }
+
+    document.getElementById('fpExtTargetItemGroup').style.display = '';
+
+    // Load the floorPlan doc (planId = floorId per our convention)
+    userCol('floorPlans').doc(floorId).get()
+        .then(function(doc) {
+            if (!doc.exists) return;
+            var plan  = doc.data();
+            var items = [];
+
+            // Find the room shape whose .roomId matches the selected Firestore roomId
+            var shape = (plan.rooms || []).find(function(r) { return r.roomId === roomId; });
+            var shapeId = shape ? shape.id : null;
+            if (!shapeId) return;
+
+            // Collect all items belonging to this room shape
+            var typeMap = {
+                'ceiling':          { arr: plan.ceilingFixtures  || [], label: 'Ceiling Fixture' },
+                'recessedLight':    { arr: plan.recessedLights   || [], label: 'Recessed Light'  },
+                'fixture':          { arr: plan.fixtures         || [], label: 'Fixture'          },
+                'plumbingEndpoint': { arr: plan.plumbingEndpoints|| [], label: 'Plumbing Endpoint'},
+                'plumbing':         { arr: plan.plumbing         || [], label: 'Plumbing'         },
+                'door':             { arr: plan.doors            || [], label: 'Door'             },
+                'window':           { arr: plan.windows          || [], label: 'Window'           }
+            };
+
+            Object.keys(typeMap).forEach(function(type) {
+                typeMap[type].arr.forEach(function(item) {
+                    if (item.roomId === shapeId) {
+                        items.push({ type: type, item: item, typeLabel: typeMap[type].label });
+                    }
+                });
+            });
+
+            items.forEach(function(entry) {
+                var displayName = entry.item.name || entry.item.label || entry.typeLabel;
+                var opt = document.createElement('option');
+                opt.value           = entry.item.id;
+                opt.dataset.type    = entry.type;
+                opt.dataset.name    = displayName;
+                opt.textContent     = displayName + ' (' + entry.typeLabel + ')';
+                itemSel.appendChild(opt);
+            });
+        })
+        .catch(function(err) { console.error('fpExtTargetRoom items error:', err); });
+});
+
+// Item selected → auto-fill name field
+document.getElementById('fpExtTargetItemSelect').addEventListener('change', function() {
+    var itemId  = this.value;
+    var nameInp = document.getElementById('fpExtTargetNameInput');
+    var saveBtn = document.getElementById('fpExtTargetSaveBtn');
+    var nameGroup = document.getElementById('fpExtTargetNameGroup');
+
+    if (!itemId) {
+        nameGroup.style.display = 'none';
+        nameInp.value = '';
+        saveBtn.disabled = true;
+        return;
+    }
+
+    var selectedOpt = this.options[this.selectedIndex];
+    nameInp.value = selectedOpt.dataset.name || '';
+    nameGroup.style.display = '';
+    saveBtn.disabled = !nameInp.value.trim();
+});
+
+document.getElementById('fpExtTargetNameInput').addEventListener('input', function() {
+    document.getElementById('fpExtTargetSaveBtn').disabled = !this.value.trim();
+});
+
+// Save external target → push to slot row's dataset, re-render chips
+document.getElementById('fpExtTargetSaveBtn').addEventListener('click', function() {
+    if (!fpExtTargetCurrentRow) return;
+
+    var floorSel  = document.getElementById('fpExtTargetFloorSelect');
+    var roomSel   = document.getElementById('fpExtTargetRoomSelect');
+    var itemSel   = document.getElementById('fpExtTargetItemSelect');
+    var nameInp   = document.getElementById('fpExtTargetNameInput');
+
+    var floorId   = floorSel.value;
+    var floorName = floorSel.options[floorSel.selectedIndex]
+                      ? floorSel.options[floorSel.selectedIndex].textContent : '';
+    var roomId    = roomSel.value;
+    var roomName  = roomSel.options[roomSel.selectedIndex]
+                      ? roomSel.options[roomSel.selectedIndex].textContent : '';
+    var fpItemId  = itemSel.value;
+    var name      = nameInp.value.trim();
+
+    if (!floorId || !roomId || !fpItemId || !name) return;
+
+    var newTarget = {
+        id:         fpGenId(),
+        name:       name,
+        floorId:    floorId,
+        floorName:  floorName,
+        roomId:     roomId,
+        roomName:   roomName,
+        planId:     floorId,   // planId === floorId per app convention
+        fpItemId:   fpItemId
+    };
+
+    var arr = [];
+    try { arr = JSON.parse(fpExtTargetCurrentRow.dataset.externalTargets || '[]'); } catch(e) {}
+    arr.push(newTarget);
+    fpExtTargetCurrentRow.dataset.externalTargets = JSON.stringify(arr);
+    fpWallPlateRenderTargetChips(fpExtTargetCurrentRow);
+
+    // Ensure external checkbox is checked
+    var extCb = fpExtTargetCurrentRow.querySelector('.fp-slot-external-cb');
+    if (extCb) extCb.checked = true;
+    var extTargetsDiv = fpExtTargetCurrentRow.querySelector('.fp-slot-external-targets');
+    if (extTargetsDiv) extTargetsDiv.style.display = '';
+
+    closeModal('fpExternalTargetModal');
+    fpExtTargetCurrentRow = null;
+});
+
+document.getElementById('fpExtTargetCancelBtn').addEventListener('click', function() {
+    closeModal('fpExternalTargetModal');
+    fpExtTargetCurrentRow = null;
+});
 
 /** Renumber slot rows after one is removed */
 function fpWallPlateRenumberSlots() {
@@ -4938,12 +5273,17 @@ function fpWallPlateReadSlots() {
         var bkrId   = bkrSel ? bkrSel.value : '';
         var panelId = bkrId && bkrSel && bkrSel.selectedIndex >= 0
             ? (bkrSel.options[bkrSel.selectedIndex].dataset.panelId || '') : '';
+        var extCb   = row.querySelector('.fp-slot-external-cb');
+        var extTargets = [];
+        try { extTargets = JSON.parse(row.dataset.externalTargets || '[]'); } catch(e) {}
         slots.push({
-            type:      row.querySelector('.fp-slot-type').value,
-            subtype:   row.querySelector('.fp-slot-subtype').value,
-            controls:  row.querySelector('.fp-slot-controls').value.trim(),
-            breakerId: bkrId,
-            panelId:   panelId
+            type:            row.querySelector('.fp-slot-type').value,
+            subtype:         row.querySelector('.fp-slot-subtype').value,
+            controls:        row.querySelector('.fp-slot-controls').value.trim(),
+            breakerId:       bkrId,
+            panelId:         panelId,
+            external:        extCb ? extCb.checked : false,
+            externalTargets: extTargets
         });
     });
     return slots;
@@ -4969,10 +5309,11 @@ document.getElementById('fpWallPlateSaveBtn').addEventListener('click', function
     if (editId) {
         var existing = (fpPlan.wallPlates || []).find(function(m) { return m.id === editId; });
         if (existing) {
-            // Preserve per-slot targetIds — the DOM doesn't store them, so copy from existing data
+            // Preserve per-slot targetIds (same-room wiring) from existing data — DOM doesn't store them
             slots.forEach(function(slot, i) {
                 var oldSlot = (existing.slots || [])[i];
                 slot.targetIds = (oldSlot && oldSlot.targetIds) ? oldSlot.targetIds : [];
+                // externalTargets already read from DOM via fpWallPlateReadSlots
             });
             existing.slots = slots;
             existing.notes = notes;
@@ -4987,8 +5328,11 @@ document.getElementById('fpWallPlateSaveBtn').addEventListener('click', function
             }
         }
     } else {
-        // Initialize targetIds: [] on each slot for new plates
-        slots.forEach(function(slot) { slot.targetIds = []; });
+        // Initialize targetIds: [] on each slot for new plates; externalTargets already set from DOM
+        slots.forEach(function(slot) {
+            slot.targetIds = [];
+            if (!slot.externalTargets) slot.externalTargets = [];
+        });
         var plate = {
             id:           fpGenId(),
             roomId:       modal.dataset.roomId,

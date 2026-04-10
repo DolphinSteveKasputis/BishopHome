@@ -378,6 +378,7 @@ Door edit modal shows swing controls that vary by subtype:
 - `drop-light`: circle with center dot (pendant)
 - `chandelier`: circle + 4 arms with dots at tips
 - `flush-mount`: concentric filled rings
+- `solar`: 6-ray sun symbol + filled center circle — for solar lights on outdoor/yard floor plans
 - `generic`: 8-ray starburst + bulb (default fallback)
 
 Backward compat: `category === 'ceiling-fan'` maps to subtype `fan`.
@@ -402,8 +403,9 @@ Placed via 🛁 **Fixtures flyout** in Layout mode Row 2. Click inside a room to
 
 Placed in Plumbing mode. Click inside a room to drop (no modal for spigot; modal for stub-out).
 
-- **Spigot** (`endpointType: 'spigot'`): blue filled circle with nozzle stub and "SP" label
+- **Spigot** (`endpointType: 'spigot'`): blue circle with nozzle stub and "SP" label
 - **Stub-out** (`endpointType: 'stubout'`): circle with letter — "C" (cold, blue), "H" (hot, red), "C/H" (both, purple)
+- **Sprinkler head** (`endpointType: 'sprinkler'`): blue circle with spray arc above and "SPR" label — for outdoor/yard floor plans
 - Draggable in Plumbing/Select mode; Edit Marker opens modal with name/subtype/notes/delete
 
 ---
@@ -416,7 +418,16 @@ Placed in Plumbing mode. Click inside a room to drop (no modal for spigot; modal
 - Plate width scales with slot count (14px per slot + padding); per-slot symbols and vertical dividers rendered
 - Selected: orange stroke + light yellow fill
 - Edit Marker modal: slot rows with add/remove (max 4), type/subtype pickers, controls field, breaker link, position-from-wall, notes, save/cancel/delete
-- `targetIds[]`: list of ceiling fixture and recessed light IDs this plate controls
+- `targetIds[]`: list of ceiling fixture and recessed light IDs this plate controls (same-room wiring)
+
+**External switch slots** — per slot, a switch can be marked "External" to document it controls items outside the current room:
+- Checkbox "External (controls items outside this room)" on each switch slot
+- When checked, an **External Targets** sub-section appears with target chips and an **Add External Target** button
+- **Add External Target** opens a picker: Floor → Room → Item (any floor plan item in any room on any floor, including the Outside floor)
+- Target name defaults to the item's display name; editable before saving
+- Saved targets shown as removable chips (name + room/floor location)
+- Slot symbol renders with `*` appended when external (e.g. S→S\*, 3S→3S\*, D→D\*)
+- `slot.external: true` + `slot.externalTargets: [{id, name, floorId, floorName, roomId, roomName, planId, fpItemId}]` stored in Firestore inside the wall plate array
 
 ---
 
@@ -525,6 +536,13 @@ A detail page for any individual floor plan object (door, window, fixture, reces
 - Data: queries `problems` where `targetType in FP_ITEM_TYPES` and `status == 'open'`; queries `projects` where `targetType in FP_ITEM_TYPES` then filters `status !== 'complete'` in-memory
 - Room scope uses `shape.roomId === room.id` to find the fp shape, then filters items by `item.roomId === shape.id`
 - House scope loads all floor plan docs in parallel via `Promise.all`
+
+**Electrical Controls — Reverse Lookup (room detail page only)**:
+- Section appears on `page-room` below the rollup, rendered by `loadRoomElectricalControls(roomId)` in `house.js`
+- Scans all `floorPlans` docs; for each wall plate slot where `slot.external === true`, checks if any `slot.externalTargets[].roomId` matches the current room
+- If matches found, renders an "⚡ Electrical Controls" section listing each target (name, location) and the controlling wall plate (floor plan link)
+- Useful on "Outside" floor rooms (e.g. "Firepit Area") — shows which indoor switch controls the flood light or solar light placed there
+- No dedicated Firestore collection; scan is O(floors × plates) which is acceptably small for a home
 
 ### Breaker Panel (`house.js`)
 Tracks the electrical breaker panel as a grid of slots.

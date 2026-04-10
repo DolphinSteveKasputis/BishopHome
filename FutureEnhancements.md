@@ -55,3 +55,30 @@ Draw actual pipe routes on the floor plan (supply and drain lines) connecting fi
 - Current approach: show plumbing endpoints (spigots, stub-outs) as colored symbols only, no routing
 
 Related to: Floor Plan — Plumbing mode.
+
+---
+
+## Floor Plan: Sprinkler System Layout
+
+Draw irrigation pipe routes on the floor plan (or an outdoor/yard floor plan) connecting
+sprinkler heads to zone valves and the main supply line. Each zone would have a color and
+label. This is intentionally deferred because:
+- Sprinkler heads are already trackable as plumbing endpoint items (subtype: sprinkler)
+- Full pipe routing is a significant UX project
+- A valve controller / zone scheduling feature would likely be needed alongside it
+
+Related to: Floor Plan — Plumbing mode, Outside floor.
+
+---
+
+## Floor Plan: Orphaned Electrical Items Report
+
+A utility view (or filter) that surfaces:
+- Switches (wall plate slots) that have no targets linked (neither in-room nor external)
+- Light fixtures (recessed lights, ceiling fixtures) that are not targeted by any switch
+
+This helps identify wiring that was never documented, or items added to the floor plan
+but never connected. Could be a simple list view accessible from the electrical toolbar
+or the floor/house page.
+
+Related to: Floor Plan — Electrical mode, Wall Plates, External Targets.

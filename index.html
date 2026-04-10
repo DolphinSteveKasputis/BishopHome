@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=392">
+    <link rel="stylesheet" href="css/styles.css?v=393">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -1210,6 +1210,8 @@
             <p class="empty-state" id="roomFloorPlanItemsEmptyState"></p>
             <!-- Floor Plan Item Rollup: Open Concerns + Active Projects (items in this room) -->
             <div id="roomFpRollupContainer"></div>
+            <!-- Electrical Controls: reverse-lookup — switches in other rooms that control items here -->
+            <div id="roomElectricalControlsContainer"></div>
         </section>
 
         <!-- Page: Thing Detail -->
@@ -1555,6 +1557,7 @@
                 <!-- Plumbing tools (visible in Plumbing mode, hidden by default) -->
                 <button class="fp-tool-btn fp-plumbing-tool" id="fpToolSpigot" data-tool="spigot" style="display:none">🔧 Spigot</button>
                 <button class="fp-tool-btn fp-plumbing-tool" id="fpToolStubout" data-tool="stubout" style="display:none">⊕ Stub-out</button>
+                <button class="fp-tool-btn fp-plumbing-tool" id="fpToolSprinkler" data-tool="sprinkler" style="display:none">💦 Sprinkler</button>
                 <span class="fp-tool-sep fp-plumbing-tool" style="display:none"></span>
 
                 <!-- Dim toggle — visible in Electrical and Plumbing overlay modes -->
@@ -4378,6 +4381,7 @@
                     <option value="flush-mount">Flush Mount Light</option>
                     <option value="drop-light">Drop / Pendant Light</option>
                     <option value="chandelier">Chandelier</option>
+                    <option value="solar">Solar Light</option>
                     <option value="generic">Generic Light</option>
                 </select>
             </div>
@@ -4514,6 +4518,41 @@
                 <button class="btn btn-primary" id="fpWallPlateSaveBtn">Save</button>
                 <button class="btn btn-secondary" id="fpWallPlateCancelBtn">Cancel</button>
                 <button class="btn btn-danger" id="fpWallPlateDeleteBtn" style="display:none;margin-left:auto">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== EXTERNAL TARGET MODAL ===== -->
+    <!-- Opens from wall plate slot row; picks Floor → Room → Item to create an external target -->
+    <div class="modal-overlay" id="fpExternalTargetModal">
+        <div class="modal" style="max-width:420px">
+            <h3>Add External Target</h3>
+            <p class="label-hint">Pick the floor, room, and floor plan item that this switch controls.</p>
+            <div class="form-group">
+                <label for="fpExtTargetFloorSelect">Floor</label>
+                <select id="fpExtTargetFloorSelect">
+                    <option value="">— Select floor —</option>
+                </select>
+            </div>
+            <div class="form-group" id="fpExtTargetRoomGroup" style="display:none">
+                <label for="fpExtTargetRoomSelect">Room</label>
+                <select id="fpExtTargetRoomSelect">
+                    <option value="">— Select room —</option>
+                </select>
+            </div>
+            <div class="form-group" id="fpExtTargetItemGroup" style="display:none">
+                <label for="fpExtTargetItemSelect">Item</label>
+                <select id="fpExtTargetItemSelect">
+                    <option value="">— Select item —</option>
+                </select>
+            </div>
+            <div class="form-group" id="fpExtTargetNameGroup" style="display:none">
+                <label for="fpExtTargetNameInput">Target name <span class="label-hint">(editable)</span></label>
+                <input type="text" id="fpExtTargetNameInput" placeholder="e.g. Firepit flood light">
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="fpExtTargetCancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="fpExtTargetSaveBtn" disabled>Add Target</button>
             </div>
         </div>
     </div>
@@ -7794,9 +7833,9 @@
     <script src="js/calendar.js?v=350"></script>
     <script src="js/gps.js?v=350"></script>
     <script src="js/settings.js?v=350"></script>
-    <script src="js/house.js?v=392"></script>
-    <script src="js/floorplan.js?v=392"></script>
-    <script src="js/floorplanitem.js?v=392"></script>
+    <script src="js/house.js?v=393"></script>
+    <script src="js/floorplan.js?v=393"></script>
+    <script src="js/floorplanitem.js?v=393"></script>
     <script src="js/search.js?v=350"></script>
     <script src="js/activityreport.js?v=350"></script>
     <script src="js/checklists.js?v=350"></script>

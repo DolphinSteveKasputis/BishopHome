@@ -869,6 +869,9 @@ function renderRoomDetail(room, floor) {
 
     // Load fp item rollup: Open Concerns + Active Projects for items in this room
     loadFpItemRollup('room', room.id, floor.id, 'roomFpRollupContainer');
+
+    // Load electrical controls: switches in other rooms that control items here
+    loadRoomElectricalControls(room.id);
 }
 
 // ============================================================
@@ -1342,6 +1345,111 @@ async function loadRoomFloorPlanItems(roomId, floorId) {
         console.error('loadRoomFloorPlanItems error:', err);
         if (emptyState) emptyState.textContent = 'Error loading floor plan items.';
     }
+}
+
+// ============================================================
+// ELECTRICAL CONTROLS — REVERSE LOOKUP
+// ============================================================
+
+/**
+ * Scan all floor plans looking for external targets whose roomId matches
+ * the given room, then render a summary section showing which switches
+ * (in other rooms) control items located here.
+ *
+ * @param {string} roomId  - Firestore rooms doc ID of the current room
+ */
+function loadRoomElectricalControls(roomId) {
+    var container = document.getElementById('roomElectricalControlsContainer');
+    if (!container) return;
+    container.innerHTML = '';
+
+    userCol('floorPlans').get()
+        .then(function(snap) {
+            var matches = [];
+
+            snap.forEach(function(planDoc) {
+                var plan    = planDoc.data();
+                var planId  = planDoc.id;
+                var plates  = plan.wallPlates || [];
+
+                plates.forEach(function(plate) {
+                    (plate.slots || []).forEach(function(slot, slotIdx) {
+                        if (!slot.external) return;
+                        (slot.externalTargets || []).forEach(function(target) {
+                            if (target.roomId === roomId) {
+                                matches.push({
+                                    target:   target,
+                                    plate:    plate,
+                                    slotIdx:  slotIdx,
+                                    slot:     slot,
+                                    planId:   planId
+                                });
+                            }
+                        });
+                    });
+                });
+            });
+
+            if (!matches.length) return;
+
+            // Build section
+            var section = document.createElement('div');
+            section.className = 'fp-elec-controls-section';
+
+            var hdr = document.createElement('h4');
+            hdr.className   = 'section-heading';
+            hdr.textContent = '⚡ Electrical Controls';
+            section.appendChild(hdr);
+
+            var hint = document.createElement('p');
+            hint.className   = 'label-hint';
+            hint.textContent = 'Switches in other rooms that control items located here.';
+            hint.style.marginBottom = '6px';
+            section.appendChild(hint);
+
+            matches.forEach(function(m) {
+                var row = document.createElement('div');
+                row.className = 'fp-elec-controls-item';
+
+                // Target name + location label
+                var nameSpan = document.createElement('span');
+                nameSpan.className   = 'fp-elec-controls-name';
+                nameSpan.textContent = m.target.name || 'Item';
+
+                // Link to item's detail page
+                var detailLink = document.createElement('a');
+                detailLink.href      = '#floorplanitem/' + m.target.planId + '/ceiling/' + m.target.fpItemId;
+                detailLink.className = 'breadcrumb-link fp-elec-controls-detail';
+                detailLink.textContent = ' →';
+
+                // "Controlled by" label
+                var bySpan = document.createElement('span');
+                bySpan.className   = 'fp-elec-controls-by';
+                var slotLabel = 'Slot ' + (m.slotIdx + 1);
+                var subtypeLabel = { 'single-pole': '', '3-way': ' (3-way)', 'dimmer': ' (dimmer)', 'smart': ' (smart)' }[m.slot.subtype] || '';
+                bySpan.textContent = 'Controlled by: ' + (m.plate.name || 'Wall Plate') +
+                    ', ' + slotLabel + subtypeLabel;
+
+                // Link to wall plate's floor plan
+                var plateLink = document.createElement('a');
+                plateLink.href      = '#floorplanitem/' + m.planId + '/wallplate/' + m.plate.id;
+                plateLink.className = 'breadcrumb-link fp-elec-controls-plate';
+                plateLink.textContent = ' → View plate';
+
+                row.appendChild(nameSpan);
+                row.appendChild(detailLink);
+                row.appendChild(document.createElement('br'));
+                row.appendChild(bySpan);
+                row.appendChild(plateLink);
+
+                section.appendChild(row);
+            });
+
+            container.appendChild(section);
+        })
+        .catch(function(err) {
+            console.error('loadRoomElectricalControls error:', err);
+        });
 }
 
 // ============================================================

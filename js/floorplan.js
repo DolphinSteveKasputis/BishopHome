@@ -1332,40 +1332,25 @@ function fpRenderDoor(svg, door) {
         });
 
     } else if (subtype === 'french') {
-        // --- French door: two panels, each half width, perpendicular to wall ---
-        // Each panel hinge is at the jamb end; the panel swings 90° into (or out of) the room.
-        // In plan view: two lines pointing into the room + two quarter-circle arcs sweeping
-        // from the closed position (center divider) to the open position (perpendicular tip).
+        // --- French door: two short panel lines pointing into the room, no arc ---
+        // Simple symbol: each hinge has a short perpendicular tick into the room,
+        // plus a center divider post and "FR" label.
 
-        // Use a short fixed panel length (about 8") for a compact symbol — the arc
-        // radius matches so the quarter-circle still looks correct, just small.
-        var frHalfPx = fp2px(8 / 12);
-        var frMidX   = (h.x + oe.x) / 2;
-        var frMidY   = (h.y + oe.y) / 2;
+        var frPx   = fp2px(10 / 12);    // ~10 inch panel indicator length
+        var frMidX = (h.x + oe.x) / 2;
+        var frMidY = (h.y + oe.y) / 2;
 
-        // Room-normal direction: (info.nx, info.ny) is the left-hand wall normal.
-        // Inward panels point in the left-hand normal direction; outward panels flip it.
+        // Room-normal direction: (info.nx, info.ny) = left-hand wall normal (into room)
+        // Inward = along that normal; outward = flip it
         var frDir = door.swingInward !== false ? 1 : -1;
         var frNx  = frDir * info.nx;
         var frNy  = frDir * info.ny;
 
-        // Open-position panel tips (perpendicular into/out of room, half-width from hinge)
-        var lOpenX = h.x  + frNx * frHalfPx;
-        var lOpenY = h.y  + frNy * frHalfPx;
-        var rOpenX = oe.x + frNx * frHalfPx;
-        var rOpenY = oe.y + frNy * frHalfPx;
-
-        // For a quarter-circle arc from the open tip to the center:
-        //   center of arc = hinge point (h or oe), radius = frHalfPx
-        //   Going from open-tip → mid sweeps 90°.
-        // Sweep flag: determined by cross product of (openTip-hinge) × (mid-hinge).
-        //   If cross > 0 in SVG coords (Y-down), CW arc (sweep=1) stays on the room side.
-        // Left panel: (lOpen-h) × (mid-h)
-        var lCrossZ = (lOpenX - h.x) * (frMidY - h.y) - (lOpenY - h.y) * (frMidX - h.x);
-        var lSweep  = lCrossZ > 0 ? 0 : 1;
-        // Right panel: (rOpen-oe) × (mid-oe)
-        var rCrossZ = (rOpenX - oe.x) * (frMidY - oe.y) - (rOpenY - oe.y) * (frMidX - oe.x);
-        var rSweep  = rCrossZ > 0 ? 0 : 1;
+        // Panel tips — short lines perpendicular to wall at each hinge
+        var lTipX = h.x  + frNx * frPx;
+        var lTipY = h.y  + frNy * frPx;
+        var rTipX = oe.x + frNx * frPx;
+        var rTipY = oe.y + frNy * frPx;
 
         // Center divider post
         fpSvgEl(svg, 'line', {
@@ -1374,31 +1359,26 @@ function fpRenderDoor(svg, door) {
             stroke: strokeColor, 'stroke-width': isSelected ? 2.5 : 2, 'pointer-events': 'none'
         });
 
-        // Left panel — line from hinge to open-position tip
+        // Left panel line + hinge dot
         fpSvgEl(svg, 'line', {
-            x1: h.x, y1: h.y, x2: lOpenX, y2: lOpenY,
+            x1: h.x, y1: h.y, x2: lTipX, y2: lTipY,
             stroke: strokeColor, 'stroke-width': isSelected ? 3 : 2.5, 'pointer-events': 'none'
         });
-        // Left arc: from open tip sweeping to center (quarter circle, radius=half door width)
-        fpSvgEl(svg, 'path', {
-            d: 'M ' + lOpenX + ' ' + lOpenY + ' A ' + frHalfPx + ' ' + frHalfPx + ' 0 0 ' + lSweep + ' ' + frMidX + ' ' + frMidY,
-            fill: 'none', stroke: isSelected ? '#f59e0b' : '#334155',
-            'stroke-width': isSelected ? 2 : 1.5, 'stroke-dasharray': '5,3', 'pointer-events': 'none'
-        });
-        fpSvgEl(svg, 'circle', { cx: h.x,  cy: h.y,  r: isSelected ? 4 : 3, fill: strokeColor, 'pointer-events': 'none' });
+        fpSvgEl(svg, 'circle', { cx: h.x, cy: h.y, r: isSelected ? 4 : 3, fill: strokeColor, 'pointer-events': 'none' });
 
-        // Right panel — line from hinge to open-position tip
+        // Right panel line + hinge dot
         fpSvgEl(svg, 'line', {
-            x1: oe.x, y1: oe.y, x2: rOpenX, y2: rOpenY,
+            x1: oe.x, y1: oe.y, x2: rTipX, y2: rTipY,
             stroke: strokeColor, 'stroke-width': isSelected ? 3 : 2.5, 'pointer-events': 'none'
-        });
-        // Right arc: from open tip sweeping to center
-        fpSvgEl(svg, 'path', {
-            d: 'M ' + rOpenX + ' ' + rOpenY + ' A ' + frHalfPx + ' ' + frHalfPx + ' 0 0 ' + rSweep + ' ' + frMidX + ' ' + frMidY,
-            fill: 'none', stroke: isSelected ? '#f59e0b' : '#334155',
-            'stroke-width': isSelected ? 2 : 1.5, 'stroke-dasharray': '5,3', 'pointer-events': 'none'
         });
         fpSvgEl(svg, 'circle', { cx: oe.x, cy: oe.y, r: isSelected ? 4 : 3, fill: strokeColor, 'pointer-events': 'none' });
+
+        // Connecting line between panel tips (shows closed-door panel extent)
+        fpSvgEl(svg, 'line', {
+            x1: lTipX, y1: lTipY, x2: rTipX, y2: rTipY,
+            stroke: strokeColor, 'stroke-width': isSelected ? 2 : 1.5,
+            'stroke-dasharray': '4,3', 'pointer-events': 'none'
+        });
 
         // Type label
         var lblFR = fpSvgEl(svg, 'text', { x: frMidX, y: frMidY - 8, 'text-anchor': 'middle', 'font-size': 7, fill: strokeColor, 'pointer-events': 'none' });

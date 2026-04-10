@@ -1313,7 +1313,9 @@ function fpRenderDoor(svg, door) {
         // In plan view: two lines pointing into the room + two quarter-circle arcs sweeping
         // from the closed position (center divider) to the open position (perpendicular tip).
 
-        var frHalfPx = fp2px(door.width) / 2;
+        // Use a short fixed panel length (about 8") for a compact symbol — the arc
+        // radius matches so the quarter-circle still looks correct, just small.
+        var frHalfPx = fp2px(8 / 12);
         var frMidX   = (h.x + oe.x) / 2;
         var frMidY   = (h.y + oe.y) / 2;
 
@@ -2120,6 +2122,7 @@ function fpPlaceMarkerOnWall(e, room, markerType) {
         document.getElementById('fpDoorSwingSelect').value = 'inward-left';
         document.getElementById('fpDoorFrenchSwingSelect').value = 'inward';
         document.getElementById('fpDoorDeleteBtn').style.display = 'none';
+        document.getElementById('fpDoorSaveBtn').textContent = 'Place Door';
         fpDoorUpdateSwingControls('single');
         openModal('fpDoorModal');
     } else if (markerType === 'window') {
@@ -2180,6 +2183,7 @@ function fpOpenDoorEditModal(door) {
     }
 
     document.getElementById('fpDoorDeleteBtn').style.display = '';
+    document.getElementById('fpDoorSaveBtn').textContent = 'Save';
     openModal('fpDoorModal');
 }
 

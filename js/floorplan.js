@@ -5437,10 +5437,9 @@ function fpUpdatePropsBar() {
     if (type === 'fixture') {
         var fix = (fpPlan.fixtures || []).find(function(f) { return f.id === fpSelectedId; });
         if (fix) {
-            var orientLabels = ['↑ Up', '→ Right', '↓ Down', '← Left'];
             var rotBtn = document.createElement('button');
             rotBtn.className   = 'btn btn-secondary btn-small';
-            rotBtn.textContent = '⟳ ' + (orientLabels[fix.orientation || 0] || 'Up');
+            rotBtn.textContent = '⟳';
             rotBtn.title = 'Click to rotate 90°';
             rotBtn.addEventListener('click', function() {
                 fix.orientation = ((fix.orientation || 0) + 1) % 4;

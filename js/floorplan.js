@@ -40,8 +40,9 @@ var fpSelectedType = 'room'; // 'room' | 'outlet' | 'switch' | 'plumbing' | 'cei
 // Electrical mode state
 var fpElectricalMode = false;  // true = electrical overlay active
 var fpElecFade       = true;   // true = dim structural elements in electrical mode
-var fpTargetEditMode = false;  // true = clicking fixtures toggles wall plate targets
-var fpTargetEditPlateId = null; // wall plate ID being edited in target mode
+var fpTargetEditMode     = false;   // true = in fixture-picking mode for a specific slot
+var fpTargetEditPlateId  = null;    // plate ID being edited
+var fpTargetEditSlotIdx  = null;    // slot index being edited (null = still picking which slot)
 
 // Computed display scale
 var fpPixPerFoot   = 20;
@@ -299,14 +300,17 @@ function fpRender() {
     }
 
     // ---- Electrical mode: compute 3-way flags on wall plates ----
-    // Build a map of fixtureId → [plateIds that target it]; plates targeted by 2+ get _threeway
+    // Build a map of fixtureId → [plateIds that have a slot targeting it]; plates targeted by 2+ get _threeway
     (function() {
         var targetMap = {};
         (fpPlan.wallPlates || []).forEach(function(p) {
             p._threeway = false; // reset
-            (p.targetIds || []).forEach(function(tid) {
-                if (!targetMap[tid]) targetMap[tid] = [];
-                targetMap[tid].push(p.id);
+            (p.slots || []).forEach(function(slot) {
+                if (slot.type !== 'switch') return;
+                (slot.targetIds || []).forEach(function(tid) {
+                    if (!targetMap[tid]) targetMap[tid] = [];
+                    if (targetMap[tid].indexOf(p.id) < 0) targetMap[tid].push(p.id);
+                });
             });
         });
         Object.keys(targetMap).forEach(function(tid) {
@@ -359,6 +363,7 @@ function fpRender() {
     // ---- Target edit mode overlay ----
     if (fpTargetEditMode) {
         fpRenderTargetEditOverlay(svg);
+        fpUpdateTargetEditPanel();  // keep panel in sync with current slot state
     }
 
     // In-progress drawing preview
@@ -385,7 +390,7 @@ function fpRender() {
     if (editTargetsBtn) {
         var showTargets = showSel && fpSelectedType === 'wallplate' && fpElectricalMode;
         editTargetsBtn.style.display = showTargets ? '' : 'none';
-        editTargetsBtn.textContent   = fpTargetEditMode ? 'Done' : 'Edit Targets';
+        editTargetsBtn.textContent   = 'Edit Targets';
     }
 }
 
@@ -4182,6 +4187,11 @@ document.getElementById('fpWallPlateSaveBtn').addEventListener('click', function
     if (editId) {
         var existing = (fpPlan.wallPlates || []).find(function(m) { return m.id === editId; });
         if (existing) {
+            // Preserve per-slot targetIds — the DOM doesn't store them, so copy from existing data
+            slots.forEach(function(slot, i) {
+                var oldSlot = (existing.slots || [])[i];
+                slot.targetIds = (oldSlot && oldSlot.targetIds) ? oldSlot.targetIds : [];
+            });
             existing.slots = slots;
             existing.notes = notes;
             // Apply position override if typed
@@ -4195,12 +4205,13 @@ document.getElementById('fpWallPlateSaveBtn').addEventListener('click', function
             }
         }
     } else {
+        // Initialize targetIds: [] on each slot for new plates
+        slots.forEach(function(slot) { slot.targetIds = []; });
         var plate = {
             id:           fpGenId(),
             roomId:       modal.dataset.roomId,
             segmentIndex: parseInt(modal.dataset.segIndex, 10),
             position:     parseFloat(modal.dataset.position),
-            targetIds:    [],
             notes:        notes,
             slots:        slots
         };
@@ -4278,19 +4289,31 @@ function fpToggleElecFade() {
 
 /**
  * Enter target-selection mode for the currently selected wall plate.
- * Fixtures can be clicked to toggle in/out of plate.targetIds[].
+ * If the plate has >1 switch slot, shows a slot-picker first.
+ * If only 1 switch slot, skips to fixture-picking immediately.
  */
 function fpEnterTargetEditMode() {
     if (!fpSelectedId || fpSelectedType !== 'wallplate') return;
     fpTargetEditMode    = true;
     fpTargetEditPlateId = fpSelectedId;
+    fpTargetEditSlotIdx = null;  // start at slot-picker step
 
-    // Show Done button in toolbar area
-    var doneBtn = document.getElementById('fpTargetEditDoneBtn');
-    if (doneBtn) doneBtn.style.display = '';
+    var plate = (fpPlan.wallPlates || []).find(function(p) { return p.id === fpSelectedId; });
+    if (!plate) return;
+
+    // Count switch slots
+    var switchSlots = (plate.slots || []).filter(function(s) { return s.type === 'switch'; });
+
+    if (switchSlots.length === 1) {
+        // Skip slot picker — go directly to fixture picking for the only switch slot
+        var idx = (plate.slots || []).indexOf(switchSlots[0]);
+        fpTargetEditSlotIdx = idx;
+    }
+    // else: fpTargetEditSlotIdx stays null → slot picker shows
 
     fpRender();
-    fpSetStatus('Target edit: click recessed lights or ceiling fixtures to link/unlink them to this switch plate. Done when finished.');
+    fpUpdateTargetEditPanel();
+    fpSetStatus('Edit Targets: ' + (fpTargetEditSlotIdx !== null ? 'click fixtures to link/unlink.' : 'choose a switch slot.'));
 }
 
 /**
@@ -4299,8 +4322,9 @@ function fpEnterTargetEditMode() {
 function fpExitTargetEditMode() {
     fpTargetEditMode    = false;
     fpTargetEditPlateId = null;
-    var doneBtn = document.getElementById('fpTargetEditDoneBtn');
-    if (doneBtn) doneBtn.style.display = 'none';
+    fpTargetEditSlotIdx = null;
+    var panel = document.getElementById('fpTargetEditPanel');
+    if (panel) panel.style.display = 'none';
     fpDirty = true;
     fpSilentSave();
     fpRender();
@@ -4308,19 +4332,102 @@ function fpExitTargetEditMode() {
 }
 
 /**
- * Toggle a fixture in/out of the current plate's targetIds[].
+ * Build the slot-picker or fixture-picking UI inside fpTargetEditPanel.
+ * - If fpTargetEditSlotIdx is null, shows slot-picker buttons (one per switch slot).
+ * - If fpTargetEditSlotIdx is set, shows slot info + Done (and Back if multiple switch slots).
+ * Called from fpEnterTargetEditMode, fpRender (when in mode), and slot button clicks.
+ */
+function fpUpdateTargetEditPanel() {
+    var panel = document.getElementById('fpTargetEditPanel');
+    if (!panel) return;
+
+    if (!fpTargetEditMode) { panel.style.display = 'none'; return; }
+
+    var plate = (fpPlan.wallPlates || []).find(function(p) { return p.id === fpTargetEditPlateId; });
+    if (!plate) { panel.style.display = 'none'; return; }
+
+    panel.style.display = '';
+    panel.innerHTML = '';
+
+    if (fpTargetEditSlotIdx === null) {
+        // ---- Slot picker step ----
+        var label = document.createElement('span');
+        label.textContent = 'Which switch: ';
+        label.style.cssText = 'font-size:0.85em;font-weight:bold;margin-right:6px';
+        panel.appendChild(label);
+
+        (plate.slots || []).forEach(function(slot, i) {
+            if (slot.type !== 'switch') return;
+            var btn = document.createElement('button');
+            btn.className = 'btn btn-secondary btn-small';
+            btn.style.marginRight = '4px';
+            var subLabel = { 'single-pole': 'Single-pole', '3-way': '3-way', 'dimmer': 'Dimmer', 'smart': 'Smart' };
+            btn.textContent = 'Slot ' + (i + 1) + ': ' + (subLabel[slot.subtype] || slot.subtype || slot.type) + (slot.controls ? ' (' + slot.controls + ')' : '');
+            btn.addEventListener('click', function() {
+                fpTargetEditSlotIdx = i;
+                fpRender();
+                fpUpdateTargetEditPanel();
+                fpSetStatus('Click fixtures to link or unlink from this switch.');
+            });
+            panel.appendChild(btn);
+        });
+
+        var cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn btn-secondary btn-small';
+        cancelBtn.textContent = 'Cancel';
+        cancelBtn.style.marginLeft = '8px';
+        cancelBtn.addEventListener('click', fpExitTargetEditMode);
+        panel.appendChild(cancelBtn);
+
+    } else {
+        // ---- Fixture-picking step ----
+        var slot = (plate.slots || [])[fpTargetEditSlotIdx];
+        var slotDesc = slot ? (slot.controls || slot.subtype || 'Switch') : 'Switch';
+
+        var infoSpan = document.createElement('span');
+        infoSpan.textContent = 'Slot ' + (fpTargetEditSlotIdx + 1) + ' (' + slotDesc + '): click fixtures to link/unlink';
+        infoSpan.style.cssText = 'font-size:0.85em;margin-right:8px';
+        panel.appendChild(infoSpan);
+
+        // Show Back button only if there are multiple switch slots
+        var switchCount = (plate.slots || []).filter(function(s) { return s.type === 'switch'; }).length;
+        if (switchCount > 1) {
+            var backBtn = document.createElement('button');
+            backBtn.className = 'btn btn-secondary btn-small';
+            backBtn.textContent = '\u2190 Back';
+            backBtn.style.marginRight = '4px';
+            backBtn.addEventListener('click', function() {
+                fpTargetEditSlotIdx = null;
+                fpRender();
+                fpUpdateTargetEditPanel();
+            });
+            panel.appendChild(backBtn);
+        }
+
+        var doneBtn2 = document.createElement('button');
+        doneBtn2.className = 'btn btn-primary btn-small';
+        doneBtn2.textContent = 'Done';
+        doneBtn2.addEventListener('click', fpExitTargetEditMode);
+        panel.appendChild(doneBtn2);
+    }
+}
+
+/**
+ * Toggle a fixture in/out of the current slot's targetIds[].
  * Called during target edit mode when a fixture is clicked.
  */
 function fpToggleTarget(fixtureId) {
-    if (!fpTargetEditPlateId) return;
+    if (!fpTargetEditPlateId || fpTargetEditSlotIdx === null) return;
     var plate = (fpPlan.wallPlates || []).find(function(p) { return p.id === fpTargetEditPlateId; });
     if (!plate) return;
-    if (!plate.targetIds) plate.targetIds = [];
-    var idx = plate.targetIds.indexOf(fixtureId);
+    var slot = (plate.slots || [])[fpTargetEditSlotIdx];
+    if (!slot) return;
+    if (!slot.targetIds) slot.targetIds = [];
+    var idx = slot.targetIds.indexOf(fixtureId);
     if (idx >= 0) {
-        plate.targetIds.splice(idx, 1);
+        slot.targetIds.splice(idx, 1);
     } else {
-        plate.targetIds.push(fixtureId);
+        slot.targetIds.push(fixtureId);
     }
     fpDirty = true;
     fpRender();
@@ -4328,11 +4435,12 @@ function fpToggleTarget(fixtureId) {
 
 /**
  * Draw dashed lines from the selected wall plate to each of its target fixtures.
+ * Lines are drawn per slot with distinct colors so multi-gang plates show clearly.
  * Only called when fpElectricalMode and a wallplate is selected.
  */
 function fpRenderWiringLines(svg) {
     var plate = (fpPlan.wallPlates || []).find(function(p) { return p.id === fpSelectedId; });
-    if (!plate || !plate.targetIds || !plate.targetIds.length) return;
+    if (!plate) return;
 
     // Get plate center
     var room = (fpPlan.rooms || []).find(function(r) { return r.id === plate.roomId; });
@@ -4343,46 +4451,62 @@ function fpRenderWiringLines(svg) {
     if (!info) return;
     var px = info.hinge.x, py = info.hinge.y;
 
-    plate.targetIds.forEach(function(tid) {
-        var fx = null, fy = null;
+    // Line colors per slot index (up to 4 slots)
+    var lineColors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'];
 
-        // Check recessed lights
-        var rl = (fpPlan.recessedLights || []).find(function(m) { return m.id === tid; });
-        if (rl) { fx = fp2px(rl.x); fy = fp2px(rl.y); }
+    (plate.slots || []).forEach(function(slot, i) {
+        if (slot.type !== 'switch') return;
+        var targets = slot.targetIds || [];
+        if (!targets.length) return;
+        var color = lineColors[i % lineColors.length];
 
-        // Check ceiling fixtures
-        if (fx === null) {
-            var cf = (fpPlan.ceilingFixtures || []).find(function(m) { return m.id === tid; });
-            if (cf) { fx = fp2px(cf.x); fy = fp2px(cf.y); }
-        }
+        targets.forEach(function(tid) {
+            var fx = null, fy = null;
 
-        if (fx === null) return;
+            // Check recessed lights
+            var rl = (fpPlan.recessedLights || []).find(function(m) { return m.id === tid; });
+            if (rl) { fx = fp2px(rl.x); fy = fp2px(rl.y); }
 
-        fpSvgEl(svg, 'line', {
-            x1: px, y1: py, x2: fx, y2: fy,
-            stroke: '#3b82f6', 'stroke-width': 1.5,
-            'stroke-dasharray': '5,3',
-            'pointer-events': 'none', opacity: 0.8
+            // Check ceiling fixtures
+            if (fx === null) {
+                var cf = (fpPlan.ceilingFixtures || []).find(function(m) { return m.id === tid; });
+                if (cf) { fx = fp2px(cf.x); fy = fp2px(cf.y); }
+            }
+
+            if (fx === null) return;
+
+            fpSvgEl(svg, 'line', {
+                x1: px, y1: py, x2: fx, y2: fy,
+                stroke: color, 'stroke-width': 1.5,
+                'stroke-dasharray': '5,3',
+                'pointer-events': 'none', opacity: 0.85
+            });
         });
     });
 }
 
 /**
  * Overlay highlighting for target edit mode.
- * - Current targets → amber fill ring
- * - Other selectable fixtures → teal ring
+ * Only shows rings when a specific slot is selected (fpTargetEditSlotIdx !== null).
+ * - Current slot targets → amber fill ring
+ * - Other selectable fixtures → teal dashed ring
  */
 function fpRenderTargetEditOverlay(svg) {
+    // Slot picker step — no fixture rings yet
+    if (fpTargetEditSlotIdx === null) return;
+
     var plate = (fpPlan.wallPlates || []).find(function(p) { return p.id === fpTargetEditPlateId; });
     if (!plate) return;
-    var targets = plate.targetIds || [];
+    var slot    = (plate.slots || [])[fpTargetEditSlotIdx];
+    var targets = (slot && slot.targetIds) ? slot.targetIds : [];
 
     function drawRing(cx, cy, r, color, fixtureId) {
+        var isLinked = targets.indexOf(fixtureId) >= 0;
         var ring = fpSvgEl(svg, 'circle', {
             cx: cx, cy: cy, r: r,
-            fill: 'transparent',
+            fill: isLinked ? 'rgba(204,136,0,0.15)' : 'transparent',
             stroke: color, 'stroke-width': 2.5,
-            'stroke-dasharray': targets.indexOf(fixtureId) >= 0 ? 'none' : '4,2',
+            'stroke-dasharray': isLinked ? 'none' : '4,2',
             cursor: 'pointer'
         });
         ring.addEventListener('click', function(e) {
@@ -4412,9 +4536,8 @@ function fpRenderTargetEditOverlay(svg) {
 
     var dimCheck = document.getElementById('fpElecDimCheck');
     if (dimCheck) dimCheck.addEventListener('change', fpToggleElecFade);
-
-    var doneBtn = document.getElementById('fpTargetEditDoneBtn');
-    if (doneBtn) doneBtn.addEventListener('click', fpExitTargetEditMode);
+    // Note: fpTargetEditDoneBtn has been removed from the toolbar.
+    // The Done button is now built dynamically inside fpUpdateTargetEditPanel().
 }());
 
 // ---- "Edit Targets" button in status bar ----

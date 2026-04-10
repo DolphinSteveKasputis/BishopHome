@@ -1529,7 +1529,6 @@
                 <span class="fp-tool-sep"></span>
                 <button id="fpEditRoomBtn" class="btn btn-secondary btn-small" style="display:none">Edit Room</button>
                 <button id="fpEditTargetsBtn" class="btn btn-secondary btn-small" style="display:none">Edit Targets</button>
-                <button id="fpTargetEditDoneBtn" class="btn btn-primary btn-small" style="display:none">Done</button>
                 <button id="fpDeleteRoomBtn" class="btn btn-danger btn-small" style="display:none">Remove</button>
             </div>
 
@@ -1539,6 +1538,9 @@
                 <span class="fp-coords-sep">|</span>
                 <span class="fp-coords-len" id="fpCoordsLen"></span>
             </div>
+
+            <!-- Target edit panel — shown when in Edit Targets mode (slot picker or fixture picking) -->
+            <div id="fpTargetEditPanel" style="display:none;padding:4px 8px;background:#f0f9ff;border:1px solid #bae0fd;border-radius:4px;margin-top:4px;align-items:center;flex-wrap:wrap;gap:4px"></div>
 
             <!-- SVG Canvas -->
             <div class="fp-canvas-wrapper" id="fpCanvasWrapper">
@@ -7616,7 +7618,7 @@
     <script src="js/gps.js?v=350"></script>
     <script src="js/settings.js?v=350"></script>
     <script src="js/house.js?v=362"></script>
-    <script src="js/floorplan.js?v=375"></script>
+    <script src="js/floorplan.js?v=376"></script>
     <script src="js/search.js?v=350"></script>
     <script src="js/activityreport.js?v=350"></script>
     <script src="js/checklists.js?v=350"></script>

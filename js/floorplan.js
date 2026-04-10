@@ -3948,8 +3948,9 @@ function fpRenderWallPlate(svg, plate) {
         }
     });
 
-    // 3-way badge — pill shape above plate with clear vertical clearance
-    if (isThreeWay) {
+    // 3-way badge — pill shape above plate; only shown in electrical mode
+    var showBadge = isThreeWay && fpElectricalMode;
+    if (showBadge) {
         var badgeW = 24, badgeH = 9, badgeY = cy - hh - 13;
         // Pill background
         fpSvgEl(g, 'rect', {
@@ -3967,10 +3968,10 @@ function fpRenderWallPlate(svg, plate) {
         }).textContent = '3-way';
     }
 
-    // Transparent hit area (expanded to include badge space)
+    // Transparent hit area (expanded upward to include badge when visible)
     var hit = fpSvgEl(g, 'rect', {
-        x: cx - hw - 4, y: cy - hh - (isThreeWay ? 18 : 4),
-        width: totalW + 8, height: totalH + (isThreeWay ? 22 : 8),
+        x: cx - hw - 4, y: cy - hh - (showBadge ? 18 : 4),
+        width: totalW + 8, height: totalH + (showBadge ? 22 : 8),
         fill: 'transparent', stroke: 'transparent'
     });
     fpMakeDraggableWallPlate(hit, plate);
@@ -4302,14 +4303,35 @@ document.getElementById('fpWallPlateAddProblemBtn').addEventListener('click', fu
  */
 function fpToggleElectricalMode() {
     fpElectricalMode = !fpElectricalMode;
+
+    // Elec button: amber when ON, gray when OFF
     var btn = document.getElementById('fpElecModeBtn');
-    if (btn) btn.classList.toggle('active', fpElectricalMode);
+    if (btn) btn.classList.toggle('elec-on', fpElectricalMode);
 
+    // Box around the electrical controls group when ON
+    var grp = document.getElementById('fpElecGroup');
+    if (grp) grp.classList.toggle('elec-active', fpElectricalMode);
+
+    // Dim toggle only visible when electrical mode is ON
     var dimWrap = document.getElementById('fpElecDimWrap');
-    if (dimWrap) dimWrap.style.display = fpElectricalMode ? '' : 'none';
+    if (dimWrap) dimWrap.style.display = fpElectricalMode ? 'flex' : 'none';
 
-    // Exit target edit mode if turning off
-    if (!fpElectricalMode && fpTargetEditMode) fpExitTargetEditMode();
+    // Hide structural tools when electrical mode is ON
+    var structTools = document.querySelectorAll('.fp-structural-tool');
+    structTools.forEach(function(el) {
+        el.style.display = fpElectricalMode ? 'none' : '';
+    });
+
+    if (!fpElectricalMode) {
+        // Exit target edit mode if turning off
+        if (fpTargetEditMode) fpExitTargetEditMode();
+        // If on Recessed tool, drop back to Select
+        if (fpActiveTool === 'recessed') fpSetTool('select');
+    } else {
+        // If currently on a structural-only tool, drop back to Select
+        var structOnlyTools = ['room', 'door', 'window', 'plumbing'];
+        if (structOnlyTools.indexOf(fpActiveTool) >= 0) fpSetTool('select');
+    }
 
     fpRender();
 }

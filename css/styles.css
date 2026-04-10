@@ -2667,6 +2667,49 @@ button {
     color: white;
 }
 
+/* Electrical mode toggle button — distinct from generic btn-secondary */
+.fp-elec-toggle-btn {
+    padding: 5px 13px;
+    border: 1px solid #aaa;
+    border-radius: 6px;
+    background: #e0e0e0;
+    color: #333;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.fp-elec-toggle-btn:hover {
+    background: #bdbdbd;
+    border-color: #888;
+}
+/* ON state — amber so it's visually obvious */
+.fp-elec-toggle-btn.elec-on {
+    background: #d97706;
+    color: #fff;
+    border-color: #b45309;
+    font-weight: 600;
+}
+.fp-elec-toggle-btn.elec-on:hover {
+    background: #b45309;
+    border-color: #92400e;
+}
+
+/* Electrical controls group — gains a visible amber box when elec mode is ON */
+.fp-elec-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 5px;
+    border-radius: 7px;
+    border: 2px solid transparent;
+    transition: border-color 0.2s, background 0.2s;
+}
+.fp-elec-group.elec-active {
+    border-color: #d97706;
+    background: #fffbeb;
+    padding: 3px 8px;
+}
+
 /* ============================================================
    BREAKER PANEL  (Phase H12)
    ============================================================ */

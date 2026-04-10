@@ -311,10 +311,12 @@ An interactive drawing tool for each floor.
 
 **Electrical Mode** (⚡ Elec toggle in toolbar):
 - Activates an electrical overlay on the floor plan
+- **Elec button**: amber/highlighted when ON, gray when OFF — visually obvious toggle state
+- **Toolbar changes when ON**: structural tools (Room, Type, Door, Window, Plumbing) are hidden; the electrical controls (Elec, Dim, Edit Marker, Edit Targets, Remove) are grouped inside an amber-bordered box; switching to a structural tool while turning Elec off resets to Select
 - **Dim toggle**: when ON (default), structural elements (walls, doors, windows, plumbing) render at 25% opacity so electrical elements pop visually; Dim checkbox in toolbar toggles this on/off
-- **Wiring lines**: when a wall plate is selected in electrical mode, dashed blue lines draw from the plate to each fixture in its `targetIds[]`
-- **Edit Targets**: selecting a wall plate in electrical mode reveals an "Edit Targets" button; pressing it enters target-selection mode — recessed lights and ceiling fixtures show rings (amber = currently linked, teal = available); click any fixture to toggle the link; press Done or the button again to exit and save
-- **3-way auto-detection**: if two or more wall plates share the same target fixture, those plates automatically display a purple "3-way" badge above the plate symbol
+- **Wiring lines**: when a wall plate is selected in electrical mode, dashed colored lines draw from the plate to each fixture per slot (blue, red, purple, cyan for up to 4 slots)
+- **Edit Targets**: selecting a wall plate in electrical mode reveals an "Edit Targets" button; pressing it enters target-selection mode — recessed lights and ceiling fixtures show rings (amber ring + warm fill + center dot = linked, dashed teal ring + faint fill = available); click any fixture to toggle the link; press Done or the button again to exit and save
+- **3-way auto-detection**: if two or more wall plates share the same target fixture, those plates automatically display a purple "3-way" badge above the plate symbol; badge only visible in electrical mode
 
 **Drawing — Free Draw mode**:
 - Click to place corners; Enter key places a corner at the current cursor position (no need to click exactly)

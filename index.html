@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=387">
+    <link rel="stylesheet" href="css/styles.css?v=388">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -1511,25 +1511,27 @@
             <!-- Drawing tool toolbar -->
             <div class="fp-toolbar">
                 <button class="fp-tool-btn active" id="fpToolSelect" data-tool="select">▷ Select</button>
-                <button class="fp-tool-btn" id="fpToolRoom" data-tool="room">⬜ Room</button>
-                <button class="fp-tool-btn fp-type-toggle" id="fpToolTypeMode" title="Type room dimensions as numbers">📐 Type</button>
-                <button class="fp-tool-btn" id="fpToolDoor" data-tool="door">🚪 Door</button>
-                <button class="fp-tool-btn" id="fpToolWindow" data-tool="window">🪟 Window</button>
-                <span class="fp-tool-sep"></span>
+                <!-- Structural tools — hidden when electrical mode is ON -->
+                <button class="fp-tool-btn fp-structural-tool" id="fpToolRoom" data-tool="room">⬜ Room</button>
+                <button class="fp-tool-btn fp-type-toggle fp-structural-tool" id="fpToolTypeMode" title="Type room dimensions as numbers">📐 Type</button>
+                <button class="fp-tool-btn fp-structural-tool" id="fpToolDoor" data-tool="door">🚪 Door</button>
+                <button class="fp-tool-btn fp-structural-tool" id="fpToolWindow" data-tool="window">🪟 Window</button>
+                <span class="fp-tool-sep fp-structural-tool"></span>
                 <button class="fp-tool-btn fp-tool-electrical" id="fpToolWallPlate" data-tool="wallplate">🔌 Plate</button>
-                <button class="fp-tool-btn fp-tool-plumbing" id="fpToolPlumbing" data-tool="plumbing">🚿 Plumbing</button>
+                <button class="fp-tool-btn fp-tool-plumbing fp-structural-tool" id="fpToolPlumbing" data-tool="plumbing">🚿 Plumbing</button>
                 <button class="fp-tool-btn fp-tool-ceiling" id="fpToolCeiling" data-tool="ceiling">🔆 Ceiling</button>
                 <button class="fp-tool-btn fp-tool-electrical" id="fpToolRecessed" data-tool="recessed">◎ Recessed</button>
                 <span class="fp-tool-sep"></span>
-                <!-- Electrical mode toggle + Dim fade checkbox -->
-                <button class="btn btn-secondary btn-small fp-type-toggle" id="fpElecModeBtn" title="Toggle electrical overlay mode">⚡ Elec</button>
-                <span id="fpElecDimWrap" style="display:none;align-items:center;gap:3px;font-size:0.82em">
-                    <input type="checkbox" id="fpElecDimCheck" checked> Dim
-                </span>
-                <span class="fp-tool-sep"></span>
-                <button id="fpEditRoomBtn" class="btn btn-secondary btn-small" style="display:none">Edit Room</button>
-                <button id="fpEditTargetsBtn" class="btn btn-secondary btn-small" style="display:none">Edit Targets</button>
-                <button id="fpDeleteRoomBtn" class="btn btn-danger btn-small" style="display:none">Remove</button>
+                <!-- Electrical controls group — gets a visible box when electrical mode is ON -->
+                <div id="fpElecGroup" class="fp-elec-group">
+                    <button class="btn btn-small fp-elec-toggle-btn" id="fpElecModeBtn" title="Toggle electrical overlay mode">⚡ Elec</button>
+                    <span id="fpElecDimWrap" style="display:none;align-items:center;gap:3px;font-size:0.82em">
+                        <input type="checkbox" id="fpElecDimCheck" checked> Dim
+                    </span>
+                    <button id="fpEditRoomBtn" class="btn btn-secondary btn-small" style="display:none">Edit Room</button>
+                    <button id="fpEditTargetsBtn" class="btn btn-secondary btn-small" style="display:none">Edit Targets</button>
+                    <button id="fpDeleteRoomBtn" class="btn btn-danger btn-small" style="display:none">Remove</button>
+                </div>
             </div>
 
             <!-- Live drawing coordinates display (shown while drawing a room) -->
@@ -7618,7 +7620,7 @@
     <script src="js/gps.js?v=350"></script>
     <script src="js/settings.js?v=350"></script>
     <script src="js/house.js?v=362"></script>
-    <script src="js/floorplan.js?v=378"></script>
+    <script src="js/floorplan.js?v=379"></script>
     <script src="js/search.js?v=350"></script>
     <script src="js/activityreport.js?v=350"></script>
     <script src="js/checklists.js?v=350"></script>

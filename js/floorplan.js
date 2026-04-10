@@ -5362,6 +5362,25 @@ function fpUpdatePropsBar() {
     });
     bar.appendChild(editBtn);
 
+    // Rotate button — fixtures only (toilet/sink/tub), cycles orientation 0→1→2→3→0
+    if (type === 'fixture') {
+        var fix = (fpPlan.fixtures || []).find(function(f) { return f.id === fpSelectedId; });
+        if (fix) {
+            var orientLabels = ['↑ Up', '→ Right', '↓ Down', '← Left'];
+            var rotBtn = document.createElement('button');
+            rotBtn.className   = 'btn btn-secondary btn-small';
+            rotBtn.textContent = '⟳ ' + (orientLabels[fix.orientation || 0] || 'Up');
+            rotBtn.title = 'Click to rotate 90°';
+            rotBtn.addEventListener('click', function() {
+                fix.orientation = ((fix.orientation || 0) + 1) % 4;
+                fpDirty = true;
+                fpSilentSave();
+                fpRender();   // re-renders symbol and rebuilds props bar with updated label
+            });
+            bar.appendChild(rotBtn);
+        }
+    }
+
     // Edit Targets button — wall plates in electrical mode only, not while already editing
     if (type === 'wallplate' && fpActiveMode === 'electrical' && !fpTargetEditMode) {
         var targBtn = document.createElement('button');

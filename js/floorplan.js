@@ -2127,7 +2127,8 @@ function fpOpenDoorEditModal(door) {
     document.getElementById('fpDoorFrameInput').value  = fpFmtFeetIn(door.width || 3);
     document.getElementById('fpDoorInseamInput').value = fpFmtFeetIn(door.inseamWidth || Math.max((door.width || 3) - 2/12, 0.5));
     var swing = (door.swingInward ? 'inward' : 'outward') + '-' + (door.swingLeft ? 'left' : 'right');
-    document.getElementById('fpDoorSwingSelect').value = swing;
+    document.getElementById('fpDoorSwingSelect').value   = swing;
+    document.getElementById('fpDoorSubtypeSelect').value = door.subtype || 'single';
 
     // Position-from-wall section
     var posSection = document.getElementById('fpDoorPositionSection');
@@ -2447,8 +2448,8 @@ function fpPlaceFixtureInRoom(e, room, fixtureType) {
     fpSelectedId   = fix.id;
     fpSelectedType = 'fixture';
     fpSilentSave();
-    fpRender();
-    fpSetStatus(fix.name + ' placed. Use Select tool to move or edit.');
+    fpSetTool('select');   // switches tool, re-renders, shows Row 3 props bar
+    fpSetStatus(fix.name + ' placed. Drag to reposition or click Edit Marker to configure.');
 }
 
 /**
@@ -2477,8 +2478,8 @@ function fpPlacePlumbingEndpointInRoom(e, room, tool) {
     fpSelectedId   = ep.id;
     fpSelectedType = 'plumbingEndpoint';
     fpSilentSave();
-    fpRender();
-    fpSetStatus(ep.name + ' placed. Use Select tool to move or edit.');
+    fpSetTool('select');   // switches tool, re-renders, shows Row 3 props bar
+    fpSetStatus(ep.name + ' placed. Drag to reposition or click Edit Marker to configure.');
 }
 
 // ============================================================
@@ -2528,6 +2529,7 @@ document.getElementById('fpDoorSaveBtn').addEventListener('click', function() {
             existing.inseamWidth = inseamVal;
             existing.swingInward = swing.startsWith('inward');
             existing.swingLeft   = swing.endsWith('left');
+            existing.subtype     = document.getElementById('fpDoorSubtypeSelect').value || 'single';
             // Apply position-from-wall if the user typed a value
             var posRaw = fpParseFeetIn(document.getElementById('fpDoorPosInput').value);
             if (!isNaN(posRaw) && posRaw >= 0) {
@@ -2550,7 +2552,7 @@ document.getElementById('fpDoorSaveBtn').addEventListener('click', function() {
             inseamWidth:  inseamVal,
             swingInward:  swing.startsWith('inward'),
             swingLeft:    swing.endsWith('left'),
-            subtype:      'single',
+            subtype:      document.getElementById('fpDoorSubtypeSelect').value || 'single',
             name:         fpAutoName(fpPlan.doors, 'Door')
         };
         if (!fpPlan.doors) fpPlan.doors = [];
@@ -4122,7 +4124,9 @@ function fpOpenCeilingModal(editId, data) {
 
     var title = editId ? 'Edit Ceiling Fixture' : 'Add Ceiling Fixture';
     document.getElementById('fpCeilingModalTitle').textContent = title;
-    document.getElementById('fpCeilingCategorySelect').value   = data.category || 'ceiling-fan';
+    // Use subtype if present; otherwise map old category value for backward compat
+    var ceilSubtype = data.subtype || (data.category === 'ceiling-fan' ? 'fan' : (data.category === 'ceiling-light' ? 'generic' : 'generic'));
+    document.getElementById('fpCeilingCategorySelect').value   = ceilSubtype;
     document.getElementById('fpCeilingNewName').value          = '';
 
     // Populate breaker dropdown (async)
@@ -4198,7 +4202,7 @@ document.getElementById('fpCeilingSaveBtn').addEventListener('click', function()
     var firestoreRoomId = modal.dataset.firestoreRoomId;
     var x               = parseFloat(modal.dataset.x);
     var y               = parseFloat(modal.dataset.y);
-    var category        = document.getElementById('fpCeilingCategorySelect').value;
+    var category        = document.getElementById('fpCeilingCategorySelect').value;  // now holds subtype value
     var select          = document.getElementById('fpCeilingThingSelect');
     var newName         = document.getElementById('fpCeilingNewName').value.trim();
 
@@ -4222,6 +4226,7 @@ document.getElementById('fpCeilingSaveBtn').addEventListener('click', function()
                 cf.thingId   = thingId;
                 cf.label     = label;
                 cf.category  = cat;
+                cf.subtype   = cat;   // select value is the subtype directly
                 cf.breakerId = bkrId;
                 cf.panelId   = panelId;
             }
@@ -4233,8 +4238,8 @@ document.getElementById('fpCeilingSaveBtn').addEventListener('click', function()
                 roomId:    roomId,
                 thingId:   thingId,
                 label:     label,
-                category:  cat,
-                subtype:   (cat === 'ceiling-fan') ? 'fan' : 'generic',
+                category:  cat,   // kept for backward compat with Thing records
+                subtype:   cat,   // select value is now the subtype directly
                 breakerId: bkrId,
                 panelId:   panelId,
                 x:         x,

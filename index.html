@@ -4031,6 +4031,15 @@
                     <option value="outward-right">Outward — Right hinge</option>
                 </select>
             </div>
+            <div class="form-group">
+                <label for="fpDoorSubtypeSelect">Door type</label>
+                <select id="fpDoorSubtypeSelect">
+                    <option value="single">Single swing</option>
+                    <option value="french">French (double swing)</option>
+                    <option value="sliding">Sliding</option>
+                    <option value="pocket">Pocket</option>
+                </select>
+            </div>
             <!-- Position from wall — only shown when editing an existing door -->
             <div class="form-group" id="fpDoorPositionSection" style="display:none;">
                 <label>Position on wall</label>
@@ -4276,8 +4285,12 @@
             <div class="form-group">
                 <label for="fpCeilingCategorySelect">Fixture type</label>
                 <select id="fpCeilingCategorySelect">
-                    <option value="ceiling-fan">Ceiling Fan</option>
-                    <option value="ceiling-light">Ceiling Light</option>
+                    <option value="fan">Ceiling Fan</option>
+                    <option value="fan-light">Fan with Light</option>
+                    <option value="flush-mount">Flush Mount Light</option>
+                    <option value="drop-light">Drop / Pendant Light</option>
+                    <option value="chandelier">Chandelier</option>
+                    <option value="generic">Generic Light</option>
                 </select>
             </div>
             <div class="form-group">
@@ -4418,7 +4431,7 @@
     </div>
 
     <!-- Fixture Edit Modal (Phase 2) -->
-    <div id="fpFixtureModal" class="modal-overlay" style="display:none">
+    <div id="fpFixtureModal" class="modal-overlay">
         <div class="modal" style="max-width:380px">
             <h3>Edit Fixture</h3>
             <div class="form-group">
@@ -4446,7 +4459,7 @@
     </div>
 
     <!-- Plumbing Endpoint Edit Modal (Phase 2) -->
-    <div id="fpPlumbingEndpointModal" class="modal-overlay" style="display:none">
+    <div id="fpPlumbingEndpointModal" class="modal-overlay">
         <div class="modal" style="max-width:380px">
             <h3>Edit Plumbing Endpoint</h3>
             <div class="form-group">
@@ -7694,7 +7707,7 @@
     <script src="js/gps.js?v=350"></script>
     <script src="js/settings.js?v=350"></script>
     <script src="js/house.js?v=362"></script>
-    <script src="js/floorplan.js?v=381"></script>
+    <script src="js/floorplan.js?v=382"></script>
     <script src="js/search.js?v=350"></script>
     <script src="js/activityreport.js?v=350"></script>
     <script src="js/checklists.js?v=350"></script>

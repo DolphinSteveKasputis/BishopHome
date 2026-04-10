@@ -35,7 +35,13 @@ var fpPreviewPoint = null;   // {x,y} — live cursor position (snapped, constra
 
 // Selection state
 var fpSelectedId   = null;   // ID of selected room shape or marker
-var fpSelectedType = 'room'; // 'room' | 'outlet' | 'switch' | 'plumbing'
+var fpSelectedType = 'room'; // 'room' | 'outlet' | 'switch' | 'plumbing' | 'ceiling' | 'recessedLight' | 'door' | 'window' | 'wallplate'
+
+// Electrical mode state
+var fpElectricalMode = false;  // true = electrical overlay active
+var fpElecFade       = true;   // true = dim structural elements in electrical mode
+var fpTargetEditMode = false;  // true = clicking fixtures toggles wall plate targets
+var fpTargetEditPlateId = null; // wall plate ID being edited in target mode
 
 // Computed display scale
 var fpPixPerFoot   = 20;
@@ -78,7 +84,7 @@ function loadFloorPlanPage(floorId) {
     fpTypeAnchor   = null;
 
     // Initialize plan to empty so fpRender() doesn't crash before the Firestore load completes
-    fpPlan = { rooms: [], doors: [], windows: [], outlets: [], switches: [], plumbing: [], ceilingFixtures: [] };
+    fpPlan = { rooms: [], doors: [], windows: [], outlets: [], switches: [], plumbing: [], ceilingFixtures: [], recessedLights: [], wallPlates: [] };
 
     // Reset toolbar to select
     fpSetTool('select');
@@ -150,9 +156,11 @@ function loadFloorPlanPage(floorId) {
                 if (!fpPlan.switches)         fpPlan.switches         = [];
                 if (!fpPlan.plumbing)         fpPlan.plumbing         = [];
                 if (!fpPlan.ceilingFixtures)  fpPlan.ceilingFixtures  = [];
+                if (!fpPlan.recessedLights)   fpPlan.recessedLights   = [];
+                if (!fpPlan.wallPlates)       fpPlan.wallPlates       = [];
             } else {
                 // First time — show dimensions dialog, init with defaults
-                fpPlan = { widthFt: 40, heightFt: 30, rooms: [], doors: [], windows: [], outlets: [], switches: [], plumbing: [], ceilingFixtures: [] };
+                fpPlan = { widthFt: 40, heightFt: 30, rooms: [], doors: [], windows: [], outlets: [], switches: [], plumbing: [], ceilingFixtures: [], recessedLights: [], wallPlates: [] };
                 document.getElementById('fpWidthInput').value  = 40;
                 document.getElementById('fpHeightInput').value = 30;
                 openModal('fpDimensionsModal');
@@ -290,22 +298,68 @@ function fpRender() {
         fpRenderGrid(svg);
     }
 
+    // ---- Electrical mode: compute 3-way flags on wall plates ----
+    // Build a map of fixtureId → [plateIds that target it]; plates targeted by 2+ get _threeway
+    (function() {
+        var targetMap = {};
+        (fpPlan.wallPlates || []).forEach(function(p) {
+            p._threeway = false; // reset
+            (p.targetIds || []).forEach(function(tid) {
+                if (!targetMap[tid]) targetMap[tid] = [];
+                targetMap[tid].push(p.id);
+            });
+        });
+        Object.keys(targetMap).forEach(function(tid) {
+            if (targetMap[tid].length >= 2) {
+                targetMap[tid].forEach(function(pid) {
+                    var p = (fpPlan.wallPlates || []).find(function(x) { return x.id === pid; });
+                    if (p) p._threeway = true;
+                });
+            }
+        });
+    }());
+
+    // ---- Structural group (may be faded in electrical mode) ----
+    var structG = fpSvgG(svg, 'fp-structural');
+    if (fpElectricalMode && fpElecFade) {
+        structG.setAttribute('opacity', '0.25');
+    }
+
     // Room shapes (drawn polygons)
-    (fpPlan.rooms || []).forEach(function(room) { fpRenderRoom(svg, room); });
+    (fpPlan.rooms || []).forEach(function(room) { fpRenderRoom(structG, room); });
 
     // Doors
-    (fpPlan.doors || []).forEach(function(door) { fpRenderDoor(svg, door); });
+    (fpPlan.doors || []).forEach(function(door) { fpRenderDoor(structG, door); });
 
     // Windows
-    (fpPlan.windows || []).forEach(function(win) { fpRenderWindow(svg, win); });
+    (fpPlan.windows || []).forEach(function(win) { fpRenderWindow(structG, win); });
 
-    // Electrical & Plumbing markers (Phase H9)
+    // Plumbing
+    (fpPlan.plumbing || []).forEach(function(m) { fpRenderPlumbing(structG, m); });
+
+    // ---- Electrical markers (always full opacity) ----
+    // Legacy outlet/switch (renders empty arrays harmlessly)
     (fpPlan.outlets  || []).forEach(function(m) { fpRenderOutlet(svg, m); });
     (fpPlan.switches || []).forEach(function(m) { fpRenderSwitch(svg, m); });
-    (fpPlan.plumbing || []).forEach(function(m) { fpRenderPlumbing(svg, m); });
 
     // Ceiling fixtures (Phase H10)
     (fpPlan.ceilingFixtures || []).forEach(function(m) { fpRenderCeilingFixture(svg, m); });
+
+    // Recessed lights (Phase H-Elec)
+    (fpPlan.recessedLights || []).forEach(function(m) { fpRenderRecessedLight(svg, m); });
+
+    // Wall plates (Phase H-Elec)
+    (fpPlan.wallPlates || []).forEach(function(m) { fpRenderWallPlate(svg, m); });
+
+    // ---- Wiring lines (electrical mode + a wall plate is selected) ----
+    if (fpElectricalMode && fpSelectedType === 'wallplate' && fpSelectedId) {
+        fpRenderWiringLines(svg);
+    }
+
+    // ---- Target edit mode overlay ----
+    if (fpTargetEditMode) {
+        fpRenderTargetEditOverlay(svg);
+    }
 
     // In-progress drawing preview
     if (fpDrawing && fpDrawPoints.length > 0) {
@@ -324,6 +378,14 @@ function fpRender() {
     if (showSel) {
         document.getElementById('fpEditRoomBtn').textContent =
             fpSelectedType === 'room' ? 'Edit Room' : 'Edit Marker';
+    }
+
+    // Show "Edit Targets" button when a wall plate is selected in electrical mode
+    var editTargetsBtn = document.getElementById('fpEditTargetsBtn');
+    if (editTargetsBtn) {
+        var showTargets = showSel && fpSelectedType === 'wallplate' && fpElectricalMode;
+        editTargetsBtn.style.display = showTargets ? '' : 'none';
+        editTargetsBtn.textContent   = fpTargetEditMode ? 'Done' : 'Edit Targets';
     }
 }
 
@@ -428,6 +490,10 @@ function fpRenderRoom(svg, room) {
             fpPlacePlumbingInRoom(e, room);
         } else if (fpActiveTool === 'ceiling') {
             fpPlaceCeilingFixtureInRoom(e, room);
+        } else if (fpActiveTool === 'recessed') {
+            fpPlaceRecessedLightInRoom(e, room);
+        } else if (fpActiveTool === 'wallplate') {
+            fpPlaceMarkerOnWall(e, room, 'wallplate');
         }
     });
 
@@ -1740,6 +1806,8 @@ function fpDeleteSelected() {
         fpPlan.switches         = (fpPlan.switches         || []).filter(function(m) { return m.roomId !== fpSelectedId; });
         fpPlan.plumbing         = (fpPlan.plumbing         || []).filter(function(m) { return m.roomId !== fpSelectedId; });
         fpPlan.ceilingFixtures  = (fpPlan.ceilingFixtures  || []).filter(function(m) { return m.roomId !== fpSelectedId; });
+        fpPlan.recessedLights   = (fpPlan.recessedLights   || []).filter(function(m) { return m.roomId !== fpSelectedId; });
+        fpPlan.wallPlates       = (fpPlan.wallPlates       || []).filter(function(m) { return m.roomId !== fpSelectedId; });
         fpSetStatus('Room removed from floor plan.');
     } else if (fpSelectedType === 'outlet') {
         if (!confirm('Delete this outlet marker?')) return;
@@ -1765,6 +1833,25 @@ function fpDeleteSelected() {
         if (!confirm('Remove this ceiling fixture from the floor plan?\n(The Thing record is NOT deleted.)')) return;
         fpPlan.ceilingFixtures = (fpPlan.ceilingFixtures || []).filter(function(m) { return m.id !== fpSelectedId; });
         fpSetStatus('Ceiling fixture removed from floor plan.');
+    } else if (fpSelectedType === 'recessedLight') {
+        if (!confirm('Delete this recessed light?')) return;
+        fpPlan.recessedLights = (fpPlan.recessedLights || []).filter(function(m) { return m.id !== fpSelectedId; });
+        fpDirty = true;
+        fpSelectedId = null;
+        fpSelectedType = 'room';
+        fpSilentSave();
+        fpRender();
+        return;
+    } else if (fpSelectedType === 'wallplate') {
+        if (!confirm('Delete this wall plate?')) return;
+        fpPlan.wallPlates = (fpPlan.wallPlates || []).filter(function(m) { return m.id !== fpSelectedId; });
+        fpDirty = true;
+        fpSelectedId = null;
+        fpSelectedType = 'room';
+        fpSilentSave();
+        fpRender();
+        fpSetStatus('Wall plate deleted.');
+        return;
     }
 
     fpSelectedId = null;
@@ -1834,6 +1921,8 @@ function fpPlaceMarkerOnWall(e, room, markerType) {
         fpOpenOutletModal(null, { roomId: room.id, segmentIndex: bestSeg, position: bestT });
     } else if (markerType === 'switch') {
         fpOpenSwitchModal(null, { roomId: room.id, segmentIndex: bestSeg, position: bestT });
+    } else if (markerType === 'wallplate') {
+        fpOpenWallPlateModal(null, { roomId: room.id, segmentIndex: bestSeg, position: bestT });
     }
 }
 
@@ -2068,7 +2157,7 @@ document.getElementById('fpDimensionsCancelBtn').addEventListener('click', funct
 // TOOL SELECTION
 // ============================================================
 
-var FP_ALL_TOOLS = ['fpToolSelect','fpToolRoom','fpToolDoor','fpToolWindow','fpToolOutlet','fpToolSwitch','fpToolPlumbing','fpToolCeiling'];
+var FP_ALL_TOOLS = ['fpToolSelect','fpToolRoom','fpToolDoor','fpToolWindow','fpToolWallPlate','fpToolPlumbing','fpToolCeiling','fpToolRecessed'];
 
 FP_ALL_TOOLS.forEach(function(id) {
     var btn = document.getElementById(id);
@@ -2141,10 +2230,10 @@ function fpSetTool(tool) {
         room:     'Click to place corners.  Segments auto-snap to horizontal/vertical.  Double-click to finish.',
         door:     'Click on any wall edge to place a door.',
         window:   'Click on any wall edge to place a window.',
-        outlet:   'Click on any wall edge to place an outlet.',
-        switch:   'Click on any wall edge to place a switch.',
+        wallplate: 'Click on any wall edge to place a wall plate (outlets and switches).',
         plumbing: 'Click inside a room to place a plumbing fixture (toilet, sink, etc.).',
-        ceiling:  'Click inside a room to place a ceiling fixture (fan or light), linked to a Thing record.'
+        ceiling:  'Click inside a room to place a ceiling fixture (fan or light), linked to a Thing record.',
+        recessed: 'Click inside a room to place a recessed light.'
     };
     fpSetStatus(hints[tool] || '');
     fpRender();
@@ -2191,6 +2280,8 @@ function fpSilentSave() {
         switches:        fpPlan.switches         || [],
         plumbing:        fpPlan.plumbing         || [],
         ceilingFixtures: fpPlan.ceilingFixtures  || [],
+        recessedLights:  fpPlan.recessedLights   || [],
+        wallPlates:      fpPlan.wallPlates       || [],
         updatedAt:       firebase.firestore.FieldValue.serverTimestamp()
     })
     .then(function() { fpDirty = false; })
@@ -2213,6 +2304,8 @@ function fpSave() {
         switches:         fpPlan.switches         || [],
         plumbing:         fpPlan.plumbing         || [],
         ceilingFixtures:  fpPlan.ceilingFixtures  || [],
+        recessedLights:   fpPlan.recessedLights   || [],
+        wallPlates:       fpPlan.wallPlates       || [],
         updatedAt:        firebase.firestore.FieldValue.serverTimestamp()
     })
     .then(function() {
@@ -2804,6 +2897,10 @@ function fpOpenMarkerEditModal(type, id) {
         var cf = (fpPlan.ceilingFixtures || []).find(function(m) { return m.id === id; });
         if (!cf) return;
         fpOpenCeilingModal(id, cf);
+    } else if (type === 'recessedLight') {
+        var rl = (fpPlan.recessedLights || []).find(function(m) { return m.id === id; });
+        if (!rl) return;
+        fpOpenRecessedModal(id, rl);
     } else if (type === 'door') {
         var d = (fpPlan.doors || []).find(function(m) { return m.id === id; });
         if (!d) return;
@@ -2812,6 +2909,10 @@ function fpOpenMarkerEditModal(type, id) {
         var w = (fpPlan.windows || []).find(function(m) { return m.id === id; });
         if (!w) return;
         fpOpenWindowEditModal(w);
+    } else if (type === 'wallplate') {
+        var wp = (fpPlan.wallPlates || []).find(function(m) { return m.id === id; });
+        if (!wp) return;
+        fpOpenWallPlateModal(id, wp);
     }
 }
 
@@ -3502,6 +3603,834 @@ document.getElementById('fpCeilingAddProblemBtn').addEventListener('click', func
         });
     }
 });
+
+// ============================================================
+// PHASE H-ELEC: RECESSED LIGHTS
+// ============================================================
+
+/**
+ * Draw a recessed light symbol on the SVG ceiling plane.
+ * Two concentric circles: outer white, inner light grey.
+ */
+function fpRenderRecessedLight(svg, light) {
+    var cx = fp2px(light.x);
+    var cy = fp2px(light.y);
+    var isSelected = (fpSelectedId === light.id && fpSelectedType === 'recessedLight');
+
+    var outerStroke = isSelected ? '#cc8800' : '#334155';
+    var outerFill   = isSelected ? '#fffacc' : '#ffffff';
+    var strokeW     = isSelected ? 2.5 : 1.5;
+
+    var g = fpSvgG(svg, 'fp-recessed-light');
+    g.style.cursor = 'move';
+
+    // Outer circle
+    fpSvgEl(g, 'circle', {
+        cx: cx, cy: cy, r: 9,
+        fill: outerFill, stroke: outerStroke, 'stroke-width': strokeW,
+        'pointer-events': 'none'
+    });
+
+    // Inner circle (the recessed look)
+    fpSvgEl(g, 'circle', {
+        cx: cx, cy: cy, r: 5,
+        fill: '#d1d5db', stroke: outerStroke, 'stroke-width': 0.75,
+        'pointer-events': 'none'
+    });
+
+    // Label below (if set)
+    if (light.label) {
+        fpSvgEl(g, 'text', {
+            x: cx, y: cy + 18,
+            'text-anchor': 'middle', 'font-size': 7,
+            fill: '#555', 'pointer-events': 'none'
+        }).textContent = light.label;
+    }
+
+    // Transparent hit circle for interaction
+    var hit = fpSvgEl(g, 'circle', {
+        cx: cx, cy: cy, r: 14,
+        fill: 'transparent', stroke: 'transparent'
+    });
+    fpMakeDraggableRecessedLight(hit, light);
+}
+
+/**
+ * Makes a recessed light draggable anywhere on the plan.
+ * Tap = select; drag = reposition. Silent-saves on drag up.
+ */
+function fpMakeDraggableRecessedLight(el, light) {
+    el.style.cursor = 'move';
+    el.addEventListener('mousedown', function(eDown) {
+        if (fpActiveTool !== 'select') return;
+        eDown.preventDefault();
+        eDown.stopPropagation();
+
+        var startPt  = fpMouseToFeet(eDown);
+        var startX   = light.x, startY = light.y;
+        var dragged  = false;
+
+        function onMove(e) {
+            var cur = fpMouseToFeet(e);
+            dragged = true;
+            light.x = fpSnap(Math.max(0, Math.min(fpPlan.widthFt,  startX + cur.x - startPt.x)));
+            light.y = fpSnap(Math.max(0, Math.min(fpPlan.heightFt, startY + cur.y - startPt.y)));
+            fpDirty = true;
+            fpRender();
+        }
+
+        function onUp() {
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup',  onUp);
+            if (dragged) fpSilentSave();
+            else fpSelectMarker('recessedLight', light.id);
+        }
+
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup',   onUp);
+    });
+}
+
+/**
+ * Place a recessed light on click inside a room — no modal, immediate drop.
+ */
+function fpPlaceRecessedLightInRoom(e, room) {
+    var pt = fpMouseToFeet(e);
+
+    if (!fpPointInPolygon(pt, room.points)) {
+        fpSetStatus('Click inside a room to place a recessed light.');
+        return;
+    }
+
+    var light = {
+        id:     fpGenId(),
+        roomId: room.id,
+        x:      pt.x,
+        y:      pt.y,
+        label:  '',
+        notes:  ''
+    };
+
+    if (!fpPlan.recessedLights) fpPlan.recessedLights = [];
+    fpPlan.recessedLights.push(light);
+    fpDirty = true;
+
+    // Auto-switch to select and pre-select the new light
+    fpSetTool('select');
+    fpSelectedId   = light.id;
+    fpSelectedType = 'recessedLight';
+    fpRender();
+    fpSilentSave();
+    fpSetStatus('Recessed light placed — drag to reposition or use Edit Marker to add details.');
+}
+
+/**
+ * Open the recessed light edit modal.
+ */
+function fpOpenRecessedModal(editId, data) {
+    var modal = document.getElementById('fpRecessedModal');
+    modal.dataset.editId = editId || '';
+
+    document.getElementById('fpRecessedModalTitle').textContent = editId ? 'Edit Recessed Light' : 'Recessed Light';
+    document.getElementById('fpRecessedLabelInput').value = data.label || '';
+    document.getElementById('fpRecessedNotesInput').value = data.notes || '';
+
+    if (editId) {
+        document.getElementById('fpRecessedFactsSection').style.display    = '';
+        document.getElementById('fpRecessedProblemsSection').style.display = '';
+        document.getElementById('fpRecessedActivitiesSection').style.display = '';
+        loadFacts('recessedLight', editId, 'fpRecessedFactsList');
+        loadProblems('recessedLight', editId, 'fpRecessedProblemsContainer', 'fpRecessedProblemsEmptyState');
+        loadActivities('recessedLight', editId, 'fpRecessedActivitiesContainer', 'fpRecessedActivitiesEmptyState');
+        document.getElementById('fpRecessedDeleteBtn').style.display = '';
+    } else {
+        document.getElementById('fpRecessedFactsSection').style.display    = 'none';
+        document.getElementById('fpRecessedProblemsSection').style.display = 'none';
+        document.getElementById('fpRecessedActivitiesSection').style.display = 'none';
+        document.getElementById('fpRecessedDeleteBtn').style.display = 'none';
+    }
+
+    openModal('fpRecessedModal');
+}
+
+document.getElementById('fpRecessedSaveBtn').addEventListener('click', function() {
+    var modal  = document.getElementById('fpRecessedModal');
+    var editId = modal.dataset.editId;
+    var label  = document.getElementById('fpRecessedLabelInput').value.trim();
+    var notes  = document.getElementById('fpRecessedNotesInput').value.trim();
+
+    if (editId) {
+        var light = (fpPlan.recessedLights || []).find(function(m) { return m.id === editId; });
+        if (light) { light.label = label; light.notes = notes; }
+    } else {
+        // Should not normally reach here (placement is instant), but handle gracefully
+        return;
+    }
+
+    fpDirty = true;
+    fpSilentSave();
+    closeModal('fpRecessedModal');
+    fpRender();
+    fpSetStatus('Recessed light updated.');
+});
+
+document.getElementById('fpRecessedCancelBtn').addEventListener('click', function() {
+    closeModal('fpRecessedModal');
+});
+
+document.getElementById('fpRecessedDeleteBtn').addEventListener('click', function() {
+    var modal  = document.getElementById('fpRecessedModal');
+    var editId = modal.dataset.editId;
+    if (!editId) return;
+    if (!confirm('Delete this recessed light?')) return;
+    fpPlan.recessedLights = (fpPlan.recessedLights || []).filter(function(m) { return m.id !== editId; });
+    fpDirty       = true;
+    fpSelectedId  = null;
+    fpSelectedType = 'room';
+    fpSilentSave();
+    closeModal('fpRecessedModal');
+    fpRender();
+    fpSetStatus('Recessed light deleted.');
+});
+
+document.getElementById('fpRecessedAddFactBtn') && document.getElementById('fpRecessedAddFactBtn').addEventListener('click', function() {
+    var editId = document.getElementById('fpRecessedModal').dataset.editId;
+    if (!editId) return;
+    if (typeof openAddFactModal === 'function') {
+        openAddFactModal('recessedLight', editId, function() {
+            loadFacts('recessedLight', editId, 'fpRecessedFactsList');
+        });
+    }
+});
+
+document.getElementById('fpRecessedAddProblemBtn') && document.getElementById('fpRecessedAddProblemBtn').addEventListener('click', function() {
+    var editId = document.getElementById('fpRecessedModal').dataset.editId;
+    if (!editId) return;
+    if (typeof openAddProblemModal === 'function') {
+        openAddProblemModal('recessedLight', editId, function() {
+            loadProblems('recessedLight', editId, 'fpRecessedProblemsContainer', 'fpRecessedProblemsEmptyState');
+        });
+    }
+});
+
+document.getElementById('fpRecessedAddActivityBtn') && document.getElementById('fpRecessedAddActivityBtn').addEventListener('click', function() {
+    var editId = document.getElementById('fpRecessedModal').dataset.editId;
+    if (!editId) return;
+    if (typeof openActivityModal === 'function') {
+        openActivityModal('recessedLight', editId, function() {
+            loadActivities('recessedLight', editId, 'fpRecessedActivitiesContainer', 'fpRecessedActivitiesEmptyState');
+        });
+    }
+});
+
+// ============================================================
+// PHASE H-ELEC: WALL PLATES (unified outlets + switches)
+// ============================================================
+
+// Per-slot mini symbol labels
+var FP_PLATE_SYMBOLS = {
+    'switch/single-pole': 'S',
+    'switch/3-way':       '3S',
+    'switch/dimmer':      'D',
+    'switch/smart':       '⚡',
+    'outlet/standard':    '·',   // will be rendered as two dots specially
+    'outlet/gfci':        'GFI',
+    'outlet/220v':        '220',
+    'outlet/usb':         'USB'
+};
+
+/**
+ * Draw a wall plate symbol on the wall.
+ * Width scales with slot count; each slot has a mini symbol.
+ */
+function fpRenderWallPlate(svg, plate) {
+    var room = (fpPlan.rooms || []).find(function(r) { return r.id === plate.roomId; });
+    if (!room || !room.points) return;
+    var seg = fpGetSegment(room.points, plate.segmentIndex);
+    if (!seg) return;
+
+    var slots    = plate.slots || [{ type: 'switch', subtype: 'single-pole' }];
+    var slotW    = 14;
+    var padding  = 6;
+    var totalW   = slots.length * slotW + padding;
+    var totalH   = 22;
+    var hw       = totalW / 2;
+    var hh       = totalH / 2;
+
+    var info = fpWallMetrics(seg, plate.position, 0);
+    if (!info) return;
+
+    var cx = info.hinge.x;
+    var cy = info.hinge.y;
+    var isSelected = (fpSelectedId === plate.id && fpSelectedType === 'wallplate');
+
+    // Check 3-way detection flag (set at render time)
+    var isThreeWay = plate._threeway || false;
+
+    var g = fpSvgG(svg, 'fp-wall-plate');
+
+    // Outer rectangle
+    fpSvgEl(g, 'rect', {
+        x: cx - hw, y: cy - hh,
+        width: totalW, height: totalH,
+        fill:   isSelected ? '#fffacc' : '#ffffff',
+        stroke: isSelected ? '#cc8800' : '#334155',
+        'stroke-width': isSelected ? 2 : 1.5,
+        rx: 2, 'pointer-events': 'none'
+    });
+
+    // Per-slot symbols + dividers
+    slots.forEach(function(slot, i) {
+        var slotCx = cx - hw + padding / 2 + i * slotW + slotW / 2;
+
+        // Divider line between slots
+        if (i > 0) {
+            fpSvgEl(g, 'line', {
+                x1: cx - hw + padding / 2 + i * slotW,
+                y1: cy - hh + 2,
+                x2: cx - hw + padding / 2 + i * slotW,
+                y2: cy + hh - 2,
+                stroke: '#ccc', 'stroke-width': 1, 'pointer-events': 'none'
+            });
+        }
+
+        var key    = (slot.type || 'switch') + '/' + (slot.subtype || 'single-pole');
+        var symbol = FP_PLATE_SYMBOLS[key] || 'S';
+
+        if (slot.type === 'outlet' && slot.subtype === 'standard') {
+            // Standard outlet: two small dots
+            fpSvgEl(g, 'circle', { cx: slotCx - 2, cy: cy, r: 1.5, fill: '#334155', 'pointer-events': 'none' });
+            fpSvgEl(g, 'circle', { cx: slotCx + 2, cy: cy, r: 1.5, fill: '#334155', 'pointer-events': 'none' });
+        } else {
+            var stxt = fpSvgEl(g, 'text', {
+                x: slotCx, y: cy + 1,
+                'text-anchor': 'middle', 'dominant-baseline': 'middle',
+                'font-size': slot.subtype === 'gfci' || slot.subtype === '220v' || slot.subtype === 'usb' ? 6 : 8,
+                'font-weight': slot.type === 'switch' ? 'bold' : 'normal',
+                fill: slot.type === 'switch' ? '#1e293b' : '#0044aa',
+                'pointer-events': 'none'
+            });
+            stxt.textContent = symbol;
+        }
+    });
+
+    // 3-way badge above plate
+    if (isThreeWay) {
+        var badge = fpSvgEl(g, 'text', {
+            x: cx, y: cy - hh - 3,
+            'text-anchor': 'middle', 'font-size': 6,
+            fill: '#7c3aed', 'font-weight': 'bold',
+            'pointer-events': 'none'
+        });
+        badge.textContent = '3-way';
+    }
+
+    // Transparent hit area
+    var hit = fpSvgEl(g, 'rect', {
+        x: cx - hw - 4, y: cy - hh - 4,
+        width: totalW + 8, height: totalH + 8,
+        fill: 'transparent', stroke: 'transparent'
+    });
+    fpMakeDraggableWallPlate(hit, plate);
+}
+
+/**
+ * Makes a wall plate draggable along its wall segment.
+ * Tap = select; drag = slide. Silent-saves on drag up.
+ */
+function fpMakeDraggableWallPlate(el, plate) {
+    el.style.cursor = 'ew-resize';
+    el.addEventListener('mousedown', function(eDown) {
+        if (fpActiveTool !== 'select') return;
+        eDown.preventDefault();
+        eDown.stopPropagation();
+        var dragged = false;
+
+        function onMove(e) {
+            var room = (fpPlan.rooms || []).find(function(r) { return r.id === plate.roomId; });
+            if (!room) return;
+            var pt = fpMouseToFeet(e);
+            plate.position = fpProjectOntoWallSegment(pt.x, pt.y, room, plate.segmentIndex, 0);
+            fpDirty = true;
+            dragged = true;
+            fpRender();
+        }
+
+        function onUp() {
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup',  onUp);
+            if (dragged) fpSilentSave();
+            else fpSelectMarker('wallplate', plate.id);
+        }
+
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup',   onUp);
+    });
+}
+
+/**
+ * Open the wall plate add/edit modal.
+ * @param {string|null} editId  - existing plate ID, or null for add
+ * @param {object}      data    - existing plate data or {roomId, segmentIndex, position}
+ */
+function fpOpenWallPlateModal(editId, data) {
+    var modal = document.getElementById('fpWallPlateModal');
+    modal.dataset.editId      = editId || '';
+    modal.dataset.roomId      = data.roomId      || '';
+    modal.dataset.segIndex    = data.segmentIndex != null ? data.segmentIndex : '';
+    modal.dataset.position    = data.position    != null ? data.position    : '';
+
+    document.getElementById('fpWallPlateModalTitle').textContent = editId ? 'Edit Wall Plate' : 'Add Wall Plate';
+    document.getElementById('fpWallPlateNotesInput').value = data.notes || '';
+
+    // Build slot rows
+    var slots = data.slots || [{ type: 'switch', subtype: 'single-pole', controls: '', breakerId: '', panelId: '' }];
+    fpWallPlateBuildSlots(slots);
+
+    // Position section (edit mode only)
+    if (editId) {
+        var room = (fpPlan.rooms || []).find(function(r) { return r.id === data.roomId; });
+        if (room) {
+            var seg    = fpGetSegment(room.points, data.segmentIndex);
+            var segLen = seg ? fpSegLength(seg) : 0;
+            var fromStart = data.position || 0;
+            var fromEnd   = segLen - fromStart;
+            document.getElementById('fpWallPlatePosFromStart').textContent = fpFmtFeetIn(fromStart);
+            document.getElementById('fpWallPlatePosFromEnd').textContent   = fpFmtFeetIn(fromEnd);
+            document.getElementById('fpWallPlatePosInput').value           = fpFmtFeetIn(fromStart);
+            document.getElementById('fpWallPlatePosRef').value             = 'start';
+            modal.dataset.segLen = segLen.toFixed(4);
+        }
+        document.getElementById('fpWallPlatePositionSection').style.display = '';
+        document.getElementById('fpWallPlateProblemsSection').style.display = '';
+        document.getElementById('fpWallPlateDeleteBtn').style.display       = '';
+        loadProblems('wallplate', editId, 'fpWallPlateProblemsContainer', 'fpWallPlateProblemsEmptyState');
+    } else {
+        document.getElementById('fpWallPlatePositionSection').style.display = 'none';
+        document.getElementById('fpWallPlateProblemsSection').style.display = 'none';
+        document.getElementById('fpWallPlateDeleteBtn').style.display       = 'none';
+    }
+
+    // Load breaker options for all slots (async)
+    fpWallPlateLoadBreakers();
+
+    openModal('fpWallPlateModal');
+}
+
+/** Build the slot rows in the wall plate modal from a slots array */
+function fpWallPlateBuildSlots(slots) {
+    var container = document.getElementById('fpWallPlateSlots');
+    container.innerHTML = '';
+    slots.forEach(function(slot, i) {
+        fpWallPlateAddSlotRow(slot, i);
+    });
+    fpWallPlateUpdateAddBtn();
+}
+
+/** Add one slot row to the slots container */
+function fpWallPlateAddSlotRow(slot, index) {
+    var container = document.getElementById('fpWallPlateSlots');
+    var row = document.createElement('div');
+    row.className = 'fp-plate-slot-row';
+    row.dataset.index = index;
+
+    var typeOptions = [
+        { v: 'switch', l: 'Switch' },
+        { v: 'outlet', l: 'Outlet' }
+    ];
+    var switchSubs = [
+        { v: 'single-pole', l: 'Single-pole' },
+        { v: '3-way',       l: '3-Way' },
+        { v: 'dimmer',      l: 'Dimmer' },
+        { v: 'smart',       l: 'Smart' }
+    ];
+    var outletSubs = [
+        { v: 'standard', l: 'Standard' },
+        { v: 'gfci',     l: 'GFCI' },
+        { v: '220v',     l: '220V' },
+        { v: 'usb',      l: 'USB' }
+    ];
+
+    function makeSelect(opts, val, cls) {
+        var sel = document.createElement('select');
+        sel.className = cls;
+        opts.forEach(function(o) {
+            var opt = document.createElement('option');
+            opt.value = o.v; opt.textContent = o.l;
+            if (o.v === val) opt.selected = true;
+            sel.appendChild(opt);
+        });
+        return sel;
+    }
+
+    var typeSel    = makeSelect(typeOptions, slot.type || 'switch', 'fp-slot-type');
+    var subSel     = makeSelect(slot.type === 'outlet' ? outletSubs : switchSubs,
+                                slot.subtype || (slot.type === 'outlet' ? 'standard' : 'single-pole'),
+                                'fp-slot-subtype');
+    var ctrlInput  = document.createElement('input');
+    ctrlInput.type = 'text'; ctrlInput.className = 'fp-slot-controls';
+    ctrlInput.placeholder = 'Controls (e.g. Ceiling fan)';
+    ctrlInput.value = slot.controls || '';
+
+    var bkrSel = document.createElement('select');
+    bkrSel.className = 'fp-slot-breaker';
+    bkrSel.innerHTML = '<option value="">— No breaker —</option>';
+
+    var removeBtn = document.createElement('button');
+    removeBtn.type = 'button'; removeBtn.textContent = '✕';
+    removeBtn.className = 'btn btn-danger btn-small fp-slot-remove';
+    removeBtn.addEventListener('click', function() {
+        row.remove();
+        fpWallPlateRenumberSlots();
+        fpWallPlateUpdateAddBtn();
+    });
+
+    // When type changes, rebuild subtype options
+    typeSel.addEventListener('change', function() {
+        var subs = typeSel.value === 'outlet' ? outletSubs : switchSubs;
+        subSel.innerHTML = '';
+        subs.forEach(function(o) {
+            var opt = document.createElement('option');
+            opt.value = o.v; opt.textContent = o.l;
+            subSel.appendChild(opt);
+        });
+    });
+
+    row.appendChild(typeSel);
+    row.appendChild(subSel);
+    row.appendChild(ctrlInput);
+    row.appendChild(bkrSel);
+    row.appendChild(removeBtn);
+    container.appendChild(row);
+}
+
+/** Renumber slot rows after one is removed */
+function fpWallPlateRenumberSlots() {
+    var rows = document.querySelectorAll('#fpWallPlateSlots .fp-plate-slot-row');
+    rows.forEach(function(row, i) { row.dataset.index = i; });
+}
+
+/** Show/hide Add Slot button based on count */
+function fpWallPlateUpdateAddBtn() {
+    var count = document.querySelectorAll('#fpWallPlateSlots .fp-plate-slot-row').length;
+    document.getElementById('fpWallPlateAddSlotBtn').style.display = count >= 4 ? 'none' : '';
+}
+
+/** Async: populate all breaker selects in wall plate slots */
+function fpWallPlateLoadBreakers() {
+    var selects = document.querySelectorAll('#fpWallPlateSlots .fp-slot-breaker');
+    if (!selects.length) return;
+    userCol('breakerPanels').get()
+        .then(function(snap) {
+            selects.forEach(function(sel) {
+                var saved = sel.dataset.breakerId || '';
+                snap.forEach(function(panelDoc) {
+                    var panel = panelDoc.data();
+                    var grp   = document.createElement('optgroup');
+                    grp.label = panel.name || 'Panel';
+                    (panel.breakers || []).forEach(function(b) {
+                        var opt = document.createElement('option');
+                        opt.value = b.id || b.slot;
+                        opt.dataset.panelId = panelDoc.id;
+                        opt.textContent = (b.slot ? 'Slot ' + b.slot + ': ' : '') + (b.label || '');
+                        if ((b.id || b.slot) === saved) opt.selected = true;
+                        grp.appendChild(opt);
+                    });
+                    sel.appendChild(grp);
+                });
+            });
+        })
+        .catch(function(err) { console.error('fpWallPlateLoadBreakers error:', err); });
+}
+
+/** Read all slot rows from the modal and return a slots array */
+function fpWallPlateReadSlots() {
+    var slots = [];
+    document.querySelectorAll('#fpWallPlateSlots .fp-plate-slot-row').forEach(function(row) {
+        var bkrSel  = row.querySelector('.fp-slot-breaker');
+        var bkrId   = bkrSel ? bkrSel.value : '';
+        var panelId = bkrId && bkrSel && bkrSel.selectedIndex >= 0
+            ? (bkrSel.options[bkrSel.selectedIndex].dataset.panelId || '') : '';
+        slots.push({
+            type:      row.querySelector('.fp-slot-type').value,
+            subtype:   row.querySelector('.fp-slot-subtype').value,
+            controls:  row.querySelector('.fp-slot-controls').value.trim(),
+            breakerId: bkrId,
+            panelId:   panelId
+        });
+    });
+    return slots;
+}
+
+document.getElementById('fpWallPlateAddSlotBtn').addEventListener('click', function() {
+    var count = document.querySelectorAll('#fpWallPlateSlots .fp-plate-slot-row').length;
+    if (count >= 4) return;
+    fpWallPlateAddSlotRow({ type: 'switch', subtype: 'single-pole', controls: '', breakerId: '' }, count);
+    fpWallPlateUpdateAddBtn();
+    fpWallPlateLoadBreakers();
+});
+
+document.getElementById('fpWallPlateSaveBtn').addEventListener('click', function() {
+    var modal  = document.getElementById('fpWallPlateModal');
+    var editId = modal.dataset.editId;
+    var slots  = fpWallPlateReadSlots();
+    if (!slots.length) { alert('Add at least one slot.'); return; }
+
+    var notes = document.getElementById('fpWallPlateNotesInput').value.trim();
+
+    var newPlateId = null;
+    if (editId) {
+        var existing = (fpPlan.wallPlates || []).find(function(m) { return m.id === editId; });
+        if (existing) {
+            existing.slots = slots;
+            existing.notes = notes;
+            // Apply position override if typed
+            var posRaw = fpParseFeetIn(document.getElementById('fpWallPlatePosInput').value);
+            if (!isNaN(posRaw) && posRaw >= 0) {
+                var segLen = parseFloat(modal.dataset.segLen) || 0;
+                var ref    = document.getElementById('fpWallPlatePosRef').value;
+                existing.position = ref === 'end' && segLen > 0
+                    ? Math.max(0, segLen - posRaw)
+                    : Math.max(0, posRaw);
+            }
+        }
+    } else {
+        var plate = {
+            id:           fpGenId(),
+            roomId:       modal.dataset.roomId,
+            segmentIndex: parseInt(modal.dataset.segIndex, 10),
+            position:     parseFloat(modal.dataset.position),
+            targetIds:    [],
+            notes:        notes,
+            slots:        slots
+        };
+        if (!fpPlan.wallPlates) fpPlan.wallPlates = [];
+        fpPlan.wallPlates.push(plate);
+        newPlateId = plate.id;
+    }
+
+    fpDirty = true;
+    closeModal('fpWallPlateModal');
+    if (newPlateId) { fpSetTool('select'); fpSelectedId = newPlateId; fpSelectedType = 'wallplate'; }
+    fpRender();
+    fpSetStatus('Wall plate ' + (editId ? 'updated' : 'placed — drag to reposition or Edit Marker for details') + '.');
+});
+
+document.getElementById('fpWallPlateCancelBtn').addEventListener('click', function() {
+    closeModal('fpWallPlateModal');
+});
+
+document.getElementById('fpWallPlateDeleteBtn').addEventListener('click', function() {
+    var modal  = document.getElementById('fpWallPlateModal');
+    var editId = modal.dataset.editId;
+    if (!editId || !confirm('Delete this wall plate?')) return;
+    fpPlan.wallPlates = (fpPlan.wallPlates || []).filter(function(m) { return m.id !== editId; });
+    fpDirty = true;
+    fpSelectedId = null; fpSelectedType = 'room';
+    fpSilentSave();
+    closeModal('fpWallPlateModal');
+    fpRender();
+    fpSetStatus('Wall plate deleted.');
+});
+
+document.getElementById('fpWallPlateAddProblemBtn').addEventListener('click', function() {
+    var editId = document.getElementById('fpWallPlateModal').dataset.editId;
+    if (!editId) return;
+    if (typeof openAddProblemModal === 'function') {
+        openAddProblemModal('wallplate', editId, function() {
+            loadProblems('wallplate', editId, 'fpWallPlateProblemsContainer', 'fpWallPlateProblemsEmptyState');
+        });
+    }
+});
+
+// ============================================================
+// PHASE H-ELEC: ELECTRICAL MODE, WIRING LINES, TARGET EDIT
+// ============================================================
+
+/**
+ * Toggle electrical mode on/off.
+ * When on: "⚡ Elec" button goes active, Recessed tool stays visible,
+ * a "Dim" toggle appears, and wiring lines render for the selected plate.
+ */
+function fpToggleElectricalMode() {
+    fpElectricalMode = !fpElectricalMode;
+    var btn = document.getElementById('fpElecModeBtn');
+    if (btn) btn.classList.toggle('active', fpElectricalMode);
+
+    var dimWrap = document.getElementById('fpElecDimWrap');
+    if (dimWrap) dimWrap.style.display = fpElectricalMode ? '' : 'none';
+
+    // Exit target edit mode if turning off
+    if (!fpElectricalMode && fpTargetEditMode) fpExitTargetEditMode();
+
+    fpRender();
+}
+
+/**
+ * Toggle the structural fade (Dim) in electrical mode.
+ */
+function fpToggleElecFade() {
+    fpElecFade = !fpElecFade;
+    var cb = document.getElementById('fpElecDimCheck');
+    if (cb) cb.checked = fpElecFade;
+    fpRender();
+}
+
+/**
+ * Enter target-selection mode for the currently selected wall plate.
+ * Fixtures can be clicked to toggle in/out of plate.targetIds[].
+ */
+function fpEnterTargetEditMode() {
+    if (!fpSelectedId || fpSelectedType !== 'wallplate') return;
+    fpTargetEditMode    = true;
+    fpTargetEditPlateId = fpSelectedId;
+
+    // Show Done button in toolbar area
+    var doneBtn = document.getElementById('fpTargetEditDoneBtn');
+    if (doneBtn) doneBtn.style.display = '';
+
+    fpRender();
+    fpSetStatus('Target edit: click recessed lights or ceiling fixtures to link/unlink them to this switch plate. Done when finished.');
+}
+
+/**
+ * Exit target-selection mode and silent-save.
+ */
+function fpExitTargetEditMode() {
+    fpTargetEditMode    = false;
+    fpTargetEditPlateId = null;
+    var doneBtn = document.getElementById('fpTargetEditDoneBtn');
+    if (doneBtn) doneBtn.style.display = 'none';
+    fpDirty = true;
+    fpSilentSave();
+    fpRender();
+    fpSetStatus('Wall plate targets saved.');
+}
+
+/**
+ * Toggle a fixture in/out of the current plate's targetIds[].
+ * Called during target edit mode when a fixture is clicked.
+ */
+function fpToggleTarget(fixtureId) {
+    if (!fpTargetEditPlateId) return;
+    var plate = (fpPlan.wallPlates || []).find(function(p) { return p.id === fpTargetEditPlateId; });
+    if (!plate) return;
+    if (!plate.targetIds) plate.targetIds = [];
+    var idx = plate.targetIds.indexOf(fixtureId);
+    if (idx >= 0) {
+        plate.targetIds.splice(idx, 1);
+    } else {
+        plate.targetIds.push(fixtureId);
+    }
+    fpDirty = true;
+    fpRender();
+}
+
+/**
+ * Draw dashed lines from the selected wall plate to each of its target fixtures.
+ * Only called when fpElectricalMode and a wallplate is selected.
+ */
+function fpRenderWiringLines(svg) {
+    var plate = (fpPlan.wallPlates || []).find(function(p) { return p.id === fpSelectedId; });
+    if (!plate || !plate.targetIds || !plate.targetIds.length) return;
+
+    // Get plate center
+    var room = (fpPlan.rooms || []).find(function(r) { return r.id === plate.roomId; });
+    if (!room) return;
+    var seg  = fpGetSegment(room.points, plate.segmentIndex);
+    if (!seg) return;
+    var info = fpWallMetrics(seg, plate.position, 0);
+    if (!info) return;
+    var px = info.hinge.x, py = info.hinge.y;
+
+    plate.targetIds.forEach(function(tid) {
+        var fx = null, fy = null;
+
+        // Check recessed lights
+        var rl = (fpPlan.recessedLights || []).find(function(m) { return m.id === tid; });
+        if (rl) { fx = fp2px(rl.x); fy = fp2px(rl.y); }
+
+        // Check ceiling fixtures
+        if (fx === null) {
+            var cf = (fpPlan.ceilingFixtures || []).find(function(m) { return m.id === tid; });
+            if (cf) { fx = fp2px(cf.x); fy = fp2px(cf.y); }
+        }
+
+        if (fx === null) return;
+
+        fpSvgEl(svg, 'line', {
+            x1: px, y1: py, x2: fx, y2: fy,
+            stroke: '#3b82f6', 'stroke-width': 1.5,
+            'stroke-dasharray': '5,3',
+            'pointer-events': 'none', opacity: 0.8
+        });
+    });
+}
+
+/**
+ * Overlay highlighting for target edit mode.
+ * - Current targets → amber fill ring
+ * - Other selectable fixtures → teal ring
+ */
+function fpRenderTargetEditOverlay(svg) {
+    var plate = (fpPlan.wallPlates || []).find(function(p) { return p.id === fpTargetEditPlateId; });
+    if (!plate) return;
+    var targets = plate.targetIds || [];
+
+    function drawRing(cx, cy, r, color, fixtureId) {
+        var ring = fpSvgEl(svg, 'circle', {
+            cx: cx, cy: cy, r: r,
+            fill: 'transparent',
+            stroke: color, 'stroke-width': 2.5,
+            'stroke-dasharray': targets.indexOf(fixtureId) >= 0 ? 'none' : '4,2',
+            cursor: 'pointer'
+        });
+        ring.addEventListener('click', function(e) {
+            e.stopPropagation();
+            fpToggleTarget(fixtureId);
+        });
+    }
+
+    // Recessed lights
+    (fpPlan.recessedLights || []).forEach(function(rl) {
+        var isLinked = targets.indexOf(rl.id) >= 0;
+        drawRing(fp2px(rl.x), fp2px(rl.y), 14, isLinked ? '#cc8800' : '#0d9488', rl.id);
+    });
+
+    // Ceiling fixtures
+    (fpPlan.ceilingFixtures || []).forEach(function(cf) {
+        var isLinked = targets.indexOf(cf.id) >= 0;
+        drawRing(fp2px(cf.x), fp2px(cf.y), 16, isLinked ? '#cc8800' : '#0d9488', cf.id);
+    });
+}
+
+// ---- Electrical mode button wiring ----
+
+(function() {
+    var elecBtn = document.getElementById('fpElecModeBtn');
+    if (elecBtn) elecBtn.addEventListener('click', fpToggleElectricalMode);
+
+    var dimCheck = document.getElementById('fpElecDimCheck');
+    if (dimCheck) dimCheck.addEventListener('change', fpToggleElecFade);
+
+    var doneBtn = document.getElementById('fpTargetEditDoneBtn');
+    if (doneBtn) doneBtn.addEventListener('click', fpExitTargetEditMode);
+}());
+
+// ---- "Edit Targets" button in status bar ----
+// Show/hide based on selection state (called from fpRender via fpSelectMarker)
+// The button lives in the toolbar next to Edit Marker
+(function() {
+    var editTargetsBtn = document.getElementById('fpEditTargetsBtn');
+    if (!editTargetsBtn) return;
+    editTargetsBtn.addEventListener('click', function() {
+        if (fpTargetEditMode) {
+            fpExitTargetEditMode();
+        } else {
+            fpEnterTargetEditMode();
+        }
+    });
+}());
 
 // ============================================================
 // ZOOM — mouse wheel, pinch gesture, slider

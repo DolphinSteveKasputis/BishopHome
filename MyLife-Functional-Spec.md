@@ -283,7 +283,7 @@ Things, Sub-Things, and Items can all be added via `+Photo` button:
 ### Floor Plan (`floorplan.js`)
 An interactive drawing tool for each floor.
 
-**Firestore**: `floorPlans` — `floorId`, `widthFt`, `heightFt`, `rooms[]`, `doors[]`, `windows[]`, `outlets[]`, `switches[]`, `plumbing[]`, `ceilingFixtures[]`, `updatedAt`
+**Firestore**: `floorPlans` — `floorId`, `widthFt`, `heightFt`, `rooms[]`, `doors[]`, `windows[]`, `plumbing[]`, `ceilingFixtures[]`, `recessedLights[]`, `wallPlates[]`, `updatedAt`
 
 **Features**:
 - SVG-based canvas with optional grid overlay
@@ -295,18 +295,26 @@ An interactive drawing tool for each floor.
 - **Dimensions auto-save**: when dimensions are confirmed in the Dimensions modal, the plan is immediately saved to Firestore (no need to also click the Save button). The floor detail thumbnail shows "Floor plan dimensions set — click Edit Floor Plan to draw rooms" once saved but before any rooms are drawn.
 - **Doors**: placed on room walls; show swing arc + hinge dot + jamb tick marks at each end; frame width and inseam (clear opening) tracked separately; darker color when unselected for visibility; can be dragged to slide along wall; silent-save after drag
 - **Windows**: placed on room walls; total frame width and inseam (e.g., for blind sizing) tracked separately; can be dragged to slide along wall; silent-save after drag
-- **Electrical markers** (outlets and switches): placed on room walls; can be dragged to slide along the wall in select mode; tap to select, drag to reposition; silent-save after drag
+- **Wall plates** (🔌 Plate tool): unified outlet+switch entity placed on room walls; 1–4 slots per plate; each slot is a switch (single-pole/3-way/dimmer/smart) or outlet (standard/GFCI/220V/USB); per-slot symbol and divider lines render on the plate; plate scales in width with slot count; can be dragged along wall; Edit Marker shows slot editor (add/remove slots, type, controls, breaker link); position-from-wall in edit modal
+- **Recessed lights** (◎ Recessed tool): click inside a room to drop instantly (no modal); each light is an independent record supporting Facts, Problems, and Activities via targetType `recessedLight`; drag to reposition; Edit Marker for label, notes, and history
 - Plumbing markers: toilets, sinks, bathtubs, showers, floor drains, water heater, washer/dryer hookup
 - Ceiling fixtures (lights, ceiling fans) shown as symbols inside rooms; can be dragged to reposition
 - Stairs shown with hatch pattern and label
-- **Auto-save on drag**: all marker drags (doors, windows, outlets, switches, ceiling fixtures) silently save to Firestore on mouse-up — position persists across navigation without pressing Save
+- **Auto-save on drag**: all marker drags (doors, windows, wall plates, recessed lights, ceiling fixtures) silently save to Firestore on mouse-up — position persists across navigation without pressing Save
 
 **Width/position input format**: doors and windows accept feet+inches notation (`32"`, `2'8"`, `3'`) as well as decimal feet.
 
-**Position from wall (doors, windows, outlets, switches)**:
+**Position from wall (doors, windows, wall plates)**:
 - In the Edit Marker modal, a "Position on Wall" section shows the current distance from start and distance from end of the wall (in feet+inches, read-only labels)
 - An editable "Position" input lets the user type an exact distance from the start or end; the radio buttons toggle which end the distance is measured from
-- Saving applies the override, clamping to valid range; position section is hidden when adding a new marker (drag to place, then edit to set exact position)
+- Saving applies the override, clamping to valid range; position section is hidden when adding a new marker
+
+**Electrical Mode** (⚡ Elec toggle in toolbar):
+- Activates an electrical overlay on the floor plan
+- **Dim toggle**: when ON (default), structural elements (walls, doors, windows, plumbing) render at 25% opacity so electrical elements pop visually; Dim checkbox in toolbar toggles this on/off
+- **Wiring lines**: when a wall plate is selected in electrical mode, dashed blue lines draw from the plate to each fixture in its `targetIds[]`
+- **Edit Targets**: selecting a wall plate in electrical mode reveals an "Edit Targets" button; pressing it enters target-selection mode — recessed lights and ceiling fixtures show rings (amber = currently linked, teal = available); click any fixture to toggle the link; press Done or the button again to exit and save
+- **3-way auto-detection**: if two or more wall plates share the same target fixture, those plates automatically display a purple "3-way" badge above the plate symbol
 
 **Drawing — Free Draw mode**:
 - Click to place corners; Enter key places a corner at the current cursor position (no need to click exactly)
@@ -333,9 +341,9 @@ An interactive drawing tool for each floor.
 **Select mode — drag and drop**:
 - Drag a room polygon body to translate all corners (move the entire room)
 - Drag a ceiling fixture to reposition it anywhere on the plan
-- Drag a door, window, outlet, or switch marker to slide it along its current wall segment
+- Drag a door, window, or wall plate to slide it along its current wall segment
 - Tap (no drag) any marker in select mode to select it; dragging does not trigger a selection
-- **Auto-select on add**: after placing a new marker (door, window, outlet, switch, plumbing, ceiling fixture), the tool automatically switches to Select and the new item is pre-selected — ready to drag immediately without extra clicks
+- **Auto-select on add**: after placing a new marker (door, window, wall plate, plumbing, ceiling fixture, recessed light), the tool automatically switches to Select and the new item is pre-selected — ready to drag immediately without extra clicks
 
 **Select mode — corner drag**:
 - Drag a corner handle dot to move that corner

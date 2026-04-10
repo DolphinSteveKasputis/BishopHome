@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=386">
+    <link rel="stylesheet" href="css/styles.css?v=387">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -1516,12 +1516,20 @@
                 <button class="fp-tool-btn" id="fpToolDoor" data-tool="door">🚪 Door</button>
                 <button class="fp-tool-btn" id="fpToolWindow" data-tool="window">🪟 Window</button>
                 <span class="fp-tool-sep"></span>
-                <button class="fp-tool-btn fp-tool-electrical" id="fpToolOutlet" data-tool="outlet">⚡ Outlet</button>
-                <button class="fp-tool-btn fp-tool-electrical" id="fpToolSwitch" data-tool="switch">💡 Switch</button>
+                <button class="fp-tool-btn fp-tool-electrical" id="fpToolWallPlate" data-tool="wallplate">🔌 Plate</button>
                 <button class="fp-tool-btn fp-tool-plumbing" id="fpToolPlumbing" data-tool="plumbing">🚿 Plumbing</button>
                 <button class="fp-tool-btn fp-tool-ceiling" id="fpToolCeiling" data-tool="ceiling">🔆 Ceiling</button>
+                <button class="fp-tool-btn fp-tool-electrical" id="fpToolRecessed" data-tool="recessed">◎ Recessed</button>
+                <span class="fp-tool-sep"></span>
+                <!-- Electrical mode toggle + Dim fade checkbox -->
+                <button class="btn btn-secondary btn-small fp-type-toggle" id="fpElecModeBtn" title="Toggle electrical overlay mode">⚡ Elec</button>
+                <span id="fpElecDimWrap" style="display:none;align-items:center;gap:3px;font-size:0.82em">
+                    <input type="checkbox" id="fpElecDimCheck" checked> Dim
+                </span>
                 <span class="fp-tool-sep"></span>
                 <button id="fpEditRoomBtn" class="btn btn-secondary btn-small" style="display:none">Edit Room</button>
+                <button id="fpEditTargetsBtn" class="btn btn-secondary btn-small" style="display:none">Edit Targets</button>
+                <button id="fpTargetEditDoneBtn" class="btn btn-primary btn-small" style="display:none">Done</button>
                 <button id="fpDeleteRoomBtn" class="btn btn-danger btn-small" style="display:none">Remove</button>
             </div>
 
@@ -4277,6 +4285,111 @@
             <div class="modal-buttons">
                 <button class="btn btn-secondary" id="fpCeilingCancelBtn">Cancel</button>
                 <button class="btn btn-primary" id="fpCeilingSaveBtn">Place Fixture</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== RECESSED LIGHT MODAL ===== -->
+    <div class="modal-overlay" id="fpRecessedModal">
+        <div class="modal" style="max-width:480px">
+            <h3 id="fpRecessedModalTitle">Edit Recessed Light</h3>
+            <div class="form-group">
+                <label>Label</label>
+                <input type="text" id="fpRecessedLabelInput" placeholder="e.g. Over sink, Left of fan">
+            </div>
+            <div class="form-group">
+                <label>Notes</label>
+                <textarea id="fpRecessedNotesInput" rows="2" placeholder="Bulb type, wattage, etc."></textarea>
+            </div>
+
+            <!-- Facts section (edit mode only) -->
+            <div id="fpRecessedFactsSection" style="display:none">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                    <strong>Facts</strong>
+                    <button class="btn btn-secondary btn-small" id="fpRecessedAddFactBtn">+ Add Fact</button>
+                </div>
+                <div id="fpRecessedFactsList"></div>
+            </div>
+
+            <!-- Problems section (edit mode only) -->
+            <div id="fpRecessedProblemsSection" style="display:none">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                    <strong>Problems</strong>
+                    <button class="btn btn-secondary btn-small" id="fpRecessedAddProblemBtn">+ Add</button>
+                </div>
+                <div id="fpRecessedProblemsContainer"></div>
+                <p class="empty-state" id="fpRecessedProblemsEmptyState"></p>
+            </div>
+
+            <!-- Activities section (edit mode only) -->
+            <div id="fpRecessedActivitiesSection" style="display:none">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                    <strong>Activities</strong>
+                    <button class="btn btn-secondary btn-small" id="fpRecessedAddActivityBtn">+ Log</button>
+                </div>
+                <div id="fpRecessedActivitiesContainer"></div>
+                <p class="empty-state" id="fpRecessedActivitiesEmptyState"></p>
+            </div>
+
+            <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+                <button class="btn btn-primary" id="fpRecessedSaveBtn">Save</button>
+                <button class="btn btn-secondary" id="fpRecessedCancelBtn">Cancel</button>
+                <button class="btn btn-danger" id="fpRecessedDeleteBtn" style="display:none;margin-left:auto">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== WALL PLATE MODAL ===== -->
+    <div class="modal-overlay" id="fpWallPlateModal">
+        <div class="modal" style="max-width:520px">
+            <h3 id="fpWallPlateModalTitle">Add Wall Plate</h3>
+
+            <!-- Slot rows (dynamic) -->
+            <div style="margin-bottom:8px">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                    <strong>Slots</strong>
+                    <button class="btn btn-secondary btn-small" id="fpWallPlateAddSlotBtn">+ Add Slot</button>
+                </div>
+                <div id="fpWallPlateSlots"></div>
+            </div>
+
+            <div class="form-group">
+                <label>Notes</label>
+                <textarea id="fpWallPlateNotesInput" rows="2" placeholder="Optional notes"></textarea>
+            </div>
+
+            <!-- Position on wall (edit mode only) -->
+            <div class="form-group" id="fpWallPlatePositionSection" style="display:none">
+                <label>Position on wall</label>
+                <div style="font-size:0.85em;color:#555;margin-bottom:4px">
+                    From start: <strong id="fpWallPlatePosFromStart">—</strong>
+                    &nbsp;·&nbsp;
+                    From end: <strong id="fpWallPlatePosFromEnd">—</strong>
+                </div>
+                <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+                    <input type="text" id="fpWallPlatePosInput" placeholder='e.g. 16" or 1&apos;4"' style="width:110px">
+                    <span>from</span>
+                    <select id="fpWallPlatePosRef">
+                        <option value="start">start of wall</option>
+                        <option value="end">end of wall</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Problems section (edit mode only) -->
+            <div id="fpWallPlateProblemsSection" style="display:none">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                    <strong>Problems</strong>
+                    <button class="btn btn-secondary btn-small" id="fpWallPlateAddProblemBtn">+ Add</button>
+                </div>
+                <div id="fpWallPlateProblemsContainer"></div>
+                <p class="empty-state" id="fpWallPlateProblemsEmptyState"></p>
+            </div>
+
+            <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+                <button class="btn btn-primary" id="fpWallPlateSaveBtn">Save</button>
+                <button class="btn btn-secondary" id="fpWallPlateCancelBtn">Cancel</button>
+                <button class="btn btn-danger" id="fpWallPlateDeleteBtn" style="display:none;margin-left:auto">Delete</button>
             </div>
         </div>
     </div>
@@ -7503,7 +7616,7 @@
     <script src="js/gps.js?v=350"></script>
     <script src="js/settings.js?v=350"></script>
     <script src="js/house.js?v=362"></script>
-    <script src="js/floorplan.js?v=372"></script>
+    <script src="js/floorplan.js?v=375"></script>
     <script src="js/search.js?v=350"></script>
     <script src="js/activityreport.js?v=350"></script>
     <script src="js/checklists.js?v=350"></script>

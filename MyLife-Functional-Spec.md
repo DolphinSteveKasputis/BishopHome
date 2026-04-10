@@ -372,6 +372,29 @@ An interactive drawing tool for each floor.
 - Typing new lengths moves the corner while keeping neighboring walls orthogonal
 - Press Enter or Escape (or click elsewhere) to exit corner edit mode
 
+### Floor Plan Item Detail (`floorplanitem.js`)
+A detail page for any individual floor plan object (door, window, fixture, recessed light, etc.).
+
+**Route**: `#floorplanitem/{planId}/{itemType}/{itemId}`
+- `planId` = Firestore `floorPlans` doc ID (same as the floor's Firestore ID)
+- `itemType` = one of: `door`, `window`, `ceiling`, `recessedLight`, `wallplate`, `fixture`, `plumbingEndpoint`, `plumbing`
+- `itemId` = the item's `id` field within the plan array
+
+**Features**:
+- Page header shows item display name (falls back to type label if no name set) with a **Rename** button
+- Inline name-edit row (hidden until Rename clicked): text input + Save/Cancel; saves by updating the relevant array in the `floorPlans` doc
+- Meta line: type badge (human-readable, e.g. "Ceiling Fan", "Pocket Door", "Tub/Shower") + room link + "Floor Plan" link
+- Breadcrumb: House › Floor Name › Room Name › Item Name
+- **Cross-entity sections**: Problems/Concerns, Facts, Future Projects, Activity History, Photos — all wired via `targetType = itemType`, `targetId = itemId` using the existing cross-entity helpers
+- Entry point from floor plan canvas: **"Details →"** button in the Row 3 Properties bar appears for all non-room selected items
+
+**"Items in this Room" section on Room detail page**:
+- Appears at the bottom of the room detail page (`page-room`)
+- Loads `floorPlans` doc for the room's floor; collects all items across all arrays where `item.roomId === room.id`
+- Grouped by: **Layout** (doors, windows, fixtures), **Electrical** (ceilingFixtures, recessedLights, wallPlates), **Plumbing** (plumbingEndpoints, plumbing)
+- Each row shows: type icon + type label + item display name + "Details →" link to `#floorplanitem/{planId}/{itemType}/{itemId}`
+- Empty state shown if no floor plan exists or room has no items
+
 ### Breaker Panel (`house.js`)
 Tracks the electrical breaker panel as a grid of slots.
 

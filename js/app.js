@@ -21,7 +21,7 @@ const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'h
 const ALL_PAGES = [
     ...TOP_LEVEL_PAGES,
     'zone', 'plant', 'weed', 'chemical', 'gpsmap', 'yardmap',
-    'floor', 'room', 'thing', 'subthing', 'item', 'floorplan', 'panel', 'rooms', 'things', 'house-problems', 'house-projects', 'yard-projects', 'yard-problems',
+    'floor', 'room', 'thing', 'subthing', 'item', 'floorplan', 'panel', 'rooms', 'things', 'house-problems', 'house-projects', 'yard-projects', 'yard-problems', 'floorplanitem',
     'backup', 'vehicle',
     'garageroom', 'garagething', 'garagesubthing',
     'structure', 'structurething', 'structuresubthing',
@@ -41,7 +41,7 @@ const ALL_PAGES = [
  * Yard-context pages — switching to any of these shows the yard nav.
  * Shared pages (calendar, settings) keep whichever context was last active.
  */
-const HOUSE_PAGES = ['house', 'floor', 'room', 'thing', 'subthing', 'item', 'floorplan', 'panel', 'rooms', 'things', 'house-problems', 'house-projects'];
+const HOUSE_PAGES = ['house', 'floor', 'room', 'thing', 'subthing', 'item', 'floorplan', 'panel', 'rooms', 'things', 'house-problems', 'house-projects', 'floorplanitem'];
 const YARD_PAGES  = ['main', 'home', 'zones', 'zone', 'plant', 'weeds', 'weed', 'chemicals', 'chemical', 'actions', 'gpsmap', 'yardmap', 'activityreport', 'checklists',
                      'structures', 'structure', 'structurething', 'structuresubthing', 'yard-projects', 'yard-problems'];
 const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'journal-categories', 'people', 'contacts', 'person', 'contact',
@@ -103,8 +103,9 @@ function showPage(page) {
     if (page === 'floor')      navPage = 'house';
     if (page === 'room')       navPage = 'house';
     if (page === 'thing')      navPage = 'house';
-    if (page === 'floorplan')  navPage = 'house';
-    if (page === 'panel')      navPage = 'house';
+    if (page === 'floorplan')     navPage = 'house';
+    if (page === 'floorplanitem') navPage = 'house';
+    if (page === 'panel')         navPage = 'house';
     if (page === 'subthing')   navPage = 'house';
     if (page === 'item')       navPage = 'house';
     if (page === 'person')     navPage = 'people';   // Sub-page of people (legacy)
@@ -218,6 +219,9 @@ function handleRoute() {
     } else if (page === 'floorplan' && id) {
         showPage('floorplan');
         loadFloorPlanPage(id);
+    } else if (page === 'floorplanitem' && id) {
+        showPage('floorplanitem');
+        loadFloorPlanItemPage(id, parts[2], parts[3]);
     } else if (page === 'panel' && id) {
         showPage('panel');
         loadPanelDetail(id);

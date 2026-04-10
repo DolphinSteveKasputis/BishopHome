@@ -857,6 +857,176 @@ function renderRoomDetail(room, floor) {
         loadEventsForTarget('room', room.id,
             'roomCalendarEventsContainer', 'roomCalendarEventsEmptyState', months);
     }
+
+    // Load floor plan items that belong to this room
+    loadRoomFloorPlanItems(room.id, floor.id);
+}
+
+// ============================================================
+// FLOOR PLAN ITEMS IN ROOM
+// ============================================================
+
+/**
+ * Load all floor plan items that belong to a specific room and render
+ * them grouped by category into #roomFloorPlanItemsContainer.
+ *
+ * Groups:
+ *   Layout    — doors, windows, fixtures (toilet/sink/tub)
+ *   Electrical — ceilingFixtures, recessedLights, wallPlates
+ *   Plumbing  — plumbingEndpoints, plumbing
+ *
+ * @param {string} roomId   — the room's Firestore ID
+ * @param {string} floorId  — the floor's Firestore ID (also the floorPlans doc ID)
+ */
+async function loadRoomFloorPlanItems(roomId, floorId) {
+    var container  = document.getElementById('roomFloorPlanItemsContainer');
+    var emptyState = document.getElementById('roomFloorPlanItemsEmptyState');
+    if (!container) return;
+
+    container.innerHTML  = '';
+    if (emptyState) emptyState.textContent = '';
+
+    try {
+        // The floorPlans doc ID is the same as the floor's Firestore ID
+        var planDoc = await userCol('floorPlans').doc(floorId).get();
+        if (!planDoc.exists) {
+            if (emptyState) emptyState.textContent = 'No floor plan found for this floor.';
+            return;
+        }
+        var plan = planDoc.data();
+        // The planId used in the route is the floorPlans doc ID.
+        // We pass planId = floorId to the detail page URL.
+        var planId = floorId;
+
+        // ---- Collect items by group ----
+        var groups = [
+            {
+                label: 'Layout',
+                items: []
+            },
+            {
+                label: 'Electrical',
+                items: []
+            },
+            {
+                label: 'Plumbing',
+                items: []
+            }
+        ];
+
+        // Helper to push items from an array to a group, tagging each with itemType
+        function pushItems(arr, itemType, groupIndex) {
+            (arr || []).forEach(function(item) {
+                if (item.roomId === roomId) {
+                    groups[groupIndex].items.push({ item: item, itemType: itemType });
+                }
+            });
+        }
+
+        pushItems(plan.doors,             'door',             0);
+        pushItems(plan.windows,           'window',           0);
+        pushItems(plan.fixtures,          'fixture',          0);
+        pushItems(plan.ceilingFixtures,   'ceiling',          1);
+        pushItems(plan.recessedLights,    'recessedLight',    1);
+        pushItems(plan.wallPlates,        'wallplate',        1);
+        pushItems(plan.plumbingEndpoints, 'plumbingEndpoint', 2);
+        pushItems(plan.plumbing,          'plumbing',         2);
+
+        // Check if any items at all
+        var totalItems = groups.reduce(function(acc, g) { return acc + g.items.length; }, 0);
+        if (totalItems === 0) {
+            if (emptyState) emptyState.textContent = 'No floor plan items in this room.';
+            return;
+        }
+
+        // ---- Type icon/label map ----
+        var typeIconMap = {
+            'door':             '🚪',
+            'window':           '🪟',
+            'fixture':          '🛁',
+            'ceiling':          '💡',
+            'recessedLight':    '◎',
+            'wallplate':        '🔌',
+            'plumbingEndpoint': '🔧',
+            'plumbing':         '〰️'
+        };
+
+        // Returns human-readable type label (same logic as fpItemGetTypeBadge in floorplanitem.js)
+        function getTypeLabel(item, itemType) {
+            if (itemType === 'door') {
+                var m = { single: 'Door', french: 'French Door', sliding: 'Sliding Door', pocket: 'Pocket Door' };
+                return m[item.subtype] || 'Door';
+            }
+            if (itemType === 'window')           return 'Window';
+            if (itemType === 'ceiling') {
+                var m = { fan: 'Ceiling Fan', 'fan-light': 'Fan/Light', 'flush-mount': 'Flush Mount', 'drop-light': 'Drop Light', chandelier: 'Chandelier', generic: 'Ceiling Fixture' };
+                return m[item.subtype] || 'Ceiling Fixture';
+            }
+            if (itemType === 'recessedLight')    return 'Recessed Light';
+            if (itemType === 'wallplate')        return 'Wall Plate';
+            if (itemType === 'fixture') {
+                var m = { toilet: 'Toilet', sink: 'Sink', tub: 'Tub/Shower' };
+                return m[item.fixtureType] || 'Fixture';
+            }
+            if (itemType === 'plumbingEndpoint') return item.endpointType === 'spigot' ? 'Spigot' : 'Stub-out';
+            if (itemType === 'plumbing')         return 'Plumbing';
+            return itemType;
+        }
+
+        // Returns display name — item.name if set, otherwise type label
+        function getDisplayName(item, itemType) {
+            if (item.name && item.name.trim()) return item.name.trim();
+            return getTypeLabel(item, itemType);
+        }
+
+        // ---- Render each group ----
+        groups.forEach(function(group) {
+            if (group.items.length === 0) return;
+
+            var groupDiv = document.createElement('div');
+            groupDiv.className = 'fp-items-group';
+
+            var groupHeader = document.createElement('div');
+            groupHeader.className   = 'fp-items-group-header';
+            groupHeader.textContent = group.label;
+            groupDiv.appendChild(groupHeader);
+
+            group.items.forEach(function(entry) {
+                var item     = entry.item;
+                var itemType = entry.itemType;
+
+                var row = document.createElement('div');
+                row.className = 'fp-item-row';
+
+                // Icon + type label
+                var typeSpan = document.createElement('span');
+                typeSpan.className   = 'fp-item-type';
+                typeSpan.textContent = (typeIconMap[itemType] || '') + ' ' + getTypeLabel(item, itemType);
+                row.appendChild(typeSpan);
+
+                // Display name
+                var nameSpan = document.createElement('span');
+                nameSpan.className   = 'fp-item-name';
+                nameSpan.textContent = getDisplayName(item, itemType);
+                row.appendChild(nameSpan);
+
+                // Details link
+                var detailsLink = document.createElement('a');
+                detailsLink.href        = '#floorplanitem/' + planId + '/' + itemType + '/' + item.id;
+                detailsLink.className   = 'btn btn-secondary btn-small fp-item-details-btn';
+                detailsLink.textContent = 'Details →';
+                row.appendChild(detailsLink);
+
+                groupDiv.appendChild(row);
+            });
+
+            container.appendChild(groupDiv);
+        });
+
+    } catch (err) {
+        console.error('loadRoomFloorPlanItems error:', err);
+        if (emptyState) emptyState.textContent = 'Error loading floor plan items.';
+    }
 }
 
 // ============================================================

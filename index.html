@@ -1197,6 +1197,13 @@
             </div>
             <div id="roomPhotoContainer"></div>
             <p class="empty-state" id="roomPhotoEmptyState">No photos yet.</p>
+
+            <!-- Floor Plan Items -->
+            <div class="section-header">
+                <h3 class="section-heading">Floor Plan Items</h3>
+            </div>
+            <div id="roomFloorPlanItemsContainer"></div>
+            <p class="empty-state" id="roomFloorPlanItemsEmptyState"></p>
         </section>
 
         <!-- Page: Thing Detail -->
@@ -1586,6 +1593,74 @@
 
             <!-- Status bar -->
             <div class="fp-status" id="fpStatus">Select a tool to begin.</div>
+
+        </section>
+
+        <!-- Page: Floor Plan Item Detail (#floorplanitem/{planId}/{itemType}/{itemId}) -->
+        <section class="page hidden" id="page-floorplanitem">
+            <div class="page-header">
+                <h2 id="fpItemTitle">Floor Plan Item</h2>
+                <div class="page-header-actions">
+                    <button class="btn btn-secondary btn-small" id="fpItemEditNameBtn">Rename</button>
+                </div>
+            </div>
+
+            <!-- Inline name-edit row (hidden until Rename is clicked) -->
+            <div id="fpItemEditNameRow" class="inline-edit-row" style="display:none;">
+                <input type="text" id="fpItemNameInput" class="form-input" placeholder="Item name…">
+                <button class="btn btn-primary btn-small" id="fpItemSaveNameBtn">Save</button>
+                <button class="btn btn-secondary btn-small" id="fpItemCancelNameBtn">Cancel</button>
+            </div>
+
+            <!-- Type badge + room link + floor plan link -->
+            <p class="house-room-meta" id="fpItemMeta"></p>
+
+            <!-- Problems / Concerns -->
+            <div class="section-header">
+                <h3 class="section-heading">Problems / Concerns</h3>
+                <div class="section-header-actions">
+                    <label class="show-toggle"><input type="checkbox" id="showResolvedFpItemProblems"> Show resolved</label>
+                    <button class="btn btn-primary btn-small" id="addFpItemProblemBtn">+ Add</button>
+                </div>
+            </div>
+            <div id="fpItemProblemsContainer"></div>
+            <p class="empty-state" id="fpItemProblemsEmptyState"></p>
+
+            <!-- Facts -->
+            <div class="section-header">
+                <h3 class="section-heading">Facts</h3>
+                <button class="btn btn-primary btn-small" id="addFpItemFactBtn">+ Add</button>
+            </div>
+            <div id="fpItemFactsContainer"></div>
+            <p class="empty-state" id="fpItemFactsEmptyState"></p>
+
+            <!-- Future Projects -->
+            <div class="section-header">
+                <h3 class="section-heading">Future Projects</h3>
+                <button class="btn btn-primary btn-small" id="addFpItemProjectBtn">+ Add</button>
+            </div>
+            <div id="fpItemProjectsContainer"></div>
+            <p class="empty-state" id="fpItemProjectsEmptyState"></p>
+
+            <!-- Activity History -->
+            <div class="section-header">
+                <h3 class="section-heading">Activity History</h3>
+                <button class="btn btn-primary btn-small" id="logFpItemActivityBtn">+ Log Activity</button>
+            </div>
+            <div id="fpItemActivityContainer"></div>
+            <p class="empty-state" id="fpItemActivityEmptyState">No activities logged yet.</p>
+
+            <!-- Photos -->
+            <div class="section-header">
+                <h3 class="section-heading">Photos</h3>
+                <button class="btn btn-primary btn-small" id="addFpItemCameraBtn">+ Camera</button>
+                <button class="btn btn-primary btn-small" id="addFpItemGalleryBtn">+ Gallery</button>
+                <button class="btn btn-primary btn-small paste-photo-btn" data-entity="floorplanitem">📋 Paste</button>
+            </div>
+            <input type="file" id="fpItemCamInput" accept="image/*" capture="environment" style="display:none;">
+            <input type="file" id="fpItemGalleryInput" accept="image/*" style="display:none;">
+            <div id="fpItemPhotoContainer"></div>
+            <p class="empty-state" id="fpItemPhotoEmptyState">No photos yet.</p>
 
         </section>
 
@@ -7699,7 +7774,7 @@
     <script src="js/auth.js?v=350"></script>
     <script src="js/zones.js?v=353"></script>
     <script src="js/plants.js?v=350"></script>
-    <script src="js/problems.js?v=350"></script>
+    <script src="js/problems.js?v=389"></script>
     <script src="js/facts.js?v=350"></script>
     <script src="js/projects.js?v=353"></script>
     <script src="js/chemicals.js?v=350"></script>
@@ -7713,8 +7788,9 @@
     <script src="js/calendar.js?v=350"></script>
     <script src="js/gps.js?v=350"></script>
     <script src="js/settings.js?v=350"></script>
-    <script src="js/house.js?v=362"></script>
-    <script src="js/floorplan.js?v=388"></script>
+    <script src="js/house.js?v=389"></script>
+    <script src="js/floorplan.js?v=389"></script>
+    <script src="js/floorplanitem.js?v=389"></script>
     <script src="js/search.js?v=350"></script>
     <script src="js/activityreport.js?v=350"></script>
     <script src="js/checklists.js?v=350"></script>
@@ -7734,7 +7810,7 @@
     <script src="js/secondbrain.js?v=350"></script>
     <script src="js/sbissues.js?v=350"></script>
     <script src="js/places.js?v=350"></script>
-    <script src="js/app.js?v=367"></script>
+    <script src="js/app.js?v=389"></script>
 
 </body>
 </html>

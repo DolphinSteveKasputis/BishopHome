@@ -201,6 +201,15 @@ async function loadProblems(targetType, targetId, containerId, emptyStateId) {
         'item':             'showResolvedItemProblems',
         'panel':            'showResolvedPanelProblems',
         'weed':             'showResolvedWeedProblems',
+        // Floor plan item types — all share the same checkbox on page-floorplanitem
+        'door':             'showResolvedFpItemProblems',
+        'window':           'showResolvedFpItemProblems',
+        'ceiling':          'showResolvedFpItemProblems',
+        'recessedLight':    'showResolvedFpItemProblems',
+        'wallplate':        'showResolvedFpItemProblems',
+        'fixture':          'showResolvedFpItemProblems',
+        'plumbingEndpoint': 'showResolvedFpItemProblems',
+        'plumbing':         'showResolvedFpItemProblems',
     };
     const checkboxId = checkboxMap[targetType];
     const checkbox = checkboxId ? document.getElementById(checkboxId) : null;

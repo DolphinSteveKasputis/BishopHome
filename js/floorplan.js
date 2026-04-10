@@ -5476,6 +5476,17 @@ function fpUpdatePropsBar() {
         removeBtn.addEventListener('click', function() { fpDeleteSelected(); });
         bar.appendChild(removeBtn);
     }
+
+    // Details → button — navigate to item detail page (all non-room types)
+    if (type !== 'room' && fpFloorId) {
+        var detailBtn = document.createElement('button');
+        detailBtn.className   = 'btn btn-secondary btn-small';
+        detailBtn.textContent = 'Details →';
+        detailBtn.addEventListener('click', function() {
+            window.location.hash = '#floorplanitem/' + fpFloorId + '/' + type + '/' + fpSelectedId;
+        });
+        bar.appendChild(detailBtn);
+    }
 }
 
 // ============================================================

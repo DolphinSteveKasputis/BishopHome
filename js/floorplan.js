@@ -857,15 +857,19 @@ function fpMakeDraggableDoor(el, door) {
         eDown.preventDefault();
         eDown.stopPropagation();
 
-        var dragged = false;
+        var dragged    = false;
+        var startPt    = fpMouseToFeet(eDown);  // snapshot mousedown position
 
         function onMove(e) {
+            var pt   = fpMouseToFeet(e);
+            // Require at least 0.3 ft of movement before treating as a drag.
+            // Prevents tiny touch-synthesis mousemove events from nudging the door.
+            if (!dragged && Math.hypot(pt.x - startPt.x, pt.y - startPt.y) < 0.3) return;
+            dragged = true;
             var room = (fpPlan.rooms || []).find(function(r) { return r.id === door.roomId; });
             if (!room) return;
-            var pt = fpMouseToFeet(e);
             door.position = fpProjectOntoWallSegment(pt.x, pt.y, room, door.segmentIndex, door.width || 3);
             fpDirty = true;
-            dragged = true;
             fpRender();
         }
 
@@ -894,14 +898,17 @@ function fpMakeDraggableWindow(el, win) {
         eDown.stopPropagation();
 
         var dragged = false;
+        var startPt = fpMouseToFeet(eDown);  // snapshot mousedown position
 
         function onMove(e) {
+            var pt = fpMouseToFeet(e);
+            // Require at least 0.3 ft of movement before treating as a drag.
+            if (!dragged && Math.hypot(pt.x - startPt.x, pt.y - startPt.y) < 0.3) return;
+            dragged = true;
             var room = (fpPlan.rooms || []).find(function(r) { return r.id === win.roomId; });
             if (!room) return;
-            var pt = fpMouseToFeet(e);
             win.position = fpProjectOntoWallSegment(pt.x, pt.y, room, win.segmentIndex, win.width || 2);
             fpDirty = true;
-            dragged = true;
             fpRender();
         }
 

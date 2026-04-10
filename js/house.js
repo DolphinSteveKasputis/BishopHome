@@ -898,6 +898,20 @@ async function loadRoomFloorPlanItems(roomId, floorId) {
         // We pass planId = floorId to the detail page URL.
         var planId = floorId;
 
+        // IMPORTANT: items store roomId = fpRoom SHAPE id (e.g. "fp_r_abc"),
+        // NOT the Firestore room document ID. Each room shape in fpPlan.rooms
+        // has both .id (shape id) and .roomId (Firestore room document ID).
+        // We must find the shape whose .roomId matches the Firestore roomId passed in,
+        // then filter items by that shape's .id.
+        var fpRoomShape = (plan.rooms || []).find(function(r) { return r.roomId === roomId; });
+        var shapeId = fpRoomShape ? fpRoomShape.id : null;
+
+        if (!shapeId) {
+            // This floor's plan may not have a shape linked to this room yet
+            if (emptyState) emptyState.textContent = 'No floor plan items in this room.';
+            return;
+        }
+
         // ---- Collect items by group ----
         var groups = [
             {
@@ -914,10 +928,11 @@ async function loadRoomFloorPlanItems(roomId, floorId) {
             }
         ];
 
-        // Helper to push items from an array to a group, tagging each with itemType
+        // Helper to push items from an array to a group, tagging each with itemType.
+        // Compare item.roomId against shapeId (the fp room shape's internal id).
         function pushItems(arr, itemType, groupIndex) {
             (arr || []).forEach(function(item) {
-                if (item.roomId === roomId) {
+                if (item.roomId === shapeId) {
                     groups[groupIndex].items.push({ item: item, itemType: itemType });
                 }
             });

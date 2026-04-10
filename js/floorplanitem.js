@@ -153,15 +153,21 @@ function renderFloorPlanItemPage(item, itemType, planId, plan) {
     badgeSpan.textContent = typeBadge;
     metaEl.appendChild(badgeSpan);
 
-    // Look up the room name + floor so we can build breadcrumb and links
-    // The item has a roomId; the room has a floorId; the plan is tied to the floor.
-    var roomId = item.roomId || null;
+    // Look up the room name + floor for breadcrumb and links.
+    //
+    // IMPORTANT: item.roomId is the fpPlan room SHAPE's internal id (e.g. "fp_r_abc").
+    // Each fpPlan room shape also has a .roomId field that holds the Firestore room
+    // document ID.  We must translate: shape id → fpRoom.roomId → Firestore room.
+    var shapeId     = item.roomId || null;
+    var fpRoomShape = shapeId
+        ? (plan.rooms || []).find(function(r) { return r.id === shapeId; })
+        : null;
+    var firestoreRoomId = fpRoomShape ? (fpRoomShape.roomId || null) : null;
+
     var roomName  = '';
     var floorName = '';
-    var floorId   = planId;  // planId IS the floorId
 
-    // Load floor name first (we already know floorId = planId... but actually
-    // the floorPlans doc has floorId field pointing to the floors doc)
+    // planId IS the floor's Firestore ID (floorPlans doc has same ID as floor doc)
     var storedFloorId = plan.floorId || planId;
 
     userCol('floors').doc(storedFloorId).get()
@@ -169,8 +175,8 @@ function renderFloorPlanItemPage(item, itemType, planId, plan) {
             if (floorDoc.exists) {
                 floorName = floorDoc.data().name || 'Floor';
             }
-            if (!roomId) {
-                // No room association — build breadcrumb without room
+            if (!firestoreRoomId) {
+                // No linked room — build breadcrumb without room
                 buildHouseBreadcrumb([
                     { label: 'House',       hash: '#house' },
                     { label: floorName,     hash: '#floor/' + storedFloorId },
@@ -188,8 +194,8 @@ function renderFloorPlanItemPage(item, itemType, planId, plan) {
                 return;
             }
 
-            // Load room info
-            return userCol('rooms').doc(roomId).get()
+            // Load the Firestore room document
+            return userCol('rooms').doc(firestoreRoomId).get()
                 .then(function(roomDoc) {
                     if (roomDoc.exists) {
                         roomName = roomDoc.data().name || 'Room';
@@ -197,19 +203,19 @@ function renderFloorPlanItemPage(item, itemType, planId, plan) {
 
                     // Breadcrumb: House › Floor Name › Room Name › Item Name
                     buildHouseBreadcrumb([
-                        { label: 'House',       hash: '#house' },
-                        { label: floorName,     hash: '#floor/' + storedFloorId },
-                        { label: roomName,      hash: '#room/' + roomId },
-                        { label: displayName,   hash: null }
+                        { label: 'House',           hash: '#house' },
+                        { label: floorName,         hash: '#floor/' + storedFloorId },
+                        { label: roomName || 'Room', hash: '#room/' + firestoreRoomId },
+                        { label: displayName,        hash: null }
                     ]);
 
-                    // Meta line — add room link + floor plan link
+                    // Meta line — room link + floor plan link
                     var sep1 = document.createTextNode(' · ');
                     metaEl.appendChild(sep1);
                     var roomLink = document.createElement('a');
-                    roomLink.href        = '#room/' + roomId;
+                    roomLink.href        = '#room/' + firestoreRoomId;
                     roomLink.className   = 'breadcrumb-link';
-                    roomLink.textContent = roomName;
+                    roomLink.textContent = roomName || 'Room';
                     metaEl.appendChild(roomLink);
 
                     var sep2 = document.createTextNode(' · ');

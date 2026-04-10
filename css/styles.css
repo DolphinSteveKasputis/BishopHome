@@ -2589,6 +2589,26 @@ button {
     vertical-align: middle;
 }
 
+/* Fixture flyout sub-tool buttons */
+.fp-fixture-subtool {
+    font-size: 0.82em;
+    padding: 4px 8px;
+    margin-left: 2px;
+    background: #f0fdf4;
+    border: 1px solid #86efac;
+    border-radius: 4px;
+}
+.fp-fixture-subtool.active {
+    background: #dcfce7;
+    border-color: #4ade80;
+}
+
+/* Plumbing mode active button */
+#fpModePlumbing.active {
+    background: #0369a1;
+    color: #fff;
+}
+
 /* Scrollable canvas area */
 .fp-canvas-wrapper {
     flex: 1;

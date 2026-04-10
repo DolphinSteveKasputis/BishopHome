@@ -283,7 +283,7 @@ Things, Sub-Things, and Items can all be added via `+Photo` button:
 ### Floor Plan (`floorplan.js`)
 An interactive drawing tool for each floor.
 
-**Firestore**: `floorPlans` — `floorId`, `widthFt`, `heightFt`, `rooms[]`, `doors[]`, `windows[]`, `plumbing[]`, `ceilingFixtures[]`, `recessedLights[]`, `wallPlates[]`, `updatedAt`
+**Firestore**: `floorPlans` — `floorId`, `widthFt`, `heightFt`, `rooms[]`, `doors[]`, `windows[]`, `plumbing[]`, `ceilingFixtures[]`, `recessedLights[]`, `wallPlates[]`, `fixtures[]`, `plumbingEndpoints[]`, `updatedAt`
 
 **Features**:
 - SVG-based canvas with optional grid overlay
@@ -293,12 +293,16 @@ An interactive drawing tool for each floor.
 - Rectilinear room polygons (all angles are 90°, but L/T/U shapes are possible)
 - **Room link modal**: always does a fresh Firestore query when opened so rooms added after the page loaded appear; existing unplaced rooms listed first (pre-selected if any exist); "Create new room" option at the bottom; new-name field only shown when "Create new" is selected
 - **Dimensions auto-save**: when dimensions are confirmed in the Dimensions modal, the plan is immediately saved to Firestore (no need to also click the Save button). The floor detail thumbnail shows "Floor plan dimensions set — click Edit Floor Plan to draw rooms" once saved but before any rooms are drawn.
-- **Doors**: placed on room walls; show swing arc + hinge dot + jamb tick marks at each end; frame width and inseam (clear opening) tracked separately; darker color when unselected for visibility; can be dragged to slide along wall; silent-save after drag
+- **Doors**: placed on room walls; frame width and inseam tracked separately; can be dragged along wall; silent-save after drag. Door `subtype` controls rendering style:
+  - `single` (default): swing arc + hinge dot + jamb ticks
+  - `french`: two half-width panels with separate swing arcs, center divider post, "FR" label
+  - `sliding`: two overlapping panel rects side-by-side, no arc, "SL" label
+  - `pocket`: dashed pocket cavity rect extending into wall, door panel line, "PK" label
 - **Windows**: placed on room walls; total frame width and inseam (e.g., for blind sizing) tracked separately; can be dragged to slide along wall; silent-save after drag
 - **Wall plates** (🔌 Plate tool): unified outlet+switch entity placed on room walls; 1–4 slots per plate; each slot is a switch (single-pole/3-way/dimmer/smart) or outlet (standard/GFCI/220V/USB); per-slot symbol and divider lines render on the plate; plate scales in width with slot count; can be dragged along wall; Edit Marker shows slot editor (add/remove slots, type, controls, breaker link); position-from-wall in edit modal
 - **Recessed lights** (◎ Recessed tool): click inside a room to drop instantly (no modal); each light is an independent record supporting Facts, Problems, and Activities via targetType `recessedLight`; drag to reposition; Edit Marker for label, notes, and history
-- Plumbing markers: toilets, sinks, bathtubs, showers, floor drains, water heater, washer/dryer hookup
-- Ceiling fixtures (lights, ceiling fans) shown as symbols inside rooms; can be dragged to reposition
+- **Layout Fixtures** (🛁 Fixtures flyout in Layout mode): click-to-drop toilet, sink, or tub/shower symbol inside a room; each is an independent record with orientation (0–270°), name, notes; draggable in Layout/Select mode; Edit Marker opens edit modal with name/orientation/notes/delete
+- **Ceiling fixtures**: shown as symbols inside rooms; `subtype` controls appearance: `fan` (4 blades), `fan-light` (blades + center bulb), `drop-light` (pendant stub), `chandelier` (4 arms with dots), `flush-mount` (concentric rings), `generic` (8-ray starburst + bulb); backward compat: `category === 'ceiling-fan'` maps to subtype `fan`
 - Stairs shown with hatch pattern and label
 - **Auto-save on drag**: all marker drags (doors, windows, wall plates, recessed lights, ceiling fixtures) silently save to Firestore on mouse-up — position persists across navigation without pressing Save
 
@@ -310,15 +314,21 @@ An interactive drawing tool for each floor.
 - Saving applies the override, clamping to valid range; position section is hidden when adding a new marker
 
 **3-Row Toolbar**:
-- **Row 1 — Mode bar** (dark navy background): pill-style `Layout` and `Electrical` buttons; active mode highlighted blue; exactly one mode active at all times; Layout is the default
-- **Row 2 — Tool bar**: tools shown depend on active mode; Select always visible; Layout tools (Room, Type, Door, Window) only in Layout mode; Electrical tools (Plate, Ceiling, Recessed, Dim toggle) only in Electrical mode
+- **Row 1 — Mode bar** (dark navy background): pill-style `Layout`, `Electrical`, and `Plumbing` buttons; active mode highlighted (blue/teal); exactly one mode active at all times; Layout is the default
+- **Row 2 — Tool bar**: tools shown depend on active mode; Select always visible; Layout tools (Room, Type, Door, Window, Fixtures flyout) only in Layout mode; Electrical tools (Plate, Ceiling, Recessed) only in Electrical mode; Plumbing tools (Spigot, Stub-out) only in Plumbing mode; Dim toggle visible in Electrical and Plumbing modes
 - **Row 3 — Properties bar** (amber tint): appears when an item is selected; shows item type label + action buttons (Edit Marker/Room, Edit Targets for wall plates, Remove); hidden when nothing is selected
 - Switching modes clears selection, resets to Select tool, exits any drawing or target-edit session
 - Layout items (rooms, doors, windows) can only be clicked/dragged in Layout mode; electrical items only in Electrical mode
 
+**Plumbing Overlay** (Phase 2):
+- Active when Plumbing mode is selected in Row 1
+- **Spigot** (🔧): click inside a room to drop; renders as blue circle with nozzle stub and "SP" label
+- **Stub-out** (⊕): click inside a room to drop; renders as blue circle with "C" (cold, blue), "H" (hot, red), or "C/H" (both, purple) letter; color matches water type; Edit Marker opens modal to set name/subtype/notes/delete
+- Plumbing endpoints visible in all modes (not faded); draggable in Plumbing/Select mode
+
 **Electrical Overlay**:
 - Active when Electrical mode is selected in Row 1
-- **Dim toggle**: checkbox in Electrical Row 2; when checked (default), structural elements render at 25% opacity so electrical elements pop visually
+- **Dim toggle**: checkbox in overlay Row 2; when checked (default), structural elements render at 25% opacity so electrical elements pop visually
 - **Wiring lines**: when a wall plate is selected in electrical mode, dashed colored lines draw from the plate to each fixture per slot (blue, red, purple, cyan for up to 4 slots)
 - **Edit Targets**: selecting a wall plate in electrical mode shows "Edit Targets" in Row 3; pressing it enters target-selection mode — recessed lights and ceiling fixtures show rings (amber ring + warm fill + center dot = linked, dashed teal ring + faint fill = available); click any fixture to toggle the link; Done or Escape exits and saves
 - **3-way auto-detection**: if two or more wall plates share the same target fixture, those plates automatically display a purple "3-way" badge above the plate symbol; badge only visible in electrical mode

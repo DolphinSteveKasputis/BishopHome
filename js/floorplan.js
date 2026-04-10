@@ -85,7 +85,7 @@ function loadFloorPlanPage(floorId) {
     fpTypeAnchor   = null;
 
     // Initialize plan to empty so fpRender() doesn't crash before the Firestore load completes
-    fpPlan = { rooms: [], doors: [], windows: [], outlets: [], switches: [], plumbing: [], ceilingFixtures: [], recessedLights: [], wallPlates: [] };
+    fpPlan = { rooms: [], doors: [], windows: [], outlets: [], switches: [], plumbing: [], ceilingFixtures: [], recessedLights: [], wallPlates: [], fixtures: [], plumbingEndpoints: [] };
 
     // Reset toolbar to select
     fpSetTool('select');
@@ -161,7 +161,7 @@ function loadFloorPlanPage(floorId) {
                 if (!fpPlan.wallPlates)       fpPlan.wallPlates       = [];
             } else {
                 // First time — show dimensions dialog, init with defaults
-                fpPlan = { widthFt: 40, heightFt: 30, rooms: [], doors: [], windows: [], outlets: [], switches: [], plumbing: [], ceilingFixtures: [], recessedLights: [], wallPlates: [] };
+                fpPlan = { widthFt: 40, heightFt: 30, rooms: [], doors: [], windows: [], outlets: [], switches: [], plumbing: [], ceilingFixtures: [], recessedLights: [], wallPlates: [], fixtures: [], plumbingEndpoints: [] };
                 document.getElementById('fpWidthInput').value  = 40;
                 document.getElementById('fpHeightInput').value = 30;
                 openModal('fpDimensionsModal');
@@ -325,7 +325,7 @@ function fpRender() {
 
     // ---- Structural group (may be faded in electrical mode) ----
     var structG = fpSvgG(svg, 'fp-structural');
-    if (fpActiveMode === 'electrical' && fpElecFade) {
+    if ((fpActiveMode === 'electrical' || fpActiveMode === 'plumbing') && fpElecFade) {
         structG.setAttribute('opacity', '0.25');
     }
 
@@ -338,8 +338,14 @@ function fpRender() {
     // Windows
     (fpPlan.windows || []).forEach(function(win) { fpRenderWindow(structG, win); });
 
-    // Plumbing
+    // Legacy plumbing markers (old generic system — kept for backward compat)
     (fpPlan.plumbing || []).forEach(function(m) { fpRenderPlumbing(structG, m); });
+
+    // Layout fixtures — toilet, sink, tub/shower (Phase 2)
+    (fpPlan.fixtures || []).forEach(function(f) { fpRenderFixture(structG, f); });
+
+    // Plumbing endpoints — spigots, stub-outs (Phase 2, visible in all modes)
+    (fpPlan.plumbingEndpoints || []).forEach(function(ep) { fpRenderPlumbingEndpoint(svg, ep); });
 
     // ---- Electrical markers (always full opacity) ----
     // Legacy outlet/switch (renders empty arrays harmlessly)
@@ -483,6 +489,10 @@ function fpRenderRoom(svg, room) {
             fpPlaceCeilingFixtureInRoom(e, room);
         } else if (fpActiveTool === 'recessed') {
             fpPlaceRecessedLightInRoom(e, room);
+        } else if (fpActiveTool === 'toilet' || fpActiveTool === 'sink' || fpActiveTool === 'tub') {
+            fpPlaceFixtureInRoom(e, room, fpActiveTool);
+        } else if (fpActiveTool === 'spigot' || fpActiveTool === 'stubout') {
+            fpPlacePlumbingEndpointInRoom(e, room, fpActiveTool);
         } else if (fpActiveTool === 'wallplate') {
             fpPlaceMarkerOnWall(e, room, 'wallplate');
         }
@@ -1247,10 +1257,6 @@ function fpRenderDoor(svg, door) {
     var oe = info.openEnd; // px coords of other side of opening
     var sw = door.swingLeft ? 1 : -1; // +1 = left normal, -1 = right normal
 
-    // Panel endpoint (door in open position — perpendicular to wall)
-    var panelX = h.x - sw * info.ny * fp2px(door.width);
-    var panelY = h.y + sw * info.nx * fp2px(door.width);
-
     var isSelected  = fpSelectedId === door.id && fpSelectedType === 'door';
     var strokeColor = isSelected ? '#f59e0b' : '#1e293b';  // amber when selected, near-black otherwise
     var jambLen     = 5;  // px — length of jamb tick marks on each side of opening
@@ -1261,8 +1267,7 @@ function fpRenderDoor(svg, door) {
         stroke: '#f8f8f8', 'stroke-width': 8, 'pointer-events': 'none'
     });
 
-    // 2. Jamb marks — short perpendicular ticks at each end of the opening,
-    //    drawn on both sides of the wall to clearly show the door frame.
+    // 2. Jamb marks — short perpendicular ticks at each end of the opening
     [h, oe].forEach(function(pt) {
         fpSvgEl(svg, 'line', {
             x1: pt.x - info.nx * jambLen, y1: pt.y - info.ny * jambLen,
@@ -1271,30 +1276,172 @@ function fpRenderDoor(svg, door) {
         });
     });
 
-    // 3. Door panel (solid line from hinge perpendicular into room)
-    fpSvgEl(svg, 'line', {
-        x1: h.x, y1: h.y, x2: panelX, y2: panelY,
-        stroke: strokeColor, 'stroke-width': isSelected ? 3 : 2.5, 'pointer-events': 'none'
-    });
+    var subtype = door.subtype || 'single';
 
-    // 4. Swing arc (quarter circle from panel end to opening end)
-    var sweepFlag = door.swingLeft ? 0 : 1;
-    var r = fp2px(door.width);
-    fpSvgEl(svg, 'path', {
-        d: 'M ' + panelX + ' ' + panelY +
-           ' A ' + r + ' ' + r + ' 0 0 ' + sweepFlag + ' ' + oe.x + ' ' + oe.y,
-        fill: 'none', stroke: isSelected ? '#f59e0b' : '#334155',
-        'stroke-width': isSelected ? 2 : 1.5,
-        'stroke-dasharray': '5,3', 'pointer-events': 'none'
-    });
+    if (subtype === 'single') {
+        // --- Single door: existing render ---
+        // Panel endpoint (door in open position — perpendicular to wall)
+        var panelX = h.x - sw * info.ny * fp2px(door.width);
+        var panelY = h.y + sw * info.nx * fp2px(door.width);
 
-    // 5. Hinge dot
-    fpSvgEl(svg, 'circle', {
-        cx: h.x, cy: h.y, r: isSelected ? 4 : 3,
-        fill: strokeColor, 'pointer-events': 'none'
-    });
+        // Door panel (solid line from hinge perpendicular into room)
+        fpSvgEl(svg, 'line', {
+            x1: h.x, y1: h.y, x2: panelX, y2: panelY,
+            stroke: strokeColor, 'stroke-width': isSelected ? 3 : 2.5, 'pointer-events': 'none'
+        });
 
-    // 5. Transparent hit-area line for drag + click (wider stroke, pointer events enabled)
+        // Swing arc (quarter circle from panel end to opening end)
+        var sweepFlag = door.swingLeft ? 0 : 1;
+        var r = fp2px(door.width);
+        fpSvgEl(svg, 'path', {
+            d: 'M ' + panelX + ' ' + panelY +
+               ' A ' + r + ' ' + r + ' 0 0 ' + sweepFlag + ' ' + oe.x + ' ' + oe.y,
+            fill: 'none', stroke: isSelected ? '#f59e0b' : '#334155',
+            'stroke-width': isSelected ? 2 : 1.5,
+            'stroke-dasharray': '5,3', 'pointer-events': 'none'
+        });
+
+        // Hinge dot
+        fpSvgEl(svg, 'circle', {
+            cx: h.x, cy: h.y, r: isSelected ? 4 : 3,
+            fill: strokeColor, 'pointer-events': 'none'
+        });
+
+    } else if (subtype === 'french') {
+        // --- French door: two panels, each half width, hinged at h and oe ---
+        var halfPx = fp2px(door.width) / 2;
+
+        // Center divider post at midpoint of opening
+        var midX = (h.x + oe.x) / 2;
+        var midY = (h.y + oe.y) / 2;
+        fpSvgEl(svg, 'line', {
+            x1: midX - info.nx * jambLen, y1: midY - info.ny * jambLen,
+            x2: midX + info.nx * jambLen, y2: midY + info.ny * jambLen,
+            stroke: strokeColor, 'stroke-width': isSelected ? 2.5 : 2, 'pointer-events': 'none'
+        });
+
+        // Left panel (hinge at h, swings toward room)
+        var lPanelX = h.x - sw * info.ny * halfPx;
+        var lPanelY = h.y + sw * info.nx * halfPx;
+        fpSvgEl(svg, 'line', {
+            x1: h.x, y1: h.y, x2: lPanelX, y2: lPanelY,
+            stroke: strokeColor, 'stroke-width': isSelected ? 3 : 2.5, 'pointer-events': 'none'
+        });
+        var lSweep = door.swingLeft ? 0 : 1;
+        fpSvgEl(svg, 'path', {
+            d: 'M ' + lPanelX + ' ' + lPanelY + ' A ' + halfPx + ' ' + halfPx + ' 0 0 ' + lSweep + ' ' + midX + ' ' + midY,
+            fill: 'none', stroke: isSelected ? '#f59e0b' : '#334155',
+            'stroke-width': isSelected ? 2 : 1.5, 'stroke-dasharray': '5,3', 'pointer-events': 'none'
+        });
+        fpSvgEl(svg, 'circle', { cx: h.x, cy: h.y, r: isSelected ? 4 : 3, fill: strokeColor, 'pointer-events': 'none' });
+
+        // Right panel (hinge at oe, swings toward room)
+        var rPanelX = oe.x - sw * info.ny * halfPx;
+        var rPanelY = oe.y + sw * info.nx * halfPx;
+        fpSvgEl(svg, 'line', {
+            x1: oe.x, y1: oe.y, x2: rPanelX, y2: rPanelY,
+            stroke: strokeColor, 'stroke-width': isSelected ? 3 : 2.5, 'pointer-events': 'none'
+        });
+        var rSweep = door.swingLeft ? 1 : 0;
+        fpSvgEl(svg, 'path', {
+            d: 'M ' + rPanelX + ' ' + rPanelY + ' A ' + halfPx + ' ' + halfPx + ' 0 0 ' + rSweep + ' ' + midX + ' ' + midY,
+            fill: 'none', stroke: isSelected ? '#f59e0b' : '#334155',
+            'stroke-width': isSelected ? 2 : 1.5, 'stroke-dasharray': '5,3', 'pointer-events': 'none'
+        });
+        fpSvgEl(svg, 'circle', { cx: oe.x, cy: oe.y, r: isSelected ? 4 : 3, fill: strokeColor, 'pointer-events': 'none' });
+
+        // Type label
+        var lblFR = fpSvgEl(svg, 'text', { x: midX, y: midY - 8, 'text-anchor': 'middle', 'font-size': 7, fill: strokeColor, 'pointer-events': 'none' });
+        lblFR.textContent = 'FR';
+
+    } else if (subtype === 'sliding') {
+        // --- Sliding door: two panel lines side-by-side along the wall opening ---
+        var panelW = fp2px(door.width) / 2;
+        // Direction vector along wall (from h to oe)
+        var dx = oe.x - h.x, dy = oe.y - h.y;
+        var len = Math.sqrt(dx * dx + dy * dy) || 1;
+        var ux = dx / len, uy = dy / len;  // unit along wall
+        // Offset perpendicular (into room side) for panel depth representation
+        var depthPx = 6; // px panel depth shown in plan
+        var ox = -sw * info.ny * depthPx;
+        var oy =  sw * info.nx * depthPx;
+
+        // Panel 1: left half of opening
+        var p1sx = h.x, p1sy = h.y;
+        var p1ex = h.x + ux * panelW, p1ey = h.y + uy * panelW;
+        fpSvgEl(svg, 'line', { x1: p1sx, y1: p1sy, x2: p1ex, y2: p1ey, stroke: strokeColor, 'stroke-width': isSelected ? 2.5 : 2, 'pointer-events': 'none' });
+        fpSvgEl(svg, 'line', { x1: p1sx + ox, y1: p1sy + oy, x2: p1ex + ox, y2: p1ey + oy, stroke: strokeColor, 'stroke-width': isSelected ? 2 : 1.5, 'pointer-events': 'none' });
+        fpSvgEl(svg, 'line', { x1: p1sx, y1: p1sy, x2: p1sx + ox, y2: p1sy + oy, stroke: strokeColor, 'stroke-width': isSelected ? 2 : 1.5, 'pointer-events': 'none' });
+        fpSvgEl(svg, 'line', { x1: p1ex, y1: p1ey, x2: p1ex + ox, y2: p1ey + oy, stroke: strokeColor, 'stroke-width': isSelected ? 2 : 1.5, 'pointer-events': 'none' });
+
+        // Panel 2: right half (offset slightly to show overlap)
+        var overlapPx = 4;
+        var p2sx = h.x + ux * (panelW - overlapPx), p2sy = h.y + uy * (panelW - overlapPx);
+        var p2ex = oe.x, p2ey = oe.y;
+        var p2ox = ox * 0.4, p2oy = oy * 0.4; // second panel slightly less depth to show layering
+        fpSvgEl(svg, 'line', { x1: p2sx, y1: p2sy, x2: p2ex, y2: p2ey, stroke: strokeColor, 'stroke-width': isSelected ? 2.5 : 2, 'pointer-events': 'none' });
+        fpSvgEl(svg, 'line', { x1: p2sx + p2ox, y1: p2sy + p2oy, x2: p2ex + p2ox, y2: p2ey + p2oy, stroke: strokeColor, 'stroke-width': isSelected ? 2 : 1.5, 'pointer-events': 'none' });
+        fpSvgEl(svg, 'line', { x1: p2sx, y1: p2sy, x2: p2sx + p2ox, y2: p2sy + p2oy, stroke: strokeColor, 'stroke-width': isSelected ? 2 : 1.5, 'pointer-events': 'none' });
+        fpSvgEl(svg, 'line', { x1: p2ex, y1: p2ey, x2: p2ex + p2ox, y2: p2ey + p2oy, stroke: strokeColor, 'stroke-width': isSelected ? 2 : 1.5, 'pointer-events': 'none' });
+
+        // Type label
+        var midSX = (h.x + oe.x) / 2, midSY = (h.y + oe.y) / 2;
+        var lblSL = fpSvgEl(svg, 'text', { x: midSX, y: midSY - 8, 'text-anchor': 'middle', 'font-size': 7, fill: strokeColor, 'pointer-events': 'none' });
+        lblSL.textContent = 'SL';
+
+    } else if (subtype === 'pocket') {
+        // --- Pocket door: slides into the wall (dashed rect showing pocket) ---
+        var pWidthPx = fp2px(door.width);
+        // Direction along wall from h toward oe
+        var pdx = oe.x - h.x, pdy = oe.y - h.y;
+        var pLen = Math.sqrt(pdx * pdx + pdy * pdy) || 1;
+        var pux = pdx / pLen, puy = pdy / pLen; // unit along wall
+        // Pocket extends from h back into the wall (opposite room-normal)
+        var pocketDepth = 8; // px
+        var pox = sw * info.ny * pocketDepth;  // into wall (away from room)
+        var poy = -sw * info.nx * pocketDepth;
+
+        // Dashed rect: the pocket cavity inside the wall
+        fpSvgEl(svg, 'rect', {
+            x: Math.min(h.x, h.x + pux * pWidthPx + pox) - 1,
+            y: Math.min(h.y, h.y + puy * pWidthPx + poy) - 1,
+            width: Math.abs(pux * pWidthPx + pox) + 2,
+            height: Math.abs(puy * pWidthPx + poy) + 2,
+            fill: 'none', stroke: strokeColor,
+            'stroke-width': isSelected ? 2 : 1.5,
+            'stroke-dasharray': '4,3', 'pointer-events': 'none'
+        });
+
+        // Door panel line (in opening — shows where door sits when closed)
+        fpSvgEl(svg, 'line', {
+            x1: h.x, y1: h.y, x2: oe.x, y2: oe.y,
+            stroke: strokeColor, 'stroke-width': isSelected ? 2.5 : 2, 'pointer-events': 'none'
+        });
+
+        // Type label
+        var midPX = (h.x + oe.x) / 2, midPY = (h.y + oe.y) / 2;
+        var lblPK = fpSvgEl(svg, 'text', { x: midPX, y: midPY - 8, 'text-anchor': 'middle', 'font-size': 7, fill: strokeColor, 'pointer-events': 'none' });
+        lblPK.textContent = 'PK';
+
+    } else {
+        // Fallback to single for unknown subtypes
+        var fbPanelX = h.x - sw * info.ny * fp2px(door.width);
+        var fbPanelY = h.y + sw * info.nx * fp2px(door.width);
+        fpSvgEl(svg, 'line', {
+            x1: h.x, y1: h.y, x2: fbPanelX, y2: fbPanelY,
+            stroke: strokeColor, 'stroke-width': isSelected ? 3 : 2.5, 'pointer-events': 'none'
+        });
+        var fbSweepFlag = door.swingLeft ? 0 : 1;
+        var fbR = fp2px(door.width);
+        fpSvgEl(svg, 'path', {
+            d: 'M ' + fbPanelX + ' ' + fbPanelY + ' A ' + fbR + ' ' + fbR + ' 0 0 ' + fbSweepFlag + ' ' + oe.x + ' ' + oe.y,
+            fill: 'none', stroke: isSelected ? '#f59e0b' : '#334155',
+            'stroke-width': isSelected ? 2 : 1.5, 'stroke-dasharray': '5,3', 'pointer-events': 'none'
+        });
+        fpSvgEl(svg, 'circle', { cx: h.x, cy: h.y, r: isSelected ? 4 : 3, fill: strokeColor, 'pointer-events': 'none' });
+    }
+
+    // Transparent hit-area line for drag + click (wider stroke, pointer events enabled)
     var hitLine = fpSvgEl(svg, 'line', {
         x1: h.x, y1: h.y, x2: oe.x, y2: oe.y,
         stroke: 'transparent', 'stroke-width': 14,
@@ -1784,6 +1931,25 @@ document.getElementById('fpRoomEditCancelBtn').addEventListener('click', functio
 });
 
 // ============================================================
+// AUTO-NAMING HELPER
+// ============================================================
+
+/**
+ * Returns a default name for a newly placed item.
+ * If nothing else has this name, returns baseName.
+ * If one already exists, returns "baseName 2", then "baseName 3", etc.
+ * @param {Array} existingItems  - the fpPlan array to scan (may be null/undefined)
+ * @param {string} baseName      - e.g. "Door", "Window", "Recessed Light"
+ */
+function fpAutoName(existingItems, baseName) {
+    var items = existingItems || [];
+    var count = items.filter(function(item) {
+        return item.name && (item.name === baseName || item.name.startsWith(baseName + ' '));
+    }).length;
+    return count === 0 ? baseName : baseName + ' ' + (count + 1);
+}
+
+// ============================================================
 // DELETE SELECTED ROOM SHAPE
 // ============================================================
 
@@ -1809,6 +1975,8 @@ function fpDeleteSelected() {
         fpPlan.ceilingFixtures  = (fpPlan.ceilingFixtures  || []).filter(function(m) { return m.roomId !== fpSelectedId; });
         fpPlan.recessedLights   = (fpPlan.recessedLights   || []).filter(function(m) { return m.roomId !== fpSelectedId; });
         fpPlan.wallPlates       = (fpPlan.wallPlates       || []).filter(function(m) { return m.roomId !== fpSelectedId; });
+        fpPlan.fixtures         = (fpPlan.fixtures         || []).filter(function(m) { return m.roomId !== fpSelectedId; });
+        fpPlan.plumbingEndpoints= (fpPlan.plumbingEndpoints|| []).filter(function(m) { return m.roomId !== fpSelectedId; });
         fpSetStatus('Room removed from floor plan.');
     } else if (fpSelectedType === 'outlet') {
         if (!confirm('Delete this outlet marker?')) return;
@@ -1854,6 +2022,26 @@ function fpDeleteSelected() {
         fpSilentSave();
         fpRender();
         fpSetStatus('Wall plate deleted.');
+        return;
+    } else if (fpSelectedType === 'fixture') {
+        if (!confirm('Delete this fixture?')) return;
+        fpPlan.fixtures = (fpPlan.fixtures || []).filter(function(m) { return m.id !== fpSelectedId; });
+        fpDirty = true;
+        fpSelectedId = null;
+        fpSelectedType = 'room';
+        fpSilentSave();
+        fpRender();
+        fpSetStatus('Fixture removed.');
+        return;
+    } else if (fpSelectedType === 'plumbingEndpoint') {
+        if (!confirm('Delete this plumbing endpoint?')) return;
+        fpPlan.plumbingEndpoints = (fpPlan.plumbingEndpoints || []).filter(function(m) { return m.id !== fpSelectedId; });
+        fpDirty = true;
+        fpSelectedId = null;
+        fpSelectedType = 'room';
+        fpSilentSave();
+        fpRender();
+        fpSetStatus('Plumbing endpoint removed.');
         return;
     }
 
@@ -1995,6 +2183,334 @@ function fpOpenWindowEditModal(win) {
     openModal('fpWindowModal');
 }
 
+// ============================================================
+// FIXTURE RENDERING — toilet, sink, tub/shower (Phase 2)
+// ============================================================
+
+/**
+ * Render a plumbing fixture (toilet/sink/tub) as an SVG symbol.
+ * Centered at fp2px(fix.x), fp2px(fix.y), rotated per fix.orientation.
+ * @param {SVGElement} svg  - parent SVG/group
+ * @param {object}     fix  - fixture record from fpPlan.fixtures[]
+ */
+function fpRenderFixture(svg, fix) {
+    var cx = fp2px(fix.x);
+    var cy = fp2px(fix.y);
+    var isSelected = (fpSelectedId === fix.id && fpSelectedType === 'fixture');
+    var strokeColor = isSelected ? '#f59e0b' : '#1e4d8c';
+    var strokeW     = isSelected ? 2.5 : 1.5;
+
+    var g = fpSvgG(svg, 'fp-fixture');
+    g.style.cursor = 'pointer';
+
+    // Rotation: 0=0°, 1=90°, 2=180°, 3=270°
+    var deg = (fix.orientation || 0) * 90;
+    g.setAttribute('transform', 'rotate(' + deg + ',' + cx + ',' + cy + ')');
+
+    if (fix.fixtureType === 'toilet') {
+        // Bowl: ellipse
+        fpSvgEl(g, 'ellipse', {
+            cx: cx, cy: cy + 4, rx: 10, ry: 11,
+            fill: isSelected ? '#fffacc' : '#f0f4ff',
+            stroke: strokeColor, 'stroke-width': strokeW, 'pointer-events': 'none'
+        });
+        // Tank: rectangle at top
+        fpSvgEl(g, 'rect', {
+            x: cx - 10, y: cy - 16, width: 20, height: 8, rx: 2,
+            fill: isSelected ? '#fffacc' : '#dce8ff',
+            stroke: strokeColor, 'stroke-width': strokeW, 'pointer-events': 'none'
+        });
+
+    } else if (fix.fixtureType === 'sink') {
+        // Basin: rounded rect
+        fpSvgEl(g, 'rect', {
+            x: cx - 9, y: cy - 7, width: 18, height: 14, rx: 3,
+            fill: isSelected ? '#fffacc' : '#e0f4ff',
+            stroke: strokeColor, 'stroke-width': strokeW, 'pointer-events': 'none'
+        });
+        // Drain: small center circle
+        fpSvgEl(g, 'circle', {
+            cx: cx, cy: cy, r: 2,
+            fill: strokeColor, 'pointer-events': 'none'
+        });
+
+    } else if (fix.fixtureType === 'tub') {
+        // Outer rect
+        fpSvgEl(g, 'rect', {
+            x: cx - 8, y: cy - 13, width: 16, height: 26, rx: 2,
+            fill: isSelected ? '#fffacc' : '#e0f4ff',
+            stroke: strokeColor, 'stroke-width': strokeW, 'pointer-events': 'none'
+        });
+        // Inner oval
+        fpSvgEl(g, 'ellipse', {
+            cx: cx, cy: cy + 1, rx: 6, ry: 9,
+            fill: 'none', stroke: strokeColor, 'stroke-width': strokeW * 0.8, 'pointer-events': 'none'
+        });
+        // Faucet dot at top
+        fpSvgEl(g, 'circle', {
+            cx: cx, cy: cy - 10, r: 2,
+            fill: strokeColor, 'pointer-events': 'none'
+        });
+    }
+
+    // Transparent hit area
+    fpSvgEl(g, 'circle', {
+        cx: cx, cy: cy, r: 16,
+        fill: 'transparent', stroke: 'none', style: 'cursor:pointer'
+    });
+
+    // Label below
+    var lbl = fpSvgEl(g, 'text', {
+        x: cx, y: cy + 22,
+        'text-anchor': 'middle', 'font-size': 7,
+        fill: strokeColor, 'pointer-events': 'none'
+    });
+    lbl.textContent = fix.name || fix.fixtureType || '';
+
+    // Make draggable
+    fpMakeDraggableFixture(g, fix);
+}
+
+/**
+ * Make a fixture group draggable in layout/select mode.
+ * A click-without-drag selects; a drag moves the fixture.
+ */
+function fpMakeDraggableFixture(el, fix) {
+    el.style.cursor = 'move';
+    el.addEventListener('mousedown', function(eDown) {
+        if (fpActiveTool !== 'select') return;
+        if (fpActiveMode !== 'layout') return;
+        eDown.preventDefault();
+        eDown.stopPropagation();
+
+        var startPt = fpMouseToFeet(eDown);
+        var startX  = fix.x, startY = fix.y;
+        var dragged = false;
+
+        function onMove(e) {
+            var cur = fpMouseToFeet(e);
+            dragged = true;
+            fix.x = fpSnap(Math.max(0, Math.min(fpPlan.widthFt,  startX + cur.x - startPt.x)));
+            fix.y = fpSnap(Math.max(0, Math.min(fpPlan.heightFt, startY + cur.y - startPt.y)));
+            fpDirty = true;
+            fpRender();
+        }
+
+        function onUp() {
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup',  onUp);
+            if (dragged) fpSilentSave();
+            else fpSelectMarker('fixture', fix.id);
+        }
+
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup',   onUp);
+    });
+}
+
+// ============================================================
+// PLUMBING ENDPOINT RENDERING — spigot, stub-out (Phase 2)
+// ============================================================
+
+/**
+ * Render a plumbing endpoint (spigot or stub-out) symbol.
+ * @param {SVGElement} svg - parent SVG element
+ * @param {object}     ep  - endpoint record from fpPlan.plumbingEndpoints[]
+ */
+function fpRenderPlumbingEndpoint(svg, ep) {
+    var cx = fp2px(ep.x);
+    var cy = fp2px(ep.y);
+    var isSelected = (fpSelectedId === ep.id && fpSelectedType === 'plumbingEndpoint');
+    var strokeColor = isSelected ? '#f59e0b' : '#0369a1';
+    var strokeW     = isSelected ? 2.5 : 1.5;
+
+    var g = fpSvgG(svg, 'fp-plumbing-ep');
+    g.style.cursor = 'pointer';
+
+    if (ep.endpointType === 'spigot') {
+        // Outer circle
+        fpSvgEl(g, 'circle', {
+            cx: cx, cy: cy, r: 9,
+            fill: '#e0f2fe', stroke: strokeColor, 'stroke-width': strokeW, 'pointer-events': 'none'
+        });
+        // Stub extending right (spigot nozzle)
+        fpSvgEl(g, 'rect', {
+            x: cx + 8, y: cy - 3, width: 8, height: 6, rx: 1,
+            fill: strokeColor, 'pointer-events': 'none'
+        });
+        // SP label
+        var spLbl = fpSvgEl(g, 'text', {
+            x: cx, y: cy + 3, 'text-anchor': 'middle', 'font-size': 7,
+            'font-weight': 'bold', fill: strokeColor, 'pointer-events': 'none'
+        });
+        spLbl.textContent = 'SP';
+
+    } else {
+        // stub-out: circle with letter(s) for cold/hot/both
+        var subtypeColors = { cold: '#0369a1', hot: '#b91c1c', both: '#6b21a8' };
+        var sc = subtypeColors[ep.subtype] || strokeColor;
+        if (isSelected) sc = '#f59e0b';
+
+        fpSvgEl(g, 'circle', {
+            cx: cx, cy: cy, r: 9,
+            fill: '#f0f9ff', stroke: sc, 'stroke-width': strokeW, 'pointer-events': 'none'
+        });
+
+        var labelText = ep.subtype === 'hot' ? 'H' : (ep.subtype === 'both' ? 'C/H' : 'C');
+        var soLbl = fpSvgEl(g, 'text', {
+            x: cx, y: cy + 3, 'text-anchor': 'middle',
+            'font-size': ep.subtype === 'both' ? 5.5 : 7,
+            'font-weight': 'bold', fill: sc, 'pointer-events': 'none'
+        });
+        soLbl.textContent = labelText;
+    }
+
+    // Transparent hit area
+    fpSvgEl(g, 'circle', {
+        cx: cx, cy: cy, r: 14,
+        fill: 'transparent', stroke: 'none', style: 'cursor:pointer'
+    });
+
+    // Name label below
+    var nameLbl = fpSvgEl(g, 'text', {
+        x: cx, y: cy + 18, 'text-anchor': 'middle', 'font-size': 7,
+        fill: strokeColor, 'pointer-events': 'none'
+    });
+    nameLbl.textContent = ep.name || '';
+
+    fpMakeDraggablePlumbingEndpoint(g, ep);
+}
+
+/**
+ * Make a plumbing endpoint draggable in plumbing/select mode.
+ */
+function fpMakeDraggablePlumbingEndpoint(el, ep) {
+    el.style.cursor = 'move';
+    el.addEventListener('mousedown', function(eDown) {
+        if (fpActiveTool !== 'select') return;
+        if (fpActiveMode !== 'plumbing') return;
+        eDown.preventDefault();
+        eDown.stopPropagation();
+
+        var startPt = fpMouseToFeet(eDown);
+        var startX  = ep.x, startY = ep.y;
+        var dragged = false;
+
+        function onMove(e) {
+            var cur = fpMouseToFeet(e);
+            dragged = true;
+            ep.x = fpSnap(Math.max(0, Math.min(fpPlan.widthFt,  startX + cur.x - startPt.x)));
+            ep.y = fpSnap(Math.max(0, Math.min(fpPlan.heightFt, startY + cur.y - startPt.y)));
+            fpDirty = true;
+            fpRender();
+        }
+
+        function onUp() {
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup',  onUp);
+            if (dragged) fpSilentSave();
+            else fpSelectMarker('plumbingEndpoint', ep.id);
+        }
+
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup',   onUp);
+    });
+}
+
+// ============================================================
+// FIXTURE + PLUMBING ENDPOINT PLACEMENT (click-to-drop)
+// ============================================================
+
+/**
+ * Drop a fixture (toilet/sink/tub) into the room at the clicked point.
+ * @param {MouseEvent} e          - canvas click event
+ * @param {object}     room       - room from fpPlan.rooms
+ * @param {string}     fixtureType - 'toilet' | 'sink' | 'tub'
+ */
+function fpPlaceFixtureInRoom(e, room, fixtureType) {
+    var pt = fpMouseToFeet(e);
+    if (!fpPointInPolygon(pt, room.points)) return;
+    var baseNames = { toilet: 'Toilet', sink: 'Sink', tub: 'Tub' };
+    var fix = {
+        id:          fpGenId(),
+        roomId:      room.id,
+        x:           fpSnap(pt.x),
+        y:           fpSnap(pt.y),
+        fixtureType: fixtureType,
+        orientation: 0,
+        name:        fpAutoName(fpPlan.fixtures || [], baseNames[fixtureType] || fixtureType),
+        notes:       ''
+    };
+    if (!fpPlan.fixtures) fpPlan.fixtures = [];
+    fpPlan.fixtures.push(fix);
+    fpDirty = true;
+    fpSelectedId   = fix.id;
+    fpSelectedType = 'fixture';
+    fpSilentSave();
+    fpRender();
+    fpSetStatus(fix.name + ' placed. Use Select tool to move or edit.');
+}
+
+/**
+ * Drop a plumbing endpoint (spigot/stubout) into the room at the clicked point.
+ * @param {MouseEvent} e    - canvas click event
+ * @param {object}     room - room from fpPlan.rooms
+ * @param {string}     tool - 'spigot' | 'stubout'
+ */
+function fpPlacePlumbingEndpointInRoom(e, room, tool) {
+    var pt = fpMouseToFeet(e);
+    if (!fpPointInPolygon(pt, room.points)) return;
+    var baseNames = { spigot: 'Spigot', stubout: 'Stub-out' };
+    var ep = {
+        id:           fpGenId(),
+        roomId:       room.id,
+        x:            fpSnap(pt.x),
+        y:            fpSnap(pt.y),
+        endpointType: tool,
+        subtype:      'cold',
+        name:         fpAutoName(fpPlan.plumbingEndpoints || [], baseNames[tool] || tool),
+        notes:        ''
+    };
+    if (!fpPlan.plumbingEndpoints) fpPlan.plumbingEndpoints = [];
+    fpPlan.plumbingEndpoints.push(ep);
+    fpDirty = true;
+    fpSelectedId   = ep.id;
+    fpSelectedType = 'plumbingEndpoint';
+    fpSilentSave();
+    fpRender();
+    fpSetStatus(ep.name + ' placed. Use Select tool to move or edit.');
+}
+
+// ============================================================
+// FIXTURE EDIT MODAL
+// ============================================================
+
+/**
+ * Open the fixture edit modal pre-populated with the given fixture's data.
+ * @param {object} fx - fixture record from fpPlan.fixtures[]
+ */
+function fpOpenFixtureEditModal(fx) {
+    document.getElementById('fpFixtureLabel').value       = fx.name || '';
+    document.getElementById('fpFixtureOrientation').value = String(fx.orientation || 0);
+    document.getElementById('fpFixtureNotes').value       = fx.notes || '';
+    var modal = document.getElementById('fpFixtureModal');
+    modal.dataset.editId = fx.id;
+    openModal('fpFixtureModal');
+}
+
+/**
+ * Open the plumbing endpoint edit modal pre-populated with the given endpoint's data.
+ * @param {object} ep - endpoint record from fpPlan.plumbingEndpoints[]
+ */
+function fpOpenPlumbingEndpointEditModal(ep) {
+    document.getElementById('fpPlumbingEpLabel').value   = ep.name || '';
+    document.getElementById('fpPlumbingEpSubtype').value = ep.subtype || 'cold';
+    document.getElementById('fpPlumbingEpNotes').value   = ep.notes || '';
+    var modal = document.getElementById('fpPlumbingEndpointModal');
+    modal.dataset.editId = ep.id;
+    openModal('fpPlumbingEndpointModal');
+}
+
 document.getElementById('fpDoorSaveBtn').addEventListener('click', function() {
     var m     = document.getElementById('fpDoorModal');
     var swing = document.getElementById('fpDoorSwingSelect').value;
@@ -2033,7 +2549,9 @@ document.getElementById('fpDoorSaveBtn').addEventListener('click', function() {
             width:        frameVal,
             inseamWidth:  inseamVal,
             swingInward:  swing.startsWith('inward'),
-            swingLeft:    swing.endsWith('left')
+            swingLeft:    swing.endsWith('left'),
+            subtype:      'single',
+            name:         fpAutoName(fpPlan.doors, 'Door')
         };
         if (!fpPlan.doors) fpPlan.doors = [];
         fpPlan.doors.push(door);
@@ -2093,7 +2611,9 @@ document.getElementById('fpWindowSaveBtn').addEventListener('click', function() 
             segmentIndex: parseInt(m.dataset.segIndex, 10),
             position:     parseFloat(m.dataset.position),
             width:        frameVal,
-            inseamWidth:  inseamVal
+            inseamWidth:  inseamVal,
+            subtype:      'fixed',
+            name:         fpAutoName(fpPlan.windows, 'Window')
         };
         if (!fpPlan.windows) fpPlan.windows = [];
         fpPlan.windows.push(win);
@@ -2160,11 +2680,77 @@ document.getElementById('fpDimensionsCancelBtn').addEventListener('click', funct
 // TOOL SELECTION
 // ============================================================
 
-var FP_ALL_TOOLS = ['fpToolSelect','fpToolRoom','fpToolDoor','fpToolWindow','fpToolWallPlate','fpToolCeiling','fpToolRecessed'];
+var FP_ALL_TOOLS = ['fpToolSelect','fpToolRoom','fpToolDoor','fpToolWindow','fpToolWallPlate','fpToolCeiling','fpToolRecessed','fpToolToilet','fpToolSink','fpToolTub','fpToolSpigot','fpToolStubout'];
 
 FP_ALL_TOOLS.forEach(function(id) {
     var btn = document.getElementById(id);
     if (btn) btn.addEventListener('click', function() { fpSetTool(btn.dataset.tool); });
+});
+
+// ---- Fixtures flyout toggle ----
+var ftToggleBtn = document.getElementById('fpToolFixturesToggle');
+if (ftToggleBtn) {
+    ftToggleBtn.addEventListener('click', function() {
+        var subTools = document.querySelectorAll('.fp-fixture-subtool');
+        var visible  = subTools.length && subTools[0].style.display !== 'none';
+        subTools.forEach(function(el) { el.style.display = visible ? 'none' : ''; });
+        ftToggleBtn.textContent = visible ? '🛁 Fixtures ▾' : '🛁 Fixtures ▴';
+        ftToggleBtn.classList.toggle('active', !visible);
+    });
+}
+
+// ---- Fixture modal save / delete ----
+document.getElementById('fpFixtureSaveBtn').addEventListener('click', function() {
+    var modal  = document.getElementById('fpFixtureModal');
+    var editId = modal.dataset.editId;
+    var fix    = (fpPlan.fixtures || []).find(function(f) { return f.id === editId; });
+    if (!fix) return;
+    fix.name        = document.getElementById('fpFixtureLabel').value.trim() || fix.name;
+    fix.orientation = parseInt(document.getElementById('fpFixtureOrientation').value, 10) || 0;
+    fix.notes       = document.getElementById('fpFixtureNotes').value;
+    fpDirty = true;
+    fpSilentSave();
+    closeModal('fpFixtureModal');
+    fpRender();
+});
+
+document.getElementById('fpFixtureDeleteBtn').addEventListener('click', function() {
+    var modal  = document.getElementById('fpFixtureModal');
+    var editId = modal.dataset.editId;
+    if (!confirm('Delete this fixture?')) return;
+    fpPlan.fixtures = (fpPlan.fixtures || []).filter(function(f) { return f.id !== editId; });
+    fpDirty = true;
+    fpSilentSave();
+    closeModal('fpFixtureModal');
+    fpSelectedId = null;
+    fpRender();
+});
+
+// ---- Plumbing endpoint modal save / delete ----
+document.getElementById('fpPlumbingEpSaveBtn').addEventListener('click', function() {
+    var modal  = document.getElementById('fpPlumbingEndpointModal');
+    var editId = modal.dataset.editId;
+    var ep     = (fpPlan.plumbingEndpoints || []).find(function(p) { return p.id === editId; });
+    if (!ep) return;
+    ep.name    = document.getElementById('fpPlumbingEpLabel').value.trim() || ep.name;
+    ep.subtype = document.getElementById('fpPlumbingEpSubtype').value;
+    ep.notes   = document.getElementById('fpPlumbingEpNotes').value;
+    fpDirty = true;
+    fpSilentSave();
+    closeModal('fpPlumbingEndpointModal');
+    fpRender();
+});
+
+document.getElementById('fpPlumbingEpDeleteBtn').addEventListener('click', function() {
+    var modal  = document.getElementById('fpPlumbingEndpointModal');
+    var editId = modal.dataset.editId;
+    if (!confirm('Delete this plumbing endpoint?')) return;
+    fpPlan.plumbingEndpoints = (fpPlan.plumbingEndpoints || []).filter(function(p) { return p.id !== editId; });
+    fpDirty = true;
+    fpSilentSave();
+    closeModal('fpPlumbingEndpointModal');
+    fpSelectedId = null;
+    fpRender();
 });
 
 // Enter key = place a corner at the current cursor position while drawing a room.
@@ -2234,11 +2820,24 @@ function fpSetTool(tool) {
         door:     'Click on any wall edge to place a door.',
         window:   'Click on any wall edge to place a window.',
         wallplate: 'Click on any wall edge to place a wall plate (outlets and switches).',
-        plumbing: 'Click inside a room to place a plumbing fixture (toilet, sink, etc.).',
-        ceiling:  'Click inside a room to place a ceiling fixture (fan or light), linked to a Thing record.',
-        recessed: 'Click inside a room to place a recessed light.'
+        plumbing: 'Click inside a room to place a plumbing fixture.',
+        ceiling:  'Click inside a room to place a ceiling fixture.',
+        recessed: 'Click inside a room to place a recessed light.',
+        toilet:   'Click inside a room to place a toilet.',
+        sink:     'Click inside a room to place a sink.',
+        tub:      'Click inside a room to place a tub or shower.',
+        spigot:   'Click inside a room to place an outdoor spigot endpoint.',
+        stubout:  'Click inside a room to place a water supply stub-out.'
     };
     fpSetStatus(hints[tool] || '');
+
+    // Close the Fixtures flyout when switching to anything other than a fixture tool
+    if (['toilet', 'sink', 'tub'].indexOf(tool) < 0) {
+        document.querySelectorAll('.fp-fixture-subtool').forEach(function(el) { el.style.display = 'none'; });
+        var ftBtn = document.getElementById('fpToolFixturesToggle');
+        if (ftBtn) { ftBtn.textContent = '🛁 Fixtures ▾'; ftBtn.classList.remove('active'); }
+    }
+
     fpRender();
 }
 
@@ -2293,9 +2892,11 @@ function fpSilentSave() {
         switches:        fpPlan.switches         || [],
         plumbing:        fpPlan.plumbing         || [],
         ceilingFixtures: fpPlan.ceilingFixtures  || [],
-        recessedLights:  fpPlan.recessedLights   || [],
-        wallPlates:      fpPlan.wallPlates       || [],
-        updatedAt:       firebase.firestore.FieldValue.serverTimestamp()
+        recessedLights:      fpPlan.recessedLights      || [],
+        wallPlates:          fpPlan.wallPlates          || [],
+        fixtures:            fpPlan.fixtures            || [],
+        plumbingEndpoints:   fpPlan.plumbingEndpoints   || [],
+        updatedAt:           firebase.firestore.FieldValue.serverTimestamp()
     })
     .then(function() { fpDirty = false; })
     .catch(function(err) { console.error('fpSilentSave error:', err); });
@@ -2926,6 +3527,14 @@ function fpOpenMarkerEditModal(type, id) {
         var wp = (fpPlan.wallPlates || []).find(function(m) { return m.id === id; });
         if (!wp) return;
         fpOpenWallPlateModal(id, wp);
+    } else if (type === 'fixture') {
+        var fx = (fpPlan.fixtures || []).find(function(m) { return m.id === id; });
+        if (!fx) return;
+        fpOpenFixtureEditModal(fx);
+    } else if (type === 'plumbingEndpoint') {
+        var pe = (fpPlan.plumbingEndpoints || []).find(function(m) { return m.id === id; });
+        if (!pe) return;
+        fpOpenPlumbingEndpointEditModal(pe);
     }
 }
 
@@ -3327,24 +3936,31 @@ function fpRenderCeilingFixture(svg, fix) {
     var cx = fp2px(fix.x);
     var cy = fp2px(fix.y);
     var isSelected = (fpSelectedId === fix.id && fpSelectedType === 'ceiling');
-    var isFan      = fix.category === 'ceiling-fan';
 
-    var strokeColor = isSelected ? '#cc8800' : (isFan ? '#005599' : '#884400');
-    var fillColor   = isSelected ? '#fffacc' : (isFan ? '#ddeeff' : '#fff5dd');
+    // Determine subtype with backward compat for old category field
+    var subtype = fix.subtype;
+    if (!subtype) {
+        subtype = (fix.category === 'ceiling-fan') ? 'fan' : 'generic';
+    }
+
+    // Color scheme: fans = blue tones, lights = amber/brown tones
+    var isFanType = (subtype === 'fan' || subtype === 'fan-light');
+    var strokeColor = isSelected ? '#cc8800' : (isFanType ? '#005599' : '#884400');
+    var fillColor   = isSelected ? '#fffacc' : (isFanType ? '#ddeeff' : '#fff5dd');
     var strokeW     = isSelected ? 2.5 : 1.5;
 
     var g = fpSvgG(svg, 'fp-ceiling-fixture');
     g.style.cursor = 'pointer';
 
-    // Outer circle
+    // Outer circle (all subtypes share this)
     fpSvgEl(g, 'circle', {
         cx: cx, cy: cy, r: 14,
         fill: fillColor,
         stroke: strokeColor, 'stroke-width': strokeW
     });
 
-    if (isFan) {
-        // 4 blade lines at 0°, 45°, 90°, 135° (and their opposites)
+    if (subtype === 'fan') {
+        // 4 blade lines at 0°, 45°, 90°, 135°
         [0, 45, 90, 135].forEach(function(deg) {
             var rad = deg * Math.PI / 180;
             var bx  = Math.cos(rad) * 12;
@@ -3356,8 +3972,55 @@ function fpRenderCeilingFixture(svg, fix) {
                 'pointer-events': 'none'
             });
         });
+
+    } else if (subtype === 'fan-light') {
+        // 4 blade lines + inner filled circle (bulb)
+        [0, 45, 90, 135].forEach(function(deg) {
+            var rad = deg * Math.PI / 180;
+            var bx  = Math.cos(rad) * 12;
+            var by  = Math.sin(rad) * 12;
+            fpSvgEl(g, 'line', {
+                x1: cx - bx, y1: cy - by,
+                x2: cx + bx, y2: cy + by,
+                stroke: strokeColor, 'stroke-width': strokeW,
+                'pointer-events': 'none'
+            });
+        });
+        fpSvgEl(g, 'circle', { cx: cx, cy: cy, r: 5, fill: strokeColor, 'pointer-events': 'none' });
+
+    } else if (subtype === 'drop-light') {
+        // Outer circle already drawn; add a short vertical stub (pendant cord)
+        fpSvgEl(g, 'line', {
+            x1: cx, y1: cy - 14, x2: cx, y2: cy - 22,
+            stroke: strokeColor, 'stroke-width': strokeW, 'pointer-events': 'none'
+        });
+        // Bulb dot at center
+        fpSvgEl(g, 'circle', { cx: cx, cy: cy, r: 4, fill: strokeColor, 'pointer-events': 'none' });
+
+    } else if (subtype === 'chandelier') {
+        // Outer circle + 4 short spokes with dots at tips (arms)
+        [0, 90, 180, 270].forEach(function(deg) {
+            var rad = deg * Math.PI / 180;
+            var ax  = Math.cos(rad) * 10;
+            var ay  = Math.sin(rad) * 10;
+            fpSvgEl(g, 'line', {
+                x1: cx, y1: cy, x2: cx + ax, y2: cy + ay,
+                stroke: strokeColor, 'stroke-width': strokeW, 'pointer-events': 'none'
+            });
+            fpSvgEl(g, 'circle', { cx: cx + ax, cy: cy + ay, r: 2, fill: strokeColor, 'pointer-events': 'none' });
+        });
+        // Center dot
+        fpSvgEl(g, 'circle', { cx: cx, cy: cy, r: 3, fill: strokeColor, 'pointer-events': 'none' });
+
+    } else if (subtype === 'flush-mount') {
+        // Concentric rings only (outer already drawn, add inner circle)
+        fpSvgEl(g, 'circle', {
+            cx: cx, cy: cy, r: 8,
+            fill: 'none', stroke: strokeColor, 'stroke-width': strokeW, 'pointer-events': 'none'
+        });
+
     } else {
-        // 8 short rays (ceiling light starburst)
+        // generic (default): 8-ray starburst + inner filled circle
         for (var i = 0; i < 8; i++) {
             var rad2 = i * Math.PI / 4;
             var rx1  = Math.cos(rad2) * 7;
@@ -3371,12 +4034,17 @@ function fpRenderCeilingFixture(svg, fix) {
                 'pointer-events': 'none'
             });
         }
-        // Inner filled circle (bulb)
         fpSvgEl(g, 'circle', {
             cx: cx, cy: cy, r: 5,
             fill: strokeColor, 'pointer-events': 'none'
         });
     }
+
+    // Default label text based on subtype
+    var defaultLabels = {
+        'fan': 'Fan', 'fan-light': 'Fan/Lt', 'drop-light': 'Pendant',
+        'chandelier': 'Chand', 'flush-mount': 'Flush', 'generic': 'Light'
+    };
 
     // Label below
     var lbl = fpSvgEl(g, 'text', {
@@ -3384,7 +4052,7 @@ function fpRenderCeilingFixture(svg, fix) {
         'text-anchor': 'middle', 'font-size': 8,
         fill: strokeColor, 'pointer-events': 'none'
     });
-    lbl.textContent = fix.label || (isFan ? 'Fan' : 'Light');
+    lbl.textContent = fix.label || defaultLabels[subtype] || 'Light';
 
     // Click — select (single) or navigate to Thing (double via dblclick on svg)
     // Note: selection is also handled by fpMakeDraggableCeilingFixture mousedown/onUp below
@@ -3566,10 +4234,12 @@ document.getElementById('fpCeilingSaveBtn').addEventListener('click', function()
                 thingId:   thingId,
                 label:     label,
                 category:  cat,
+                subtype:   (cat === 'ceiling-fan') ? 'fan' : 'generic',
                 breakerId: bkrId,
                 panelId:   panelId,
                 x:         x,
-                y:         y
+                y:         y,
+                name:      fpAutoName(fpPlan.ceilingFixtures, 'Ceiling Fixture')
             };
             fpPlan.ceilingFixtures.push(newCf);
             newCeilingId = newCf.id;
@@ -3722,7 +4392,8 @@ function fpPlaceRecessedLightInRoom(e, room) {
         x:      pt.x,
         y:      pt.y,
         label:  '',
-        notes:  ''
+        notes:  '',
+        name:   fpAutoName(fpPlan.recessedLights, 'Recessed Light')
     };
 
     if (!fpPlan.recessedLights) fpPlan.recessedLights = [];
@@ -4233,7 +4904,8 @@ document.getElementById('fpWallPlateSaveBtn').addEventListener('click', function
             segmentIndex: parseInt(modal.dataset.segIndex, 10),
             position:     parseFloat(modal.dataset.position),
             notes:        notes,
-            slots:        slots
+            slots:        slots,
+            name:         fpAutoName(fpPlan.wallPlates, 'Plate')
         };
         if (!fpPlan.wallPlates) fpPlan.wallPlates = [];
         fpPlan.wallPlates.push(plate);
@@ -4560,11 +5232,16 @@ function fpRenderTargetEditOverlay(svg) {
     var btnElec = document.getElementById('fpModeElectrical');
     if (btnElec) btnElec.addEventListener('click', function() { fpSetMode('electrical'); });
 
+    var btnPlumb = document.getElementById('fpModePlumbing');
+    if (btnPlumb) btnPlumb.addEventListener('click', function() { fpSetMode('plumbing'); });
+
     var dimCheck = document.getElementById('fpElecDimCheck');
     if (dimCheck) dimCheck.addEventListener('change', fpToggleElecFade);
 
     // Initialize Row 2 tool group visibility for starting mode (layout)
     document.querySelectorAll('.fp-elec-tool').forEach(function(el) { el.style.display = 'none'; });
+    document.querySelectorAll('.fp-plumbing-tool').forEach(function(el) { el.style.display = 'none'; });
+    document.querySelectorAll('.fp-overlay-tool').forEach(function(el) { el.style.display = 'none'; });
 }());
 
 // ============================================================
@@ -4603,6 +5280,17 @@ function fpSetMode(mode) {
     document.querySelectorAll('.fp-elec-tool').forEach(function(el) {
         el.style.display = (mode === 'electrical') ? '' : 'none';
     });
+    document.querySelectorAll('.fp-plumbing-tool').forEach(function(el) {
+        el.style.display = (mode === 'plumbing') ? '' : 'none';
+    });
+    // Dim toggle visible in any overlay mode (Electrical or Plumbing)
+    document.querySelectorAll('.fp-overlay-tool').forEach(function(el) {
+        el.style.display = (mode !== 'layout') ? '' : 'none';
+    });
+
+    // Update Row 1 Plumbing button if present
+    var btnPlumb = document.getElementById('fpModePlumbing');
+    if (btnPlumb) btnPlumb.classList.toggle('active', mode === 'plumbing');
 
     // Reset to Select tool (this also cancels drawing, exits type/corner edit, calls fpRender)
     fpSetTool('select');
@@ -4634,15 +5322,17 @@ function fpUpdatePropsBar() {
 
     // Human-readable type label
     var labelMap = {
-        'room':         'Room',
-        'door':         'Door',
-        'window':       'Window',
-        'plumbing':     'Plumbing',
-        'ceiling':      'Ceiling Fixture',
-        'recessedLight':'Recessed Light',
-        'wallplate':    'Wall Plate',
-        'outlet':       'Outlet',
-        'switch':       'Switch'
+        'room':             'Room',
+        'door':             'Door',
+        'window':           'Window',
+        'plumbing':         'Plumbing',
+        'ceiling':          'Ceiling Fixture',
+        'recessedLight':    'Recessed Light',
+        'wallplate':        'Wall Plate',
+        'outlet':           'Outlet',
+        'switch':           'Switch',
+        'fixture':          'Fixture',
+        'plumbingEndpoint': 'Plumbing EP'
     };
     var lbl = document.createElement('span');
     lbl.className   = 'fp-props-label';

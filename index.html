@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=389">
+    <link rel="stylesheet" href="css/styles.css?v=390">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -1508,11 +1508,12 @@
                 </div>
             </div>
 
-            <!-- Row 1: Mode bar — Layout or Electrical (Plumbing added in Phase 2) -->
+            <!-- Row 1: Mode bar — Layout, Electrical, or Plumbing -->
             <div class="fp-mode-bar">
                 <span class="fp-mode-label">Mode:</span>
                 <button class="fp-mode-btn active" id="fpModeLayout">⬜ Layout</button>
                 <button class="fp-mode-btn" id="fpModeElectrical">⚡ Electrical</button>
+                <button class="fp-mode-btn" id="fpModePlumbing">🚰 Plumbing</button>
             </div>
 
             <!-- Row 2: Tool bar — tools change based on active mode -->
@@ -1526,6 +1527,10 @@
                 <button class="fp-tool-btn fp-type-toggle fp-layout-tool" id="fpToolTypeMode" title="Type room dimensions as numbers">📐 Type</button>
                 <button class="fp-tool-btn fp-layout-tool" id="fpToolDoor" data-tool="door">🚪 Door</button>
                 <button class="fp-tool-btn fp-layout-tool" id="fpToolWindow" data-tool="window">🪟 Window</button>
+                <button class="fp-tool-btn fp-layout-tool" id="fpToolFixturesToggle">🛁 Fixtures ▾</button>
+                <button class="fp-tool-btn fp-fixture-subtool fp-layout-tool" id="fpToolToilet" data-tool="toilet" style="display:none">🚽 Toilet</button>
+                <button class="fp-tool-btn fp-fixture-subtool fp-layout-tool" id="fpToolSink" data-tool="sink" style="display:none">🚿 Sink</button>
+                <button class="fp-tool-btn fp-fixture-subtool fp-layout-tool" id="fpToolTub" data-tool="tub" style="display:none">🛁 Tub</button>
 
                 <!-- Electrical tools (visible in Electrical mode, hidden by default) -->
                 <span class="fp-tool-sep fp-elec-tool"></span>
@@ -1533,7 +1538,14 @@
                 <button class="fp-tool-btn fp-tool-ceiling fp-elec-tool" id="fpToolCeiling" data-tool="ceiling">🔆 Ceiling</button>
                 <button class="fp-tool-btn fp-tool-electrical fp-elec-tool" id="fpToolRecessed" data-tool="recessed">◎ Recessed</button>
                 <span class="fp-tool-sep fp-elec-tool"></span>
-                <label class="fp-elec-tool fp-dim-label">
+
+                <!-- Plumbing tools (visible in Plumbing mode, hidden by default) -->
+                <button class="fp-tool-btn fp-plumbing-tool" id="fpToolSpigot" data-tool="spigot" style="display:none">🔧 Spigot</button>
+                <button class="fp-tool-btn fp-plumbing-tool" id="fpToolStubout" data-tool="stubout" style="display:none">⊕ Stub-out</button>
+                <span class="fp-tool-sep fp-plumbing-tool" style="display:none"></span>
+
+                <!-- Dim toggle — visible in Electrical and Plumbing overlay modes -->
+                <label class="fp-overlay-tool fp-dim-label" style="display:none">
                     <input type="checkbox" id="fpElecDimCheck" checked> Dim
                 </label>
             </div>
@@ -4401,6 +4413,61 @@
                 <button class="btn btn-primary" id="fpWallPlateSaveBtn">Save</button>
                 <button class="btn btn-secondary" id="fpWallPlateCancelBtn">Cancel</button>
                 <button class="btn btn-danger" id="fpWallPlateDeleteBtn" style="display:none;margin-left:auto">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fixture Edit Modal (Phase 2) -->
+    <div id="fpFixtureModal" class="modal-overlay" style="display:none">
+        <div class="modal" style="max-width:380px">
+            <h3>Edit Fixture</h3>
+            <div class="form-group">
+                <label>Name <input type="text" id="fpFixtureLabel" class="form-control"></label>
+            </div>
+            <div class="form-group">
+                <label>Orientation
+                    <select id="fpFixtureOrientation" class="form-control">
+                        <option value="0">↑ Up (0°)</option>
+                        <option value="1">→ Right (90°)</option>
+                        <option value="2">↓ Down (180°)</option>
+                        <option value="3">← Left (270°)</option>
+                    </select>
+                </label>
+            </div>
+            <div class="form-group">
+                <label>Notes <textarea id="fpFixtureNotes" class="form-control" rows="3"></textarea></label>
+            </div>
+            <div class="modal-actions" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+                <button class="btn btn-primary" id="fpFixtureSaveBtn">Save</button>
+                <button class="btn btn-secondary" onclick="closeModal('fpFixtureModal')">Cancel</button>
+                <button class="btn btn-danger" id="fpFixtureDeleteBtn" style="margin-left:auto">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Plumbing Endpoint Edit Modal (Phase 2) -->
+    <div id="fpPlumbingEndpointModal" class="modal-overlay" style="display:none">
+        <div class="modal" style="max-width:380px">
+            <h3>Edit Plumbing Endpoint</h3>
+            <div class="form-group">
+                <label>Name <input type="text" id="fpPlumbingEpLabel" class="form-control"></label>
+            </div>
+            <div class="form-group">
+                <label>Type
+                    <select id="fpPlumbingEpSubtype" class="form-control">
+                        <option value="cold">Cold water</option>
+                        <option value="hot">Hot water</option>
+                        <option value="both">Both (C+H)</option>
+                    </select>
+                </label>
+            </div>
+            <div class="form-group">
+                <label>Notes <textarea id="fpPlumbingEpNotes" class="form-control" rows="3"></textarea></label>
+            </div>
+            <div class="modal-actions" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+                <button class="btn btn-primary" id="fpPlumbingEpSaveBtn">Save</button>
+                <button class="btn btn-secondary" onclick="closeModal('fpPlumbingEndpointModal')">Cancel</button>
+                <button class="btn btn-danger" id="fpPlumbingEpDeleteBtn" style="margin-left:auto">Delete</button>
             </div>
         </div>
     </div>
@@ -7627,7 +7694,7 @@
     <script src="js/gps.js?v=350"></script>
     <script src="js/settings.js?v=350"></script>
     <script src="js/house.js?v=362"></script>
-    <script src="js/floorplan.js?v=380"></script>
+    <script src="js/floorplan.js?v=381"></script>
     <script src="js/search.js?v=350"></script>
     <script src="js/activityreport.js?v=350"></script>
     <script src="js/checklists.js?v=350"></script>

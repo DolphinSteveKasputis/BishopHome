@@ -732,6 +732,22 @@ function fpMakeDraggableRoom(poly, room) {
         var startPoints = room.points.map(function(p) { return { x: p.x, y: p.y }; });
         var dragged     = false;
 
+        // Snapshot start positions for all floating items belonging to this room.
+        // Wall-attached items (doors, windows, wall plates) use segmentIndex+position
+        // so they move automatically when the room polygon moves — no snapshot needed.
+        var floatingArrays = [
+            fpPlan.ceilingFixtures  || [],
+            fpPlan.recessedLights   || [],
+            fpPlan.fixtures         || [],
+            fpPlan.plumbing         || [],
+            fpPlan.plumbingEndpoints|| []
+        ];
+        var floatingSnap = floatingArrays.map(function(arr) {
+            return arr
+                .filter(function(item) { return item.roomId === room.id; })
+                .map(function(item)    { return { item: item, x: item.x, y: item.y }; });
+        });
+
         function onMove(e) {
             var cur = fpMouseToFeet(e);
             var dx  = cur.x - startPt.x;
@@ -741,11 +757,19 @@ function fpMakeDraggableRoom(poly, room) {
                 fpSelectShape(room.id);
             }
             if (!dragged) return;
+            // Move room polygon
             room.points = startPoints.map(function(p) {
                 return {
                     x: fpSnap(Math.max(0, Math.min(fpPlan.widthFt,  p.x + dx))),
                     y: fpSnap(Math.max(0, Math.min(fpPlan.heightFt, p.y + dy)))
                 };
+            });
+            // Move floating items by the same delta
+            floatingSnap.forEach(function(group) {
+                group.forEach(function(snap) {
+                    snap.item.x = fpSnap(Math.max(0, Math.min(fpPlan.widthFt,  snap.x + dx)));
+                    snap.item.y = fpSnap(Math.max(0, Math.min(fpPlan.heightFt, snap.y + dy)));
+                });
             });
             fpDirty = true;
             fpRender();

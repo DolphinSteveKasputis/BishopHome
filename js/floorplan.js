@@ -3948,21 +3948,29 @@ function fpRenderWallPlate(svg, plate) {
         }
     });
 
-    // 3-way badge above plate
+    // 3-way badge — pill shape above plate with clear vertical clearance
     if (isThreeWay) {
-        var badge = fpSvgEl(g, 'text', {
-            x: cx, y: cy - hh - 3,
-            'text-anchor': 'middle', 'font-size': 6,
-            fill: '#7c3aed', 'font-weight': 'bold',
+        var badgeW = 24, badgeH = 9, badgeY = cy - hh - 13;
+        // Pill background
+        fpSvgEl(g, 'rect', {
+            x: cx - badgeW / 2, y: badgeY - badgeH / 2,
+            width: badgeW, height: badgeH,
+            rx: 4, fill: '#ede9fe', stroke: '#7c3aed', 'stroke-width': 0.75,
             'pointer-events': 'none'
         });
-        badge.textContent = '3-way';
+        // Badge text
+        fpSvgEl(g, 'text', {
+            x: cx, y: badgeY + 0.5,
+            'text-anchor': 'middle', 'dominant-baseline': 'middle',
+            'font-size': 5.5, fill: '#5b21b6', 'font-weight': 'bold',
+            'pointer-events': 'none'
+        }).textContent = '3-way';
     }
 
-    // Transparent hit area
+    // Transparent hit area (expanded to include badge space)
     var hit = fpSvgEl(g, 'rect', {
-        x: cx - hw - 4, y: cy - hh - 4,
-        width: totalW + 8, height: totalH + 8,
+        x: cx - hw - 4, y: cy - hh - (isThreeWay ? 18 : 4),
+        width: totalW + 8, height: totalH + (isThreeWay ? 22 : 8),
         fill: 'transparent', stroke: 'transparent'
     });
     fpMakeDraggableWallPlate(hit, plate);
@@ -4480,8 +4488,8 @@ function fpRenderWiringLines(svg) {
     if (!info) return;
     var px = info.hinge.x, py = info.hinge.y;
 
-    // Line colors per slot index (up to 4 slots)
-    var lineColors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'];
+    // Line colors per slot index — spread across color wheel for clear distinction
+    var lineColors = ['#1d4ed8', '#dc2626', '#7c3aed', '#0891b2'];  // blue, red, purple, cyan
 
     (plate.slots || []).forEach(function(slot, i) {
         if (slot.type !== 'switch') return;
@@ -4529,16 +4537,31 @@ function fpRenderTargetEditOverlay(svg) {
     var slot    = (plate.slots || [])[fpTargetEditSlotIdx];
     var targets = (slot && slot.targetIds) ? slot.targetIds : [];
 
-    function drawRing(cx, cy, r, color, fixtureId) {
+    function drawRing(cx, cy, r, fixtureId) {
         var isLinked = targets.indexOf(fixtureId) >= 0;
-        var ring = fpSvgEl(svg, 'circle', {
+        // Linked: solid amber ring + warm fill + checkmark
+        // Unlinked: dashed teal ring, no fill — clearly "available, not yet chosen"
+        fpSvgEl(svg, 'circle', {
             cx: cx, cy: cy, r: r,
-            fill: isLinked ? 'rgba(204,136,0,0.15)' : 'transparent',
-            stroke: color, 'stroke-width': 2.5,
-            'stroke-dasharray': isLinked ? 'none' : '4,2',
-            cursor: 'pointer'
+            fill:   isLinked ? 'rgba(217,119,6,0.22)' : 'rgba(13,148,136,0.08)',
+            stroke: isLinked ? '#b45309' : '#0d9488',
+            'stroke-width': isLinked ? 3 : 1.75,
+            'stroke-dasharray': isLinked ? 'none' : '5,3',
+            'pointer-events': 'none'
         });
-        ring.addEventListener('click', function(e) {
+        // Linked indicator: small checkmark dot in center
+        if (isLinked) {
+            fpSvgEl(svg, 'circle', {
+                cx: cx, cy: cy, r: 3.5,
+                fill: '#b45309', 'pointer-events': 'none'
+            });
+        }
+        // Invisible hit area on top for clicking
+        var hit = fpSvgEl(svg, 'circle', {
+            cx: cx, cy: cy, r: r,
+            fill: 'transparent', stroke: 'transparent', cursor: 'pointer'
+        });
+        hit.addEventListener('click', function(e) {
             e.stopPropagation();
             fpToggleTarget(fixtureId);
         });
@@ -4546,14 +4569,12 @@ function fpRenderTargetEditOverlay(svg) {
 
     // Recessed lights
     (fpPlan.recessedLights || []).forEach(function(rl) {
-        var isLinked = targets.indexOf(rl.id) >= 0;
-        drawRing(fp2px(rl.x), fp2px(rl.y), 14, isLinked ? '#cc8800' : '#0d9488', rl.id);
+        drawRing(fp2px(rl.x), fp2px(rl.y), 15, rl.id);
     });
 
     // Ceiling fixtures
     (fpPlan.ceilingFixtures || []).forEach(function(cf) {
-        var isLinked = targets.indexOf(cf.id) >= 0;
-        drawRing(fp2px(cf.x), fp2px(cf.y), 16, isLinked ? '#cc8800' : '#0d9488', cf.id);
+        drawRing(fp2px(cf.x), fp2px(cf.y), 17, cf.id);
     });
 }
 

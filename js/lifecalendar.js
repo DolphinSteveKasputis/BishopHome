@@ -2122,8 +2122,29 @@ function _lcSetVal(id, val) {
 }
 
 /**
+ * If an Enter-key tag input has pending text that was never submitted as a chip,
+ * flush it to the chips container now so Save doesn't silently drop it.
+ * @param {string} inputId  - ID of the text input
+ * @param {string} chipsId  - ID of the chips container
+ */
+function _lcFlushTagInput(inputId, chipsId) {
+    var input = document.getElementById(inputId);
+    if (!input) return;
+    var val = input.value.trim();
+    if (!val) return;
+    var existing = _lcReadTagChips(chipsId);
+    if (!existing.includes(val)) {
+        existing.push(val);
+        _lcRenderTagChips(chipsId, existing, inputId);
+    }
+    input.value = '';
+}
+
+/**
  * Read all visible typeFields and return an object to store in Firestore.
  * Returns {} if no template section is currently visible.
+ * Flushes any pending tag-input text before reading so typing without
+ * pressing Enter is not silently dropped.
  */
 function _lcReadTypeFields() {
     for (var i = 0; i < LC_TEMPLATE_KEYS.length; i++) {
@@ -2137,11 +2158,14 @@ function _lcReadTypeFields() {
                 finishTime: (document.getElementById('lcRaceFinishTime').value || '').trim()
             };
         } else if (key === 'concert') {
+            _lcFlushTagInput('lcConcertActInput', 'lcConcertActChips');
             return {
                 acts: _lcReadTagChips('lcConcertActChips'),
                 seat: (document.getElementById('lcConcertSeat').value || '').trim()
             };
         } else if (key === 'golf') {
+            _lcFlushTagInput('lcGolfCourseInput', 'lcGolfCourseChips');
+            _lcFlushTagInput('lcGolfScoreInput',  'lcGolfScoreChips');
             return {
                 courses: _lcReadTagChips('lcGolfCourseChips'),
                 scores:  _lcReadTagChips('lcGolfScoreChips')

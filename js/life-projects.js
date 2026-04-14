@@ -830,9 +830,15 @@ async function _lpLoadItinerary() {
     if (!body || !_lpCurrentProjectId) return;
 
     try {
-        const snap = await lpSub(_lpCurrentProjectId, 'days').orderBy('sortOrder').get();
+        // Load bookings in parallel (needed for booking badges on items)
+        const [daySnap, bookingSnap] = await Promise.all([
+            lpSub(_lpCurrentProjectId, 'days').orderBy('sortOrder').get(),
+            lpSub(_lpCurrentProjectId, 'bookings').orderBy('sortOrder').get()
+        ]);
         _lpDays = [];
-        snap.forEach(doc => _lpDays.push({ id: doc.id, ...doc.data() }));
+        daySnap.forEach(doc => _lpDays.push({ id: doc.id, ...doc.data() }));
+        _lpBookings = [];
+        bookingSnap.forEach(doc => _lpBookings.push({ id: doc.id, ...doc.data() }));
         _lpRenderItinerary(body);
     } catch (err) {
         console.error('Error loading itinerary:', err);
@@ -951,6 +957,7 @@ function _lpItemRow(dayId, item) {
                 <span style="background:${st.bg};color:${st.color};font-size:0.7em;padding:1px 8px;border-radius:10px;font-weight:600;">${st.label}</span>
                 ${item.time ? `<span style="color:#888; font-size:0.85em;">${_lpEsc(item.time)}</span>` : ''}
                 <span style="flex:1; min-width:0; font-weight:500;">${_lpEsc(item.title)}</span>
+                ${_lpBookingBadge(item.bookingRef)}
                 <div style="display:flex; gap:2px; flex-shrink:0;">
                     <button class="btn btn-small" onclick="_lpToggleItemDetails('${dayId}','${item.id}')" title="${hasDetails ? 'Show details' : 'Show details'}" style="padding:2px 6px;">${hasDetails ? '📋' : '▿'}</button>
                     <button class="btn btn-small" onclick="_lpEditItem('${dayId}','${item.id}')" title="Edit" style="padding:2px 6px;">✏️</button>
@@ -1256,22 +1263,684 @@ async function _lpReorderItems(dayId, evt) {
 }
 
 // ============================================================
-// Stub sections — will be built in later phases
+// Bookings Section (Phase 6)
 // ============================================================
 
-function _lpLoadBookings() {
+const LP_PAYMENT_STATUSES = {
+    paid:          { label: 'Paid',          color: '#16a34a' },
+    deposit:       { label: 'Deposit Paid',  color: '#d97706' },
+    'balance-owed':{ label: 'Balance Owed',  color: '#dc2626' }
+};
+
+let _lpBookings = [];
+
+async function _lpLoadBookings() {
     const body = document.getElementById('lpBody_bookings');
-    if (body) body.innerHTML = '<p style="color:#999; font-size:0.9em;">Bookings — coming in Phase 6.</p>';
+    if (!body || !_lpCurrentProjectId) return;
+
+    try {
+        const snap = await lpSub(_lpCurrentProjectId, 'bookings').orderBy('sortOrder').get();
+        _lpBookings = [];
+        snap.forEach(doc => _lpBookings.push({ id: doc.id, ...doc.data() }));
+        _lpRenderBookings(body);
+    } catch (err) {
+        console.error('Error loading bookings:', err);
+        body.innerHTML = '<p style="color:red;">Error loading bookings.</p>';
+    }
 }
 
-function _lpLoadPacking() {
+function _lpRenderBookings(body) {
+    const total = _lpBookings.length;
+    _lpUpdateAccordionSummary('bookings', total > 0 ? `(${total})` : '');
+
+    if (total === 0) {
+        body.innerHTML = `
+            <p style="color:#999; font-size:0.9em;">No bookings yet.</p>
+            <button class="btn btn-small btn-primary" onclick="_lpAddBooking()">+ Add Booking</button>
+        `;
+        return;
+    }
+
+    body.innerHTML = `
+        <div id="lpBookingList">
+            ${_lpBookings.map(b => _lpBookingCard(b)).join('')}
+        </div>
+        <button class="btn btn-small btn-primary" style="margin-top:8px;" onclick="_lpAddBooking()">+ Add Booking</button>
+    `;
+
+    if (typeof Sortable !== 'undefined') {
+        const list = document.getElementById('lpBookingList');
+        if (list) Sortable.create(list, { animation: 150, handle: '.lp-booking-drag', onEnd: _lpReorderBookings });
+    }
+}
+
+function _lpBookingCard(b) {
+    const ps = LP_PAYMENT_STATUSES[b.paymentStatus] || {};
+    const dateStr = b.startDate ? new Date(b.startDate + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
+    const endStr = b.multiDay && b.endDate ? ' — ' + new Date(b.endDate + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
+    const timeStr = [b.startTime, b.endTime].filter(Boolean).join(' — ');
+
+    return `
+        <div class="lp-booking-card card" data-id="${b.id}" id="lpBooking_${b.id}" style="margin-bottom:10px; padding:10px 12px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div style="flex:1; min-width:0;">
+                    <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                        <span class="lp-booking-drag" style="cursor:grab; color:#ccc;">⠿</span>
+                        <strong>${_lpEsc(b.name)}</strong>
+                        ${b.type ? `<span style="background:#e0e7ff;color:#4338ca;font-size:0.7em;padding:1px 8px;border-radius:10px;">${_lpEsc(b.type)}</span>` : ''}
+                        ${ps.label ? `<span style="color:${ps.color};font-size:0.75em;font-weight:600;">${ps.label}</span>` : ''}
+                    </div>
+                    ${dateStr ? `<div style="color:#666; font-size:0.85em; margin-top:2px;">${dateStr}${endStr}${timeStr ? ` &middot; ${_lpEsc(timeStr)}` : ''}</div>` : ''}
+                    ${b.cost != null && b.cost !== '' ? `<div style="color:#555; font-size:0.85em;">$${Number(b.cost).toFixed(2)}${b.costNote ? ` (${_lpEsc(b.costNote)})` : ''}</div>` : ''}
+                </div>
+                <div style="display:flex; gap:4px; flex-shrink:0;">
+                    <button class="btn btn-small" onclick="_lpEditBooking('${b.id}')" title="Edit">✏️</button>
+                    <button class="btn btn-small" onclick="_lpBookingScreenshots('${b.id}')" title="Screenshots">📷</button>
+                    <button class="btn btn-small btn-danger" onclick="_lpDeleteBooking('${b.id}')" title="Delete">✕</button>
+                </div>
+            </div>
+            ${_lpBookingDetailsHtml(b)}
+        </div>
+    `;
+}
+
+function _lpBookingDetailsHtml(b) {
+    const parts = [];
+    if (b.confirmation) parts.push(`<strong>Confirmation:</strong> ${_lpEsc(b.confirmation)}`);
+    if (b.contact) parts.push(`<strong>Contact:</strong> ${_lpEsc(b.contact)}`);
+    if (b.address) parts.push(`<strong>Address:</strong> ${_lpEsc(b.address)}`);
+    if (b.link) parts.push(`<strong>Link:</strong> <a href="${_lpEsc(b.link)}" target="_blank" rel="noopener" style="color:#2563eb;">${_lpEsc(b.link)}</a>`);
+    if (b.notes) parts.push(`<strong>Notes:</strong> ${_lpEsc(b.notes)}`);
+    if (!parts.length) return '';
+    return `<div style="margin-top:6px; font-size:0.85em; color:#555; display:grid; gap:2px;">${parts.map(p => `<div>${p}</div>`).join('')}</div>`;
+}
+
+// ---------- Booking type dropdown helper ----------
+
+function _lpBookingTypeOptions(selected) {
+    const types = _lpCurrentProject.bookingTypes || LP_DEFAULT_BOOKING_TYPES;
+    return types.map(t => `<option value="${_lpEsc(t)}" ${t === selected ? 'selected' : ''}>${_lpEsc(t)}</option>`).join('') +
+        '<option value="__add_new__">+ Add new type...</option>';
+}
+
+// ---------- Booking CRUD ----------
+
+async function _lpAddBooking() {
+    _lpShowBookingModal(null);
+}
+
+async function _lpEditBooking(bookingId) {
+    const b = _lpBookings.find(x => x.id === bookingId);
+    if (!b) return;
+    _lpShowBookingModal(b);
+}
+
+function _lpShowBookingModal(booking) {
+    const isEdit = !!booking;
+    const b = booking || {};
+
+    // Build modal HTML dynamically in the page
+    const page = document.getElementById('page-life-project');
+    let modal = document.getElementById('lpBookingModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'lpBookingModal';
+        modal.className = 'modal-overlay';
+        page.appendChild(modal);
+    }
+
+    modal.innerHTML = `
+        <div class="modal" style="max-height:85vh; overflow-y:auto;">
+            <h3>${isEdit ? 'Edit Booking' : 'New Booking'}</h3>
+            <div class="form-group" style="margin-bottom:10px;">
+                <label for="lpBkName">Name *</label>
+                <input type="text" id="lpBkName" class="form-control" value="${_lpEsc(b.name || '')}" placeholder="e.g. Canyon Lodge">
+            </div>
+            <div class="form-group" style="margin-bottom:10px;">
+                <label for="lpBkType">Type</label>
+                <select id="lpBkType" class="form-control" onchange="_lpBookingTypeChange(this)">
+                    <option value="">— Select —</option>
+                    ${_lpBookingTypeOptions(b.type || '')}
+                </select>
+            </div>
+            <div style="display:flex; gap:10px; margin-bottom:10px;">
+                <div class="form-group" style="flex:1;">
+                    <label for="lpBkStartDate">Start Date</label>
+                    <input type="date" id="lpBkStartDate" class="form-control" value="${b.startDate || ''}">
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label style="display:flex;align-items:center;gap:6px;">
+                        <input type="checkbox" id="lpBkMultiDay" ${b.multiDay ? 'checked' : ''} onchange="document.getElementById('lpBkEndDateWrap').style.display=this.checked?'':'none'"> Multi-day
+                    </label>
+                    <div id="lpBkEndDateWrap" style="${b.multiDay ? '' : 'display:none;'}">
+                        <input type="date" id="lpBkEndDate" class="form-control" value="${b.endDate || ''}">
+                    </div>
+                </div>
+            </div>
+            <div style="display:flex; gap:10px; margin-bottom:10px;">
+                <div class="form-group" style="flex:1;">
+                    <label for="lpBkStartTime">Start Time</label>
+                    <input type="text" id="lpBkStartTime" class="form-control" value="${_lpEsc(b.startTime || '')}" placeholder="3:00 PM">
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label for="lpBkEndTime">End Time</label>
+                    <input type="text" id="lpBkEndTime" class="form-control" value="${_lpEsc(b.endTime || '')}" placeholder="5:30 PM">
+                </div>
+            </div>
+            <div class="form-group" style="margin-bottom:10px;">
+                <label for="lpBkConfirmation">Confirmation #</label>
+                <input type="text" id="lpBkConfirmation" class="form-control" value="${_lpEsc(b.confirmation || '')}">
+            </div>
+            <div style="display:flex; gap:10px; margin-bottom:10px;">
+                <div class="form-group" style="flex:1;">
+                    <label for="lpBkCost">Cost</label>
+                    <input type="number" id="lpBkCost" class="form-control" step="0.01" value="${b.cost != null ? b.cost : ''}" placeholder="0.00">
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label for="lpBkCostNote">Cost Note</label>
+                    <input type="text" id="lpBkCostNote" class="form-control" value="${_lpEsc(b.costNote || '')}" placeholder="each, total, deposit">
+                </div>
+            </div>
+            <div class="form-group" style="margin-bottom:10px;">
+                <label for="lpBkPayment">Payment Status</label>
+                <select id="lpBkPayment" class="form-control">
+                    <option value="">— None —</option>
+                    ${Object.entries(LP_PAYMENT_STATUSES).map(([k, v]) => `<option value="${k}" ${b.paymentStatus === k ? 'selected' : ''}>${v.label}</option>`).join('')}
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom:10px;">
+                <label for="lpBkContact">Contact</label>
+                <input type="text" id="lpBkContact" class="form-control" value="${_lpEsc(b.contact || '')}" placeholder="Phone or email">
+            </div>
+            <div class="form-group" style="margin-bottom:10px;">
+                <label for="lpBkAddress">Address</label>
+                <input type="text" id="lpBkAddress" class="form-control" value="${_lpEsc(b.address || '')}">
+            </div>
+            <div class="form-group" style="margin-bottom:10px;">
+                <label for="lpBkLink">Link / URL</label>
+                <input type="url" id="lpBkLink" class="form-control" value="${_lpEsc(b.link || '')}" placeholder="https://...">
+            </div>
+            <div class="form-group" style="margin-bottom:10px;">
+                <label for="lpBkNotes">Notes</label>
+                <textarea id="lpBkNotes" class="form-control" rows="2">${_lpEsc(b.notes || '')}</textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn" onclick="closeModal('lpBookingModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="_lpSaveBooking('${isEdit ? b.id : ''}')">${isEdit ? 'Save' : 'Create'}</button>
+            </div>
+        </div>
+    `;
+
+    openModal('lpBookingModal');
+}
+
+function _lpBookingTypeChange(sel) {
+    if (sel.value === '__add_new__') {
+        const newType = prompt('New booking type:');
+        if (newType && newType.trim()) {
+            const types = [...(_lpCurrentProject.bookingTypes || LP_DEFAULT_BOOKING_TYPES)];
+            if (!types.includes(newType.trim())) {
+                types.push(newType.trim());
+                _lpCurrentProject.bookingTypes = types;
+                lpCol().doc(_lpCurrentProjectId).update({ bookingTypes: types, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+            }
+            // Rebuild options and select the new one
+            sel.innerHTML = '<option value="">— Select —</option>' + _lpBookingTypeOptions(newType.trim());
+        } else {
+            sel.value = '';
+        }
+    }
+}
+
+async function _lpSaveBooking(editId) {
+    const name = document.getElementById('lpBkName')?.value.trim();
+    if (!name) { alert('Name is required.'); return; }
+
+    const costVal = document.getElementById('lpBkCost')?.value;
+    const data = {
+        name,
+        type: document.getElementById('lpBkType')?.value || '',
+        startDate: document.getElementById('lpBkStartDate')?.value || '',
+        multiDay: document.getElementById('lpBkMultiDay')?.checked || false,
+        endDate: document.getElementById('lpBkEndDate')?.value || '',
+        startTime: document.getElementById('lpBkStartTime')?.value.trim() || '',
+        endTime: document.getElementById('lpBkEndTime')?.value.trim() || '',
+        confirmation: document.getElementById('lpBkConfirmation')?.value.trim() || '',
+        cost: costVal && !isNaN(Number(costVal)) ? Number(costVal) : null,
+        costNote: document.getElementById('lpBkCostNote')?.value.trim() || '',
+        paymentStatus: document.getElementById('lpBkPayment')?.value || '',
+        contact: document.getElementById('lpBkContact')?.value.trim() || '',
+        address: document.getElementById('lpBkAddress')?.value.trim() || '',
+        link: document.getElementById('lpBkLink')?.value.trim() || '',
+        notes: document.getElementById('lpBkNotes')?.value.trim() || ''
+    };
+
+    try {
+        if (editId) {
+            await lpSub(_lpCurrentProjectId, 'bookings').doc(editId).update(data);
+        } else {
+            const maxOrder = _lpBookings.reduce((max, b) => Math.max(max, b.sortOrder || 0), -1);
+            data.sortOrder = maxOrder + 1;
+            await lpSub(_lpCurrentProjectId, 'bookings').add(data);
+        }
+        closeModal('lpBookingModal');
+        await _lpLoadBookings();
+    } catch (err) {
+        console.error('Error saving booking:', err);
+        alert('Error saving booking.');
+    }
+}
+
+async function _lpDeleteBooking(bookingId) {
+    if (!confirm('Delete this booking and its screenshots?')) return;
+    try {
+        // Delete screenshots
+        const photoSnap = await lpSub(_lpCurrentProjectId, 'bookingPhotos').where('bookingId', '==', bookingId).get();
+        if (!photoSnap.empty) {
+            const batch = firebase.firestore().batch();
+            photoSnap.forEach(doc => batch.delete(doc.ref));
+            await batch.commit();
+        }
+        await lpSub(_lpCurrentProjectId, 'bookings').doc(bookingId).delete();
+        await _lpLoadBookings();
+    } catch (err) {
+        console.error('Error deleting booking:', err);
+    }
+}
+
+async function _lpReorderBookings(evt) {
+    const cards = document.querySelectorAll('#lpBookingList .lp-booking-card');
+    const batch = firebase.firestore().batch();
+    cards.forEach((el, i) => {
+        const id = el.dataset.id;
+        batch.update(lpSub(_lpCurrentProjectId, 'bookings').doc(id), { sortOrder: i });
+    });
+    try {
+        await batch.commit();
+        const idOrder = Array.from(cards).map(el => el.dataset.id);
+        _lpBookings.sort((a, b) => idOrder.indexOf(a.id) - idOrder.indexOf(b.id));
+        _lpBookings.forEach((b, i) => b.sortOrder = i);
+    } catch (err) {
+        console.error('Error reordering bookings:', err);
+    }
+}
+
+// ---------- Booking Screenshots ----------
+
+async function _lpBookingScreenshots(bookingId) {
+    const booking = _lpBookings.find(b => b.id === bookingId);
+    if (!booking) return;
+
+    // Load existing screenshots
+    let photos = [];
+    try {
+        const snap = await lpSub(_lpCurrentProjectId, 'bookingPhotos').where('bookingId', '==', bookingId).orderBy('createdAt', 'desc').get();
+        snap.forEach(doc => photos.push({ id: doc.id, ...doc.data() }));
+    } catch (err) {
+        // If index not ready, fallback to unordered
+        const snap = await lpSub(_lpCurrentProjectId, 'bookingPhotos').where('bookingId', '==', bookingId).get();
+        snap.forEach(doc => photos.push({ id: doc.id, ...doc.data() }));
+    }
+
+    const page = document.getElementById('page-life-project');
+    let modal = document.getElementById('lpScreenshotModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'lpScreenshotModal';
+        modal.className = 'modal-overlay';
+        page.appendChild(modal);
+    }
+
+    modal.innerHTML = `
+        <div class="modal" style="max-height:85vh; overflow-y:auto; max-width:600px;">
+            <h3>Screenshots — ${_lpEsc(booking.name)}</h3>
+            <div id="lpScreenshotList">
+                ${photos.length === 0 ? '<p style="color:#999;">No screenshots yet.</p>' : ''}
+                ${photos.map(ph => `
+                    <div style="margin-bottom:12px; border:1px solid #e2e8f0; border-radius:8px; overflow:hidden;">
+                        <img src="${ph.imageData}" style="width:100%; display:block;" alt="Screenshot">
+                        ${ph.caption ? `<div style="padding:6px 10px; font-size:0.85em; color:#555;">${_lpEsc(ph.caption)}</div>` : ''}
+                        <div style="padding:4px 10px 8px; text-align:right;">
+                            <button class="btn btn-small btn-danger" onclick="_lpDeleteScreenshot('${bookingId}','${ph.id}')">Delete</button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+            <div style="margin-top:8px;">
+                <label class="btn btn-small btn-primary" style="cursor:pointer;">
+                    📷 Add Screenshot
+                    <input type="file" accept="image/*" style="display:none;" onchange="_lpUploadScreenshot('${bookingId}', this.files)">
+                </label>
+            </div>
+            <div class="modal-actions" style="margin-top:12px;">
+                <button class="btn" onclick="closeModal('lpScreenshotModal')">Close</button>
+            </div>
+        </div>
+    `;
+
+    openModal('lpScreenshotModal');
+}
+
+async function _lpUploadScreenshot(bookingId, files) {
+    if (!files || !files.length) return;
+    try {
+        const imageData = await compressImage(files[0]);
+        const caption = prompt('Caption (optional):') || '';
+        await lpSub(_lpCurrentProjectId, 'bookingPhotos').add({
+            bookingId,
+            imageData,
+            caption: caption.trim(),
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        // Refresh the screenshot modal
+        await _lpBookingScreenshots(bookingId);
+    } catch (err) {
+        console.error('Error uploading screenshot:', err);
+        alert('Error uploading screenshot.');
+    }
+}
+
+async function _lpDeleteScreenshot(bookingId, photoId) {
+    if (!confirm('Delete this screenshot?')) return;
+    try {
+        await lpSub(_lpCurrentProjectId, 'bookingPhotos').doc(photoId).delete();
+        await _lpBookingScreenshots(bookingId);
+    } catch (err) {
+        console.error('Error deleting screenshot:', err);
+    }
+}
+
+// ---------- Booking badge on day items ----------
+
+function _lpBookingBadge(bookingRef) {
+    if (!bookingRef) return '';
+    const booking = _lpBookings.find(b => b.id === bookingRef);
+    if (!booking) return '';
+    return `<a href="javascript:void(0)" onclick="event.stopPropagation();document.getElementById('lpBooking_${bookingRef}')?.scrollIntoView({behavior:'smooth',block:'center'})" style="background:#e0e7ff;color:#4338ca;font-size:0.7em;padding:1px 8px;border-radius:10px;text-decoration:none;white-space:nowrap;" title="View booking">🏨 ${_lpEsc(booking.name)}</a>`;
+}
+
+// ============================================================
+// Packing List Section (Phase 7)
+// ============================================================
+
+const LP_PACKING_CATEGORIES = ['Clothes', 'Toiletries', 'Electronics', 'Documents', 'Gear / Other'];
+
+const LP_PACKING_DEFAULTS = {
+    'Clothes': ['Underwear','Socks','Jeans / Pants','Shorts','T-shirts','Long sleeve shirts','Light jacket','Heavy coat','Swimsuit / Swim shorts','Hat(s)','Gloves','Comfortable walking shoes','Dress shoes (optional)','Pajamas','Belt'],
+    'Toiletries': ['Toothbrush / Toothpaste','Deodorant','Shampoo / Conditioner','Sunscreen','Lip balm','Medications / Prescriptions','First aid basics (band-aids, ibuprofen)','Contact lenses / Solution','Glasses'],
+    'Electronics': ['Phone + charger','Camera + charger / batteries','Extra memory cards','Portable battery pack','Headphones / Earbuds','Laptop / Tablet + charger','Power strip','Adapters if international'],
+    'Documents': ['Passport','Driver\'s license','Credit cards','Insurance cards','Printed confirmations / Itinerary','Emergency contact info'],
+    'Gear / Other': ['Backpack / Day bag','Sunglasses','Umbrella','Reusable water bottle','Snacks','Binoculars','Waterproof bag / Dry bag','Rain jacket / Poncho','Hand warmers (cold weather trips)']
+};
+
+let _lpPackingItems = [];
+
+async function _lpLoadPacking() {
     const body = document.getElementById('lpBody_packing');
-    if (body) body.innerHTML = '<p style="color:#999; font-size:0.9em;">Packing list — coming in Phase 7.</p>';
+    if (!body || !_lpCurrentProjectId) return;
+
+    try {
+        const snap = await lpSub(_lpCurrentProjectId, 'packingItems').orderBy('sortOrder').get();
+        _lpPackingItems = [];
+        snap.forEach(doc => _lpPackingItems.push({ id: doc.id, ...doc.data() }));
+        _lpRenderPacking(body);
+    } catch (err) {
+        console.error('Error loading packing list:', err);
+        body.innerHTML = '<p style="color:red;">Error loading packing list.</p>';
+    }
 }
 
-function _lpLoadNotes() {
+function _lpRenderPacking(body) {
+    const total = _lpPackingItems.length;
+    const packed = _lpPackingItems.filter(i => i.done).length;
+    _lpUpdateAccordionSummary('packing', total > 0 ? `(${packed}/${total} packed)` : '');
+
+    if (total === 0) {
+        const isVacation = _lpCurrentProject.template === 'vacation';
+        body.innerHTML = `
+            <p style="color:#999; font-size:0.9em;">No packing items yet.</p>
+            ${isVacation ? `<button class="btn btn-small btn-primary" style="margin-right:8px;" onclick="_lpPopulateDefaultPacking()">Populate Default List</button>` : ''}
+            <button class="btn btn-small" onclick="_lpAddPackingItem()">+ Add Item</button>
+        `;
+        return;
+    }
+
+    // Group by category
+    const grouped = {};
+    LP_PACKING_CATEGORIES.forEach(cat => grouped[cat] = []);
+    grouped['Uncategorized'] = [];
+    _lpPackingItems.forEach(item => {
+        const cat = item.category && grouped[item.category] ? item.category : 'Uncategorized';
+        grouped[cat].push(item);
+    });
+
+    let html = '';
+    for (const [cat, items] of Object.entries(grouped)) {
+        if (items.length === 0) continue;
+        const catPacked = items.filter(i => i.done).length;
+        html += `
+            <div style="margin-bottom:12px;">
+                <div style="font-weight:600; font-size:0.9em; color:#475569; margin-bottom:4px; border-bottom:1px solid #e2e8f0; padding-bottom:4px;">
+                    ${_lpEsc(cat)} <span style="color:#94a3b8; font-weight:400;">(${catPacked}/${items.length})</span>
+                </div>
+                <div class="lp-packing-group" data-category="${_lpEsc(cat)}">
+                    ${items.map(item => _lpPackingItemRow(item)).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    body.innerHTML = `
+        ${html}
+        <button class="btn btn-small btn-primary" style="margin-top:8px;" onclick="_lpAddPackingItem()">+ Add Item</button>
+    `;
+}
+
+function _lpPackingItemRow(item) {
+    return `
+        <div class="lp-packing-item" data-id="${item.id}" style="display:flex; align-items:flex-start; gap:8px; padding:4px 0; border-bottom:1px solid #f8f8f8;">
+            <input type="checkbox" ${item.done ? 'checked' : ''} onchange="_lpTogglePackingItem('${item.id}', this.checked)" style="margin-top:3px;">
+            <div style="flex:1; min-width:0;">
+                <span style="${item.done ? 'text-decoration:line-through; color:#999;' : ''}">${_lpEsc(item.text)}</span>
+                ${item.notes ? `<div style="color:#888; font-size:0.8em;">${_lpEsc(item.notes)}</div>` : ''}
+            </div>
+            <div style="display:flex; gap:2px; flex-shrink:0;">
+                <button class="btn btn-small" onclick="_lpEditPackingItem('${item.id}')" title="Edit" style="padding:2px 6px;">✏️</button>
+                <button class="btn btn-small btn-danger" onclick="_lpDeletePackingItem('${item.id}')" title="Delete" style="padding:2px 6px;">✕</button>
+            </div>
+        </div>
+    `;
+}
+
+async function _lpPopulateDefaultPacking() {
+    if (!confirm('Populate the packing list with default items? This will add items to the list.')) return;
+    try {
+        const batch = firebase.firestore().batch();
+        let sortOrder = _lpPackingItems.reduce((max, i) => Math.max(max, i.sortOrder || 0), -1) + 1;
+        for (const [cat, items] of Object.entries(LP_PACKING_DEFAULTS)) {
+            items.forEach(text => {
+                const ref = lpSub(_lpCurrentProjectId, 'packingItems').doc();
+                batch.set(ref, { text, done: false, notes: '', category: cat, sortOrder: sortOrder++ });
+            });
+        }
+        await batch.commit();
+        await _lpLoadPacking();
+    } catch (err) {
+        console.error('Error populating packing list:', err);
+        alert('Error populating packing list.');
+    }
+}
+
+async function _lpAddPackingItem() {
+    const text = prompt('Packing item:');
+    if (!text || !text.trim()) return;
+    const category = prompt(`Category (${LP_PACKING_CATEGORIES.join(', ')}):`, 'Gear / Other') || 'Gear / Other';
+    const notes = prompt('Notes (optional):') || '';
+
+    const maxOrder = _lpPackingItems.reduce((max, i) => Math.max(max, i.sortOrder || 0), -1);
+
+    try {
+        await lpSub(_lpCurrentProjectId, 'packingItems').add({
+            text: text.trim(),
+            done: false,
+            notes: notes.trim(),
+            category: category.trim(),
+            sortOrder: maxOrder + 1
+        });
+        await _lpLoadPacking();
+    } catch (err) {
+        console.error('Error adding packing item:', err);
+    }
+}
+
+async function _lpTogglePackingItem(itemId, done) {
+    try {
+        await lpSub(_lpCurrentProjectId, 'packingItems').doc(itemId).update({ done });
+        const item = _lpPackingItems.find(i => i.id === itemId);
+        if (item) item.done = done;
+        const body = document.getElementById('lpBody_packing');
+        if (body) _lpRenderPacking(body);
+    } catch (err) {
+        console.error('Error toggling packing item:', err);
+    }
+}
+
+async function _lpEditPackingItem(itemId) {
+    const item = _lpPackingItems.find(i => i.id === itemId);
+    if (!item) return;
+
+    const text = prompt('Packing item:', item.text);
+    if (!text || !text.trim()) return;
+    const category = prompt(`Category (${LP_PACKING_CATEGORIES.join(', ')}):`, item.category || 'Gear / Other') || 'Gear / Other';
+    const notes = prompt('Notes:', item.notes || '') || '';
+
+    try {
+        await lpSub(_lpCurrentProjectId, 'packingItems').doc(itemId).update({
+            text: text.trim(),
+            category: category.trim(),
+            notes: notes.trim()
+        });
+        await _lpLoadPacking();
+    } catch (err) {
+        console.error('Error editing packing item:', err);
+    }
+}
+
+async function _lpDeletePackingItem(itemId) {
+    if (!confirm('Delete this packing item?')) return;
+    try {
+        await lpSub(_lpCurrentProjectId, 'packingItems').doc(itemId).delete();
+        await _lpLoadPacking();
+    } catch (err) {
+        console.error('Error deleting packing item:', err);
+    }
+}
+
+// ============================================================
+// Notes / Journal Section (Phase 8)
+// ============================================================
+
+let _lpNotes = [];
+
+async function _lpLoadNotes() {
     const body = document.getElementById('lpBody_notes');
-    if (body) body.innerHTML = '<p style="color:#999; font-size:0.9em;">Notes — coming in Phase 8.</p>';
+    if (!body || !_lpCurrentProjectId) return;
+
+    try {
+        const snap = await lpSub(_lpCurrentProjectId, 'projectNotes').orderBy('createdAt', 'desc').get();
+        _lpNotes = [];
+        snap.forEach(doc => _lpNotes.push({ id: doc.id, ...doc.data() }));
+        _lpRenderNotes(body);
+    } catch (err) {
+        console.error('Error loading notes:', err);
+        body.innerHTML = '<p style="color:red;">Error loading notes.</p>';
+    }
+}
+
+function _lpRenderNotes(body) {
+    const total = _lpNotes.length;
+    _lpUpdateAccordionSummary('notes', total > 0 ? `(${total})` : '');
+
+    if (total === 0) {
+        body.innerHTML = `
+            <p style="color:#999; font-size:0.9em;">No notes yet.</p>
+            <button class="btn btn-small btn-primary" onclick="_lpAddNote()">+ Add Note</button>
+        `;
+        return;
+    }
+
+    body.innerHTML = `
+        ${_lpNotes.map(n => _lpNoteCard(n)).join('')}
+        <button class="btn btn-small btn-primary" style="margin-top:8px;" onclick="_lpAddNote()">+ Add Note</button>
+    `;
+}
+
+function _lpNoteCard(n) {
+    const dateStr = n.createdAt ? new Date(n.createdAt.seconds ? n.createdAt.seconds * 1000 : n.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
+
+    return `
+        <div class="card" style="margin-bottom:10px; padding:10px 12px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div style="flex:1; min-width:0;">
+                    ${n.title ? `<strong>${_lpEsc(n.title)}</strong>` : ''}
+                    ${dateStr ? `<div style="color:#999; font-size:0.8em;">${dateStr}</div>` : ''}
+                </div>
+                <div style="display:flex; gap:4px; flex-shrink:0;">
+                    <button class="btn btn-small" onclick="_lpEditNote('${n.id}')" title="Edit">✏️</button>
+                    <button class="btn btn-small btn-danger" onclick="_lpDeleteNote('${n.id}')" title="Delete">✕</button>
+                </div>
+            </div>
+            ${n.text ? `<div style="margin-top:6px; white-space:pre-wrap; font-size:0.9em; color:#444;">${_lpEsc(n.text)}</div>` : ''}
+        </div>
+    `;
+}
+
+async function _lpAddNote() {
+    const title = prompt('Note title (optional):') || '';
+    const text = prompt('Note text:');
+    if (!text || !text.trim()) return;
+
+    try {
+        await lpSub(_lpCurrentProjectId, 'projectNotes').add({
+            title: title.trim(),
+            text: text.trim(),
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            sortOrder: _lpNotes.length
+        });
+        await _lpLoadNotes();
+    } catch (err) {
+        console.error('Error adding note:', err);
+        alert('Error adding note.');
+    }
+}
+
+async function _lpEditNote(noteId) {
+    const n = _lpNotes.find(x => x.id === noteId);
+    if (!n) return;
+
+    const title = prompt('Note title:', n.title || '') || '';
+    const text = prompt('Note text:', n.text || '');
+    if (text === null) return; // cancelled
+
+    try {
+        await lpSub(_lpCurrentProjectId, 'projectNotes').doc(noteId).update({
+            title: title.trim(),
+            text: (text || '').trim()
+        });
+        await _lpLoadNotes();
+    } catch (err) {
+        console.error('Error editing note:', err);
+    }
+}
+
+async function _lpDeleteNote(noteId) {
+    if (!confirm('Delete this note?')) return;
+    try {
+        await lpSub(_lpCurrentProjectId, 'projectNotes').doc(noteId).delete();
+        await _lpLoadNotes();
+    } catch (err) {
+        console.error('Error deleting note:', err);
+    }
 }
 
 // ============================================================

@@ -949,9 +949,9 @@ Rich project management for the Life section — supports day-by-day itineraries
 - **People**: Add/edit/remove people (name, contactId, notes). Stored as array on project doc.
 - **To-Do**: Checklist with done toggle, notes, drag-and-drop reorder (SortableJS). Summary shows done/total count. Vacation template pre-populates 10 starter items.
 - **Itinerary**: Day-by-day planning. Auto-generate days from project date range (with optional pre/post travel days). Each day has label, date, location, and embedded items array. Items have title, status (confirmed/maybe/idea/nope with color badges), time, duration, cost + costNote, confirmation, contact, notes, links. Drag-and-drop reorder for both days and items within a day (SortableJS). Expandable detail panel per item.
-- **Bookings**: (Phase 6 — not yet implemented)
-- **Packing**: (Phase 7 — not yet implemented)
-- **Notes**: (Phase 8 — not yet implemented)
+- **Bookings**: Full CRUD with modal form. Fields: name, type (dropdown from project's bookingTypes list with "Add new..." option), start/end dates, multi-day toggle, start/end times, confirmation #, cost + costNote, payment status (paid/deposit/balance-owed), contact, address, link, notes. Booking screenshots stored in `bookingPhotos` subcollection — upload, view gallery, delete. Booking badges on day items scroll to the booking card. Drag-and-drop reorder.
+- **Packing**: Items grouped by category (Clothes, Toiletries, Electronics, Documents, Gear/Other) with category headers and per-category packed counts. Vacation template offers "Populate Default List" button to pre-fill ~47 starter items. Check/uncheck packed status. Accordion summary shows "packed/total".
+- **Notes**: Journal-style entries with title, text, and auto-set createdAt. Displayed newest first. Add/edit/delete. Accordion summary shows note count.
 
 **Planning/Travel mode toggle**: Button in project header switches mode (stored on project doc). Travel mode filtering not yet implemented — will hide maybe/idea/nope items and simplify the view.
 

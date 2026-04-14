@@ -84,7 +84,18 @@ async function _loadServiceTrades(selectedValue) {
         var snap = await userCol('lookups').doc('serviceTrades').get();
         if (snap.exists) {
             var vals = snap.data().values || [];
-            if (vals.length > 0) trades = vals;
+            if (vals.length > 0) {
+                // If stored list has none of the built-in defaults, it's an old-style
+                // custom-only list — merge defaults in and heal the doc.
+                var hasDefault = _DEFAULT_SERVICE_TRADES.some(function(d) { return vals.indexOf(d) !== -1; });
+                if (!hasDefault) {
+                    trades = _DEFAULT_SERVICE_TRADES.slice();
+                    vals.forEach(function(v) { if (trades.indexOf(v) === -1) trades.push(v); });
+                    userCol('lookups').doc('serviceTrades').set({ values: trades }).catch(function(){});
+                } else {
+                    trades = vals;
+                }
+            }
         }
     } catch (err) { console.warn('_loadServiceTrades error:', err); }
     sel.innerHTML = '<option value="">— Select trade —</option>';
@@ -120,7 +131,18 @@ async function _loadPersonalTypes(selectedValue) {
         var snap = await userCol('lookups').doc('personalContactTypes').get();
         if (snap.exists) {
             var vals = snap.data().values || [];
-            if (vals.length > 0) types = vals;
+            if (vals.length > 0) {
+                // If stored list has none of the built-in defaults, it's an old-style
+                // custom-only list — merge defaults in and heal the doc.
+                var hasDefault = _DEFAULT_PERSONAL_TYPES.some(function(d) { return vals.indexOf(d) !== -1; });
+                if (!hasDefault) {
+                    types = _DEFAULT_PERSONAL_TYPES.slice();
+                    vals.forEach(function(v) { if (types.indexOf(v) === -1) types.push(v); });
+                    userCol('lookups').doc('personalContactTypes').set({ values: types }).catch(function(){});
+                } else {
+                    types = vals;
+                }
+            }
         }
     } catch (err) { console.warn('_loadPersonalTypes error:', err); }
     sel.innerHTML = '<option value="">— Select type —</option>';

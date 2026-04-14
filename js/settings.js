@@ -48,7 +48,18 @@ async function _renderLookupList(docKey, containerId, defaults) {
         var snap = await userCol('lookups').doc(docKey).get();
         if (snap.exists) {
             var vals = snap.data().values || [];
-            if (vals.length > 0) values = vals;
+            if (vals.length > 0) {
+                // If stored list has none of the built-in defaults, it's an old-style
+                // custom-only list — merge defaults in and heal the doc.
+                var hasDefault = defaults.some(function(d) { return vals.indexOf(d) !== -1; });
+                if (!hasDefault) {
+                    values = defaults.slice();
+                    vals.forEach(function(v) { if (values.indexOf(v) === -1) values.push(v); });
+                    userCol('lookups').doc(docKey).set({ values: values }).catch(function(){});
+                } else {
+                    values = vals;
+                }
+            }
         }
     } catch (err) { console.error('_renderLookupList error:', err); }
 

@@ -2189,6 +2189,13 @@ button {
 .lookup-item-label { flex: 1; font-size: 0.95rem; }
 .lookup-item-actions { display: flex; gap: 6px; flex-shrink: 0; }
 
+/* Sub-type label shown beside category badge in contact cards */
+.person-subtype-label {
+    font-size: 0.78rem;
+    color: #555;
+    font-weight: 400;
+}
+
 /* btn-link — unstyled inline button that looks like a link */
 .btn-link {
     background: none;

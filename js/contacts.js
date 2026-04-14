@@ -165,10 +165,11 @@ async function _contactAddTradeOnTheFly() {
     var val = input.value.trim();
     if (!val) return;
     try {
-        await userCol('lookups').doc('serviceTrades').set(
-            { values: firebase.firestore.FieldValue.arrayUnion(val) },
-            { merge: true }
-        );
+        var snap = await userCol('lookups').doc('serviceTrades').get();
+        var existing = (snap.exists && snap.data().values && snap.data().values.length > 0)
+            ? snap.data().values : _DEFAULT_SERVICE_TRADES.slice();
+        if (existing.indexOf(val) === -1) existing.push(val);
+        await userCol('lookups').doc('serviceTrades').set({ values: existing });
     } catch (err) { console.warn('_contactAddTradeOnTheFly save error:', err); }
     await _loadServiceTrades(val);
     input.value = '';
@@ -184,10 +185,11 @@ async function _contactAddPersonalTypeOnTheFly() {
     var val = input.value.trim();
     if (!val) return;
     try {
-        await userCol('lookups').doc('personalContactTypes').set(
-            { values: firebase.firestore.FieldValue.arrayUnion(val) },
-            { merge: true }
-        );
+        var snap = await userCol('lookups').doc('personalContactTypes').get();
+        var existing = (snap.exists && snap.data().values && snap.data().values.length > 0)
+            ? snap.data().values : _DEFAULT_PERSONAL_TYPES.slice();
+        if (existing.indexOf(val) === -1) existing.push(val);
+        await userCol('lookups').doc('personalContactTypes').set({ values: existing });
     } catch (err) { console.warn('_contactAddPersonalTypeOnTheFly save error:', err); }
     await _loadPersonalTypes(val);
     input.value = '';
@@ -322,9 +324,19 @@ function buildPersonCard(person, lastInteraction) {
         ? person.category
         : (person.category ? 'Personal' : '');
 
+    // Sub-type label shown beside the category badge
+    var subTypeLabel = '';
+    if (contactType === 'Personal' && person.personalType) {
+        subTypeLabel = ' <span class="person-subtype-label">' + escapeHtml(person.personalType) + '</span>';
+    } else if (contactType === 'Service Professional' && person.specialty) {
+        subTypeLabel = ' <span class="person-subtype-label">' + escapeHtml(person.specialty) + '</span>';
+    } else if (contactType === 'Medical Professional' && person.specialty) {
+        subTypeLabel = ' <span class="person-subtype-label">' + escapeHtml(person.specialty) + '</span>';
+    }
+
     var categoryBadge = contactType
         ? '<span class="person-category-badge contact-type-' + contactType.toLowerCase().replace(/\s+/g, '-') + '">'
-            + escapeHtml(contactType) + '</span>'
+            + escapeHtml(contactType) + '</span>' + subTypeLabel
         : '';
 
     var nickHtml = person.nickname

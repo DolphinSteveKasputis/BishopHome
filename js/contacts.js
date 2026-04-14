@@ -19,6 +19,7 @@ var CONTACT_CATEGORIES = [
     'Medical Professional',
     'Medical Facility',
     'Service Professional',
+    'Pet',
     'Other'
 ];
 

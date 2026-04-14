@@ -94,6 +94,18 @@ async function _loadServiceTrades(selectedValue) {
         if (t === selectedValue) opt.selected = true;
         sel.appendChild(opt);
     });
+    var addOpt = document.createElement('option');
+    addOpt.value = '__add_new__'; addOpt.textContent = '+ Add new trade...';
+    sel.appendChild(addOpt);
+
+    // Show inline add row when user picks "Add new..."
+    sel.onchange = function() {
+        if (sel.value === '__add_new__') {
+            sel.value = '';   // reset so it shows placeholder
+            document.getElementById('personTradeAddRow').style.display = '';
+            document.getElementById('personTradeNewInput').focus();
+        }
+    };
 }
 
 /**
@@ -118,6 +130,30 @@ async function _loadPersonalTypes(selectedValue) {
         if (t === selectedValue) opt.selected = true;
         sel.appendChild(opt);
     });
+    var addOpt = document.createElement('option');
+    addOpt.value = '__add_new__'; addOpt.textContent = '+ Add new type...';
+    sel.appendChild(addOpt);
+
+    // Show inline add row when user picks "Add new..."
+    sel.onchange = function() {
+        if (sel.value === '__add_new__') {
+            sel.value = '';   // reset so it shows placeholder
+            document.getElementById('personPersonalTypeAddRow').style.display = '';
+            document.getElementById('personPersonalTypeNewInput').focus();
+        }
+    };
+}
+
+/** Cancel adding a new trade — hide the inline row. */
+function _contactCancelAddTrade() {
+    document.getElementById('personTradeAddRow').style.display = 'none';
+    document.getElementById('personTradeNewInput').value = '';
+}
+
+/** Cancel adding a new personal type — hide the inline row. */
+function _contactCancelAddPersonalType() {
+    document.getElementById('personPersonalTypeAddRow').style.display = 'none';
+    document.getElementById('personPersonalTypeNewInput').value = '';
 }
 
 /**

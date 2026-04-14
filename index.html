@@ -3122,7 +3122,10 @@
     <!-- Contact Add/Edit Modal -->
     <div class="modal-overlay" id="personModal">
         <div class="modal">
-            <h3 id="personModalTitle">Add Contact</h3>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <h3 id="personModalTitle" style="margin:0;">Add Contact</h3>
+                <button class="btn btn-primary btn-small" onclick="handleContactModalSave()">Save</button>
+            </div>
             <div class="form-group">
                 <label for="personNameInput">Name *</label>
                 <input type="text" id="personNameInput" placeholder="Full name or organization name">
@@ -3181,27 +3184,27 @@
             <div class="form-group" id="personTradeGroup" style="display:none;">
                 <label>Trade</label>
                 <select id="personTradeSelect"></select>
+                <!-- Inline add row — shown when user picks "Add new..." from the select -->
                 <div id="personTradeAddRow" style="display:none; margin-top:6px;">
                     <div style="display:flex; gap:6px; align-items:center;">
                         <input type="text" id="personTradeNewInput" placeholder="New trade name" style="flex:1;">
                         <button type="button" class="btn btn-primary btn-small" onclick="_contactAddTradeOnTheFly()">Add</button>
-                        <button type="button" class="btn btn-secondary btn-small" onclick="document.getElementById('personTradeAddRow').style.display='none';">Cancel</button>
+                        <button type="button" class="btn btn-secondary btn-small" onclick="_contactCancelAddTrade()">Cancel</button>
                     </div>
                 </div>
-                <button type="button" class="btn-link" style="margin-top:6px; font-size:0.85rem;" onclick="document.getElementById('personTradeAddRow').style.display=''; document.getElementById('personTradeNewInput').focus();">+ Add trade not in list</button>
             </div>
             <!-- Personal Type — shown for Personal contacts only -->
             <div class="form-group" id="personPersonalTypeGroup" style="display:none;">
                 <label>Relationship</label>
                 <select id="personPersonalTypeSelect"></select>
+                <!-- Inline add row — shown when user picks "Add new..." from the select -->
                 <div id="personPersonalTypeAddRow" style="display:none; margin-top:6px;">
                     <div style="display:flex; gap:6px; align-items:center;">
                         <input type="text" id="personPersonalTypeNewInput" placeholder="New relationship type" style="flex:1;">
                         <button type="button" class="btn btn-primary btn-small" onclick="_contactAddPersonalTypeOnTheFly()">Add</button>
-                        <button type="button" class="btn btn-secondary btn-small" onclick="document.getElementById('personPersonalTypeAddRow').style.display='none';">Cancel</button>
+                        <button type="button" class="btn btn-secondary btn-small" onclick="_contactCancelAddPersonalType()">Cancel</button>
                     </div>
                 </div>
-                <button type="button" class="btn-link" style="margin-top:6px; font-size:0.85rem;" onclick="document.getElementById('personPersonalTypeAddRow').style.display=''; document.getElementById('personPersonalTypeNewInput').focus();">+ Add type not in list</button>
             </div>
             <div class="form-group">
                 <label for="personHowKnownInput">How do you know them?</label>
@@ -7253,7 +7256,6 @@
         <section class="page hidden" id="page-contact">
             <div class="page-header">
                 <h2 id="personDetailName"></h2>
-                <button class="btn btn-secondary btn-small" id="personEditBtn">Edit</button>
             </div>
 
             <!-- Avatar + identity row -->
@@ -7266,7 +7268,10 @@
             </div>
 
             <!-- Contact info -->
-            <div class="section-header"><h3>Contact Info</h3></div>
+            <div class="section-header">
+                <h3>Contact Info</h3>
+                <button class="btn btn-secondary btn-small" id="personEditBtn">Edit</button>
+            </div>
             <div id="personContactInfo" class="person-contact-block"></div>
 
             <!-- Family Members (sub-people) — hidden for sub-people themselves -->
@@ -7902,7 +7907,7 @@
     <script src="js/structures.js?v=350"></script>
     <script src="js/moveThings.js?v=350"></script>
     <script src="js/journal.js?v=355"></script>
-    <script src="js/contacts.js?v=370"></script>
+    <script src="js/contacts.js?v=371"></script>
     <script src="js/collections.js?v=356"></script>
     <script src="js/health.js?v=376"></script>
     <script src="js/notes.js?v=350"></script>

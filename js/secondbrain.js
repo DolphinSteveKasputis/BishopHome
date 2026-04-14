@@ -2002,42 +2002,19 @@ async function _sbWrite(action, payload) {
         }
 
         // ---- Add Dev Note ----------------------------------------
+        // Writes to shared (non-user-scoped) collection so all users see it.
         case 'ADD_DEV_NOTE': {
             var devNoteText = (payload.note || '').trim();
+            var devNoteAuthor = (firebase.auth().currentUser && firebase.auth().currentUser.email)
+                ? firebase.auth().currentUser.email
+                : 'Unknown';
 
-            // Ensure "Dev Notes" notebook exists
-            var devNbSnap = await userCol('notebooks')
-                .where('name', '==', 'Dev Notes').limit(1).get();
-            var devNbId;
-            if (devNbSnap.empty) {
-                var devNbRef = await userCol('notebooks').add({
-                    name: 'Dev Notes',
-                    noteCount: 0,
-                    createdAt: ts
-                });
-                devNbId = devNbRef.id;
-            } else {
-                devNbId = devNbSnap.docs[0].id;
-            }
-
-            ref   = await userCol('notes').add({
-                notebookId: devNbId,
-                body:       devNoteText,
-                createdAt:  ts,
-                updatedAt:  null
+            ref = await db.collection('sharedDevNotes').add({
+                text:      devNoteText,
+                author:    devNoteAuthor,
+                createdAt: ts
             });
             newId = ref.id;
-
-            await userCol('notebooks').doc(devNbId).update({
-                noteCount: firebase.firestore.FieldValue.increment(1),
-                updatedAt: ts
-            });
-
-            // Attach any QuickLog photo to the new dev note
-            await _sbSavePhotos('note', newId, '');
-
-            // Store notebookId in payload so navigation can use it
-            payload._devNbId = devNbId;
             break;
         }
 
@@ -2120,7 +2097,7 @@ function _sbNavigateTo(action, payload, newId) {
             hash = payload.notebookId ? '#notebook/' + payload.notebookId : '#notes';
             break;
         case 'ADD_DEV_NOTE':
-            hash = payload._devNbId ? '#notebook/' + payload._devNbId : '#notes';
+            hash = '#devnotes';
             break;
         case 'ADD_TRACKING_ENTRY':  hash = '#journal-tracking';  break;
         case 'ADD_PLANT':

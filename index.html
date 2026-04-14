@@ -770,11 +770,21 @@
             <!-- ===== Dev Notes Section ===== -->
             <div class="settings-card">
                 <h3 class="settings-section-title">Dev Notes</h3>
-                <p class="settings-section-desc">Personal scratchpad for tracking issues and ideas while testing the app.</p>
+                <p class="settings-section-desc">Shared scratchpad for tracking issues and ideas — visible to all users.</p>
                 <div class="settings-save-row">
-                    <button class="btn btn-secondary" onclick="openDevNotesNotebook()">&#128221; Open Dev Notes</button>
+                    <a class="btn btn-secondary" href="#devnotes">&#128221; Open Dev Notes</a>
                 </div>
             </div>
+        </section>
+
+        <!-- Page: Dev Notes (shared scratchpad) -->
+        <section class="page hidden" id="page-devnotes">
+            <div class="page-header">
+                <h2>Dev Notes</h2>
+                <button class="btn btn-primary btn-small" id="addDevNoteBtn">+ Add Note</button>
+            </div>
+            <div id="devNotesContainer"></div>
+            <p id="devNotesEmptyState" style="color:#888;text-align:center;padding:24px 0;"></p>
         </section>
 
         <!-- Page: Change Password -->
@@ -7897,6 +7907,7 @@
     <script src="js/calendar.js?v=350"></script>
     <script src="js/gps.js?v=350"></script>
     <script src="js/settings.js?v=352"></script>
+    <script src="js/devnotes.js?v=376"></script>
     <script src="js/house.js?v=393"></script>
     <script src="js/floorplan.js?v=394"></script>
     <script src="js/floorplanitem.js?v=393"></script>
@@ -7916,10 +7927,10 @@
     <script src="js/lifecalendar.js?v=395"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="js/chat.js?v=350"></script>
-    <script src="js/secondbrain.js?v=350"></script>
+    <script src="js/secondbrain.js?v=351"></script>
     <script src="js/sbissues.js?v=350"></script>
     <script src="js/places.js?v=350"></script>
-    <script src="js/app.js?v=390"></script>
+    <script src="js/app.js?v=391"></script>
 
 </body>
 </html>

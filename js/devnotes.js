@@ -1,68 +1,85 @@
 // ============================================================
-// Devnotes.js — Personal dev scratchpad
-// Simple notes for tracking issues and ideas while testing.
-// Firestore collection: "devNotes"  fields: text, createdAt
+// Devnotes.js — Shared dev scratchpad
+// Notes are stored in a shared Firestore collection visible to ALL users.
+// Fields: text, author (email), createdAt
+// Collection: db.collection('sharedDevNotes')  (NOT per-user)
 // ============================================================
 
 /** Firestore ID of the note currently being edited (null = add mode). */
 var currentNoteEditId = null;
 
+// ---------- Helper ----------
+
+/** Returns the current user's email (or display name) for author attribution. */
+function _devNoteAuthor() {
+    var user = firebase.auth().currentUser;
+    if (!user) return 'Unknown';
+    return user.email || user.displayName || 'Unknown';
+}
+
 // ---------- Load & Render ----------
 
 /**
- * Loads all dev notes from Firestore (newest first) and renders them.
- * Called by the router when navigating to #notes.
+ * Loads all shared dev notes from Firestore (newest first) and renders them.
+ * Called by the router when navigating to #devnotes.
  */
-async function loadNotesPage() {
-    var container  = document.getElementById('notesContainer');
-    var emptyState = document.getElementById('notesEmptyState');
+async function loadDevNotesPage() {
+    // Set breadcrumb
+    var crumb = document.getElementById('breadcrumbBar');
+    if (crumb) crumb.innerHTML = '<a href="#settings">Settings</a><span class="separator">&rsaquo;</span><span>Dev Notes</span>';
 
-    container.innerHTML    = '';
-    emptyState.textContent = 'Loading…';
+    var container  = document.getElementById('devNotesContainer');
+    var emptyState = document.getElementById('devNotesEmptyState');
+
+    container.innerHTML      = '';
+    emptyState.textContent   = 'Loading…';
     emptyState.style.display = 'block';
 
     try {
-        var snap = await userCol('devNotes').orderBy('createdAt', 'desc').get();
+        var snap = await db.collection('sharedDevNotes').orderBy('createdAt', 'desc').get();
 
         emptyState.style.display = 'none';
 
         if (snap.empty) {
-            emptyState.textContent   = 'No notes yet. Press + Add to write one.';
+            emptyState.textContent   = 'No notes yet. Press + Add Note to write one.';
             emptyState.style.display = 'block';
             return;
         }
 
         snap.forEach(function(doc) {
-            container.appendChild(buildNoteCard(doc.id, doc.data()));
+            container.appendChild(buildDevNoteCard(doc.id, doc.data()));
         });
 
     } catch (err) {
-        console.error('loadNotesPage error:', err);
+        console.error('loadDevNotesPage error:', err);
         emptyState.textContent   = 'Error loading notes.';
         emptyState.style.display = 'block';
     }
 }
 
 /**
- * Builds a single note card element.
+ * Builds a single dev note card element.
  * @param {string} noteId - Firestore document ID.
- * @param {Object} data   - Note data (text, createdAt).
+ * @param {Object} data   - Note data (text, author, createdAt).
  * @returns {HTMLElement}
  */
-function buildNoteCard(noteId, data) {
+function buildDevNoteCard(noteId, data) {
     var card = document.createElement('div');
     card.className = 'note-card';
 
-    // Date stamp
-    var dateEl = document.createElement('div');
-    dateEl.className = 'note-date';
+    // Date + author row
+    var meta = document.createElement('div');
+    meta.className = 'note-date';
+    var dateStr = '';
     if (data.createdAt && data.createdAt.toDate) {
-        dateEl.textContent = data.createdAt.toDate().toLocaleString('en-US', {
+        dateStr = data.createdAt.toDate().toLocaleString('en-US', {
             month: 'short', day: 'numeric', year: 'numeric',
             hour: 'numeric', minute: '2-digit'
         });
     }
-    card.appendChild(dateEl);
+    var authorStr = data.author ? ' · ' + data.author : '';
+    meta.textContent = dateStr + authorStr;
+    card.appendChild(meta);
 
     // Note text — preserves line breaks
     var textEl = document.createElement('div');
@@ -78,7 +95,7 @@ function buildNoteCard(noteId, data) {
     editBtn.className   = 'btn btn-small btn-secondary';
     editBtn.textContent = 'Edit';
     editBtn.addEventListener('click', function() {
-        openNoteModal(noteId, data.text || '');
+        openDevNoteModal(noteId, data.text || '');
     });
     actions.appendChild(editBtn);
 
@@ -87,7 +104,7 @@ function buildNoteCard(noteId, data) {
     deleteBtn.textContent = 'Delete';
     deleteBtn.addEventListener('click', function() {
         if (!confirm('Delete this note?')) return;
-        handleNoteDelete(noteId);
+        handleDevNoteDelete(noteId);
     });
     actions.appendChild(deleteBtn);
 
@@ -102,7 +119,7 @@ function buildNoteCard(noteId, data) {
  * @param {string|null} noteId - Firestore ID for edit mode; null for add.
  * @param {string}      text   - Existing note text (empty for add).
  */
-function openNoteModal(noteId, text) {
+function openDevNoteModal(noteId, text) {
     currentNoteEditId = noteId || null;
 
     document.getElementById('noteModalTitle').textContent =
@@ -114,39 +131,41 @@ function openNoteModal(noteId, text) {
 }
 
 /**
- * Saves the note (add or edit) to Firestore and reloads the list.
+ * Saves the note (add or edit) to the shared Firestore collection and reloads the list.
  */
-async function handleNoteSave() {
+async function handleDevNoteSave() {
     var text = document.getElementById('noteTextInput').value.trim();
     if (!text) { alert('Please enter some text.'); return; }
 
     try {
         if (currentNoteEditId) {
-            await userCol('devNotes').doc(currentNoteEditId).update({ text: text });
+            // Edit — preserve original author, just update text
+            await db.collection('sharedDevNotes').doc(currentNoteEditId).update({ text: text });
         } else {
-            await userCol('devNotes').add({
+            await db.collection('sharedDevNotes').add({
                 text:      text,
+                author:    _devNoteAuthor(),
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
         }
         closeModal('noteModal');
-        loadNotesPage();
+        loadDevNotesPage();
     } catch (err) {
-        console.error('handleNoteSave error:', err);
+        console.error('handleDevNoteSave error:', err);
         alert('Error saving note.');
     }
 }
 
 /**
- * Deletes a note from Firestore and reloads the list.
+ * Deletes a note from the shared Firestore collection and reloads the list.
  * @param {string} noteId - Firestore document ID.
  */
-async function handleNoteDelete(noteId) {
+async function handleDevNoteDelete(noteId) {
     try {
-        await userCol('devNotes').doc(noteId).delete();
-        loadNotesPage();
+        await db.collection('sharedDevNotes').doc(noteId).delete();
+        loadDevNotesPage();
     } catch (err) {
-        console.error('handleNoteDelete error:', err);
+        console.error('handleDevNoteDelete error:', err);
         alert('Error deleting note.');
     }
 }
@@ -155,13 +174,14 @@ async function handleNoteDelete(noteId) {
 
 document.addEventListener('DOMContentLoaded', function() {
 
-    // Notes page — Add button
-    document.getElementById('addNoteBtn').addEventListener('click', function() {
-        openNoteModal(null, '');
+    // Dev Notes page — Add button
+    var addBtn = document.getElementById('addDevNoteBtn');
+    if (addBtn) addBtn.addEventListener('click', function() {
+        openDevNoteModal(null, '');
     });
 
     // Note modal — Save
-    document.getElementById('noteModalSaveBtn').addEventListener('click', handleNoteSave);
+    document.getElementById('noteModalSaveBtn').addEventListener('click', handleDevNoteSave);
 
     // Note modal — Cancel
     document.getElementById('noteModalCancelBtn').addEventListener('click', function() {
@@ -175,6 +195,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Note modal — Ctrl+Enter to save quickly
     document.getElementById('noteTextInput').addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleNoteSave();
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleDevNoteSave();
     });
 });

@@ -1373,3 +1373,16 @@ All collections live under `/users/{uid}/`. Every module uses `userCol('collecti
 |------|--------|
 | `settings/llm` | provider, apiKey, model? |
 | `settings/journal` | defaultDateRange |
+
+### Dev Notes (Shared)
+
+**Route**: `#devnotes`  
+**File**: `devnotes.js`  
+**Firestore**: `db.collection('sharedDevNotes')` — **not** per-user; all users share the same collection.
+
+Simple shared scratchpad accessible from Settings → Dev Notes. All logged-in users can read, add, edit, and delete notes.
+
+- Each note has: `text`, `author` (email of the user who created it), `createdAt`
+- Notes display newest-first with date + author shown on each card
+- Edit preserves the original author (does not overwrite with editor's identity)
+- SecondBrain `ADD_DEV_NOTE` action also writes to this shared collection and navigates to `#devnotes`

@@ -1548,15 +1548,17 @@ function _lpItemDetailsContent(item) {
         item.facts.forEach(f => {
             const isUrl = /^https?:\/\//i.test(f.value);
             const valHtml = isUrl
-                ? `<a href="${_lpEsc(f.value)}" target="_blank" rel="noopener" style="color:#2563eb;">${_lpEsc(f.value)}</a>`
+                ? `<a href="${_lpEsc(f.value)}" onclick="event.stopPropagation();window.open(this.href,'_blank');return false;" style="color:#2563eb;cursor:pointer;">${_lpEsc(f.value)}</a>`
                 : _lpEsc(f.value);
             parts.push(`<div><strong>${_lpEsc(f.label || 'Fact')}:</strong> ${valHtml}</div>`);
         });
     }
     // Legacy links support (old data)
     if (!travel && item.links && item.links.length) {
-        const linkHtml = item.links.map(l => `<a href="${_lpEsc(l.url)}" target="_blank" rel="noopener" style="color:#2563eb;">${_lpEsc(l.label || l.url)}</a>`).join(', ');
-        parts.push(`<div><strong>Links:</strong> ${linkHtml}</div>`);
+        item.links.forEach(l => {
+            if (!l.url) return;
+            parts.push(`<div><a href="${_lpEsc(l.url)}" onclick="event.stopPropagation();window.open(this.href,'_blank');return false;" style="color:#2563eb;cursor:pointer;">${_lpEsc(l.label || l.url)}</a></div>`);
+        });
     }
     return parts.length ? parts.join('') : '<span style="color:#bbb;">No additional details.</span>';
 }

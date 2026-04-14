@@ -944,6 +944,8 @@ Rich project management for the Life section — supports day-by-day itineraries
 
 **New project flow**: Template picker (Vacation enabled, others grayed/disabled), title, description, start/end dates. Vacation template auto-populates starter to-do items on creation.
 
+**Import from JSON**: "📥 Import" button on the project list page. Reads a `.json` file containing project data (project doc, bookings, days with itinerary items, todoItems, packingItems, projectNotes). Import flow: (1) select JSON file, (2) people-linking step — modal walks through each person in the file, showing a contact search picker (same chip-based pattern) with "Don't Link" skip option, (3) creates project doc + all subcollections in Firestore via batch writes. Booking confirmation numbers are auto-matched to itinerary items' `bookingRef` fields. After import, navigates to the new project detail page. JSON files stored in `imports/` directory.
+
 **Project detail page**: Breadcrumb: Life › Projects › {title}. Scrollable accordion layout with lazy-loading sections:
 - **Trip Info**: Dates, description (read-only display, edit from list page), cost rollup showing total from bookings + day item costs
 - **People**: Chip-based contact picker (same pattern as Life Calendar events). Type partial name, dropdown filters contacts, Enter selects first match. Selected people shown as blue chips with ✕ remove button and clickable name linking to contact detail. Edit button allows adding notes. Stored as array on project doc ({name, contactId, notes}).

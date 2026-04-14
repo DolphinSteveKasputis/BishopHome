@@ -70,7 +70,29 @@ async function loadLifeProjectsPage() {
                 </label>
             </div>
             <div id="lpProjectList"></div>
-            <button class="btn btn-primary" style="margin-top:16px; width:100%;" onclick="openNewLifeProjectModal()">+ New Project</button>
+            <div style="display:flex; gap:8px; margin-top:16px;">
+                <button class="btn btn-primary" style="flex:1;" onclick="openNewLifeProjectModal()">+ New Project</button>
+                <button class="btn" style="flex:0 0 auto;" onclick="document.getElementById('lpImportFileInput').click()">📥 Import</button>
+            </div>
+            <input type="file" id="lpImportFileInput" accept=".json" style="display:none;" onchange="_lpHandleImportFile(event)">
+        </div>
+
+        <!-- Import People Linking Modal -->
+        <div class="modal-overlay" id="lpImportPeopleModal">
+            <div class="modal">
+                <h3>Link People</h3>
+                <div id="lpImportPeopleBody"></div>
+            </div>
+        </div>
+
+        <!-- Import Progress Modal -->
+        <div class="modal-overlay" id="lpImportProgressModal">
+            <div class="modal">
+                <h3>Importing Project…</h3>
+                <div id="lpImportProgressBody" style="padding:12px 0;">
+                    <p style="color:#666;">Creating project and all data…</p>
+                </div>
+            </div>
         </div>
 
         <!-- New/Edit Project Modal -->
@@ -2155,6 +2177,311 @@ function _lpFilterBySearch(query) {
         if (!q) { card.style.display = ''; return; }
         card.style.display = card.textContent.toLowerCase().includes(q) ? '' : 'none';
     });
+}
+
+// ============================================================
+// Import from JSON
+// ============================================================
+
+/** Temporary import state */
+let _lpImportData = null;
+
+/** Handle file selection from the hidden input */
+function _lpHandleImportFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    event.target.value = ''; // reset so same file can be re-selected
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            if (!data.project || !data.project.title) {
+                alert('Invalid import file: missing project data.');
+                return;
+            }
+            _lpImportData = data;
+            _lpStartPeopleLinking();
+        } catch (err) {
+            alert('Error reading file: ' + err.message);
+        }
+    };
+    reader.readAsText(file);
+}
+
+/** Start the people-linking step — show modal for each person */
+async function _lpStartPeopleLinking() {
+    const people = _lpImportData.project.people || [];
+    if (people.length === 0) {
+        // No people to link — go straight to import
+        await _lpExecuteImport();
+        return;
+    }
+
+    // Load contacts cache
+    await _lpEnsurePeopleCache();
+
+    // Walk through each person one at a time
+    _lpImportData._linkedPeople = [];
+    _lpLinkNextPerson(0);
+}
+
+/** Show contact picker for person at index */
+function _lpLinkNextPerson(index) {
+    const people = _lpImportData.project.people || [];
+    if (index >= people.length) {
+        // All people processed — apply linked results and import
+        closeModal('lpImportPeopleModal');
+        _lpImportData.project.people = _lpImportData._linkedPeople;
+        _lpExecuteImport();
+        return;
+    }
+
+    const person = people[index];
+    const body = document.getElementById('lpImportPeopleBody');
+    body.innerHTML = `
+        <p style="margin-bottom:12px;">Person ${index + 1} of ${people.length}: <strong>${_lpEsc(person.name)}</strong></p>
+        <p style="font-size:0.9em; color:#666; margin-bottom:8px;">Search contacts to link, or skip to keep unlinked.</p>
+        <div class="lc-people-picker-wrap">
+            <input type="text" id="lpImportPersonSearch" class="form-control"
+                   placeholder="Search contacts…" autocomplete="off">
+            <ul class="lc-people-dropdown hidden" id="lpImportPersonDropdown"></ul>
+        </div>
+        <div style="margin-top:12px; display:flex; gap:8px;">
+            <button class="btn" style="flex:1;" onclick="_lpImportSkipPerson(${index})">Don't Link</button>
+        </div>
+    `;
+    openModal('lpImportPeopleModal');
+
+    // Wire search
+    const searchEl = document.getElementById('lpImportPersonSearch');
+    const dropEl = document.getElementById('lpImportPersonDropdown');
+
+    searchEl.addEventListener('input', function() {
+        const q = this.value.trim().toLowerCase();
+        if (!q) { dropEl.classList.add('hidden'); dropEl.innerHTML = ''; return; }
+
+        const matches = _lpAllPeople.filter(p => p.name.toLowerCase().includes(q));
+        if (matches.length === 0) {
+            dropEl.innerHTML = '<li class="lc-people-no-match">No matches</li>';
+            dropEl.classList.remove('hidden');
+            return;
+        }
+
+        dropEl.innerHTML = matches.map(p =>
+            `<li data-id="${p.id}" data-name="${_lpEsc(p.name)}">${_lpEsc(p.name)}</li>`
+        ).join('');
+        dropEl.classList.remove('hidden');
+
+        dropEl.querySelectorAll('li[data-id]').forEach(li => {
+            li.addEventListener('click', function() {
+                _lpImportSelectPerson(index, li.dataset.id, li.dataset.name);
+            });
+        });
+    });
+
+    // Enter key selects first match
+    searchEl.addEventListener('keydown', function(e) {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        const q = this.value.trim().toLowerCase();
+        if (!q) return;
+        const matches = _lpAllPeople.filter(p => p.name.toLowerCase().includes(q));
+        if (matches.length >= 1) {
+            _lpImportSelectPerson(index, matches[0].id, matches[0].name);
+        }
+    });
+
+    // Focus the search input
+    setTimeout(() => searchEl.focus(), 100);
+}
+
+/** User selected a contact for this person */
+function _lpImportSelectPerson(index, contactId, contactName) {
+    const person = _lpImportData.project.people[index];
+    _lpImportData._linkedPeople.push({
+        name: contactName,
+        contactId: contactId,
+        notes: person.notes || ''
+    });
+    _lpLinkNextPerson(index + 1);
+}
+
+/** User chose not to link this person */
+function _lpImportSkipPerson(index) {
+    const person = _lpImportData.project.people[index];
+    _lpImportData._linkedPeople.push({
+        name: person.name,
+        contactId: null,
+        notes: person.notes || ''
+    });
+    _lpLinkNextPerson(index + 1);
+}
+
+/** Execute the actual Firestore import after people are linked */
+async function _lpExecuteImport() {
+    openModal('lpImportProgressModal');
+    const prog = document.getElementById('lpImportProgressBody');
+
+    try {
+        const d = _lpImportData;
+        const p = d.project;
+
+        // 1. Create the project document
+        prog.innerHTML = '<p>Creating project…</p>';
+        const now = firebase.firestore.FieldValue.serverTimestamp();
+        const projectDoc = {
+            title: p.title || 'Imported Project',
+            description: p.description || '',
+            template: p.template || 'vacation',
+            status: p.status || 'planning',
+            mode: p.mode || 'planning',
+            archived: p.archived !== undefined ? p.archived : false,
+            startDate: p.startDate || null,
+            endDate: p.endDate || null,
+            targetType: 'life',
+            targetId: null,
+            people: p.people || [],
+            bookingTypes: p.bookingTypes || [...LP_DEFAULT_BOOKING_TYPES],
+            createdAt: now,
+            updatedAt: now
+        };
+        const projectRef = await lpCol().add(projectDoc);
+        const projectId = projectRef.id;
+
+        // 2. Create bookings — track IDs by sortOrder for bookingRef linking
+        const bookingIdMap = {}; // confirmation# → Firestore doc ID
+        if (d.bookings && d.bookings.length > 0) {
+            prog.innerHTML = `<p>Creating ${d.bookings.length} bookings…</p>`;
+            const batch = firebase.firestore().batch();
+            d.bookings.forEach(b => {
+                const ref = lpSub(projectId, 'bookings').doc();
+                batch.set(ref, {
+                    name: b.name || '',
+                    type: b.type || '',
+                    startDate: b.startDate || '',
+                    multiDay: b.multiDay || false,
+                    endDate: b.endDate || '',
+                    startTime: b.startTime || '',
+                    endTime: b.endTime || '',
+                    confirmation: b.confirmation || '',
+                    cost: b.cost != null ? b.cost : null,
+                    costNote: b.costNote || '',
+                    paymentStatus: b.paymentStatus || '',
+                    contact: b.contact || '',
+                    address: b.address || '',
+                    link: b.link || '',
+                    notes: b.notes || '',
+                    sortOrder: b.sortOrder || 0
+                });
+                // Map confirmation numbers to doc IDs for bookingRef linking
+                if (b.confirmation) {
+                    bookingIdMap[b.confirmation] = ref.id;
+                }
+            });
+            await batch.commit();
+        }
+
+        // 3. Create days with itinerary items
+        if (d.days && d.days.length > 0) {
+            prog.innerHTML = `<p>Creating ${d.days.length} days with itinerary…</p>`;
+            // May need multiple batches (500 writes max per batch)
+            const batch = firebase.firestore().batch();
+            d.days.forEach(day => {
+                const ref = lpSub(projectId, 'days').doc();
+                const items = (day.items || []).map(item => {
+                    // Wire up bookingRef if the item has a confirmation that matches a booking
+                    let bookingRef = item.bookingRef || null;
+                    if (!bookingRef && item.confirmation && bookingIdMap[item.confirmation]) {
+                        bookingRef = bookingIdMap[item.confirmation];
+                    }
+                    return {
+                        id: _lpItemId(),
+                        title: item.title || '',
+                        time: item.time || '',
+                        status: item.status || 'idea',
+                        cost: item.cost != null ? item.cost : null,
+                        costNote: item.costNote || '',
+                        notes: item.notes || '',
+                        links: item.links || [],
+                        confirmation: item.confirmation || '',
+                        contact: item.contact || '',
+                        duration: item.duration || '',
+                        bookingRef: bookingRef,
+                        sortOrder: item.sortOrder || 0,
+                        showOnCalendar: item.showOnCalendar || false
+                    };
+                });
+                batch.set(ref, {
+                    date: day.date || '',
+                    label: day.label || '',
+                    location: day.location || '',
+                    sortOrder: day.sortOrder || 0,
+                    items: items
+                });
+            });
+            await batch.commit();
+        }
+
+        // 4. Create to-do items
+        if (d.todoItems && d.todoItems.length > 0) {
+            prog.innerHTML = `<p>Creating ${d.todoItems.length} to-do items…</p>`;
+            const batch = firebase.firestore().batch();
+            d.todoItems.forEach(t => {
+                const ref = lpSub(projectId, 'todoItems').doc();
+                batch.set(ref, {
+                    text: t.text || '',
+                    done: t.done || false,
+                    notes: t.notes || '',
+                    sortOrder: t.sortOrder || 0
+                });
+            });
+            await batch.commit();
+        }
+
+        // 5. Create packing items
+        if (d.packingItems && d.packingItems.length > 0) {
+            prog.innerHTML = `<p>Creating ${d.packingItems.length} packing items…</p>`;
+            const batch = firebase.firestore().batch();
+            d.packingItems.forEach(item => {
+                const ref = lpSub(projectId, 'packingItems').doc();
+                batch.set(ref, {
+                    text: item.text || '',
+                    done: item.done || false,
+                    notes: item.notes || '',
+                    category: item.category || 'Gear / Other',
+                    sortOrder: item.sortOrder || 0
+                });
+            });
+            await batch.commit();
+        }
+
+        // 6. Create project notes
+        if (d.projectNotes && d.projectNotes.length > 0) {
+            prog.innerHTML = `<p>Creating ${d.projectNotes.length} notes…</p>`;
+            const batch = firebase.firestore().batch();
+            d.projectNotes.forEach(n => {
+                const ref = lpSub(projectId, 'projectNotes').doc();
+                batch.set(ref, {
+                    title: n.title || '',
+                    text: n.text || '',
+                    createdAt: now,
+                    sortOrder: n.sortOrder || 0
+                });
+            });
+            await batch.commit();
+        }
+
+        // Done!
+        _lpImportData = null;
+        closeModal('lpImportProgressModal');
+        location.hash = '#life-project/' + projectId;
+
+    } catch (err) {
+        console.error('Import error:', err);
+        prog.innerHTML = `<p style="color:red;">Error: ${err.message}</p>
+            <button class="btn" style="margin-top:12px;" onclick="closeModal('lpImportProgressModal')">Close</button>`;
+    }
 }
 
 // ============================================================

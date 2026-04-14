@@ -1325,6 +1325,7 @@ async function _lpDeleteItem(dayId, itemId) {
         day.items = items;
         const body = document.getElementById('lpBody_itinerary');
         if (body) _lpRenderItinerary(body);
+        _lpLoadTripInfo();
     } catch (err) {
         console.error('Error deleting item:', err);
     }
@@ -1612,6 +1613,7 @@ async function _lpSaveBooking(editId) {
         }
         closeModal('lpBookingModal');
         await _lpLoadBookings();
+        _lpLoadTripInfo();
     } catch (err) {
         console.error('Error saving booking:', err);
         alert('Error saving booking.');
@@ -1630,6 +1632,7 @@ async function _lpDeleteBooking(bookingId) {
         }
         await lpSub(_lpCurrentProjectId, 'bookings').doc(bookingId).delete();
         await _lpLoadBookings();
+        _lpLoadTripInfo();
     } catch (err) {
         console.error('Error deleting booking:', err);
     }

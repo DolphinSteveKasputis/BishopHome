@@ -859,3 +859,123 @@ These are noted and will be built as a final polish phase:
 - Responsive testing on mobile
 - Edge cases: empty states, long text handling, many days/items performance
 - Verify all delete cascades work correctly
+
+---
+
+## Testing Plan
+
+### T1: Project List Page
+- T1.1: Navigate to `#life-projects` — page loads with heading "Projects" and "+ New Project" button
+- T1.2: Empty state shows "No projects yet" message
+- T1.3: Create a new Vacation project ("Test Vacation") with title, description, start/end dates
+- T1.4: Project card appears on list with correct title, date range, status badge, template icon
+- T1.5: "Show archived" checkbox — toggle on/off filters archived projects
+- T1.6: Edit project metadata (title, description, dates, status) via ✏️ button on card
+- T1.7: Verify edited fields persist after page reload
+
+### T2: Project Detail — Accordion Layout
+- T2.1: Click project card → navigates to detail page with correct title and date range
+- T2.2: All 7 accordion sections present: Trip Info, People, To-Do, Itinerary, Bookings, Packing, Notes
+- T2.3: Trip Info auto-expanded, others collapsed
+- T2.4: Click accordion header → toggles open/close with arrow rotation
+- T2.5: Lazy loading — section content loads on first expand
+- T2.6: Search box present at top of detail page
+
+### T3: Trip Info & Cost Rollup
+- T3.1: Trip Info shows date range and description
+- T3.2: Cost rollup shows $0 or hidden when no costs exist
+- T3.3: After adding bookings/items with costs, Trip Info cost rollup updates correctly
+
+### T4: People
+- T4.1: Add a person (name + notes)
+- T4.2: Person appears in list
+- T4.3: Edit person name/notes
+- T4.4: Remove person (confirm dialog)
+- T4.5: People summary in accordion header updates count
+
+### T5: To-Do List
+- T5.1: Vacation template pre-populates ~10 starter to-do items
+- T5.2: Toggle done checkbox on a to-do item
+- T5.3: Add new to-do item
+- T5.4: Edit to-do text and notes
+- T5.5: Delete a to-do item (confirm dialog)
+- T5.6: Accordion summary shows done/total count (e.g., "2/11")
+- T5.7: Drag-and-drop reorder (SortableJS)
+
+### T6: Itinerary — Days
+- T6.1: Auto-generate days from project date range (button visible when no days exist)
+- T6.2: Correct number of days generated matching date range
+- T6.3: Add a day manually (label, date, location)
+- T6.4: Edit day label/date/location
+- T6.5: Delete a day (confirm dialog — also deletes embedded items)
+- T6.6: Drag-and-drop reorder days
+
+### T7: Itinerary — Items
+- T7.1: Add item to a day (title, status, time, cost, notes)
+- T7.2: Item appears in day card with correct status badge color
+- T7.3: Edit item — all fields editable (title, status, time, duration, cost, costNote, confirmation, contact, notes, links)
+- T7.4: Delete item (confirm dialog)
+- T7.5: Move item to a different day via edit dialog
+- T7.6: Item detail panel expands/collapses on click
+- T7.7: showOnCalendar toggle — 📅 icon appears on item row when enabled
+- T7.8: Booking link — select a booking in edit, badge appears and scrolls to booking card on click
+- T7.9: Drag-and-drop reorder items within a day
+
+### T8: Bookings
+- T8.1: Add booking via modal (name, type, dates, times, confirmation #, cost, payment status, notes)
+- T8.2: Booking card appears with correct fields displayed
+- T8.3: Edit booking — all fields update
+- T8.4: Add new booking type via "Add new..." dropdown option
+- T8.5: Upload screenshot to booking → image appears in gallery
+- T8.6: Delete screenshot from booking
+- T8.7: Delete booking (confirm dialog)
+- T8.8: Drag-and-drop reorder bookings
+- T8.9: Booking badge on day item scrolls to correct booking card
+
+### T9: Packing List
+- T9.1: "Populate Default List" button appears on empty packing section
+- T9.2: Click populate — ~47 default items appear grouped by category
+- T9.3: Toggle packed checkbox on items
+- T9.4: Add new packing item (name, category)
+- T9.5: Edit packing item
+- T9.6: Delete packing item
+- T9.7: Accordion summary shows packed/total count
+- T9.8: Category headers show per-category packed counts
+
+### T10: Notes
+- T10.1: Add a note (title, text)
+- T10.2: Note card appears with title, text, and timestamp
+- T10.3: Edit note title/text
+- T10.4: Delete note (confirm dialog)
+- T10.5: Notes displayed newest-first
+- T10.6: Accordion summary shows note count
+
+### T11: Planning/Travel Mode
+- T11.1: Mode toggle button shows current mode ("📝 Planning" or "✈️ Travel")
+- T11.2: Switch to Travel mode — To-Do and Notes sections hidden
+- T11.3: Travel mode — maybe/idea/nope items hidden from itinerary
+- T11.4: Travel mode — Itinerary and Bookings auto-expanded
+- T11.5: Switch back to Planning — all sections and items visible again
+
+### T12: Search
+- T12.1: Type in search box — matching day cards stay visible, non-matching hidden
+- T12.2: Search filters bookings, to-dos, packing items, notes
+- T12.3: Clear search — all items reappear
+- T12.4: Packing groups hide when all items in group are filtered out
+
+### T13: Delete Cascade
+- T13.1: Create a project with data in every section (days, items, bookings, screenshots, todos, packing, notes, people)
+- T13.2: Delete the project from list page (confirm dialog)
+- T13.3: Project removed from list
+- T13.4: Verify no orphaned subcollection documents remain
+
+### T14: Archive
+- T14.1: Archive a project — disappears from default list
+- T14.2: Check "Show archived" — archived project appears with archive badge
+- T14.3: Unarchive — project returns to default list
+
+### T15: Edge Cases
+- T15.1: Long title/description text wraps properly on project card and detail page
+- T15.2: Empty sections show appropriate empty state messages
+- T15.3: Project with no dates — Trip Info handles gracefully
+- T15.4: Responsive — detail page usable at mobile width (375px)

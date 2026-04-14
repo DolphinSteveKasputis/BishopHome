@@ -533,11 +533,14 @@ function _lpRenderDetailPage(page) {
                         </div>
                         <div>
                             <label class="form-label">Notes</label>
-                            <textarea id="lpItNotes" class="form-control" rows="3"></textarea>
+                            <textarea id="lpItNotes" class="form-control" rows="4" style="width:100%; box-sizing:border-box; resize:vertical;"></textarea>
                         </div>
                         <div>
-                            <label class="form-label">Links (one per line, optional label: URL)</label>
-                            <textarea id="lpItLinks" class="form-control" rows="2" placeholder="https://example.com&#10;My label: https://example.com"></textarea>
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                                <label class="form-label" style="margin:0;">Facts</label>
+                                <button class="btn btn-small" type="button" onclick="_lpAddFactRow()" style="padding:2px 8px; font-size:0.8em;">+ Add Fact</button>
+                            </div>
+                            <div id="lpItFactsContainer" style="display:flex; flex-direction:column; gap:4px;"></div>
                         </div>
                         <div id="lpItBookingWrap">
                             <label class="form-label">Link to Booking</label>
@@ -556,7 +559,7 @@ function _lpRenderDetailPage(page) {
                             </select>
                         </div>
                     </div>
-                    <div class="modal-actions">
+                    <div class="modal-actions" style="justify-content:flex-end;">
                         <button class="btn" onclick="closeModal('lpItemModal')">Cancel</button>
                         <button class="btn btn-primary" onclick="_lpSaveItemModal()">Save</button>
                     </div>
@@ -1135,7 +1138,7 @@ function _lpPlanningGroupCard(g) {
 
 function _lpPlanningItemRow(groupId, item) {
     const st = LP_ITEM_STATUSES[item.status] || LP_ITEM_STATUSES.idea;
-    const hasDetails = item.time || item.cost || item.duration || item.notes || item.confirmation || item.contact || (item.links && item.links.length);
+    const hasDetails = item.time || item.cost || item.duration || item.notes || item.confirmation || item.contact || (item.facts && item.facts.length) || (item.links && item.links.length);
 
     return `
         <div class="lp-planning-item" data-item-id="${item.id}" style="padding:6px 0; border-bottom:1px solid #f0f0f0;">
@@ -1249,7 +1252,7 @@ async function _lpAddPlanningItem(groupId) {
         cost: null,
         costNote: '',
         notes: '',
-        links: [],
+        facts: [],
         confirmation: '',
         contact: '',
         duration: '',
@@ -1507,7 +1510,7 @@ function _lpDayCard(d) {
 
 function _lpItemRow(dayId, item) {
     const st = LP_ITEM_STATUSES[item.status] || LP_ITEM_STATUSES.idea;
-    const hasDetails = item.time || item.cost || item.duration || item.notes || item.confirmation || item.contact || (item.links && item.links.length);
+    const hasDetails = item.time || item.cost || item.duration || item.notes || item.confirmation || item.contact || (item.facts && item.facts.length) || (item.links && item.links.length);
 
     return `
         <div class="lp-item-row" data-item-id="${item.id}" style="padding:6px 0; border-bottom:1px solid #f0f0f0;">
@@ -1540,6 +1543,17 @@ function _lpItemDetailsContent(item) {
     if (item.confirmation) parts.push(`<div${travel ? ' style="font-size:1.05em;"' : ''}><strong>Confirmation:</strong> ${_lpEsc(item.confirmation)}</div>`);
     if (item.contact) parts.push(`<div${travel ? ' style="font-size:1.05em;"' : ''}><strong>Contact:</strong> ${_lpEsc(item.contact)}</div>`);
     if (!travel && item.notes) parts.push(`<div><strong>Notes:</strong> ${_lpEsc(item.notes)}</div>`);
+    // Facts (new) — show label: value, with URLs as clickable links
+    if (!travel && item.facts && item.facts.length) {
+        item.facts.forEach(f => {
+            const isUrl = /^https?:\/\//i.test(f.value);
+            const valHtml = isUrl
+                ? `<a href="${_lpEsc(f.value)}" target="_blank" rel="noopener" style="color:#2563eb;">${_lpEsc(f.value)}</a>`
+                : _lpEsc(f.value);
+            parts.push(`<div><strong>${_lpEsc(f.label || 'Fact')}:</strong> ${valHtml}</div>`);
+        });
+    }
+    // Legacy links support (old data)
     if (!travel && item.links && item.links.length) {
         const linkHtml = item.links.map(l => `<a href="${_lpEsc(l.url)}" target="_blank" rel="noopener" style="color:#2563eb;">${_lpEsc(l.label || l.url)}</a>`).join(', ');
         parts.push(`<div><strong>Links:</strong> ${linkHtml}</div>`);
@@ -1710,7 +1724,7 @@ async function _lpAddItem(dayId) {
         cost: null,
         costNote: '',
         notes: '',
-        links: [],
+        facts: [],
         confirmation: '',
         contact: '',
         duration: '',
@@ -1745,6 +1759,20 @@ function _lpEditItem(dayId, itemId) {
 }
 
 /** Open the shared item edit modal and populate fields */
+/** Add a fact row (label + value) to the facts container in the item modal */
+function _lpAddFactRow(label = '', value = '') {
+    const container = document.getElementById('lpItFactsContainer');
+    if (!container) return;
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex; gap:6px; align-items:center;';
+    row.innerHTML = `
+        <input type="text" class="form-control lp-fact-label" placeholder="Label" value="${_lpEsc(label)}" style="flex:0 0 38%; min-width:0;">
+        <input type="text" class="form-control lp-fact-value" placeholder="Value or URL" value="${_lpEsc(value)}" style="flex:1; min-width:0;">
+        <button class="btn btn-small btn-danger" type="button" onclick="this.parentElement.remove()" style="padding:2px 6px; flex-shrink:0;">✕</button>
+    `;
+    container.appendChild(row);
+}
+
 function _lpOpenItemModal(title, item, currentDayId) {
     document.getElementById('lpItemModalTitle').textContent = title;
 
@@ -1760,9 +1788,11 @@ function _lpOpenItemModal(title, item, currentDayId) {
     document.getElementById('lpItNotes').value = item.notes || '';
     document.getElementById('lpItCalendar').checked = !!item.showOnCalendar;
 
-    // Links — one per line, label: URL format
-    const linksText = (item.links || []).map(l => l.label ? `${l.label}: ${l.url}` : l.url).join('\n');
-    document.getElementById('lpItLinks').value = linksText;
+    // Facts — render rows
+    const factsContainer = document.getElementById('lpItFactsContainer');
+    factsContainer.innerHTML = '';
+    const facts = item.facts || [];
+    facts.forEach(f => _lpAddFactRow(f.label || '', f.value || ''));
 
     // Booking dropdown
     const bkSelect = document.getElementById('lpItBooking');
@@ -1835,11 +1865,12 @@ async function _lpSaveItemModal() {
     const costRaw = document.getElementById('lpItCost').value;
     const cost = costRaw && !isNaN(Number(costRaw)) ? Number(costRaw) : null;
 
-    const linksRaw = document.getElementById('lpItLinks').value;
-    const links = linksRaw.split('\n').map(s => s.trim()).filter(Boolean).map(s => {
-        const colonIdx = s.indexOf(': ');
-        if (colonIdx > 0) return { label: s.slice(0, colonIdx).trim(), url: s.slice(colonIdx + 2).trim() };
-        return { label: '', url: s };
+    // Collect facts from dynamic rows
+    const facts = [];
+    document.querySelectorAll('#lpItFactsContainer > div').forEach(row => {
+        const label = (row.querySelector('.lp-fact-label')?.value || '').trim();
+        const value = (row.querySelector('.lp-fact-value')?.value || '').trim();
+        if (label || value) facts.push({ label, value });
     });
 
     const moveVal = document.getElementById('lpItMoveTo').value;
@@ -1854,7 +1885,7 @@ async function _lpSaveItemModal() {
         confirmation: document.getElementById('lpItConfirmation').value.trim(),
         contact: document.getElementById('lpItContact').value.trim(),
         notes: document.getElementById('lpItNotes').value.trim(),
-        links,
+        facts,
         bookingRef: document.getElementById('lpItBooking').value || null,
         showOnCalendar: document.getElementById('lpItCalendar').checked
     };
@@ -2970,7 +3001,7 @@ async function _lpExecuteImport() {
                         cost: item.cost != null ? item.cost : null,
                         costNote: item.costNote || '',
                         notes: item.notes || '',
-                        links: item.links || [],
+                        facts: item.facts || [],
                         confirmation: item.confirmation || '',
                         contact: item.contact || '',
                         duration: item.duration || '',
@@ -3037,7 +3068,7 @@ async function _lpExecuteImport() {
                     cost: item.cost != null ? item.cost : null,
                     costNote: item.costNote || '',
                     notes: item.notes || '',
-                    links: item.links || [],
+                    facts: item.facts || [],
                     confirmation: item.confirmation || '',
                     contact: item.contact || '',
                     duration: item.duration || '',

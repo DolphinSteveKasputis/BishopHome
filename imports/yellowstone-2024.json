@@ -9,12 +9,25 @@
     "startDate": "2024-09-20",
     "endDate": "2024-09-28",
     "people": [
-      { "name": "Steve", "contactId": null, "notes": "" },
-      { "name": "Danielle", "contactId": null, "notes": "" }
+      {
+        "name": "Steve",
+        "contactId": null,
+        "notes": ""
+      },
+      {
+        "name": "Danielle",
+        "contactId": null,
+        "notes": ""
+      }
     ],
-    "bookingTypes": ["Lodging", "Flight", "Car Rental", "Excursion", "Sports Event"]
+    "bookingTypes": [
+      "Lodging",
+      "Flight",
+      "Car Rental",
+      "Excursion",
+      "Sports Event"
+    ]
   },
-
   "bookings": [
     {
       "name": "Steve — Delta Flight to Bozeman",
@@ -215,7 +228,6 @@
       "sortOrder": 10
     }
   ],
-
   "days": [
     {
       "date": "2024-09-20",
@@ -223,11 +235,81 @@
       "location": "Bozeman / Livingston, MT",
       "sortOrder": 0,
       "items": [
-        { "title": "Fly to Bozeman", "time": "", "status": "confirmed", "cost": null, "costNote": "", "notes": "Steve lands 12:59pm, Danielle lands 12:15pm", "links": [], "confirmation": "", "contact": "", "duration": "", "bookingRef": null, "sortOrder": 0, "showOnCalendar": false },
-        { "title": "Pick up rental car from Alamo", "time": "2:00pm", "status": "confirmed", "cost": null, "costNote": "", "notes": "", "links": [], "confirmation": "1665411372", "contact": "(833) 886-0855", "duration": "", "bookingRef": null, "sortOrder": 1, "showOnCalendar": false },
-        { "title": "Mountains Walking Brewery — Bozeman", "time": "2:30pm", "status": "confirmed", "cost": null, "costNote": "", "notes": "Open 11:30am–8pm. 15–20 min from airport. Leave by 3:30pm.", "links": [], "confirmation": "", "contact": "", "duration": "1 hour", "bookingRef": null, "sortOrder": 2, "showOnCalendar": false },
-        { "title": "Stop at CVS", "time": "", "status": "idea", "cost": null, "costNote": "", "notes": "20 min stop on the way to Under Canvas", "links": [], "confirmation": "", "contact": "", "duration": "20 min", "bookingRef": null, "sortOrder": 3, "showOnCalendar": false },
-        { "title": "Arrive at Under Canvas", "time": "4:15pm", "status": "confirmed", "cost": null, "costNote": "", "notes": "40 min drive from brewery. Could be later if we stop anywhere.", "links": [], "confirmation": "38469SE006220", "contact": "+18884961148", "duration": "", "bookingRef": null, "sortOrder": 4, "showOnCalendar": false }
+        {
+          "title": "Fly to Bozeman",
+          "time": "",
+          "status": "confirmed",
+          "cost": null,
+          "costNote": "",
+          "notes": "Steve lands 12:59pm, Danielle lands 12:15pm",
+          "confirmation": "",
+          "contact": "",
+          "duration": "",
+          "bookingRef": null,
+          "sortOrder": 0,
+          "showOnCalendar": false,
+          "facts": []
+        },
+        {
+          "title": "Pick up rental car from Alamo",
+          "time": "2:00pm",
+          "status": "confirmed",
+          "cost": null,
+          "costNote": "",
+          "notes": "",
+          "confirmation": "1665411372",
+          "contact": "(833) 886-0855",
+          "duration": "",
+          "bookingRef": null,
+          "sortOrder": 1,
+          "showOnCalendar": false,
+          "facts": []
+        },
+        {
+          "title": "Mountains Walking Brewery — Bozeman",
+          "time": "2:30pm",
+          "status": "confirmed",
+          "cost": null,
+          "costNote": "",
+          "notes": "Open 11:30am–8pm. 15–20 min from airport. Leave by 3:30pm.",
+          "confirmation": "",
+          "contact": "",
+          "duration": "1 hour",
+          "bookingRef": null,
+          "sortOrder": 2,
+          "showOnCalendar": false,
+          "facts": []
+        },
+        {
+          "title": "Stop at CVS",
+          "time": "",
+          "status": "idea",
+          "cost": null,
+          "costNote": "",
+          "notes": "20 min stop on the way to Under Canvas",
+          "confirmation": "",
+          "contact": "",
+          "duration": "20 min",
+          "bookingRef": null,
+          "sortOrder": 3,
+          "showOnCalendar": false,
+          "facts": []
+        },
+        {
+          "title": "Arrive at Under Canvas",
+          "time": "4:15pm",
+          "status": "confirmed",
+          "cost": null,
+          "costNote": "",
+          "notes": "40 min drive from brewery. Could be later if we stop anywhere.",
+          "confirmation": "38469SE006220",
+          "contact": "+18884961148",
+          "duration": "",
+          "bookingRef": null,
+          "sortOrder": 4,
+          "showOnCalendar": false,
+          "facts": []
+        }
       ]
     },
     {
@@ -236,10 +318,81 @@
       "location": "Yellowstone area / Gardiner, MT",
       "sortOrder": 1,
       "items": [
-        { "title": "Leave Under Canvas", "time": "8:00am", "status": "confirmed", "cost": null, "costNote": "", "notes": "Leave by 8am to give time for stops/photos on the way", "links": [], "confirmation": "", "contact": "", "duration": "", "bookingRef": null, "sortOrder": 0, "showOnCalendar": false },
-        { "title": "Hell's A-Roarin' Horseback Riding", "time": "11:00am", "status": "confirmed", "cost": 400, "costNote": "$200 each", "notes": "Arrive by 10:30. Done by 1pm.", "links": [{ "label": "", "url": "https://www.hellsaroarinoutfitter.com/summer/yellowstone-horseback-riding/" }], "confirmation": "", "contact": "", "duration": "2 hours", "bookingRef": null, "sortOrder": 1, "showOnCalendar": false },
-        { "title": "Yellowstone Hot Springs", "time": "2:00pm", "status": "confirmed", "cost": 36, "costNote": "$18 each", "notes": "Mineral water springs. No reservation needed. Open 9am-9pm. 45 min from horse riding. Weather dependent — could do later.", "links": [{ "label": "", "url": "https://yellowstonehotspringsmt.com/" }], "confirmation": "", "contact": "", "duration": "", "bookingRef": null, "sortOrder": 2, "showOnCalendar": false },
-        { "title": "Stay at Dreamcatcher Tipi Hotel", "time": "", "status": "confirmed", "cost": null, "costNote": "", "notes": "Just north of Montana state line. They serve breakfast. Gardiner 5 miles away for lunch/dinner.", "links": [{ "label": "", "url": "https://www.dreamcatchertipihotel.com/" }], "confirmation": "28024158", "contact": "(406) 848-9447", "duration": "", "bookingRef": null, "sortOrder": 3, "showOnCalendar": false }
+        {
+          "title": "Leave Under Canvas",
+          "time": "8:00am",
+          "status": "confirmed",
+          "cost": null,
+          "costNote": "",
+          "notes": "Leave by 8am to give time for stops/photos on the way",
+          "confirmation": "",
+          "contact": "",
+          "duration": "",
+          "bookingRef": null,
+          "sortOrder": 0,
+          "showOnCalendar": false,
+          "facts": []
+        },
+        {
+          "title": "Hell's A-Roarin' Horseback Riding",
+          "time": "11:00am",
+          "status": "confirmed",
+          "cost": 400,
+          "costNote": "$200 each",
+          "notes": "Arrive by 10:30. Done by 1pm.",
+          "confirmation": "",
+          "contact": "",
+          "duration": "2 hours",
+          "bookingRef": null,
+          "sortOrder": 1,
+          "showOnCalendar": false,
+          "facts": [
+            {
+              "label": "",
+              "value": "https://www.hellsaroarinoutfitter.com/summer/yellowstone-horseback-riding/"
+            }
+          ]
+        },
+        {
+          "title": "Yellowstone Hot Springs",
+          "time": "2:00pm",
+          "status": "confirmed",
+          "cost": 36,
+          "costNote": "$18 each",
+          "notes": "Mineral water springs. No reservation needed. Open 9am-9pm. 45 min from horse riding. Weather dependent — could do later.",
+          "confirmation": "",
+          "contact": "",
+          "duration": "",
+          "bookingRef": null,
+          "sortOrder": 2,
+          "showOnCalendar": false,
+          "facts": [
+            {
+              "label": "",
+              "value": "https://yellowstonehotspringsmt.com/"
+            }
+          ]
+        },
+        {
+          "title": "Stay at Dreamcatcher Tipi Hotel",
+          "time": "",
+          "status": "confirmed",
+          "cost": null,
+          "costNote": "",
+          "notes": "Just north of Montana state line. They serve breakfast. Gardiner 5 miles away for lunch/dinner.",
+          "confirmation": "28024158",
+          "contact": "(406) 848-9447",
+          "duration": "",
+          "bookingRef": null,
+          "sortOrder": 3,
+          "showOnCalendar": false,
+          "facts": [
+            {
+              "label": "",
+              "value": "https://www.dreamcatchertipihotel.com/"
+            }
+          ]
+        }
       ]
     },
     {
@@ -248,13 +401,111 @@
       "location": "Yellowstone — Canyon Village",
       "sortOrder": 2,
       "items": [
-        { "title": "Leave Tipi", "time": "8:00am", "status": "confirmed", "cost": null, "costNote": "", "notes": "25 min from Tipi to Mammoth", "links": [], "confirmation": "", "contact": "", "duration": "", "bookingRef": null, "sortOrder": 0, "showOnCalendar": false },
-        { "title": "Mammoth Hot Springs", "time": "8:30am", "status": "confirmed", "cost": null, "costNote": "", "notes": "On the way to Canyon Village. Done by 10am.", "links": [], "confirmation": "", "contact": "", "duration": "1.5 hours", "bookingRef": null, "sortOrder": 1, "showOnCalendar": false },
-        { "title": "Drive Mammoth → Canyon Village via Lamar Valley", "time": "10:00am", "status": "confirmed", "cost": null, "costNote": "", "notes": "Allow 2 hours for stops: Petrified Tree, Lamar Valley, Soda Butte, Tower Fall, Yellowstone Overlook, Dunraven Pass", "links": [], "confirmation": "", "contact": "", "duration": "2 hours with stops", "bookingRef": null, "sortOrder": 2, "showOnCalendar": false },
-        { "title": "Arrive Canyon Lodge — lunch", "time": "12:00pm", "status": "confirmed", "cost": null, "costNote": "", "notes": "Lunch at the lodge or nearby", "links": [], "confirmation": "18787381", "contact": "", "duration": "", "bookingRef": null, "sortOrder": 3, "showOnCalendar": false },
-        { "title": "Inspiration Point / Canyon area", "time": "", "status": "confirmed", "cost": null, "costNote": "", "notes": "12 min from lodge. Lodge side: Inspiration Point, Red Rock Point, Grand View, Brink of Lower Falls. Other side: Artist Point to Point Sublime (2-3 mi RT), Upper Falls View, Brink of Upper Falls. Leave by 4pm.", "links": [], "confirmation": "", "contact": "", "duration": "3-4 hours", "bookingRef": null, "sortOrder": 4, "showOnCalendar": false },
-        { "title": "Hayden Valley / Mud Volcano drive (optional)", "time": "", "status": "maybe", "cost": null, "costNote": "", "notes": "Down the road: Hayden Valley Alum Creek, Dragon's Mouth Spring, North Caldron, Mud Volcano, Lee Hardy Rapids, Fishing Bridge (30 min from lodge)", "links": [], "confirmation": "", "contact": "", "duration": "", "bookingRef": null, "sortOrder": 5, "showOnCalendar": false },
-        { "title": "Stay at Canyon Lodge", "time": "", "status": "confirmed", "cost": null, "costNote": "", "notes": "", "links": [], "confirmation": "18787381", "contact": "", "duration": "", "bookingRef": null, "sortOrder": 6, "showOnCalendar": false }
+        {
+          "title": "Leave Tipi",
+          "time": "8:00am",
+          "status": "confirmed",
+          "cost": null,
+          "costNote": "",
+          "notes": "25 min from Tipi to Mammoth",
+          "confirmation": "",
+          "contact": "",
+          "duration": "",
+          "bookingRef": null,
+          "sortOrder": 0,
+          "showOnCalendar": false,
+          "facts": []
+        },
+        {
+          "title": "Mammoth Hot Springs",
+          "time": "8:30am",
+          "status": "confirmed",
+          "cost": null,
+          "costNote": "",
+          "notes": "On the way to Canyon Village. Done by 10am.",
+          "confirmation": "",
+          "contact": "",
+          "duration": "1.5 hours",
+          "bookingRef": null,
+          "sortOrder": 1,
+          "showOnCalendar": false,
+          "facts": []
+        },
+        {
+          "title": "Drive Mammoth → Canyon Village via Lamar Valley",
+          "time": "10:00am",
+          "status": "confirmed",
+          "cost": null,
+          "costNote": "",
+          "notes": "Allow 2 hours for stops: Petrified Tree, Lamar Valley, Soda Butte, Tower Fall, Yellowstone Overlook, Dunraven Pass",
+          "confirmation": "",
+          "contact": "",
+          "duration": "2 hours with stops",
+          "bookingRef": null,
+          "sortOrder": 2,
+          "showOnCalendar": false,
+          "facts": []
+        },
+        {
+          "title": "Arrive Canyon Lodge — lunch",
+          "time": "12:00pm",
+          "status": "confirmed",
+          "cost": null,
+          "costNote": "",
+          "notes": "Lunch at the lodge or nearby",
+          "confirmation": "18787381",
+          "contact": "",
+          "duration": "",
+          "bookingRef": null,
+          "sortOrder": 3,
+          "showOnCalendar": false,
+          "facts": []
+        },
+        {
+          "title": "Inspiration Point / Canyon area",
+          "time": "",
+          "status": "confirmed",
+          "cost": null,
+          "costNote": "",
+          "notes": "12 min from lodge. Lodge side: Inspiration Point, Red Rock Point, Grand View, Brink of Lower Falls. Other side: Artist Point to Point Sublime (2-3 mi RT), Upper Falls View, Brink of Upper Falls. Leave by 4pm.",
+          "confirmation": "",
+          "contact": "",
+          "duration": "3-4 hours",
+          "bookingRef": null,
+          "sortOrder": 4,
+          "showOnCalendar": false,
+          "facts": []
+        },
+        {
+          "title": "Hayden Valley / Mud Volcano drive (optional)",
+          "time": "",
+          "status": "maybe",
+          "cost": null,
+          "costNote": "",
+          "notes": "Down the road: Hayden Valley Alum Creek, Dragon's Mouth Spring, North Caldron, Mud Volcano, Lee Hardy Rapids, Fishing Bridge (30 min from lodge)",
+          "confirmation": "",
+          "contact": "",
+          "duration": "",
+          "bookingRef": null,
+          "sortOrder": 5,
+          "showOnCalendar": false,
+          "facts": []
+        },
+        {
+          "title": "Stay at Canyon Lodge",
+          "time": "",
+          "status": "confirmed",
+          "cost": null,
+          "costNote": "",
+          "notes": "",
+          "confirmation": "18787381",
+          "contact": "",
+          "duration": "",
+          "bookingRef": null,
+          "sortOrder": 6,
+          "showOnCalendar": false,
+          "facts": []
+        }
       ]
     },
     {
@@ -263,10 +514,66 @@
       "location": "Yellowstone — Canyon Village",
       "sortOrder": 3,
       "items": [
-        { "title": "Artist Point → Point Sublime hike", "time": "", "status": "confirmed", "cost": null, "costNote": "", "notes": "2.7 mile round trip, 1.5-2 hours", "links": [], "confirmation": "", "contact": "", "duration": "1.5-2 hours", "bookingRef": null, "sortOrder": 0, "showOnCalendar": false },
-        { "title": "Other Canyon area hikes", "time": "", "status": "maybe", "cost": null, "costNote": "", "notes": "Lots of hikes available around Canyon Village", "links": [], "confirmation": "", "contact": "", "duration": "", "bookingRef": null, "sortOrder": 1, "showOnCalendar": false },
-        { "title": "Drive to Fishing Bridge / Mud Volcano (if time)", "time": "", "status": "maybe", "cost": null, "costNote": "", "notes": "Mud Volcano, Fishing Bridge, lake views", "links": [], "confirmation": "", "contact": "", "duration": "", "bookingRef": null, "sortOrder": 2, "showOnCalendar": false },
-        { "title": "Stay at Canyon Lodge", "time": "", "status": "confirmed", "cost": null, "costNote": "", "notes": "Second night", "links": [], "confirmation": "18787381", "contact": "", "duration": "", "bookingRef": null, "sortOrder": 3, "showOnCalendar": false }
+        {
+          "title": "Artist Point → Point Sublime hike",
+          "time": "",
+          "status": "confirmed",
+          "cost": null,
+          "costNote": "",
+          "notes": "2.7 mile round trip, 1.5-2 hours",
+          "confirmation": "",
+          "contact": "",
+          "duration": "1.5-2 hours",
+          "bookingRef": null,
+          "sortOrder": 0,
+          "showOnCalendar": false,
+          "facts": []
+        },
+        {
+          "title": "Other Canyon area hikes",
+          "time": "",
+          "status": "maybe",
+          "cost": null,
+          "costNote": "",
+          "notes": "Lots of hikes available around Canyon Village",
+          "confirmation": "",
+          "contact": "",
+          "duration": "",
+          "bookingRef": null,
+          "sortOrder": 1,
+          "showOnCalendar": false,
+          "facts": []
+        },
+        {
+          "title": "Drive to Fishing Bridge / Mud Volcano (if time)",
+          "time": "",
+          "status": "maybe",
+          "cost": null,
+          "costNote": "",
+          "notes": "Mud Volcano, Fishing Bridge, lake views",
+          "confirmation": "",
+          "contact": "",
+          "duration": "",
+          "bookingRef": null,
+          "sortOrder": 2,
+          "showOnCalendar": false,
+          "facts": []
+        },
+        {
+          "title": "Stay at Canyon Lodge",
+          "time": "",
+          "status": "confirmed",
+          "cost": null,
+          "costNote": "",
+          "notes": "Second night",
+          "confirmation": "18787381",
+          "contact": "",
+          "duration": "",
+          "bookingRef": null,
+          "sortOrder": 3,
+          "showOnCalendar": false,
+          "facts": []
+        }
       ]
     },
     {
@@ -275,13 +582,111 @@
       "location": "Grand Tetons → Jackson, WY",
       "sortOrder": 4,
       "items": [
-        { "title": "Drive to Colter Bay Village", "time": "7:00am", "status": "confirmed", "cost": null, "costNote": "", "notes": "2 hour drive from Canyon. Arrive 9-10am depending on traffic and stops.", "links": [], "confirmation": "", "contact": "", "duration": "2 hours", "bookingRef": null, "sortOrder": 0, "showOnCalendar": false },
-        { "title": "Grand Teton scenic stops — outer loop to Jackson", "time": "", "status": "confirmed", "cost": null, "costNote": "", "notes": "Allow ~3 hours for stops: Jackson Lake Overlook, Colter Bay Village (breakfast/coffee?), Willow Flats, Oxbow Bend, Elk Ranch Flats Turnout, Glacier View Turnout (sign missing), Chapel of the Transfiguration, Dornan's Chuck Wagon (lunch?)", "links": [], "confirmation": "", "contact": "", "duration": "3 hours", "bookingRef": null, "sortOrder": 1, "showOnCalendar": false },
-        { "title": "Teton Village (optional)", "time": "", "status": "maybe", "cost": null, "costNote": "", "notes": "Skip if running behind", "links": [], "confirmation": "", "contact": "", "duration": "", "bookingRef": null, "sortOrder": 2, "showOnCalendar": false },
-        { "title": "Arrive in Jackson", "time": "2:00pm", "status": "confirmed", "cost": null, "costNote": "", "notes": "", "links": [], "confirmation": "", "contact": "", "duration": "", "bookingRef": null, "sortOrder": 3, "showOnCalendar": false },
-        { "title": "Grand Teton Brewing — Idaho", "time": "6:00pm", "status": "maybe", "cost": null, "costNote": "", "notes": "Opens at noon, closes 8pm. 40 min one way. ~2 hours round trip including time there. Leave 6pm, back by 8pm.", "links": [], "confirmation": "", "contact": "", "duration": "2 hours", "bookingRef": null, "sortOrder": 4, "showOnCalendar": false },
-        { "title": "Snake River Brewing — dinner", "time": "", "status": "maybe", "cost": null, "costNote": "", "notes": "In Jackson. Open till 10pm.", "links": [], "confirmation": "", "contact": "", "duration": "", "bookingRef": null, "sortOrder": 5, "showOnCalendar": false },
-        { "title": "Stay at Mountain Modern Motel", "time": "", "status": "confirmed", "cost": null, "costNote": "", "notes": "", "links": [], "confirmation": "912256534", "contact": "+13077334340", "duration": "", "bookingRef": null, "sortOrder": 6, "showOnCalendar": false }
+        {
+          "title": "Drive to Colter Bay Village",
+          "time": "7:00am",
+          "status": "confirmed",
+          "cost": null,
+          "costNote": "",
+          "notes": "2 hour drive from Canyon. Arrive 9-10am depending on traffic and stops.",
+          "confirmation": "",
+          "contact": "",
+          "duration": "2 hours",
+          "bookingRef": null,
+          "sortOrder": 0,
+          "showOnCalendar": false,
+          "facts": []
+        },
+        {
+          "title": "Grand Teton scenic stops — outer loop to Jackson",
+          "time": "",
+          "status": "confirmed",
+          "cost": null,
+          "costNote": "",
+          "notes": "Allow ~3 hours for stops: Jackson Lake Overlook, Colter Bay Village (breakfast/coffee?), Willow Flats, Oxbow Bend, Elk Ranch Flats Turnout, Glacier View Turnout (sign missing), Chapel of the Transfiguration, Dornan's Chuck Wagon (lunch?)",
+          "confirmation": "",
+          "contact": "",
+          "duration": "3 hours",
+          "bookingRef": null,
+          "sortOrder": 1,
+          "showOnCalendar": false,
+          "facts": []
+        },
+        {
+          "title": "Teton Village (optional)",
+          "time": "",
+          "status": "maybe",
+          "cost": null,
+          "costNote": "",
+          "notes": "Skip if running behind",
+          "confirmation": "",
+          "contact": "",
+          "duration": "",
+          "bookingRef": null,
+          "sortOrder": 2,
+          "showOnCalendar": false,
+          "facts": []
+        },
+        {
+          "title": "Arrive in Jackson",
+          "time": "2:00pm",
+          "status": "confirmed",
+          "cost": null,
+          "costNote": "",
+          "notes": "",
+          "confirmation": "",
+          "contact": "",
+          "duration": "",
+          "bookingRef": null,
+          "sortOrder": 3,
+          "showOnCalendar": false,
+          "facts": []
+        },
+        {
+          "title": "Grand Teton Brewing — Idaho",
+          "time": "6:00pm",
+          "status": "maybe",
+          "cost": null,
+          "costNote": "",
+          "notes": "Opens at noon, closes 8pm. 40 min one way. ~2 hours round trip including time there. Leave 6pm, back by 8pm.",
+          "confirmation": "",
+          "contact": "",
+          "duration": "2 hours",
+          "bookingRef": null,
+          "sortOrder": 4,
+          "showOnCalendar": false,
+          "facts": []
+        },
+        {
+          "title": "Snake River Brewing — dinner",
+          "time": "",
+          "status": "maybe",
+          "cost": null,
+          "costNote": "",
+          "notes": "In Jackson. Open till 10pm.",
+          "confirmation": "",
+          "contact": "",
+          "duration": "",
+          "bookingRef": null,
+          "sortOrder": 5,
+          "showOnCalendar": false,
+          "facts": []
+        },
+        {
+          "title": "Stay at Mountain Modern Motel",
+          "time": "",
+          "status": "confirmed",
+          "cost": null,
+          "costNote": "",
+          "notes": "",
+          "confirmation": "912256534",
+          "contact": "+13077334340",
+          "duration": "",
+          "bookingRef": null,
+          "sortOrder": 6,
+          "showOnCalendar": false,
+          "facts": []
+        }
       ]
     },
     {
@@ -290,11 +695,81 @@
       "location": "Grand Tetons / Jackson, WY",
       "sortOrder": 5,
       "items": [
-        { "title": "Sunrise at Mormon Row (the barns)", "time": "6:30am", "status": "confirmed", "cost": null, "costNote": "", "notes": "Sunrise ~7:09-7:18am", "links": [], "confirmation": "", "contact": "", "duration": "", "bookingRef": null, "sortOrder": 0, "showOnCalendar": false },
-        { "title": "Jenny Lake area", "time": "", "status": "confirmed", "cost": null, "costNote": "", "notes": "30 min drive. Jenny Lake Overlook, Cascade Canyon Turnout, Grand Teton National Park sign, Mount Moran Turnout", "links": [], "confirmation": "", "contact": "", "duration": "", "bookingRef": null, "sortOrder": 1, "showOnCalendar": false },
-        { "title": "Jackson Lake Dam at sunset", "time": "", "status": "maybe", "cost": null, "costNote": "", "notes": "Sunset photo. Sunset ~7:09-7:23pm", "links": [], "confirmation": "", "contact": "", "duration": "", "bookingRef": null, "sortOrder": 2, "showOnCalendar": false },
-        { "title": "Colter Bay Village for dinner?", "time": "", "status": "maybe", "cost": null, "costNote": "", "notes": "", "links": [], "confirmation": "", "contact": "", "duration": "", "bookingRef": null, "sortOrder": 3, "showOnCalendar": false },
-        { "title": "Check in at Signal Mountain Lodge", "time": "", "status": "confirmed", "cost": null, "costNote": "", "notes": "Wed and Thu night", "links": [], "confirmation": "86245F", "contact": "877.841.1076", "duration": "", "bookingRef": null, "sortOrder": 4, "showOnCalendar": false }
+        {
+          "title": "Sunrise at Mormon Row (the barns)",
+          "time": "6:30am",
+          "status": "confirmed",
+          "cost": null,
+          "costNote": "",
+          "notes": "Sunrise ~7:09-7:18am",
+          "confirmation": "",
+          "contact": "",
+          "duration": "",
+          "bookingRef": null,
+          "sortOrder": 0,
+          "showOnCalendar": false,
+          "facts": []
+        },
+        {
+          "title": "Jenny Lake area",
+          "time": "",
+          "status": "confirmed",
+          "cost": null,
+          "costNote": "",
+          "notes": "30 min drive. Jenny Lake Overlook, Cascade Canyon Turnout, Grand Teton National Park sign, Mount Moran Turnout",
+          "confirmation": "",
+          "contact": "",
+          "duration": "",
+          "bookingRef": null,
+          "sortOrder": 1,
+          "showOnCalendar": false,
+          "facts": []
+        },
+        {
+          "title": "Jackson Lake Dam at sunset",
+          "time": "",
+          "status": "maybe",
+          "cost": null,
+          "costNote": "",
+          "notes": "Sunset photo. Sunset ~7:09-7:23pm",
+          "confirmation": "",
+          "contact": "",
+          "duration": "",
+          "bookingRef": null,
+          "sortOrder": 2,
+          "showOnCalendar": false,
+          "facts": []
+        },
+        {
+          "title": "Colter Bay Village for dinner?",
+          "time": "",
+          "status": "maybe",
+          "cost": null,
+          "costNote": "",
+          "notes": "",
+          "confirmation": "",
+          "contact": "",
+          "duration": "",
+          "bookingRef": null,
+          "sortOrder": 3,
+          "showOnCalendar": false,
+          "facts": []
+        },
+        {
+          "title": "Check in at Signal Mountain Lodge",
+          "time": "",
+          "status": "confirmed",
+          "cost": null,
+          "costNote": "",
+          "notes": "Wed and Thu night",
+          "confirmation": "86245F",
+          "contact": "877.841.1076",
+          "duration": "",
+          "bookingRef": null,
+          "sortOrder": 4,
+          "showOnCalendar": false,
+          "facts": []
+        }
       ]
     },
     {
@@ -303,12 +778,96 @@
       "location": "Grand Tetons — Signal Mountain Lodge",
       "sortOrder": 6,
       "items": [
-        { "title": "Schwabacher Landing — sunrise", "time": "6:30am", "status": "confirmed", "cost": null, "costNote": "", "notes": "", "links": [], "confirmation": "", "contact": "", "duration": "", "bookingRef": null, "sortOrder": 0, "showOnCalendar": false },
-        { "title": "Taggart Lake hike", "time": "", "status": "confirmed", "cost": null, "costNote": "", "notes": "3 miles round trip", "links": [], "confirmation": "", "contact": "", "duration": "2 hours", "bookingRef": null, "sortOrder": 1, "showOnCalendar": false },
-        { "title": "Revisit anything skipped — Oxbow, Mormon Row, Teton Village", "time": "", "status": "maybe", "cost": null, "costNote": "", "notes": "Anything missed from first 2 days due to timing", "links": [], "confirmation": "", "contact": "", "duration": "", "bookingRef": null, "sortOrder": 2, "showOnCalendar": false },
-        { "title": "Jackson town for lunch?", "time": "", "status": "maybe", "cost": null, "costNote": "", "notes": "", "links": [], "confirmation": "", "contact": "", "duration": "", "bookingRef": null, "sortOrder": 3, "showOnCalendar": false },
-        { "title": "Snake River sunset", "time": "", "status": "maybe", "cost": null, "costNote": "", "notes": "", "links": [], "confirmation": "", "contact": "", "duration": "", "bookingRef": null, "sortOrder": 4, "showOnCalendar": false },
-        { "title": "Stay at Signal Mountain Lodge", "time": "", "status": "confirmed", "cost": null, "costNote": "", "notes": "Second night", "links": [], "confirmation": "86245F", "contact": "", "duration": "", "bookingRef": null, "sortOrder": 5, "showOnCalendar": false }
+        {
+          "title": "Schwabacher Landing — sunrise",
+          "time": "6:30am",
+          "status": "confirmed",
+          "cost": null,
+          "costNote": "",
+          "notes": "",
+          "confirmation": "",
+          "contact": "",
+          "duration": "",
+          "bookingRef": null,
+          "sortOrder": 0,
+          "showOnCalendar": false,
+          "facts": []
+        },
+        {
+          "title": "Taggart Lake hike",
+          "time": "",
+          "status": "confirmed",
+          "cost": null,
+          "costNote": "",
+          "notes": "3 miles round trip",
+          "confirmation": "",
+          "contact": "",
+          "duration": "2 hours",
+          "bookingRef": null,
+          "sortOrder": 1,
+          "showOnCalendar": false,
+          "facts": []
+        },
+        {
+          "title": "Revisit anything skipped — Oxbow, Mormon Row, Teton Village",
+          "time": "",
+          "status": "maybe",
+          "cost": null,
+          "costNote": "",
+          "notes": "Anything missed from first 2 days due to timing",
+          "confirmation": "",
+          "contact": "",
+          "duration": "",
+          "bookingRef": null,
+          "sortOrder": 2,
+          "showOnCalendar": false,
+          "facts": []
+        },
+        {
+          "title": "Jackson town for lunch?",
+          "time": "",
+          "status": "maybe",
+          "cost": null,
+          "costNote": "",
+          "notes": "",
+          "confirmation": "",
+          "contact": "",
+          "duration": "",
+          "bookingRef": null,
+          "sortOrder": 3,
+          "showOnCalendar": false,
+          "facts": []
+        },
+        {
+          "title": "Snake River sunset",
+          "time": "",
+          "status": "maybe",
+          "cost": null,
+          "costNote": "",
+          "notes": "",
+          "confirmation": "",
+          "contact": "",
+          "duration": "",
+          "bookingRef": null,
+          "sortOrder": 4,
+          "showOnCalendar": false,
+          "facts": []
+        },
+        {
+          "title": "Stay at Signal Mountain Lodge",
+          "time": "",
+          "status": "confirmed",
+          "cost": null,
+          "costNote": "",
+          "notes": "Second night",
+          "confirmation": "86245F",
+          "contact": "",
+          "duration": "",
+          "bookingRef": null,
+          "sortOrder": 5,
+          "showOnCalendar": false,
+          "facts": []
+        }
       ]
     },
     {
@@ -317,12 +876,96 @@
       "location": "Yellowstone — Old Faithful",
       "sortOrder": 7,
       "items": [
-        { "title": "Early sunrise shot", "time": "6:30am", "status": "maybe", "cost": null, "costNote": "", "notes": "Mormon Row, Oxbow Bend, or Schwabacher Landing", "links": [], "confirmation": "", "contact": "", "duration": "", "bookingRef": null, "sortOrder": 0, "showOnCalendar": false },
-        { "title": "Drive Signal Mountain → Old Faithful Inn", "time": "8:00am", "status": "confirmed", "cost": null, "costNote": "", "notes": "1hr 45min. 2 Continental Divide possible stops if interesting.", "links": [], "confirmation": "", "contact": "", "duration": "2 hours", "bookingRef": null, "sortOrder": 1, "showOnCalendar": false },
-        { "title": "Old Faithful area — walk around", "time": "10:00am", "status": "confirmed", "cost": null, "costNote": "", "notes": "2-3 hours walking around Old Faithful and surrounding boardwalks", "links": [], "confirmation": "", "contact": "", "duration": "2-3 hours", "bookingRef": null, "sortOrder": 2, "showOnCalendar": false },
-        { "title": "Grand Prismatic Spring area (north of Inn)", "time": "", "status": "confirmed", "cost": null, "costNote": "", "notes": "Firehole River Bridge, Turquoise Pool, Grand Prismatic Spring, Grand Prismatic Overlook (1.5 mi RT, 1 hour), Fountain Paint Pots", "links": [], "confirmation": "", "contact": "", "duration": "2-3 hours", "bookingRef": null, "sortOrder": 3, "showOnCalendar": false },
-        { "title": "Fairy Falls hike (if time)", "time": "", "status": "maybe", "cost": null, "costNote": "", "notes": "4.8 miles round trip. Grand Prismatic Overlook is 1.5mi of that, so 3.3 more miles. Factor 3 hours total.", "links": [], "confirmation": "", "contact": "", "duration": "3 hours", "bookingRef": null, "sortOrder": 4, "showOnCalendar": false },
-        { "title": "Stay at Old Faithful Inn", "time": "", "status": "confirmed", "cost": null, "costNote": "", "notes": "Dinner options: check inn for cancellations, Snow Lodge Obsidian Dining Room, Geyser Grill, Lodge Cafeteria, Bear Paw Deli", "links": [], "confirmation": "18787451", "contact": "(307) 344-7311", "duration": "", "bookingRef": null, "sortOrder": 5, "showOnCalendar": false }
+        {
+          "title": "Early sunrise shot",
+          "time": "6:30am",
+          "status": "maybe",
+          "cost": null,
+          "costNote": "",
+          "notes": "Mormon Row, Oxbow Bend, or Schwabacher Landing",
+          "confirmation": "",
+          "contact": "",
+          "duration": "",
+          "bookingRef": null,
+          "sortOrder": 0,
+          "showOnCalendar": false,
+          "facts": []
+        },
+        {
+          "title": "Drive Signal Mountain → Old Faithful Inn",
+          "time": "8:00am",
+          "status": "confirmed",
+          "cost": null,
+          "costNote": "",
+          "notes": "1hr 45min. 2 Continental Divide possible stops if interesting.",
+          "confirmation": "",
+          "contact": "",
+          "duration": "2 hours",
+          "bookingRef": null,
+          "sortOrder": 1,
+          "showOnCalendar": false,
+          "facts": []
+        },
+        {
+          "title": "Old Faithful area — walk around",
+          "time": "10:00am",
+          "status": "confirmed",
+          "cost": null,
+          "costNote": "",
+          "notes": "2-3 hours walking around Old Faithful and surrounding boardwalks",
+          "confirmation": "",
+          "contact": "",
+          "duration": "2-3 hours",
+          "bookingRef": null,
+          "sortOrder": 2,
+          "showOnCalendar": false,
+          "facts": []
+        },
+        {
+          "title": "Grand Prismatic Spring area (north of Inn)",
+          "time": "",
+          "status": "confirmed",
+          "cost": null,
+          "costNote": "",
+          "notes": "Firehole River Bridge, Turquoise Pool, Grand Prismatic Spring, Grand Prismatic Overlook (1.5 mi RT, 1 hour), Fountain Paint Pots",
+          "confirmation": "",
+          "contact": "",
+          "duration": "2-3 hours",
+          "bookingRef": null,
+          "sortOrder": 3,
+          "showOnCalendar": false,
+          "facts": []
+        },
+        {
+          "title": "Fairy Falls hike (if time)",
+          "time": "",
+          "status": "maybe",
+          "cost": null,
+          "costNote": "",
+          "notes": "4.8 miles round trip. Grand Prismatic Overlook is 1.5mi of that, so 3.3 more miles. Factor 3 hours total.",
+          "confirmation": "",
+          "contact": "",
+          "duration": "3 hours",
+          "bookingRef": null,
+          "sortOrder": 4,
+          "showOnCalendar": false,
+          "facts": []
+        },
+        {
+          "title": "Stay at Old Faithful Inn",
+          "time": "",
+          "status": "confirmed",
+          "cost": null,
+          "costNote": "",
+          "notes": "Dinner options: check inn for cancellations, Snow Lodge Obsidian Dining Room, Geyser Grill, Lodge Cafeteria, Bear Paw Deli",
+          "confirmation": "18787451",
+          "contact": "(307) 344-7311",
+          "duration": "",
+          "bookingRef": null,
+          "sortOrder": 5,
+          "showOnCalendar": false,
+          "facts": []
+        }
       ]
     },
     {
@@ -331,63 +974,214 @@
       "location": "Old Faithful → Bozeman → Home",
       "sortOrder": 8,
       "items": [
-        { "title": "Grand Prismatic Springs at sunrise", "time": "6:45am", "status": "maybe", "cost": null, "costNote": "", "notes": "Leave hotel by 6:45am", "links": [], "confirmation": "", "contact": "", "duration": "", "bookingRef": null, "sortOrder": 0, "showOnCalendar": false },
-        { "title": "Drive to Bozeman via West Gate / Big Sky", "time": "8:00am", "status": "confirmed", "cost": null, "costNote": "", "notes": "2hr 40min no stops. Goes through Big Sky, pad 30 min. Total ~3:15. Arrive Alamo by 11:20am.", "links": [], "confirmation": "", "contact": "", "duration": "3+ hours", "bookingRef": null, "sortOrder": 1, "showOnCalendar": false },
-        { "title": "Return rental car at Alamo", "time": "11:20am", "status": "confirmed", "cost": null, "costNote": "", "notes": "", "links": [], "confirmation": "", "contact": "", "duration": "", "bookingRef": null, "sortOrder": 2, "showOnCalendar": false },
-        { "title": "Danielle flight home", "time": "1:20pm", "status": "confirmed", "cost": null, "costNote": "", "notes": "", "links": [], "confirmation": "", "contact": "", "duration": "", "bookingRef": null, "sortOrder": 3, "showOnCalendar": false },
-        { "title": "Steve flight home", "time": "2:10pm", "status": "confirmed", "cost": null, "costNote": "", "notes": "Lands 7:54pm. In truck by 9pm, home by 10pm.", "links": [], "confirmation": "", "contact": "", "duration": "", "bookingRef": null, "sortOrder": 4, "showOnCalendar": false }
+        {
+          "title": "Grand Prismatic Springs at sunrise",
+          "time": "6:45am",
+          "status": "maybe",
+          "cost": null,
+          "costNote": "",
+          "notes": "Leave hotel by 6:45am",
+          "confirmation": "",
+          "contact": "",
+          "duration": "",
+          "bookingRef": null,
+          "sortOrder": 0,
+          "showOnCalendar": false,
+          "facts": []
+        },
+        {
+          "title": "Drive to Bozeman via West Gate / Big Sky",
+          "time": "8:00am",
+          "status": "confirmed",
+          "cost": null,
+          "costNote": "",
+          "notes": "2hr 40min no stops. Goes through Big Sky, pad 30 min. Total ~3:15. Arrive Alamo by 11:20am.",
+          "confirmation": "",
+          "contact": "",
+          "duration": "3+ hours",
+          "bookingRef": null,
+          "sortOrder": 1,
+          "showOnCalendar": false,
+          "facts": []
+        },
+        {
+          "title": "Return rental car at Alamo",
+          "time": "11:20am",
+          "status": "confirmed",
+          "cost": null,
+          "costNote": "",
+          "notes": "",
+          "confirmation": "",
+          "contact": "",
+          "duration": "",
+          "bookingRef": null,
+          "sortOrder": 2,
+          "showOnCalendar": false,
+          "facts": []
+        },
+        {
+          "title": "Danielle flight home",
+          "time": "1:20pm",
+          "status": "confirmed",
+          "cost": null,
+          "costNote": "",
+          "notes": "",
+          "confirmation": "",
+          "contact": "",
+          "duration": "",
+          "bookingRef": null,
+          "sortOrder": 3,
+          "showOnCalendar": false,
+          "facts": []
+        },
+        {
+          "title": "Steve flight home",
+          "time": "2:10pm",
+          "status": "confirmed",
+          "cost": null,
+          "costNote": "",
+          "notes": "Lands 7:54pm. In truck by 9pm, home by 10pm.",
+          "confirmation": "",
+          "contact": "",
+          "duration": "",
+          "bookingRef": null,
+          "sortOrder": 4,
+          "showOnCalendar": false,
+          "facts": []
+        }
       ]
     }
   ],
-
   "todoItems": [
-    { "text": "Download offline maps", "done": false, "notes": "", "sortOrder": 0 },
-    { "text": "Find where gas stations are", "done": false, "notes": "", "sortOrder": 1 },
-    { "text": "Get snacks in Bozeman", "done": false, "notes": "", "sortOrder": 2 },
-    { "text": "Get big pack of water bottles (2?)", "done": false, "notes": "", "sortOrder": 3 }
+    {
+      "text": "Download offline maps",
+      "done": false,
+      "notes": "",
+      "sortOrder": 0
+    },
+    {
+      "text": "Find where gas stations are",
+      "done": false,
+      "notes": "",
+      "sortOrder": 1
+    },
+    {
+      "text": "Get snacks in Bozeman",
+      "done": false,
+      "notes": "",
+      "sortOrder": 2
+    },
+    {
+      "text": "Get big pack of water bottles (2?)",
+      "done": false,
+      "notes": "",
+      "sortOrder": 3
+    }
   ],
-
   "packingItems": [
-    { "text": "Cooler", "done": false, "notes": "", "category": "Gear / Other", "sortOrder": 0 }
+    {
+      "text": "Cooler",
+      "done": false,
+      "notes": "",
+      "category": "Gear / Other",
+      "sortOrder": 0
+    }
   ],
-
   "planningGroups": [
     {
       "name": "Yellowstone — Canyon Area",
       "sortOrder": 0,
       "items": [
-        { "title": "Ribbon Lake hike", "status": "idea", "notes": "Possible if we finish everything else around Canyon Village", "sortOrder": 0 },
-        { "title": "Grizzly and Wolf Discovery Center — West Yellowstone", "status": "idea", "notes": "90 min each way from Canyon area. Probably too far.", "sortOrder": 1 }
+        {
+          "title": "Ribbon Lake hike",
+          "status": "idea",
+          "notes": "Possible if we finish everything else around Canyon Village",
+          "sortOrder": 0
+        },
+        {
+          "title": "Grizzly and Wolf Discovery Center — West Yellowstone",
+          "status": "idea",
+          "notes": "90 min each way from Canyon area. Probably too far.",
+          "sortOrder": 1
+        }
       ]
     },
     {
       "name": "Yellowstone — Old Faithful Area",
       "sortOrder": 1,
       "items": [
-        { "title": "Lone Star Geyser hike", "status": "idea", "notes": "5 mile round trip. Pretty walk along the river. Check eruption timetable.", "sortOrder": 0 },
-        { "title": "Observation Peak trail + Solitary Geyser trail", "status": "idea", "notes": "Can see Old Faithful erupting from the trail. Lion Geyser nearby.", "sortOrder": 1 },
-        { "title": "Fairy Falls + Imperial Geyser extended hike", "status": "idea", "notes": "4.8 miles RT total. Extra section above Imperial Geyser is worth the climb per other trip reports.", "duration": "3 hours", "sortOrder": 2 }
+        {
+          "title": "Lone Star Geyser hike",
+          "status": "idea",
+          "notes": "5 mile round trip. Pretty walk along the river. Check eruption timetable.",
+          "sortOrder": 0
+        },
+        {
+          "title": "Observation Peak trail + Solitary Geyser trail",
+          "status": "idea",
+          "notes": "Can see Old Faithful erupting from the trail. Lion Geyser nearby.",
+          "sortOrder": 1
+        },
+        {
+          "title": "Fairy Falls + Imperial Geyser extended hike",
+          "status": "idea",
+          "notes": "4.8 miles RT total. Extra section above Imperial Geyser is worth the climb per other trip reports.",
+          "duration": "3 hours",
+          "sortOrder": 2
+        }
       ]
     },
     {
       "name": "Grand Tetons / Jackson",
       "sortOrder": 2,
       "items": [
-        { "title": "Grand Teton Brewing — Victor, Idaho", "status": "maybe", "notes": "Opens at noon, closes 8pm. 40 min from Jackson one way. ~2 hours round trip.", "sortOrder": 0 },
-        { "title": "Snake River Brewing — Jackson", "status": "maybe", "notes": "Dinner till 10pm. In town.", "sortOrder": 1 },
-        { "title": "Teton Village", "status": "idea", "notes": "Skip if running behind on the Tetons scenic drive", "sortOrder": 2 }
+        {
+          "title": "Grand Teton Brewing — Victor, Idaho",
+          "status": "maybe",
+          "notes": "Opens at noon, closes 8pm. 40 min from Jackson one way. ~2 hours round trip.",
+          "sortOrder": 0
+        },
+        {
+          "title": "Snake River Brewing — Jackson",
+          "status": "maybe",
+          "notes": "Dinner till 10pm. In town.",
+          "sortOrder": 1
+        },
+        {
+          "title": "Teton Village",
+          "status": "idea",
+          "notes": "Skip if running behind on the Tetons scenic drive",
+          "sortOrder": 2
+        }
       ]
     },
     {
       "name": "Possible Activities (Any Day)",
       "sortOrder": 3,
       "items": [
-        { "title": "Canoe — lake, river, or canyon", "status": "idea", "notes": "Need to research options and availability", "sortOrder": 0 },
-        { "title": "Covered Wagon experience", "status": "idea", "notes": "~$600", "cost": 600, "costNote": "", "links": [{ "label": "Rates", "url": "https://grgjh.com/rates/" }], "sortOrder": 1 }
+        {
+          "title": "Canoe — lake, river, or canyon",
+          "status": "idea",
+          "notes": "Need to research options and availability",
+          "sortOrder": 0
+        },
+        {
+          "title": "Covered Wagon experience",
+          "status": "idea",
+          "notes": "~$600",
+          "cost": 600,
+          "costNote": "",
+          "sortOrder": 1,
+          "facts": [
+            {
+              "label": "Rates",
+              "value": "https://grgjh.com/rates/"
+            }
+          ]
+        }
       ]
     }
   ],
-
   "projectNotes": [
     {
       "title": "Distances Reference",

@@ -179,42 +179,6 @@
       "sortOrder": 8
     },
     {
-      "name": "Hell's A-Roarin' Horseback Riding",
-      "type": "Excursion",
-      "startDate": "2024-09-21",
-      "multiDay": false,
-      "endDate": "",
-      "startTime": "11:00am",
-      "endTime": "1:00pm",
-      "confirmation": "",
-      "cost": 400,
-      "costNote": "$200 each",
-      "paymentStatus": "",
-      "contact": "",
-      "address": "",
-      "link": "https://www.hellsaroarinoutfitter.com/summer/yellowstone-horseback-riding/",
-      "notes": "1.5 hours from Under Canvas. Arrive by 10:30. Leave Under Canvas by 9am at latest, earlier for stops/photos.",
-      "sortOrder": 9
-    },
-    {
-      "name": "Yellowstone Hot Springs",
-      "type": "Excursion",
-      "startDate": "2024-09-21",
-      "multiDay": false,
-      "endDate": "",
-      "startTime": "2:00pm",
-      "endTime": "",
-      "confirmation": "",
-      "cost": 36,
-      "costNote": "$18 each, no reservation needed",
-      "paymentStatus": "",
-      "contact": "",
-      "address": "",
-      "link": "https://yellowstonehotspringsmt.com/",
-      "notes": "Mineral water springs. Open 9am-9pm. 40 min from Under Canvas, 45 min from horseback riding. Weather dependent.",
-      "sortOrder": 10
-    },
-    {
       "name": "Steve — Flight Home from Bozeman",
       "type": "Flight",
       "startDate": "2024-09-28",
@@ -230,7 +194,7 @@
       "address": "Bozeman Yellowstone International Airport (BZN)",
       "link": "",
       "notes": "Get in truck by 9pm, home by 10pm",
-      "sortOrder": 11
+      "sortOrder": 9
     },
     {
       "name": "Danielle — Flight Home from Bozeman",
@@ -248,7 +212,7 @@
       "address": "Bozeman Yellowstone International Airport (BZN)",
       "link": "",
       "notes": "",
-      "sortOrder": 12
+      "sortOrder": 10
     }
   ],
 

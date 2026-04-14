@@ -940,11 +940,11 @@ Rich project management for the Life section — supports day-by-day itineraries
 
 **Routes**: `#life-projects` (list), `#life-project/{id}` (detail)
 
-**Project list page**: Cards showing template icon, title, date range, status badge (color-coded), description. Archive/unarchive toggle, edit metadata, delete with cascade (all subcollections deleted). "Show archived" checkbox filters archived projects.
+**Project list page**: Cards showing template icon, title, date range, description, and status badge (color-coded, left-aligned below title). Archive/unarchive toggle, edit metadata, delete with cascade (all subcollections deleted). "Show archived" checkbox filters archived projects. Breadcrumb: Life › Projects.
 
 **New project flow**: Template picker (Vacation enabled, others grayed/disabled), title, description, start/end dates. Vacation template auto-populates starter to-do items on creation.
 
-**Project detail page**: Scrollable accordion layout with lazy-loading sections:
+**Project detail page**: Breadcrumb: Life › Projects › {title}. Scrollable accordion layout with lazy-loading sections:
 - **Trip Info**: Dates, description (read-only display, edit from list page), cost rollup showing total from bookings + day item costs
 - **People**: Add/edit/remove people (name, contactId, notes). Stored as array on project doc.
 - **To-Do**: Checklist with done toggle, notes, drag-and-drop reorder (SortableJS). Summary shows done/total count. Vacation template pre-populates 10 starter items.

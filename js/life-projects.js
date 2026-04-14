@@ -53,11 +53,15 @@ function lpSub(projectId, subName) {
 // ============================================================
 
 async function loadLifeProjectsPage() {
+    // Set breadcrumb in sticky header
+    var crumb = document.getElementById('breadcrumbBar');
+    if (crumb) crumb.innerHTML = '<a href="#life">Life</a><span class="separator">&rsaquo;</span><span>Projects</span>';
+
     const page = document.getElementById('page-life-projects');
     page.innerHTML = `
         <div class="page-header">
             <button class="back-btn" onclick="location.hash='#life'">&larr;</button>
-            <h2>Projects</h2>
+            <h2 style="flex:1;">Projects</h2>
         </div>
         <div style="padding:16px;">
             <div id="lpShowArchivedWrap" style="margin-bottom:12px; display:flex; align-items:center; gap:8px;">
@@ -137,17 +141,17 @@ function _lpProjectCard(p) {
     return `
         <div class="card" style="margin-bottom:12px; cursor:pointer; ${p.archived ? 'opacity:0.6;' : ''}"
              onclick="location.hash='#life-project/${p.id}'">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                <div style="flex:1; min-width:0;">
-                    <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-                        <span style="font-size:1.1em;">${tpl.icon}</span>
-                        <strong style="font-size:1.05em;">${_lpEsc(p.title)}</strong>
-                        ${archivedBadge}
-                    </div>
-                    ${p.description ? `<p style="color:#666; font-size:0.9em; margin:4px 0 0;">${_lpEsc(p.description)}</p>` : ''}
-                    ${dateRange ? `<p style="color:#888; font-size:0.85em; margin:4px 0 0;">${dateRange}</p>` : ''}
+            <div>
+                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                    <span style="font-size:1.1em;">${tpl.icon}</span>
+                    <strong style="font-size:1.05em;">${_lpEsc(p.title)}</strong>
+                    ${archivedBadge}
                 </div>
-                <span style="background:${st.color};color:#fff;font-size:0.75em;padding:2px 10px;border-radius:12px;white-space:nowrap;margin-left:8px;">${st.label}</span>
+                ${p.description ? `<p style="color:#666; font-size:0.9em; margin:4px 0 0;">${_lpEsc(p.description)}</p>` : ''}
+                ${dateRange ? `<p style="color:#888; font-size:0.85em; margin:4px 0 0;">${dateRange}</p>` : ''}
+                <div style="margin-top:4px;">
+                    <span style="background:${st.color};color:#fff;font-size:0.75em;padding:2px 10px;border-radius:12px;white-space:nowrap;">${st.label}</span>
+                </div>
             </div>
             <div style="display:flex; gap:8px; margin-top:8px; justify-content:flex-end;" onclick="event.stopPropagation();">
                 <button class="btn btn-small" onclick="openEditLifeProjectModal('${p.id}')" title="Edit">✏️</button>
@@ -409,6 +413,10 @@ async function loadLifeProjectDetailPage(projectId) {
     _lpCurrentProjectId = projectId;
     const page = document.getElementById('page-life-project');
 
+    // Set breadcrumb — will update with project title after load
+    var crumb = document.getElementById('breadcrumbBar');
+    if (crumb) crumb.innerHTML = '<a href="#life">Life</a><span class="separator">&rsaquo;</span><a href="#life-projects">Projects</a><span class="separator">&rsaquo;</span><span>Loading...</span>';
+
     page.innerHTML = '<div style="padding:16px;"><p style="color:#999;">Loading project...</p></div>';
 
     try {
@@ -418,6 +426,9 @@ async function loadLifeProjectDetailPage(projectId) {
             return;
         }
         _lpCurrentProject = { id: doc.id, ...doc.data() };
+        // Update breadcrumb with project title
+        var crumb = document.getElementById('breadcrumbBar');
+        if (crumb) crumb.innerHTML = '<a href="#life">Life</a><span class="separator">&rsaquo;</span><a href="#life-projects">Projects</a><span class="separator">&rsaquo;</span><span>' + _lpEsc(_lpCurrentProject.title) + '</span>';
         _lpRenderDetailPage(page);
     } catch (err) {
         console.error('Error loading project detail:', err);

@@ -442,6 +442,8 @@ function loadPersonDetail(personId) { return loadContactDetail(personId); }
  * @param {Object|null} parentPerson - Set when this is a sub-contact
  */
 function renderPersonDetail(person, parentPerson) {
+    window.scrollTo(0, 0);
+
     // Breadcrumb (written to the sticky header bar)
     var crumb = document.getElementById('breadcrumbBar');
     if (parentPerson) {

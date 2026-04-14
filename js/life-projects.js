@@ -2247,6 +2247,8 @@ function _lpLinkNextPerson(index) {
                    placeholder="Search contacts…" autocomplete="off">
             <ul class="lc-people-dropdown hidden" id="lpImportPersonDropdown"></ul>
         </div>
+        <label style="display:block; margin-top:12px; font-size:0.9em; color:#555;">Notes (optional)</label>
+        <textarea id="lpImportPersonNotes" class="form-control" rows="2" placeholder="e.g. travel buddy, meeting there…" style="margin-top:4px;">${_lpEsc(person.notes || '')}</textarea>
         <div style="margin-top:12px; display:flex; gap:8px;">
             <button class="btn" style="flex:1;" onclick="_lpImportSkipPerson(${index})">Don't Link</button>
         </div>
@@ -2298,11 +2300,11 @@ function _lpLinkNextPerson(index) {
 
 /** User selected a contact for this person */
 function _lpImportSelectPerson(index, contactId, contactName) {
-    const person = _lpImportData.project.people[index];
+    const notes = (document.getElementById('lpImportPersonNotes')?.value || '').trim();
     _lpImportData._linkedPeople.push({
         name: contactName,
         contactId: contactId,
-        notes: person.notes || ''
+        notes: notes
     });
     _lpLinkNextPerson(index + 1);
 }
@@ -2310,10 +2312,11 @@ function _lpImportSelectPerson(index, contactId, contactName) {
 /** User chose not to link this person */
 function _lpImportSkipPerson(index) {
     const person = _lpImportData.project.people[index];
+    const notes = (document.getElementById('lpImportPersonNotes')?.value || '').trim();
     _lpImportData._linkedPeople.push({
         name: person.name,
         contactId: null,
-        notes: person.notes || ''
+        notes: notes
     });
     _lpLinkNextPerson(index + 1);
 }

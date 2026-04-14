@@ -78,6 +78,9 @@ var _lcAllAppointments = [];
 /** Current view mode. null until first page load, then 'list' or 'grid'. */
 var _lcViewMode  = null;
 
+/** Show past 30 days toggle for list view. Off by default, not sticky (reset on page load). */
+var _lcShowPast  = false;
+
 /** Year currently displayed on the grid (full 4-digit). */
 var _lcGridYear  = 0;
 
@@ -617,6 +620,14 @@ function _lcGetAppointmentsForView(forGrid) {
         if (_lcStatusFilter === 'upcoming+attended' && a._apptStatus === 'cancelled')  return false;
         if (_lcStatusFilter === 'attended'          && a._apptStatus !== 'completed')  return false;
         if (_lcStatusFilter === 'missed')  return false; // no "missed" concept for appointments
+        // Date cutoff for list view (same logic as _lcGetFilteredEvents)
+        if (_lcStatusFilter === 'upcoming' || _lcStatusFilter === 'upcoming+attended') {
+            var today2 = new Date(); today2.setHours(0, 0, 0, 0);
+            var cutoff2 = _lcShowPast
+                ? new Date(today2.getTime() - 30 * 24 * 60 * 60 * 1000)
+                : today2;
+            if ((a.startDate || '') < cutoff2.toISOString().slice(0, 10)) return false;
+        }
         // Category filter: appointments have no category → exclude when a category is selected
         if (_lcCategoryFilter) return false;
         // Search filter
@@ -634,12 +645,26 @@ function _lcGetAppointmentsForView(forGrid) {
  * @returns {Array}
  */
 function _lcGetFilteredEvents() {
+    // Date cutoff for list view — applies only to "upcoming" / "upcoming+attended" filters.
+    // "attended", "missed", "all" are intentionally past-looking so no cutoff is applied.
+    var listDateCutoff = null;
+    if (_lcViewMode !== 'grid' &&
+        (_lcStatusFilter === 'upcoming' || _lcStatusFilter === 'upcoming+attended')) {
+        var today = new Date(); today.setHours(0, 0, 0, 0);
+        var cutoff = _lcShowPast
+            ? new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+            : today;
+        listDateCutoff = cutoff.toISOString().slice(0, 10);
+    }
+
     return _lcAllEvents.filter(function(ev) {
         // Status filter
         if (_lcStatusFilter === 'upcoming'          && ev.status !== 'upcoming')  return false;
         if (_lcStatusFilter === 'upcoming+attended' && ev.status === 'didntgo')   return false;
         if (_lcStatusFilter === 'attended'          && ev.status !== 'attended')  return false;
         if (_lcStatusFilter === 'missed'            && ev.status !== 'didntgo')   return false;
+        // Date cutoff (list view, upcoming-style filters only)
+        if (listDateCutoff && (ev.startDate || '') < listDateCutoff) return false;
         // Category filter
         if (_lcCategoryFilter && ev.categoryId !== _lcCategoryFilter) return false;
         // Search filter (title + location, case-insensitive)
@@ -842,15 +867,24 @@ function _lcUpdateGridMonthLabel() {
  */
 function _lcSyncViewUI() {
     var isGrid   = (_lcViewMode === 'grid');
-    var toggleBtn = document.getElementById('lcViewToggle');
-    var gridNav   = document.getElementById('lcGridNav');
-    var gridWrap  = document.getElementById('lcGridContainer');
-    var listWrap  = document.getElementById('lcEventList');
+    var toggleBtn  = document.getElementById('lcViewToggle');
+    var gridNav    = document.getElementById('lcGridNav');
+    var gridWrap   = document.getElementById('lcGridContainer');
+    var listWrap   = document.getElementById('lcEventList');
+    var pastLabel  = document.getElementById('lcPastToggleLabel');
+    var pastChk    = document.getElementById('lcShowPastToggle');
 
     if (toggleBtn) toggleBtn.textContent = isGrid ? 'List View' : 'Grid View';
     if (gridNav)   gridNav.classList.toggle('hidden', !isGrid);
     if (gridWrap)  gridWrap.classList.toggle('hidden', !isGrid);
     if (listWrap)  listWrap.classList.toggle('hidden',  isGrid);
+    if (pastLabel) pastLabel.classList.toggle('hidden', isGrid);
+
+    // Reset past toggle when switching to list view
+    if (!isGrid) {
+        _lcShowPast = false;
+        if (pastChk) pastChk.checked = false;
+    }
 }
 
 /**
@@ -1061,6 +1095,9 @@ async function loadLifeCalendarPage() {
     var crumb = document.getElementById('breadcrumbBar');
     if (crumb) crumb.innerHTML = '<a href="#life">Life</a><span class="separator">&rsaquo;</span><a href="#life-calendar">Calendar</a>';
 
+    // Reset past toggle — not sticky across page navigations
+    _lcShowPast = false;
+
     // Skeleton while loading
     section.innerHTML = `
         <div class="page-header">
@@ -1131,6 +1168,11 @@ async function loadLifeCalendarPage() {
                     <button class="btn btn-primary btn-sm" id="lcAddEventBtn">+ Add Event</button>
                 </div>
 
+                <!-- Show Past toggle (list view only) -->
+                <label class="lc-past-toggle${isGrid ? ' hidden' : ''}" id="lcPastToggleLabel">
+                    <input type="checkbox" id="lcShowPastToggle"> Show past 30 days
+                </label>
+
                 <!-- Grid navigation (hidden in list view) -->
                 <div class="lc-grid-nav${isGrid ? '' : ' hidden'}" id="lcGridNav">
                     <button class="btn btn-sm btn-secondary" id="lcGridPrev">&#8249;</button>
@@ -1178,6 +1220,12 @@ async function loadLifeCalendarPage() {
         });
         document.getElementById('lcSearchInput').addEventListener('input', function() {
             _lcSearchQuery = this.value;
+            _lcApplyFilters();
+        });
+
+        // Wire past toggle
+        document.getElementById('lcShowPastToggle').addEventListener('change', function() {
+            _lcShowPast = this.checked;
             _lcApplyFilters();
         });
 

@@ -831,9 +831,16 @@ Tracks major life events — trips, milestones, goals, relationships.
 **Health Appointments in Calendar**: `healthAppointments` are loaded alongside `lifeEvents` and displayed in both list and grid views.
 - Appointments are normalized to a common shape (`_kind: 'appt'`) with `startDate`, `startTime`, and a title built from `type` + provider name
 - Shown in red (`linear-gradient(135deg,#ef4444,#f87171)`) with an **Appt** pill badge
-- **List view**: filtered by status (scheduled = Upcoming, completed = Attended; missed filter excludes appointments); hidden when a category filter is active
+- **List view**: filtered by status (scheduled = Upcoming, completed = Attended; missed filter excludes appointments); hidden when a category filter is active; subject to the "show past" date cutoff (see below)
 - **Grid view**: all non-cancelled appointments always appear regardless of status filter (past appointments visible when browsing past months)
 - Clicking an appointment card or grid bar navigates to `#health-appointments`
+
+**Show Past 30 Days toggle** (list view only):
+- Visible in list view; hidden in grid view
+- Off by default; not sticky (resets on every page load and when switching back to list view from grid)
+- When OFF: list view shows only events/appointments with `startDate >= today` (for "Upcoming" and "Upcoming + Attended" status filters)
+- When ON: date cutoff extends to 30 days in the past
+- Does not apply to "Attended", "Missed", or "All" status filters — those intentionally show past events
 
 **Routes**: `#life-calendar` (list), `#life-event/{id}` (detail/edit), `#life-event/new` (create)
 

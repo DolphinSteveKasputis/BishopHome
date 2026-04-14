@@ -8006,6 +8006,23 @@ a.health-chip--link:hover { filter: brightness(0.93); }
     transform: rotate(90deg);
 }
 
+/* Show Past toggle (below controls row, list view only) */
+.lc-past-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.88rem;
+    color: var(--text-muted, #888);
+    margin-bottom: 10px;
+    cursor: pointer;
+    user-select: none;
+}
+.lc-past-toggle input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
 /* Mobile */
 @media (max-width: 480px) {
     .lc-filter-select { min-width: 0; flex: 1 1 45%; }

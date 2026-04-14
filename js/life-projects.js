@@ -485,6 +485,84 @@ function _lpRenderDetailPage(page) {
                 <input type="text" id="lpSearchBox" class="form-control" placeholder="Search project..." oninput="_lpFilterBySearch(this.value)" style="font-size:0.9em;">
             </div>
 
+            <!-- Item Edit Modal (shared by itinerary and planning board) -->
+            <div class="modal-overlay" id="lpItemModal">
+                <div class="modal" style="max-width:500px;">
+                    <h3 id="lpItemModalTitle">Edit Item</h3>
+                    <div style="display:flex; flex-direction:column; gap:10px;">
+                        <div>
+                            <label class="form-label">Title *</label>
+                            <input type="text" id="lpItTitle" class="form-control" placeholder="Item title">
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <div style="flex:1;">
+                                <label class="form-label">Status</label>
+                                <select id="lpItStatus" class="form-control">
+                                    <option value="confirmed">Confirmed</option>
+                                    <option value="maybe">Maybe</option>
+                                    <option value="idea">Idea</option>
+                                    <option value="nope">Nope</option>
+                                </select>
+                            </div>
+                            <div style="flex:1;">
+                                <label class="form-label">Time</label>
+                                <input type="text" id="lpItTime" class="form-control" placeholder="e.g. 8:30am">
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <div style="flex:1;">
+                                <label class="form-label">Duration</label>
+                                <input type="text" id="lpItDuration" class="form-control" placeholder="e.g. 2 hours">
+                            </div>
+                            <div style="flex:1;">
+                                <label class="form-label">Cost ($)</label>
+                                <input type="number" id="lpItCost" class="form-control" placeholder="blank = none" step="0.01" min="0">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="form-label">Cost Note</label>
+                            <input type="text" id="lpItCostNote" class="form-control" placeholder='e.g. "each", "for 2"'>
+                        </div>
+                        <div>
+                            <label class="form-label">Confirmation #</label>
+                            <input type="text" id="lpItConfirmation" class="form-control">
+                        </div>
+                        <div>
+                            <label class="form-label">Contact (phone/email)</label>
+                            <input type="text" id="lpItContact" class="form-control">
+                        </div>
+                        <div>
+                            <label class="form-label">Notes</label>
+                            <textarea id="lpItNotes" class="form-control" rows="3"></textarea>
+                        </div>
+                        <div>
+                            <label class="form-label">Links (one per line, optional label: URL)</label>
+                            <textarea id="lpItLinks" class="form-control" rows="2" placeholder="https://example.com&#10;My label: https://example.com"></textarea>
+                        </div>
+                        <div id="lpItBookingWrap">
+                            <label class="form-label">Link to Booking</label>
+                            <select id="lpItBooking" class="form-control">
+                                <option value="">— None —</option>
+                            </select>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <input type="checkbox" id="lpItCalendar">
+                            <label for="lpItCalendar" style="font-size:0.9em; margin:0;">Show on calendar</label>
+                        </div>
+                        <div id="lpItMoveWrap" style="border-top:1px solid #e2e8f0; padding-top:10px; margin-top:4px;">
+                            <label class="form-label">Move to…</label>
+                            <select id="lpItMoveTo" class="form-control">
+                                <option value="">— Stay in place —</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-actions">
+                        <button class="btn" onclick="closeModal('lpItemModal')">Cancel</button>
+                        <button class="btn btn-primary" onclick="_lpSaveItemModal()">Save</button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Accordion sections -->
             <div id="lpAccordion">
                 ${_lpAccordionSection('tripInfo', '📍 Trip Info', '', true)}
@@ -1161,14 +1239,11 @@ async function _lpAddPlanningItem(groupId) {
     const group = _lpPlanningGroups.find(g => g.id === groupId);
     if (!group) return;
 
-    const title = prompt('Item title:');
-    if (!title || !title.trim()) return;
-
     const items = [...(group.items || [])];
     const maxOrder = items.reduce((max, it) => Math.max(max, it.sortOrder || 0), -1);
     const newItem = {
         id: _lpItemId(),
-        title: title.trim(),
+        title: 'New Item',
         time: '',
         status: 'idea',
         cost: null,
@@ -1187,6 +1262,9 @@ async function _lpAddPlanningItem(groupId) {
     try {
         await lpSub(_lpCurrentProjectId, 'planningGroups').doc(groupId).update({ items });
         group.items = items;
+        // Open modal to fill in details immediately
+        _lpItemModalCtx = { type: 'planning', groupId, itemId: newItem.id, dayId: null };
+        _lpOpenItemModal('Add Planning Item', newItem, null);
         const body = document.getElementById('lpBody_planning');
         if (body) _lpRenderPlanningBoard(body);
     } catch (err) {
@@ -1194,54 +1272,14 @@ async function _lpAddPlanningItem(groupId) {
     }
 }
 
-async function _lpEditPlanningItem(groupId, itemId) {
+function _lpEditPlanningItem(groupId, itemId) {
     const group = _lpPlanningGroups.find(g => g.id === groupId);
     if (!group) return;
-    const items = [...(group.items || [])];
-    const idx = items.findIndex(it => it.id === itemId);
-    if (idx < 0) return;
-    const item = { ...items[idx] };
+    const item = (group.items || []).find(it => it.id === itemId);
+    if (!item) return;
 
-    const title = prompt('Title:', item.title || '');
-    if (!title || !title.trim()) return;
-    item.title = title.trim();
-
-    const statusInput = prompt('Status (confirmed / maybe / idea / nope):', item.status || 'idea');
-    if (statusInput && LP_ITEM_STATUSES[statusInput.trim().toLowerCase()]) {
-        item.status = statusInput.trim().toLowerCase();
-    }
-
-    item.duration = (prompt('Duration (e.g., "2 hours"):', item.duration || '') || '').trim();
-
-    const costStr = prompt('Cost (number, or blank for none):', item.cost != null ? String(item.cost) : '');
-    item.cost = costStr && !isNaN(Number(costStr)) ? Number(costStr) : null;
-    if (item.cost != null) {
-        item.costNote = (prompt('Cost note (e.g., "each", "for 2"):', item.costNote || '') || '').trim();
-    }
-
-    item.contact = (prompt('Contact (phone/email):', item.contact || '') || '').trim();
-    item.notes = (prompt('Notes:', item.notes || '') || '').trim();
-
-    const currentLinks = (item.links || []).map(l => l.label ? `${l.label}: ${l.url}` : l.url).join(', ');
-    const linksInput = prompt(`Links (comma-separated URLs, current: ${currentLinks || 'none'}):`, currentLinks);
-    if (linksInput !== null) {
-        item.links = linksInput.split(',').map(s => s.trim()).filter(Boolean).map(s => {
-            const colonIdx = s.indexOf(': ');
-            if (colonIdx > 0) return { label: s.slice(0, colonIdx).trim(), url: s.slice(colonIdx + 2).trim() };
-            return { label: '', url: s };
-        });
-    }
-
-    items[idx] = item;
-
-    try {
-        await lpSub(_lpCurrentProjectId, 'planningGroups').doc(groupId).update({ items });
-        group.items = items;
-        const body = document.getElementById('lpBody_planning');
-        if (body) _lpRenderPlanningBoard(body);
-    } catch (err) {
-        console.error('Error editing planning item:', err);
-    }
+    _lpItemModalCtx = { type: 'planning', groupId, itemId, dayId: null };
+    _lpOpenItemModal('Edit Planning Item', item, null);
 }
 
 async function _lpDeletePlanningItem(groupId, itemId) {
@@ -1340,6 +1378,9 @@ const LP_ITEM_STATUSES = {
 };
 
 let _lpDays = [];
+
+/** State for the shared item edit modal */
+let _lpItemModalCtx = null; // { type: 'itinerary'|'planning', dayId, groupId, itemId }
 
 async function _lpLoadItinerary() {
     const body = document.getElementById('lpBody_itinerary');
@@ -1655,18 +1696,15 @@ function _lpItemId() {
 }
 
 async function _lpAddItem(dayId) {
-    const title = prompt('Item title:');
-    if (!title || !title.trim()) return;
-
     const day = _lpDays.find(d => d.id === dayId);
     if (!day) return;
 
+    // Create a blank item, save it, then open the modal to fill in details
     const items = [...(day.items || [])];
     const maxOrder = items.reduce((max, it) => Math.max(max, it.sortOrder || 0), -1);
-
     const newItem = {
         id: _lpItemId(),
-        title: title.trim(),
+        title: 'New Item',
         time: '',
         status: 'idea',
         cost: null,
@@ -1685,6 +1723,9 @@ async function _lpAddItem(dayId) {
     try {
         await lpSub(_lpCurrentProjectId, 'days').doc(dayId).update({ items });
         day.items = items;
+        // Open modal to fill in details immediately
+        _lpItemModalCtx = { type: 'itinerary', dayId, itemId: newItem.id, groupId: null };
+        _lpOpenItemModal('Add Itinerary Item', newItem, dayId);
         const body = document.getElementById('lpBody_itinerary');
         if (body) _lpRenderItinerary(body);
     } catch (err) {
@@ -1693,131 +1734,246 @@ async function _lpAddItem(dayId) {
     }
 }
 
-async function _lpEditItem(dayId, itemId) {
+function _lpEditItem(dayId, itemId) {
     const day = _lpDays.find(d => d.id === dayId);
     if (!day) return;
-    const items = [...(day.items || [])];
-    const idx = items.findIndex(it => it.id === itemId);
-    if (idx < 0) return;
-    const item = { ...items[idx] };
+    const item = (day.items || []).find(it => it.id === itemId);
+    if (!item) return;
 
-    // Multi-field edit via prompt sequence
-    const title = prompt('Title:', item.title || '');
-    if (!title || !title.trim()) return;
-    item.title = title.trim();
+    _lpItemModalCtx = { type: 'itinerary', dayId, itemId, groupId: null };
+    _lpOpenItemModal('Edit Itinerary Item', item, dayId);
+}
 
-    const statusInput = prompt('Status (confirmed / maybe / idea / nope):', item.status || 'idea');
-    if (statusInput && LP_ITEM_STATUSES[statusInput.trim().toLowerCase()]) {
-        item.status = statusInput.trim().toLowerCase();
-    }
+/** Open the shared item edit modal and populate fields */
+function _lpOpenItemModal(title, item, currentDayId) {
+    document.getElementById('lpItemModalTitle').textContent = title;
 
-    item.time = (prompt('Time (e.g., "8:30am"):', item.time || '') || '').trim();
-    item.duration = (prompt('Duration (e.g., "2 hours"):', item.duration || '') || '').trim();
+    // Basic fields
+    document.getElementById('lpItTitle').value = item.title || '';
+    document.getElementById('lpItStatus').value = item.status || 'idea';
+    document.getElementById('lpItTime').value = item.time || '';
+    document.getElementById('lpItDuration').value = item.duration || '';
+    document.getElementById('lpItCost').value = item.cost != null ? item.cost : '';
+    document.getElementById('lpItCostNote').value = item.costNote || '';
+    document.getElementById('lpItConfirmation').value = item.confirmation || '';
+    document.getElementById('lpItContact').value = item.contact || '';
+    document.getElementById('lpItNotes').value = item.notes || '';
+    document.getElementById('lpItCalendar').checked = !!item.showOnCalendar;
 
-    const costStr = prompt('Cost (number, or blank for none):', item.cost != null ? String(item.cost) : '');
-    item.cost = costStr && !isNaN(Number(costStr)) ? Number(costStr) : null;
-    if (item.cost != null) {
-        item.costNote = (prompt('Cost note (e.g., "each", "for 2"):', item.costNote || '') || '').trim();
-    }
+    // Links — one per line, label: URL format
+    const linksText = (item.links || []).map(l => l.label ? `${l.label}: ${l.url}` : l.url).join('\n');
+    document.getElementById('lpItLinks').value = linksText;
 
-    item.confirmation = (prompt('Confirmation #:', item.confirmation || '') || '').trim();
-    item.contact = (prompt('Contact (phone/email):', item.contact || '') || '').trim();
-    item.notes = (prompt('Notes:', item.notes || '') || '').trim();
+    // Booking dropdown
+    const bkSelect = document.getElementById('lpItBooking');
+    bkSelect.innerHTML = '<option value="">— None —</option>';
+    _lpBookings.forEach(b => {
+        const opt = document.createElement('option');
+        opt.value = b.id;
+        opt.textContent = b.name;
+        if (b.id === item.bookingRef) opt.selected = true;
+        bkSelect.appendChild(opt);
+    });
+    document.getElementById('lpItBookingWrap').style.display = _lpBookings.length > 0 ? '' : 'none';
 
-    // Links — simple add, show current
-    const currentLinks = (item.links || []).map(l => l.label ? `${l.label}: ${l.url}` : l.url).join(', ');
-    const linksInput = prompt(`Links (comma-separated URLs, current: ${currentLinks || 'none'}):`, currentLinks);
-    if (linksInput !== null) {
-        item.links = linksInput.split(',').map(s => s.trim()).filter(Boolean).map(s => {
-            const colonIdx = s.indexOf(': ');
-            if (colonIdx > 0) return { label: s.slice(0, colonIdx).trim(), url: s.slice(colonIdx + 2).trim() };
-            return { label: '', url: s };
+    // Move-to dropdown: days + planning groups
+    const moveSelect = document.getElementById('lpItMoveTo');
+    moveSelect.innerHTML = '<option value="">— Stay in place —</option>';
+
+    // Day options (only for itinerary items)
+    if (_lpItemModalCtx.type === 'itinerary') {
+        const dayGroup = document.createElement('optgroup');
+        dayGroup.label = 'Move to Day';
+        _lpDays.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = 'day:' + d.id;
+            opt.textContent = d.label || d.date || 'Day';
+            if (d.id === currentDayId) opt.textContent += ' (current)';
+            dayGroup.appendChild(opt);
         });
+        if (_lpDays.length > 0) moveSelect.appendChild(dayGroup);
     }
 
-    // Booking reference — show available bookings
-    if (_lpBookings.length > 0) {
-        const bookingNames = _lpBookings.map((b, i) => `${i + 1}. ${b.name}`).join(', ');
-        const currentBooking = item.bookingRef ? (_lpBookings.find(b => b.id === item.bookingRef)?.name || 'none') : 'none';
-        const bkInput = prompt(`Link to booking (current: ${currentBooking}).\nEnter number or blank to clear:\n${bookingNames}`, item.bookingRef ? String(_lpBookings.findIndex(b => b.id === item.bookingRef) + 1) : '');
-        if (bkInput !== null) {
-            const bkIdx = parseInt(bkInput, 10) - 1;
-            item.bookingRef = (bkIdx >= 0 && bkIdx < _lpBookings.length) ? _lpBookings[bkIdx].id : null;
-        }
-    }
-
-    // Show on calendar toggle
-    const calToggle = prompt('Show on calendar? (yes/no):', item.showOnCalendar ? 'yes' : 'no');
-    if (calToggle !== null) item.showOnCalendar = calToggle.trim().toLowerCase() === 'yes';
-
-    // Move to different day or to planning board
-    const dayNames = _lpDays.map((d, i) => `${i + 1}. ${d.label || d.date || 'Day'}`).join(', ');
-    const currentDayIdx = _lpDays.findIndex(d => d.id === dayId);
-    const pgNames = _lpPlanningGroups.length > 0
-        ? '\nOr enter P to move to Planning Board.'
-        : '';
-    const moveInput = prompt(`Move to day? (current: ${currentDayIdx + 1}). Enter number or leave same:${pgNames}\n${dayNames}`, String(currentDayIdx + 1));
-
-    // Check if user wants to move to planning board
-    if (moveInput !== null && moveInput.trim().toLowerCase() === 'p' && _lpPlanningGroups.length > 0) {
-        items[idx] = item;
-        // Ask which planning group
-        const groupNames = _lpPlanningGroups.map((g, i) => `${i + 1}. ${g.name}`).join(', ');
-        const groupInput = prompt(`Which planning group?\n${groupNames}`);
-        const groupIdx = groupInput !== null ? parseInt(groupInput, 10) - 1 : -1;
-        if (groupIdx >= 0 && groupIdx < _lpPlanningGroups.length) {
-            try {
-                // Remove from current day
-                const srcItems = items.filter(it => it.id !== itemId);
-                await lpSub(_lpCurrentProjectId, 'days').doc(dayId).update({ items: srcItems });
-                day.items = srcItems;
-                // Add to planning group
-                const group = _lpPlanningGroups[groupIdx];
-                const groupItems = [...(group.items || [])];
-                item.sortOrder = groupItems.reduce((max, it) => Math.max(max, it.sortOrder || 0), -1) + 1;
-                groupItems.push(item);
-                await lpSub(_lpCurrentProjectId, 'planningGroups').doc(group.id).update({ items: groupItems });
-                group.items = groupItems;
-                const body = document.getElementById('lpBody_itinerary');
-                if (body) _lpRenderItinerary(body);
-                const pgBody = document.getElementById('lpBody_planning');
-                if (pgBody) _lpRenderPlanningBoard(pgBody);
-                _lpLoadTripInfo();
-            } catch (err) {
-                console.error('Error moving item to planning:', err);
+    // Planning group options (for both types)
+    if (_lpPlanningGroups.length > 0) {
+        const pgGroup = document.createElement('optgroup');
+        pgGroup.label = 'Move to Planning Board';
+        _lpPlanningGroups.forEach(g => {
+            const opt = document.createElement('option');
+            opt.value = 'pg:' + g.id;
+            opt.textContent = '🗺️ ' + g.name;
+            if (_lpItemModalCtx.type === 'planning' && g.id === _lpItemModalCtx.groupId) {
+                opt.textContent += ' (current)';
             }
-        }
-        return;
+            pgGroup.appendChild(opt);
+        });
+        moveSelect.appendChild(pgGroup);
     }
 
-    const targetDayIdx = moveInput !== null ? parseInt(moveInput, 10) - 1 : currentDayIdx;
-    const targetDay = (targetDayIdx >= 0 && targetDayIdx < _lpDays.length) ? _lpDays[targetDayIdx] : null;
-    const isMove = targetDay && targetDay.id !== dayId;
+    // For planning items, add day options too
+    if (_lpItemModalCtx.type === 'planning' && _lpDays.length > 0) {
+        const dayGroup = document.createElement('optgroup');
+        dayGroup.label = 'Move to Day';
+        _lpDays.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = 'day:' + d.id;
+            opt.textContent = d.label || d.date || 'Day';
+            dayGroup.appendChild(opt);
+        });
+        moveSelect.appendChild(dayGroup);
+    }
 
-    items[idx] = item;
+    openModal('lpItemModal');
+    setTimeout(() => document.getElementById('lpItTitle')?.focus(), 100);
+}
+
+/** Save handler for the item modal */
+async function _lpSaveItemModal() {
+    const title = document.getElementById('lpItTitle').value.trim();
+    if (!title) { alert('Title is required.'); return; }
+
+    const costRaw = document.getElementById('lpItCost').value;
+    const cost = costRaw && !isNaN(Number(costRaw)) ? Number(costRaw) : null;
+
+    const linksRaw = document.getElementById('lpItLinks').value;
+    const links = linksRaw.split('\n').map(s => s.trim()).filter(Boolean).map(s => {
+        const colonIdx = s.indexOf(': ');
+        if (colonIdx > 0) return { label: s.slice(0, colonIdx).trim(), url: s.slice(colonIdx + 2).trim() };
+        return { label: '', url: s };
+    });
+
+    const moveVal = document.getElementById('lpItMoveTo').value;
+
+    const updatedItem = {
+        title,
+        status: document.getElementById('lpItStatus').value,
+        time: document.getElementById('lpItTime').value.trim(),
+        duration: document.getElementById('lpItDuration').value.trim(),
+        cost,
+        costNote: document.getElementById('lpItCostNote').value.trim(),
+        confirmation: document.getElementById('lpItConfirmation').value.trim(),
+        contact: document.getElementById('lpItContact').value.trim(),
+        notes: document.getElementById('lpItNotes').value.trim(),
+        links,
+        bookingRef: document.getElementById('lpItBooking').value || null,
+        showOnCalendar: document.getElementById('lpItCalendar').checked
+    };
+
+    closeModal('lpItemModal');
+
+    const ctx = _lpItemModalCtx;
+    if (!ctx) return;
 
     try {
-        if (isMove) {
-            // Remove from current day
-            const srcItems = items.filter(it => it.id !== itemId);
-            await lpSub(_lpCurrentProjectId, 'days').doc(dayId).update({ items: srcItems });
-            day.items = srcItems;
-            // Add to target day
-            const destItems = [...(targetDay.items || [])];
-            item.sortOrder = destItems.reduce((max, it) => Math.max(max, it.sortOrder || 0), -1) + 1;
-            destItems.push(item);
-            await lpSub(_lpCurrentProjectId, 'days').doc(targetDay.id).update({ items: destItems });
-            targetDay.items = destItems;
-        } else {
-            await lpSub(_lpCurrentProjectId, 'days').doc(dayId).update({ items });
-            day.items = items;
+        if (ctx.type === 'itinerary') {
+            const day = _lpDays.find(d => d.id === ctx.dayId);
+            if (!day) return;
+            const items = [...(day.items || [])];
+            const idx = items.findIndex(it => it.id === ctx.itemId);
+            if (idx < 0) return;
+            const fullItem = { ...items[idx], ...updatedItem };
+
+            if (moveVal.startsWith('day:')) {
+                // Move to different day
+                const targetDayId = moveVal.slice(4);
+                const targetDay = _lpDays.find(d => d.id === targetDayId);
+                if (targetDay && targetDay.id !== ctx.dayId) {
+                    const srcItems = items.filter(it => it.id !== ctx.itemId);
+                    await lpSub(_lpCurrentProjectId, 'days').doc(ctx.dayId).update({ items: srcItems });
+                    day.items = srcItems;
+                    const destItems = [...(targetDay.items || [])];
+                    fullItem.sortOrder = destItems.reduce((max, it) => Math.max(max, it.sortOrder || 0), -1) + 1;
+                    destItems.push(fullItem);
+                    await lpSub(_lpCurrentProjectId, 'days').doc(targetDay.id).update({ items: destItems });
+                    targetDay.items = destItems;
+                } else {
+                    items[idx] = fullItem;
+                    await lpSub(_lpCurrentProjectId, 'days').doc(ctx.dayId).update({ items });
+                    day.items = items;
+                }
+            } else if (moveVal.startsWith('pg:')) {
+                // Move to planning group
+                const targetGroupId = moveVal.slice(3);
+                const group = _lpPlanningGroups.find(g => g.id === targetGroupId);
+                if (group) {
+                    const srcItems = items.filter(it => it.id !== ctx.itemId);
+                    await lpSub(_lpCurrentProjectId, 'days').doc(ctx.dayId).update({ items: srcItems });
+                    day.items = srcItems;
+                    const groupItems = [...(group.items || [])];
+                    fullItem.sortOrder = groupItems.reduce((max, it) => Math.max(max, it.sortOrder || 0), -1) + 1;
+                    groupItems.push(fullItem);
+                    await lpSub(_lpCurrentProjectId, 'planningGroups').doc(group.id).update({ items: groupItems });
+                    group.items = groupItems;
+                    const pgBody = document.getElementById('lpBody_planning');
+                    if (pgBody) _lpRenderPlanningBoard(pgBody);
+                }
+            } else {
+                // Stay in place — just update
+                items[idx] = fullItem;
+                await lpSub(_lpCurrentProjectId, 'days').doc(ctx.dayId).update({ items });
+                day.items = items;
+            }
+
+            const body = document.getElementById('lpBody_itinerary');
+            if (body) _lpRenderItinerary(body);
+            _lpLoadTripInfo();
+
+        } else if (ctx.type === 'planning') {
+            const group = _lpPlanningGroups.find(g => g.id === ctx.groupId);
+            if (!group) return;
+            const items = [...(group.items || [])];
+            const idx = items.findIndex(it => it.id === ctx.itemId);
+            if (idx < 0) return;
+            const fullItem = { ...items[idx], ...updatedItem };
+
+            if (moveVal.startsWith('day:')) {
+                // Move to itinerary day
+                const targetDayId = moveVal.slice(4);
+                const targetDay = _lpDays.find(d => d.id === targetDayId);
+                if (targetDay) {
+                    const srcItems = items.filter(it => it.id !== ctx.itemId);
+                    await lpSub(_lpCurrentProjectId, 'planningGroups').doc(ctx.groupId).update({ items: srcItems });
+                    group.items = srcItems;
+                    const dayItems = [...(targetDay.items || [])];
+                    fullItem.sortOrder = dayItems.reduce((max, it) => Math.max(max, it.sortOrder || 0), -1) + 1;
+                    dayItems.push(fullItem);
+                    await lpSub(_lpCurrentProjectId, 'days').doc(targetDay.id).update({ items: dayItems });
+                    targetDay.items = dayItems;
+                    const itBody = document.getElementById('lpBody_itinerary');
+                    if (itBody) _lpRenderItinerary(itBody);
+                    _lpLoadTripInfo();
+                }
+            } else if (moveVal.startsWith('pg:')) {
+                // Move to different planning group
+                const targetGroupId = moveVal.slice(3);
+                const targetGroup = _lpPlanningGroups.find(g => g.id === targetGroupId);
+                if (targetGroup && targetGroup.id !== ctx.groupId) {
+                    const srcItems = items.filter(it => it.id !== ctx.itemId);
+                    await lpSub(_lpCurrentProjectId, 'planningGroups').doc(ctx.groupId).update({ items: srcItems });
+                    group.items = srcItems;
+                    const destItems = [...(targetGroup.items || [])];
+                    fullItem.sortOrder = destItems.reduce((max, it) => Math.max(max, it.sortOrder || 0), -1) + 1;
+                    destItems.push(fullItem);
+                    await lpSub(_lpCurrentProjectId, 'planningGroups').doc(targetGroup.id).update({ items: destItems });
+                    targetGroup.items = destItems;
+                } else {
+                    items[idx] = fullItem;
+                    await lpSub(_lpCurrentProjectId, 'planningGroups').doc(ctx.groupId).update({ items });
+                    group.items = items;
+                }
+            } else {
+                // Stay in place
+                items[idx] = fullItem;
+                await lpSub(_lpCurrentProjectId, 'planningGroups').doc(ctx.groupId).update({ items });
+                group.items = items;
+            }
+
+            const pgBody = document.getElementById('lpBody_planning');
+            if (pgBody) _lpRenderPlanningBoard(pgBody);
         }
-        const body = document.getElementById('lpBody_itinerary');
-        if (body) _lpRenderItinerary(body);
-        // Refresh Trip Info for cost rollup
-        _lpLoadTripInfo();
     } catch (err) {
-        console.error('Error editing item:', err);
+        console.error('Error saving item:', err);
+        alert('Error saving item.');
     }
 }
 

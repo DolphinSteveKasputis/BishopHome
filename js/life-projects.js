@@ -430,6 +430,7 @@ function _lpRenderDetailPage(page) {
     const tpl = LP_TEMPLATES[p.template] || LP_TEMPLATES.general;
     const st = LP_STATUSES[p.status] || LP_STATUSES.planning;
     const dateRange = _lpFormatDateRange(p.startDate, p.endDate);
+    const travel = _lpIsTravelMode();
 
     page.innerHTML = `
         <div class="page-header" style="flex-wrap:wrap; gap:8px;">
@@ -446,22 +447,47 @@ function _lpRenderDetailPage(page) {
             ${dateRange ? `<p style="color:#888; font-size:0.9em; margin-bottom:12px;">${dateRange}</p>` : ''}
             ${p.description ? `<p style="color:#555; margin-bottom:16px;">${_lpEsc(p.description)}</p>` : ''}
 
+            <!-- Search box -->
+            <div style="margin-bottom:12px;">
+                <input type="text" id="lpSearchBox" class="form-control" placeholder="Search project..." oninput="_lpFilterBySearch(this.value)" style="font-size:0.9em;">
+            </div>
+
             <!-- Accordion sections -->
             <div id="lpAccordion">
                 ${_lpAccordionSection('tripInfo', '📍 Trip Info', '', true)}
                 ${_lpAccordionSection('people', '👥 People', _lpPeopleSummary(p), false)}
-                ${_lpAccordionSection('todos', '☑️ To-Do', '', false)}
-                ${_lpAccordionSection('itinerary', '📅 Itinerary', '', false)}
-                ${_lpAccordionSection('bookings', '🏨 Bookings', '', false)}
+                ${travel ? '' : _lpAccordionSection('todos', '☑️ To-Do', '', false)}
+                ${_lpAccordionSection('itinerary', '📅 Itinerary', '', travel)}
+                ${_lpAccordionSection('bookings', '🏨 Bookings', '', travel)}
                 ${_lpAccordionSection('packing', '🧳 Packing', '', false)}
-                ${_lpAccordionSection('notes', '📝 Notes', '', false)}
+                ${travel ? '' : _lpAccordionSection('notes', '📝 Notes', '', false)}
             </div>
         </div>
     `;
 
-    // Load accordion content for expanded sections
-    _lpLoadTripInfo();
-    _lpLoadTodos();
+    // Load bookings + days first so Trip Info can show cost rollup, then load visible sections
+    _lpLoadInitialData().then(() => {
+        _lpLoadTripInfo();
+        if (!travel) _lpLoadTodos();
+        if (travel) { _lpLoadItinerary(); _lpLoadBookings(); }
+    });
+}
+
+/** Pre-load bookings and days data for cost rollup and booking badges */
+async function _lpLoadInitialData() {
+    if (!_lpCurrentProjectId) return;
+    try {
+        const [daySnap, bookingSnap] = await Promise.all([
+            lpSub(_lpCurrentProjectId, 'days').orderBy('sortOrder').get(),
+            lpSub(_lpCurrentProjectId, 'bookings').orderBy('sortOrder').get()
+        ]);
+        _lpDays = [];
+        daySnap.forEach(doc => _lpDays.push({ id: doc.id, ...doc.data() }));
+        _lpBookings = [];
+        bookingSnap.forEach(doc => _lpBookings.push({ id: doc.id, ...doc.data() }));
+    } catch (err) {
+        console.error('Error pre-loading data:', err);
+    }
 }
 
 /** Build an accordion section shell */
@@ -515,15 +541,21 @@ function _lpLoadAccordionContent(id) {
     }
 }
 
-/** Toggle planning/travel mode */
+/** Is the project currently in travel mode? */
+function _lpIsTravelMode() {
+    return _lpCurrentProject && _lpCurrentProject.mode === 'travel';
+}
+
+/** Toggle planning/travel mode — re-renders the entire detail page */
 async function _lpToggleMode() {
     if (!_lpCurrentProjectId || !_lpCurrentProject) return;
     const newMode = _lpCurrentProject.mode === 'travel' ? 'planning' : 'travel';
     try {
         await lpCol().doc(_lpCurrentProjectId).update({ mode: newMode, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
         _lpCurrentProject.mode = newMode;
-        const btn = document.getElementById('lpModeToggle');
-        if (btn) btn.innerHTML = newMode === 'travel' ? '🧳 Travel' : '📝 Planning';
+        // Re-render entire detail page to apply mode filtering
+        const page = document.getElementById('page-life-project');
+        _lpRenderDetailPage(page);
     } catch (err) {
         console.error('Error toggling mode:', err);
     }
@@ -537,14 +569,25 @@ function _lpLoadTripInfo() {
     const body = document.getElementById('lpBody_tripInfo');
     if (!body || !_lpCurrentProject) return;
     const p = _lpCurrentProject;
+    const costRollup = _lpCalculateCostRollup();
 
     body.innerHTML = `
         <div style="display:grid; gap:8px;">
             ${p.startDate ? `<div><strong>Dates:</strong> ${_lpFormatDateRange(p.startDate, p.endDate)}</div>` : '<div style="color:#999;">No dates set</div>'}
             ${p.description ? `<div><strong>Description:</strong> ${_lpEsc(p.description)}</div>` : ''}
+            ${costRollup.total > 0 ? `<div style="font-size:1.05em;"><strong>Total Trip Cost:</strong> <span style="color:#16a34a; font-weight:700;">$${costRollup.total.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</span> <span style="color:#888; font-size:0.8em;">(bookings: $${costRollup.bookings.toFixed(2)}, activities: $${costRollup.items.toFixed(2)})</span></div>` : ''}
             <div style="color:#999; font-size:0.85em;">Edit project metadata from the list page (✏️ button).</div>
         </div>
     `;
+}
+
+/** Calculate total cost from bookings + day items */
+function _lpCalculateCostRollup() {
+    let bookingTotal = 0;
+    _lpBookings.forEach(b => { if (b.cost != null && !isNaN(b.cost)) bookingTotal += Number(b.cost); });
+    let itemTotal = 0;
+    _lpDays.forEach(d => (d.items || []).forEach(it => { if (it.cost != null && !isNaN(it.cost)) itemTotal += Number(it.cost); }));
+    return { bookings: bookingTotal, items: itemTotal, total: bookingTotal + itemTotal };
 }
 
 // ============================================================
@@ -917,7 +960,9 @@ function _lpUpdateAccordionSummary(sectionId, text) {
 // ---------- Day card rendering ----------
 
 function _lpDayCard(d) {
-    const items = (d.items || []).sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    let items = (d.items || []).sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    // Travel mode: hide maybe/idea/nope items
+    if (_lpIsTravelMode()) items = items.filter(it => it.status === 'confirmed');
     const dateLabel = d.date ? new Date(d.date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) : '';
 
     return `
@@ -958,6 +1003,7 @@ function _lpItemRow(dayId, item) {
                 ${item.time ? `<span style="color:#888; font-size:0.85em;">${_lpEsc(item.time)}</span>` : ''}
                 <span style="flex:1; min-width:0; font-weight:500;">${_lpEsc(item.title)}</span>
                 ${_lpBookingBadge(item.bookingRef)}
+                ${item.showOnCalendar ? '<span title="On calendar" style="font-size:0.75em;">📅</span>' : ''}
                 <div style="display:flex; gap:2px; flex-shrink:0;">
                     <button class="btn btn-small" onclick="_lpToggleItemDetails('${dayId}','${item.id}')" title="${hasDetails ? 'Show details' : 'Show details'}" style="padding:2px 6px;">${hasDetails ? '📋' : '▿'}</button>
                     <button class="btn btn-small" onclick="_lpEditItem('${dayId}','${item.id}')" title="Edit" style="padding:2px 6px;">✏️</button>
@@ -972,13 +1018,15 @@ function _lpItemRow(dayId, item) {
 }
 
 function _lpItemDetailsContent(item) {
+    const travel = _lpIsTravelMode();
     const parts = [];
     if (item.duration) parts.push(`<div><strong>Duration:</strong> ${_lpEsc(item.duration)}</div>`);
-    if (item.cost != null && item.cost !== '') parts.push(`<div><strong>Cost:</strong> $${Number(item.cost).toFixed(2)}${item.costNote ? ` <span style="color:#888;">(${_lpEsc(item.costNote)})</span>` : ''}</div>`);
-    if (item.confirmation) parts.push(`<div><strong>Confirmation:</strong> ${_lpEsc(item.confirmation)}</div>`);
-    if (item.contact) parts.push(`<div><strong>Contact:</strong> ${_lpEsc(item.contact)}</div>`);
-    if (item.notes) parts.push(`<div><strong>Notes:</strong> ${_lpEsc(item.notes)}</div>`);
-    if (item.links && item.links.length) {
+    if (!travel && item.cost != null && item.cost !== '') parts.push(`<div><strong>Cost:</strong> $${Number(item.cost).toFixed(2)}${item.costNote ? ` <span style="color:#888;">(${_lpEsc(item.costNote)})</span>` : ''}</div>`);
+    // In travel mode, confirmation and contact are prominent
+    if (item.confirmation) parts.push(`<div${travel ? ' style="font-size:1.05em;"' : ''}><strong>Confirmation:</strong> ${_lpEsc(item.confirmation)}</div>`);
+    if (item.contact) parts.push(`<div${travel ? ' style="font-size:1.05em;"' : ''}><strong>Contact:</strong> ${_lpEsc(item.contact)}</div>`);
+    if (!travel && item.notes) parts.push(`<div><strong>Notes:</strong> ${_lpEsc(item.notes)}</div>`);
+    if (!travel && item.links && item.links.length) {
         const linkHtml = item.links.map(l => `<a href="${_lpEsc(l.url)}" target="_blank" rel="noopener" style="color:#2563eb;">${_lpEsc(l.label || l.url)}</a>`).join(', ');
         parts.push(`<div><strong>Links:</strong> ${linkHtml}</div>`);
     }
@@ -1214,13 +1262,52 @@ async function _lpEditItem(dayId, itemId) {
         });
     }
 
+    // Booking reference — show available bookings
+    if (_lpBookings.length > 0) {
+        const bookingNames = _lpBookings.map((b, i) => `${i + 1}. ${b.name}`).join(', ');
+        const currentBooking = item.bookingRef ? (_lpBookings.find(b => b.id === item.bookingRef)?.name || 'none') : 'none';
+        const bkInput = prompt(`Link to booking (current: ${currentBooking}).\nEnter number or blank to clear:\n${bookingNames}`, item.bookingRef ? String(_lpBookings.findIndex(b => b.id === item.bookingRef) + 1) : '');
+        if (bkInput !== null) {
+            const bkIdx = parseInt(bkInput, 10) - 1;
+            item.bookingRef = (bkIdx >= 0 && bkIdx < _lpBookings.length) ? _lpBookings[bkIdx].id : null;
+        }
+    }
+
+    // Show on calendar toggle
+    const calToggle = prompt('Show on calendar? (yes/no):', item.showOnCalendar ? 'yes' : 'no');
+    if (calToggle !== null) item.showOnCalendar = calToggle.trim().toLowerCase() === 'yes';
+
+    // Move to different day
+    const dayNames = _lpDays.map((d, i) => `${i + 1}. ${d.label || d.date || 'Day'}`).join(', ');
+    const currentDayIdx = _lpDays.findIndex(d => d.id === dayId);
+    const moveInput = prompt(`Move to day? (current: ${currentDayIdx + 1}). Enter number or leave same:\n${dayNames}`, String(currentDayIdx + 1));
+
+    const targetDayIdx = moveInput !== null ? parseInt(moveInput, 10) - 1 : currentDayIdx;
+    const targetDay = (targetDayIdx >= 0 && targetDayIdx < _lpDays.length) ? _lpDays[targetDayIdx] : null;
+    const isMove = targetDay && targetDay.id !== dayId;
+
     items[idx] = item;
 
     try {
-        await lpSub(_lpCurrentProjectId, 'days').doc(dayId).update({ items });
-        day.items = items;
+        if (isMove) {
+            // Remove from current day
+            const srcItems = items.filter(it => it.id !== itemId);
+            await lpSub(_lpCurrentProjectId, 'days').doc(dayId).update({ items: srcItems });
+            day.items = srcItems;
+            // Add to target day
+            const destItems = [...(targetDay.items || [])];
+            item.sortOrder = destItems.reduce((max, it) => Math.max(max, it.sortOrder || 0), -1) + 1;
+            destItems.push(item);
+            await lpSub(_lpCurrentProjectId, 'days').doc(targetDay.id).update({ items: destItems });
+            targetDay.items = destItems;
+        } else {
+            await lpSub(_lpCurrentProjectId, 'days').doc(dayId).update({ items });
+            day.items = items;
+        }
         const body = document.getElementById('lpBody_itinerary');
         if (body) _lpRenderItinerary(body);
+        // Refresh Trip Info for cost rollup
+        _lpLoadTripInfo();
     } catch (err) {
         console.error('Error editing item:', err);
     }
@@ -1331,7 +1418,7 @@ function _lpBookingCard(b) {
                         ${ps.label ? `<span style="color:${ps.color};font-size:0.75em;font-weight:600;">${ps.label}</span>` : ''}
                     </div>
                     ${dateStr ? `<div style="color:#666; font-size:0.85em; margin-top:2px;">${dateStr}${endStr}${timeStr ? ` &middot; ${_lpEsc(timeStr)}` : ''}</div>` : ''}
-                    ${b.cost != null && b.cost !== '' ? `<div style="color:#555; font-size:0.85em;">$${Number(b.cost).toFixed(2)}${b.costNote ? ` (${_lpEsc(b.costNote)})` : ''}</div>` : ''}
+                    ${!_lpIsTravelMode() && b.cost != null && b.cost !== '' ? `<div style="color:#555; font-size:0.85em;">$${Number(b.cost).toFixed(2)}${b.costNote ? ` (${_lpEsc(b.costNote)})` : ''}</div>` : ''}
                 </div>
                 <div style="display:flex; gap:4px; flex-shrink:0;">
                     <button class="btn btn-small" onclick="_lpEditBooking('${b.id}')" title="Edit">✏️</button>
@@ -1879,7 +1966,7 @@ function _lpNoteCard(n) {
     const dateStr = n.createdAt ? new Date(n.createdAt.seconds ? n.createdAt.seconds * 1000 : n.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
 
     return `
-        <div class="card" style="margin-bottom:10px; padding:10px 12px;">
+        <div class="lp-note-card card" style="margin-bottom:10px; padding:10px 12px;">
             <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                 <div style="flex:1; min-width:0;">
                     ${n.title ? `<strong>${_lpEsc(n.title)}</strong>` : ''}
@@ -1941,6 +2028,45 @@ async function _lpDeleteNote(noteId) {
     } catch (err) {
         console.error('Error deleting note:', err);
     }
+}
+
+// ============================================================
+// Search / Filter
+// ============================================================
+
+function _lpFilterBySearch(query) {
+    const q = (query || '').toLowerCase().trim();
+    // Day cards
+    document.querySelectorAll('.lp-day-card').forEach(card => {
+        if (!q) { card.style.display = ''; return; }
+        card.style.display = card.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+    // Booking cards
+    document.querySelectorAll('.lp-booking-card').forEach(card => {
+        if (!q) { card.style.display = ''; return; }
+        card.style.display = card.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+    // To-do items
+    document.querySelectorAll('.lp-todo-item').forEach(el => {
+        if (!q) { el.style.display = ''; return; }
+        el.style.display = el.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+    // Packing items
+    document.querySelectorAll('.lp-packing-item').forEach(el => {
+        if (!q) { el.style.display = ''; return; }
+        el.style.display = el.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+    // Packing groups — hide group if all items hidden
+    document.querySelectorAll('.lp-packing-group').forEach(group => {
+        if (!q) { group.style.display = ''; return; }
+        const visible = group.querySelectorAll('.lp-packing-item:not([style*="display: none"])');
+        group.style.display = visible.length ? '' : 'none';
+    });
+    // Note cards
+    document.querySelectorAll('.lp-note-card').forEach(card => {
+        if (!q) { card.style.display = ''; return; }
+        card.style.display = card.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
 }
 
 // ============================================================

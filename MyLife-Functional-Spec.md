@@ -945,15 +945,17 @@ Rich project management for the Life section — supports day-by-day itineraries
 **New project flow**: Template picker (Vacation enabled, others grayed/disabled), title, description, start/end dates. Vacation template auto-populates starter to-do items on creation.
 
 **Project detail page**: Scrollable accordion layout with lazy-loading sections:
-- **Trip Info**: Dates, description (read-only display, edit from list page)
+- **Trip Info**: Dates, description (read-only display, edit from list page), cost rollup showing total from bookings + day item costs
 - **People**: Add/edit/remove people (name, contactId, notes). Stored as array on project doc.
 - **To-Do**: Checklist with done toggle, notes, drag-and-drop reorder (SortableJS). Summary shows done/total count. Vacation template pre-populates 10 starter items.
-- **Itinerary**: Day-by-day planning. Auto-generate days from project date range (with optional pre/post travel days). Each day has label, date, location, and embedded items array. Items have title, status (confirmed/maybe/idea/nope with color badges), time, duration, cost + costNote, confirmation, contact, notes, links. Drag-and-drop reorder for both days and items within a day (SortableJS). Expandable detail panel per item.
+- **Itinerary**: Day-by-day planning. Auto-generate days from project date range (with optional pre/post travel days). Each day has label, date, location, and embedded items array. Items have title, status (confirmed/maybe/idea/nope with color badges), time, duration, cost + costNote, confirmation, contact, notes, links, showOnCalendar flag (📅 icon displayed), bookingId (renders a badge that scrolls to the linked booking). Move item between days via edit dialog. Drag-and-drop reorder for both days and items within a day (SortableJS). Expandable detail panel per item.
 - **Bookings**: Full CRUD with modal form. Fields: name, type (dropdown from project's bookingTypes list with "Add new..." option), start/end dates, multi-day toggle, start/end times, confirmation #, cost + costNote, payment status (paid/deposit/balance-owed), contact, address, link, notes. Booking screenshots stored in `bookingPhotos` subcollection — upload, view gallery, delete. Booking badges on day items scroll to the booking card. Drag-and-drop reorder.
 - **Packing**: Items grouped by category (Clothes, Toiletries, Electronics, Documents, Gear/Other) with category headers and per-category packed counts. Vacation template offers "Populate Default List" button to pre-fill ~47 starter items. Check/uncheck packed status. Accordion summary shows "packed/total".
 - **Notes**: Journal-style entries with title, text, and auto-set createdAt. Displayed newest first. Add/edit/delete. Accordion summary shows note count.
 
-**Planning/Travel mode toggle**: Button in project header switches mode (stored on project doc). Travel mode filtering not yet implemented — will hide maybe/idea/nope items and simplify the view.
+**Planning/Travel mode toggle**: Button in project header switches mode (stored on project doc). Travel mode hides maybe/idea/nope items, hides cost fields, hides To-Do and Notes sections, auto-expands Itinerary and Bookings, and makes confirmed items more prominent.
+
+**Search**: Text input at the top of the detail page filters visible content across all accordion sections — day cards, booking cards, to-do items, packing items, and notes. Hides non-matching elements in real time.
 
 **Delete cascade**: Removes all subcollection docs (days, bookings, bookingPhotos, todoItems, packingItems, projectNotes) before deleting the project doc.
 

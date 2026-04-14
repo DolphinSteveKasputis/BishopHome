@@ -70,7 +70,7 @@ async function loadLifeProjectsPage() {
         </div>
 
         <!-- New/Edit Project Modal -->
-        <div class="modal-backdrop hidden" id="lpProjectModal">
+        <div class="modal-overlay" id="lpProjectModal">
             <div class="modal">
                 <h3 id="lpProjectModalTitle">New Project</h3>
                 <div id="lpProjectModalBody"></div>
@@ -82,7 +82,7 @@ async function loadLifeProjectsPage() {
         </div>
 
         <!-- Delete Confirmation Modal -->
-        <div class="modal-backdrop hidden" id="lpDeleteModal">
+        <div class="modal-overlay" id="lpDeleteModal">
             <div class="modal">
                 <h3>Delete Project</h3>
                 <p id="lpDeleteMsg">Are you sure? This will delete the project and all its data (days, bookings, to-dos, packing list, notes). This cannot be undone.</p>
@@ -320,8 +320,9 @@ async function saveLifeProject() {
             }
 
             closeModal('lpProjectModal');
-            // Navigate to the new project detail
-            location.hash = `#life-project/${ref.id}`;
+            // Navigate to the new project detail — delay so closeModal's
+            // history.back() settles before we push a new hash
+            setTimeout(() => { location.hash = `#life-project/${ref.id}`; }, 50);
         } else {
             // Edit mode
             const status = document.getElementById('lpStatus')?.value || 'planning';

@@ -610,43 +610,121 @@ function _lpPeopleSummary(p) {
     return `(${p.people.length})`;
 }
 
-function _lpLoadPeople() {
+/** All contacts cache for people picker */
+let _lpAllPeople = null;
+
+async function _lpEnsurePeopleCache() {
+    if (_lpAllPeople) return _lpAllPeople;
+    const snap = await userCol('people').orderBy('name').get();
+    _lpAllPeople = snap.docs.map(doc => ({ id: doc.id, name: doc.data().name || '' }));
+    return _lpAllPeople;
+}
+
+async function _lpLoadPeople() {
     const body = document.getElementById('lpBody_people');
     if (!body || !_lpCurrentProject) return;
     const people = _lpCurrentProject.people || [];
 
-    if (people.length === 0) {
-        body.innerHTML = `
-            <p style="color:#999; font-size:0.9em;">No people added yet.</p>
-            <button class="btn btn-small btn-primary" onclick="_lpAddPerson()">+ Add Person</button>
-        `;
-        return;
-    }
+    // Load contacts cache
+    await _lpEnsurePeopleCache();
 
     body.innerHTML = `
-        ${people.map((p, i) => `
-            <div class="card" style="margin-bottom:8px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                    <strong>${_lpEsc(p.name)}</strong>
-                    ${p.notes ? `<span style="color:#888; font-size:0.85em; margin-left:8px;">${_lpEsc(p.notes)}</span>` : ''}
-                </div>
-                <div style="display:flex; gap:4px;">
-                    <button class="btn btn-small" onclick="_lpEditPerson(${i})" title="Edit">✏️</button>
-                    <button class="btn btn-small btn-danger" onclick="_lpRemovePerson(${i})" title="Remove">✕</button>
-                </div>
-            </div>
-        `).join('')}
-        <button class="btn btn-small btn-primary" style="margin-top:8px;" onclick="_lpAddPerson()">+ Add Person</button>
+        <div class="lc-people-chips" id="lpPeopleChips"></div>
+        <div class="lc-people-picker-wrap">
+            <input type="text" id="lpPeopleSearch" class="form-control"
+                   placeholder="Search by name…" autocomplete="off">
+            <ul class="lc-people-dropdown hidden" id="lpPeopleDropdown"></ul>
+        </div>
     `;
+
+    // Render existing people as chips
+    _lpRenderPeopleChips();
+
+    // Wire search input
+    const searchEl = document.getElementById('lpPeopleSearch');
+    const dropEl   = document.getElementById('lpPeopleDropdown');
+
+    searchEl.addEventListener('input', function() {
+        const q = this.value.trim().toLowerCase();
+        if (!q) { dropEl.classList.add('hidden'); dropEl.innerHTML = ''; return; }
+
+        const selectedIds = (people).map(p => p.contactId).filter(Boolean);
+        const matches = _lpAllPeople.filter(p =>
+            p.name.toLowerCase().includes(q) && !selectedIds.includes(p.id)
+        );
+
+        if (matches.length === 0) {
+            dropEl.innerHTML = '<li class="lc-people-no-match">No matches</li>';
+            dropEl.classList.remove('hidden');
+            return;
+        }
+
+        dropEl.innerHTML = matches.map(p =>
+            `<li data-id="${p.id}" data-name="${_lpEsc(p.name)}">${_lpEsc(p.name)}</li>`
+        ).join('');
+        dropEl.classList.remove('hidden');
+
+        dropEl.querySelectorAll('li[data-id]').forEach(li => {
+            li.addEventListener('click', function() {
+                _lpAddPersonFromContact(li.dataset.id, li.dataset.name);
+                searchEl.value = '';
+                dropEl.innerHTML = '';
+                dropEl.classList.add('hidden');
+            });
+        });
+    });
+
+    // Enter key: if exactly one match (or first match), add it
+    searchEl.addEventListener('keydown', function(e) {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        const q = this.value.trim().toLowerCase();
+        if (!q) return;
+        const selectedIds = (_lpCurrentProject.people || []).map(p => p.contactId).filter(Boolean);
+        const matches = _lpAllPeople.filter(p =>
+            p.name.toLowerCase().includes(q) && !selectedIds.includes(p.id)
+        );
+        if (matches.length >= 1) {
+            _lpAddPersonFromContact(matches[0].id, matches[0].name);
+            searchEl.value = '';
+            dropEl.innerHTML = '';
+            dropEl.classList.add('hidden');
+        }
+    });
+
+    // Close dropdown on outside click
+    document.addEventListener('click', function _lpPickerOutside(e) {
+        if (!e.target.closest('#lpPeopleSearch') && !e.target.closest('#lpPeopleDropdown')) {
+            dropEl.classList.add('hidden');
+            document.removeEventListener('click', _lpPickerOutside);
+        }
+    });
 }
 
-async function _lpAddPerson() {
-    const name = prompt('Person name:');
-    if (!name || !name.trim()) return;
-    const notes = prompt('Notes (optional):') || '';
+function _lpRenderPeopleChips() {
+    const container = document.getElementById('lpPeopleChips');
+    if (!container) return;
+    container.innerHTML = '';
 
+    const people = _lpCurrentProject.people || [];
+    people.forEach((p, i) => {
+        const chip = document.createElement('span');
+        chip.className = 'lc-person-chip';
+        const nameText = p.contactId
+            ? `<a href="#person/${p.contactId}" class="lc-chip-name">${_lpEsc(p.name)}</a>`
+            : `<span class="lc-chip-name">${_lpEsc(p.name)}</span>`;
+        chip.innerHTML = nameText +
+            `<button type="button" class="lc-chip-remove" title="Remove">✕</button>`;
+
+        chip.querySelector('.lc-chip-remove').addEventListener('click', () => _lpRemovePerson(i));
+        container.appendChild(chip);
+    });
+}
+
+async function _lpAddPersonFromContact(contactId, name) {
     const people = [...(_lpCurrentProject.people || [])];
-    people.push({ name: name.trim(), contactId: null, notes: notes.trim() });
+    if (people.some(p => p.contactId === contactId)) return; // already added
+    people.push({ name: name.trim(), contactId: contactId, notes: '' });
 
     try {
         await lpCol().doc(_lpCurrentProjectId).update({
@@ -654,10 +732,10 @@ async function _lpAddPerson() {
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         _lpCurrentProject.people = people;
-        _lpLoadPeople();
+        _lpRenderPeopleChips();
+        _lpUpdateAccordionSummary('people', _lpPeopleSummary(_lpCurrentProject));
     } catch (err) {
         console.error('Error adding person:', err);
-        alert('Error adding person.');
     }
 }
 
@@ -665,11 +743,8 @@ async function _lpEditPerson(index) {
     const people = [...(_lpCurrentProject.people || [])];
     if (index < 0 || index >= people.length) return;
 
-    const name = prompt('Person name:', people[index].name);
-    if (!name || !name.trim()) return;
-    const notes = prompt('Notes:', people[index].notes || '') || '';
-
-    people[index] = { ...people[index], name: name.trim(), notes: notes.trim() };
+    const notes = prompt('Notes for ' + people[index].name + ':', people[index].notes || '') || '';
+    people[index] = { ...people[index], notes: notes.trim() };
 
     try {
         await lpCol().doc(_lpCurrentProjectId).update({
@@ -677,14 +752,12 @@ async function _lpEditPerson(index) {
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         _lpCurrentProject.people = people;
-        _lpLoadPeople();
     } catch (err) {
         console.error('Error editing person:', err);
     }
 }
 
 async function _lpRemovePerson(index) {
-    if (!confirm('Remove this person?')) return;
     const people = [...(_lpCurrentProject.people || [])];
     people.splice(index, 1);
 
@@ -694,7 +767,8 @@ async function _lpRemovePerson(index) {
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         _lpCurrentProject.people = people;
-        _lpLoadPeople();
+        _lpRenderPeopleChips();
+        _lpUpdateAccordionSummary('people', _lpPeopleSummary(_lpCurrentProject));
     } catch (err) {
         console.error('Error removing person:', err);
     }

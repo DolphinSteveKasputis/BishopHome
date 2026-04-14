@@ -58,12 +58,19 @@ A web application for tracking yard and garden maintenance. Allows the user to c
 - Facts are displayed as a list on the plant or zone detail page
 - Add/edit/delete individual facts
 
-## Future Projects
-- **Future projects** can be assigned to a **plant** or **zone**
-- A project has: title, notes, and an optional checklist/list of items
+## Quick Task List (formerly "Future Projects")
+- **Quick tasks** can be assigned to a **plant**, **zone**, **room**, **vehicle**, etc.
+- A task has: title, notes, and an optional checklist/list of items
 - Examples: "Level the front yard", "Install drip irrigation", "Replace dead azalea"
-- Projects are displayed on the plant or zone detail page
-- Add/edit/delete projects and their list items
+- Quick tasks are displayed on the entity detail page
+- Add/edit/delete tasks and their list items
+
+## Life Projects
+- Rich project management in the Life section — templates: Vacation (active), Build and General (planned)
+- Vacation template: day-by-day itinerary, bookings, packing list, to-do list, people, journal notes, cost rollup
+- Planning vs. Travel mode toggle
+- Data stored in `lifeProjects` collection with subcollections: `days`, `bookings`, `bookingPhotos`, `todoItems`, `packingItems`, `projectNotes`
+- Plan document: `ModifyProjects.md`
 
 ## Activities & Actions
 - An **activity** is a logged event: what was done, when, free-form notes, and optionally a chemical/product used
@@ -152,7 +159,8 @@ Bishop/
 │   ├── photos.js           (photo capture, Base64 compress, gallery viewer)
 │   ├── problems.js         (problems/concerns per plant/zone)
 │   ├── facts.js            (facts per plant/zone/chemical; URL values as clickable links)
-│   ├── projects.js         (projects with checklists per plant/zone)
+│   ├── projects.js         (quick task lists with checklists per plant/zone)
+│   ├── life-projects.js    (life projects — vacation itineraries, bookings, to-dos)
 │   ├── weeds.js            (weed tracking, zone assignment, photos, activities)
 │   └── calendar.js         (calendar events, recurring logic, occurrence generation)
 └── .claude/
@@ -174,6 +182,7 @@ Bishop/
 | projects         | targetType, targetId, title, notes, status, items[], completedAt             |
 | weeds            | name, treatmentMethod, applicationTiming, notes, zoneIds[]                   |
 | calendarEvents   | title, description, date, recurring{type,intervalDays}, targetType?, targetId?, zoneIds[], savedActionId?, completed, completedDates[], cancelledDates[] |
+| lifeProjects     | title, description, template, status, mode, archived, startDate, endDate, people[], bookingTypes[] |
 
 ## Build Progress
 - **Phase 0**: Firebase Project Setup ✅ COMPLETE

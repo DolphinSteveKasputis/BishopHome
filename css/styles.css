@@ -7473,6 +7473,16 @@ a.health-chip--link:hover { filter: brightness(0.93); }
     box-shadow: 0 8px 24px rgba(37, 99, 235, 0.35);
 }
 
+/* ── Life landing: Projects tile (teal gradient) ──────── */
+.landing-tile--life-projects {
+    background: linear-gradient(135deg, #0d9488, #5eead4);
+    color: #fff;
+}
+.landing-tile--life-projects:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(13, 148, 136, 0.35);
+}
+
 /* ── Life Calendar — page layout ── */
 .lc-page-body {
     padding: 16px;

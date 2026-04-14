@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=396">
+    <link rel="stylesheet" href="css/styles.css?v=401">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -238,7 +238,7 @@
             <div class="card-list" id="zoneListContainer"></div>
             <p class="empty-state" id="zoneEmptyState">Loading...</p>
 
-            <!-- More section — All Problems + All Projects panels -->
+            <!-- More section — All Problems + All Quick Task Lists panels -->
             <div class="section-header">
                 <h3 class="section-heading">More</h3>
             </div>
@@ -253,10 +253,10 @@
             <p class="empty-state" id="homeCalendarEmptyState"></p>
         </section>
 
-        <!-- Page: Yard All Projects list -->
+        <!-- Page: Yard All Quick Task Lists -->
         <section class="page hidden" id="page-yard-projects">
             <div class="page-header">
-                <h2>All Projects</h2>
+                <h2>All Quick Task Lists</h2>
             </div>
             <div class="section-header-actions" style="padding: 0 16px 8px;">
                 <label class="show-toggle"><input type="checkbox" id="showCompletedHomeProjects"> Show completed</label>
@@ -333,7 +333,7 @@
 
             <!-- Zone Projects section -->
             <div class="section-header">
-                <h3 class="section-heading">Future Projects</h3>
+                <h3 class="section-heading">Quick Task List</h3>
                 <div class="section-header-actions">
                     <label class="show-toggle"><input type="checkbox" id="showSubZoneProjects"> Include sub-zones</label>
                     <label class="show-toggle"><input type="checkbox" id="showCompletedZoneProjects"> Show completed</label>
@@ -942,7 +942,7 @@
             <div id="houseSummaryStats" class="house-summary-stats"></div>
             <!-- Open Problems panel — single clickable card rendered by renderHouseProblems() -->
             <div class="card-list" id="houseProblemsContainer"></div>
-            <!-- All Projects panel — single clickable card rendered by renderHouseProjects() -->
+            <!-- All Quick Task Lists panel — single clickable card rendered by renderHouseProjects() -->
             <div class="card-list" id="houseProjectsContainer"></div>
             <!-- Floor Plan Item Rollup: Open Concerns + Active Projects (whole house) -->
             <div id="houseFpRollupContainer"></div>
@@ -993,10 +993,10 @@
             <p class="empty-state" id="panelEmptyState"></p>
         </section>
 
-        <!-- Page: House All Projects list -->
+        <!-- Page: House All Quick Task Lists -->
         <section class="page hidden" id="page-house-projects">
             <div class="page-header">
-                <h2>All Projects</h2>
+                <h2>All Quick Task Lists</h2>
             </div>
             <div class="card-list" id="houseProjectsListContainer"></div>
             <p class="empty-state" id="houseProjectsListEmpty"></p>
@@ -1118,9 +1118,9 @@
             <div id="floorFactsContainer"></div>
             <p class="empty-state" id="floorFactsEmptyState"></p>
 
-            <!-- Future Projects -->
+            <!-- Quick Task List -->
             <div class="section-header">
-                <h3 class="section-heading">Future Projects</h3>
+                <h3 class="section-heading">Quick Task List</h3>
                 <button class="btn btn-primary btn-small" id="addFloorProjectBtn">+ Add</button>
             </div>
             <div id="floorProjectsContainer"></div>
@@ -1206,9 +1206,9 @@
             <div id="roomFactsContainer"></div>
             <p class="empty-state" id="roomFactsEmptyState"></p>
 
-            <!-- Future Projects -->
+            <!-- Quick Task List -->
             <div class="section-header">
-                <h3 class="section-heading">Future Projects</h3>
+                <h3 class="section-heading">Quick Task List</h3>
                 <button class="btn btn-primary btn-small" id="addRoomProjectBtn">+ Add</button>
             </div>
             <div id="roomProjectsContainer"></div>
@@ -1308,9 +1308,9 @@
             <div id="thingFactsContainer"></div>
             <p class="empty-state" id="thingFactsEmptyState"></p>
 
-            <!-- Future Projects -->
+            <!-- Quick Task List -->
             <div class="section-header">
-                <h3 class="section-heading">Future Projects</h3>
+                <h3 class="section-heading">Quick Task List</h3>
                 <button class="btn btn-primary btn-small" id="addThingProjectBtn">+ Add</button>
             </div>
             <div id="thingProjectsContainer"></div>
@@ -1395,9 +1395,9 @@
             </div>
             <div id="stFactsContainer"></div>
             <p class="empty-state" id="stFactsEmptyState"></p>
-            <!-- Future Projects -->
+            <!-- Quick Task List -->
             <div class="section-header">
-                <h3 class="section-heading">Future Projects</h3>
+                <h3 class="section-heading">Quick Task List</h3>
                 <button class="btn btn-primary btn-small" id="addStProjectBtn">+ Add</button>
             </div>
             <div id="stProjectsContainer"></div>
@@ -1467,9 +1467,9 @@
             </div>
             <div id="siFactsContainer"></div>
             <p class="empty-state" id="siFactsEmptyState"></p>
-            <!-- Future Projects -->
+            <!-- Quick Task List -->
             <div class="section-header">
-                <h3 class="section-heading">Future Projects</h3>
+                <h3 class="section-heading">Quick Task List</h3>
                 <button class="btn btn-primary btn-small" id="addSiProjectBtn">+ Add</button>
             </div>
             <div id="siProjectsContainer"></div>
@@ -1692,9 +1692,9 @@
             <div id="fpItemFactsContainer"></div>
             <p class="empty-state" id="fpItemFactsEmptyState"></p>
 
-            <!-- Future Projects -->
+            <!-- Quick Task List -->
             <div class="section-header">
-                <h3 class="section-heading">Future Projects</h3>
+                <h3 class="section-heading">Quick Task List</h3>
                 <button class="btn btn-primary btn-small" id="addFpItemProjectBtn">+ Add</button>
             </div>
             <div id="fpItemProjectsContainer"></div>
@@ -1860,7 +1860,7 @@
 
             <!-- Plant Projects section -->
             <div class="section-header">
-                <h3 class="section-heading">Future Projects</h3>
+                <h3 class="section-heading">Quick Task List</h3>
                 <div class="section-header-actions">
                     <label class="show-toggle"><input type="checkbox" id="showCompletedPlantProjects"> Show completed</label>
                     <button class="btn btn-primary btn-small" id="addPlantProjectBtn">+ Add</button>
@@ -2273,9 +2273,9 @@
             <div id="vehicleFactsContainer"></div>
             <p class="empty-state" id="vehicleFactsEmptyState"></p>
 
-            <!-- Future Projects -->
+            <!-- Quick Task List -->
             <div class="section-header">
-                <h3 class="section-heading">Future Projects</h3>
+                <h3 class="section-heading">Quick Task List</h3>
                 <button class="btn btn-primary btn-small" id="addVehicleProjectBtn">+ Add</button>
             </div>
             <div id="vehicleProjectsContainer"></div>
@@ -2374,9 +2374,9 @@
             <div id="garageRoomFactsContainer"></div>
             <p class="empty-state" id="garageRoomFactsEmpty"></p>
 
-            <!-- Future Projects -->
+            <!-- Quick Task List -->
             <div class="section-header">
-                <h3 class="section-heading">Future Projects</h3>
+                <h3 class="section-heading">Quick Task List</h3>
                 <button class="btn btn-primary btn-small" id="garageRoomAddProjectBtn">+ Add</button>
             </div>
             <div id="garageRoomProjectsContainer"></div>
@@ -2464,9 +2464,9 @@
             <div id="garageThingFactsContainer"></div>
             <p class="empty-state" id="garageThingFactsEmpty"></p>
 
-            <!-- Future Projects -->
+            <!-- Quick Task List -->
             <div class="section-header">
-                <h3 class="section-heading">Future Projects</h3>
+                <h3 class="section-heading">Quick Task List</h3>
                 <button class="btn btn-primary btn-small" id="garageThingAddProjectBtn">+ Add</button>
             </div>
             <div id="garageThingProjectsContainer"></div>
@@ -2546,9 +2546,9 @@
             <div id="garageSubThingFactsContainer"></div>
             <p class="empty-state" id="garageSubThingFactsEmpty"></p>
 
-            <!-- Future Projects -->
+            <!-- Quick Task List -->
             <div class="section-header">
-                <h3 class="section-heading">Future Projects</h3>
+                <h3 class="section-heading">Quick Task List</h3>
                 <button class="btn btn-primary btn-small" id="garageSubThingAddProjectBtn">+ Add</button>
             </div>
             <div id="garageSubThingProjectsContainer"></div>
@@ -2644,9 +2644,9 @@
             <div id="structureFactsContainer"></div>
             <p class="empty-state" id="structureFactsEmpty"></p>
 
-            <!-- Future Projects -->
+            <!-- Quick Task List -->
             <div class="section-header">
-                <h3 class="section-heading">Future Projects</h3>
+                <h3 class="section-heading">Quick Task List</h3>
                 <button class="btn btn-primary btn-small" id="structureAddProjectBtn">+ Add</button>
             </div>
             <div id="structureProjectsContainer"></div>
@@ -2734,9 +2734,9 @@
             <div id="structureThingFactsContainer"></div>
             <p class="empty-state" id="structureThingFactsEmpty"></p>
 
-            <!-- Future Projects -->
+            <!-- Quick Task List -->
             <div class="section-header">
-                <h3 class="section-heading">Future Projects</h3>
+                <h3 class="section-heading">Quick Task List</h3>
                 <button class="btn btn-primary btn-small" id="structureThingAddProjectBtn">+ Add</button>
             </div>
             <div id="structureThingProjectsContainer"></div>
@@ -2816,9 +2816,9 @@
             <div id="structureSubThingFactsContainer"></div>
             <p class="empty-state" id="structureSubThingFactsEmpty"></p>
 
-            <!-- Future Projects -->
+            <!-- Quick Task List -->
             <div class="section-header">
-                <h3 class="section-heading">Future Projects</h3>
+                <h3 class="section-heading">Quick Task List</h3>
                 <button class="btn btn-primary btn-small" id="structureSubThingAddProjectBtn">+ Add</button>
             </div>
             <div id="structureSubThingProjectsContainer"></div>
@@ -3321,11 +3321,11 @@
         </div>
     </div>
 
-    <!-- Project Add/Edit Modal -->
+    <!-- Quick Task Add/Edit Modal -->
     <div class="modal-overlay" id="projectModal">
         <div class="modal">
             <div class="modal-title-bar">
-                <h3 id="projectModalTitle">Add Project</h3>
+                <h3 id="projectModalTitle">Add Quick Task</h3>
                 <div class="modal-title-actions">
                     <button class="btn btn-secondary btn-small" id="projectModalCancelBtnTop">Cancel</button>
                     <button class="btn btn-primary btn-small" id="projectModalSaveBtnTop">Save</button>
@@ -5140,6 +5140,10 @@
                     <span class="landing-tile-icon">🗓️</span>
                     <span class="landing-tile-label">Calendar</span>
                 </a>
+                <a href="#life-projects" class="landing-tile landing-tile--life-projects">
+                    <span class="landing-tile-icon">📋</span>
+                    <span class="landing-tile-label">Projects</span>
+                </a>
             </div>
             <!-- Coming Up — annual dates within the next 30 days -->
             <div id="lifeCalendarSection" style="display:none; margin-top:24px;">
@@ -5154,6 +5158,20 @@
         <!-- Page: Life Calendar (#life-calendar) -->
         <section class="page hidden" id="page-life-calendar">
             <!-- Populated by loadLifeCalendarPage() in lifecalendar.js -->
+        </section>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             LIFE PROJECTS PAGES — project list, project detail
+             ═══════════════════════════════════════════════════════════ -->
+
+        <!-- Page: Life Projects (#life-projects) -->
+        <section class="page hidden" id="page-life-projects">
+            <!-- Populated by loadLifeProjectsPage() in life-projects.js -->
+        </section>
+
+        <!-- Page: Life Project Detail (#life-project/:id) -->
+        <section class="page hidden" id="page-life-project">
+            <!-- Populated by loadLifeProjectDetailPage() in life-projects.js -->
         </section>
 
         <!-- Page: Life Event detail / new (#life-event/id, #life-event/new) -->
@@ -5910,18 +5928,18 @@
                 </div>
             </div>
 
-            <!-- Section 6: Projects (starts collapsed) -->
+            <!-- Section 6: Quick Task List (starts collapsed) -->
             <div class="collapsible-section collapsed" id="conditionSectionProjects">
                 <div class="collapsible-header" onclick="toggleSection(this.parentElement)">
-                    <span>Projects</span><span class="section-count"></span>
+                    <span>Quick Task List</span><span class="section-count"></span>
                     <span class="collapsible-chevron">&#9660;</span>
                 </div>
                 <div class="collapsible-body" style="display:none;">
                     <div class="section-add-btn-row">
-                        <button class="btn btn-primary btn-small" onclick="openAddProjectModal('condition', window.currentHealthCondition && window.currentHealthCondition.id)">+ Add Project</button>
+                        <button class="btn btn-primary btn-small" onclick="openAddProjectModal('condition', window.currentHealthCondition && window.currentHealthCondition.id)">+ Add Quick Task</button>
                     </div>
                     <div id="conditionProjectsContainer"></div>
-                    <p class="empty-state" id="conditionProjectsEmpty">No projects yet.</p>
+                    <p class="empty-state" id="conditionProjectsEmpty">No quick tasks yet.</p>
                 </div>
             </div>
         </section>
@@ -7895,7 +7913,7 @@
     <script src="js/plants.js?v=350"></script>
     <script src="js/problems.js?v=389"></script>
     <script src="js/facts.js?v=350"></script>
-    <script src="js/projects.js?v=353"></script>
+    <script src="js/projects.js?v=401"></script>
     <script src="js/chemicals.js?v=350"></script>
     <script src="js/activities.js?v=350"></script>
     <!-- Cropper.js — client-side image cropping library -->
@@ -7908,7 +7926,7 @@
     <script src="js/gps.js?v=350"></script>
     <script src="js/settings.js?v=352"></script>
     <script src="js/devnotes.js?v=376"></script>
-    <script src="js/house.js?v=393"></script>
+    <script src="js/house.js?v=401"></script>
     <script src="js/floorplan.js?v=394"></script>
     <script src="js/floorplanitem.js?v=393"></script>
     <script src="js/search.js?v=350"></script>
@@ -7925,12 +7943,13 @@
     <script src="js/health.js?v=376"></script>
     <script src="js/notes.js?v=350"></script>
     <script src="js/lifecalendar.js?v=396"></script>
+    <script src="js/life-projects.js?v=401"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="js/chat.js?v=350"></script>
     <script src="js/secondbrain.js?v=351"></script>
     <script src="js/sbissues.js?v=350"></script>
     <script src="js/places.js?v=350"></script>
-    <script src="js/app.js?v=391"></script>
+    <script src="js/app.js?v=401"></script>
 
 </body>
 </html>

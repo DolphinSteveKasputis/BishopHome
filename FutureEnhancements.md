@@ -82,3 +82,32 @@ but never connected. Could be a simple list view accessible from the electrical 
 or the floor/house page.
 
 Related to: Floor Plan — Electrical mode, Wall Plates, External Targets.
+
+---
+
+## Projects: Reusable Packing List Templates
+
+Create reusable packing list templates that can be copied (not linked) into new projects. User builds a packing list once, saves it as a template, and when creating a new travel project can pick from their saved templates to pre-populate the packing list.
+
+- Templates are standalone — copying into a project creates independent items
+- User can have multiple templates (e.g., "Cruise Packing", "Road Trip Packing", "International")
+- Editing a template does not affect previously copied lists
+- Could also apply to To-Do lists (e.g., "Pre-Cruise Checklist" template)
+
+Related to: Life Projects, Vacation template.
+
+---
+
+## Projects: Duplicate/Copy a Day
+
+Allow copying an entire day (with all its items) to quickly create a similar day. Useful for cruises where port days have similar structures. Copy creates an independent duplicate — editing one doesn't affect the other.
+
+Related to: Life Projects, Itinerary days.
+
+---
+
+## Projects: SecondBrain Integration
+
+Integrate the Projects system with SecondBrain for voice/AI-powered queries like "What's my plan for Day 3?", "What excursions have I confirmed?", "How much have I spent on this trip?". Exact integration TBD after the Projects system is built and in use.
+
+Related to: Life Projects, SecondBrain.

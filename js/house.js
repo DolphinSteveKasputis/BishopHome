@@ -404,8 +404,8 @@ function renderHouseProblems(container, problems) {
  * Returns a string like "Main Floor › Living Room › Couch".
  */
 /**
- * Render a single "All Projects" panel card on the house home page.
- * Clicking it navigates to #house-projects where all projects are listed.
+ * Render a single "All Quick Tasks" panel card on the house home page.
+ * Clicking it navigates to #house-projects where all quick tasks are listed.
  */
 function renderHouseProjects(container, projects) {
     container.innerHTML = '';
@@ -415,12 +415,12 @@ function renderHouseProjects(container, projects) {
 
     var count    = projects.length;
     var metaText = count === 0
-        ? 'No projects'
-        : count + ' project' + (count !== 1 ? 's' : '');
+        ? 'No quick tasks'
+        : count + ' quick task' + (count !== 1 ? 's' : '');
 
     card.innerHTML =
         '<div class="card-main">' +
-            '<span class="card-title">All Projects</span>' +
+            '<span class="card-title">All Quick Tasks</span>' +
             '<span class="house-floor-meta"> &middot; ' + escapeHtml(metaText) + '</span>' +
         '</div>' +
         '<span class="card-arrow">›</span>';
@@ -445,7 +445,7 @@ async function loadHouseProjectsPage() {
     if (!container) return;
     container.innerHTML = '<p class="empty-state">Loading…</p>';
     if (emptyState) emptyState.textContent = '';
-    if (bar) bar.innerHTML = '<a href="#house">House</a><span class="separator">&rsaquo;</span><span>All Projects</span>';
+    if (bar) bar.innerHTML = '<a href="#house">House</a><span class="separator">&rsaquo;</span><span>All Quick Tasks</span>';
 
     try {
         var [projectSnap, floorSnap, roomSnap, thingSnap] = await Promise.all([
@@ -468,7 +468,7 @@ async function loadHouseProjectsPage() {
         container.innerHTML = '';
 
         if (projects.length === 0) {
-            if (emptyState) emptyState.textContent = 'No projects yet.';
+            if (emptyState) emptyState.textContent = 'No quick tasks yet.';
             return;
         }
 

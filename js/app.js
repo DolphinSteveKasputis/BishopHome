@@ -13,7 +13,7 @@
 const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'house', 'settings', 'settings-general', 'settings-contact-lists', 'main', 'search', 'activityreport', 'checklists', 'notes', 'chat', 'vehicles', 'garage', 'structures', 'life', 'journal', 'collections', 'changepassword', 'people', 'contacts', 'places', 'devnotes',
                          'health', 'health-visits', 'health-medications', 'health-conditions', 'health-concerns', 'health-bloodwork',
                          'health-vitals', 'health-insurance', 'health-emergency', 'health-appointments', 'health-care-team',
-                         'life-calendar'];
+                         'life-calendar', 'life-projects'];
 
 /**
  * All pages that can be shown (includes detail pages not in the nav).
@@ -33,7 +33,8 @@ const ALL_PAGES = [
     'health-allergies', 'health-supplements', 'health-vaccinations', 'health-eye',
     'health-visit', 'health-visit-step2', 'health-medications', 'health-conditions', 'health-concerns', 'health-concern', 'health-condition',
     'health-bloodwork-detail', 'health-insurance-detail',
-    'life-event'
+    'life-event',
+    'life-projects', 'life-project'
 ];
 
 /**
@@ -52,7 +53,8 @@ const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'jo
                      'health-bloodwork', 'health-bloodwork-detail',
                      'health-vitals', 'health-insurance', 'health-insurance-detail', 'health-emergency',
                      'health-appointments', 'health-care-team',
-                     'life-calendar', 'life-event'];
+                     'life-calendar', 'life-event',
+                     'life-projects', 'life-project'];
 
 /** Tracks which nav context is currently active ('yard', 'house', or 'life'). */
 var currentNavContext = 'yard';
@@ -427,6 +429,13 @@ function handleRoute() {
     } else if (page === 'life-event' && id) {
         showPage('life-event');
         loadLifeEventPage(id);
+    // ---------- Life Projects routes ----------
+    } else if (page === 'life-projects') {
+        showPage('life-projects');
+        loadLifeProjectsPage();
+    } else if (page === 'life-project' && id) {
+        showPage('life-project');
+        loadLifeProjectDetailPage(id);
     // ---------- Places routes ----------
     } else if (page === 'places') {
         showPage('places');

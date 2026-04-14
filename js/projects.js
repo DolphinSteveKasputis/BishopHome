@@ -105,8 +105,8 @@ async function loadProjectsWithChildren(targetType, targetId, containerId, empty
 
         if (displayItems.length === 0) {
             emptyState.textContent = completedItems.length > 0
-                ? 'All projects completed! Check "Show completed" to see them.'
-                : 'No future projects yet.';
+                ? 'All tasks completed! Check "Show completed" to see them.'
+                : 'No quick tasks yet.';
             emptyState.style.display = 'block';
             return;
         }
@@ -125,7 +125,7 @@ async function loadProjectsWithChildren(targetType, targetId, containerId, empty
 
     } catch (err) {
         console.error('loadProjectsWithChildren error:', err);
-        emptyState.textContent = 'Error loading projects.';
+        emptyState.textContent = 'Error loading quick tasks.';
         emptyState.style.display = 'block';
     }
 }
@@ -161,7 +161,7 @@ async function loadProjects(targetType, targetId, containerId, emptyStateId) {
         container.innerHTML = '';
 
         if (snapshot.empty) {
-            emptyState.textContent = 'No future projects yet.';
+            emptyState.textContent = 'No quick tasks yet.';
             emptyState.style.display = 'block';
             return;
         }
@@ -195,9 +195,9 @@ async function loadProjects(targetType, targetId, containerId, emptyStateId) {
 
         if (displayProjects.length === 0) {
             if (completedProjects.length > 0) {
-                emptyState.textContent = 'All projects completed! Check "Show completed" to see them.';
+                emptyState.textContent = 'All tasks completed! Check "Show completed" to see them.';
             } else {
-                emptyState.textContent = 'No future projects yet.';
+                emptyState.textContent = 'No quick tasks yet.';
             }
             emptyState.style.display = 'block';
             return;
@@ -219,7 +219,7 @@ async function loadProjects(targetType, targetId, containerId, emptyStateId) {
 
     } catch (error) {
         console.error('Error loading projects:', error);
-        emptyState.textContent = 'Error loading projects.';
+        emptyState.textContent = 'Error loading quick tasks.';
         emptyState.style.display = 'block';
     }
 }
@@ -252,7 +252,7 @@ async function loadAllProjects() {
         container.innerHTML = '';
 
         if (snapshot.empty) {
-            emptyState.textContent = 'No projects yet.';
+            emptyState.textContent = 'No quick tasks yet.';
             emptyState.style.display = 'block';
             return;
         }
@@ -275,8 +275,8 @@ async function loadAllProjects() {
 
         if (displayProjects.length === 0) {
             emptyState.textContent = completedProjects.length > 0
-                ? 'All projects completed! Check "Show completed" to see them.'
-                : 'No projects yet.';
+                ? 'All tasks completed! Check "Show completed" to see them.'
+                : 'No quick tasks yet.';
             emptyState.style.display = 'block';
             return;
         }
@@ -323,7 +323,7 @@ async function loadAllProjects() {
 
     } catch (error) {
         console.error('Error loading all projects:', error);
-        emptyState.textContent = 'Error loading projects.';
+        emptyState.textContent = 'Error loading quick tasks.';
         emptyState.style.display = 'block';
     }
 }
@@ -467,11 +467,11 @@ async function renderYardProjectsPanel() {
         var card = document.createElement('div');
         card.className = 'card card--clickable';
         var metaText = count === 0
-            ? 'No projects'
-            : count + ' project' + (count !== 1 ? 's' : '');
+            ? 'No quick tasks'
+            : count + ' quick task' + (count !== 1 ? 's' : '');
         card.innerHTML =
             '<div class="card-main">' +
-                '<span class="card-title">All Projects</span>' +
+                '<span class="card-title">All Quick Tasks</span>' +
                 '<span class="house-floor-meta"> &middot; ' + escapeHtml(metaText) + '</span>' +
             '</div>' +
             '<span class="card-arrow">›</span>';
@@ -486,12 +486,12 @@ async function renderYardProjectsPanel() {
 }
 
 /**
- * Load the Yard All Projects list page (#yard-projects).
+ * Load the Yard All Quick Task Lists page (#yard-projects).
  * Sets the breadcrumb then delegates to loadAllProjects() for rendering.
  */
 function loadYardProjectsPage() {
     var bar = document.getElementById('breadcrumbBar');
-    if (bar) bar.innerHTML = '<a href="#home">Yard</a><span class="separator">&rsaquo;</span><span>All Projects</span>';
+    if (bar) bar.innerHTML = '<a href="#home">Yard</a><span class="separator">&rsaquo;</span><span>All Quick Tasks</span>';
     loadAllProjects();
 }
 
@@ -792,7 +792,7 @@ function openAddProjectModal(targetType, targetId) {
     var titleInput = document.getElementById('projectTitleInput');
     var notesInput = document.getElementById('projectNotesInput');
 
-    modalTitle.textContent = 'Add Future Project';
+    modalTitle.textContent = 'Add Quick Task';
     titleInput.value = '';
     notesInput.value = '';
 
@@ -818,7 +818,7 @@ function openEditProjectModal(project, targetType, targetId) {
     var titleInput = document.getElementById('projectTitleInput');
     var notesInput = document.getElementById('projectNotesInput');
 
-    modalTitle.textContent = 'Edit Project';
+    modalTitle.textContent = 'Edit Quick Task';
     titleInput.value = project.title || '';
     notesInput.value = project.notes || '';
 
@@ -846,7 +846,7 @@ async function handleProjectModalSave() {
     var notes = notesInput.value.trim();
 
     if (!title) {
-        alert('Please enter a project title.');
+        alert('Please enter a title.');
         return;
     }
 
@@ -882,7 +882,7 @@ async function handleProjectModalSave() {
 
     } catch (error) {
         console.error('Error saving project:', error);
-        alert('Error saving project. Check console for details.');
+        alert('Error saving quick task. Check console for details.');
     }
 }
 
@@ -915,7 +915,7 @@ async function toggleProjectStatus(projectId, currentStatus, targetType, targetI
 
     } catch (error) {
         console.error('Error toggling project status:', error);
-        alert('Error updating project. Check console for details.');
+        alert('Error updating quick task. Check console for details.');
     }
 }
 
@@ -1039,7 +1039,7 @@ async function removeChecklistItem(projectId, index, targetType, targetId) {
  * @param {string} targetId - The target's Firestore document ID.
  */
 async function handleDeleteProject(projectId, targetType, targetId) {
-    if (!confirm('Are you sure you want to delete this entire project and all its checklist items?')) {
+    if (!confirm('Are you sure you want to delete this entire quick task and all its checklist items?')) {
         return;
     }
 
@@ -1050,7 +1050,7 @@ async function handleDeleteProject(projectId, targetType, targetId) {
 
     } catch (error) {
         console.error('Error deleting project:', error);
-        alert('Error deleting project. Check console for details.');
+        alert('Error deleting quick task. Check console for details.');
     }
 }
 

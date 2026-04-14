@@ -114,7 +114,8 @@ Zones are the organizational backbone of the yard. They form a hierarchy up to 3
 **Features on each zone**:
 - Child zones (add/edit/delete — deleting a zone with children is blocked)
 - Plants in zone (list with "View All Plants" option — see Plants)
-- [Shared] Facts, Problems, Projects, Activities, Photos, Calendar Events
+- [Shared] Facts, Problems, Quick Task List, Activities, Photos, Calendar Events
+- Life Projects — rich project management (itineraries, bookings, packing, to-dos)
 
 **Edit/Delete modal**: The zone detail page has an Edit button that opens a modal pre-filled with the zone name. The Delete button is inside this edit modal (not on the detail page directly) — it appears only in edit mode, not when adding a new zone.
 
@@ -133,7 +134,7 @@ Each plant is an individual physical instance — 3 azalea bushes = 3 records. P
 
 **Zone reassignment**: Modal picker with full zone hierarchy to move a plant.
 
-**[Shared]**: Facts, Problems, Projects, Activities, Photos, Calendar Events — all available on plant detail.
+**[Shared]**: Facts, Problems, Quick Task List, Activities, Photos, Calendar Events — all available on plant detail.
 
 ### Weeds (`weeds.js`)
 Weeds are tracked by type (not by zone instance). Each weed type stores its treatment and zone assignments.
@@ -151,7 +152,7 @@ Weeds are tracked by type (not by zone instance). Each weed type stores its trea
 - On save: creates weed record + a Fact (reference URL) + saves photo(s)
 - If LLM cannot identify: shows "Could Not Identify" modal — user can still save manually
 
-**[Shared]**: Facts, Problems, Projects, Activities, Photos, Calendar Events
+**[Shared]**: Facts, Problems, Quick Task List, Activities, Photos, Calendar Events
 
 ### Chemicals / Products (`chemicals.js`)
 A shared inventory of all chemicals, fertilizers, herbicides, and products used in the yard.
@@ -173,7 +174,7 @@ See [Shared: Activities](#activities) for the full description. Nuances in the Y
 ### Yard "More" Section (`#home`)
 The yard main page has a **More** section below the zone list containing two panel cards:
 - **Open Problems** — shows count of open problems across zones, plants, and weeds; clicking navigates to `#yard-problems`
-- **All Projects** — shows count of all projects across zones, plants, and weeds; clicking navigates to `#yard-projects`
+- **All Quick Tasks** — shows count of all quick tasks across zones, plants, and weeds; clicking navigates to `#yard-projects`
 
 ### Yard Problems Page (`projects.js`)
 **Route**: `#yard-problems`
@@ -182,12 +183,12 @@ Lists all open problems (`status === 'open'`) across zones, plants, and weeds. E
 
 **Breadcrumb**: Yard › Open Problems
 
-### Yard Projects Page (`projects.js`)
+### Yard Quick Tasks Page (`projects.js`)
 **Route**: `#yard-projects`
 
-Lists all projects whose `targetType` is `zone`, `plant`, or `weed`. Each project card is expandable and shows its title, target entity, and checklist.
+Lists all quick tasks whose `targetType` is `zone`, `plant`, or `weed`. Each card is expandable and shows its title, target entity, and checklist.
 
-**Breadcrumb**: Yard › All Projects
+**Breadcrumb**: Yard › All Quick Tasks
 
 ### Activity Reports (`activityreport.js`)
 - **Route**: `#activityreport`
@@ -209,7 +210,7 @@ The House section tracks the interior of the home using a 4-level hierarchy: Flo
 
 **House page (`#house`)** shows: summary stats bar (upcoming calendar events only), **Open Problems** single panel card (shows count; clicking navigates to `#house-problems`), Floors section (clickable cards), a static **More** section with icon cards linking to Garage (`#garage`), Vehicles (`#vehicles`), and Collections (`#collections`), an Upcoming calendar rollup, and a Breaker Panels section. Garage, Vehicles, and Collections are no longer on the main landing page — they live under House → More. Room count removed from stats bar (visible per-floor already).
 
-**House Projects page (`#house-projects`)**: Lists all projects from floors, rooms, and things. Each card shows the project title and location path. Clicking navigates to the owning entity. Breadcrumb: House › All Projects.
+**House Quick Tasks page (`#house-projects`)**: Lists all quick tasks from floors, rooms, and things. Each card shows the task title and location path. Clicking navigates to the owning entity. Breadcrumb: House › All Quick Tasks.
 
 **House Problems page (`#house-problems`)**: Lists all open problems from floors, rooms, and things. Each card shows the problem description and a location path (Floor › Room › Thing). Clicking a card navigates to the owning entity. Breadcrumb: House › Open Problems.
 
@@ -220,7 +221,7 @@ The top level of the house hierarchy.
 
 **Routes**: `#house` (floor list), `#floor/{id}` (floor detail)
 
-**[Shared]**: Facts, Problems (roll-up from rooms/things/sub-things), Projects (roll-up), Activities, Photos, Calendar Events
+**[Shared]**: Facts, Problems (roll-up from rooms/things/sub-things), Quick Task List (roll-up), Activities, Photos, Calendar Events
 
 ### Rooms (`house.js`)
 Each room belongs to one floor.
@@ -233,7 +234,7 @@ Each room belongs to one floor.
 
 **Stairs**: A special room type marked as connecting two floors. Appears with a hatch pattern on the floor plan.
 
-**[Shared]**: Facts, Problems (roll-up from things/sub-things), Projects (roll-up), Activities, Photos, Calendar Events
+**[Shared]**: Facts, Problems (roll-up from things/sub-things), Quick Task List (roll-up), Activities, Photos, Calendar Events
 
 ### Things (`house.js`)
 Items of significance in a room — furniture, appliances, fixtures.
@@ -246,7 +247,7 @@ Items of significance in a room — furniture, appliances, fixtures.
 
 **Thumbnails**: `profilePhotoData` stored on the document; shown as a small image on the list card. Auto-set from the first photo added (LLM or manual). Can be overridden via "Use as Profile" button in the photo gallery.
 
-**[Shared]**: Facts, Problems, Projects, Activities, Photos, Calendar Events
+**[Shared]**: Facts, Problems, Quick Task List, Activities, Photos, Calendar Events
 
 ### Sub-Things (`house.js`)
 Sub-items within a Thing — drawers in a dresser, shelves in a bookcase, compartments in a cabinet.
@@ -515,7 +516,7 @@ A detail page for any individual floor plan object (door, window, fixture, reces
 - Inline name-edit row (hidden until Rename clicked): text input + Save/Cancel; saves by updating the relevant array in the `floorPlans` doc
 - Meta line: type badge (human-readable, e.g. "Ceiling Fan", "Pocket Door", "Tub/Shower") + room link + "Floor Plan" link
 - Breadcrumb: House › Floor Name › Room Name › Item Name
-- **Cross-entity sections**: Problems/Concerns, Facts, Future Projects, Activity History, Photos — all wired via `targetType = itemType`, `targetId = itemId` using the existing cross-entity helpers
+- **Cross-entity sections**: Problems/Concerns, Facts, Quick Task List, Activity History, Photos — all wired via `targetType = itemType`, `targetId = itemId` using the existing cross-entity helpers
 - Entry point from floor plan canvas: **"Details →"** button in the Row 3 Properties bar appears for all non-room selected items
 
 **"Items in this Room" section on Room detail page**:
@@ -527,9 +528,9 @@ A detail page for any individual floor plan object (door, window, fixture, reces
 
 **Floor Plan Item Rollup — Open Concerns and Active Projects (Phase 4)**:
 - Rendered by `loadFpItemRollup()` (room/floor scope) and `loadFpItemRollupForHouse()` (house scope) in `house.js`
-- **Room detail page** (`page-room`): "Open Concerns — Items in this Room" + "Active Projects — Items in this Room"
-- **Floor detail page** (`page-floor`): "Open Concerns — Items on this Floor" + "Active Projects — Items on this Floor" — appears below the floor plan thumbnail
-- **House detail page** (`page-house`): "Open Concerns — Whole House" + "Active Projects — Whole House" — appears after the Projects panel
+- **Room detail page** (`page-room`): "Open Concerns — Items in this Room" + "Active Quick Tasks — Items in this Room"
+- **Floor detail page** (`page-floor`): "Open Concerns — Items on this Floor" + "Active Quick Tasks — Items on this Floor" — appears below the floor plan thumbnail
+- **House detail page** (`page-house`): "Open Concerns — Whole House" + "Active Quick Tasks — Whole House" — appears after the Projects panel
 - Each section is **collapsed by default**; click header to expand. Section only renders if count > 0.
 - Header shows a blue count badge; arrow rotates 90° when expanded.
 - Expanded view: rows with type icon + item display name + concern/project title + "Details →" link to `#floorplanitem/{planId}/{itemType}/{itemId}`
@@ -563,7 +564,7 @@ The Garage section mirrors the House section structure but is separate. It pre-s
 
 **Routes**: `#garage` (room list), `#garageroom/{id}`, `#garagething/{id}`, `#garagesubthing/{id}`
 
-**Features**: Same as House — Things, Sub-Things, and their cross-entity sections (Facts, Problems, Projects, Activities, Photos, Calendar Events). LLM photo identification also available.
+**Features**: Same as House — Things, Sub-Things, and their cross-entity sections (Facts, Problems, Quick Task List, Activities, Photos, Calendar Events). LLM photo identification also available.
 
 ---
 
@@ -577,7 +578,7 @@ Outdoor structures separate from the main house — sheds, decks, pergolas, gaze
 
 **Routes**: `#structures` (list), `#structure/{id}`, `#structurething/{id}`, `#structuresubthing/{id}`
 
-**Features**: Full feature set — Facts, Problems (roll-up), Projects (roll-up), Activities, Photos, Calendar Events. Same hierarchy as House but without floor plans or breaker panels.
+**Features**: Full feature set — Facts, Problems (roll-up), Quick Task List (roll-up), Activities, Photos, Calendar Events. Same hierarchy as House but without floor plans or breaker panels.
 
 ---
 
@@ -598,7 +599,7 @@ Tracks vehicles with maintenance history, mileage, and documentation.
 - Add odometer reading entries; displayed newest-first with delete buttons
 - Can be logged via SecondBrain ("Add 35K miles to the truck")
 
-**[Shared]**: Facts, Problems, Projects, Activities, Photos, Calendar Events
+**[Shared]**: Facts, Problems, Quick Task List, Activities, Photos, Calendar Events
 
 ---
 
@@ -927,6 +928,35 @@ Tracks real-world places the user visits. Places tie together journal check-ins,
 - If `payload.useGps: true` or no name: calls `openCheckIn()` (GPS-based nearby venues)
 - The place is not committed to Firestore until the user taps Save on the check-in form
 
+### Life Projects (`life-projects.js`)
+
+**Plan document**: `ModifyProjects.md`
+
+Rich project management for the Life section — supports day-by-day itineraries, bookings, packing lists, to-dos, journal notes, people lists, and cost rollup. Template-based (Vacation is the first template; Build and General are planned).
+
+**Firestore**:
+- `lifeProjects` — `title`, `description`, `template` (vacation/build/general, locked after creation), `status` (planning/active/on-hold/done), `mode` (planning/travel), `archived`, `startDate`, `endDate`, `targetType` ('life'), `targetId` (null), `people[]` ({name, contactId, notes}), `bookingTypes[]`, `createdAt`, `updatedAt`
+- Subcollections per project: `todoItems` ({text, done, notes, sortOrder}), `days`, `bookings`, `bookingPhotos`, `packingItems`, `projectNotes`
+
+**Routes**: `#life-projects` (list), `#life-project/{id}` (detail)
+
+**Project list page**: Cards showing template icon, title, date range, status badge (color-coded), description. Archive/unarchive toggle, edit metadata, delete with cascade (all subcollections deleted). "Show archived" checkbox filters archived projects.
+
+**New project flow**: Template picker (Vacation enabled, others grayed/disabled), title, description, start/end dates. Vacation template auto-populates starter to-do items on creation.
+
+**Project detail page**: Scrollable accordion layout with lazy-loading sections:
+- **Trip Info**: Dates, description (read-only display, edit from list page)
+- **People**: Add/edit/remove people (name, contactId, notes). Stored as array on project doc.
+- **To-Do**: Checklist with done toggle, notes, drag-and-drop reorder (SortableJS). Summary shows done/total count. Vacation template pre-populates 10 starter items.
+- **Itinerary**: (Phase 5 — not yet implemented)
+- **Bookings**: (Phase 6 — not yet implemented)
+- **Packing**: (Phase 7 — not yet implemented)
+- **Notes**: (Phase 8 — not yet implemented)
+
+**Planning/Travel mode toggle**: Button in project header switches mode (stored on project doc). Travel mode filtering not yet implemented — will hide maybe/idea/nope items and simplify the view.
+
+**Delete cascade**: Removes all subcollection docs (days, bookings, bookingPhotos, todoItems, packingItems, projectNotes) before deleting the project doc.
+
 ---
 
 ## Part 10: AI / LLM Features
@@ -1122,7 +1152,9 @@ var PHOTO_CONTAINERS = { /* ... all entity types ... */ };
 
 **Used by**: All entity types
 
-### Projects (`projects.js`)
+### Quick Task List (`projects.js`)
+
+Formerly named "Future Projects" — renamed to "Quick Task List" to distinguish from the new Life Projects system.
 
 **Firestore**: `projects` — `targetType`, `targetId`, `title`, `notes`, `status` (active/completed), `items[]` (array of `{text, done, completedAt, notes}`), `completedAt`, `createdAt`
 
@@ -1195,7 +1227,7 @@ The app has three navigation contexts, each with its own nav bar:
 |---------|-----------|
 | **Yard** | Home (zones), Weeds, Products (chemicals), Calendar, Activity Report, Saved Actions, Bulk Activity, Structures, Search |
 | **House** | House (floors), Garage, Vehicles, Checklists |
-| **Life** | Journal, Places, Contacts, Health, Notes, Collections, Life Calendar, SecondBrain, Chat |
+| **Life** | Journal, Places, Contacts, Health, Notes, Collections, Life Calendar, Projects, SecondBrain, Chat |
 
 **Shared pages** (retain last active context): Settings, Change Password, GPS Map
 
@@ -1367,6 +1399,18 @@ All collections live under `/users/{uid}/`. Every module uses `userCol('collecti
 | `problems` | targetType, targetId, description, notes, status, dateLogged, resolvedAt |
 | `projects` | targetType, targetId, title, notes, status, items[], completedAt |
 | `calendarEvents` | title, description, date, recurring{type,intervalDays}?, targetType?, targetId?, zoneIds[], savedActionId?, completed, completedDates[], cancelledDates[] |
+
+### Life Projects
+
+| Collection | Key Fields |
+|------------|------------|
+| `lifeProjects` | title, description, template, status, mode, archived, startDate, endDate, targetType, targetId, people[], bookingTypes[], createdAt, updatedAt |
+| `lifeProjects/{id}/todoItems` | text, done, notes, sortOrder |
+| `lifeProjects/{id}/days` | date, label, location, sortOrder, items[] |
+| `lifeProjects/{id}/bookings` | name, type, startDate, multiDay, endDate, startTime, endTime, confirmation, cost, costNote, paymentStatus, contact, address, link, notes, sortOrder |
+| `lifeProjects/{id}/bookingPhotos` | bookingId, imageData, caption, createdAt |
+| `lifeProjects/{id}/packingItems` | text, done, notes, category, sortOrder |
+| `lifeProjects/{id}/projectNotes` | title, text, createdAt, sortOrder |
 
 ### Places
 

@@ -1808,11 +1808,11 @@ function _journalInitMentions() {
     ta.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             _journalHideDropdown();
-        } else if (e.key === 'Tab') {
-            // If the @mention dropdown is open, Tab picks the first result
+        } else if (e.key === 'Tab' || e.key === 'Enter') {
+            // If the @mention dropdown is open, Tab or Enter picks the first result
             var drop = document.getElementById('journalMentionDropdown');
             if (drop && drop.style.display !== 'none' && drop.children.length > 0) {
-                e.preventDefault();      // stop focus from jumping to next field
+                e.preventDefault();      // stop Tab from jumping fields / Enter from submitting
                 e.stopPropagation();     // stop app.js document-level Tab→spaces handler
                 var firstItem = drop.children[0];
                 if (firstItem && firstItem._mentionPerson) {

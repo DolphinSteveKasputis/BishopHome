@@ -948,7 +948,7 @@ Rich project management for the Life section — supports day-by-day itineraries
 - **Trip Info**: Dates, description (read-only display, edit from list page)
 - **People**: Add/edit/remove people (name, contactId, notes). Stored as array on project doc.
 - **To-Do**: Checklist with done toggle, notes, drag-and-drop reorder (SortableJS). Summary shows done/total count. Vacation template pre-populates 10 starter items.
-- **Itinerary**: (Phase 5 — not yet implemented)
+- **Itinerary**: Day-by-day planning. Auto-generate days from project date range (with optional pre/post travel days). Each day has label, date, location, and embedded items array. Items have title, status (confirmed/maybe/idea/nope with color badges), time, duration, cost + costNote, confirmation, contact, notes, links. Drag-and-drop reorder for both days and items within a day (SortableJS). Expandable detail panel per item.
 - **Bookings**: (Phase 6 — not yet implemented)
 - **Packing**: (Phase 7 — not yet implemented)
 - **Notes**: (Phase 8 — not yet implemented)

@@ -697,16 +697,20 @@ Daily entry logging with optional tracking metrics.
 Renamed from "People". Tracks personal contacts and medical/service professionals and facilities.
 
 **Firestore** (collection name unchanged: `people`):
-- `people` — `name`, `nickname`, `category` (see below), `specialty?`, `phone`, `email`, `address`, `website?`, `facebookUrl`, `howKnown`, `notes`, `profilePhotoData?`, `parentPersonId?`, `createdAt`
+- `people` — `name`, `nickname`, `category` (see below), `specialty?`, `personalType?`, `phone`, `email`, `address`, `website?`, `facebookUrl`, `howKnown`, `notes`, `profilePhotoData?`, `parentPersonId?`, `createdAt`
 - `peopleImportantDates` — `personId`, `label`, `month`, `day`, `year?`, `recurrence`, `createdAt`
 - `peopleInteractions` — `personId`, `date`, `text`, `sourceType`, `createdAt`
+- `lookups/serviceTrades` — `{ values: [...] }` full list of trades (defaults: Plumber, Electrician, HVAC, Pest Control, Handyman)
+- `lookups/personalContactTypes` — `{ values: [...] }` full list of relationship types (defaults: Friend, Family, Neighbor, Coworker, Acquaintance)
 
-**Contact type categories** (fixed list, stored in `category` field):
-- **Personal** — family, friends (default for all legacy records)
-- **Medical Professional** — shows `specialty` combo box (~35 built-in options via `<datalist>`); custom specialties typed by the user are saved to `lookups/specialties` in Firestore and appear in the list for future contacts
+**Contact type categories** (stored in `category` field):
+- **Personal** — shows `personalType` dropdown (Friend, Family, Neighbor, Coworker, Acquaintance + user-defined); types stored in `lookups/personalContactTypes`; on-the-fly add in modal
+- **Medical Professional** — shows `specialty` text input with datalist (~35 built-in options); custom specialties saved to `lookups/specialties`
 - **Medical Facility** — clinic, hospital, lab, pharmacy
-- **Service Professional** — shows `trade` combo box (built-ins: Plumber, Electrician, HVAC, Pest Control, Handyman); custom trades saved to `lookups/serviceTrades` in Firestore and appear in future combos
+- **Service Professional** — shows `trade` dropdown (Plumber, Electrician, HVAC, Pest Control, Handyman + user-defined); trades stored in `lookups/serviceTrades`; on-the-fly add in modal
 - **Other**
+
+**Contact Lists settings page** (`#settings-contact-lists`): Accessible from Settings hub. Two cards — "Service Trades" and "Personal Contact Types". Each shows a list of all items with Rename and Delete buttons per item. An "Add" input at the bottom adds new items. Changes are saved immediately to Firestore.
 
 **Routes**: `#contacts` (list), `#contact/{id}` (detail). Legacy `#people` / `#person/{id}` redirect to the new routes.
 

@@ -22,13 +22,16 @@ var CONTACT_CATEGORIES = [
     'Other'
 ];
 
-// ---------- Specialty / Trade lists (built-in + user-defined) ----------
-// Medical Professional uses "Specialty" backed by <datalist id="specialtyOptions">
-//   and Firestore lookups/specialties.
-// Service Professional uses "Trade" backed by <datalist id="serviceTradeOptions">
-//   and Firestore lookups/serviceTrades.
-// Custom values typed by the user are persisted and appear for future contacts.
+// ---------- Specialty / Trade / Personal Type lists ----------
+// Medical Professional  → "Specialty" text input with datalist (large list, autocomplete works well)
+// Service Professional  → "Trade" select dropdown  + on-the-fly add
+// Personal              → "Relationship" select dropdown + on-the-fly add
+// Trades and personal types are stored in Firestore lookups collection.
 
+var _DEFAULT_SERVICE_TRADES  = ['Plumber','Electrician','HVAC','Pest Control','Handyman'];
+var _DEFAULT_PERSONAL_TYPES  = ['Friend','Family','Neighbor','Coworker','Acquaintance'];
+
+// Built-in specialties (for Medical Professional datalist — kept as autocomplete)
 var _BUILTIN_SPECIALTIES = new Set([
     'Family Medicine','Internal Medicine','Pediatrics','OB/GYN','Cardiology',
     'Dermatology','Endocrinology','Gastroenterology','Neurology','Oncology',
@@ -40,36 +43,23 @@ var _BUILTIN_SPECIALTIES = new Set([
     'Infectious Disease','Palliative Care','Geriatrics'
 ]);
 
-var _BUILTIN_SERVICE_TRADES = new Set([
-    'Plumber','Electrician','HVAC','Pest Control','Handyman'
-]);
-
-/**
- * Load custom specialties AND service trades from Firestore and append
- * to their respective datalists. Called each time the contact modal opens.
- */
+/** Load medical specialties into the datalist (autocomplete for Medical Professional). */
 async function _loadCustomSpecialties() {
-    async function _appendToList(datalistId, docKey) {
-        var dl = document.getElementById(datalistId);
-        if (!dl) return;
-        try {
-            var snap = await userCol('lookups').doc(docKey).get();
-            if (!snap.exists) return;
-            var values = snap.data().values || [];
-            var existing = new Set(Array.from(dl.options).map(function(o) { return o.value; }));
-            values.forEach(function(v) {
-                if (!existing.has(v)) {
-                    var opt = document.createElement('option');
-                    opt.value = v;
-                    dl.appendChild(opt);
-                }
-            });
-        } catch (err) {
-            console.warn('_loadCustomSpecialties (' + docKey + ') error:', err);
-        }
-    }
-    _appendToList('specialtyOptions',    'specialties');
-    _appendToList('serviceTradeOptions', 'serviceTrades');
+    var dl = document.getElementById('specialtyOptions');
+    if (!dl) return;
+    try {
+        var snap = await userCol('lookups').doc('specialties').get();
+        if (!snap.exists) return;
+        var values = snap.data().values || [];
+        var existing = new Set(Array.from(dl.options).map(function(o) { return o.value; }));
+        values.forEach(function(v) {
+            if (!existing.has(v)) {
+                var opt = document.createElement('option');
+                opt.value = v;
+                dl.appendChild(opt);
+            }
+        });
+    } catch (err) { console.warn('_loadCustomSpecialties error:', err); }
 }
 
 /** Save a new medical specialty to Firestore. */
@@ -82,39 +72,111 @@ async function _saveCustomSpecialty(value) {
     } catch (err) { console.warn('_saveCustomSpecialty error:', err); }
 }
 
-/** Save a new service trade to Firestore. */
-async function _saveCustomServiceTrade(value) {
+/**
+ * Load the service trades list from Firestore and populate the trade <select>.
+ * Falls back to _DEFAULT_SERVICE_TRADES if no Firestore doc exists yet.
+ */
+async function _loadServiceTrades(selectedValue) {
+    var sel = document.getElementById('personTradeSelect');
+    if (!sel) return;
+    var trades = _DEFAULT_SERVICE_TRADES.slice();
     try {
-        await userCol('lookups').doc('serviceTrades').set(
-            { values: firebase.firestore.FieldValue.arrayUnion(value) },
-            { merge: true }
-        );
-    } catch (err) { console.warn('_saveCustomServiceTrade error:', err); }
+        var snap = await userCol('lookups').doc('serviceTrades').get();
+        if (snap.exists) {
+            var vals = snap.data().values || [];
+            if (vals.length > 0) trades = vals;
+        }
+    } catch (err) { console.warn('_loadServiceTrades error:', err); }
+    sel.innerHTML = '<option value="">— Select trade —</option>';
+    trades.forEach(function(t) {
+        var opt = document.createElement('option');
+        opt.value = t; opt.textContent = t;
+        if (t === selectedValue) opt.selected = true;
+        sel.appendChild(opt);
+    });
 }
 
 /**
- * Configure the specialty/trade field for the given category.
- * Swaps the label text, datalist, and placeholder to match
- * Medical Professional ("Specialty") vs Service Professional ("Trade").
+ * Load the personal contact types from Firestore and populate the personal type <select>.
+ * Falls back to _DEFAULT_PERSONAL_TYPES if no Firestore doc exists yet.
  */
-function _configureSpecialtyField(category) {
-    var grp   = document.getElementById('personSpecialtyGroup');
-    var input = document.getElementById('personSpecialtyInput');
-    var label = document.getElementById('personSpecialtyLabel');
-    if (category === 'Medical Professional') {
-        grp.style.display = '';
-        label.textContent = 'Specialty';
-        input.setAttribute('list', 'specialtyOptions');
-        input.placeholder = 'e.g., Family Medicine, Dermatology, Dentistry';
-    } else if (category === 'Service Professional') {
-        grp.style.display = '';
-        label.textContent = 'Trade';
-        input.setAttribute('list', 'serviceTradeOptions');
-        input.placeholder = 'e.g., Plumber, Electrician, HVAC';
-    } else {
-        grp.style.display = 'none';
-    }
+async function _loadPersonalTypes(selectedValue) {
+    var sel = document.getElementById('personPersonalTypeSelect');
+    if (!sel) return;
+    var types = _DEFAULT_PERSONAL_TYPES.slice();
+    try {
+        var snap = await userCol('lookups').doc('personalContactTypes').get();
+        if (snap.exists) {
+            var vals = snap.data().values || [];
+            if (vals.length > 0) types = vals;
+        }
+    } catch (err) { console.warn('_loadPersonalTypes error:', err); }
+    sel.innerHTML = '<option value="">— Select type —</option>';
+    types.forEach(function(t) {
+        var opt = document.createElement('option');
+        opt.value = t; opt.textContent = t;
+        if (t === selectedValue) opt.selected = true;
+        sel.appendChild(opt);
+    });
 }
+
+/**
+ * "Add on the fly" handler for the trade field in the contact modal.
+ * Saves the new trade to Firestore, repopulates the select, and selects it.
+ */
+async function _contactAddTradeOnTheFly() {
+    var input = document.getElementById('personTradeNewInput');
+    var val = input.value.trim();
+    if (!val) return;
+    try {
+        await userCol('lookups').doc('serviceTrades').set(
+            { values: firebase.firestore.FieldValue.arrayUnion(val) },
+            { merge: true }
+        );
+    } catch (err) { console.warn('_contactAddTradeOnTheFly save error:', err); }
+    await _loadServiceTrades(val);
+    input.value = '';
+    document.getElementById('personTradeAddRow').style.display = 'none';
+}
+
+/**
+ * "Add on the fly" handler for the personal type field in the contact modal.
+ * Saves the new type to Firestore, repopulates the select, and selects it.
+ */
+async function _contactAddPersonalTypeOnTheFly() {
+    var input = document.getElementById('personPersonalTypeNewInput');
+    var val = input.value.trim();
+    if (!val) return;
+    try {
+        await userCol('lookups').doc('personalContactTypes').set(
+            { values: firebase.firestore.FieldValue.arrayUnion(val) },
+            { merge: true }
+        );
+    } catch (err) { console.warn('_contactAddPersonalTypeOnTheFly save error:', err); }
+    await _loadPersonalTypes(val);
+    input.value = '';
+    document.getElementById('personPersonalTypeAddRow').style.display = 'none';
+}
+
+/**
+ * Show/hide the category-specific fields based on selected contact type.
+ * Medical Professional → specialty text input (datalist autocomplete)
+ * Service Professional → trade select + add-on-the-fly
+ * Personal             → personal type select + add-on-the-fly
+ * Others               → all hidden
+ */
+function _configureTypeFields(category) {
+    var specialtyGrp    = document.getElementById('personSpecialtyGroup');
+    var tradeGrp        = document.getElementById('personTradeGroup');
+    var personalTypeGrp = document.getElementById('personPersonalTypeGroup');
+
+    if (specialtyGrp)    specialtyGrp.style.display    = (category === 'Medical Professional') ? '' : 'none';
+    if (tradeGrp)        tradeGrp.style.display        = (category === 'Service Professional') ? '' : 'none';
+    if (personalTypeGrp) personalTypeGrp.style.display = (category === 'Personal')            ? '' : 'none';
+}
+
+// Backwards-compat alias (still referenced in a few older places)
+function _configureSpecialtyField(category) { _configureTypeFields(category); }
 
 // ============================================================
 // CONTACTS LIST PAGE  (#contacts)
@@ -516,8 +578,11 @@ async function openAddContactModal(parentPersonId) {
     document.getElementById('personFacebookInput').value   = '';
     document.getElementById('personNotesInput').value      = '';
     document.getElementById('personSpecialtyInput').value  = '';
-    document.getElementById('personModalDeleteBtn').style.display   = 'none';
-    document.getElementById('personSpecialtyGroup').style.display   = 'none';
+    document.getElementById('personModalDeleteBtn').style.display = 'none';
+
+    // Reset inline-add rows
+    document.getElementById('personTradeAddRow').style.display        = 'none';
+    document.getElementById('personPersonalTypeAddRow').style.display = 'none';
 
     var modal = document.getElementById('personModal');
     modal.dataset.mode           = 'add';
@@ -525,7 +590,10 @@ async function openAddContactModal(parentPersonId) {
     modal.dataset.parentPersonId = parentPersonId || '';
 
     _populateContactCategorySelect('personCategorySelect', 'Personal');
+    _configureTypeFields('Personal');
     _loadCustomSpecialties();
+    _loadServiceTrades('');
+    _loadPersonalTypes('');
     openModal('personModal');
     document.getElementById('personNameInput').focus();
 }
@@ -547,11 +615,13 @@ async function openEditContactModal(person) {
     document.getElementById('personSpecialtyInput').value  = person.specialty   || '';
     document.getElementById('personModalDeleteBtn').style.display = '';
 
-    // Determine the contact type to pre-select
+    // Reset inline-add rows
+    document.getElementById('personTradeAddRow').style.display        = 'none';
+    document.getElementById('personPersonalTypeAddRow').style.display = 'none';
+
     var catVal = CONTACT_CATEGORIES.indexOf(person.category) !== -1 ? person.category : 'Personal';
     _populateContactCategorySelect('personCategorySelect', catVal);
-
-    _configureSpecialtyField(catVal);
+    _configureTypeFields(catVal);
 
     var modal = document.getElementById('personModal');
     modal.dataset.mode           = 'edit';
@@ -559,6 +629,8 @@ async function openEditContactModal(person) {
     modal.dataset.parentPersonId = person.parentPersonId || '';
 
     _loadCustomSpecialties();
+    _loadServiceTrades(person.specialty  || '');   // trade stored in specialty field
+    _loadPersonalTypes(person.personalType || '');
     openModal('personModal');
 }
 
@@ -584,20 +656,30 @@ async function handleContactModalSave() {
 
     var catVal = document.getElementById('personCategorySelect').value || 'Personal';
 
+    // Read specialty/trade depending on category:
+    // Medical Professional → text input; Service Professional → select dropdown
+    var specialtyVal = '';
+    if (catVal === 'Medical Professional') {
+        specialtyVal = document.getElementById('personSpecialtyInput').value.trim();
+    } else if (catVal === 'Service Professional') {
+        specialtyVal = document.getElementById('personTradeSelect').value;
+    }
+
     var data = {
-        name:        name,
-        nickname:    document.getElementById('personNicknameInput').value.trim(),
-        howKnown:    document.getElementById('personHowKnownInput').value.trim(),
-        phone:       formatPhoneNumber(document.getElementById('personPhoneInput').value.trim()),
-        email:       document.getElementById('personEmailInput').value.trim(),
-        address:     document.getElementById('personAddressInput').value.trim(),
-        website:     document.getElementById('personWebsiteInput').value.trim(),
-        facebookUrl: document.getElementById('personFacebookInput').value.trim(),
-        notes:       document.getElementById('personNotesInput').value.trim(),
-        category:    catVal,
-        specialty:   (catVal === 'Medical Professional' || catVal === 'Service Professional')
-                         ? document.getElementById('personSpecialtyInput').value.trim()
-                         : '',
+        name:         name,
+        nickname:     document.getElementById('personNicknameInput').value.trim(),
+        howKnown:     document.getElementById('personHowKnownInput').value.trim(),
+        phone:        formatPhoneNumber(document.getElementById('personPhoneInput').value.trim()),
+        email:        document.getElementById('personEmailInput').value.trim(),
+        address:      document.getElementById('personAddressInput').value.trim(),
+        website:      document.getElementById('personWebsiteInput').value.trim(),
+        facebookUrl:  document.getElementById('personFacebookInput').value.trim(),
+        notes:        document.getElementById('personNotesInput').value.trim(),
+        category:     catVal,
+        specialty:    specialtyVal,
+        personalType: (catVal === 'Personal')
+                          ? document.getElementById('personPersonalTypeSelect').value
+                          : '',
     };
 
     var modal          = document.getElementById('personModal');
@@ -605,13 +687,9 @@ async function handleContactModalSave() {
     var editId         = modal.dataset.editId;
     var parentPersonId = modal.dataset.parentPersonId || null;
 
-    // If a new specialty/trade was entered (not in the built-in list), persist it.
-    if (data.specialty) {
-        if (catVal === 'Medical Professional' && !_BUILTIN_SPECIALTIES.has(data.specialty)) {
-            _saveCustomSpecialty(data.specialty);
-        } else if (catVal === 'Service Professional' && !_BUILTIN_SERVICE_TRADES.has(data.specialty)) {
-            _saveCustomServiceTrade(data.specialty);
-        }
+    // Persist new medical specialty if it's not already in the built-in list
+    if (catVal === 'Medical Professional' && specialtyVal && !_BUILTIN_SPECIALTIES.has(specialtyVal)) {
+        _saveCustomSpecialty(specialtyVal);
     }
 
     try {
@@ -1124,10 +1202,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (formatted !== this.value.trim()) this.value = formatted;
     });
 
-    // ---- Category select — show specialty/trade field for medical or service professionals ----
+    // ---- Category select — show correct sub-field for the selected contact type ----
     document.getElementById('personCategorySelect').addEventListener('change', function() {
-        _configureSpecialtyField(this.value);
-        if (this.value === 'Medical Professional' || this.value === 'Service Professional') {
+        _configureTypeFields(this.value);
+        if (this.value === 'Medical Professional') {
             document.getElementById('personSpecialtyInput').focus();
         }
     });
@@ -1428,7 +1506,7 @@ function buildContactPicker(containerId, options) {
         document.getElementById('personNameInput').value = name;
         if (category) {
             _populateContactCategorySelect('personCategorySelect', category);
-            _configureSpecialtyField(category);
+            _configureTypeFields(category);
         }
     }
 
@@ -1545,8 +1623,12 @@ function buildContactPicker(containerId, options) {
                 facebookUrl: document.getElementById('personFacebookInput').value.trim(),
                 notes:       document.getElementById('personNotesInput').value.trim(),
                 category:    catVal,
-                specialty:   (catVal === 'Medical Professional' || catVal === 'Service Professional')
-                                 ? document.getElementById('personSpecialtyInput').value.trim() : '',
+                specialty:   catVal === 'Medical Professional'
+                                 ? document.getElementById('personSpecialtyInput').value.trim()
+                                 : catVal === 'Service Professional'
+                                     ? document.getElementById('personTradeSelect').value : '',
+                personalType: catVal === 'Personal'
+                                 ? document.getElementById('personPersonalTypeSelect').value : '',
                 parentPersonId:   null,
                 profilePhotoData: null,
                 createdAt:        firebase.firestore.FieldValue.serverTimestamp()

@@ -12,6 +12,179 @@ function loadSettingsHub() {
     // Nothing to load — the hub is purely static HTML cards.
 }
 
+// ============================================================
+// CONTACT LISTS SETTINGS  (#settings-contact-lists)
+// Manage service trades and personal contact types.
+// Both are stored in Firestore lookups collection.
+// ============================================================
+
+var _DEFAULT_TRADES_FOR_SETTINGS = ['Plumber','Electrician','HVAC','Pest Control','Handyman'];
+var _DEFAULT_PERSONAL_TYPES_FOR_SETTINGS = ['Friend','Family','Neighbor','Coworker','Acquaintance'];
+
+/**
+ * Load the Contact Lists settings page.
+ * Fetches trades and personal types from Firestore and renders editable lists.
+ */
+async function loadContactListsPage() {
+    await Promise.all([
+        _renderLookupList('serviceTrades',       'settingsTradesList',       _DEFAULT_TRADES_FOR_SETTINGS),
+        _renderLookupList('personalContactTypes', 'settingsPersonalTypesList', _DEFAULT_PERSONAL_TYPES_FOR_SETTINGS)
+    ]);
+}
+
+/**
+ * Render an editable list of lookup values into a container element.
+ * @param {string} docKey      - Firestore lookups document key (e.g. 'serviceTrades')
+ * @param {string} containerId - ID of the container div to render into
+ * @param {Array}  defaults    - Default values to use if no Firestore doc exists
+ */
+async function _renderLookupList(docKey, containerId, defaults) {
+    var container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = '<p style="color:#888;font-size:0.9rem;">Loading...</p>';
+
+    var values = defaults.slice();
+    try {
+        var snap = await userCol('lookups').doc(docKey).get();
+        if (snap.exists) {
+            var vals = snap.data().values || [];
+            if (vals.length > 0) values = vals;
+        }
+    } catch (err) { console.error('_renderLookupList error:', err); }
+
+    if (!values.length) {
+        container.innerHTML = '<p style="color:#888;font-size:0.9rem;">No items yet.</p>';
+        return;
+    }
+
+    var html = '<div class="lookup-list">';
+    values.forEach(function(v, i) {
+        var escaped = escapeHtml(v);
+        html += '<div class="lookup-list-item" data-index="' + i + '" data-doc="' + docKey + '">' +
+                  '<span class="lookup-item-label" id="lookup-label-' + docKey + '-' + i + '">' + escaped + '</span>' +
+                  '<input class="lookup-item-input hidden" id="lookup-input-' + docKey + '-' + i + '" value="' + escaped + '" style="flex:1;">' +
+                  '<div class="lookup-item-actions">' +
+                    '<button class="btn btn-secondary btn-small" onclick="_lookupStartRename(\'' + docKey + '\',' + i + ')">Rename</button>' +
+                    '<button class="btn btn-danger btn-small"    onclick="_lookupDelete(\'' + docKey + '\',' + i + ')">Delete</button>' +
+                  '</div>' +
+                '</div>';
+    });
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+/** Show the rename input for a list item. */
+function _lookupStartRename(docKey, index) {
+    var label = document.getElementById('lookup-label-' + docKey + '-' + index);
+    var input = document.getElementById('lookup-input-' + docKey + '-' + index);
+    var item  = document.querySelector('.lookup-list-item[data-index="' + index + '"][data-doc="' + docKey + '"]');
+    if (!label || !input || !item) return;
+
+    label.classList.add('hidden');
+    input.classList.remove('hidden');
+    input.focus();
+    input.select();
+
+    // Replace action buttons with Save/Cancel
+    var actionsDiv = item.querySelector('.lookup-item-actions');
+    actionsDiv.innerHTML =
+        '<button class="btn btn-primary btn-small" onclick="_lookupSaveRename(\'' + docKey + '\',' + index + ')">Save</button>' +
+        '<button class="btn btn-secondary btn-small" onclick="_lookupCancelRename(\'' + docKey + '\',' + index + ')">Cancel</button>';
+
+    input.addEventListener('keydown', function handler(e) {
+        if (e.key === 'Enter')  { _lookupSaveRename(docKey, index); input.removeEventListener('keydown', handler); }
+        if (e.key === 'Escape') { _lookupCancelRename(docKey, index); input.removeEventListener('keydown', handler); }
+    });
+}
+
+/** Save a renamed item back to Firestore and re-render. */
+async function _lookupSaveRename(docKey, index) {
+    var input = document.getElementById('lookup-input-' + docKey + '-' + index);
+    if (!input) return;
+    var newVal = input.value.trim();
+    if (!newVal) { alert('Value cannot be empty.'); return; }
+
+    var defaults = docKey === 'serviceTrades' ? _DEFAULT_TRADES_FOR_SETTINGS : _DEFAULT_PERSONAL_TYPES_FOR_SETTINGS;
+    var containerId = docKey === 'serviceTrades' ? 'settingsTradesList' : 'settingsPersonalTypesList';
+
+    // Load current list, replace at index, save back
+    var values = defaults.slice();
+    try {
+        var snap = await userCol('lookups').doc(docKey).get();
+        if (snap.exists) { var vals = snap.data().values || []; if (vals.length > 0) values = vals; }
+    } catch (err) {}
+    values[index] = newVal;
+    try {
+        await userCol('lookups').doc(docKey).set({ values: values }, { merge: false });
+    } catch (err) { alert('Error saving. Please try again.'); return; }
+    _renderLookupList(docKey, containerId, defaults);
+}
+
+/** Cancel a rename and restore the label. */
+function _lookupCancelRename(docKey, index) {
+    var label = document.getElementById('lookup-label-' + docKey + '-' + index);
+    var input = document.getElementById('lookup-input-' + docKey + '-' + index);
+    var item  = document.querySelector('.lookup-list-item[data-index="' + index + '"][data-doc="' + docKey + '"]');
+    if (!label || !input || !item) return;
+
+    label.classList.remove('hidden');
+    input.classList.add('hidden');
+
+    var actionsDiv = item.querySelector('.lookup-item-actions');
+    actionsDiv.innerHTML =
+        '<button class="btn btn-secondary btn-small" onclick="_lookupStartRename(\'' + docKey + '\',' + index + ')">Rename</button>' +
+        '<button class="btn btn-danger btn-small"    onclick="_lookupDelete(\'' + docKey + '\',' + index + ')">Delete</button>';
+}
+
+/** Delete an item from the list and save back to Firestore. */
+async function _lookupDelete(docKey, index) {
+    if (!confirm('Delete this item?')) return;
+
+    var defaults    = docKey === 'serviceTrades' ? _DEFAULT_TRADES_FOR_SETTINGS : _DEFAULT_PERSONAL_TYPES_FOR_SETTINGS;
+    var containerId = docKey === 'serviceTrades' ? 'settingsTradesList' : 'settingsPersonalTypesList';
+
+    var values = defaults.slice();
+    try {
+        var snap = await userCol('lookups').doc(docKey).get();
+        if (snap.exists) { var vals = snap.data().values || []; if (vals.length > 0) values = vals; }
+    } catch (err) {}
+    values.splice(index, 1);
+    try {
+        await userCol('lookups').doc(docKey).set({ values: values }, { merge: false });
+    } catch (err) { alert('Error deleting. Please try again.'); return; }
+    _renderLookupList(docKey, containerId, defaults);
+}
+
+/** Add a new trade from the settings page input. */
+async function settingsAddTrade() {
+    var input = document.getElementById('settingsTradeNewInput');
+    var val = input.value.trim();
+    if (!val) return;
+    try {
+        await userCol('lookups').doc('serviceTrades').set(
+            { values: firebase.firestore.FieldValue.arrayUnion(val) },
+            { merge: true }
+        );
+    } catch (err) { alert('Error adding trade.'); return; }
+    input.value = '';
+    _renderLookupList('serviceTrades', 'settingsTradesList', _DEFAULT_TRADES_FOR_SETTINGS);
+}
+
+/** Add a new personal contact type from the settings page input. */
+async function settingsAddPersonalType() {
+    var input = document.getElementById('settingsPersonalTypeNewInput');
+    var val = input.value.trim();
+    if (!val) return;
+    try {
+        await userCol('lookups').doc('personalContactTypes').set(
+            { values: firebase.firestore.FieldValue.arrayUnion(val) },
+            { merge: true }
+        );
+    } catch (err) { alert('Error adding type.'); return; }
+    input.value = '';
+    _renderLookupList('personalContactTypes', 'settingsPersonalTypesList', _DEFAULT_PERSONAL_TYPES_FOR_SETTINGS);
+}
+
 /**
  * Load general settings from Firestore and populate the form fields.
  * Called by app.js when routing to #settings-general.

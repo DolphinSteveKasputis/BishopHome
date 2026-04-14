@@ -2175,6 +2175,33 @@ button {
     min-height: 60px;
 }
 
+/* ---------- Lookup List (Contact Lists settings) ---------- */
+.lookup-list { display: flex; flex-direction: column; gap: 6px; }
+.lookup-list-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: #f9f9f9;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+}
+.lookup-item-label { flex: 1; font-size: 0.95rem; }
+.lookup-item-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+/* btn-link — unstyled inline button that looks like a link */
+.btn-link {
+    background: none;
+    border: none;
+    padding: 0;
+    color: #1976d2;
+    cursor: pointer;
+    text-decoration: underline;
+    font-size: inherit;
+    display: inline;
+}
+.btn-link:hover { color: #0d47a1; }
+
 /* ---------- House / Interior Feature ---------- */
 
 /* Small floor number badge shown next to the floor name in cards */

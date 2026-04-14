@@ -7077,9 +7077,12 @@
                 <div class="form-group">
                     <div class="journal-textarea-header">
                         <label for="journalEntryText">Entry</label>
-                        <div style="display:flex;gap:6px;">
+                        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center;">
                             <button class="btn btn-secondary btn-small" id="journalVoiceBtn" title="Voice to text">🎤 Speak</button>
                             <button class="btn btn-secondary btn-small" id="journalVoiceHelpBtn" title="Voice punctuation help">Help</button>
+                            <button class="btn btn-danger btn-small hidden" id="journalEntryDeleteBtn">Delete</button>
+                            <button class="btn btn-secondary btn-small" id="journalEntryCancelBtn">Cancel</button>
+                            <button class="btn btn-primary btn-small"   id="journalEntrySaveBtn">Save</button>
                         </div>
                     </div>
                     <textarea id="journalEntryText" rows="16" spellcheck="true"
@@ -7119,11 +7122,6 @@
                     </div>
                     <div id="journalPlaceDropdown" class="journal-place-dropdown" style="display:none;"></div>
                     <div id="journalPlaceChips" class="journal-place-chips-row" style="display:none;"></div>
-                </div>
-                <div class="modal-buttons">
-                    <button class="btn btn-danger hidden" id="journalEntryDeleteBtn">Delete</button>
-                    <button class="btn btn-secondary" id="journalEntryCancelBtn">Cancel</button>
-                    <button class="btn btn-primary"   id="journalEntrySaveBtn">Save</button>
                 </div>
             </div>
         </section>

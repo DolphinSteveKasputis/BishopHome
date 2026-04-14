@@ -405,7 +405,7 @@ async function confirmDeleteLifeProject() {
 
     try {
         // Delete all subcollections
-        const subs = ['days', 'bookings', 'bookingPhotos', 'todoItems', 'packingItems', 'projectNotes'];
+        const subs = ['days', 'bookings', 'bookingPhotos', 'todoItems', 'packingItems', 'projectNotes', 'planningGroups'];
         for (const sub of subs) {
             const snap = await lpSub(projectId, sub).get();
             if (!snap.empty) {
@@ -490,6 +490,7 @@ function _lpRenderDetailPage(page) {
                 ${_lpAccordionSection('tripInfo', '📍 Trip Info', '', true)}
                 ${_lpAccordionSection('people', '👥 People', _lpPeopleSummary(p), false)}
                 ${travel ? '' : _lpAccordionSection('todos', '☑️ To-Do', '', false)}
+                ${travel ? '' : _lpAccordionSection('planning', '🗺️ Planning Board', '', false)}
                 ${_lpAccordionSection('itinerary', '📅 Itinerary', '', travel)}
                 ${_lpAccordionSection('bookings', '🏨 Bookings', '', travel)}
                 ${_lpAccordionSection('packing', '🧳 Packing', '', false)}
@@ -510,14 +511,17 @@ function _lpRenderDetailPage(page) {
 async function _lpLoadInitialData() {
     if (!_lpCurrentProjectId) return;
     try {
-        const [daySnap, bookingSnap] = await Promise.all([
+        const [daySnap, bookingSnap, pgSnap] = await Promise.all([
             lpSub(_lpCurrentProjectId, 'days').orderBy('sortOrder').get(),
-            lpSub(_lpCurrentProjectId, 'bookings').orderBy('sortOrder').get()
+            lpSub(_lpCurrentProjectId, 'bookings').orderBy('sortOrder').get(),
+            lpSub(_lpCurrentProjectId, 'planningGroups').orderBy('sortOrder').get()
         ]);
         _lpDays = [];
         daySnap.forEach(doc => _lpDays.push({ id: doc.id, ...doc.data() }));
         _lpBookings = [];
         bookingSnap.forEach(doc => _lpBookings.push({ id: doc.id, ...doc.data() }));
+        _lpPlanningGroups = [];
+        pgSnap.forEach(doc => _lpPlanningGroups.push({ id: doc.id, ...doc.data() }));
     } catch (err) {
         console.error('Error pre-loading data:', err);
     }
@@ -567,6 +571,7 @@ function _lpLoadAccordionContent(id) {
         case 'tripInfo': _lpLoadTripInfo(); break;
         case 'people':   _lpLoadPeople(); break;
         case 'todos':    _lpLoadTodos(); break;
+        case 'planning': _lpLoadPlanningBoard(); break;
         case 'itinerary': _lpLoadItinerary(); break;
         case 'bookings': _lpLoadBookings(); break;
         case 'packing':  _lpLoadPacking(); break;
@@ -959,6 +964,367 @@ async function _lpReorderTodos(evt) {
         _lpTodos.forEach((t, i) => t.sortOrder = i);
     } catch (err) {
         console.error('Error reordering todos:', err);
+    }
+}
+
+// ============================================================
+// Planning Board Section — Research & Ideas by Group
+// ============================================================
+
+let _lpPlanningGroups = [];
+
+async function _lpLoadPlanningBoard() {
+    const body = document.getElementById('lpBody_planning');
+    if (!body || !_lpCurrentProjectId) return;
+
+    try {
+        const snap = await lpSub(_lpCurrentProjectId, 'planningGroups').orderBy('sortOrder').get();
+        _lpPlanningGroups = [];
+        snap.forEach(doc => _lpPlanningGroups.push({ id: doc.id, ...doc.data() }));
+        _lpRenderPlanningBoard(body);
+    } catch (err) {
+        console.error('Error loading planning board:', err);
+        body.innerHTML = '<p style="color:red;">Error loading planning board.</p>';
+    }
+}
+
+function _lpRenderPlanningBoard(body) {
+    _lpUpdateAccordionSummary('planning', _lpPlanningGroups.length > 0 ? `(${_lpPlanningGroups.length} groups)` : '');
+
+    if (_lpPlanningGroups.length === 0) {
+        body.innerHTML = `
+            <p style="color:#999; font-size:0.9em;">No planning groups yet. Create groups to organize research and potential activities by area or theme.</p>
+            <button class="btn btn-primary" style="margin-top:8px;" onclick="_lpAddPlanningGroup()">+ Add Group</button>
+        `;
+        return;
+    }
+
+    body.innerHTML = `
+        <div id="lpPlanningGroupList">
+            ${_lpPlanningGroups.map(g => _lpPlanningGroupCard(g)).join('')}
+        </div>
+        <button class="btn btn-primary" style="margin-top:8px;" onclick="_lpAddPlanningGroup()">+ Add Group</button>
+    `;
+
+    // Init SortableJS for groups if available
+    if (typeof Sortable !== 'undefined') {
+        Sortable.create(document.getElementById('lpPlanningGroupList'), {
+            handle: '.lp-pg-drag',
+            animation: 150,
+            onEnd: () => _lpReorderPlanningGroups()
+        });
+        // Init SortableJS for items within each group
+        _lpPlanningGroups.forEach(g => {
+            const el = document.getElementById(`lpPgItems_${g.id}`);
+            if (el) {
+                Sortable.create(el, {
+                    handle: '.lp-item-drag',
+                    animation: 150,
+                    onEnd: () => _lpReorderPlanningItems(g.id)
+                });
+            }
+        });
+    }
+}
+
+function _lpPlanningGroupCard(g) {
+    const items = (g.items || []).sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    const itemCount = items.length;
+
+    return `
+        <div class="lp-planning-group" data-id="${g.id}" style="border:1px solid #e2e8f0; border-radius:8px; margin-bottom:12px; overflow:hidden;">
+            <div style="background:#eff6ff; padding:10px 12px; display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span class="lp-pg-drag" style="cursor:grab; color:#ccc;">⠿</span>
+                    <strong>🗺️ ${_lpEsc(g.name)}</strong>
+                    <span style="color:#888; font-size:0.85em;">(${itemCount})</span>
+                </div>
+                <div style="display:flex; gap:4px;">
+                    <button class="btn btn-small" onclick="_lpRenamePlanningGroup('${g.id}')" title="Rename">✏️</button>
+                    <button class="btn btn-small btn-danger" onclick="_lpDeletePlanningGroup('${g.id}')" title="Delete group">✕</button>
+                </div>
+            </div>
+            <div style="padding:8px 12px;">
+                <div id="lpPgItems_${g.id}">
+                    ${items.map(item => _lpPlanningItemRow(g.id, item)).join('')}
+                </div>
+                ${items.length === 0 ? '<p style="color:#bbb; font-size:0.85em; margin:4px 0;">No items yet.</p>' : ''}
+                <button class="btn btn-small" style="margin-top:6px;" onclick="_lpAddPlanningItem('${g.id}')">+ Add Item</button>
+            </div>
+        </div>
+    `;
+}
+
+function _lpPlanningItemRow(groupId, item) {
+    const st = LP_ITEM_STATUSES[item.status] || LP_ITEM_STATUSES.idea;
+    const hasDetails = item.time || item.cost || item.duration || item.notes || item.confirmation || item.contact || (item.links && item.links.length);
+
+    return `
+        <div class="lp-planning-item" data-item-id="${item.id}" style="padding:6px 0; border-bottom:1px solid #f0f0f0;">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span class="lp-item-drag" style="cursor:grab; color:#ccc; font-size:0.8em;">⠿</span>
+                <span style="background:${st.bg};color:${st.color};font-size:0.7em;padding:1px 8px;border-radius:10px;font-weight:600;">${st.label}</span>
+                <span style="flex:1; min-width:0; font-weight:500;">${_lpEsc(item.title)}</span>
+                <div style="display:flex; gap:2px; flex-shrink:0;">
+                    <button class="btn btn-small" onclick="_lpTogglePlanningItemDetails('${groupId}','${item.id}')" title="Details" style="padding:2px 6px;">${hasDetails ? '📋' : '▿'}</button>
+                    <button class="btn btn-small" style="padding:2px 6px; font-size:0.75em;" onclick="_lpMovePlanningItemToDay('${groupId}','${item.id}')" title="Move to day">📅→</button>
+                    <button class="btn btn-small" onclick="_lpEditPlanningItem('${groupId}','${item.id}')" title="Edit" style="padding:2px 6px;">✏️</button>
+                    <button class="btn btn-small btn-danger" onclick="_lpDeletePlanningItem('${groupId}','${item.id}')" title="Delete" style="padding:2px 6px;">✕</button>
+                </div>
+            </div>
+            <div class="lp-planning-item-details" id="lpPgItemDetails_${groupId}_${item.id}" style="display:none; margin-top:6px; padding-left:28px; font-size:0.88em; color:#555;">
+                ${_lpItemDetailsContent(item)}
+            </div>
+        </div>
+    `;
+}
+
+function _lpTogglePlanningItemDetails(groupId, itemId) {
+    const el = document.getElementById(`lpPgItemDetails_${groupId}_${itemId}`);
+    if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
+}
+
+// ---------- Planning Group CRUD ----------
+
+async function _lpAddPlanningGroup() {
+    const name = prompt('Group name (e.g., "Jackson area", "Day trips from hotel"):');
+    if (!name || !name.trim()) return;
+
+    const maxOrder = _lpPlanningGroups.reduce((max, g) => Math.max(max, g.sortOrder || 0), -1);
+
+    try {
+        await lpSub(_lpCurrentProjectId, 'planningGroups').add({
+            name: name.trim(),
+            sortOrder: maxOrder + 1,
+            items: []
+        });
+        await _lpLoadPlanningBoard();
+    } catch (err) {
+        console.error('Error adding planning group:', err);
+        alert('Error adding group.');
+    }
+}
+
+async function _lpRenamePlanningGroup(groupId) {
+    const group = _lpPlanningGroups.find(g => g.id === groupId);
+    if (!group) return;
+
+    const name = prompt('Group name:', group.name);
+    if (!name || !name.trim()) return;
+
+    try {
+        await lpSub(_lpCurrentProjectId, 'planningGroups').doc(groupId).update({ name: name.trim() });
+        group.name = name.trim();
+        const body = document.getElementById('lpBody_planning');
+        if (body) _lpRenderPlanningBoard(body);
+    } catch (err) {
+        console.error('Error renaming group:', err);
+    }
+}
+
+async function _lpDeletePlanningGroup(groupId) {
+    const group = _lpPlanningGroups.find(g => g.id === groupId);
+    const itemCount = (group?.items || []).length;
+    const msg = itemCount > 0
+        ? `Delete "${group.name}" and its ${itemCount} item(s)? This cannot be undone.`
+        : `Delete "${group.name}"? This cannot be undone.`;
+    if (!confirm(msg)) return;
+
+    try {
+        await lpSub(_lpCurrentProjectId, 'planningGroups').doc(groupId).delete();
+        await _lpLoadPlanningBoard();
+    } catch (err) {
+        console.error('Error deleting planning group:', err);
+    }
+}
+
+async function _lpReorderPlanningGroups() {
+    const groups = document.querySelectorAll('#lpPlanningGroupList .lp-planning-group');
+    const batch = firebase.firestore().batch();
+    groups.forEach((el, i) => {
+        const id = el.dataset.id;
+        batch.update(lpSub(_lpCurrentProjectId, 'planningGroups').doc(id), { sortOrder: i });
+    });
+    try {
+        await batch.commit();
+        const idOrder = Array.from(groups).map(el => el.dataset.id);
+        _lpPlanningGroups.sort((a, b) => idOrder.indexOf(a.id) - idOrder.indexOf(b.id));
+        _lpPlanningGroups.forEach((g, i) => g.sortOrder = i);
+    } catch (err) {
+        console.error('Error reordering planning groups:', err);
+    }
+}
+
+// ---------- Planning Item CRUD ----------
+
+async function _lpAddPlanningItem(groupId) {
+    const group = _lpPlanningGroups.find(g => g.id === groupId);
+    if (!group) return;
+
+    const title = prompt('Item title:');
+    if (!title || !title.trim()) return;
+
+    const items = [...(group.items || [])];
+    const maxOrder = items.reduce((max, it) => Math.max(max, it.sortOrder || 0), -1);
+    const newItem = {
+        id: _lpItemId(),
+        title: title.trim(),
+        time: '',
+        status: 'idea',
+        cost: null,
+        costNote: '',
+        notes: '',
+        links: [],
+        confirmation: '',
+        contact: '',
+        duration: '',
+        bookingRef: null,
+        sortOrder: maxOrder + 1,
+        showOnCalendar: false
+    };
+    items.push(newItem);
+
+    try {
+        await lpSub(_lpCurrentProjectId, 'planningGroups').doc(groupId).update({ items });
+        group.items = items;
+        const body = document.getElementById('lpBody_planning');
+        if (body) _lpRenderPlanningBoard(body);
+    } catch (err) {
+        console.error('Error adding planning item:', err);
+    }
+}
+
+async function _lpEditPlanningItem(groupId, itemId) {
+    const group = _lpPlanningGroups.find(g => g.id === groupId);
+    if (!group) return;
+    const items = [...(group.items || [])];
+    const idx = items.findIndex(it => it.id === itemId);
+    if (idx < 0) return;
+    const item = { ...items[idx] };
+
+    const title = prompt('Title:', item.title || '');
+    if (!title || !title.trim()) return;
+    item.title = title.trim();
+
+    const statusInput = prompt('Status (confirmed / maybe / idea / nope):', item.status || 'idea');
+    if (statusInput && LP_ITEM_STATUSES[statusInput.trim().toLowerCase()]) {
+        item.status = statusInput.trim().toLowerCase();
+    }
+
+    item.duration = (prompt('Duration (e.g., "2 hours"):', item.duration || '') || '').trim();
+
+    const costStr = prompt('Cost (number, or blank for none):', item.cost != null ? String(item.cost) : '');
+    item.cost = costStr && !isNaN(Number(costStr)) ? Number(costStr) : null;
+    if (item.cost != null) {
+        item.costNote = (prompt('Cost note (e.g., "each", "for 2"):', item.costNote || '') || '').trim();
+    }
+
+    item.contact = (prompt('Contact (phone/email):', item.contact || '') || '').trim();
+    item.notes = (prompt('Notes:', item.notes || '') || '').trim();
+
+    const currentLinks = (item.links || []).map(l => l.label ? `${l.label}: ${l.url}` : l.url).join(', ');
+    const linksInput = prompt(`Links (comma-separated URLs, current: ${currentLinks || 'none'}):`, currentLinks);
+    if (linksInput !== null) {
+        item.links = linksInput.split(',').map(s => s.trim()).filter(Boolean).map(s => {
+            const colonIdx = s.indexOf(': ');
+            if (colonIdx > 0) return { label: s.slice(0, colonIdx).trim(), url: s.slice(colonIdx + 2).trim() };
+            return { label: '', url: s };
+        });
+    }
+
+    items[idx] = item;
+
+    try {
+        await lpSub(_lpCurrentProjectId, 'planningGroups').doc(groupId).update({ items });
+        group.items = items;
+        const body = document.getElementById('lpBody_planning');
+        if (body) _lpRenderPlanningBoard(body);
+    } catch (err) {
+        console.error('Error editing planning item:', err);
+    }
+}
+
+async function _lpDeletePlanningItem(groupId, itemId) {
+    if (!confirm('Delete this item?')) return;
+    const group = _lpPlanningGroups.find(g => g.id === groupId);
+    if (!group) return;
+
+    const items = (group.items || []).filter(it => it.id !== itemId);
+
+    try {
+        await lpSub(_lpCurrentProjectId, 'planningGroups').doc(groupId).update({ items });
+        group.items = items;
+        const body = document.getElementById('lpBody_planning');
+        if (body) _lpRenderPlanningBoard(body);
+    } catch (err) {
+        console.error('Error deleting planning item:', err);
+    }
+}
+
+async function _lpReorderPlanningItems(groupId) {
+    const group = _lpPlanningGroups.find(g => g.id === groupId);
+    if (!group) return;
+
+    const container = document.getElementById(`lpPgItems_${groupId}`);
+    if (!container) return;
+    const els = container.querySelectorAll('.lp-planning-item');
+    const idOrder = Array.from(els).map(el => el.dataset.itemId);
+    const reordered = idOrder.map((id, i) => {
+        const item = group.items.find(it => it.id === id);
+        if (item) item.sortOrder = i;
+        return item;
+    }).filter(Boolean);
+
+    group.items = reordered;
+    try {
+        await lpSub(_lpCurrentProjectId, 'planningGroups').doc(groupId).update({ items: reordered });
+    } catch (err) {
+        console.error('Error reordering planning items:', err);
+    }
+}
+
+// ---------- Move between Planning ↔ Itinerary ----------
+
+async function _lpMovePlanningItemToDay(groupId, itemId) {
+    const group = _lpPlanningGroups.find(g => g.id === groupId);
+    if (!group) return;
+    const item = (group.items || []).find(it => it.id === itemId);
+    if (!item) return;
+
+    if (_lpDays.length === 0) {
+        alert('No days in the itinerary yet. Create days first.');
+        return;
+    }
+
+    const dayNames = _lpDays.map((d, i) => `${i + 1}. ${d.label || d.date || 'Day'}`).join('\n');
+    const input = prompt(`Move "${item.title}" to which day?\n${dayNames}`);
+    if (input === null) return;
+    const dayIdx = parseInt(input, 10) - 1;
+    if (dayIdx < 0 || dayIdx >= _lpDays.length) return;
+
+    const targetDay = _lpDays[dayIdx];
+    const newItem = { ...item };
+    newItem.sortOrder = (targetDay.items || []).reduce((max, it) => Math.max(max, it.sortOrder || 0), -1) + 1;
+
+    try {
+        // Remove from planning group
+        const updatedGroupItems = (group.items || []).filter(it => it.id !== itemId);
+        await lpSub(_lpCurrentProjectId, 'planningGroups').doc(groupId).update({ items: updatedGroupItems });
+        group.items = updatedGroupItems;
+
+        // Add to day
+        const dayItems = [...(targetDay.items || []), newItem];
+        await lpSub(_lpCurrentProjectId, 'days').doc(targetDay.id).update({ items: dayItems });
+        targetDay.items = dayItems;
+
+        // Re-render both sections
+        const pgBody = document.getElementById('lpBody_planning');
+        if (pgBody) _lpRenderPlanningBoard(pgBody);
+        const itBody = document.getElementById('lpBody_itinerary');
+        if (itBody) _lpRenderItinerary(itBody);
+        _lpLoadTripInfo();
+    } catch (err) {
+        console.error('Error moving item to day:', err);
     }
 }
 
@@ -1384,10 +1750,45 @@ async function _lpEditItem(dayId, itemId) {
     const calToggle = prompt('Show on calendar? (yes/no):', item.showOnCalendar ? 'yes' : 'no');
     if (calToggle !== null) item.showOnCalendar = calToggle.trim().toLowerCase() === 'yes';
 
-    // Move to different day
+    // Move to different day or to planning board
     const dayNames = _lpDays.map((d, i) => `${i + 1}. ${d.label || d.date || 'Day'}`).join(', ');
     const currentDayIdx = _lpDays.findIndex(d => d.id === dayId);
-    const moveInput = prompt(`Move to day? (current: ${currentDayIdx + 1}). Enter number or leave same:\n${dayNames}`, String(currentDayIdx + 1));
+    const pgNames = _lpPlanningGroups.length > 0
+        ? '\nOr enter P to move to Planning Board.'
+        : '';
+    const moveInput = prompt(`Move to day? (current: ${currentDayIdx + 1}). Enter number or leave same:${pgNames}\n${dayNames}`, String(currentDayIdx + 1));
+
+    // Check if user wants to move to planning board
+    if (moveInput !== null && moveInput.trim().toLowerCase() === 'p' && _lpPlanningGroups.length > 0) {
+        items[idx] = item;
+        // Ask which planning group
+        const groupNames = _lpPlanningGroups.map((g, i) => `${i + 1}. ${g.name}`).join(', ');
+        const groupInput = prompt(`Which planning group?\n${groupNames}`);
+        const groupIdx = groupInput !== null ? parseInt(groupInput, 10) - 1 : -1;
+        if (groupIdx >= 0 && groupIdx < _lpPlanningGroups.length) {
+            try {
+                // Remove from current day
+                const srcItems = items.filter(it => it.id !== itemId);
+                await lpSub(_lpCurrentProjectId, 'days').doc(dayId).update({ items: srcItems });
+                day.items = srcItems;
+                // Add to planning group
+                const group = _lpPlanningGroups[groupIdx];
+                const groupItems = [...(group.items || [])];
+                item.sortOrder = groupItems.reduce((max, it) => Math.max(max, it.sortOrder || 0), -1) + 1;
+                groupItems.push(item);
+                await lpSub(_lpCurrentProjectId, 'planningGroups').doc(group.id).update({ items: groupItems });
+                group.items = groupItems;
+                const body = document.getElementById('lpBody_itinerary');
+                if (body) _lpRenderItinerary(body);
+                const pgBody = document.getElementById('lpBody_planning');
+                if (pgBody) _lpRenderPlanningBoard(pgBody);
+                _lpLoadTripInfo();
+            } catch (err) {
+                console.error('Error moving item to planning:', err);
+            }
+        }
+        return;
+    }
 
     const targetDayIdx = moveInput !== null ? parseInt(moveInput, 10) - 1 : currentDayIdx;
     const targetDay = (targetDayIdx >= 0 && targetDayIdx < _lpDays.length) ? _lpDays[targetDayIdx] : null;
@@ -2172,6 +2573,13 @@ function _lpFilterBySearch(query) {
         const visible = group.querySelectorAll('.lp-packing-item:not([style*="display: none"])');
         group.style.display = visible.length ? '' : 'none';
     });
+    // Planning groups — hide group if all items hidden
+    document.querySelectorAll('.lp-planning-group').forEach(group => {
+        if (!q) { group.style.display = ''; return; }
+        // Check group name and all items
+        const groupMatch = group.textContent.toLowerCase().includes(q);
+        group.style.display = groupMatch ? '' : 'none';
+    });
     // Note cards
     document.querySelectorAll('.lp-note-card').forEach(card => {
         if (!q) { card.style.display = ''; return; }
@@ -2459,7 +2867,38 @@ async function _lpExecuteImport() {
             await batch.commit();
         }
 
-        // 6. Create project notes
+        // 6. Create planning groups
+        if (d.planningGroups && d.planningGroups.length > 0) {
+            prog.innerHTML = `<p>Creating ${d.planningGroups.length} planning groups…</p>`;
+            const batch = firebase.firestore().batch();
+            d.planningGroups.forEach(g => {
+                const ref = lpSub(projectId, 'planningGroups').doc();
+                const items = (g.items || []).map(item => ({
+                    id: _lpItemId(),
+                    title: item.title || '',
+                    time: item.time || '',
+                    status: item.status || 'idea',
+                    cost: item.cost != null ? item.cost : null,
+                    costNote: item.costNote || '',
+                    notes: item.notes || '',
+                    links: item.links || [],
+                    confirmation: item.confirmation || '',
+                    contact: item.contact || '',
+                    duration: item.duration || '',
+                    bookingRef: null,
+                    sortOrder: item.sortOrder || 0,
+                    showOnCalendar: false
+                }));
+                batch.set(ref, {
+                    name: g.name || '',
+                    sortOrder: g.sortOrder || 0,
+                    items: items
+                });
+            });
+            await batch.commit();
+        }
+
+        // 7. Create project notes
         if (d.projectNotes && d.projectNotes.length > 0) {
             prog.innerHTML = `<p>Creating ${d.projectNotes.length} notes…</p>`;
             const batch = firebase.firestore().batch();

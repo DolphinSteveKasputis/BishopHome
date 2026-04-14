@@ -4,7 +4,7 @@
     "description": "Wyoming & Montana trip — Yellowstone National Park, Grand Tetons, Jackson Hole. Sept 20–28, 2024 with Danielle.",
     "template": "vacation",
     "status": "done",
-    "mode": "travel",
+    "mode": "planning",
     "archived": false,
     "startDate": "2024-09-20",
     "endDate": "2024-09-28",
@@ -385,6 +385,43 @@
 
   "packingItems": [
     { "text": "Cooler", "done": false, "notes": "", "category": "Gear / Other", "sortOrder": 0 }
+  ],
+
+  "planningGroups": [
+    {
+      "name": "Yellowstone — Canyon Area",
+      "sortOrder": 0,
+      "items": [
+        { "title": "Ribbon Lake hike", "status": "idea", "notes": "Possible if we finish everything else around Canyon Village", "sortOrder": 0 },
+        { "title": "Grizzly and Wolf Discovery Center — West Yellowstone", "status": "idea", "notes": "90 min each way from Canyon area. Probably too far.", "sortOrder": 1 }
+      ]
+    },
+    {
+      "name": "Yellowstone — Old Faithful Area",
+      "sortOrder": 1,
+      "items": [
+        { "title": "Lone Star Geyser hike", "status": "idea", "notes": "5 mile round trip. Pretty walk along the river. Check eruption timetable.", "sortOrder": 0 },
+        { "title": "Observation Peak trail + Solitary Geyser trail", "status": "idea", "notes": "Can see Old Faithful erupting from the trail. Lion Geyser nearby.", "sortOrder": 1 },
+        { "title": "Fairy Falls + Imperial Geyser extended hike", "status": "idea", "notes": "4.8 miles RT total. Extra section above Imperial Geyser is worth the climb per other trip reports.", "duration": "3 hours", "sortOrder": 2 }
+      ]
+    },
+    {
+      "name": "Grand Tetons / Jackson",
+      "sortOrder": 2,
+      "items": [
+        { "title": "Grand Teton Brewing — Victor, Idaho", "status": "maybe", "notes": "Opens at noon, closes 8pm. 40 min from Jackson one way. ~2 hours round trip.", "sortOrder": 0 },
+        { "title": "Snake River Brewing — Jackson", "status": "maybe", "notes": "Dinner till 10pm. In town.", "sortOrder": 1 },
+        { "title": "Teton Village", "status": "idea", "notes": "Skip if running behind on the Tetons scenic drive", "sortOrder": 2 }
+      ]
+    },
+    {
+      "name": "Possible Activities (Any Day)",
+      "sortOrder": 3,
+      "items": [
+        { "title": "Canoe — lake, river, or canyon", "status": "idea", "notes": "Need to research options and availability", "sortOrder": 0 },
+        { "title": "Covered Wagon experience", "status": "idea", "notes": "~$600", "cost": 600, "costNote": "", "links": [{ "label": "Rates", "url": "https://grgjh.com/rates/" }], "sortOrder": 1 }
+      ]
+    }
   ],
 
   "projectNotes": [

@@ -708,6 +708,7 @@ function _lpRenderDetailPage(page) {
                             <label class="form-label">Mode</label>
                             <select id="lpDistMode" class="form-control">
                                 <option value="drive">🚗 Drive</option>
+                                <option value="fly">✈️ Fly</option>
                                 <option value="walk">🚶 Walk</option>
                                 <option value="bike">🚲 Bike</option>
                             </select>
@@ -1574,7 +1575,7 @@ async function _lpDistAskAI() {
             alert('Unknown LLM provider.'); return;
         }
 
-        const modeLabel = mode === 'walk' ? 'walking' : mode === 'bike' ? 'biking' : 'driving';
+        const modeLabel = mode === 'walk' ? 'walking' : mode === 'bike' ? 'biking' : mode === 'fly' ? 'flying' : 'driving';
         const leaveStr  = leaveTime ? `\nDeparture time: ${leaveTime}` : '';
         const prompt =
             `Give me the exact ${modeLabel} distance and typical travel time between these two locations:\n\n` +
@@ -2368,7 +2369,7 @@ function _lpTravelRow(fromItem, toItem) {
     let distHtml = '';
     let actionBtns = '';
     if (dist) {
-        const modeIcon = dist.mode === 'walk' ? '🚶' : dist.mode === 'bike' ? '🚴' : '🚗';
+        const modeIcon = dist.mode === 'walk' ? '🚶' : dist.mode === 'bike' ? '🚴' : dist.mode === 'fly' ? '✈️' : '🚗';
         const parts = [modeIcon];
         if (dist.time) parts.push(dist.time);
         if (dist.miles) parts.push(`${dist.miles} mi`);

@@ -48,6 +48,16 @@ function lpSub(projectId, subName) {
     return lpCol().doc(projectId).collection(subName);
 }
 
+/** User-scoped locations collection (cross-project reuse within the account) */
+function lpLocationsCol() {
+    return userCol('locations');
+}
+
+/** User-scoped distances collection */
+function lpDistancesCol() {
+    return userCol('distances');
+}
+
 // ============================================================
 // Project List Page (#life-projects)
 // ============================================================
@@ -405,7 +415,7 @@ async function confirmDeleteLifeProject() {
 
     try {
         // Delete all subcollections
-        const subs = ['days', 'bookings', 'bookingPhotos', 'todoItems', 'packingItems', 'projectNotes', 'planningGroups'];
+        const subs = ['days', 'bookings', 'bookingPhotos', 'todoItems', 'packingItems', 'projectNotes', 'planningGroups', 'projectLocations'];
         for (const sub of subs) {
             const snap = await lpSub(projectId, sub).get();
             if (!snap.empty) {
@@ -430,6 +440,9 @@ async function confirmDeleteLifeProject() {
 /** Current project state — shared across accordion sections */
 let _lpCurrentProject = null;
 let _lpCurrentProjectId = null;
+
+/** Locations linked to this project [{id, locationId, name, address, phone, website, contact, notes}] */
+let _lpLocations = [];
 
 async function loadLifeProjectDetailPage(projectId) {
     _lpCurrentProjectId = projectId;
@@ -566,10 +579,62 @@ function _lpRenderDetailPage(page) {
                 </div>
             </div>
 
+            <!-- Location add/edit modal -->
+            <div class="modal-overlay" id="lpLocationModal">
+                <div class="modal" style="max-width:500px;">
+                    <h3 id="lpLocationModalTitle">Add Location</h3>
+                    <div style="display:flex; flex-direction:column; gap:10px;">
+                        <!-- Search existing locations -->
+                        <div id="lpLocSearchWrap">
+                            <label class="form-label">Search existing locations</label>
+                            <input type="text" id="lpLocSearch" class="form-control" placeholder="Type to search…" oninput="_lpLocSearchInput(this.value)">
+                            <div id="lpLocSearchResults" style="border:1px solid #e2e8f0; border-radius:6px; max-height:160px; overflow-y:auto; display:none; margin-top:4px;"></div>
+                        </div>
+                        <div style="text-align:center; color:#999; font-size:0.85em;">— or create a new location —</div>
+                        <!-- New location fields -->
+                        <div>
+                            <label class="form-label">Name *</label>
+                            <input type="text" id="lpLocName" class="form-control" placeholder="e.g. Mammoth Hot Springs">
+                        </div>
+                        <div>
+                            <label class="form-label">Address</label>
+                            <input type="text" id="lpLocAddress" class="form-control" placeholder="Street, City, State ZIP">
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <div style="flex:1;">
+                                <label class="form-label">Phone</label>
+                                <input type="text" id="lpLocPhone" class="form-control">
+                            </div>
+                            <div style="flex:1;">
+                                <label class="form-label">Website</label>
+                                <input type="text" id="lpLocWebsite" class="form-control" placeholder="https://…">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="form-label">Contact</label>
+                            <input type="text" id="lpLocContact" class="form-control" placeholder="Name or email">
+                        </div>
+                        <div>
+                            <label class="form-label">Notes</label>
+                            <textarea id="lpLocNotes" class="form-control" rows="2" style="width:100%; box-sizing:border-box;"></textarea>
+                        </div>
+                        <div id="lpLocAddToPlanningWrap" style="display:flex; align-items:center; gap:8px;">
+                            <input type="checkbox" id="lpLocAddToPlanning">
+                            <label for="lpLocAddToPlanning" style="font-size:0.9em; margin:0;">Add to Planning Board as a new item</label>
+                        </div>
+                    </div>
+                    <div class="modal-actions" style="justify-content:flex-end;">
+                        <button class="btn" onclick="closeModal('lpLocationModal')">Cancel</button>
+                        <button class="btn btn-primary" id="lpLocationSaveBtn" onclick="_lpSaveLocation()">Save</button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Accordion sections -->
             <div id="lpAccordion">
                 ${_lpAccordionSection('tripInfo', '📍 Trip Info', '', true)}
                 ${_lpAccordionSection('people', '👥 People', _lpPeopleSummary(p), false)}
+                ${travel ? '' : _lpAccordionSection('locations', '📌 Locations', '', false)}
                 ${travel ? '' : _lpAccordionSection('todos', '☑️ To-Do', '', false)}
                 ${travel ? '' : _lpAccordionSection('planning', '🗺️ Planning Board', '', false)}
                 ${_lpAccordionSection('itinerary', '📅 Itinerary', '', travel)}
@@ -588,14 +653,15 @@ function _lpRenderDetailPage(page) {
     });
 }
 
-/** Pre-load bookings and days data for cost rollup and booking badges */
+/** Pre-load all subcollection data needed across sections */
 async function _lpLoadInitialData() {
     if (!_lpCurrentProjectId) return;
     try {
-        const [daySnap, bookingSnap, pgSnap] = await Promise.all([
+        const [daySnap, bookingSnap, pgSnap, plSnap] = await Promise.all([
             lpSub(_lpCurrentProjectId, 'days').orderBy('sortOrder').get(),
             lpSub(_lpCurrentProjectId, 'bookings').orderBy('sortOrder').get(),
-            lpSub(_lpCurrentProjectId, 'planningGroups').orderBy('sortOrder').get()
+            lpSub(_lpCurrentProjectId, 'planningGroups').orderBy('sortOrder').get(),
+            lpSub(_lpCurrentProjectId, 'projectLocations').get()
         ]);
         _lpDays = [];
         daySnap.forEach(doc => _lpDays.push({ id: doc.id, ...doc.data() }));
@@ -603,6 +669,10 @@ async function _lpLoadInitialData() {
         bookingSnap.forEach(doc => _lpBookings.push({ id: doc.id, ...doc.data() }));
         _lpPlanningGroups = [];
         pgSnap.forEach(doc => _lpPlanningGroups.push({ id: doc.id, ...doc.data() }));
+
+        // Load project locations — each projectLocations doc has locationId + cached location fields
+        _lpLocations = [];
+        plSnap.forEach(doc => _lpLocations.push({ id: doc.id, ...doc.data() }));
     } catch (err) {
         console.error('Error pre-loading data:', err);
     }
@@ -649,9 +719,10 @@ function _lpToggleAccordion(id) {
 /** Load content for an accordion section (lazy) */
 function _lpLoadAccordionContent(id) {
     switch (id) {
-        case 'tripInfo': _lpLoadTripInfo(); break;
-        case 'people':   _lpLoadPeople(); break;
-        case 'todos':    _lpLoadTodos(); break;
+        case 'tripInfo':   _lpLoadTripInfo(); break;
+        case 'people':     _lpLoadPeople(); break;
+        case 'locations':  _lpLoadLocations(); break;
+        case 'todos':      _lpLoadTodos(); break;
         case 'planning': _lpLoadPlanningBoard(); break;
         case 'itinerary': _lpLoadItinerary(); break;
         case 'bookings': _lpLoadBookings(); break;
@@ -879,6 +950,250 @@ async function _lpRemovePerson(index) {
         _lpUpdateAccordionSummary('people', _lpPeopleSummary(_lpCurrentProject));
     } catch (err) {
         console.error('Error removing person:', err);
+    }
+}
+
+// ============================================================
+// Locations Section
+// ============================================================
+
+/** Load and render the Locations accordion body */
+async function _lpLoadLocations() {
+    const body = document.getElementById('lpBody_locations');
+    if (!body) return;
+    body.innerHTML = '<p style="color:#999; padding:8px;">Loading…</p>';
+
+    try {
+        // Reload from Firestore to get fresh data
+        const snap = await lpSub(_lpCurrentProjectId, 'projectLocations').orderBy('name').get();
+        _lpLocations = [];
+        snap.forEach(doc => _lpLocations.push({ id: doc.id, ...doc.data() }));
+        _lpRenderLocations(body);
+        _lpUpdateAccordionSummary('locations', _lpLocations.length > 0 ? `(${_lpLocations.length})` : '');
+    } catch (err) {
+        console.error('Error loading locations:', err);
+        body.innerHTML = '<p style="color:red;">Error loading locations.</p>';
+    }
+}
+
+function _lpRenderLocations(body) {
+    if (_lpLocations.length === 0) {
+        body.innerHTML = `
+            <div style="text-align:center; padding:16px; color:#999;">
+                No locations added yet.
+            </div>
+            <div style="margin-top:8px;">
+                <button class="btn btn-primary btn-small" onclick="_lpOpenLocationModal()">+ Add Location</button>
+            </div>`;
+        return;
+    }
+
+    const rows = _lpLocations.map(loc => `
+        <div style="display:flex; align-items:flex-start; gap:8px; padding:8px 0; border-bottom:1px solid #f0f0f0;">
+            <div style="flex:1; min-width:0;">
+                <div style="font-weight:600;">${_lpEsc(loc.name)}</div>
+                ${loc.address ? `<div style="font-size:0.85em; color:#666;">${_lpEsc(loc.address)}</div>` : ''}
+                ${loc.phone   ? `<div style="font-size:0.85em; color:#666;">${_lpEsc(loc.phone)}</div>` : ''}
+                ${loc.website ? `<div style="font-size:0.85em;"><a href="${_lpEsc(loc.website)}" onclick="event.stopPropagation();window.open(this.href,'_blank');return false;" style="color:#2563eb;">${_lpEsc(loc.website)}</a></div>` : ''}
+            </div>
+            <div style="display:flex; gap:4px; flex-shrink:0;">
+                <button class="btn btn-small" onclick="_lpOpenLocationModal('${loc.id}')" title="Edit location">✏️</button>
+                <button class="btn btn-small btn-danger" onclick="_lpUnlinkLocation('${loc.id}')" title="Remove from project">✕</button>
+            </div>
+        </div>
+    `).join('');
+
+    body.innerHTML = `
+        <div>${rows}</div>
+        <div style="margin-top:10px;">
+            <button class="btn btn-primary btn-small" onclick="_lpOpenLocationModal()">+ Add Location</button>
+        </div>`;
+}
+
+/** Open the location modal — editId is the projectLocations doc id, null for new */
+function _lpOpenLocationModal(editId = null) {
+    const loc = editId ? _lpLocations.find(l => l.id === editId) : null;
+    document.getElementById('lpLocationModalTitle').textContent = loc ? 'Edit Location' : 'Add Location';
+    document.getElementById('lpLocName').value    = loc ? (loc.name    || '') : '';
+    document.getElementById('lpLocAddress').value = loc ? (loc.address || '') : '';
+    document.getElementById('lpLocPhone').value   = loc ? (loc.phone   || '') : '';
+    document.getElementById('lpLocWebsite').value = loc ? (loc.website || '') : '';
+    document.getElementById('lpLocContact').value = loc ? (loc.contact || '') : '';
+    document.getElementById('lpLocNotes').value   = loc ? (loc.notes   || '') : '';
+    document.getElementById('lpLocSearch').value  = '';
+    document.getElementById('lpLocSearchResults').style.display = 'none';
+    document.getElementById('lpLocSearchResults').innerHTML = '';
+    document.getElementById('lpLocAddToPlanning').checked = false;
+
+    // Hide "Add to Planning Board" checkbox when editing
+    document.getElementById('lpLocAddToPlanningWrap').style.display = loc ? 'none' : '';
+    // Hide search when editing
+    document.getElementById('lpLocSearchWrap').style.display = loc ? 'none' : '';
+
+    // Store edit id on the save button
+    document.getElementById('lpLocationSaveBtn').dataset.editId = editId || '';
+    openModal('lpLocationModal');
+    setTimeout(() => document.getElementById(loc ? 'lpLocName' : 'lpLocSearch').focus(), 100);
+}
+
+/** Live search filter for existing global locations */
+async function _lpLocSearchInput(query) {
+    const resultsEl = document.getElementById('lpLocSearchResults');
+    if (!query.trim()) { resultsEl.style.display = 'none'; return; }
+
+    // Search global locations collection by name prefix (case-insensitive client-side)
+    try {
+        const snap = await lpLocationsCol().orderBy('name').get();
+        const lower = query.toLowerCase();
+        const matches = [];
+        snap.forEach(doc => {
+            const d = doc.data();
+            if (d.name && d.name.toLowerCase().includes(lower)) matches.push({ id: doc.id, ...d });
+        });
+
+        if (matches.length === 0) {
+            resultsEl.innerHTML = '<div style="padding:8px; color:#999; font-size:0.9em;">No existing locations found — fill in the form below to create one.</div>';
+        } else {
+            resultsEl.innerHTML = matches.map(m => `
+                <div onclick="_lpLinkExistingLocation('${m.id}')"
+                     style="padding:8px 12px; cursor:pointer; border-bottom:1px solid #f0f0f0;"
+                     onmouseover="this.style.background='#f0f9ff'" onmouseout="this.style.background=''">
+                    <div style="font-weight:600; font-size:0.9em;">${_lpEsc(m.name)}</div>
+                    ${m.address ? `<div style="font-size:0.8em; color:#888;">${_lpEsc(m.address)}</div>` : ''}
+                </div>
+            `).join('');
+        }
+        resultsEl.style.display = 'block';
+    } catch (err) {
+        console.error('Location search error:', err);
+    }
+}
+
+/** Link an already-existing global location to this project */
+async function _lpLinkExistingLocation(locationId) {
+    try {
+        // Check not already linked
+        const already = _lpLocations.find(l => l.locationId === locationId);
+        if (already) { alert('This location is already linked to this project.'); return; }
+
+        // Fetch the location doc to cache its fields
+        const locDoc = await lpLocationsCol().doc(locationId).get();
+        if (!locDoc.exists) return;
+        const locData = locDoc.data();
+
+        // Write to projectLocations subcollection (cache key fields for display without extra reads)
+        await lpSub(_lpCurrentProjectId, 'projectLocations').add({
+            locationId,
+            name:    locData.name    || '',
+            address: locData.address || '',
+            phone:   locData.phone   || '',
+            website: locData.website || '',
+            contact: locData.contact || '',
+            notes:   locData.notes   || '',
+            addedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        closeModal('lpLocationModal');
+        await _lpLoadLocations();
+    } catch (err) {
+        console.error('Error linking location:', err);
+        alert('Error linking location. Please try again.');
+    }
+}
+
+/** Save handler for location modal — creates new global location or edits existing */
+async function _lpSaveLocation() {
+    const name = document.getElementById('lpLocName').value.trim();
+    if (!name) { alert('Name is required.'); return; }
+
+    const editId = document.getElementById('lpLocationSaveBtn').dataset.editId;
+    const locData = {
+        name,
+        address: document.getElementById('lpLocAddress').value.trim(),
+        phone:   document.getElementById('lpLocPhone').value.trim(),
+        website: document.getElementById('lpLocWebsite').value.trim(),
+        contact: document.getElementById('lpLocContact').value.trim(),
+        notes:   document.getElementById('lpLocNotes').value.trim()
+    };
+    const addToPlanning = !editId && document.getElementById('lpLocAddToPlanning').checked;
+
+    try {
+        if (editId) {
+            // Editing an existing linked location — update both global doc and cached fields
+            const projLoc = _lpLocations.find(l => l.id === editId);
+            if (projLoc) {
+                await lpLocationsCol().doc(projLoc.locationId).update(locData);
+                await lpSub(_lpCurrentProjectId, 'projectLocations').doc(editId).update(locData);
+            }
+        } else {
+            // Create new global location doc
+            const newLocRef = await lpLocationsCol().add({
+                ...locData,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            // Link to this project (cache fields for fast display)
+            const projLocRef = await lpSub(_lpCurrentProjectId, 'projectLocations').add({
+                locationId: newLocRef.id,
+                ...locData,
+                addedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            // Optionally add a planning item for this location
+            if (addToPlanning) {
+                await _lpAddLocationToPlanningBoard(newLocRef.id, projLocRef.id, name);
+            }
+        }
+
+        closeModal('lpLocationModal');
+        await _lpLoadLocations();
+    } catch (err) {
+        console.error('Error saving location:', err);
+        alert('Error saving location. Please try again.');
+    }
+}
+
+/** Create a planning board item for a newly added location */
+async function _lpAddLocationToPlanningBoard(locationId, projectLocationId, name) {
+    // Find first planning group or create a default one
+    let group = _lpPlanningGroups[0];
+    if (!group) {
+        const ref = await lpSub(_lpCurrentProjectId, 'planningGroups').add({
+            name: 'General',
+            sortOrder: 0,
+            items: []
+        });
+        group = { id: ref.id, name: 'General', sortOrder: 0, items: [] };
+        _lpPlanningGroups.push(group);
+    }
+
+    const items = [...(group.items || [])];
+    const newItem = {
+        id: _lpItemId(),
+        title: name,
+        time: '', status: 'idea', cost: null, costNote: '',
+        notes: '', facts: [], confirmation: '', contact: '',
+        duration: '', bookingRef: null,
+        locationId: projectLocationId,
+        sortOrder: items.reduce((max, it) => Math.max(max, it.sortOrder || 0), -1) + 1,
+        showOnCalendar: false
+    };
+    items.push(newItem);
+    await lpSub(_lpCurrentProjectId, 'planningGroups').doc(group.id).update({ items });
+    group.items = items;
+}
+
+/** Remove a location link from this project (does NOT delete the global location) */
+async function _lpUnlinkLocation(projLocId) {
+    const loc = _lpLocations.find(l => l.id === projLocId);
+    if (!loc) return;
+    if (!confirm(`Remove "${loc.name}" from this project?`)) return;
+    try {
+        await lpSub(_lpCurrentProjectId, 'projectLocations').doc(projLocId).delete();
+        await _lpLoadLocations();
+    } catch (err) {
+        console.error('Error unlinking location:', err);
+        alert('Error removing location.');
     }
 }
 

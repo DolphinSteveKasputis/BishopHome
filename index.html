@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=401">
+    <link rel="stylesheet" href="css/styles.css?v=402">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -7190,6 +7190,15 @@
                         <div id="journalCheckinPlaceSub" class="checkin-locked-sub"></div>
                     </div>
                 </div>
+                <!-- Links section -->
+                <div class="form-group" id="journalLinksGroup">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                        <label style="margin:0;">Links</label>
+                        <button class="btn btn-secondary btn-small" type="button" onclick="_journalAddLinkRow()">+ Add Link</button>
+                    </div>
+                    <div id="journalLinksContainer" style="display:flex; flex-direction:column; gap:6px;"></div>
+                </div>
+
                 <!-- Places section — search + nearby GPS + selected place pills -->
                 <div class="form-group" id="journalPlacesGroup">
                     <label>Places</label>
@@ -7937,7 +7946,7 @@
     <script src="js/garage.js?v=356"></script>
     <script src="js/structures.js?v=350"></script>
     <script src="js/moveThings.js?v=350"></script>
-    <script src="js/journal.js?v=355"></script>
+    <script src="js/journal.js?v=356"></script>
     <script src="js/contacts.js?v=375"></script>
     <script src="js/collections.js?v=356"></script>
     <script src="js/health.js?v=376"></script>

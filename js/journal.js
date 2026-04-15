@@ -575,6 +575,19 @@ function _renderEntryCard(id, data) {
           '</div>'
         : '';
 
+    // Links — rendered as clickable links at the bottom of the card
+    var linksHtml = '';
+    if (data.links && data.links.length) {
+        var linkItems = data.links.filter(function(l) { return l.url; }).map(function(l) {
+            return '<a href="' + journalEscape(l.url) + '" ' +
+                       'onclick="event.stopPropagation();window.open(this.href,\'_blank\');return false;" ' +
+                       'style="color:#2563eb; font-size:0.85em;">🔗 ' + journalEscape(l.label || l.url) + '</a>';
+        });
+        if (linkItems.length) {
+            linksHtml = '<div class="journal-entry-links">' + linkItems.join('') + '</div>';
+        }
+    }
+
     return '<div class="journal-item journal-item--entry' + (isCheckin ? ' journal-item--checkin' : '') + '">' +
                checkinBadge +
                '<div class="journal-item-row">' +
@@ -588,6 +601,7 @@ function _renderEntryCard(id, data) {
                    '</div>' +
                '</div>' +
                placeHtml +
+               linksHtml +
                goToEvent +
            '</div>';
 }
@@ -706,6 +720,10 @@ function openAddJournalEntry() {
     if (textEl)   textEl.value = '';
     if (deleteBtn) deleteBtn.classList.add('hidden');
 
+    // Clear links
+    var linksContainer = document.getElementById('journalLinksContainer');
+    if (linksContainer) linksContainer.innerHTML = '';
+
     // Reset save button in case it was left in "Saving..." state from a previous save
     var saveBtn = document.getElementById('journalEntrySaveBtn');
     if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save'; }
@@ -768,6 +786,13 @@ async function openEditJournalEntry(id) {
         if (textEl)   textEl.value = data.entryText || '';
         if (deleteBtn) deleteBtn.classList.remove('hidden');
 
+        // Populate links
+        var linksContainer = document.getElementById('journalLinksContainer');
+        if (linksContainer) {
+            linksContainer.innerHTML = '';
+            (data.links || []).forEach(function(l) { _journalAddLinkRow(l.label, l.url); });
+        }
+
         // Reset save button in case it was left in "Saving..." state
         var saveBtn = document.getElementById('journalEntrySaveBtn');
         if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save'; }
@@ -797,6 +822,29 @@ async function openEditJournalEntry(id) {
  * Wire the Save, Cancel, Delete, and Voice buttons on the entry form.
  * Called every time the entry page opens.
  */
+/**
+ * Add a link row (label + URL) to the links section of the journal entry form.
+ */
+function _journalAddLinkRow(label, url) {
+    var container = document.getElementById('journalLinksContainer');
+    if (!container) return;
+    label = label || '';
+    url   = url   || '';
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex; gap:6px; align-items:center;';
+    row.innerHTML =
+        '<input type="text" class="journal-link-label" placeholder="Label (optional)" ' +
+               'value="' + (label.replace(/"/g, '&quot;')) + '" ' +
+               'style="flex:0 0 36%; min-width:0; padding:6px 8px; border:1px solid #ccc; border-radius:6px; font-size:0.9em;">' +
+        '<input type="url" class="journal-link-url" placeholder="https://..." ' +
+               'value="' + (url.replace(/"/g, '&quot;')) + '" ' +
+               'style="flex:1; min-width:0; padding:6px 8px; border:1px solid #ccc; border-radius:6px; font-size:0.9em;">' +
+        '<button class="btn btn-secondary btn-small" type="button" ' +
+                'onclick="this.parentElement.remove()" ' +
+                'style="flex-shrink:0; padding:4px 8px;">✕</button>';
+    container.appendChild(row);
+}
+
 function _journalWireEntryPage() {
     var saveBtn   = document.getElementById('journalEntrySaveBtn');
     var cancelBtn = document.getElementById('journalEntryCancelBtn');
@@ -851,6 +899,14 @@ async function saveJournalEntry() {
     var placeIds      = [..._journalPlaceIds];
     var isCheckinEntry = _journalCheckinMode;  // capture before any async work
 
+    // Collect links from the links section
+    var links = [];
+    document.querySelectorAll('#journalLinksContainer > div').forEach(function(row) {
+        var label = (row.querySelector('.journal-link-label') ? row.querySelector('.journal-link-label').value : '').trim();
+        var url   = (row.querySelector('.journal-link-url')   ? row.querySelector('.journal-link-url').value   : '').trim();
+        if (url) links.push({ label: label, url: url });
+    });
+
     try {
         // Resolve the check-in venue to a Firestore place ID (dedup + enrichment inside)
         if (_journalCheckinMode && _journalCheckinVenue && _journalCheckinVenue.name) {
@@ -869,6 +925,7 @@ async function saveJournalEntry() {
                 entryText:          text,
                 mentionedPersonIds: mentionedIds,
                 placeIds:           placeIds,
+                links:              links,
                 updatedAt:          firebase.firestore.FieldValue.serverTimestamp()
             });
             // Re-sync interactions (deletes old records, creates fresh ones)
@@ -881,6 +938,7 @@ async function saveJournalEntry() {
                 entryText:          text,
                 mentionedPersonIds: mentionedIds,
                 placeIds:           placeIds,
+                links:              links,
                 isCheckin:          isCheckinEntry,
                 createdAt:          firebase.firestore.FieldValue.serverTimestamp()
             });

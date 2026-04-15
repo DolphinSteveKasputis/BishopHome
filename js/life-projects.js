@@ -1413,14 +1413,36 @@ function _lpOpenAddDistance(type, parentId, itemId) {
 
     // Pass the item's leave time so Ask AI can include departure context
     const leaveTime = item.leaveTime || item.time || '';
-    _lpOpenDistanceModal(null, projLoc.locationId, leaveTime);
+
+    // Default "To" = the next timeline item in this day that has a location set
+    let defaultToGlobalId = null;
+    if (type === 'itinerary') {
+        const day = _lpDays.find(d => d.id === parentId);
+        const dayItems = day ? (day.items || []) : [];
+        const idx = dayItems.findIndex(i => i.id === itemId);
+        if (idx >= 0) {
+            // Look forward for the next onTimeline item with a locationId
+            for (let i = idx + 1; i < dayItems.length; i++) {
+                const next = dayItems[i];
+                if (next.onTimeline && next.locationId) {
+                    const nextProjLoc = _lpLocations.find(l => l.id === next.locationId);
+                    if (nextProjLoc && nextProjLoc.locationId !== projLoc.locationId) {
+                        defaultToGlobalId = nextProjLoc.locationId;
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    _lpOpenDistanceModal(null, projLoc.locationId, leaveTime, defaultToGlobalId);
 }
 
 function _lpEditDistance(distanceId) {
     _lpOpenDistanceModal(distanceId, null);
 }
 
-function _lpOpenDistanceModal(distanceId, fromGlobalId, leaveTime = '') {
+function _lpOpenDistanceModal(distanceId, fromGlobalId, leaveTime = '', defaultToId = null) {
     const existing = distanceId ? _lpDistances.find(d => d.id === distanceId) : null;
 
     // Resolve the from global location id
@@ -1445,7 +1467,7 @@ function _lpOpenDistanceModal(distanceId, fromGlobalId, leaveTime = '') {
             const opt = document.createElement('option');
             opt.value = l.locationId;
             opt.textContent = l.name;
-            if (existing && existing.toLocationId === l.locationId) opt.selected = true;
+            if (existing ? existing.toLocationId === l.locationId : l.locationId === defaultToId) opt.selected = true;
             toSel.appendChild(opt);
         });
 

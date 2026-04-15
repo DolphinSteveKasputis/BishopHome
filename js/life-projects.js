@@ -531,6 +531,16 @@ function _lpRenderDetailPage(page) {
                                 <input type="text" id="lpItDuration" class="form-control" placeholder="e.g. 2 hours">
                             </div>
                             <div style="flex:1;">
+                                <label class="form-label">Leave By</label>
+                                <input type="text" id="lpItLeaveTime" class="form-control" placeholder="e.g. 11:30am">
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <input type="checkbox" id="lpItOnTimeline">
+                            <label for="lpItOnTimeline" style="font-size:0.9em; margin:0; cursor:pointer;">Part of official timeline</label>
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <div style="flex:1;">
                                 <label class="form-label">Cost ($)</label>
                                 <input type="number" id="lpItCost" class="form-control" placeholder="blank = none" step="0.01" min="0">
                             </div>
@@ -737,11 +747,12 @@ function _lpRenderDetailPage(page) {
 async function _lpLoadInitialData() {
     if (!_lpCurrentProjectId) return;
     try {
-        const [daySnap, bookingSnap, pgSnap, plSnap] = await Promise.all([
+        const [daySnap, bookingSnap, pgSnap, plSnap, distSnap] = await Promise.all([
             lpSub(_lpCurrentProjectId, 'days').orderBy('sortOrder').get(),
             lpSub(_lpCurrentProjectId, 'bookings').orderBy('sortOrder').get(),
             lpSub(_lpCurrentProjectId, 'planningGroups').orderBy('sortOrder').get(),
-            lpSub(_lpCurrentProjectId, 'projectLocations').get()
+            lpSub(_lpCurrentProjectId, 'projectLocations').get(),
+            lpDistancesCol().get()
         ]);
         _lpDays = [];
         daySnap.forEach(doc => _lpDays.push({ id: doc.id, ...doc.data() }));
@@ -753,6 +764,10 @@ async function _lpLoadInitialData() {
         // Load project locations — each projectLocations doc has locationId + cached location fields
         _lpLocations = [];
         plSnap.forEach(doc => _lpLocations.push({ id: doc.id, ...doc.data() }));
+
+        // Pre-load all distances so itinerary travel rows work without opening Distances accordion
+        _lpDistances = [];
+        distSnap.forEach(doc => _lpDistances.push({ id: doc.id, ...doc.data() }));
     } catch (err) {
         console.error('Error pre-loading data:', err);
     }
@@ -2097,7 +2112,7 @@ function _lpDayCard(d) {
             </div>
             <div style="padding:8px 12px;">
                 <div id="lpItems_${d.id}">
-                    ${items.map(item => _lpItemRow(d.id, item)).join('')}
+                    ${_lpBuildDayItemsHtml(d.id, items)}
                 </div>
                 ${items.length === 0 ? '<p style="color:#bbb; font-size:0.85em; margin:4px 0;">No items yet.</p>' : ''}
                 <button class="btn btn-small" style="margin-top:6px;" onclick="_lpAddItem('${d.id}')">+ Add Item</button>
@@ -2119,27 +2134,99 @@ function _lpItemRow(dayId, item) {
         ? `<button class="btn btn-small" onclick="_lpPickLocation('itinerary','${dayId}','${item.id}')" title="Set location" style="padding:2px 6px;">📍</button>`
         : `<button class="btn btn-small" onclick="_lpOpenAddDistance('itinerary','${dayId}','${item.id}')" title="Add distance from here" style="padding:2px 6px;">🛣️</button>`;
 
+    // Timeline left time column — shown only for official timeline items
+    const isTimeline = !!item.onTimeline;
+    let timeColHtml = '';
+    if (isTimeline) {
+        const timeParts = [];
+        if (item.time) timeParts.push(`<div style="white-space:nowrap;">⏰ ${_lpEsc(item.time)}</div>`);
+        if (item.duration) timeParts.push(`<div style="white-space:nowrap;">⏱ ${_lpEsc(item.duration)}</div>`);
+        if (item.leaveTime) timeParts.push(`<div style="white-space:nowrap;">🚀 ${_lpEsc(item.leaveTime)}</div>`);
+        timeColHtml = `<div style="min-width:82px; max-width:82px; font-size:0.72em; color:#555; line-height:1.6; flex-shrink:0; padding-top:2px;">${timeParts.join('') || '<span style="color:#ccc;">—</span>'}</div>`;
+    }
+
+    const borderStyle = isTimeline ? 'border-left:3px solid #0ea5e9; padding-left:6px;' : 'padding-left:9px;';
+
     return `
-        <div class="lp-item-row" data-item-id="${item.id}" style="padding:6px 0; border-bottom:1px solid #f0f0f0;">
-            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-                <span class="lp-item-drag" style="cursor:grab; color:#ccc; font-size:0.8em;">⠿</span>
-                <span style="background:${st.bg};color:${st.color};font-size:0.7em;padding:1px 8px;border-radius:10px;font-weight:600;">${st.label}</span>
-                ${item.time ? `<span style="color:#888; font-size:0.85em;">${_lpEsc(item.time)}</span>` : ''}
-                <span style="flex:1; min-width:0; font-weight:500;">${_lpEsc(item.title)}</span>
-                ${_lpBookingBadge(item.bookingRef)}
-                ${item.showOnCalendar ? '<span title="On calendar" style="font-size:0.75em;">📅</span>' : ''}
-                ${locBadge}
-                <div style="display:flex; gap:2px; flex-shrink:0;">
-                    <button class="btn btn-small" onclick="_lpToggleItemDetails('${dayId}','${item.id}')" title="${hasDetails ? 'Show details' : 'Details'}" style="padding:2px 6px;">${hasDetails ? '📋' : '▿'}</button>
-                    <button class="btn btn-small" onclick="_lpEditItem('${dayId}','${item.id}')" title="Edit item" style="padding:2px 6px;">✏️</button>
-                    ${locBtn}
+        <div class="lp-item-row" data-item-id="${item.id}" style="padding:6px 0; border-bottom:1px solid #f0f0f0; ${borderStyle}">
+            <div style="display:flex; align-items:flex-start; gap:6px;">
+                ${timeColHtml}
+                <div style="flex:1; min-width:0;">
+                    <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                        <span class="lp-item-drag" style="cursor:grab; color:#ccc; font-size:0.8em;">⠿</span>
+                        <span style="background:${st.bg};color:${st.color};font-size:0.7em;padding:1px 8px;border-radius:10px;font-weight:600;">${st.label}</span>
+                        ${!isTimeline && item.time ? `<span style="color:#888; font-size:0.85em;">${_lpEsc(item.time)}</span>` : ''}
+                        <span style="flex:1; min-width:0; font-weight:500;">${_lpEsc(item.title)}</span>
+                        ${_lpBookingBadge(item.bookingRef)}
+                        ${item.showOnCalendar ? '<span title="On calendar" style="font-size:0.75em;">📅</span>' : ''}
+                        ${locBadge}
+                        <div style="display:flex; gap:2px; flex-shrink:0;">
+                            <button class="btn btn-small" onclick="_lpToggleItemDetails('${dayId}','${item.id}')" title="${hasDetails ? 'Show details' : 'Details'}" style="padding:2px 6px;">${hasDetails ? '📋' : '▿'}</button>
+                            <button class="btn btn-small" onclick="_lpEditItem('${dayId}','${item.id}')" title="Edit item" style="padding:2px 6px;">✏️</button>
+                            ${locBtn}
+                        </div>
+                    </div>
+                    <div class="lp-item-details" id="lpItemDetails_${dayId}_${item.id}" style="display:none; margin-top:6px; padding-left:28px; font-size:0.88em; color:#555;">
+                        ${_lpItemDetailsContent(item)}
+                    </div>
                 </div>
-            </div>
-            <div class="lp-item-details" id="lpItemDetails_${dayId}_${item.id}" style="display:none; margin-top:6px; padding-left:28px; font-size:0.88em; color:#555;">
-                ${_lpItemDetailsContent(item)}
             </div>
         </div>
     `;
+}
+
+/** Build travel row between two consecutive timeline items */
+function _lpTravelRow(fromItem, toItem) {
+    const fromLoc = fromItem.locationId ? _lpLocations.find(l => l.id === fromItem.locationId) : null;
+    const toLoc   = toItem.locationId   ? _lpLocations.find(l => l.id === toItem.locationId)   : null;
+
+    // Look up distance using global locationId fields stored on the _lpLocations entries
+    const fromGlobalId = fromLoc ? fromLoc.locationId : null;
+    const toGlobalId   = toLoc   ? toLoc.locationId   : null;
+
+    const dist = (fromGlobalId && toGlobalId)
+        ? _lpDistances.find(d =>
+            (d.fromLocationId === fromGlobalId && d.toLocationId === toGlobalId) ||
+            (d.fromLocationId === toGlobalId   && d.toLocationId === fromGlobalId))
+        : null;
+
+    const departStr = fromItem.leaveTime
+        ? `<span style="font-weight:600;">Depart ${_lpEsc(fromItem.leaveTime)}</span>&ensp;`
+        : '';
+
+    let distHtml = '';
+    if (dist) {
+        const modeIcon = dist.mode === 'walk' ? '🚶' : dist.mode === 'bike' ? '🚴' : '🚗';
+        const parts = [modeIcon];
+        if (dist.time) parts.push(dist.time);
+        if (dist.miles) parts.push(`${dist.miles} mi`);
+        distHtml = parts.join(' ');
+    } else {
+        distHtml = '<span style="color:#f59e0b;">⚠️ travel time needed</span>';
+    }
+
+    const routeStr = (fromLoc && toLoc)
+        ? `<span style="color:#bbb; margin-left:8px;">${_lpEsc(fromLoc.name)} → ${_lpEsc(toLoc.name)}</span>`
+        : '';
+
+    return `
+        <div style="padding:3px 0 3px 9px; border-bottom:1px solid #f0f0f0; border-left:3px solid #d1d5db; background:#f8fafc; font-size:0.76em; color:#6b7280; display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
+            ${departStr}${distHtml}${routeStr}
+        </div>`;
+}
+
+/** Render all items for a day, inserting travel rows between consecutive timeline items */
+function _lpBuildDayItemsHtml(dayId, items) {
+    let html = '';
+    let lastTimelineItem = null;
+    for (const item of items) {
+        if (item.onTimeline && lastTimelineItem) {
+            html += _lpTravelRow(lastTimelineItem, item);
+        }
+        html += _lpItemRow(dayId, item);
+        if (item.onTimeline) lastTimelineItem = item;
+    }
+    return html;
 }
 
 function _lpItemDetailsContent(item) {
@@ -2408,6 +2495,8 @@ function _lpOpenItemModal(title, item, currentDayId) {
     document.getElementById('lpItContact').value = item.contact || '';
     document.getElementById('lpItNotes').value = item.notes || '';
     document.getElementById('lpItCalendar').checked = !!item.showOnCalendar;
+    document.getElementById('lpItLeaveTime').value = item.leaveTime || '';
+    document.getElementById('lpItOnTimeline').checked = !!item.onTimeline;
 
     // Facts — render rows
     const factsContainer = document.getElementById('lpItFactsContainer');
@@ -2520,7 +2609,9 @@ async function _lpSaveItemModal() {
         facts,
         locationId: document.getElementById('lpItLocation').value || null,
         bookingRef: document.getElementById('lpItBooking').value || null,
-        showOnCalendar: document.getElementById('lpItCalendar').checked
+        showOnCalendar: document.getElementById('lpItCalendar').checked,
+        leaveTime: document.getElementById('lpItLeaveTime').value.trim(),
+        onTimeline: document.getElementById('lpItOnTimeline').checked
     };
 
     closeModal('lpItemModal');

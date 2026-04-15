@@ -555,6 +555,12 @@ function _lpRenderDetailPage(page) {
                             </div>
                             <div id="lpItFactsContainer" style="display:flex; flex-direction:column; gap:4px;"></div>
                         </div>
+                        <div>
+                            <label class="form-label">Location</label>
+                            <select id="lpItLocation" class="form-control">
+                                <option value="">— None —</option>
+                            </select>
+                        </div>
                         <div id="lpItBookingWrap">
                             <label class="form-label">Link to Booking</label>
                             <select id="lpItBooking" class="form-control">
@@ -572,9 +578,33 @@ function _lpRenderDetailPage(page) {
                             </select>
                         </div>
                     </div>
+                    <div class="modal-actions" style="justify-content:space-between;">
+                        <button class="btn btn-danger btn-small" onclick="_lpDeleteItemFromModal()" title="Delete this item">🗑️ Delete</button>
+                        <div style="display:flex; gap:8px;">
+                            <button class="btn" onclick="closeModal('lpItemModal')">Cancel</button>
+                            <button class="btn btn-primary" onclick="_lpSaveItemModal()">Save</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Location picker modal (set location on an item) -->
+            <div class="modal-overlay" id="lpLocPickerModal">
+                <div class="modal" style="max-width:420px;">
+                    <h3>Set Location</h3>
+                    <div style="display:flex; flex-direction:column; gap:10px;">
+                        <div>
+                            <label class="form-label">Choose a location linked to this project</label>
+                            <select id="lpLocPickerSelect" class="form-control">
+                                <option value="">— None (clear location) —</option>
+                            </select>
+                        </div>
+                        <div style="text-align:center; color:#999; font-size:0.85em;">— or —</div>
+                        <button class="btn btn-small" type="button" onclick="_lpLocPickerAddNew()" style="align-self:flex-start;">+ Add new location first</button>
+                    </div>
                     <div class="modal-actions" style="justify-content:flex-end;">
-                        <button class="btn" onclick="closeModal('lpItemModal')">Cancel</button>
-                        <button class="btn btn-primary" onclick="_lpSaveItemModal()">Save</button>
+                        <button class="btn" onclick="closeModal('lpLocPickerModal')">Cancel</button>
+                        <button class="btn btn-primary" onclick="_lpLocPickerSave()">Set Location</button>
                     </div>
                 </div>
             </div>
@@ -1454,18 +1484,25 @@ function _lpPlanningGroupCard(g) {
 function _lpPlanningItemRow(groupId, item) {
     const st = LP_ITEM_STATUSES[item.status] || LP_ITEM_STATUSES.idea;
     const hasDetails = item.time || item.cost || item.duration || item.notes || item.confirmation || item.contact || (item.facts && item.facts.length) || (item.links && item.links.length);
+    const loc = item.locationId ? _lpLocations.find(l => l.id === item.locationId) : null;
+    const locBadge = loc
+        ? `<span title="${_lpEsc(loc.name)}${loc.address ? '\n'+loc.address : ''}${loc.phone ? '\n'+loc.phone : ''}" style="font-size:0.75em; color:#2563eb; cursor:default; white-space:nowrap;">📍 ${_lpEsc(loc.name)}</span>`
+        : '';
+    const locBtn = !loc
+        ? `<button class="btn btn-small" onclick="_lpPickLocation('planning','${groupId}','${item.id}')" title="Set location" style="padding:2px 6px;">📍</button>`
+        : `<button class="btn btn-small" onclick="_lpOpenAddDistance('planning','${groupId}','${item.id}')" title="Add distance from here" style="padding:2px 6px;">🛣️</button>`;
 
     return `
         <div class="lp-planning-item" data-item-id="${item.id}" style="padding:6px 0; border-bottom:1px solid #f0f0f0;">
-            <div style="display:flex; align-items:center; gap:8px;">
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
                 <span class="lp-item-drag" style="cursor:grab; color:#ccc; font-size:0.8em;">⠿</span>
                 <span style="background:${st.bg};color:${st.color};font-size:0.7em;padding:1px 8px;border-radius:10px;font-weight:600;">${st.label}</span>
                 <span style="flex:1; min-width:0; font-weight:500;">${_lpEsc(item.title)}</span>
+                ${locBadge}
                 <div style="display:flex; gap:2px; flex-shrink:0;">
-                    <button class="btn btn-small" onclick="_lpTogglePlanningItemDetails('${groupId}','${item.id}')" title="Details" style="padding:2px 6px;">${hasDetails ? '📋' : '▿'}</button>
-                    <button class="btn btn-small" style="padding:2px 6px; font-size:0.75em;" onclick="_lpMovePlanningItemToDay('${groupId}','${item.id}')" title="Move to day">📅→</button>
-                    <button class="btn btn-small" onclick="_lpEditPlanningItem('${groupId}','${item.id}')" title="Edit" style="padding:2px 6px;">✏️</button>
-                    <button class="btn btn-small btn-danger" onclick="_lpDeletePlanningItem('${groupId}','${item.id}')" title="Delete" style="padding:2px 6px;">✕</button>
+                    <button class="btn btn-small" onclick="_lpTogglePlanningItemDetails('${groupId}','${item.id}')" title="${hasDetails ? 'Show details' : 'Details'}" style="padding:2px 6px;">${hasDetails ? '📋' : '▿'}</button>
+                    <button class="btn btn-small" onclick="_lpEditPlanningItem('${groupId}','${item.id}')" title="Edit item" style="padding:2px 6px;">✏️</button>
+                    ${locBtn}
                 </div>
             </div>
             <div class="lp-planning-item-details" id="lpPgItemDetails_${groupId}_${item.id}" style="display:none; margin-top:6px; padding-left:28px; font-size:0.88em; color:#555;">
@@ -1568,6 +1605,7 @@ async function _lpAddPlanningItem(groupId) {
         costNote: '',
         notes: '',
         facts: [],
+        locationId: null,
         confirmation: '',
         contact: '',
         duration: '',
@@ -1600,8 +1638,8 @@ function _lpEditPlanningItem(groupId, itemId) {
     _lpOpenItemModal('Edit Planning Item', item, null);
 }
 
-async function _lpDeletePlanningItem(groupId, itemId) {
-    if (!confirm('Delete this item?')) return;
+async function _lpDeletePlanningItem(groupId, itemId, confirmed = false) {
+    if (!confirmed && !confirm('Delete this item?')) return;
     const group = _lpPlanningGroups.find(g => g.id === groupId);
     if (!group) return;
 
@@ -1826,20 +1864,28 @@ function _lpDayCard(d) {
 function _lpItemRow(dayId, item) {
     const st = LP_ITEM_STATUSES[item.status] || LP_ITEM_STATUSES.idea;
     const hasDetails = item.time || item.cost || item.duration || item.notes || item.confirmation || item.contact || (item.facts && item.facts.length) || (item.links && item.links.length);
+    const loc = item.locationId ? _lpLocations.find(l => l.id === item.locationId) : null;
+    const locBadge = loc
+        ? `<span title="${_lpEsc(loc.name)}${loc.address ? '\n'+loc.address : ''}${loc.phone ? '\n'+loc.phone : ''}" style="font-size:0.75em; color:#2563eb; cursor:default; white-space:nowrap;">📍 ${_lpEsc(loc.name)}</span>`
+        : '';
+    const locBtn = !loc
+        ? `<button class="btn btn-small" onclick="_lpPickLocation('itinerary','${dayId}','${item.id}')" title="Set location" style="padding:2px 6px;">📍</button>`
+        : `<button class="btn btn-small" onclick="_lpOpenAddDistance('itinerary','${dayId}','${item.id}')" title="Add distance from here" style="padding:2px 6px;">🛣️</button>`;
 
     return `
         <div class="lp-item-row" data-item-id="${item.id}" style="padding:6px 0; border-bottom:1px solid #f0f0f0;">
-            <div style="display:flex; align-items:center; gap:8px;">
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
                 <span class="lp-item-drag" style="cursor:grab; color:#ccc; font-size:0.8em;">⠿</span>
                 <span style="background:${st.bg};color:${st.color};font-size:0.7em;padding:1px 8px;border-radius:10px;font-weight:600;">${st.label}</span>
                 ${item.time ? `<span style="color:#888; font-size:0.85em;">${_lpEsc(item.time)}</span>` : ''}
                 <span style="flex:1; min-width:0; font-weight:500;">${_lpEsc(item.title)}</span>
                 ${_lpBookingBadge(item.bookingRef)}
                 ${item.showOnCalendar ? '<span title="On calendar" style="font-size:0.75em;">📅</span>' : ''}
+                ${locBadge}
                 <div style="display:flex; gap:2px; flex-shrink:0;">
-                    <button class="btn btn-small" onclick="_lpToggleItemDetails('${dayId}','${item.id}')" title="${hasDetails ? 'Show details' : 'Show details'}" style="padding:2px 6px;">${hasDetails ? '📋' : '▿'}</button>
-                    <button class="btn btn-small" onclick="_lpEditItem('${dayId}','${item.id}')" title="Edit" style="padding:2px 6px;">✏️</button>
-                    <button class="btn btn-small btn-danger" onclick="_lpDeleteItem('${dayId}','${item.id}')" title="Delete" style="padding:2px 6px;">✕</button>
+                    <button class="btn btn-small" onclick="_lpToggleItemDetails('${dayId}','${item.id}')" title="${hasDetails ? 'Show details' : 'Details'}" style="padding:2px 6px;">${hasDetails ? '📋' : '▿'}</button>
+                    <button class="btn btn-small" onclick="_lpEditItem('${dayId}','${item.id}')" title="Edit item" style="padding:2px 6px;">✏️</button>
+                    ${locBtn}
                 </div>
             </div>
             <div class="lp-item-details" id="lpItemDetails_${dayId}_${item.id}" style="display:none; margin-top:6px; padding-left:28px; font-size:0.88em; color:#555;">
@@ -1852,6 +1898,16 @@ function _lpItemRow(dayId, item) {
 function _lpItemDetailsContent(item) {
     const travel = _lpIsTravelMode();
     const parts = [];
+
+    // Location row — always first when expanded
+    const loc = item.locationId ? _lpLocations.find(l => l.id === item.locationId) : null;
+    if (loc) {
+        const lines = [loc.name, loc.address, loc.phone].filter(Boolean).map(s => _lpEsc(s));
+        parts.push(`<div style="margin-bottom:4px; padding:4px 6px; background:#f0f9ff; border-radius:4px; border-left:3px solid #2563eb;">
+            <strong>📍</strong> ${lines.join(' · ')}
+        </div>`);
+    }
+
     if (item.duration) parts.push(`<div><strong>Duration:</strong> ${_lpEsc(item.duration)}</div>`);
     if (!travel && item.cost != null && item.cost !== '') parts.push(`<div><strong>Cost:</strong> $${Number(item.cost).toFixed(2)}${item.costNote ? ` <span style="color:#888;">(${_lpEsc(item.costNote)})</span>` : ''}</div>`);
     // In travel mode, confirmation and contact are prominent
@@ -2042,6 +2098,7 @@ async function _lpAddItem(dayId) {
         costNote: '',
         notes: '',
         facts: [],
+        locationId: null,
         confirmation: '',
         contact: '',
         duration: '',
@@ -2110,6 +2167,17 @@ function _lpOpenItemModal(title, item, currentDayId) {
     factsContainer.innerHTML = '';
     const facts = item.facts || [];
     facts.forEach(f => _lpAddFactRow(f.label || '', f.value || ''));
+
+    // Location dropdown
+    const locSelect = document.getElementById('lpItLocation');
+    locSelect.innerHTML = '<option value="">— None —</option>';
+    _lpLocations.forEach(l => {
+        const opt = document.createElement('option');
+        opt.value = l.id;
+        opt.textContent = l.name;
+        if (l.id === item.locationId) opt.selected = true;
+        locSelect.appendChild(opt);
+    });
 
     // Booking dropdown
     const bkSelect = document.getElementById('lpItBooking');
@@ -2203,6 +2271,7 @@ async function _lpSaveItemModal() {
         contact: document.getElementById('lpItContact').value.trim(),
         notes: document.getElementById('lpItNotes').value.trim(),
         facts,
+        locationId: document.getElementById('lpItLocation').value || null,
         bookingRef: document.getElementById('lpItBooking').value || null,
         showOnCalendar: document.getElementById('lpItCalendar').checked
     };
@@ -2325,8 +2394,95 @@ async function _lpSaveItemModal() {
     }
 }
 
-async function _lpDeleteItem(dayId, itemId) {
+/** Delete the current item from within the edit modal */
+async function _lpDeleteItemFromModal() {
+    const ctx = _lpItemModalCtx;
+    if (!ctx) return;
     if (!confirm('Delete this item?')) return;
+    closeModal('lpItemModal');
+
+    if (ctx.type === 'itinerary') {
+        await _lpDeleteItem(ctx.dayId, ctx.itemId, true); // true = already confirmed
+    } else {
+        await _lpDeletePlanningItem(ctx.groupId, ctx.itemId, true);
+    }
+}
+
+/** Open the compact location picker for an item */
+function _lpPickLocation(type, parentId, itemId) {
+    const sel = document.getElementById('lpLocPickerSelect');
+    sel.innerHTML = '<option value="">— None (clear location) —</option>';
+    _lpLocations.forEach(l => {
+        const opt = document.createElement('option');
+        opt.value = l.id;
+        opt.textContent = l.name + (l.address ? ' — ' + l.address : '');
+        sel.appendChild(opt);
+    });
+
+    // Set current location if any
+    const item = type === 'itinerary'
+        ? (_lpDays.find(d => d.id === parentId)?.items || []).find(it => it.id === itemId)
+        : (_lpPlanningGroups.find(g => g.id === parentId)?.items || []).find(it => it.id === itemId);
+    if (item?.locationId) sel.value = item.locationId;
+
+    // Store context on the modal
+    sel.dataset.type     = type;
+    sel.dataset.parentId = parentId;
+    sel.dataset.itemId   = itemId;
+    openModal('lpLocPickerModal');
+}
+
+/** "Add new location first" in the picker — opens the full location modal then returns */
+function _lpLocPickerAddNew() {
+    closeModal('lpLocPickerModal');
+    _lpOpenLocationModal(); // user creates location, then re-opens picker manually
+}
+
+/** Save the picked location onto the item */
+async function _lpLocPickerSave() {
+    const sel = document.getElementById('lpLocPickerSelect');
+    const { type, parentId, itemId } = sel.dataset;
+    const locationId = sel.value || null;
+
+    closeModal('lpLocPickerModal');
+
+    try {
+        if (type === 'itinerary') {
+            const day = _lpDays.find(d => d.id === parentId);
+            if (!day) return;
+            const items = [...(day.items || [])];
+            const idx = items.findIndex(it => it.id === itemId);
+            if (idx < 0) return;
+            items[idx] = { ...items[idx], locationId };
+            await lpSub(_lpCurrentProjectId, 'days').doc(parentId).update({ items });
+            day.items = items;
+            const body = document.getElementById('lpBody_itinerary');
+            if (body) _lpRenderItinerary(body);
+        } else {
+            const group = _lpPlanningGroups.find(g => g.id === parentId);
+            if (!group) return;
+            const items = [...(group.items || [])];
+            const idx = items.findIndex(it => it.id === itemId);
+            if (idx < 0) return;
+            items[idx] = { ...items[idx], locationId };
+            await lpSub(_lpCurrentProjectId, 'planningGroups').doc(parentId).update({ items });
+            group.items = items;
+            const body = document.getElementById('lpBody_planning');
+            if (body) _lpRenderPlanningBoard(body);
+        }
+    } catch (err) {
+        console.error('Error setting location:', err);
+        alert('Error setting location.');
+    }
+}
+
+/** Stub for Phase 3 — opens the Add Distance modal from an item */
+function _lpOpenAddDistance(type, parentId, itemId) {
+    alert('Add Distance coming in Phase 3.');
+}
+
+async function _lpDeleteItem(dayId, itemId, confirmed = false) {
+    if (!confirmed && !confirm('Delete this item?')) return;
     const day = _lpDays.find(d => d.id === dayId);
     if (!day) return;
 

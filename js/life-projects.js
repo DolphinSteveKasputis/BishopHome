@@ -2762,7 +2762,7 @@ async function _lpDeleteItemFromModal() {
 function _lpPickLocation(type, parentId, itemId) {
     const sel = document.getElementById('lpLocPickerSelect');
     sel.innerHTML = '<option value="">— None (clear location) —</option>';
-    _lpLocations.forEach(l => {
+    [..._lpLocations].sort((a, b) => a.name.localeCompare(b.name)).forEach(l => {
         const opt = document.createElement('option');
         opt.value = l.id;
         opt.textContent = l.name + (l.address ? ' — ' + l.address : '');

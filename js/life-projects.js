@@ -627,11 +627,11 @@ function _lpRenderDetailPage(page) {
                         <!-- New location fields -->
                         <div>
                             <label class="form-label">Name *</label>
-                            <input type="text" id="lpLocName" class="form-control" placeholder="e.g. Mammoth Hot Springs">
+                            <input type="text" id="lpLocName" class="form-control" placeholder="e.g. Mammoth Hot Springs" style="width:100%; box-sizing:border-box;">
                         </div>
                         <div>
                             <label class="form-label">Address</label>
-                            <input type="text" id="lpLocAddress" class="form-control" placeholder="Street, City, State ZIP">
+                            <textarea id="lpLocAddress" class="form-control" rows="3" placeholder="Street, City, State ZIP" style="width:100%; box-sizing:border-box;"></textarea>
                         </div>
                         <div style="display:flex; gap:8px;">
                             <div style="flex:1;">
@@ -649,7 +649,7 @@ function _lpRenderDetailPage(page) {
                         </div>
                         <div>
                             <label class="form-label">Notes</label>
-                            <textarea id="lpLocNotes" class="form-control" rows="2" style="width:100%; box-sizing:border-box;"></textarea>
+                            <textarea id="lpLocNotes" class="form-control" rows="5" style="width:100%; box-sizing:border-box;"></textarea>
                         </div>
                         <div id="lpLocAddToPlanningWrap" style="display:flex; align-items:center; gap:8px;">
                             <input type="checkbox" id="lpLocAddToPlanning">

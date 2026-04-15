@@ -1515,6 +1515,9 @@ async function _lpSaveDistance() {
         }
         closeModal('lpDistanceModal');
         await _lpLoadDistances();
+        // Re-render itinerary so travel rows reflect the new distance
+        const itBody = document.getElementById('lpBody_itinerary');
+        if (itBody && itBody.children.length > 0) _lpLoadItinerary();
     } catch (err) {
         console.error('Error saving distance:', err);
         alert('Error saving distance. Please try again.');

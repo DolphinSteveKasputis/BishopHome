@@ -1632,6 +1632,22 @@ async function _lpDeleteDistance(distanceId) {
     try {
         await lpDistancesCol().doc(distanceId).delete();
         await _lpLoadDistances();
+        const itBody = document.getElementById('lpBody_itinerary');
+        if (itBody && itBody.children.length > 0) _lpLoadItinerary();
+    } catch (err) {
+        console.error('Error deleting distance:', err);
+        alert('Error deleting distance.');
+    }
+}
+
+/** Delete a distance directly from a travel row in the itinerary */
+async function _lpDeleteDistanceFromRow(distanceId) {
+    if (!confirm('Remove this travel distance?')) return;
+    try {
+        await lpDistancesCol().doc(distanceId).delete();
+        await _lpLoadDistances();
+        const itBody = document.getElementById('lpBody_itinerary');
+        if (itBody && itBody.children.length > 0) _lpLoadItinerary();
     } catch (err) {
         console.error('Error deleting distance:', err);
         alert('Error deleting distance.');
@@ -2344,12 +2360,19 @@ function _lpTravelRow(fromItem, toItem) {
         : '';
 
     let distHtml = '';
+    let actionBtns = '';
     if (dist) {
         const modeIcon = dist.mode === 'walk' ? '🚶' : dist.mode === 'bike' ? '🚴' : '🚗';
         const parts = [modeIcon];
         if (dist.time) parts.push(dist.time);
         if (dist.miles) parts.push(`${dist.miles} mi`);
         distHtml = parts.join(' ');
+        // Edit and delete buttons — shown on hover via opacity trick
+        actionBtns = `
+            <span style="margin-left:auto; display:flex; gap:2px; opacity:0.5;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.5">
+                <button class="btn btn-small" onclick="_lpEditDistance('${dist.id}')" title="Edit distance" style="padding:1px 5px; font-size:0.8em;">✏️</button>
+                <button class="btn btn-small btn-danger" onclick="_lpDeleteDistanceFromRow('${dist.id}')" title="Delete distance" style="padding:1px 5px; font-size:0.8em;">🗑️</button>
+            </span>`;
     } else {
         distHtml = '<span style="color:#f59e0b;">⚠️ travel time needed</span>';
     }
@@ -2360,7 +2383,7 @@ function _lpTravelRow(fromItem, toItem) {
 
     return `
         <div style="padding:3px 0 3px 9px; border-bottom:1px solid #f0f0f0; border-left:3px solid #d1d5db; background:#f8fafc; font-size:0.76em; color:#6b7280; display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
-            ${departStr}${distHtml}${routeStr}
+            ${departStr}${distHtml}${routeStr}${actionBtns}
         </div>`;
 }
 

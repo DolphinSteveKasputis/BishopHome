@@ -731,7 +731,7 @@ function _lpRenderDetailPage(page) {
             <!-- Note / Journal entry modal -->
             <div class="modal-overlay" id="lpNoteModal">
                 <div class="modal" style="max-width:560px; width:90%;">
-                    <h3 id="lpNoteModalTitle">Add Note</h3>
+                    <h3 id="lpNoteModalTitle">Add Journal Entry</h3>
                     <div style="display:flex; flex-direction:column; gap:10px;">
                         <div>
                             <label class="form-label">Title</label>
@@ -768,7 +768,7 @@ function _lpRenderDetailPage(page) {
                 ${_lpAccordionSection('itinerary', '📅 Itinerary', '', travel)}
                 ${_lpAccordionSection('bookings', '🏨 Bookings', '', travel)}
                 ${_lpAccordionSection('packing', '🧳 Packing', '', false)}
-                ${travel ? '' : _lpAccordionSection('notes', '📝 Notes', '', false)}
+                ${travel ? '' : _lpAccordionSection('notes', '📓 Journal', '', false)}
             </div>
         </div>
     `;
@@ -3697,34 +3697,24 @@ function _lpRenderNotes(body) {
 
     if (total === 0) {
         body.innerHTML = `
-            <p style="color:#999; font-size:0.9em;">No notes yet.</p>
-            <button class="btn btn-small btn-primary" onclick="_lpAddNote()">+ Add Note</button>
+            <p style="color:#999; font-size:0.9em;">No journal entries yet.</p>
+            <button class="btn btn-small btn-primary" onclick="_lpAddNote()">+ Add Entry</button>
         `;
         return;
     }
 
     body.innerHTML = `
         ${_lpNotes.map(n => _lpNoteCard(n)).join('')}
-        <button class="btn btn-small btn-primary" style="margin-top:8px;" onclick="_lpAddNote()">+ Add Note</button>
+        <button class="btn btn-small btn-primary" style="margin-top:8px;" onclick="_lpAddNote()">+ Add Entry</button>
     `;
 }
 
 function _lpNoteCard(n) {
     const dateStr = n.createdAt ? new Date(n.createdAt.seconds ? n.createdAt.seconds * 1000 : n.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
 
-    // Render facts — URL values become clickable links
+    // Render links/facts — URL values become clickable links
     let factsHtml = '';
     if (n.facts && n.facts.length) {
-        const factLines = n.facts.map(f => {
-            if (!f.label && !f.value) return '';
-            const isUrl = /^https?:\/\//i.test(f.value);
-            const valHtml = isUrl
-                ? `<a href="${_lpEsc(f.value)}" onclick="event.stopPropagation();window.open(this.href,'_blank');return false;" style="color:#2563eb;">${_lpEsc(f.label || f.value)}</a>`
-                : `<span>${f.label ? `<strong>${_lpEsc(f.label)}:</strong> ` : ''}${_lpEsc(f.value)}</span>`;
-            return `<div style="font-size:0.85em;">${isUrl ? '' : (f.label ? `<strong>${_lpEsc(f.label)}:</strong> ` : '') }${isUrl ? valHtml : _lpEsc(f.value)}</div>`;
-        }).filter(Boolean);
-
-        // Rebuild cleanly
         const factRows = n.facts.filter(f => f.label || f.value).map(f => {
             const isUrl = /^https?:\/\//i.test(f.value);
             if (isUrl) {
@@ -3770,7 +3760,7 @@ function _lpAddNoteFactRow(label = '', value = '') {
 }
 
 function _lpAddNote() {
-    document.getElementById('lpNoteModalTitle').textContent = 'Add Note';
+    document.getElementById('lpNoteModalTitle').textContent = 'Add Journal Entry';
     document.getElementById('lpNoteTitle').value = '';
     document.getElementById('lpNoteText').value = '';
     document.getElementById('lpNoteFactsContainer').innerHTML = '';
@@ -3782,7 +3772,7 @@ function _lpAddNote() {
 function _lpEditNote(noteId) {
     const n = _lpNotes.find(x => x.id === noteId);
     if (!n) return;
-    document.getElementById('lpNoteModalTitle').textContent = 'Edit Note';
+    document.getElementById('lpNoteModalTitle').textContent = 'Edit Journal Entry';
     document.getElementById('lpNoteTitle').value = n.title || '';
     document.getElementById('lpNoteText').value = n.text || '';
     const container = document.getElementById('lpNoteFactsContainer');

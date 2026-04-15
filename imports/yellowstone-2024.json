@@ -241,7 +241,7 @@
           "status": "confirmed",
           "cost": null,
           "costNote": "",
-          "notes": "Steve lands 12:59pm, Danielle lands 12:15pm",
+          "notes": "Leave home by 7am, arrive airport by 8am. Steve: departs 11am, lands 12:59pm (Delta). Danielle: departs 8am, lands 12:15pm.",
           "confirmation": "",
           "contact": "",
           "duration": "",
@@ -256,14 +256,23 @@
           "status": "confirmed",
           "cost": null,
           "costNote": "",
-          "notes": "",
+          "notes": "They didn't ask me to pay — need to confirm I have the car. Not sure if this is an Alamo or Expedia # (booked through Delta for points). I'd like to pay to make sure I got it.",
           "confirmation": "1665411372",
           "contact": "(833) 886-0855",
           "duration": "",
           "bookingRef": null,
           "sortOrder": 1,
           "showOnCalendar": false,
-          "facts": []
+          "facts": [
+            {
+              "label": "Itinerary #",
+              "value": "72895914206211"
+            },
+            {
+              "label": "Address",
+              "value": "5 Gallatin Field Rd, Belgrade, MT 59714"
+            }
+          ]
         },
         {
           "title": "Mountains Walking Brewery — Bozeman",
@@ -271,7 +280,7 @@
           "status": "confirmed",
           "cost": null,
           "costNote": "",
-          "notes": "Open 11:30am–8pm. 15–20 min from airport. Leave by 3:30pm.",
+          "notes": "Eat here. Open 11:30am–8pm. 15–20 min drive from airport. Leave by 3:30pm.",
           "confirmation": "",
           "contact": "",
           "duration": "1 hour",
@@ -297,18 +306,23 @@
         },
         {
           "title": "Arrive at Under Canvas",
-          "time": "4:15pm",
+          "time": "4:35pm",
           "status": "confirmed",
           "cost": null,
           "costNote": "",
-          "notes": "40 min drive from brewery. Could be later if we stop anywhere.",
+          "notes": "4:35pm with CVS stop. 40 min drive from brewery. Could be later if we stop anywhere. Paid $771 already on card.",
           "confirmation": "38469SE006220",
           "contact": "+18884961148",
           "duration": "",
           "bookingRef": null,
           "sortOrder": 4,
           "showOnCalendar": false,
-          "facts": []
+          "facts": [
+            {
+              "label": "Address",
+              "value": "139 Pine Creek Rd, Livingston, MT 59047"
+            }
+          ]
         }
       ]
     },
@@ -324,7 +338,7 @@
           "status": "confirmed",
           "cost": null,
           "costNote": "",
-          "notes": "Leave by 8am to give time for stops/photos on the way",
+          "notes": "Leave by 8am (9am at the latest). Earlier if we want to stop and take pics or eat. 1.5 hr drive to horseback riding. Could stop at Norris Geyser Basin (4 min south of Mammoth) or Grizzly and Wolf Discovery Center in West Yellowstone (90 min away, one way — probably skip).",
           "confirmation": "",
           "contact": "",
           "duration": "",
@@ -339,7 +353,7 @@
           "status": "confirmed",
           "cost": 400,
           "costNote": "$200 each",
-          "notes": "Arrive by 10:30. Done by 1pm.",
+          "notes": "Arrive by 10:30am. Done by 1pm. Leave Under Canvas by 8am to make it.",
           "confirmation": "",
           "contact": "",
           "duration": "2 hours",
@@ -359,7 +373,7 @@
           "status": "confirmed",
           "cost": 36,
           "costNote": "$18 each",
-          "notes": "Mineral water springs. No reservation needed. Open 9am-9pm. 45 min from horse riding. Weather dependent — could do later.",
+          "notes": "Mineral water springs. No reservation needed. $18 each. Open 9am–9pm. 40 min from Under Canvas, 45 min from horse riding. Depending on weather, do now or later in the day.",
           "confirmation": "",
           "contact": "",
           "duration": "",
@@ -379,17 +393,17 @@
           "status": "confirmed",
           "cost": null,
           "costNote": "",
-          "notes": "Just north of Montana state line. They serve breakfast. Gardiner 5 miles away for lunch/dinner.",
+          "notes": "Just north of Montana state line. They serve breakfast. Gardiner 5 miles away for lunch/dinner. Paid $518.32 on Citi card.",
           "confirmation": "28024158",
-          "contact": "(406) 848-9447",
+          "contact": "(406) 848-9447 | info@DreamcatcherTipiHotel.com",
           "duration": "",
           "bookingRef": null,
           "sortOrder": 3,
           "showOnCalendar": false,
           "facts": [
             {
-              "label": "",
-              "value": "https://www.dreamcatchertipihotel.com/"
+              "label": "Address",
+              "value": "20 Maiden Basin Dr, Gardiner, MT 59030"
             }
           ]
         }
@@ -422,7 +436,7 @@
           "status": "confirmed",
           "cost": null,
           "costNote": "",
-          "notes": "On the way to Canyon Village. Done by 10am.",
+          "notes": "On the way to Canyon Village. Leave by 8am, arrive 8:30am. Done by 10am. 25 min from Tipi to Mammoth. Could be at Soda Butte by 9am not counting stops.",
           "confirmation": "",
           "contact": "",
           "duration": "1.5 hours",
@@ -437,7 +451,7 @@
           "status": "confirmed",
           "cost": null,
           "costNote": "",
-          "notes": "Allow 2 hours for stops: Petrified Tree, Lamar Valley, Soda Butte, Tower Fall, Yellowstone Overlook, Dunraven Pass",
+          "notes": "Allow 2 hours for stops: Petrified Tree, Lamar Valley, Soda Butte, Tower Fall, Yellowstone Overlook, Dunraven Pass. 65 min to Canyon Lodge without stops.",
           "confirmation": "",
           "contact": "",
           "duration": "2 hours with stops",
@@ -495,16 +509,25 @@
           "title": "Stay at Canyon Lodge",
           "time": "",
           "status": "confirmed",
-          "cost": null,
-          "costNote": "",
-          "notes": "",
+          "cost": 1222.22,
+          "costNote": "paid $553.89 deposit, rest at check-in",
+          "notes": "Sun and Mon night. Total $1222.22, paid $553.89 as deposit. Account: snkgogators / Hu5a5!",
           "confirmation": "18787381",
           "contact": "",
           "duration": "",
           "bookingRef": null,
           "sortOrder": 6,
           "showOnCalendar": false,
-          "facts": []
+          "facts": [
+            {
+              "label": "Address",
+              "value": "Canyon Lodge, 41 Clover Ln, Yellowstone National Park, WY 82190"
+            },
+            {
+              "label": "Reservations",
+              "value": "https://secure.yellowstonenationalparklodges.com/profile/reservations"
+            }
+          ]
         }
       ]
     },
@@ -565,7 +588,7 @@
           "status": "confirmed",
           "cost": null,
           "costNote": "",
-          "notes": "Second night",
+          "notes": "Second night. Same reservation #18787381.",
           "confirmation": "18787381",
           "contact": "",
           "duration": "",
@@ -588,7 +611,7 @@
           "status": "confirmed",
           "cost": null,
           "costNote": "",
-          "notes": "2 hour drive from Canyon. Arrive 9-10am depending on traffic and stops.",
+          "notes": "2 hour drive from Canyon Village. Arrive 9-10am depending on traffic and stops. Leave by 7am. Without stops: 1 hour from Colter Bay to Jackson.",
           "confirmation": "",
           "contact": "",
           "duration": "2 hours",
@@ -633,7 +656,7 @@
           "status": "confirmed",
           "cost": null,
           "costNote": "",
-          "notes": "",
+          "notes": "Get to Jackson by 2pm ish. Take outer loop with 3 hours of stops.",
           "confirmation": "",
           "contact": "",
           "duration": "",
@@ -676,16 +699,21 @@
           "title": "Stay at Mountain Modern Motel",
           "time": "",
           "status": "confirmed",
-          "cost": null,
-          "costNote": "",
+          "cost": 535.73,
+          "costNote": "paid online",
           "notes": "",
           "confirmation": "912256534",
-          "contact": "+13077334340",
+          "contact": "+1 (307) 733-4340",
           "duration": "",
           "bookingRef": null,
           "sortOrder": 6,
           "showOnCalendar": false,
-          "facts": []
+          "facts": [
+            {
+              "label": "Address",
+              "value": "380 W Broadway, Jackson, WY 83001"
+            }
+          ]
         }
       ]
     },
@@ -759,16 +787,25 @@
           "title": "Check in at Signal Mountain Lodge",
           "time": "",
           "status": "confirmed",
-          "cost": null,
-          "costNote": "",
-          "notes": "Wed and Thu night",
+          "cost": 647,
+          "costNote": "deposit paid, rest at check-in",
+          "notes": "Wed and Thu night. Paid $647 as deposit, rest at check-in.",
           "confirmation": "86245F",
-          "contact": "877.841.1076",
+          "contact": "877-841-1076",
           "duration": "",
           "bookingRef": null,
           "sortOrder": 4,
           "showOnCalendar": false,
-          "facts": []
+          "facts": [
+            {
+              "label": "Itinerary #",
+              "value": "8000602U1"
+            },
+            {
+              "label": "Reservations",
+              "value": "https://reservations.ahlsmsworld.com/SignalMountain/Check-Out/Confirmation"
+            }
+          ]
         }
       ]
     },
@@ -895,16 +932,21 @@
           "title": "Drive Signal Mountain → Old Faithful Inn",
           "time": "8:00am",
           "status": "confirmed",
-          "cost": null,
-          "costNote": "",
-          "notes": "1hr 45min. 2 Continental Divide possible stops if interesting.",
-          "confirmation": "",
-          "contact": "",
+          "cost": 714.11,
+          "costNote": "paid in full",
+          "notes": "Paid in full. Dinner options: check inn for cancellations (booked until 9:45pm), Snow Lodge Obsidian Dining Room, Geyser Grill, Lodge Cafeteria & Bake Shop, Bear Paw Deli.",
+          "confirmation": "18787451",
+          "contact": "(307) 344-7311",
           "duration": "2 hours",
           "bookingRef": null,
           "sortOrder": 1,
           "showOnCalendar": false,
-          "facts": []
+          "facts": [
+            {
+              "label": "Address",
+              "value": "3200 Old Faithful Inn Rd, Yellowstone National Park, WY 82190"
+            }
+          ]
         },
         {
           "title": "Old Faithful area — walk around",
@@ -995,7 +1037,7 @@
           "status": "confirmed",
           "cost": null,
           "costNote": "",
-          "notes": "2hr 40min no stops. Goes through Big Sky, pad 30 min. Total ~3:15. Arrive Alamo by 11:20am.",
+          "notes": "2hr 40min no stops, goes through Big Sky — pad 30 min. Total ~3:15. Leave by 8am (or 6:45am to catch Prismatic Springs sunrise first). Arrive Alamo by 11:20am.",
           "confirmation": "",
           "contact": "",
           "duration": "3+ hours",
@@ -1040,7 +1082,7 @@
           "status": "confirmed",
           "cost": null,
           "costNote": "",
-          "notes": "Lands 7:54pm. In truck by 9pm, home by 10pm.",
+          "notes": "Departs 2:10pm, lands 7:54pm. In truck by 9pm, home by 10pm.",
           "confirmation": "",
           "contact": "",
           "duration": "",

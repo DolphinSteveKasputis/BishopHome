@@ -286,6 +286,24 @@
       "notes": "5 miles RT. Walk along the river. Check eruption timetable."
     },
     {
+      "id": "loc_norris_geyser",
+      "name": "Norris Geyser Basin",
+      "address": "Norris Geyser Basin, Yellowstone National Park, WY",
+      "phone": "",
+      "website": "",
+      "contact": "",
+      "notes": "25 min from Canyon Village. Between Mammoth and Canyon on the Grand Loop."
+    },
+    {
+      "id": "loc_buffalo_ford",
+      "name": "Buffalo Ford / Fishing Bridge",
+      "address": "Fishing Bridge, Yellowstone National Park, WY",
+      "phone": "",
+      "website": "",
+      "contact": "",
+      "notes": "52 min from both Mammoth Hot Springs and Canyon Village. Buffalo Ford road crossing in Hayden Valley. Fishing Bridge / lake views."
+    },
+    {
       "id": "loc_grizzly_wolf_center",
       "name": "Grizzly & Wolf Discovery Center",
       "address": "201 S Canyon St, West Yellowstone, MT 59758",
@@ -519,6 +537,30 @@
       "time": "20 min",
       "mode": "drive",
       "notes": ""
+    },
+    {
+      "fromLocationId": "loc_norris_geyser",
+      "toLocationId": "loc_canyon_lodge",
+      "miles": null,
+      "time": "25 min",
+      "mode": "drive",
+      "notes": "Per reference note"
+    },
+    {
+      "fromLocationId": "loc_mammoth_hot_springs",
+      "toLocationId": "loc_buffalo_ford",
+      "miles": null,
+      "time": "52 min",
+      "mode": "drive",
+      "notes": "Per reference note"
+    },
+    {
+      "fromLocationId": "loc_canyon_lodge",
+      "toLocationId": "loc_buffalo_ford",
+      "miles": null,
+      "time": "52 min",
+      "mode": "drive",
+      "notes": "Per reference note"
     }
   ],
   "bookings": [

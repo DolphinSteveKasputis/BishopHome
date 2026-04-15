@@ -1211,6 +1211,7 @@ async function _lpSaveLocation() {
     if (!name) { alert('Name is required.'); return; }
 
     const editId = document.getElementById('lpLocationSaveBtn').dataset.editId;
+    let newProjLocId = null; // set below when creating a new location
     const locData = {
         name,
         address: document.getElementById('lpLocAddress').value.trim(),
@@ -1242,6 +1243,7 @@ async function _lpSaveLocation() {
                 ...locData,
                 addedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
+            newProjLocId = projLocRef.id; // capture for post-save routing
 
             // Optionally add a planning item for this location
             if (addToPlanning) {
@@ -1252,12 +1254,16 @@ async function _lpSaveLocation() {
         closeModal('lpLocationModal');
         await _lpLoadLocations();
 
-        // If we came from the item picker ("Add new location first"), re-open the picker
-        // so the user can select the location they just created.
-        if (!editId && _lpPickerReturnCtx) {
+        // If we came from a picker or the item edit modal, return to it with the new location selected
+        if (_lpPickerReturnCtx) {
             const ctx = _lpPickerReturnCtx;
             _lpPickerReturnCtx = null;
-            _lpPickLocation(ctx.type, ctx.parentId, ctx.itemId);
+            if (ctx.source === 'itemModal') {
+                // Re-populate the item modal's location dropdown and pre-select the new location
+                _lpPopulateItemLocationSelect(newProjLocId || null);
+            } else {
+                _lpPickLocation(ctx.type, ctx.parentId, ctx.itemId);
+            }
         }
     } catch (err) {
         console.error('Error saving location:', err);
@@ -2653,6 +2659,40 @@ function _lpAddFactRow(label = '', value = '') {
     container.appendChild(row);
 }
 
+/** Populate (or re-populate) the location select in the item edit modal */
+function _lpPopulateItemLocationSelect(selectedId) {
+    const locSelect = document.getElementById('lpItLocation');
+    locSelect.innerHTML = '';
+
+    const noneOpt = document.createElement('option');
+    noneOpt.value = '';
+    noneOpt.textContent = '— None —';
+    locSelect.appendChild(noneOpt);
+
+    const addOpt = document.createElement('option');
+    addOpt.value = '__add_new__';
+    addOpt.textContent = '＋ Add new location…';
+    locSelect.appendChild(addOpt);
+
+    [..._lpLocations]
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .forEach(l => {
+            const opt = document.createElement('option');
+            opt.value = l.id;
+            opt.textContent = l.name;
+            if (l.id === selectedId) opt.selected = true;
+            locSelect.appendChild(opt);
+        });
+
+    // Handler: if user picks "Add new location…", open the location modal and return here
+    locSelect.onchange = function() {
+        if (this.value !== '__add_new__') return;
+        this.value = selectedId || ''; // revert selection while user fills out modal
+        _lpPickerReturnCtx = { source: 'itemModal' };
+        _lpOpenLocationModal();
+    };
+}
+
 function _lpOpenItemModal(title, item, currentDayId) {
     document.getElementById('lpItemModalTitle').textContent = title;
 
@@ -2676,16 +2716,8 @@ function _lpOpenItemModal(title, item, currentDayId) {
     const facts = item.facts || [];
     facts.forEach(f => _lpAddFactRow(f.label || '', f.value || ''));
 
-    // Location dropdown
-    const locSelect = document.getElementById('lpItLocation');
-    locSelect.innerHTML = '<option value="">— None —</option>';
-    _lpLocations.forEach(l => {
-        const opt = document.createElement('option');
-        opt.value = l.id;
-        opt.textContent = l.name;
-        if (l.id === item.locationId) opt.selected = true;
-        locSelect.appendChild(opt);
-    });
+    // Location dropdown — sorted alphabetically, with "Add new" option
+    _lpPopulateItemLocationSelect(item.locationId || null);
 
     // Booking dropdown
     const bkSelect = document.getElementById('lpItBooking');

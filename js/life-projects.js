@@ -679,13 +679,14 @@ function _lpRenderDetailPage(page) {
 
             <!-- Add/Edit Distance modal -->
             <div class="modal-overlay" id="lpDistanceModal">
-                <div class="modal" style="max-width:420px;">
+                <div class="modal" style="max-width:500px; width:90%;">
                     <h3>Distance</h3>
                     <div style="display:flex; flex-direction:column; gap:10px;">
                         <div>
                             <label class="form-label">From</label>
                             <div id="lpDistFromLabel" style="font-weight:600; padding:6px 0; color:#1e40af;"></div>
                             <input type="hidden" id="lpDistFromHidden">
+                            <input type="hidden" id="lpDistLeaveTime">
                         </div>
                         <div>
                             <label class="form-label">To *</label>
@@ -713,12 +714,15 @@ function _lpRenderDetailPage(page) {
                         </div>
                         <div>
                             <label class="form-label">Notes</label>
-                            <input type="text" id="lpDistNotes" class="form-control" placeholder="Optional">
+                            <textarea id="lpDistNotes" class="form-control" rows="4" placeholder="Optional" style="width:100%; resize:vertical;"></textarea>
                         </div>
                     </div>
-                    <div class="modal-actions" style="justify-content:flex-end;">
-                        <button class="btn" onclick="closeModal('lpDistanceModal')">Cancel</button>
-                        <button class="btn btn-primary" id="lpDistSaveBtn" onclick="_lpSaveDistance()">Save</button>
+                    <div class="modal-actions" style="justify-content:space-between; margin-top:16px;">
+                        <button class="btn btn-small" id="lpDistAskAIBtn" onclick="_lpDistAskAI()" style="background:#6366f1; color:#fff; border:none;">🤖 Ask AI</button>
+                        <div style="display:flex; gap:8px;">
+                            <button class="btn" onclick="closeModal('lpDistanceModal')">Cancel</button>
+                            <button class="btn btn-primary" id="lpDistSaveBtn" onclick="_lpSaveDistance()">Save</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1407,14 +1411,16 @@ function _lpOpenAddDistance(type, parentId, itemId) {
         return;
     }
 
-    _lpOpenDistanceModal(null, projLoc.locationId);
+    // Pass the item's leave time so Ask AI can include departure context
+    const leaveTime = item.leaveTime || item.time || '';
+    _lpOpenDistanceModal(null, projLoc.locationId, leaveTime);
 }
 
 function _lpEditDistance(distanceId) {
     _lpOpenDistanceModal(distanceId, null);
 }
 
-function _lpOpenDistanceModal(distanceId, fromGlobalId) {
+function _lpOpenDistanceModal(distanceId, fromGlobalId, leaveTime = '') {
     const existing = distanceId ? _lpDistances.find(d => d.id === distanceId) : null;
 
     // Resolve the from global location id
@@ -1427,18 +1433,21 @@ function _lpOpenDistanceModal(distanceId, fromGlobalId) {
     // From label
     document.getElementById('lpDistFromLabel').textContent = nameMap[fromId] || fromId || '—';
     document.getElementById('lpDistFromHidden').value = fromId || '';
+    document.getElementById('lpDistLeaveTime').value  = leaveTime || '';
 
-    // Populate To dropdown — all project locations except From
+    // Populate To dropdown — all project locations except From, sorted alphabetically
     const toSel = document.getElementById('lpDistTo');
     toSel.innerHTML = '<option value="">— Select destination —</option>';
-    _lpLocations.forEach(l => {
-        if (!l.locationId || l.locationId === fromId) return;
-        const opt = document.createElement('option');
-        opt.value = l.locationId;
-        opt.textContent = l.name;
-        if (existing && existing.toLocationId === l.locationId) opt.selected = true;
-        toSel.appendChild(opt);
-    });
+    [..._lpLocations]
+        .filter(l => l.locationId && l.locationId !== fromId)
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .forEach(l => {
+            const opt = document.createElement('option');
+            opt.value = l.locationId;
+            opt.textContent = l.name;
+            if (existing && existing.toLocationId === l.locationId) opt.selected = true;
+            toSel.appendChild(opt);
+        });
 
     // Fill fields
     document.getElementById('lpDistTime').value  = existing ? (existing.time  || '') : '';
@@ -1487,6 +1496,109 @@ async function _lpSaveDistance() {
     } catch (err) {
         console.error('Error saving distance:', err);
         alert('Error saving distance. Please try again.');
+    }
+}
+
+/** Ask the configured LLM to estimate distance and drive time between the two locations */
+async function _lpDistAskAI() {
+    const fromGlobalId = document.getElementById('lpDistFromHidden').value;
+    const toGlobalId   = document.getElementById('lpDistTo').value;
+    const mode         = document.getElementById('lpDistMode').value;
+    const leaveTime    = document.getElementById('lpDistLeaveTime').value;
+
+    if (!toGlobalId) { alert('Please select a destination first.'); return; }
+
+    // Look up names and addresses
+    const fromLoc = _lpLocations.find(l => l.locationId === fromGlobalId);
+    const toLoc   = _lpLocations.find(l => l.locationId === toGlobalId);
+    if (!fromLoc || !toLoc) { alert('Could not find location details.'); return; }
+
+    const btn = document.getElementById('lpDistAskAIBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳ Asking AI…';
+
+    try {
+        // Load LLM config
+        const settingsDoc = await userCol('settings').doc('llm').get();
+        if (!settingsDoc.exists) {
+            alert('LLM not configured. Go to Settings > AI.');
+            return;
+        }
+        const cfg = settingsDoc.data();
+        const provider = cfg.provider;
+        const apiKey   = cfg.apiKey;
+        const model    = cfg.model || '';
+
+        let endpoint, llmModel;
+        if (provider === 'openai') {
+            endpoint = 'https://api.openai.com/v1/chat/completions';
+            llmModel = model || 'gpt-4o';
+        } else if (provider === 'anthropic') {
+            endpoint = 'https://api.anthropic.com/v1/messages';
+            llmModel = model || 'claude-opus-4-6';
+        } else if (provider === 'openrouter') {
+            endpoint = 'https://openrouter.ai/api/v1/chat/completions';
+            llmModel = model || 'openai/gpt-4o';
+        } else {
+            alert('Unknown LLM provider.'); return;
+        }
+
+        const modeLabel = mode === 'walk' ? 'walking' : mode === 'bike' ? 'biking' : 'driving';
+        const leaveStr  = leaveTime ? `\nDeparture time: ${leaveTime}` : '';
+        const prompt =
+            `Give me the exact ${modeLabel} distance and typical travel time between these two locations:\n\n` +
+            `From: ${fromLoc.name}${fromLoc.address ? ', ' + fromLoc.address : ''}\n` +
+            `To:   ${toLoc.name}${toLoc.address ? ', ' + toLoc.address : ''}` +
+            leaveStr + `\n\n` +
+            `Respond with ONLY a JSON object — no explanation, no markdown:\n` +
+            `{"miles": 18.5, "time": "25 min"}\n\n` +
+            `Rules:\n` +
+            `- miles: one-way distance as a single decimal number (not a range)\n` +
+            `- time: travel time as a short string like "25 min" or "1 hr 15 min" (not a range, just your best estimate)`;
+
+        const tokenParam = (provider === 'openai') ? 'max_completion_tokens' : 'max_tokens';
+        const reqBody = { model: llmModel, messages: [{ role: 'user', content: prompt }] };
+        reqBody[tokenParam] = 200;
+
+        const headers = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey };
+        if (provider === 'anthropic') {
+            headers['x-api-key'] = apiKey;
+            delete headers['Authorization'];
+            headers['anthropic-version'] = '2023-06-01';
+            reqBody.messages = [{ role: 'user', content: prompt }];
+            reqBody.system = 'You are a helpful assistant. Always respond with valid JSON only.';
+        }
+
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(reqBody)
+        });
+
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error('LLM error ' + response.status + ': ' + errText.slice(0, 200));
+        }
+
+        const data = await response.json();
+        const raw  = (data.choices && data.choices[0] && data.choices[0].message)
+            ? data.choices[0].message.content
+            : (data.content && data.content[0] ? data.content[0].text : '');
+
+        // Parse JSON out of the response (strip markdown fences if present)
+        const jsonMatch = raw.match(/\{[\s\S]*?\}/);
+        if (!jsonMatch) throw new Error('Could not parse AI response: ' + raw.slice(0, 100));
+        const result = JSON.parse(jsonMatch[0]);
+
+        if (result.miles != null) document.getElementById('lpDistMiles').value = result.miles;
+        if (result.time)          document.getElementById('lpDistTime').value  = result.time;
+
+    } catch (err) {
+        console.error('Ask AI error:', err);
+        alert('AI request failed: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '🤖 Ask AI';
     }
 }
 

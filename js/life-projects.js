@@ -728,6 +728,35 @@ function _lpRenderDetailPage(page) {
                 </div>
             </div>
 
+            <!-- Note / Journal entry modal -->
+            <div class="modal-overlay" id="lpNoteModal">
+                <div class="modal" style="max-width:560px; width:90%;">
+                    <h3 id="lpNoteModalTitle">Add Note</h3>
+                    <div style="display:flex; flex-direction:column; gap:10px;">
+                        <div>
+                            <label class="form-label">Title</label>
+                            <input type="text" id="lpNoteTitle" class="form-control" placeholder="Optional title">
+                        </div>
+                        <div>
+                            <label class="form-label">Text</label>
+                            <textarea id="lpNoteText" class="form-control" rows="6" style="width:100%; resize:vertical;" placeholder="Journal entry…"></textarea>
+                        </div>
+                        <div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                                <label class="form-label" style="margin:0;">Links / Facts</label>
+                                <button class="btn btn-small" type="button" onclick="_lpAddNoteFactRow()" style="padding:2px 8px; font-size:0.8em;">+ Add</button>
+                            </div>
+                            <div id="lpNoteFactsContainer" style="display:flex; flex-direction:column; gap:4px;"></div>
+                            <div style="font-size:0.75em; color:#999; margin-top:3px;">URL values become clickable links on the note card.</div>
+                        </div>
+                    </div>
+                    <div class="modal-actions" style="justify-content:flex-end; margin-top:16px;">
+                        <button class="btn" onclick="closeModal('lpNoteModal')">Cancel</button>
+                        <button class="btn btn-primary" id="lpNoteSaveBtn" onclick="_lpSaveNoteModal()">Save</button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Accordion sections -->
             <div id="lpAccordion">
                 ${_lpAccordionSection('tripInfo', '📍 Trip Info', '', true)}
@@ -3683,6 +3712,31 @@ function _lpRenderNotes(body) {
 function _lpNoteCard(n) {
     const dateStr = n.createdAt ? new Date(n.createdAt.seconds ? n.createdAt.seconds * 1000 : n.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
 
+    // Render facts — URL values become clickable links
+    let factsHtml = '';
+    if (n.facts && n.facts.length) {
+        const factLines = n.facts.map(f => {
+            if (!f.label && !f.value) return '';
+            const isUrl = /^https?:\/\//i.test(f.value);
+            const valHtml = isUrl
+                ? `<a href="${_lpEsc(f.value)}" onclick="event.stopPropagation();window.open(this.href,'_blank');return false;" style="color:#2563eb;">${_lpEsc(f.label || f.value)}</a>`
+                : `<span>${f.label ? `<strong>${_lpEsc(f.label)}:</strong> ` : ''}${_lpEsc(f.value)}</span>`;
+            return `<div style="font-size:0.85em;">${isUrl ? '' : (f.label ? `<strong>${_lpEsc(f.label)}:</strong> ` : '') }${isUrl ? valHtml : _lpEsc(f.value)}</div>`;
+        }).filter(Boolean);
+
+        // Rebuild cleanly
+        const factRows = n.facts.filter(f => f.label || f.value).map(f => {
+            const isUrl = /^https?:\/\//i.test(f.value);
+            if (isUrl) {
+                return `<div style="font-size:0.85em;">🔗 <a href="${_lpEsc(f.value)}" onclick="event.stopPropagation();window.open(this.href,'_blank');return false;" style="color:#2563eb;">${_lpEsc(f.label || f.value)}</a></div>`;
+            }
+            return `<div style="font-size:0.85em;">${f.label ? `<strong>${_lpEsc(f.label)}:</strong> ` : ''}${_lpEsc(f.value)}</div>`;
+        });
+        if (factRows.length) {
+            factsHtml = `<div style="margin-top:8px; padding-top:6px; border-top:1px solid #f0f0f0; display:flex; flex-direction:column; gap:2px;">${factRows.join('')}</div>`;
+        }
+    }
+
     return `
         <div class="lp-note-card card" style="margin-bottom:10px; padding:10px 12px;">
             <div style="display:flex; justify-content:space-between; align-items:flex-start;">
@@ -3696,45 +3750,76 @@ function _lpNoteCard(n) {
                 </div>
             </div>
             ${n.text ? `<div style="margin-top:6px; white-space:pre-wrap; font-size:0.9em; color:#444;">${_lpEsc(n.text)}</div>` : ''}
+            ${factsHtml}
         </div>
     `;
 }
 
-async function _lpAddNote() {
-    const title = prompt('Note title (optional):') || '';
-    const text = prompt('Note text:');
-    if (!text || !text.trim()) return;
-
-    try {
-        await lpSub(_lpCurrentProjectId, 'projectNotes').add({
-            title: title.trim(),
-            text: text.trim(),
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            sortOrder: _lpNotes.length
-        });
-        await _lpLoadNotes();
-    } catch (err) {
-        console.error('Error adding note:', err);
-        alert('Error adding note.');
-    }
+/** Add a fact/link row to the note modal */
+function _lpAddNoteFactRow(label = '', value = '') {
+    const container = document.getElementById('lpNoteFactsContainer');
+    if (!container) return;
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex; gap:6px; align-items:center;';
+    row.innerHTML = `
+        <input type="text" class="form-control lp-note-fact-label" placeholder="Label (e.g. Map, Website)" value="${_lpEsc(label)}" style="flex:0 0 38%; min-width:0;">
+        <input type="text" class="form-control lp-note-fact-value" placeholder="Value or URL" value="${_lpEsc(value)}" style="flex:1; min-width:0;">
+        <button class="btn btn-small btn-danger" type="button" onclick="this.parentElement.remove()" style="padding:2px 6px; flex-shrink:0;">✕</button>
+    `;
+    container.appendChild(row);
 }
 
-async function _lpEditNote(noteId) {
+function _lpAddNote() {
+    document.getElementById('lpNoteModalTitle').textContent = 'Add Note';
+    document.getElementById('lpNoteTitle').value = '';
+    document.getElementById('lpNoteText').value = '';
+    document.getElementById('lpNoteFactsContainer').innerHTML = '';
+    document.getElementById('lpNoteSaveBtn').dataset.editId = '';
+    openModal('lpNoteModal');
+    setTimeout(() => document.getElementById('lpNoteTitle')?.focus(), 100);
+}
+
+function _lpEditNote(noteId) {
     const n = _lpNotes.find(x => x.id === noteId);
     if (!n) return;
+    document.getElementById('lpNoteModalTitle').textContent = 'Edit Note';
+    document.getElementById('lpNoteTitle').value = n.title || '';
+    document.getElementById('lpNoteText').value = n.text || '';
+    const container = document.getElementById('lpNoteFactsContainer');
+    container.innerHTML = '';
+    (n.facts || []).forEach(f => _lpAddNoteFactRow(f.label || '', f.value || ''));
+    document.getElementById('lpNoteSaveBtn').dataset.editId = noteId;
+    openModal('lpNoteModal');
+    setTimeout(() => document.getElementById('lpNoteTitle')?.focus(), 100);
+}
 
-    const title = prompt('Note title:', n.title || '') || '';
-    const text = prompt('Note text:', n.text || '');
-    if (text === null) return; // cancelled
+async function _lpSaveNoteModal() {
+    const title  = document.getElementById('lpNoteTitle').value.trim();
+    const text   = document.getElementById('lpNoteText').value.trim();
+    const editId = document.getElementById('lpNoteSaveBtn').dataset.editId;
 
+    const facts = [];
+    document.querySelectorAll('#lpNoteFactsContainer > div').forEach(row => {
+        const label = (row.querySelector('.lp-note-fact-label')?.value || '').trim();
+        const value = (row.querySelector('.lp-note-fact-value')?.value || '').trim();
+        if (label || value) facts.push({ label, value });
+    });
+
+    closeModal('lpNoteModal');
     try {
-        await lpSub(_lpCurrentProjectId, 'projectNotes').doc(noteId).update({
-            title: title.trim(),
-            text: (text || '').trim()
-        });
+        if (editId) {
+            await lpSub(_lpCurrentProjectId, 'projectNotes').doc(editId).update({ title, text, facts });
+        } else {
+            await lpSub(_lpCurrentProjectId, 'projectNotes').add({
+                title, text, facts,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                sortOrder: _lpNotes.length
+            });
+        }
         await _lpLoadNotes();
     } catch (err) {
-        console.error('Error editing note:', err);
+        console.error('Error saving note:', err);
+        alert('Error saving note.');
     }
 }
 

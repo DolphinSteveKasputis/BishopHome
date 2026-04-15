@@ -447,6 +447,10 @@ let _lpLocations = [];
 /** Distances for this project [{id, fromLocationId, toLocationId, miles, time, mode, notes}] — global collection filtered to project's locations */
 let _lpDistances = [];
 
+/** When "Add new location first" is clicked inside the picker, we stash the item context here
+ *  so we can re-open the picker and auto-select the new location after saving. */
+let _lpPickerReturnCtx = null;
+
 async function loadLifeProjectDetailPage(projectId) {
     _lpCurrentProjectId = projectId;
     const page = document.getElementById('page-life-project');
@@ -603,12 +607,12 @@ function _lpRenderDetailPage(page) {
 
             <!-- Location picker modal (set location on an item) -->
             <div class="modal-overlay" id="lpLocPickerModal">
-                <div class="modal" style="max-width:420px;">
+                <div class="modal" style="max-width:500px; width:90%;">
                     <h3>Set Location</h3>
                     <div style="display:flex; flex-direction:column; gap:10px;">
                         <div>
                             <label class="form-label">Choose a location linked to this project</label>
-                            <select id="lpLocPickerSelect" class="form-control">
+                            <select id="lpLocPickerSelect" class="form-control" style="width:100%;">
                                 <option value="">— None (clear location) —</option>
                             </select>
                         </div>
@@ -1243,6 +1247,14 @@ async function _lpSaveLocation() {
 
         closeModal('lpLocationModal');
         await _lpLoadLocations();
+
+        // If we came from the item picker ("Add new location first"), re-open the picker
+        // so the user can select the location they just created.
+        if (!editId && _lpPickerReturnCtx) {
+            const ctx = _lpPickerReturnCtx;
+            _lpPickerReturnCtx = null;
+            _lpPickLocation(ctx.type, ctx.parentId, ctx.itemId);
+        }
     } catch (err) {
         console.error('Error saving location:', err);
         alert('Error saving location. Please try again.');
@@ -2770,10 +2782,18 @@ function _lpPickLocation(type, parentId, itemId) {
     openModal('lpLocPickerModal');
 }
 
-/** "Add new location first" in the picker — opens the full location modal then returns */
+/** "Add new location first" in the picker — saves context, then opens the Add Location modal.
+ *  After the location is saved, _lpSaveLocation() checks _lpPickerReturnCtx and re-opens
+ *  the picker with the new location pre-selected. */
 function _lpLocPickerAddNew() {
+    const sel = document.getElementById('lpLocPickerSelect');
+    _lpPickerReturnCtx = {
+        type:     sel.dataset.type,
+        parentId: sel.dataset.parentId,
+        itemId:   sel.dataset.itemId
+    };
     closeModal('lpLocPickerModal');
-    _lpOpenLocationModal(); // user creates location, then re-opens picker manually
+    _lpOpenLocationModal();
 }
 
 /** Save the picked location onto the item */

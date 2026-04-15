@@ -9,25 +9,518 @@
     "startDate": "2024-09-20",
     "endDate": "2024-09-28",
     "people": [
-      {
-        "name": "Steve",
-        "contactId": null,
-        "notes": ""
-      },
-      {
-        "name": "Danielle",
-        "contactId": null,
-        "notes": ""
-      }
+      { "name": "Steve", "contactId": null, "notes": "" },
+      { "name": "Danielle", "contactId": null, "notes": "" }
     ],
-    "bookingTypes": [
-      "Lodging",
-      "Flight",
-      "Car Rental",
-      "Excursion",
-      "Sports Event"
-    ]
+    "bookingTypes": ["Lodging", "Flight", "Car Rental", "Excursion", "Sports Event"]
   },
+  "locations": [
+    {
+      "id": "loc_bozeman_airport",
+      "name": "Bozeman Yellowstone International Airport",
+      "address": "850 Gallatin Field Rd, Bozeman, MT 59718",
+      "phone": "(406) 388-8321",
+      "website": "https://www.bozemanairport.com",
+      "contact": "",
+      "notes": "BZN"
+    },
+    {
+      "id": "loc_alamo_bozeman",
+      "name": "Alamo Rent A Car — Bozeman",
+      "address": "5 Gallatin Field Rd, Belgrade, MT 59714",
+      "phone": "(833) 886-0855",
+      "website": "",
+      "contact": "",
+      "notes": "At the airport. Itinerary #72895914206211. Confirmation 1665411372."
+    },
+    {
+      "id": "loc_mountains_walking_brewery",
+      "name": "Mountains Walking Brewery",
+      "address": "219 W Mendenhall St, Bozeman, MT 59715",
+      "phone": "(406) 404-1196",
+      "website": "https://www.mountainswalkingbrewery.com",
+      "contact": "",
+      "notes": "Open 11:30am–8pm. 15–20 min drive from airport."
+    },
+    {
+      "id": "loc_under_canvas",
+      "name": "Under Canvas Yellowstone",
+      "address": "139 Pine Creek Rd, Livingston, MT 59047",
+      "phone": "+1 (888) 496-1148",
+      "website": "https://www.undercanvas.com/camps/yellowstone/",
+      "contact": "",
+      "notes": "Confirmation 38469SE006220. Paid $771."
+    },
+    {
+      "id": "loc_hells_roarin",
+      "name": "Hell's A-Roarin' Horseback Riding",
+      "address": "Jardine, MT (near Gardiner)",
+      "phone": "",
+      "website": "https://www.hellsaroarinoutfitter.com/summer/yellowstone-horseback-riding/",
+      "contact": "",
+      "notes": "$200 each. Arrive 10:30am for 11am ride. Done by 1pm."
+    },
+    {
+      "id": "loc_yellowstone_hot_springs",
+      "name": "Yellowstone Hot Springs",
+      "address": "Gardiner, MT 59030",
+      "phone": "",
+      "website": "https://yellowstonehotspringsmt.com/",
+      "contact": "",
+      "notes": "$18 each. Open 9am–9pm. No reservation needed."
+    },
+    {
+      "id": "loc_dreamcatcher_tipi",
+      "name": "Dreamcatcher Tipi Hotel",
+      "address": "20 Maiden Basin Dr, Gardiner, MT 59030",
+      "phone": "(406) 848-9447",
+      "website": "https://www.dreamcatchertipihotel.com/",
+      "contact": "info@DreamcatcherTipiHotel.com",
+      "notes": "Confirmation 28024158. Paid $518.32. Serves breakfast. Gardiner 5 miles for lunch/dinner."
+    },
+    {
+      "id": "loc_mammoth_hot_springs",
+      "name": "Mammoth Hot Springs",
+      "address": "Mammoth Hot Springs, Yellowstone National Park, WY",
+      "phone": "",
+      "website": "",
+      "contact": "",
+      "notes": "Northern Yellowstone. 25 min from Dreamcatcher Tipi."
+    },
+    {
+      "id": "loc_lamar_valley",
+      "name": "Lamar Valley",
+      "address": "Lamar Valley, Yellowstone National Park, WY",
+      "phone": "",
+      "website": "",
+      "contact": "",
+      "notes": "Prime wildlife viewing corridor. On the route Mammoth → Canyon via Northeast Entrance Rd."
+    },
+    {
+      "id": "loc_canyon_lodge",
+      "name": "Canyon Lodge & Cabins",
+      "address": "Canyon Lodge, 41 Clover Ln, Yellowstone National Park, WY 82190",
+      "phone": "(307) 344-7311",
+      "website": "https://secure.yellowstonenationalparklodges.com/profile/reservations",
+      "contact": "",
+      "notes": "Confirmation 18787381. Sun & Mon nights. Total $1222.22, deposit $553.89 paid. Login: snkgogators / Hu5a5!"
+    },
+    {
+      "id": "loc_inspiration_point",
+      "name": "Inspiration Point",
+      "address": "North Rim Dr, Canyon Village, Yellowstone NP, WY",
+      "phone": "",
+      "website": "",
+      "contact": "",
+      "notes": "North Rim of the Grand Canyon of the Yellowstone. ~12 min from Canyon Lodge."
+    },
+    {
+      "id": "loc_artist_point",
+      "name": "Artist Point",
+      "address": "South Rim Dr, Canyon Village, Yellowstone NP, WY",
+      "phone": "",
+      "website": "",
+      "contact": "",
+      "notes": "South Rim overlook. Trail to Point Sublime: 2.7 miles RT, 1.5–2 hours."
+    },
+    {
+      "id": "loc_hayden_valley",
+      "name": "Hayden Valley",
+      "address": "Hayden Valley, Yellowstone National Park, WY",
+      "phone": "",
+      "website": "",
+      "contact": "",
+      "notes": "Alum Creek, Dragon's Mouth Spring, Mud Volcano, Fishing Bridge — ~30 min from Canyon Lodge."
+    },
+    {
+      "id": "loc_ribbon_lake",
+      "name": "Ribbon Lake",
+      "address": "Canyon Village area, Yellowstone National Park, WY",
+      "phone": "",
+      "website": "",
+      "contact": "",
+      "notes": "Hike from Artist Point area."
+    },
+    {
+      "id": "loc_colter_bay",
+      "name": "Colter Bay Village",
+      "address": "Colter Bay Village, Grand Teton National Park, WY",
+      "phone": "(307) 543-3100",
+      "website": "",
+      "contact": "",
+      "notes": "Jackson Lake area. Breakfast/coffee stop option."
+    },
+    {
+      "id": "loc_signal_mountain_lodge",
+      "name": "Signal Mountain Lodge",
+      "address": "Signal Mountain Lodge, Grand Teton National Park, WY 83013",
+      "phone": "877-841-1076",
+      "website": "https://reservations.ahlsmsworld.com/SignalMountain/Check-Out/Confirmation",
+      "contact": "",
+      "notes": "Confirmation 86245F. Itinerary 8000602U1. Wed & Thu nights. $647 deposit paid, rest at check-in."
+    },
+    {
+      "id": "loc_schwabacher_landing",
+      "name": "Schwabacher Landing",
+      "address": "Schwabacher Rd, Moose, WY 83012",
+      "phone": "",
+      "website": "",
+      "contact": "",
+      "notes": "Classic sunrise reflection shots of Tetons. ~25 min from Signal Mountain Lodge."
+    },
+    {
+      "id": "loc_taggart_lake",
+      "name": "Taggart Lake Trailhead",
+      "address": "Teton Park Rd, Moose, WY 83012",
+      "phone": "",
+      "website": "",
+      "contact": "",
+      "notes": "3 miles round trip, ~2 hours."
+    },
+    {
+      "id": "loc_mormon_row",
+      "name": "Mormon Row Historic District",
+      "address": "Mormon Row Rd, Moose, WY 83012",
+      "phone": "",
+      "website": "",
+      "contact": "",
+      "notes": "Historic barns with Teton backdrop. Great sunrise spot. ~25 min from Signal Mountain Lodge."
+    },
+    {
+      "id": "loc_jenny_lake",
+      "name": "Jenny Lake",
+      "address": "Jenny Lake Visitor Center, Grand Teton NP, WY",
+      "phone": "(307) 739-3392",
+      "website": "",
+      "contact": "",
+      "notes": "Jenny Lake Overlook, Cascade Canyon Turnout, Teton sign, Mount Moran Turnout. 15 min from Signal Mountain Lodge."
+    },
+    {
+      "id": "loc_jackson_wy",
+      "name": "Jackson, WY",
+      "address": "Jackson, WY 83001",
+      "phone": "",
+      "website": "",
+      "contact": "",
+      "notes": "Town Square area. 35 min from Jenny Lake."
+    },
+    {
+      "id": "loc_mountain_modern_motel",
+      "name": "Mountain Modern Motel",
+      "address": "380 W Broadway Ave, Jackson, WY 83001",
+      "phone": "+1 (307) 733-4340",
+      "website": "",
+      "contact": "",
+      "notes": "Confirmation 912256534. Tue & Wed nights. Paid $535.73 online."
+    },
+    {
+      "id": "loc_grand_teton_brewing",
+      "name": "Grand Teton Brewing",
+      "address": "430 Old Jackson Hwy, Victor, ID 83455",
+      "phone": "(208) 787-9000",
+      "website": "https://grandtetonbrewing.com",
+      "contact": "",
+      "notes": "Open noon–8pm. 30 min from Jackson (over Teton Pass)."
+    },
+    {
+      "id": "loc_snake_river_brewing",
+      "name": "Snake River Brewing",
+      "address": "265 S Millward St, Jackson, WY 83001",
+      "phone": "(307) 739-2337",
+      "website": "https://snakeriverbrewing.com",
+      "contact": "",
+      "notes": "In Jackson. Open till 10pm."
+    },
+    {
+      "id": "loc_teton_village",
+      "name": "Teton Village",
+      "address": "Teton Village, WY 83025",
+      "phone": "",
+      "website": "",
+      "contact": "",
+      "notes": "Skip if running behind on Tetons scenic drive."
+    },
+    {
+      "id": "loc_old_faithful_inn",
+      "name": "Old Faithful Inn",
+      "address": "3200 Old Faithful Inn Rd, Yellowstone National Park, WY 82190",
+      "phone": "(307) 344-7365",
+      "website": "https://www.yellowstonenationalparklodges.com/lodgings/hotel/old-faithful-inn/",
+      "contact": "(307) 344-7311",
+      "notes": "Confirmation 18787451. Fri night. Paid $714.11 in full. Dinner: check inn for cancellations, Snow Lodge Obsidian Dining Room, Geyser Grill, Lodge Cafeteria, Bear Paw Deli."
+    },
+    {
+      "id": "loc_old_faithful",
+      "name": "Old Faithful Geyser",
+      "address": "Old Faithful, Yellowstone National Park, WY",
+      "phone": "",
+      "website": "",
+      "contact": "",
+      "notes": "Short walk from the Inn. Boardwalk tour 1.5 miles."
+    },
+    {
+      "id": "loc_grand_prismatic",
+      "name": "Grand Prismatic Spring",
+      "address": "Midway Geyser Basin, Yellowstone National Park, WY",
+      "phone": "",
+      "website": "",
+      "contact": "",
+      "notes": "~5 miles north of Old Faithful Inn. Overlook trail: 1.5 miles RT, 1 hour. Also Firehole River Bridge, Turquoise Pool, Fountain Paint Pots."
+    },
+    {
+      "id": "loc_fairy_falls",
+      "name": "Fairy Falls Trailhead",
+      "address": "Fountain Flat Dr, Yellowstone National Park, WY",
+      "phone": "",
+      "website": "",
+      "contact": "",
+      "notes": "4.8 miles RT total. Includes Grand Prismatic Overlook (1.5 mi). Extra section above Imperial Geyser is worth it."
+    },
+    {
+      "id": "loc_lone_star_geyser",
+      "name": "Lone Star Geyser",
+      "address": "Old Faithful area, Yellowstone National Park, WY",
+      "phone": "",
+      "website": "",
+      "contact": "",
+      "notes": "5 miles RT. Walk along the river. Check eruption timetable."
+    },
+    {
+      "id": "loc_grizzly_wolf_center",
+      "name": "Grizzly & Wolf Discovery Center",
+      "address": "201 S Canyon St, West Yellowstone, MT 59758",
+      "phone": "(406) 646-7001",
+      "website": "https://www.grizzlydiscoveryctr.org",
+      "contact": "",
+      "notes": "90 min each way from Canyon area — probably too far."
+    }
+  ],
+  "distances": [
+    {
+      "fromLocationId": "loc_bozeman_airport",
+      "toLocationId": "loc_under_canvas",
+      "miles": 80,
+      "time": "1 hr 30 min",
+      "mode": "drive",
+      "notes": ""
+    },
+    {
+      "fromLocationId": "loc_under_canvas",
+      "toLocationId": "loc_yellowstone_hot_springs",
+      "miles": null,
+      "time": "40 min",
+      "mode": "drive",
+      "notes": "Per reference note"
+    },
+    {
+      "fromLocationId": "loc_yellowstone_hot_springs",
+      "toLocationId": "loc_hells_roarin",
+      "miles": null,
+      "time": "45 min",
+      "mode": "drive",
+      "notes": "Per reference note"
+    },
+    {
+      "fromLocationId": "loc_under_canvas",
+      "toLocationId": "loc_hells_roarin",
+      "miles": null,
+      "time": "1 hr 30 min",
+      "mode": "drive",
+      "notes": "Per itinerary note"
+    },
+    {
+      "fromLocationId": "loc_dreamcatcher_tipi",
+      "toLocationId": "loc_mammoth_hot_springs",
+      "miles": 5,
+      "time": "25 min",
+      "mode": "drive",
+      "notes": "Per itinerary note"
+    },
+    {
+      "fromLocationId": "loc_mammoth_hot_springs",
+      "toLocationId": "loc_lamar_valley",
+      "miles": 18,
+      "time": "30 min",
+      "mode": "drive",
+      "notes": "To the start of the valley"
+    },
+    {
+      "fromLocationId": "loc_mammoth_hot_springs",
+      "toLocationId": "loc_canyon_lodge",
+      "miles": 55,
+      "time": "1 hr 5 min",
+      "mode": "drive",
+      "notes": "Direct via Grand Loop (without stops). Via Lamar Valley adds 10 miles."
+    },
+    {
+      "fromLocationId": "loc_canyon_lodge",
+      "toLocationId": "loc_artist_point",
+      "miles": 2,
+      "time": "5 min",
+      "mode": "drive",
+      "notes": ""
+    },
+    {
+      "fromLocationId": "loc_canyon_lodge",
+      "toLocationId": "loc_inspiration_point",
+      "miles": 2,
+      "time": "5 min",
+      "mode": "drive",
+      "notes": ""
+    },
+    {
+      "fromLocationId": "loc_canyon_lodge",
+      "toLocationId": "loc_hayden_valley",
+      "miles": 10,
+      "time": "20 min",
+      "mode": "drive",
+      "notes": "Dragon's Mouth, Mud Volcano, Fishing Bridge continue south"
+    },
+    {
+      "fromLocationId": "loc_canyon_lodge",
+      "toLocationId": "loc_signal_mountain_lodge",
+      "miles": 57,
+      "time": "2 hrs 5 min",
+      "mode": "drive",
+      "notes": "Per reference note"
+    },
+    {
+      "fromLocationId": "loc_signal_mountain_lodge",
+      "toLocationId": "loc_colter_bay",
+      "miles": 9,
+      "time": "20 min",
+      "mode": "drive",
+      "notes": ""
+    },
+    {
+      "fromLocationId": "loc_signal_mountain_lodge",
+      "toLocationId": "loc_jenny_lake",
+      "miles": 11,
+      "time": "15 min",
+      "mode": "drive",
+      "notes": "Per reference note"
+    },
+    {
+      "fromLocationId": "loc_signal_mountain_lodge",
+      "toLocationId": "loc_schwabacher_landing",
+      "miles": 12,
+      "time": "25 min",
+      "mode": "drive",
+      "notes": ""
+    },
+    {
+      "fromLocationId": "loc_signal_mountain_lodge",
+      "toLocationId": "loc_mormon_row",
+      "miles": 14,
+      "time": "25 min",
+      "mode": "drive",
+      "notes": ""
+    },
+    {
+      "fromLocationId": "loc_signal_mountain_lodge",
+      "toLocationId": "loc_old_faithful_inn",
+      "miles": 65,
+      "time": "1 hr 45 min",
+      "mode": "drive",
+      "notes": "Per reference note"
+    },
+    {
+      "fromLocationId": "loc_schwabacher_landing",
+      "toLocationId": "loc_taggart_lake",
+      "miles": 7,
+      "time": "15 min",
+      "mode": "drive",
+      "notes": ""
+    },
+    {
+      "fromLocationId": "loc_jenny_lake",
+      "toLocationId": "loc_jackson_wy",
+      "miles": 21,
+      "time": "35 min",
+      "mode": "drive",
+      "notes": "Per reference note"
+    },
+    {
+      "fromLocationId": "loc_colter_bay",
+      "toLocationId": "loc_jackson_wy",
+      "miles": 29,
+      "time": "1 hr",
+      "mode": "drive",
+      "notes": "Per itinerary note"
+    },
+    {
+      "fromLocationId": "loc_jackson_wy",
+      "toLocationId": "loc_mountain_modern_motel",
+      "miles": null,
+      "time": "5 min",
+      "mode": "walk",
+      "notes": "Short walk from Town Square"
+    },
+    {
+      "fromLocationId": "loc_jackson_wy",
+      "toLocationId": "loc_snake_river_brewing",
+      "miles": null,
+      "time": "5 min",
+      "mode": "walk",
+      "notes": ""
+    },
+    {
+      "fromLocationId": "loc_jackson_wy",
+      "toLocationId": "loc_grand_teton_brewing",
+      "miles": 25,
+      "time": "30 min",
+      "mode": "drive",
+      "notes": "Per reference note. Over Teton Pass."
+    },
+    {
+      "fromLocationId": "loc_old_faithful_inn",
+      "toLocationId": "loc_old_faithful",
+      "miles": null,
+      "time": "5 min",
+      "mode": "walk",
+      "notes": "Short boardwalk from the Inn"
+    },
+    {
+      "fromLocationId": "loc_old_faithful_inn",
+      "toLocationId": "loc_grand_prismatic",
+      "miles": 5,
+      "time": "10 min",
+      "mode": "drive",
+      "notes": "North of the Inn via Grand Loop Rd"
+    },
+    {
+      "fromLocationId": "loc_old_faithful_inn",
+      "toLocationId": "loc_fairy_falls",
+      "miles": 6,
+      "time": "10 min",
+      "mode": "drive",
+      "notes": "Trailhead on Fountain Flat Dr"
+    },
+    {
+      "fromLocationId": "loc_old_faithful_inn",
+      "toLocationId": "loc_lone_star_geyser",
+      "miles": 2.4,
+      "time": "45 min",
+      "mode": "walk",
+      "notes": "One way. Total hike 5 miles RT."
+    },
+    {
+      "fromLocationId": "loc_old_faithful_inn",
+      "toLocationId": "loc_bozeman_airport",
+      "miles": 140,
+      "time": "2 hrs 35 min",
+      "mode": "drive",
+      "notes": "Per reference note. Via West Yellowstone / Big Sky."
+    },
+    {
+      "fromLocationId": "loc_mormon_row",
+      "toLocationId": "loc_jenny_lake",
+      "miles": 10,
+      "time": "20 min",
+      "mode": "drive",
+      "notes": ""
+    }
+  ],
   "bookings": [
     {
       "name": "Steve — Delta Flight to Bozeman",
@@ -246,6 +739,7 @@
           "contact": "",
           "duration": "",
           "bookingRef": null,
+          "locationId": "loc_bozeman_airport",
           "sortOrder": 0,
           "showOnCalendar": false,
           "facts": []
@@ -261,17 +755,12 @@
           "contact": "(833) 886-0855",
           "duration": "",
           "bookingRef": null,
+          "locationId": "loc_alamo_bozeman",
           "sortOrder": 1,
           "showOnCalendar": false,
           "facts": [
-            {
-              "label": "Itinerary #",
-              "value": "72895914206211"
-            },
-            {
-              "label": "Address",
-              "value": "5 Gallatin Field Rd, Belgrade, MT 59714"
-            }
+            { "label": "Itinerary #", "value": "72895914206211" },
+            { "label": "Address", "value": "5 Gallatin Field Rd, Belgrade, MT 59714" }
           ]
         },
         {
@@ -285,6 +774,7 @@
           "contact": "",
           "duration": "1 hour",
           "bookingRef": null,
+          "locationId": "loc_mountains_walking_brewery",
           "sortOrder": 2,
           "showOnCalendar": false,
           "facts": []
@@ -300,6 +790,7 @@
           "contact": "",
           "duration": "20 min",
           "bookingRef": null,
+          "locationId": null,
           "sortOrder": 3,
           "showOnCalendar": false,
           "facts": []
@@ -315,13 +806,11 @@
           "contact": "+18884961148",
           "duration": "",
           "bookingRef": null,
+          "locationId": "loc_under_canvas",
           "sortOrder": 4,
           "showOnCalendar": false,
           "facts": [
-            {
-              "label": "Address",
-              "value": "139 Pine Creek Rd, Livingston, MT 59047"
-            }
+            { "label": "Address", "value": "139 Pine Creek Rd, Livingston, MT 59047" }
           ]
         }
       ]
@@ -343,6 +832,7 @@
           "contact": "",
           "duration": "",
           "bookingRef": null,
+          "locationId": null,
           "sortOrder": 0,
           "showOnCalendar": false,
           "facts": []
@@ -358,13 +848,11 @@
           "contact": "",
           "duration": "2 hours",
           "bookingRef": null,
+          "locationId": "loc_hells_roarin",
           "sortOrder": 1,
           "showOnCalendar": false,
           "facts": [
-            {
-              "label": "",
-              "value": "https://www.hellsaroarinoutfitter.com/summer/yellowstone-horseback-riding/"
-            }
+            { "label": "", "value": "https://www.hellsaroarinoutfitter.com/summer/yellowstone-horseback-riding/" }
           ]
         },
         {
@@ -378,13 +866,11 @@
           "contact": "",
           "duration": "",
           "bookingRef": null,
+          "locationId": "loc_yellowstone_hot_springs",
           "sortOrder": 2,
           "showOnCalendar": false,
           "facts": [
-            {
-              "label": "",
-              "value": "https://yellowstonehotspringsmt.com/"
-            }
+            { "label": "", "value": "https://yellowstonehotspringsmt.com/" }
           ]
         },
         {
@@ -398,13 +884,11 @@
           "contact": "(406) 848-9447 | info@DreamcatcherTipiHotel.com",
           "duration": "",
           "bookingRef": null,
+          "locationId": "loc_dreamcatcher_tipi",
           "sortOrder": 3,
           "showOnCalendar": false,
           "facts": [
-            {
-              "label": "Address",
-              "value": "20 Maiden Basin Dr, Gardiner, MT 59030"
-            }
+            { "label": "Address", "value": "20 Maiden Basin Dr, Gardiner, MT 59030" }
           ]
         }
       ]
@@ -426,6 +910,7 @@
           "contact": "",
           "duration": "",
           "bookingRef": null,
+          "locationId": null,
           "sortOrder": 0,
           "showOnCalendar": false,
           "facts": []
@@ -441,6 +926,7 @@
           "contact": "",
           "duration": "1.5 hours",
           "bookingRef": null,
+          "locationId": "loc_mammoth_hot_springs",
           "sortOrder": 1,
           "showOnCalendar": false,
           "facts": []
@@ -456,6 +942,7 @@
           "contact": "",
           "duration": "2 hours with stops",
           "bookingRef": null,
+          "locationId": null,
           "sortOrder": 2,
           "showOnCalendar": false,
           "facts": []
@@ -471,6 +958,7 @@
           "contact": "",
           "duration": "",
           "bookingRef": null,
+          "locationId": "loc_canyon_lodge",
           "sortOrder": 3,
           "showOnCalendar": false,
           "facts": []
@@ -486,6 +974,7 @@
           "contact": "",
           "duration": "3-4 hours",
           "bookingRef": null,
+          "locationId": "loc_inspiration_point",
           "sortOrder": 4,
           "showOnCalendar": false,
           "facts": []
@@ -501,6 +990,7 @@
           "contact": "",
           "duration": "",
           "bookingRef": null,
+          "locationId": "loc_hayden_valley",
           "sortOrder": 5,
           "showOnCalendar": false,
           "facts": []
@@ -516,17 +1006,12 @@
           "contact": "",
           "duration": "",
           "bookingRef": null,
+          "locationId": "loc_canyon_lodge",
           "sortOrder": 6,
           "showOnCalendar": false,
           "facts": [
-            {
-              "label": "Address",
-              "value": "Canyon Lodge, 41 Clover Ln, Yellowstone National Park, WY 82190"
-            },
-            {
-              "label": "Reservations",
-              "value": "https://secure.yellowstonenationalparklodges.com/profile/reservations"
-            }
+            { "label": "Address", "value": "Canyon Lodge, 41 Clover Ln, Yellowstone National Park, WY 82190" },
+            { "label": "Reservations", "value": "https://secure.yellowstonenationalparklodges.com/profile/reservations" }
           ]
         }
       ]
@@ -548,6 +1033,7 @@
           "contact": "",
           "duration": "1.5-2 hours",
           "bookingRef": null,
+          "locationId": "loc_artist_point",
           "sortOrder": 0,
           "showOnCalendar": false,
           "facts": []
@@ -563,6 +1049,7 @@
           "contact": "",
           "duration": "",
           "bookingRef": null,
+          "locationId": null,
           "sortOrder": 1,
           "showOnCalendar": false,
           "facts": []
@@ -578,6 +1065,7 @@
           "contact": "",
           "duration": "",
           "bookingRef": null,
+          "locationId": null,
           "sortOrder": 2,
           "showOnCalendar": false,
           "facts": []
@@ -593,6 +1081,7 @@
           "contact": "",
           "duration": "",
           "bookingRef": null,
+          "locationId": "loc_canyon_lodge",
           "sortOrder": 3,
           "showOnCalendar": false,
           "facts": []
@@ -616,6 +1105,7 @@
           "contact": "",
           "duration": "2 hours",
           "bookingRef": null,
+          "locationId": "loc_colter_bay",
           "sortOrder": 0,
           "showOnCalendar": false,
           "facts": []
@@ -631,6 +1121,7 @@
           "contact": "",
           "duration": "3 hours",
           "bookingRef": null,
+          "locationId": null,
           "sortOrder": 1,
           "showOnCalendar": false,
           "facts": []
@@ -646,6 +1137,7 @@
           "contact": "",
           "duration": "",
           "bookingRef": null,
+          "locationId": "loc_teton_village",
           "sortOrder": 2,
           "showOnCalendar": false,
           "facts": []
@@ -661,6 +1153,7 @@
           "contact": "",
           "duration": "",
           "bookingRef": null,
+          "locationId": "loc_jackson_wy",
           "sortOrder": 3,
           "showOnCalendar": false,
           "facts": []
@@ -676,6 +1169,7 @@
           "contact": "",
           "duration": "2 hours",
           "bookingRef": null,
+          "locationId": "loc_grand_teton_brewing",
           "sortOrder": 4,
           "showOnCalendar": false,
           "facts": []
@@ -691,6 +1185,7 @@
           "contact": "",
           "duration": "",
           "bookingRef": null,
+          "locationId": "loc_snake_river_brewing",
           "sortOrder": 5,
           "showOnCalendar": false,
           "facts": []
@@ -706,13 +1201,11 @@
           "contact": "+1 (307) 733-4340",
           "duration": "",
           "bookingRef": null,
+          "locationId": "loc_mountain_modern_motel",
           "sortOrder": 6,
           "showOnCalendar": false,
           "facts": [
-            {
-              "label": "Address",
-              "value": "380 W Broadway, Jackson, WY 83001"
-            }
+            { "label": "Address", "value": "380 W Broadway, Jackson, WY 83001" }
           ]
         }
       ]
@@ -734,6 +1227,7 @@
           "contact": "",
           "duration": "",
           "bookingRef": null,
+          "locationId": "loc_mormon_row",
           "sortOrder": 0,
           "showOnCalendar": false,
           "facts": []
@@ -749,6 +1243,7 @@
           "contact": "",
           "duration": "",
           "bookingRef": null,
+          "locationId": "loc_jenny_lake",
           "sortOrder": 1,
           "showOnCalendar": false,
           "facts": []
@@ -764,6 +1259,7 @@
           "contact": "",
           "duration": "",
           "bookingRef": null,
+          "locationId": null,
           "sortOrder": 2,
           "showOnCalendar": false,
           "facts": []
@@ -779,6 +1275,7 @@
           "contact": "",
           "duration": "",
           "bookingRef": null,
+          "locationId": "loc_colter_bay",
           "sortOrder": 3,
           "showOnCalendar": false,
           "facts": []
@@ -794,17 +1291,12 @@
           "contact": "877-841-1076",
           "duration": "",
           "bookingRef": null,
+          "locationId": "loc_signal_mountain_lodge",
           "sortOrder": 4,
           "showOnCalendar": false,
           "facts": [
-            {
-              "label": "Itinerary #",
-              "value": "8000602U1"
-            },
-            {
-              "label": "Reservations",
-              "value": "https://reservations.ahlsmsworld.com/SignalMountain/Check-Out/Confirmation"
-            }
+            { "label": "Itinerary #", "value": "8000602U1" },
+            { "label": "Reservations", "value": "https://reservations.ahlsmsworld.com/SignalMountain/Check-Out/Confirmation" }
           ]
         }
       ]
@@ -826,6 +1318,7 @@
           "contact": "",
           "duration": "",
           "bookingRef": null,
+          "locationId": "loc_schwabacher_landing",
           "sortOrder": 0,
           "showOnCalendar": false,
           "facts": []
@@ -841,6 +1334,7 @@
           "contact": "",
           "duration": "2 hours",
           "bookingRef": null,
+          "locationId": "loc_taggart_lake",
           "sortOrder": 1,
           "showOnCalendar": false,
           "facts": []
@@ -856,6 +1350,7 @@
           "contact": "",
           "duration": "",
           "bookingRef": null,
+          "locationId": null,
           "sortOrder": 2,
           "showOnCalendar": false,
           "facts": []
@@ -871,6 +1366,7 @@
           "contact": "",
           "duration": "",
           "bookingRef": null,
+          "locationId": "loc_jackson_wy",
           "sortOrder": 3,
           "showOnCalendar": false,
           "facts": []
@@ -886,6 +1382,7 @@
           "contact": "",
           "duration": "",
           "bookingRef": null,
+          "locationId": null,
           "sortOrder": 4,
           "showOnCalendar": false,
           "facts": []
@@ -901,6 +1398,7 @@
           "contact": "",
           "duration": "",
           "bookingRef": null,
+          "locationId": "loc_signal_mountain_lodge",
           "sortOrder": 5,
           "showOnCalendar": false,
           "facts": []
@@ -924,6 +1422,7 @@
           "contact": "",
           "duration": "",
           "bookingRef": null,
+          "locationId": null,
           "sortOrder": 0,
           "showOnCalendar": false,
           "facts": []
@@ -939,13 +1438,11 @@
           "contact": "(307) 344-7311",
           "duration": "2 hours",
           "bookingRef": null,
+          "locationId": "loc_old_faithful_inn",
           "sortOrder": 1,
           "showOnCalendar": false,
           "facts": [
-            {
-              "label": "Address",
-              "value": "3200 Old Faithful Inn Rd, Yellowstone National Park, WY 82190"
-            }
+            { "label": "Address", "value": "3200 Old Faithful Inn Rd, Yellowstone National Park, WY 82190" }
           ]
         },
         {
@@ -959,6 +1456,7 @@
           "contact": "",
           "duration": "2-3 hours",
           "bookingRef": null,
+          "locationId": "loc_old_faithful",
           "sortOrder": 2,
           "showOnCalendar": false,
           "facts": []
@@ -974,6 +1472,7 @@
           "contact": "",
           "duration": "2-3 hours",
           "bookingRef": null,
+          "locationId": "loc_grand_prismatic",
           "sortOrder": 3,
           "showOnCalendar": false,
           "facts": []
@@ -989,6 +1488,7 @@
           "contact": "",
           "duration": "3 hours",
           "bookingRef": null,
+          "locationId": "loc_fairy_falls",
           "sortOrder": 4,
           "showOnCalendar": false,
           "facts": []
@@ -1004,6 +1504,7 @@
           "contact": "(307) 344-7311",
           "duration": "",
           "bookingRef": null,
+          "locationId": "loc_old_faithful_inn",
           "sortOrder": 5,
           "showOnCalendar": false,
           "facts": []
@@ -1027,6 +1528,7 @@
           "contact": "",
           "duration": "",
           "bookingRef": null,
+          "locationId": "loc_grand_prismatic",
           "sortOrder": 0,
           "showOnCalendar": false,
           "facts": []
@@ -1042,6 +1544,7 @@
           "contact": "",
           "duration": "3+ hours",
           "bookingRef": null,
+          "locationId": null,
           "sortOrder": 1,
           "showOnCalendar": false,
           "facts": []
@@ -1057,6 +1560,7 @@
           "contact": "",
           "duration": "",
           "bookingRef": null,
+          "locationId": "loc_alamo_bozeman",
           "sortOrder": 2,
           "showOnCalendar": false,
           "facts": []
@@ -1072,6 +1576,7 @@
           "contact": "",
           "duration": "",
           "bookingRef": null,
+          "locationId": "loc_bozeman_airport",
           "sortOrder": 3,
           "showOnCalendar": false,
           "facts": []
@@ -1087,6 +1592,7 @@
           "contact": "",
           "duration": "",
           "bookingRef": null,
+          "locationId": "loc_bozeman_airport",
           "sortOrder": 4,
           "showOnCalendar": false,
           "facts": []
@@ -1095,39 +1601,13 @@
     }
   ],
   "todoItems": [
-    {
-      "text": "Download offline maps",
-      "done": false,
-      "notes": "",
-      "sortOrder": 0
-    },
-    {
-      "text": "Find where gas stations are",
-      "done": false,
-      "notes": "",
-      "sortOrder": 1
-    },
-    {
-      "text": "Get snacks in Bozeman",
-      "done": false,
-      "notes": "",
-      "sortOrder": 2
-    },
-    {
-      "text": "Get big pack of water bottles (2?)",
-      "done": false,
-      "notes": "",
-      "sortOrder": 3
-    }
+    { "text": "Download offline maps", "done": false, "notes": "", "sortOrder": 0 },
+    { "text": "Find where gas stations are", "done": false, "notes": "", "sortOrder": 1 },
+    { "text": "Get snacks in Bozeman", "done": false, "notes": "", "sortOrder": 2 },
+    { "text": "Get big pack of water bottles (2?)", "done": false, "notes": "", "sortOrder": 3 }
   ],
   "packingItems": [
-    {
-      "text": "Cooler",
-      "done": false,
-      "notes": "",
-      "category": "Gear / Other",
-      "sortOrder": 0
-    }
+    { "text": "Cooler", "done": false, "notes": "", "category": "Gear / Other", "sortOrder": 0 }
   ],
   "planningGroups": [
     {
@@ -1138,12 +1618,14 @@
           "title": "Ribbon Lake hike",
           "status": "idea",
           "notes": "Possible if we finish everything else around Canyon Village",
+          "locationId": "loc_ribbon_lake",
           "sortOrder": 0
         },
         {
           "title": "Grizzly and Wolf Discovery Center — West Yellowstone",
           "status": "idea",
           "notes": "90 min each way from Canyon area. Probably too far.",
+          "locationId": "loc_grizzly_wolf_center",
           "sortOrder": 1
         }
       ]
@@ -1156,12 +1638,14 @@
           "title": "Lone Star Geyser hike",
           "status": "idea",
           "notes": "5 mile round trip. Pretty walk along the river. Check eruption timetable.",
+          "locationId": "loc_lone_star_geyser",
           "sortOrder": 0
         },
         {
           "title": "Observation Peak trail + Solitary Geyser trail",
           "status": "idea",
           "notes": "Can see Old Faithful erupting from the trail. Lion Geyser nearby.",
+          "locationId": null,
           "sortOrder": 1
         },
         {
@@ -1169,6 +1653,7 @@
           "status": "idea",
           "notes": "4.8 miles RT total. Extra section above Imperial Geyser is worth the climb per other trip reports.",
           "duration": "3 hours",
+          "locationId": "loc_fairy_falls",
           "sortOrder": 2
         }
       ]
@@ -1181,18 +1666,21 @@
           "title": "Grand Teton Brewing — Victor, Idaho",
           "status": "maybe",
           "notes": "Opens at noon, closes 8pm. 40 min from Jackson one way. ~2 hours round trip.",
+          "locationId": "loc_grand_teton_brewing",
           "sortOrder": 0
         },
         {
           "title": "Snake River Brewing — Jackson",
           "status": "maybe",
           "notes": "Dinner till 10pm. In town.",
+          "locationId": "loc_snake_river_brewing",
           "sortOrder": 1
         },
         {
           "title": "Teton Village",
           "status": "idea",
           "notes": "Skip if running behind on the Tetons scenic drive",
+          "locationId": "loc_teton_village",
           "sortOrder": 2
         }
       ]
@@ -1205,6 +1693,7 @@
           "title": "Canoe — lake, river, or canyon",
           "status": "idea",
           "notes": "Need to research options and availability",
+          "locationId": null,
           "sortOrder": 0
         },
         {
@@ -1213,12 +1702,10 @@
           "notes": "~$600",
           "cost": 600,
           "costNote": "",
+          "locationId": null,
           "sortOrder": 1,
           "facts": [
-            {
-              "label": "Rates",
-              "value": "https://grgjh.com/rates/"
-            }
+            { "label": "Rates", "value": "https://grgjh.com/rates/" }
           ]
         }
       ]
@@ -1244,26 +1731,6 @@
       "title": "Google Maps Trip Map",
       "text": "https://www.google.com/maps/d/edit?mid=1JVZdxijIPFR9lHx-KZUmbyJCroSsyRM&ll=44.616593503408794%2C-110.43573546478261&z=16",
       "sortOrder": 3
-    },
-    {
-      "title": "Grand Teton Evening Spots",
-      "text": "Evenings:\n- Willow Flats Overlook\n- Jackson Lake Dam — sunset picture\n\nSunrises:\n- Schwabacher Landing\n- Barns (Mormon Row)\n- Snake River — sunset",
-      "sortOrder": 4
-    },
-    {
-      "title": "Tips from Others' Trips",
-      "text": "- Five mile trail hike to Lone Star Geyser (eruption missed by 20 min, but very pretty walk along the river — check if timetable exists)\n- Old Faithful area: erupted at 0907, hiked Observation Peak trail and Solitary Geyser trail, saw Old Faithful again at 1035 and Lion Geyser at 1038. Beehive Geyser erupts every 10hrs to 5 days.\n- Grand Prismatic overlook with 9 mile trail run to Fairy Falls, Imperial Geyser through Fairy Meadows — extra section above Imperial Geyser worth the climb. Bear sightings on the drive.\n- Day 1 reference: Yellowstone Lake, Grand Canyon of the Yellowstone — North Rim Trail & Inspiration Point, South Rim Trail Artist Point to Sublime Point, Sulphur Cauldron, Mud Volcano and Dragon's Breath Spring.",
-      "sortOrder": 5
-    },
-    {
-      "title": "Possible Extra Activities",
-      "text": "- Grizzly and Wolf Discovery Center in West Yellowstone (90 min each way from Day 2 area)\n- Canoe (lake, river, or canyon?)\n- Covered Wagon experience: https://grgjh.com/rates/",
-      "sortOrder": 6
-    },
-    {
-      "title": "Reference Videos",
-      "text": "https://www.youtube.com/watch?v=sKSwpd3VFzE",
-      "sortOrder": 7
     }
   ]
 }

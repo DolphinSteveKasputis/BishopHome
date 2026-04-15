@@ -3663,7 +3663,110 @@ async function _lpExecuteImport() {
         const projectRef = await lpCol().add(projectDoc);
         const projectId = projectRef.id;
 
-        // 2. Create bookings — track IDs by sortOrder for bookingRef linking
+        // 2. Import locations — check for existing by name to avoid dupes, build id map
+        const locationIdMap = {}; // json_id → { firestoreId, name, address, phone, website, contact, notes }
+        if (d.locations && d.locations.length > 0) {
+            prog.innerHTML = `<p>Importing ${d.locations.length} locations…</p>`;
+
+            // Fetch existing global locations (for dedup by name)
+            const existingSnap = await lpLocationsCol().get();
+            const existingByName = {};
+            existingSnap.forEach(doc => {
+                const n = (doc.data().name || '').trim().toLowerCase();
+                if (n) existingByName[n] = { id: doc.id, ...doc.data() };
+            });
+
+            const projLocBatch = firebase.firestore().batch();
+
+            for (const loc of d.locations) {
+                const nameKey = (loc.name || '').trim().toLowerCase();
+                let firestoreId;
+                let locData = {
+                    name:    loc.name    || '',
+                    address: loc.address || '',
+                    phone:   loc.phone   || '',
+                    website: loc.website || '',
+                    contact: loc.contact || '',
+                    notes:   loc.notes   || ''
+                };
+
+                if (existingByName[nameKey]) {
+                    // Reuse existing global location
+                    firestoreId = existingByName[nameKey].id;
+                    locData = { ...existingByName[nameKey], id: undefined };
+                } else {
+                    // Create new global location
+                    const newRef = await lpLocationsCol().add({
+                        ...locData,
+                        createdAt: now
+                    });
+                    firestoreId = newRef.id;
+                    existingByName[nameKey] = { id: firestoreId, ...locData };
+                }
+
+                locationIdMap[loc.id] = { firestoreId, ...locData };
+
+                // Link to project via projectLocations subcollection
+                const projLocRef = lpSub(projectId, 'projectLocations').doc();
+                projLocBatch.set(projLocRef, {
+                    locationId: firestoreId,
+                    name:    locData.name    || '',
+                    address: locData.address || '',
+                    phone:   locData.phone   || '',
+                    website: locData.website || '',
+                    contact: locData.contact || '',
+                    notes:   locData.notes   || '',
+                    addedAt: now
+                });
+
+                // Map json_id to the projectLocations doc id for item wiring
+                locationIdMap[loc.id].projLocRef = projLocRef.id;
+            }
+
+            await projLocBatch.commit();
+        }
+
+        // 3. Import distances — map json IDs to global Firestore IDs, skip if pair already exists
+        if (d.distances && d.distances.length > 0) {
+            prog.innerHTML = `<p>Importing ${d.distances.length} distances…</p>`;
+
+            // Fetch existing distances for dedup
+            const existingDistSnap = await lpDistancesCol().get();
+            const existingPairs = new Set();
+            existingDistSnap.forEach(doc => {
+                const { fromLocationId, toLocationId } = doc.data();
+                if (fromLocationId && toLocationId) {
+                    existingPairs.add(`${fromLocationId}|${toLocationId}`);
+                }
+            });
+
+            const distBatch = firebase.firestore().batch();
+            for (const dist of d.distances) {
+                const fromEntry = locationIdMap[dist.fromLocationId];
+                const toEntry   = locationIdMap[dist.toLocationId];
+                if (!fromEntry || !toEntry) continue; // skip unmapped
+
+                const fromId = fromEntry.firestoreId;
+                const toId   = toEntry.firestoreId;
+                const pairKey = `${fromId}|${toId}`;
+                if (existingPairs.has(pairKey)) continue; // already exists
+
+                const distRef = lpDistancesCol().doc();
+                distBatch.set(distRef, {
+                    fromLocationId: fromId,
+                    toLocationId:   toId,
+                    time:   dist.time  || '',
+                    miles:  dist.miles != null ? dist.miles : null,
+                    mode:   dist.mode  || 'drive',
+                    notes:  dist.notes || '',
+                    createdAt: now
+                });
+                existingPairs.add(pairKey);
+            }
+            await distBatch.commit();
+        }
+
+        // 4. Create bookings — track IDs by sortOrder for bookingRef linking
         const bookingIdMap = {}; // confirmation# → Firestore doc ID
         if (d.bookings && d.bookings.length > 0) {
             prog.innerHTML = `<p>Creating ${d.bookings.length} bookings…</p>`;
@@ -3709,6 +3812,11 @@ async function _lpExecuteImport() {
                     if (!bookingRef && item.confirmation && bookingIdMap[item.confirmation]) {
                         bookingRef = bookingIdMap[item.confirmation];
                     }
+                    // Map json locationId → projectLocations doc id
+                    let locationId = null;
+                    if (item.locationId && locationIdMap[item.locationId]) {
+                        locationId = locationIdMap[item.locationId].projLocRef || null;
+                    }
                     return {
                         id: _lpItemId(),
                         title: item.title || '',
@@ -3722,6 +3830,7 @@ async function _lpExecuteImport() {
                         contact: item.contact || '',
                         duration: item.duration || '',
                         bookingRef: bookingRef,
+                        locationId: locationId,
                         sortOrder: item.sortOrder || 0,
                         showOnCalendar: item.showOnCalendar || false
                     };
@@ -3776,22 +3885,30 @@ async function _lpExecuteImport() {
             const batch = firebase.firestore().batch();
             d.planningGroups.forEach(g => {
                 const ref = lpSub(projectId, 'planningGroups').doc();
-                const items = (g.items || []).map(item => ({
-                    id: _lpItemId(),
-                    title: item.title || '',
-                    time: item.time || '',
-                    status: item.status || 'idea',
-                    cost: item.cost != null ? item.cost : null,
-                    costNote: item.costNote || '',
-                    notes: item.notes || '',
-                    facts: item.facts || [],
-                    confirmation: item.confirmation || '',
-                    contact: item.contact || '',
-                    duration: item.duration || '',
-                    bookingRef: null,
-                    sortOrder: item.sortOrder || 0,
-                    showOnCalendar: false
-                }));
+                const items = (g.items || []).map(item => {
+                    // Map json locationId → projectLocations doc id
+                    let locationId = null;
+                    if (item.locationId && locationIdMap[item.locationId]) {
+                        locationId = locationIdMap[item.locationId].projLocRef || null;
+                    }
+                    return {
+                        id: _lpItemId(),
+                        title: item.title || '',
+                        time: item.time || '',
+                        status: item.status || 'idea',
+                        cost: item.cost != null ? item.cost : null,
+                        costNote: item.costNote || '',
+                        notes: item.notes || '',
+                        facts: item.facts || [],
+                        confirmation: item.confirmation || '',
+                        contact: item.contact || '',
+                        duration: item.duration || '',
+                        bookingRef: null,
+                        locationId: locationId,
+                        sortOrder: item.sortOrder || 0,
+                        showOnCalendar: false
+                    };
+                });
                 batch.set(ref, {
                     name: g.name || '',
                     sortOrder: g.sortOrder || 0,

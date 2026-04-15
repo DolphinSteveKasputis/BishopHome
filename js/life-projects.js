@@ -444,6 +444,9 @@ let _lpCurrentProjectId = null;
 /** Locations linked to this project [{id, locationId, name, address, phone, website, contact, notes}] */
 let _lpLocations = [];
 
+/** Distances for this project [{id, fromLocationId, toLocationId, miles, time, mode, notes}] — global collection filtered to project's locations */
+let _lpDistances = [];
+
 async function loadLifeProjectDetailPage(projectId) {
     _lpCurrentProjectId = projectId;
     const page = document.getElementById('page-life-project');
@@ -660,11 +663,58 @@ function _lpRenderDetailPage(page) {
                 </div>
             </div>
 
+            <!-- Add/Edit Distance modal -->
+            <div class="modal-overlay" id="lpDistanceModal">
+                <div class="modal" style="max-width:420px;">
+                    <h3>Distance</h3>
+                    <div style="display:flex; flex-direction:column; gap:10px;">
+                        <div>
+                            <label class="form-label">From</label>
+                            <div id="lpDistFromLabel" style="font-weight:600; padding:6px 0; color:#1e40af;"></div>
+                            <input type="hidden" id="lpDistFromHidden">
+                        </div>
+                        <div>
+                            <label class="form-label">To *</label>
+                            <select id="lpDistTo" class="form-control">
+                                <option value="">— Select destination —</option>
+                            </select>
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <div style="flex:1;">
+                                <label class="form-label">Time</label>
+                                <input type="text" id="lpDistTime" class="form-control" placeholder="e.g. 25 min">
+                            </div>
+                            <div style="flex:1;">
+                                <label class="form-label">Miles</label>
+                                <input type="number" id="lpDistMiles" class="form-control" placeholder="e.g. 18" min="0" step="0.1">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="form-label">Mode</label>
+                            <select id="lpDistMode" class="form-control">
+                                <option value="drive">🚗 Drive</option>
+                                <option value="walk">🚶 Walk</option>
+                                <option value="bike">🚲 Bike</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">Notes</label>
+                            <input type="text" id="lpDistNotes" class="form-control" placeholder="Optional">
+                        </div>
+                    </div>
+                    <div class="modal-actions" style="justify-content:flex-end;">
+                        <button class="btn" onclick="closeModal('lpDistanceModal')">Cancel</button>
+                        <button class="btn btn-primary" id="lpDistSaveBtn" onclick="_lpSaveDistance()">Save</button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Accordion sections -->
             <div id="lpAccordion">
                 ${_lpAccordionSection('tripInfo', '📍 Trip Info', '', true)}
                 ${_lpAccordionSection('people', '👥 People', _lpPeopleSummary(p), false)}
                 ${travel ? '' : _lpAccordionSection('locations', '📌 Locations', '', false)}
+                ${travel ? '' : _lpAccordionSection('distances', '🛣️ Distances', '', false)}
                 ${travel ? '' : _lpAccordionSection('todos', '☑️ To-Do', '', false)}
                 ${travel ? '' : _lpAccordionSection('planning', '🗺️ Planning Board', '', false)}
                 ${_lpAccordionSection('itinerary', '📅 Itinerary', '', travel)}
@@ -752,6 +802,7 @@ function _lpLoadAccordionContent(id) {
         case 'tripInfo':   _lpLoadTripInfo(); break;
         case 'people':     _lpLoadPeople(); break;
         case 'locations':  _lpLoadLocations(); break;
+        case 'distances':  _lpLoadDistances(); break;
         case 'todos':      _lpLoadTodos(); break;
         case 'planning': _lpLoadPlanningBoard(); break;
         case 'itinerary': _lpLoadItinerary(); break;
@@ -1224,6 +1275,202 @@ async function _lpUnlinkLocation(projLocId) {
     } catch (err) {
         console.error('Error unlinking location:', err);
         alert('Error removing location.');
+    }
+}
+
+// ============================================================
+// Distances Section
+// ============================================================
+
+async function _lpLoadDistances() {
+    const body = document.getElementById('lpBody_distances');
+    if (!body) return;
+    body.innerHTML = '<p style="color:#999; padding:8px;">Loading…</p>';
+
+    try {
+        // Build set of global locationIds for this project
+        const globalIds = new Set(_lpLocations.map(l => l.locationId).filter(Boolean));
+
+        if (globalIds.size < 2) {
+            body.innerHTML = '<p style="color:#999; font-size:0.9em; padding:8px;">Add at least two locations to this project to record distances.</p>';
+            _lpUpdateAccordionSummary('distances', '');
+            return;
+        }
+
+        // Query distances where fromLocationId is in this project's locations
+        // (Firestore doesn't support OR across fields, so fetch all and filter client-side)
+        const snap = await lpDistancesCol().get();
+        _lpDistances = [];
+        snap.forEach(doc => {
+            const d = doc.data();
+            if (globalIds.has(d.fromLocationId) && globalIds.has(d.toLocationId)) {
+                _lpDistances.push({ id: doc.id, ...d });
+            }
+        });
+
+        _lpRenderDistances(body);
+        _lpUpdateAccordionSummary('distances', _lpDistances.length > 0 ? `(${_lpDistances.length})` : '');
+    } catch (err) {
+        console.error('Error loading distances:', err);
+        body.innerHTML = '<p style="color:red;">Error loading distances.</p>';
+    }
+}
+
+function _lpRenderDistances(body) {
+    if (_lpDistances.length === 0) {
+        body.innerHTML = '<p style="color:#999; font-size:0.9em;">No distances recorded yet. Use the 🛣️ button on a planning or itinerary item to add one.</p>';
+        return;
+    }
+
+    // Build a map from global locationId → name for display
+    const nameMap = {};
+    _lpLocations.forEach(l => { if (l.locationId) nameMap[l.locationId] = l.name; });
+
+    const modeLabel = { drive: '🚗 Drive', walk: '🚶 Walk', bike: '🚲 Bike' };
+
+    const rows = _lpDistances.map(d => {
+        const fromName = _lpEsc(nameMap[d.fromLocationId] || d.fromLocationId);
+        const toName   = _lpEsc(nameMap[d.toLocationId]   || d.toLocationId);
+        const parts = [];
+        if (d.time)  parts.push(_lpEsc(d.time));
+        if (d.miles) parts.push(`${d.miles} mi`);
+        if (d.mode)  parts.push(modeLabel[d.mode] || _lpEsc(d.mode));
+        return `
+        <div style="display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid #f0f0f0; flex-wrap:wrap;">
+            <div style="flex:1; min-width:0;">
+                <span style="font-weight:600;">${fromName}</span>
+                <span style="color:#888; margin:0 4px;">→</span>
+                <span style="font-weight:600;">${toName}</span>
+                ${parts.length ? `<span style="color:#555; font-size:0.88em; margin-left:8px;">${parts.join(' · ')}</span>` : ''}
+                ${d.notes ? `<div style="font-size:0.82em; color:#888; margin-top:2px;">${_lpEsc(d.notes)}</div>` : ''}
+            </div>
+            <div style="display:flex; gap:4px; flex-shrink:0;">
+                <button class="btn btn-small" onclick="_lpEditDistance('${d.id}')" title="Edit distance">✏️</button>
+                <button class="btn btn-small btn-danger" onclick="_lpDeleteDistance('${d.id}')" title="Delete distance">✕</button>
+            </div>
+        </div>`;
+    }).join('');
+
+    body.innerHTML = `<div>${rows}</div>`;
+}
+
+/** Open the Add/Edit Distance modal.
+ *  When called from an item (🛣️ button), fromProjLocId is the projectLocations doc id.
+ *  When called from the edit icon in the distances list, distanceId is the Firestore doc id. */
+function _lpOpenAddDistance(type, parentId, itemId) {
+    // Find the item to get its locationId (projectLocations doc id)
+    let item = null;
+    if (type === 'planning') {
+        const grp = _lpPlanningGroups.find(g => g.id === parentId);
+        item = grp ? (grp.items || []).find(i => i.id === itemId) : null;
+    } else {
+        const day = _lpDays.find(d => d.id === parentId);
+        item = day ? (day.items || []).find(i => i.id === itemId) : null;
+    }
+
+    if (!item || !item.locationId) {
+        alert('Set a location on this item first before adding a distance.');
+        return;
+    }
+
+    // item.locationId is the projectLocations doc id → find global locationId
+    const projLoc = _lpLocations.find(l => l.id === item.locationId);
+    if (!projLoc) {
+        alert('Location not found. Please re-link the location.');
+        return;
+    }
+
+    _lpOpenDistanceModal(null, projLoc.locationId);
+}
+
+function _lpEditDistance(distanceId) {
+    _lpOpenDistanceModal(distanceId, null);
+}
+
+function _lpOpenDistanceModal(distanceId, fromGlobalId) {
+    const existing = distanceId ? _lpDistances.find(d => d.id === distanceId) : null;
+
+    // Resolve the from global location id
+    const fromId = existing ? existing.fromGlobalId || existing.fromLocationId : fromGlobalId;
+
+    // Build name map
+    const nameMap = {};
+    _lpLocations.forEach(l => { if (l.locationId) nameMap[l.locationId] = l.name; });
+
+    // From label
+    document.getElementById('lpDistFromLabel').textContent = nameMap[fromId] || fromId || '—';
+    document.getElementById('lpDistFromHidden').value = fromId || '';
+
+    // Populate To dropdown — all project locations except From
+    const toSel = document.getElementById('lpDistTo');
+    toSel.innerHTML = '<option value="">— Select destination —</option>';
+    _lpLocations.forEach(l => {
+        if (!l.locationId || l.locationId === fromId) return;
+        const opt = document.createElement('option');
+        opt.value = l.locationId;
+        opt.textContent = l.name;
+        if (existing && existing.toLocationId === l.locationId) opt.selected = true;
+        toSel.appendChild(opt);
+    });
+
+    // Fill fields
+    document.getElementById('lpDistTime').value  = existing ? (existing.time  || '') : '';
+    document.getElementById('lpDistMiles').value = existing ? (existing.miles != null ? existing.miles : '') : '';
+    document.getElementById('lpDistMode').value  = existing ? (existing.mode  || 'drive') : 'drive';
+    document.getElementById('lpDistNotes').value = existing ? (existing.notes || '') : '';
+
+    // Store the distance doc id (empty if new)
+    document.getElementById('lpDistSaveBtn').dataset.distanceId = distanceId || '';
+
+    openModal('lpDistanceModal');
+}
+
+async function _lpSaveDistance() {
+    const fromId = document.getElementById('lpDistFromHidden').value;
+    const toId   = document.getElementById('lpDistTo').value.trim();
+    const time   = document.getElementById('lpDistTime').value.trim();
+    const miles  = document.getElementById('lpDistMiles').value.trim();
+    const mode   = document.getElementById('lpDistMode').value;
+    const notes  = document.getElementById('lpDistNotes').value.trim();
+    const distanceId = document.getElementById('lpDistSaveBtn').dataset.distanceId;
+
+    if (!toId)   { alert('Please select a destination.'); return; }
+    if (!time && !miles) { alert('Please enter at least a time or distance.'); return; }
+
+    const data = {
+        fromLocationId: fromId,
+        toLocationId:   toId,
+        time:   time  || '',
+        miles:  miles ? parseFloat(miles) : null,
+        mode:   mode  || 'drive',
+        notes:  notes || ''
+    };
+
+    try {
+        if (distanceId) {
+            await lpDistancesCol().doc(distanceId).update(data);
+        } else {
+            await lpDistancesCol().add({
+                ...data,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+        closeModal('lpDistanceModal');
+        await _lpLoadDistances();
+    } catch (err) {
+        console.error('Error saving distance:', err);
+        alert('Error saving distance. Please try again.');
+    }
+}
+
+async function _lpDeleteDistance(distanceId) {
+    if (!confirm('Delete this distance?')) return;
+    try {
+        await lpDistancesCol().doc(distanceId).delete();
+        await _lpLoadDistances();
+    } catch (err) {
+        console.error('Error deleting distance:', err);
+        alert('Error deleting distance.');
     }
 }
 
@@ -2476,10 +2723,6 @@ async function _lpLocPickerSave() {
     }
 }
 
-/** Stub for Phase 3 — opens the Add Distance modal from an item */
-function _lpOpenAddDistance(type, parentId, itemId) {
-    alert('Add Distance coming in Phase 3.');
-}
 
 async function _lpDeleteItem(dayId, itemId, confirmed = false) {
     if (!confirmed && !confirm('Delete this item?')) return;

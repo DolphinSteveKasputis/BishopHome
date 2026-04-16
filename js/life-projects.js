@@ -874,8 +874,11 @@ function _lpToggleAccordion(id) {
         body.style.display = '';
         arrow.style.transform = 'rotate(90deg)';
         section.dataset.expanded = 'true';
-        // Lazy-load content on first expand
-        _lpLoadAccordionContent(id);
+        // Lazy-load content on first expand; re-apply active search after render
+        Promise.resolve(_lpLoadAccordionContent(id)).then(() => {
+            const q = document.getElementById('lpSearchBox')?.value?.trim();
+            if (q) _lpFilterBySearch(q);
+        });
     }
 }
 

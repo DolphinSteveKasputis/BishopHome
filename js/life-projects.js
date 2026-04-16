@@ -928,7 +928,9 @@ function _lpLoadTripInfo() {
             ${p.startDate ? `<div><strong>Dates:</strong> ${_lpFormatDateRange(p.startDate, p.endDate)}</div>` : '<div style="color:#999;">No dates set</div>'}
             ${p.description ? `<div><strong>Description:</strong> ${_lpEsc(p.description)}</div>` : ''}
             ${costRollup.total > 0 ? `<div style="font-size:1.05em;"><strong>Total Trip Cost:</strong> <span style="color:#16a34a; font-weight:700;">$${costRollup.total.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</span> <span style="color:#888; font-size:0.8em;">(bookings: $${costRollup.bookings.toFixed(2)}, activities: $${costRollup.items.toFixed(2)})</span></div>` : ''}
-            <div style="color:#999; font-size:0.85em;">Edit project metadata from the list page (✏️ button).</div>
+            <div style="margin-top:4px;">
+                <button class="btn btn-small" onclick="openEditLifeProjectModal('${p.id}')">✏️ Edit Project Info</button>
+            </div>
         </div>
     `;
 }

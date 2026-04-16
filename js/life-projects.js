@@ -3506,7 +3506,7 @@ function _lpBookingCard(b) {
                 <div style="flex:1; min-width:0;">
                     <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
                         <span class="lp-booking-drag" style="cursor:grab; color:#ccc;">⠿</span>
-                        <strong>${_lpEsc(b.name)}</strong>
+                        <strong style="cursor:pointer;" onclick="_lpEditBooking('${b.id}')">${_lpEsc(b.name)}</strong>
                         ${b.type ? `<span style="background:#e0e7ff;color:#4338ca;font-size:0.7em;padding:1px 8px;border-radius:10px;">${_lpEsc(b.type)}</span>` : ''}
                         ${ps.label ? `<span style="color:${ps.color};font-size:0.75em;font-weight:600;">${ps.label}</span>` : ''}
                     </div>
@@ -3514,7 +3514,7 @@ function _lpBookingCard(b) {
                     ${!_lpIsTravelMode() && b.cost != null && b.cost !== '' ? `<div style="color:#555; font-size:0.85em;">$${Number(b.cost).toFixed(2)}${b.costNote ? ` (${_lpEsc(b.costNote)})` : ''}</div>` : ''}
                 </div>
                 <div style="display:flex; gap:4px; flex-shrink:0;">
-                    <button class="btn btn-small" onclick="_lpEditBooking('${b.id}')" title="Edit">✏️</button>
+                    <button class="btn btn-small lp-desktop-only" onclick="_lpEditBooking('${b.id}')" title="Edit">✏️</button>
                     <button class="btn btn-small" onclick="_lpBookingScreenshots('${b.id}')" title="Screenshots${_lpBookingPhotoCounts[b.id] ? ` (${_lpBookingPhotoCounts[b.id]})` : ''}" style="${_lpBookingPhotoCounts[b.id] ? 'background:#16a34a; color:#fff;' : ''}">📷</button>
                 </div>
             </div>

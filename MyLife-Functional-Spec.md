@@ -935,7 +935,7 @@ Tracks real-world places the user visits. Places tie together journal check-ins,
 Rich project management for the Life section — supports day-by-day itineraries, bookings, packing lists, to-dos, journal notes, people lists, and cost rollup. Template-based (Vacation is the first template; Build and General are planned).
 
 **Firestore**:
-- `lifeProjects` — `title`, `description`, `template` (vacation/build/general, locked after creation), `status` (planning/active/on-hold/done), `mode` (planning/travel), `archived`, `startDate`, `endDate`, `targetType` ('life'), `targetId` (null), `people[]` ({name, contactId, notes}), `bookingTypes[]`, `createdAt`, `updatedAt`
+- `lifeProjects` — `title`, `description`, `template` (vacation/build/general, locked after creation), `status` (planning/active/on-hold/done), `mode` (planning/travel), `archived`, `startDate`, `endDate`, `targetType` ('life'), `targetId` (null), `people[]` ({name, contactId, notes}), `bookingTypes[]`, `links[]` ({id, label, url}), `createdAt`, `updatedAt`
 - Subcollections per project: `todoItems` ({text, done, notes, sortOrder}), `planningGroups` ({name, sortOrder, items[]}), `days`, `bookings`, `bookingPhotos`, `packingItems`, `projectNotes`
 
 **Routes**: `#life-projects` (list), `#life-project/{id}` (detail)
@@ -959,6 +959,7 @@ Rich project management for the Life section — supports day-by-day itineraries
   - **Official Timeline**: Items marked "Part of official timeline" (`onTimeline: true`) display a left time column (blue left border) showing ⏰ start time / ⏱ duration / 🚀 leave-by time (stacked; only fields that are set). Non-timeline items show no left column. Between consecutive timeline items, a **travel row** is auto-inserted showing depart time (previous item's leave-by), travel mode icon + time + miles (from global distances collection), and route label (From → To). If no distance record exists for the pair, shows ⚠️ travel time needed as a placeholder.
 - **Bookings**: Full CRUD with modal form. Fields: name, type (dropdown from project's bookingTypes list with "Add new..." option), start/end dates, multi-day toggle, start/end times, confirmation #, cost + costNote, payment status (paid/deposit/balance-owed), contact, address, link, notes. Booking screenshots stored in `bookingPhotos` subcollection — upload, view gallery, delete. Booking badges on day items scroll to the booking card. Drag-and-drop reorder.
 - **Packing**: Items grouped by category (Clothes, Toiletries, Electronics, Documents, Gear/Other) with category headers and per-category packed counts. Vacation template offers "Populate Default List" button to pre-fill ~47 starter items. Check/uncheck packed status. Accordion summary shows "packed/total".
+- **Links**: Project-level reference links not tied to any day or item — e.g., YouTube videos, maps, research pages saved during planning. Each link has a label and URL. Rows show: 🔗 clickable label (opens in new tab), ⧉ copy-to-clipboard button, ✏️ edit, ✕ delete. Stored as `links: [{id, label, url}]` array on the project document. Visible in both planning and travel modes.
 - **Notes**: Journal-style entries with title, text, and auto-set createdAt. Displayed newest first. Add/edit/delete. Accordion summary shows note count.
 
 **Item row buttons** (planning board and itinerary, planning mode only): Icon-only with `title` tooltips — max 3 per row. ▿ (expand details), ✏️ (edit), and one context-sensitive location button: **📍** (no location set — opens compact location picker: dropdown of project locations + "New location…" option) or **🛣️** (location set — stub for Add Distance, Phase 3). Delete is removed from the row and lives inside the edit modal only (🗑️ Delete button, left-aligned in modal footer). Collapsed row shows a **📍 badge** (name + tooltip with address/phone) when a location is linked. Expanded detail panel shows location as its own row (name · address · phone, blue left-border highlight) at the top of the panel.
@@ -1416,7 +1417,7 @@ All collections live under `/users/{uid}/`. Every module uses `userCol('collecti
 
 | Collection | Key Fields |
 |------------|------------|
-| `lifeProjects` | title, description, template, status, mode, archived, startDate, endDate, targetType, targetId, people[], bookingTypes[], createdAt, updatedAt |
+| `lifeProjects` | title, description, template, status, mode, archived, startDate, endDate, targetType, targetId, people[], bookingTypes[], links[], createdAt, updatedAt |
 | `lifeProjects/{id}/todoItems` | text, done, notes, sortOrder |
 | `lifeProjects/{id}/days` | date, label, location, sortOrder, items[] |
 | `lifeProjects/{id}/bookings` | name, type, startDate, multiDay, endDate, startTime, endTime, confirmation, cost, costNote, paymentStatus, contact, address, link, notes, sortOrder |

@@ -728,6 +728,27 @@ function _lpRenderDetailPage(page) {
                 </div>
             </div>
 
+            <!-- Project link add/edit modal -->
+            <div class="modal-overlay" id="lpLinkModal">
+                <div class="modal" style="max-width:480px; width:90%;">
+                    <h3 id="lpLinkModalTitle">Add Link</h3>
+                    <div style="display:flex; flex-direction:column; gap:10px;">
+                        <div>
+                            <label class="form-label">Label</label>
+                            <input type="text" id="lpLinkLabel" class="form-control" placeholder="e.g. Google Map, Park Website, Trip Video">
+                        </div>
+                        <div>
+                            <label class="form-label">URL *</label>
+                            <input type="url" id="lpLinkUrl" class="form-control" placeholder="https://...">
+                        </div>
+                    </div>
+                    <div class="modal-actions" style="justify-content:flex-end; margin-top:16px;">
+                        <button class="btn" onclick="closeModal('lpLinkModal')">Cancel</button>
+                        <button class="btn btn-primary" id="lpLinkSaveBtn" onclick="_lpSaveLink()">Save</button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Note / Journal entry modal -->
             <div class="modal-overlay" id="lpNoteModal">
                 <div class="modal" style="max-width:560px; width:90%;">
@@ -765,6 +786,7 @@ function _lpRenderDetailPage(page) {
                 ${travel ? '' : _lpAccordionSection('distances', '🛣️ Distances', '', false)}
                 ${travel ? '' : _lpAccordionSection('todos', '☑️ To-Do', '', false)}
                 ${travel ? '' : _lpAccordionSection('planning', '🗺️ Planning Board', '', false)}
+                ${_lpAccordionSection('links', '🔗 Links', '', false)}
                 ${_lpAccordionSection('itinerary', '📅 Itinerary', '', travel)}
                 ${_lpAccordionSection('bookings', '🏨 Bookings', '', travel)}
                 ${_lpAccordionSection('packing', '🧳 Packing', '', false)}
@@ -861,6 +883,7 @@ function _lpLoadAccordionContent(id) {
         case 'itinerary': _lpLoadItinerary(); break;
         case 'bookings': _lpLoadBookings(); break;
         case 'packing':  _lpLoadPacking(); break;
+        case 'links':    _lpLoadLinks(); break;
         case 'notes':    _lpLoadNotes(); break;
     }
 }
@@ -3668,6 +3691,106 @@ async function _lpDeletePackingItem(itemId) {
     } catch (err) {
         console.error('Error deleting packing item:', err);
     }
+}
+
+// ============================================================
+// Links Section
+// ============================================================
+
+function _lpLoadLinks() {
+    const body = document.getElementById('lpBody_links');
+    if (!body) return;
+    const links = (_lpCurrentProject && _lpCurrentProject.links) || [];
+    _lpRenderLinks(body, links);
+}
+
+function _lpRenderLinks(body, links) {
+    _lpUpdateAccordionSummary('links', links.length > 0 ? `(${links.length})` : '');
+
+    if (links.length === 0) {
+        body.innerHTML = `
+            <p style="color:#999; font-size:0.9em;">No links yet.</p>
+            <button class="btn btn-small btn-primary" onclick="_lpOpenLinkModal()">+ Add Link</button>`;
+        return;
+    }
+
+    const rows = links.map(l => `
+        <div style="display:flex; align-items:center; gap:6px; padding:6px 0; border-bottom:1px solid #f0f0f0; flex-wrap:wrap;">
+            <a href="${_lpEsc(l.url)}" onclick="event.stopPropagation();window.open(this.href,'_blank');return false;"
+               style="color:#2563eb; font-size:0.9em; flex:1; min-width:0; word-break:break-all;">
+               🔗 ${_lpEsc(l.label || l.url)}
+            </a>
+            <div style="display:flex; gap:3px; flex-shrink:0;">
+                <button class="btn btn-small" onclick="_lpCopyProjectLink('${_lpEsc(l.url)}',this)" title="Copy link to clipboard" style="padding:2px 6px;">⧉</button>
+                <button class="btn btn-small" onclick="_lpOpenLinkModal('${_lpEsc(l.id)}')" title="Edit" style="padding:2px 6px;">✏️</button>
+                <button class="btn btn-small btn-danger" onclick="_lpDeleteLink('${_lpEsc(l.id)}')" title="Delete" style="padding:2px 6px;">✕</button>
+            </div>
+        </div>`).join('');
+
+    body.innerHTML = `
+        <div>${rows}</div>
+        <button class="btn btn-small btn-primary" style="margin-top:10px;" onclick="_lpOpenLinkModal()">+ Add Link</button>`;
+}
+
+function _lpOpenLinkModal(linkId = null) {
+    const links = (_lpCurrentProject && _lpCurrentProject.links) || [];
+    const existing = linkId ? links.find(l => l.id === linkId) : null;
+    document.getElementById('lpLinkModalTitle').textContent = existing ? 'Edit Link' : 'Add Link';
+    document.getElementById('lpLinkLabel').value = existing ? (existing.label || '') : '';
+    document.getElementById('lpLinkUrl').value   = existing ? (existing.url   || '') : '';
+    document.getElementById('lpLinkSaveBtn').dataset.linkId = linkId || '';
+    openModal('lpLinkModal');
+    setTimeout(() => document.getElementById('lpLinkLabel')?.focus(), 100);
+}
+
+async function _lpSaveLink() {
+    const label  = document.getElementById('lpLinkLabel').value.trim();
+    const url    = document.getElementById('lpLinkUrl').value.trim();
+    const linkId = document.getElementById('lpLinkSaveBtn').dataset.linkId;
+
+    if (!url) { alert('URL is required.'); return; }
+
+    const links = [...((_lpCurrentProject && _lpCurrentProject.links) || [])];
+
+    if (linkId) {
+        const idx = links.findIndex(l => l.id === linkId);
+        if (idx >= 0) links[idx] = { ...links[idx], label, url };
+    } else {
+        links.push({ id: Date.now().toString(36), label, url });
+    }
+
+    closeModal('lpLinkModal');
+    try {
+        await lpCol().doc(_lpCurrentProjectId).update({ links });
+        _lpCurrentProject.links = links;
+        const body = document.getElementById('lpBody_links');
+        if (body) _lpRenderLinks(body, links);
+    } catch (err) {
+        console.error('Error saving link:', err);
+        alert('Error saving link.');
+    }
+}
+
+async function _lpDeleteLink(linkId) {
+    if (!confirm('Delete this link?')) return;
+    const links = ((_lpCurrentProject && _lpCurrentProject.links) || []).filter(l => l.id !== linkId);
+    try {
+        await lpCol().doc(_lpCurrentProjectId).update({ links });
+        _lpCurrentProject.links = links;
+        const body = document.getElementById('lpBody_links');
+        if (body) _lpRenderLinks(body, links);
+    } catch (err) {
+        console.error('Error deleting link:', err);
+        alert('Error deleting link.');
+    }
+}
+
+function _lpCopyProjectLink(url, btn) {
+    navigator.clipboard.writeText(url).then(() => {
+        const orig = btn.textContent;
+        btn.textContent = '✓';
+        setTimeout(() => { btn.textContent = orig; }, 1500);
+    }).catch(() => alert('Could not copy to clipboard.'));
 }
 
 // ============================================================

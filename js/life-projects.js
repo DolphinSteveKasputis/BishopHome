@@ -1942,12 +1942,15 @@ function _lpRenderPlanningBoard(body) {
 function _lpPlanningGroupCard(g) {
     const items = (g.items || []).sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
     const itemCount = items.length;
+    const collapsed = _lpGroupCollapsed.has(g.id);
+    const chevron = collapsed ? '▸' : '▾';
 
     return `
         <div class="lp-planning-group" data-id="${g.id}" style="border:1px solid #e2e8f0; border-radius:8px; margin-bottom:12px; overflow:hidden;">
             <div style="background:#eff6ff; padding:10px 12px; display:flex; justify-content:space-between; align-items:center;">
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <span class="lp-pg-drag" style="cursor:grab; color:#ccc;">⠿</span>
+                <div style="display:flex; align-items:center; gap:8px; cursor:pointer;" onclick="_lpToggleGroupCollapse('${g.id}')">
+                    <span class="lp-pg-drag" style="cursor:grab; color:#ccc;" onclick="event.stopPropagation()">⠿</span>
+                    <span style="color:#888; font-size:0.85em; user-select:none;">${chevron}</span>
                     <strong>🗺️ ${_lpEsc(g.name)}</strong>
                     <span style="color:#888; font-size:0.85em;">(${itemCount})</span>
                 </div>
@@ -1956,6 +1959,7 @@ function _lpPlanningGroupCard(g) {
                     <button class="btn btn-small btn-danger" onclick="_lpDeletePlanningGroup('${g.id}')" title="Delete group">✕</button>
                 </div>
             </div>
+            ${collapsed ? '' : `
             <div style="padding:8px 12px;">
                 <div id="lpPgItems_${g.id}">
                     ${items.map(item => _lpPlanningItemRow(g.id, item)).join('')}
@@ -1963,6 +1967,7 @@ function _lpPlanningGroupCard(g) {
                 ${items.length === 0 ? '<p style="color:#bbb; font-size:0.85em; margin:4px 0;">No items yet.</p>' : ''}
                 <button class="btn btn-small" style="margin-top:6px;" onclick="_lpAddPlanningItem('${g.id}')">+ Add Item</button>
             </div>
+            `}
         </div>
     `;
 }
@@ -2224,6 +2229,34 @@ let _lpDays = [];
 /** Dates (YYYY-MM-DD) that have at least one journal entry — populated when itinerary loads */
 let _lpJournalDates = new Set();
 
+/** Day IDs currently collapsed in the itinerary — persists across re-renders within the session */
+let _lpDayCollapsed = new Set();
+
+/** Group IDs currently collapsed in the planning board */
+let _lpGroupCollapsed = new Set();
+
+/** Toggle a day card's collapsed state and re-render the itinerary. */
+function _lpToggleDayCollapse(dayId) {
+    if (_lpDayCollapsed.has(dayId)) {
+        _lpDayCollapsed.delete(dayId);
+    } else {
+        _lpDayCollapsed.add(dayId);
+    }
+    const body = document.getElementById('lpBody_itinerary');
+    if (body) _lpRenderItinerary(body);
+}
+
+/** Toggle a planning group's collapsed state and re-render the planning board. */
+function _lpToggleGroupCollapse(groupId) {
+    if (_lpGroupCollapsed.has(groupId)) {
+        _lpGroupCollapsed.delete(groupId);
+    } else {
+        _lpGroupCollapsed.add(groupId);
+    }
+    const body = document.getElementById('lpBody_planning');
+    if (body) _lpRenderPlanningBoard(body);
+}
+
 /** State for the shared item edit modal */
 let _lpItemModalCtx = null; // { type: 'itinerary'|'planning', dayId, groupId, itemId }
 
@@ -2343,14 +2376,18 @@ function _lpDayCard(d) {
     // Travel mode: hide maybe/idea/nope items
     if (_lpIsTravelMode()) items = items.filter(it => it.status === 'confirmed');
     const dateLabel = d.date ? new Date(d.date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) : '';
+    const collapsed = _lpDayCollapsed.has(d.id);
+    const chevron = collapsed ? '▸' : '▾';
 
     return `
         <div class="lp-day-card" data-id="${d.id}" style="border:1px solid #e2e8f0; border-radius:8px; margin-bottom:12px; overflow:hidden;">
             <div style="background:#f1f5f9; padding:10px 12px; display:flex; justify-content:space-between; align-items:center;">
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <span class="lp-day-drag" style="cursor:grab; color:#ccc;">⠿</span>
+                <div style="display:flex; align-items:center; gap:8px; cursor:pointer;" onclick="_lpToggleDayCollapse('${d.id}')">
+                    <span class="lp-day-drag" style="cursor:grab; color:#ccc;" onclick="event.stopPropagation()">⠿</span>
+                    <span style="color:#888; font-size:0.85em; user-select:none;">${chevron}</span>
                     <strong>${_lpEsc(d.label || dateLabel || 'Day')}</strong>
                     ${d.location ? `<span style="color:#666; font-size:0.9em;">— ${_lpEsc(d.location)}</span>` : ''}
+                    ${collapsed && items.length > 0 ? `<span style="color:#94a3b8; font-size:0.8em;">(${items.length} item${items.length !== 1 ? 's' : ''})</span>` : ''}
                 </div>
                 <div style="display:flex; gap:4px;">
                     <button class="btn btn-small" onclick="_lpEditDay('${d.id}')" title="Edit day">✏️</button>
@@ -2358,6 +2395,7 @@ function _lpDayCard(d) {
                     <button class="btn btn-small btn-danger" onclick="_lpDeleteDay('${d.id}')" title="Delete day">✕</button>
                 </div>
             </div>
+            ${collapsed ? '' : `
             <div style="padding:8px 12px;">
                 <div id="lpItems_${d.id}">
                     ${_lpBuildDayItemsHtml(d.id, items)}
@@ -2365,6 +2403,7 @@ function _lpDayCard(d) {
                 ${items.length === 0 ? '<p style="color:#bbb; font-size:0.85em; margin:4px 0;">No items yet.</p>' : ''}
                 <button class="btn btn-small" style="margin-top:6px;" onclick="_lpAddItem('${d.id}')">+ Add Item</button>
             </div>
+            `}
         </div>
     `;
 }

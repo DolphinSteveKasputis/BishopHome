@@ -579,9 +579,16 @@ function _renderEntryCard(id, data) {
     var linksHtml = '';
     if (data.links && data.links.length) {
         var linkItems = data.links.filter(function(l) { return l.url; }).map(function(l) {
-            return '<a href="' + journalEscape(l.url) + '" ' +
-                       'onclick="event.stopPropagation();window.open(this.href,\'_blank\');return false;" ' +
-                       'style="color:#2563eb; font-size:0.85em;">🔗 ' + journalEscape(l.label || l.url) + '</a>';
+            var escapedUrl = journalEscape(l.url);
+            return '<span class="journal-entry-link-row">' +
+                       '<a href="' + escapedUrl + '" ' +
+                           'onclick="event.stopPropagation();window.open(this.href,\'_blank\');return false;" ' +
+                           'style="color:#2563eb; font-size:0.85em;">🔗 ' + journalEscape(l.label || l.url) + '</a>' +
+                       '<button class="btn btn-small" ' +
+                               'onclick="event.stopPropagation();_journalCopyLink(\'' + escapedUrl + '\',this)" ' +
+                               'title="Copy link to clipboard" ' +
+                               'style="padding:1px 5px; font-size:0.75em; margin-left:4px;">⧉</button>' +
+                   '</span>';
         });
         if (linkItems.length) {
             linksHtml = '<div class="journal-entry-links">' + linkItems.join('') + '</div>';
@@ -843,6 +850,19 @@ function _journalAddLinkRow(label, url) {
                 'onclick="this.parentElement.remove()" ' +
                 'style="flex-shrink:0; padding:4px 8px;">✕</button>';
     container.appendChild(row);
+}
+
+/**
+ * Copy a link URL to the clipboard. Briefly changes the button to a checkmark to confirm.
+ */
+function _journalCopyLink(url, btn) {
+    navigator.clipboard.writeText(url).then(function() {
+        var orig = btn.textContent;
+        btn.textContent = '✓';
+        setTimeout(function() { btn.textContent = orig; }, 1500);
+    }).catch(function() {
+        alert('Could not copy to clipboard.');
+    });
 }
 
 function _journalWireEntryPage() {

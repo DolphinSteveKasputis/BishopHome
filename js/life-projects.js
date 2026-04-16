@@ -1229,7 +1229,7 @@ function _lpRenderLocations(body) {
     }
 
     const rows = _lpLocations.map(loc => `
-        <div style="display:flex; align-items:flex-start; gap:8px; padding:8px 0; border-bottom:1px solid #f0f0f0;">
+        <div class="lp-location-row" style="display:flex; align-items:flex-start; gap:8px; padding:8px 0; border-bottom:1px solid #f0f0f0;">
             <div style="flex:1; min-width:0;">
                 <div style="font-weight:600;">${_lpEsc(loc.name)}</div>
                 ${loc.address ? `<div style="font-size:0.85em;"><a href="https://maps.google.com/?q=${encodeURIComponent(loc.address)}" onclick="event.stopPropagation();window.open(this.href,'_blank');return false;" style="color:#2563eb;" title="Get directions">${_lpEsc(loc.address)}</a></div>` : ''}
@@ -1509,7 +1509,7 @@ function _lpRenderDistances(body) {
         if (d.miles) parts.push(`${d.miles} mi`);
         if (d.mode)  parts.push(modeLabel[d.mode] || _lpEsc(d.mode));
         return `
-        <div style="display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid #f0f0f0; flex-wrap:wrap;">
+        <div class="lp-distance-row" style="display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid #f0f0f0; flex-wrap:wrap;">
             <div style="flex:1; min-width:0;">
                 <span style="font-weight:600;">${fromName}</span>
                 <span style="color:#888; margin:0 4px;">→</span>
@@ -4675,6 +4675,18 @@ function _lpFilterBySearch(query) {
     document.querySelectorAll('.lp-note-card').forEach(card => {
         if (!q) { card.style.display = ''; return; }
         card.style.display = matches(card) ? '' : 'none';
+    });
+
+    // --- Location rows ---
+    document.querySelectorAll('.lp-location-row').forEach(row => {
+        if (!q) { row.style.display = ''; return; }
+        row.style.display = matches(row) ? '' : 'none';
+    });
+
+    // --- Distance rows ---
+    document.querySelectorAll('.lp-distance-row').forEach(row => {
+        if (!q) { row.style.display = ''; return; }
+        row.style.display = matches(row) ? '' : 'none';
     });
 }
 

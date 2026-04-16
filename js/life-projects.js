@@ -2474,6 +2474,61 @@ function _lpItemRow(dayId, item) {
 }
 
 /** Build travel row between two consecutive timeline items */
+/**
+ * Parse a time string like "7:00 am", "11am", "2:15 pm" into minutes since midnight.
+ * Returns null if unparseable.
+ */
+function _lpParseTimeStr(str) {
+    if (!str) return null;
+    str = str.trim().toLowerCase();
+    // H:MM am/pm or HH:MM am/pm
+    let m = str.match(/^(\d{1,2}):(\d{2})\s*(am|pm)?$/);
+    if (m) {
+        let h = parseInt(m[1]), min = parseInt(m[2]);
+        if (m[3] === 'pm' && h !== 12) h += 12;
+        if (m[3] === 'am' && h === 12) h = 0;
+        return h * 60 + min;
+    }
+    // H am/pm (no minutes)
+    m = str.match(/^(\d{1,2})\s*(am|pm)$/);
+    if (m) {
+        let h = parseInt(m[1]);
+        if (m[2] === 'pm' && h !== 12) h += 12;
+        if (m[2] === 'am' && h === 12) h = 0;
+        return h * 60;
+    }
+    return null;
+}
+
+/**
+ * Parse a travel duration string like "45 min", "2 hours", "1 hr 30 min",
+ * "2 hours 15 min", "1.5 hours" into total minutes. Returns null if unparseable.
+ */
+function _lpParseDurationStr(str) {
+    if (!str) return null;
+    str = str.trim().toLowerCase();
+    let total = 0, found = false;
+    const hrs = str.match(/(\d+(?:\.\d+)?)\s*h(?:r|ours?)?/);
+    if (hrs) { total += parseFloat(hrs[1]) * 60; found = true; }
+    const mins = str.match(/(\d+)\s*m(?:in(?:utes?)?)?/);
+    if (mins) { total += parseInt(mins[1]); found = true; }
+    if (!found) { const bare = str.match(/^(\d+)$/); if (bare) { total = parseInt(bare[1]); found = true; } }
+    return found ? Math.round(total) : null;
+}
+
+/**
+ * Format minutes-since-midnight as "7:45 am", rounding to nearest 5 min first.
+ */
+function _lpFormatArrivalTime(totalMin) {
+    totalMin = Math.round(totalMin / 5) * 5;
+    totalMin = ((totalMin % 1440) + 1440) % 1440; // wrap past midnight
+    const h24 = Math.floor(totalMin / 60);
+    const min = totalMin % 60;
+    const ampm = h24 < 12 ? 'am' : 'pm';
+    const h12 = h24 % 12 || 12;
+    return `${h12}:${String(min).padStart(2, '0')} ${ampm}`;
+}
+
 function _lpTravelRow(fromItem, toItem) {
     const fromLoc = fromItem.locationId ? _lpLocations.find(l => l.id === fromItem.locationId) : null;
     const toLoc   = toItem.locationId   ? _lpLocations.find(l => l.id === toItem.locationId)   : null;
@@ -2488,8 +2543,18 @@ function _lpTravelRow(fromItem, toItem) {
             (d.fromLocationId === toGlobalId   && d.toLocationId === fromGlobalId))
         : null;
 
+    // Compute estimated arrival = leaveTime + travel duration, rounded to nearest 5 min
+    let arrivalStr = '';
+    if (fromItem.leaveTime && dist && dist.time) {
+        const departMin = _lpParseTimeStr(fromItem.leaveTime);
+        const durationMin = _lpParseDurationStr(dist.time);
+        if (departMin !== null && durationMin !== null) {
+            arrivalStr = ` → <span style="font-weight:600;">${_lpFormatArrivalTime(departMin + durationMin)}</span>`;
+        }
+    }
+
     const departStr = fromItem.leaveTime
-        ? `<span style="font-weight:600;">Depart ${_lpEsc(fromItem.leaveTime)}</span>&ensp;`
+        ? `<span style="font-weight:600;">Depart ${_lpEsc(fromItem.leaveTime)}</span>${arrivalStr}&ensp;`
         : '';
 
     let distHtml = '';

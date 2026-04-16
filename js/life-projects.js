@@ -781,16 +781,16 @@ function _lpRenderDetailPage(page) {
             <!-- Accordion sections -->
             <div id="lpAccordion">
                 ${_lpAccordionSection('tripInfo', '📍 Trip Info', '', true)}
-                ${_lpAccordionSection('people', '👥 People', _lpPeopleSummary(p), false)}
-                ${travel ? '' : _lpAccordionSection('locations', '📌 Locations', '', false)}
-                ${travel ? '' : _lpAccordionSection('distances', '🛣️ Distances', '', false)}
-                ${travel ? '' : _lpAccordionSection('todos', '☑️ To-Do', '', false)}
-                ${travel ? '' : _lpAccordionSection('planning', '🗺️ Planning Board', '', false)}
-                ${_lpAccordionSection('links', '🔗 Links', '', false)}
                 ${_lpAccordionSection('itinerary', '📅 Itinerary', '', travel)}
+                ${travel ? '' : _lpAccordionSection('planning', '🗺️ Planning Board', '', false)}
+                ${travel ? '' : _lpAccordionSection('notes', '📓 Journal', '', false)}
+                ${travel ? '' : _lpAccordionSection('todos', '☑️ To-Do', '', false)}
+                ${_lpAccordionSection('links', '🔗 Links', '', false)}
                 ${_lpAccordionSection('bookings', '🏨 Bookings', '', travel)}
                 ${_lpAccordionSection('packing', '🧳 Packing', '', false)}
-                ${travel ? '' : _lpAccordionSection('notes', '📓 Journal', '', false)}
+                ${travel ? '' : _lpAccordionSection('locations', '📌 Locations', '', false)}
+                ${travel ? '' : _lpAccordionSection('distances', '🛣️ Distances', '', false)}
+                ${_lpAccordionSection('people', '👥 People', _lpPeopleSummary(p), false)}
             </div>
         </div>
     `;

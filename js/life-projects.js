@@ -2030,7 +2030,7 @@ function _lpPlanningGroupCard(g) {
 
     return `
         <div class="lp-planning-group" data-id="${g.id}" style="border:1px solid #e2e8f0; border-radius:8px; margin-bottom:12px; overflow:hidden;">
-            <div style="background:#eff6ff; padding:10px 12px; display:flex; justify-content:space-between; align-items:center;">
+            <div class="lp-group-header" style="background:#eff6ff; padding:10px 12px; display:flex; justify-content:space-between; align-items:center;">
                 <div style="display:flex; align-items:center; gap:8px; cursor:pointer;" onclick="_lpToggleGroupCollapse('${g.id}')">
                     <span class="lp-pg-drag" style="cursor:grab; color:#ccc;" onclick="event.stopPropagation()">⠿</span>
                     <span style="color:#888; font-size:0.85em; user-select:none;">${chevron}</span>
@@ -2471,7 +2471,7 @@ function _lpDayCard(d) {
 
     return `
         <div class="lp-day-card" data-id="${d.id}" style="border:1px solid #e2e8f0; border-radius:8px; margin-bottom:12px; overflow:hidden;">
-            <div style="background:#f1f5f9; padding:10px 12px; display:flex; justify-content:space-between; align-items:center;">
+            <div class="lp-day-header" style="background:#f1f5f9; padding:10px 12px; display:flex; justify-content:space-between; align-items:center;">
                 <div style="display:flex; align-items:center; gap:8px; cursor:pointer;" onclick="_lpToggleDayCollapse('${d.id}')">
                     <span class="lp-day-drag" style="cursor:grab; color:#ccc;" onclick="event.stopPropagation()">⠿</span>
                     <span style="color:#888; font-size:0.85em; user-select:none;">${chevron}</span>
@@ -4599,41 +4599,82 @@ function _lpClearSearch() {
 
 function _lpFilterBySearch(query) {
     const q = (query || '').toLowerCase().trim();
-    // Day cards
+
+    // Helper: does a single element's text match?
+    const matches = el => el.textContent.toLowerCase().includes(q);
+
+    // --- Itinerary: filter individual item rows, then hide day card if no match ---
     document.querySelectorAll('.lp-day-card').forEach(card => {
-        if (!q) { card.style.display = ''; return; }
-        card.style.display = card.textContent.toLowerCase().includes(q) ? '' : 'none';
+        if (!q) {
+            card.style.display = '';
+            card.querySelectorAll('.lp-item-row').forEach(r => r.style.display = '');
+            return;
+        }
+        // Check day header (title/date area — everything except item rows)
+        const headerText = (card.querySelector('.lp-day-header')?.textContent || '').toLowerCase();
+        const headerMatches = headerText.includes(q);
+
+        // Filter individual items
+        let visibleItems = 0;
+        card.querySelectorAll('.lp-item-row').forEach(row => {
+            const show = matches(row);
+            row.style.display = show ? '' : 'none';
+            if (show) visibleItems++;
+        });
+
+        // Show card if header matches OR at least one item matches
+        card.style.display = (headerMatches || visibleItems > 0) ? '' : 'none';
     });
-    // Booking cards
+
+    // --- Planning board: filter individual item rows, then hide group if no match ---
+    document.querySelectorAll('.lp-planning-group').forEach(group => {
+        if (!q) {
+            group.style.display = '';
+            group.querySelectorAll('.lp-item-row').forEach(r => r.style.display = '');
+            return;
+        }
+        const headerText = (group.querySelector('.lp-group-header')?.textContent || '').toLowerCase();
+        const headerMatches = headerText.includes(q);
+
+        let visibleItems = 0;
+        group.querySelectorAll('.lp-item-row').forEach(row => {
+            const show = matches(row);
+            row.style.display = show ? '' : 'none';
+            if (show) visibleItems++;
+        });
+
+        group.style.display = (headerMatches || visibleItems > 0) ? '' : 'none';
+    });
+
+    // --- Booking cards ---
     document.querySelectorAll('.lp-booking-card').forEach(card => {
         if (!q) { card.style.display = ''; return; }
-        card.style.display = card.textContent.toLowerCase().includes(q) ? '' : 'none';
+        card.style.display = matches(card) ? '' : 'none';
     });
-    // To-do items
+
+    // --- To-do items ---
     document.querySelectorAll('.lp-todo-item').forEach(el => {
         if (!q) { el.style.display = ''; return; }
-        el.style.display = el.textContent.toLowerCase().includes(q) ? '' : 'none';
+        el.style.display = matches(el) ? '' : 'none';
     });
-    // Packing items
+
+    // --- Packing items ---
     document.querySelectorAll('.lp-packing-item').forEach(el => {
         if (!q) { el.style.display = ''; return; }
-        el.style.display = el.textContent.toLowerCase().includes(q) ? '' : 'none';
+        el.style.display = matches(el) ? '' : 'none';
     });
-    // Packing groups — hide group if all items hidden
+
+    // --- Packing groups — hide group if all items hidden ---
     document.querySelectorAll('.lp-packing-group').forEach(group => {
         if (!q) { group.style.display = ''; return; }
         const visible = group.querySelectorAll('.lp-packing-item:not([style*="display: none"])');
         group.style.display = visible.length ? '' : 'none';
     });
-    // Planning groups — hide group if all items hidden
-    document.querySelectorAll('.lp-planning-group').forEach(group => {
-        if (!q) { group.style.display = ''; return; }
-        group.style.display = group.textContent.toLowerCase().includes(q) ? '' : 'none';
-    });
-    // Note cards
+
+    // --- Note cards ---
     document.querySelectorAll('.lp-note-card').forEach(card => {
         if (!q) { card.style.display = ''; return; }
-        card.style.display = card.textContent.toLowerCase().includes(q) ? '' : 'none';
+        card.style.display = matches(card) ? '' : 'none';
     });
 }
 

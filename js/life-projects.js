@@ -4332,8 +4332,8 @@ function _lpProjOpenLightbox(photoId) {
     }
 
     lb.innerHTML = `
-        <div style="position:fixed; inset:0; background:rgba(0,0,0,0.88); z-index:9999; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:16px; box-sizing:border-box;">
-            <div style="position:relative; max-width:92vw; max-height:82vh; display:flex; flex-direction:column; align-items:center; gap:10px;">
+        <div onclick="_lpProjCloseLightbox()" style="position:fixed; inset:0; background:rgba(0,0,0,0.88); z-index:9999; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:16px; box-sizing:border-box; cursor:pointer;">
+            <div onclick="event.stopPropagation()" style="position:relative; max-width:92vw; max-height:82vh; display:flex; flex-direction:column; align-items:center; gap:10px; cursor:default;">
                 <img src="${photo.imageData}" style="max-width:92vw; max-height:74vh; object-fit:contain; border-radius:6px; display:block;" alt="${_lpEsc(photo.caption || 'Photo')}">
                 ${photo.caption ? `<div style="color:#e2e8f0; font-size:0.9em; text-align:center;">${_lpEsc(photo.caption)}</div>` : ''}
                 <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:center;">

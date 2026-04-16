@@ -1993,10 +1993,9 @@ function _lpPlanningItemRow(groupId, item) {
             <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
                 <span class="lp-item-drag" style="cursor:grab; color:#ccc; font-size:0.8em;">⠿</span>
                 <span style="background:${st.bg};color:${st.color};font-size:0.7em;padding:1px 8px;border-radius:10px;font-weight:600;">${st.label}</span>
-                <span style="flex:1; min-width:0; font-weight:500;">${_lpEsc(item.title)}</span>
+                <span style="flex:1; min-width:0; font-weight:500; cursor:pointer;" onclick="_lpTogglePlanningItemDetails('${groupId}','${item.id}')">${_lpEsc(item.title)}</span>
                 ${locBadge}
                 <div style="display:flex; gap:2px; flex-shrink:0;">
-                    <button class="btn btn-small" onclick="_lpTogglePlanningItemDetails('${groupId}','${item.id}')" title="${hasDetails ? 'Show details' : 'Details'}" style="padding:2px 6px;">${hasDetails ? '📋' : '▿'}</button>
                     <button class="btn btn-small" onclick="_lpEditPlanningItem('${groupId}','${item.id}')" title="Edit item" style="padding:2px 6px;">✏️</button>
                     ${locBtn}
                 </div>
@@ -2456,12 +2455,11 @@ function _lpItemRow(dayId, item) {
                         <span class="lp-item-drag" style="cursor:grab; color:#ccc; font-size:0.8em;">⠿</span>
                         <span style="background:${st.bg};color:${st.color};font-size:0.7em;padding:1px 8px;border-radius:10px;font-weight:600;">${st.label}</span>
                         ${!isTimeline && item.time ? `<span style="color:#888; font-size:0.85em;">${_lpEsc(item.time)}</span>` : ''}
-                        <span style="flex:1; min-width:0; font-weight:500;">${_lpEsc(item.title)}</span>
+                        <span style="flex:1; min-width:0; font-weight:500; cursor:pointer;" onclick="_lpToggleItemDetails('${dayId}','${item.id}')">${_lpEsc(item.title)}</span>
                         ${_lpBookingBadge(item.bookingRef)}
                         ${item.showOnCalendar ? '<span title="On calendar" style="font-size:0.75em;">📅</span>' : ''}
                         ${locBadge}
                         <div style="display:flex; gap:2px; flex-shrink:0;">
-                            <button class="btn btn-small" onclick="_lpToggleItemDetails('${dayId}','${item.id}')" title="${hasDetails ? 'Show details' : 'Details'}" style="padding:2px 6px;">${hasDetails ? '📋' : '▿'}</button>
                             <button class="btn btn-small" onclick="_lpEditItem('${dayId}','${item.id}')" title="Edit item" style="padding:2px 6px;">✏️</button>
                             ${locBtn}
                         </div>
@@ -2608,9 +2606,16 @@ function _lpItemDetailsContent(item) {
     // Location row — always first when expanded
     const loc = item.locationId ? _lpLocations.find(l => l.id === item.locationId) : null;
     if (loc) {
-        const lines = [loc.name, loc.address, loc.phone].filter(Boolean).map(s => _lpEsc(s));
+        const namePart = _lpEsc(loc.name);
+        const addrPart = loc.address
+            ? `<a href="https://maps.google.com/?q=${encodeURIComponent(loc.address)}" onclick="event.stopPropagation();window.open(this.href,'_blank');return false;" style="color:#2563eb;" title="Open in Google Maps">${_lpEsc(loc.address)}</a>`
+            : '';
+        const phonePart = loc.phone
+            ? `<a href="tel:${_lpEsc(loc.phone.replace(/\s/g,''))}" onclick="event.stopPropagation();" style="color:#2563eb;">${_lpEsc(loc.phone)}</a>`
+            : '';
+        const locParts = [namePart, addrPart, phonePart].filter(Boolean);
         parts.push(`<div style="margin-bottom:4px; padding:4px 6px; background:#f0f9ff; border-radius:4px; border-left:3px solid #2563eb;">
-            <strong>📍</strong> ${lines.join(' · ')}
+            <strong>📍</strong> ${locParts.join(' · ')}
         </div>`);
     }
 
@@ -2618,7 +2623,14 @@ function _lpItemDetailsContent(item) {
     if (!travel && item.cost != null && item.cost !== '') parts.push(`<div><strong>Cost:</strong> $${Number(item.cost).toFixed(2)}${item.costNote ? ` <span style="color:#888;">(${_lpEsc(item.costNote)})</span>` : ''}</div>`);
     // In travel mode, confirmation and contact are prominent
     if (item.confirmation) parts.push(`<div${travel ? ' style="font-size:1.05em;"' : ''}><strong>Confirmation:</strong> ${_lpEsc(item.confirmation)}</div>`);
-    if (item.contact) parts.push(`<div${travel ? ' style="font-size:1.05em;"' : ''}><strong>Contact:</strong> ${_lpEsc(item.contact)}</div>`);
+    if (item.contact) {
+        // If it looks like a phone number, make it a clickable tel: link
+        const looksLikePhone = /^[\d\s\-\(\)\+\.]{7,}$/.test(item.contact.trim());
+        const contactHtml = looksLikePhone
+            ? `<a href="tel:${_lpEsc(item.contact.replace(/\s/g,''))}" onclick="event.stopPropagation();" style="color:#2563eb;">${_lpEsc(item.contact)}</a>`
+            : _lpEsc(item.contact);
+        parts.push(`<div${travel ? ' style="font-size:1.05em;"' : ''}><strong>Contact:</strong> ${contactHtml}</div>`);
+    }
     if (!travel && item.notes) parts.push(`<div><strong>Notes:</strong> ${_lpEsc(item.notes)}</div>`);
     // Facts (new) — show label: value, with URLs as clickable links
     if (!travel && item.facts && item.facts.length) {

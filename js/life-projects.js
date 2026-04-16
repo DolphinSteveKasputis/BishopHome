@@ -504,8 +504,12 @@ function _lpRenderDetailPage(page) {
             ${p.description ? `<p style="color:#555; margin-bottom:16px;">${_lpEsc(p.description)}</p>` : ''}
 
             <!-- Search box -->
-            <div style="margin-bottom:12px;">
-                <input type="text" id="lpSearchBox" class="form-control" placeholder="Search project..." oninput="_lpFilterBySearch(this.value)" style="font-size:0.9em;">
+            <div style="margin-bottom:12px; display:flex; gap:6px; align-items:center;">
+                <input type="text" id="lpSearchBox" class="form-control" placeholder="Search project..."
+                    style="font-size:0.9em; flex:1;"
+                    onkeydown="if(event.key==='Enter') _lpRunSearch()">
+                <button class="btn btn-small btn-primary" onclick="_lpRunSearch()">Search</button>
+                <button class="btn btn-small" id="lpSearchClearBtn" onclick="_lpClearSearch()" style="display:none;">✕ Clear</button>
             </div>
 
             <!-- Item Edit Modal (shared by itinerary and planning board) -->
@@ -4541,6 +4545,57 @@ async function _lpDeleteNote(noteId) {
 // Search / Filter
 // ============================================================
 
+/**
+ * Expand all accordion sections (load content if not yet loaded), then filter.
+ * Called by pressing Enter in the search box or clicking the Search button.
+ */
+async function _lpRunSearch() {
+    const box = document.getElementById('lpSearchBox');
+    const q = (box?.value || '').trim();
+    if (!q) { _lpClearSearch(); return; }
+
+    // Show clear button
+    const clearBtn = document.getElementById('lpSearchClearBtn');
+    if (clearBtn) clearBtn.style.display = '';
+
+    // Expand and load every accordion section that isn't already open
+    const allSections = ['tripInfo', 'itinerary', 'planning', 'notes', 'todos',
+                         'photos', 'links', 'bookings', 'packing', 'locations',
+                         'distances', 'people'];
+    const loadPromises = [];
+    allSections.forEach(id => {
+        const section = document.getElementById(`lpAcc_${id}`);
+        const body    = document.getElementById(`lpBody_${id}`);
+        const arrow   = document.getElementById(`lpArrow_${id}`);
+        if (!section || !body) return; // section may be hidden in travel mode
+        if (section.dataset.expanded !== 'true') {
+            body.style.display = '';
+            if (arrow) arrow.style.transform = 'rotate(90deg)';
+            section.dataset.expanded = 'true';
+        }
+        // Always reload to ensure content is fresh
+        loadPromises.push(Promise.resolve(_lpLoadAccordionContent(id)));
+    });
+
+    // Also expand all day cards and planning groups
+    _lpDayExpanded = new Set(_lpDays.map(d => d.id));
+    _lpGroupExpanded = new Set(_lpPlanningGroups.map(g => g.id));
+
+    // Wait a tick for synchronous renders to flush, then filter
+    await Promise.allSettled(loadPromises);
+    await new Promise(r => setTimeout(r, 150));
+    _lpFilterBySearch(q);
+}
+
+/** Clear the search, hide Clear button, and restore all hidden elements */
+function _lpClearSearch() {
+    const box = document.getElementById('lpSearchBox');
+    if (box) box.value = '';
+    const clearBtn = document.getElementById('lpSearchClearBtn');
+    if (clearBtn) clearBtn.style.display = 'none';
+    _lpFilterBySearch('');
+}
+
 function _lpFilterBySearch(query) {
     const q = (query || '').toLowerCase().trim();
     // Day cards
@@ -4572,9 +4627,7 @@ function _lpFilterBySearch(query) {
     // Planning groups — hide group if all items hidden
     document.querySelectorAll('.lp-planning-group').forEach(group => {
         if (!q) { group.style.display = ''; return; }
-        // Check group name and all items
-        const groupMatch = group.textContent.toLowerCase().includes(q);
-        group.style.display = groupMatch ? '' : 'none';
+        group.style.display = group.textContent.toLowerCase().includes(q) ? '' : 'none';
     });
     // Note cards
     document.querySelectorAll('.lp-note-card').forEach(card => {

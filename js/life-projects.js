@@ -506,7 +506,7 @@ function _lpRenderDetailPage(page) {
             <!-- Search box -->
             <div style="margin-bottom:12px; display:flex; gap:6px; align-items:center;">
                 <input type="text" id="lpSearchBox" class="form-control" placeholder="Search project..."
-                    style="font-size:0.9em; flex:1;"
+                    style="font-size:0.9em; max-width:200px;"
                     onkeydown="if(event.key==='Enter') _lpRunSearch()">
                 <button class="btn btn-small btn-primary" onclick="_lpRunSearch()">Search</button>
                 <button class="btn btn-small" id="lpSearchClearBtn" onclick="_lpClearSearch()" style="display:none;">✕ Clear</button>
@@ -879,21 +879,22 @@ function _lpToggleAccordion(id) {
     }
 }
 
-/** Load content for an accordion section (lazy) */
+/** Load content for an accordion section (lazy). Returns a Promise. */
 function _lpLoadAccordionContent(id) {
     switch (id) {
-        case 'tripInfo':   _lpLoadTripInfo(); break;
-        case 'people':     _lpLoadPeople(); break;
-        case 'locations':  _lpLoadLocations(); break;
-        case 'distances':  _lpLoadDistances(); break;
-        case 'todos':      _lpLoadTodos(); break;
-        case 'planning': _lpLoadPlanningBoard(); break;
-        case 'itinerary': _lpLoadItinerary(); break;
-        case 'bookings': _lpLoadBookings(); break;
-        case 'packing':  _lpLoadPacking(); break;
-        case 'photos':   _lpLoadProjectPhotos(); break;
-        case 'links':    _lpLoadLinks(); break;
-        case 'notes':    _lpLoadNotes(); break;
+        case 'tripInfo':  return Promise.resolve(_lpLoadTripInfo());
+        case 'people':    return _lpLoadPeople();
+        case 'locations': return _lpLoadLocations();
+        case 'distances': return _lpLoadDistances();
+        case 'todos':     return _lpLoadTodos();
+        case 'planning':  return _lpLoadPlanningBoard();
+        case 'itinerary': return _lpLoadItinerary();
+        case 'bookings':  return _lpLoadBookings();
+        case 'packing':   return _lpLoadPacking();
+        case 'photos':    return _lpLoadProjectPhotos();
+        case 'links':     return Promise.resolve(_lpLoadLinks());
+        case 'notes':     return _lpLoadNotes();
+        default:          return Promise.resolve();
     }
 }
 

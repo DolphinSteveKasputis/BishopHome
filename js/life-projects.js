@@ -2020,11 +2020,12 @@ async function _lpAddPlanningGroup() {
     const maxOrder = _lpPlanningGroups.reduce((max, g) => Math.max(max, g.sortOrder || 0), -1);
 
     try {
-        await lpSub(_lpCurrentProjectId, 'planningGroups').add({
+        const ref = await lpSub(_lpCurrentProjectId, 'planningGroups').add({
             name: name.trim(),
             sortOrder: maxOrder + 1,
             items: []
         });
+        _lpGroupExpanded.add(ref.id); // new group starts expanded
         await _lpLoadPlanningBoard();
     } catch (err) {
         console.error('Error adding planning group:', err);
@@ -2642,13 +2643,14 @@ async function _lpAddDay() {
     const maxOrder = _lpDays.reduce((max, d) => Math.max(max, d.sortOrder || 0), -1);
 
     try {
-        await lpSub(_lpCurrentProjectId, 'days').add({
+        const ref = await lpSub(_lpCurrentProjectId, 'days').add({
             date: date.trim(),
             label: label.trim(),
             location: location.trim(),
             sortOrder: maxOrder + 1,
             items: []
         });
+        _lpDayExpanded.add(ref.id); // new day starts expanded
         await _lpLoadItinerary();
     } catch (err) {
         console.error('Error adding day:', err);

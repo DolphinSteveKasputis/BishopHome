@@ -415,7 +415,7 @@ async function confirmDeleteLifeProject() {
 
     try {
         // Delete all subcollections
-        const subs = ['days', 'bookings', 'bookingPhotos', 'todoItems', 'packingItems', 'projectNotes', 'planningGroups', 'projectLocations'];
+        const subs = ['days', 'bookings', 'bookingPhotos', 'projectPhotos', 'todoItems', 'packingItems', 'projectNotes', 'planningGroups', 'projectLocations'];
         for (const sub of subs) {
             const snap = await lpSub(projectId, sub).get();
             if (!snap.empty) {
@@ -788,6 +788,7 @@ function _lpRenderDetailPage(page) {
                 ${travel ? '' : _lpAccordionSection('planning', '🗺️ Planning Board', '', false)}
                 ${travel ? '' : _lpAccordionSection('notes', '📓 Journal', '', false)}
                 ${travel ? '' : _lpAccordionSection('todos', '☑️ To-Do', '', false)}
+                ${_lpAccordionSection('photos', '📸 Photos', '', false)}
                 ${_lpAccordionSection('links', '🔗 Links', '', false)}
                 ${_lpAccordionSection('bookings', '🏨 Bookings', '', travel)}
                 ${_lpAccordionSection('packing', '🧳 Packing', '', false)}
@@ -886,6 +887,7 @@ function _lpLoadAccordionContent(id) {
         case 'itinerary': _lpLoadItinerary(); break;
         case 'bookings': _lpLoadBookings(); break;
         case 'packing':  _lpLoadPacking(); break;
+        case 'photos':   _lpLoadProjectPhotos(); break;
         case 'links':    _lpLoadLinks(); break;
         case 'notes':    _lpLoadNotes(); break;
     }
@@ -3931,6 +3933,254 @@ function _lpCopyProjectLink(url, btn) {
         btn.textContent = '✓';
         setTimeout(() => { btn.textContent = orig; }, 1500);
     }).catch(() => alert('Could not copy to clipboard.'));
+}
+
+// ============================================================
+// Project Photos Section
+// ============================================================
+
+let _lpProjectPhotos = [];
+
+async function _lpLoadProjectPhotos() {
+    const body = document.getElementById('lpBody_photos');
+    if (!body || !_lpCurrentProjectId) return;
+    body.innerHTML = '<p style="color:#999; font-size:0.9em;">Loading...</p>';
+
+    try {
+        const snap = await lpSub(_lpCurrentProjectId, 'projectPhotos').orderBy('createdAt', 'desc').get();
+        _lpProjectPhotos = [];
+        snap.forEach(doc => _lpProjectPhotos.push({ id: doc.id, ...doc.data() }));
+    } catch (err) {
+        // Firestore index may not exist yet — fallback to unordered
+        try {
+            const snap = await lpSub(_lpCurrentProjectId, 'projectPhotos').get();
+            _lpProjectPhotos = [];
+            snap.forEach(doc => _lpProjectPhotos.push({ id: doc.id, ...doc.data() }));
+        } catch (err2) {
+            body.innerHTML = '<p style="color:red;">Error loading photos.</p>';
+            return;
+        }
+    }
+
+    _lpUpdateAccordionSummary('photos', _lpProjectPhotos.length > 0 ? `(${_lpProjectPhotos.length})` : '');
+    _lpRenderProjectPhotos(body);
+}
+
+function _lpRenderProjectPhotos(body) {
+    const photos = _lpProjectPhotos;
+
+    body.innerHTML = `
+        <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; align-items:center;">
+            <label class="btn btn-small btn-primary" style="cursor:pointer;" title="Choose from gallery">
+                🖼️ Gallery
+                <input type="file" accept="image/*" multiple style="display:none;" onchange="_lpProjHandleFiles(this.files)">
+            </label>
+            <label class="btn btn-small btn-primary" style="cursor:pointer;" title="Take a photo">
+                📷 Camera
+                <input type="file" accept="image/*" capture="environment" style="display:none;" onchange="_lpProjHandleFiles(this.files)">
+            </label>
+            <button class="btn btn-small btn-primary" onclick="_lpProjPaste()" title="Paste from clipboard">📋 Paste</button>
+        </div>
+        ${photos.length === 0
+            ? '<p style="color:#bbb; font-size:0.85em;">No photos yet.</p>'
+            : `<div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:8px;">
+                ${photos.map(ph => `
+                    <div style="position:relative; padding-bottom:100%; background:#f1f5f9; border-radius:6px; overflow:hidden; cursor:pointer;" onclick="_lpProjOpenLightbox('${ph.id}')" title="${_lpEsc(ph.caption || '')}">
+                        <img src="${ph.imageData}" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;" alt="${_lpEsc(ph.caption || 'Photo')}">
+                    </div>
+                `).join('')}
+               </div>`
+        }
+    `;
+}
+
+async function _lpProjHandleFiles(files) {
+    if (!files || !files.length || !_lpCurrentProjectId) return;
+    for (const file of Array.from(files)) {
+        try {
+            // Use crop preview from photos.js if available
+            let processedFile = file;
+            if (typeof showCropPreview === 'function') {
+                try { processedFile = await showCropPreview(file); } catch { return; }
+            }
+            const imageData = await compressImage(processedFile);
+            await _lpProjSavePhoto(imageData);
+        } catch (err) {
+            console.error('Error processing photo:', err);
+            alert('Error processing photo.');
+        }
+    }
+}
+
+async function _lpProjPaste() {
+    if (!navigator.clipboard || !navigator.clipboard.read) {
+        alert('Clipboard paste is not supported in this browser. Try Gallery instead.');
+        return;
+    }
+    try {
+        const items = await navigator.clipboard.read();
+        let imageBlob = null;
+        for (const item of items) {
+            const imageType = item.types.find(t => t.startsWith('image/'));
+            if (imageType) { imageBlob = await item.getType(imageType); break; }
+        }
+        if (!imageBlob) {
+            alert('No image on the clipboard.\n\nRight-click an image and choose "Copy image", then click Paste.');
+            return;
+        }
+        const ext = imageBlob.type === 'image/png' ? '.png' : '.jpg';
+        const file = new File([imageBlob], 'pasted-image' + ext, { type: imageBlob.type });
+        const imageData = await compressImage(file);
+        await _lpProjSavePhoto(imageData);
+    } catch (err) {
+        if (err.name === 'NotAllowedError') {
+            alert('Clipboard access was denied. Click "Allow" when the browser asks, then try again.');
+        } else {
+            console.error('Paste error:', err);
+            alert('Could not read clipboard. Try the Gallery button instead.');
+        }
+    }
+}
+
+async function _lpProjSavePhoto(imageData) {
+    // Prompt for caption in a small modal
+    const caption = await _lpProjCaptionPrompt();
+    if (caption === null) return; // cancelled
+
+    try {
+        await lpSub(_lpCurrentProjectId, 'projectPhotos').add({
+            imageData,
+            caption: caption.trim(),
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        await _lpLoadProjectPhotos();
+    } catch (err) {
+        console.error('Error saving photo:', err);
+        alert('Error saving photo.');
+    }
+}
+
+/**
+ * Show a small inline caption prompt modal.
+ * Returns the caption string (may be empty), or null if cancelled.
+ */
+function _lpProjCaptionPrompt() {
+    return new Promise(resolve => {
+        // Build or reuse a lightweight caption modal
+        let modal = document.getElementById('lpProjCaptionModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'lpProjCaptionModal';
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal" style="max-width:360px;">
+                    <h3 style="margin:0 0 12px;">Add Caption</h3>
+                    <input type="text" id="lpProjCaptionInput" class="form-control" placeholder="Caption (optional)" style="width:100%; box-sizing:border-box;">
+                    <div class="modal-actions" style="margin-top:12px;">
+                        <button class="btn" id="lpProjCaptionCancel">Cancel</button>
+                        <button class="btn btn-primary" id="lpProjCaptionOk">Save Photo</button>
+                    </div>
+                </div>`;
+            document.getElementById('page-life-project').appendChild(modal);
+        }
+
+        const input = document.getElementById('lpProjCaptionInput');
+        const okBtn = document.getElementById('lpProjCaptionOk');
+        const cancelBtn = document.getElementById('lpProjCaptionCancel');
+
+        input.value = '';
+
+        const cleanup = () => { modal.classList.remove('open'); okBtn.onclick = null; cancelBtn.onclick = null; };
+
+        okBtn.onclick = () => { cleanup(); resolve(input.value); };
+        cancelBtn.onclick = () => { cleanup(); resolve(null); };
+
+        // Enter key submits
+        input.onkeydown = (e) => { if (e.key === 'Enter') okBtn.click(); };
+
+        modal.classList.add('open');
+        setTimeout(() => input.focus(), 50);
+    });
+}
+
+// ---- Lightbox ----
+
+let _lpLightboxPhotoId = null;
+
+function _lpProjOpenLightbox(photoId) {
+    _lpLightboxPhotoId = photoId;
+    const photo = _lpProjectPhotos.find(p => p.id === photoId);
+    if (!photo) return;
+
+    // Build or reuse lightbox overlay
+    let lb = document.getElementById('lpProjLightbox');
+    if (!lb) {
+        lb = document.createElement('div');
+        lb.id = 'lpProjLightbox';
+        // Clicking the backdrop closes the lightbox
+        lb.onclick = (e) => { if (e.target === lb) _lpProjCloseLightbox(); };
+        document.body.appendChild(lb);
+    }
+
+    lb.innerHTML = `
+        <div style="position:fixed; inset:0; background:rgba(0,0,0,0.88); z-index:9999; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:16px; box-sizing:border-box;">
+            <div style="position:relative; max-width:92vw; max-height:82vh; display:flex; flex-direction:column; align-items:center; gap:10px;">
+                <img src="${photo.imageData}" style="max-width:92vw; max-height:74vh; object-fit:contain; border-radius:6px; display:block;" alt="${_lpEsc(photo.caption || 'Photo')}">
+                ${photo.caption ? `<div style="color:#e2e8f0; font-size:0.9em; text-align:center;">${_lpEsc(photo.caption)}</div>` : ''}
+                <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:center;">
+                    <button class="btn btn-small" onclick="_lpProjEditCaption('${photo.id}')" style="background:#475569; color:#fff; border:none;">✏️ Edit Caption</button>
+                    <button class="btn btn-small btn-danger" onclick="_lpProjDeletePhoto('${photo.id}')">🗑️ Delete</button>
+                    <button class="btn btn-small" onclick="_lpProjCloseLightbox()" style="background:#475569; color:#fff; border:none;">✕ Close</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    lb.style.display = 'block';
+
+    // ESC key closes
+    lb._escHandler = (e) => { if (e.key === 'Escape') _lpProjCloseLightbox(); };
+    document.addEventListener('keydown', lb._escHandler);
+}
+
+function _lpProjCloseLightbox() {
+    const lb = document.getElementById('lpProjLightbox');
+    if (lb) {
+        lb.style.display = 'none';
+        if (lb._escHandler) { document.removeEventListener('keydown', lb._escHandler); lb._escHandler = null; }
+    }
+    _lpLightboxPhotoId = null;
+}
+
+async function _lpProjEditCaption(photoId) {
+    const photo = _lpProjectPhotos.find(p => p.id === photoId);
+    if (!photo) return;
+
+    const newCaption = prompt('Edit caption:', photo.caption || '');
+    if (newCaption === null) return; // cancelled
+
+    try {
+        await lpSub(_lpCurrentProjectId, 'projectPhotos').doc(photoId).update({ caption: newCaption.trim() });
+        photo.caption = newCaption.trim(); // update in-memory
+        _lpProjOpenLightbox(photoId);     // re-render lightbox with new caption
+        const body = document.getElementById('lpBody_photos');
+        if (body) _lpRenderProjectPhotos(body); // refresh thumbnails
+    } catch (err) {
+        console.error('Error updating caption:', err);
+        alert('Error updating caption.');
+    }
+}
+
+async function _lpProjDeletePhoto(photoId) {
+    if (!confirm('Delete this photo?')) return;
+    _lpProjCloseLightbox();
+    try {
+        await lpSub(_lpCurrentProjectId, 'projectPhotos').doc(photoId).delete();
+        await _lpLoadProjectPhotos();
+    } catch (err) {
+        console.error('Error deleting photo:', err);
+        alert('Error deleting photo.');
+    }
 }
 
 // ============================================================

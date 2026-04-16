@@ -453,6 +453,9 @@ let _lpPickerReturnCtx = null;
 
 async function loadLifeProjectDetailPage(projectId) {
     _lpCurrentProjectId = projectId;
+    // Reset expand state so all days/groups start collapsed for each project load
+    _lpDayExpanded = new Set();
+    _lpGroupExpanded = new Set();
     const page = document.getElementById('page-life-project');
 
     // Set breadcrumb — will update with project title after load
@@ -1942,7 +1945,7 @@ function _lpRenderPlanningBoard(body) {
 function _lpPlanningGroupCard(g) {
     const items = (g.items || []).sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
     const itemCount = items.length;
-    const collapsed = _lpGroupCollapsed.has(g.id);
+    const collapsed = !_lpGroupExpanded.has(g.id);
     const chevron = collapsed ? '▸' : '▾';
 
     return `
@@ -2229,29 +2232,36 @@ let _lpDays = [];
 /** Dates (YYYY-MM-DD) that have at least one journal entry — populated when itinerary loads */
 let _lpJournalDates = new Set();
 
-/** Day IDs currently collapsed in the itinerary — persists across re-renders within the session */
-let _lpDayCollapsed = new Set();
+/**
+ * Day IDs that are explicitly EXPANDED in the itinerary.
+ * Default (not in Set) = collapsed. Empty Set = all collapsed on first open.
+ * Persists across accordion close/reopen and re-renders within the session.
+ */
+let _lpDayExpanded = new Set();
 
-/** Group IDs currently collapsed in the planning board */
-let _lpGroupCollapsed = new Set();
+/**
+ * Group IDs that are explicitly EXPANDED in the planning board.
+ * Same logic as _lpDayExpanded.
+ */
+let _lpGroupExpanded = new Set();
 
-/** Toggle a day card's collapsed state and re-render the itinerary. */
+/** Toggle a day card's expanded state and re-render the itinerary. */
 function _lpToggleDayCollapse(dayId) {
-    if (_lpDayCollapsed.has(dayId)) {
-        _lpDayCollapsed.delete(dayId);
+    if (_lpDayExpanded.has(dayId)) {
+        _lpDayExpanded.delete(dayId);
     } else {
-        _lpDayCollapsed.add(dayId);
+        _lpDayExpanded.add(dayId);
     }
     const body = document.getElementById('lpBody_itinerary');
     if (body) _lpRenderItinerary(body);
 }
 
-/** Toggle a planning group's collapsed state and re-render the planning board. */
+/** Toggle a planning group's expanded state and re-render the planning board. */
 function _lpToggleGroupCollapse(groupId) {
-    if (_lpGroupCollapsed.has(groupId)) {
-        _lpGroupCollapsed.delete(groupId);
+    if (_lpGroupExpanded.has(groupId)) {
+        _lpGroupExpanded.delete(groupId);
     } else {
-        _lpGroupCollapsed.add(groupId);
+        _lpGroupExpanded.add(groupId);
     }
     const body = document.getElementById('lpBody_planning');
     if (body) _lpRenderPlanningBoard(body);
@@ -2376,7 +2386,7 @@ function _lpDayCard(d) {
     // Travel mode: hide maybe/idea/nope items
     if (_lpIsTravelMode()) items = items.filter(it => it.status === 'confirmed');
     const dateLabel = d.date ? new Date(d.date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) : '';
-    const collapsed = _lpDayCollapsed.has(d.id);
+    const collapsed = !_lpDayExpanded.has(d.id);
     const chevron = collapsed ? '▸' : '▾';
 
     return `

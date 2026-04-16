@@ -844,7 +844,7 @@ async function _lpLoadInitialData() {
 /** Build an accordion section shell */
 function _lpAccordionSection(id, title, summary, expanded) {
     return `
-        <div class="lp-accordion-section" id="lpAcc_${id}" data-expanded="${expanded}">
+        <div class="lp-accordion-section" id="lpAcc_${id}" data-expanded="${expanded}" data-default-open="${expanded}">
             <div class="lp-accordion-header" onclick="_lpToggleAccordion('${id}')" style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; cursor:pointer; margin-bottom:4px; user-select:none;">
                 <div style="display:flex; align-items:center; gap:8px;">
                     <span class="lp-accordion-arrow" id="lpArrow_${id}" style="transition:transform 0.2s; display:inline-block; ${expanded ? 'transform:rotate(90deg);' : ''}"">▶</span>
@@ -4597,7 +4597,27 @@ function _lpClearSearch() {
     if (box) box.value = '';
     const clearBtn = document.getElementById('lpSearchClearBtn');
     if (clearBtn) clearBtn.style.display = 'none';
+
+    // Restore all hidden items first, then collapse all accordion sections
     _lpFilterBySearch('');
+
+    const allSections = ['tripInfo','itinerary','planning','notes','todos',
+                         'photos','links','bookings','packing','locations',
+                         'distances','people'];
+    allSections.forEach(id => {
+        const section = document.getElementById(`lpAcc_${id}`);
+        const body    = document.getElementById(`lpBody_${id}`);
+        const arrow   = document.getElementById(`lpArrow_${id}`);
+        if (!section || !body) return;
+        // Only collapse sections that were forcibly opened by the search
+        // (Trip Info and Itinerary/Bookings start open — keep them open)
+        const defaultOpen = section.dataset.defaultOpen === 'true';
+        if (!defaultOpen) {
+            body.style.display = 'none';
+            if (arrow) arrow.style.transform = '';
+            section.dataset.expanded = 'false';
+        }
+    });
 }
 
 function _lpFilterBySearch(query) {

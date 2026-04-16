@@ -3656,7 +3656,7 @@ function _lpShowBookingModal(booking) {
                 <div style="font-weight:600; margin-bottom:8px; font-size:0.95em;">📷 Screenshots</div>
                 <div id="lpBkScreenshotSection" style="color:#999; font-size:0.9em;">Loading…</div>
             </div>` : ''}
-            <div class="modal-actions">
+            <div class="modal-actions" style="border-top:1px solid #e2e8f0; margin-top:16px; padding-top:12px;">
                 ${isEdit ? `<button class="btn btn-danger" onclick="closeModal('lpBookingModal');_lpDeleteBooking('${b.id}')" style="margin-right:auto;">Delete</button>` : ''}
                 <button class="btn" onclick="closeModal('lpBookingModal')">Cancel</button>
                 <button class="btn btn-primary" onclick="_lpSaveBooking('${isEdit ? b.id : ''}')">${isEdit ? 'Save' : 'Create'}</button>

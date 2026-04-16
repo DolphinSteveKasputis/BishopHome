@@ -3441,15 +3441,27 @@ const LP_PAYMENT_STATUSES = {
 };
 
 let _lpBookings = [];
+let _lpBookingPhotoCounts = {}; // bookingId → photo count
 
 async function _lpLoadBookings() {
     const body = document.getElementById('lpBody_bookings');
     if (!body || !_lpCurrentProjectId) return;
 
     try {
-        const snap = await lpSub(_lpCurrentProjectId, 'bookings').orderBy('sortOrder').get();
+        const [bookingSnap, photoSnap] = await Promise.all([
+            lpSub(_lpCurrentProjectId, 'bookings').orderBy('sortOrder').get(),
+            lpSub(_lpCurrentProjectId, 'bookingPhotos').get()
+        ]);
         _lpBookings = [];
-        snap.forEach(doc => _lpBookings.push({ id: doc.id, ...doc.data() }));
+        bookingSnap.forEach(doc => _lpBookings.push({ id: doc.id, ...doc.data() }));
+
+        // Build photo count map
+        _lpBookingPhotoCounts = {};
+        photoSnap.forEach(doc => {
+            const bid = doc.data().bookingId;
+            if (bid) _lpBookingPhotoCounts[bid] = (_lpBookingPhotoCounts[bid] || 0) + 1;
+        });
+
         _lpRenderBookings(body);
     } catch (err) {
         console.error('Error loading bookings:', err);
@@ -3503,8 +3515,7 @@ function _lpBookingCard(b) {
                 </div>
                 <div style="display:flex; gap:4px; flex-shrink:0;">
                     <button class="btn btn-small" onclick="_lpEditBooking('${b.id}')" title="Edit">✏️</button>
-                    <button class="btn btn-small" onclick="_lpBookingScreenshots('${b.id}')" title="Screenshots">📷</button>
-                    <button class="btn btn-small btn-danger" onclick="_lpDeleteBooking('${b.id}')" title="Delete">✕</button>
+                    <button class="btn btn-small" onclick="_lpBookingScreenshots('${b.id}')" title="Screenshots" style="${_lpBookingPhotoCounts[b.id] ? 'color:#16a34a; font-size:1.1em;' : ''}">📷</button>
                 </div>
             </div>
             ${_lpBookingDetailsHtml(b)}
@@ -3515,8 +3526,15 @@ function _lpBookingCard(b) {
 function _lpBookingDetailsHtml(b) {
     const parts = [];
     if (b.confirmation) parts.push(`<strong>Confirmation:</strong> ${_lpEsc(b.confirmation)}`);
-    if (b.contact) parts.push(`<strong>Contact:</strong> ${_lpEsc(b.contact)}`);
-    if (b.address) parts.push(`<strong>Address:</strong> ${_lpEsc(b.address)}`);
+    if (b.contact) {
+        // If it looks like a phone number, make it a tel: link
+        const isPhone = /^[\d\s\+\-\(\)\.]{7,}$/.test(b.contact.trim());
+        const contactHtml = isPhone
+            ? `<a href="tel:${_lpEsc(b.contact.replace(/\s/g,''))}" style="color:#2563eb;">${_lpEsc(b.contact)}</a>`
+            : _lpEsc(b.contact);
+        parts.push(`<strong>Contact:</strong> ${contactHtml}`);
+    }
+    if (b.address) parts.push(`<strong>Address:</strong> <a href="https://maps.google.com/?q=${encodeURIComponent(b.address)}" target="_blank" rel="noopener" style="color:#2563eb;" title="Get directions">${_lpEsc(b.address)}</a>`);
     if (b.link) parts.push(`<strong>Link:</strong> <a href="${_lpEsc(b.link)}" target="_blank" rel="noopener" style="color:#2563eb;">${_lpEsc(b.link)}</a>`);
     if (b.notes) parts.push(`<strong>Notes:</strong> ${_lpEsc(b.notes)}`);
     if (!parts.length) return '';
@@ -3633,6 +3651,7 @@ function _lpShowBookingModal(booking) {
                 <textarea id="lpBkNotes" class="form-control" rows="2">${_lpEsc(b.notes || '')}</textarea>
             </div>
             <div class="modal-actions">
+                ${isEdit ? `<button class="btn btn-danger" onclick="closeModal('lpBookingModal');_lpDeleteBooking('${b.id}')" style="margin-right:auto;">Delete</button>` : ''}
                 <button class="btn" onclick="closeModal('lpBookingModal')">Cancel</button>
                 <button class="btn btn-primary" onclick="_lpSaveBooking('${isEdit ? b.id : ''}')">${isEdit ? 'Save' : 'Create'}</button>
             </div>
@@ -3803,6 +3822,7 @@ async function _lpUploadScreenshot(bookingId, files) {
             caption: caption.trim(),
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
+        _lpUpdateBookingCameraIcon(bookingId, +1);
         // Refresh the screenshot modal
         await _lpBookingScreenshots(bookingId);
     } catch (err) {
@@ -3837,6 +3857,7 @@ async function _lpPasteScreenshot(bookingId) {
             caption: caption.trim(),
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
+        _lpUpdateBookingCameraIcon(bookingId, +1);
         await _lpBookingScreenshots(bookingId);
     } catch (err) {
         if (err.name === 'NotAllowedError') {
@@ -3852,10 +3873,24 @@ async function _lpDeleteScreenshot(bookingId, photoId) {
     if (!confirm('Delete this screenshot?')) return;
     try {
         await lpSub(_lpCurrentProjectId, 'bookingPhotos').doc(photoId).delete();
+        _lpUpdateBookingCameraIcon(bookingId, -1);
         await _lpBookingScreenshots(bookingId);
     } catch (err) {
         console.error('Error deleting screenshot:', err);
     }
+}
+
+/** Update the camera button color on a booking card after add/delete */
+function _lpUpdateBookingCameraIcon(bookingId, delta) {
+    const prev = _lpBookingPhotoCounts[bookingId] || 0;
+    const next = Math.max(0, prev + delta);
+    _lpBookingPhotoCounts[bookingId] = next;
+    const card = document.getElementById(`lpBooking_${bookingId}`);
+    if (!card) return;
+    const btn = card.querySelector('button[title="Screenshots"]');
+    if (!btn) return;
+    btn.style.color    = next > 0 ? '#16a34a' : '';
+    btn.style.fontSize = next > 0 ? '1.1em'   : '';
 }
 
 // ---------- Booking badge on day items ----------

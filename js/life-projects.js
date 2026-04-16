@@ -3515,7 +3515,7 @@ function _lpBookingCard(b) {
                 </div>
                 <div style="display:flex; gap:4px; flex-shrink:0;">
                     <button class="btn btn-small" onclick="_lpEditBooking('${b.id}')" title="Edit">✏️</button>
-                    <button class="btn btn-small" onclick="_lpBookingScreenshots('${b.id}')" title="Screenshots" style="${_lpBookingPhotoCounts[b.id] ? 'color:#16a34a; font-size:1.1em;' : ''}">📷</button>
+                    <button class="btn btn-small" onclick="_lpBookingScreenshots('${b.id}')" title="Screenshots${_lpBookingPhotoCounts[b.id] ? ` (${_lpBookingPhotoCounts[b.id]})` : ''}" style="${_lpBookingPhotoCounts[b.id] ? 'background:#16a34a; color:#fff;' : ''}">📷</button>
                 </div>
             </div>
             ${_lpBookingDetailsHtml(b)}
@@ -3889,8 +3889,9 @@ function _lpUpdateBookingCameraIcon(bookingId, delta) {
     if (!card) return;
     const btn = card.querySelector('button[title="Screenshots"]');
     if (!btn) return;
-    btn.style.color    = next > 0 ? '#16a34a' : '';
-    btn.style.fontSize = next > 0 ? '1.1em'   : '';
+    btn.style.background = next > 0 ? '#16a34a' : '';
+    btn.style.color      = next > 0 ? '#fff'    : '';
+    btn.title = next > 0 ? `Screenshots (${next})` : 'Screenshots';
 }
 
 // ---------- Booking badge on day items ----------

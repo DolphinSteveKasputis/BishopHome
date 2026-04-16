@@ -929,10 +929,81 @@ function _lpLoadTripInfo() {
             ${p.description ? `<div><strong>Description:</strong> ${_lpEsc(p.description)}</div>` : ''}
             ${costRollup.total > 0 ? `<div style="font-size:1.05em;"><strong>Total Trip Cost:</strong> <span style="color:#16a34a; font-weight:700;">$${costRollup.total.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</span> <span style="color:#888; font-size:0.8em;">(bookings: $${costRollup.bookings.toFixed(2)}, activities: $${costRollup.items.toFixed(2)})</span></div>` : ''}
             <div style="margin-top:4px;">
-                <button class="btn btn-small" onclick="openEditLifeProjectModal('${p.id}')">✏️ Edit Project Info</button>
+                <button class="btn btn-small" onclick="_lpOpenTripInfoEdit()">✏️ Edit Project Info</button>
             </div>
         </div>
     `;
+}
+
+/** Open an inline edit modal for the project's title, description, and dates */
+function _lpOpenTripInfoEdit() {
+    const p = _lpCurrentProject;
+    if (!p) return;
+
+    let modal = document.getElementById('lpTripInfoEditModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'lpTripInfoEditModal';
+        modal.className = 'modal-overlay';
+        document.getElementById('page-life-project').appendChild(modal);
+    }
+
+    modal.innerHTML = `
+        <div class="modal" style="max-width:480px;">
+            <h3 style="margin:0 0 16px;">Edit Project Info</h3>
+            <div class="form-group">
+                <label>Title *</label>
+                <input type="text" id="lpTripInfoTitle" class="form-control" value="${_lpEsc(p.title || '')}">
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="lpTripInfoDesc" class="form-control" rows="3">${_lpEsc(p.description || '')}</textarea>
+            </div>
+            <div style="display:flex; gap:12px;">
+                <div class="form-group" style="flex:1;">
+                    <label>Start Date</label>
+                    <input type="date" id="lpTripInfoStart" class="form-control" value="${p.startDate || ''}">
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label>End Date</label>
+                    <input type="date" id="lpTripInfoEnd" class="form-control" value="${p.endDate || ''}">
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn" onclick="closeModal('lpTripInfoEditModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="_lpSaveTripInfoEdit()">Save</button>
+            </div>
+        </div>`;
+
+    openModal('lpTripInfoEditModal');
+    setTimeout(() => document.getElementById('lpTripInfoTitle')?.focus(), 50);
+}
+
+async function _lpSaveTripInfoEdit() {
+    const title       = document.getElementById('lpTripInfoTitle')?.value.trim() || '';
+    const description = document.getElementById('lpTripInfoDesc')?.value.trim()  || '';
+    const startDate   = document.getElementById('lpTripInfoStart')?.value || null;
+    const endDate     = document.getElementById('lpTripInfoEnd')?.value   || null;
+
+    if (!title) { alert('Title is required.'); return; }
+
+    closeModal('lpTripInfoEditModal');
+    try {
+        await lpCol().doc(_lpCurrentProjectId).update({
+            title, description, startDate, endDate,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        // Update in-memory project and refresh header + trip info
+        Object.assign(_lpCurrentProject, { title, description, startDate, endDate });
+        // Refresh breadcrumb title
+        const crumb = document.getElementById('breadcrumbBar');
+        if (crumb) crumb.innerHTML = `<a href="#life">Life</a><span class="separator">&rsaquo;</span><a href="#life-projects">Projects</a><span class="separator">&rsaquo;</span><span>${_lpEsc(title)}</span>`;
+        // Refresh the project header and trip info panel
+        loadLifeProjectDetailPage(_lpCurrentProjectId);
+    } catch (err) {
+        console.error('Error saving project info:', err);
+        alert('Error saving project info.');
+    }
 }
 
 /** Calculate total cost from bookings + day items */

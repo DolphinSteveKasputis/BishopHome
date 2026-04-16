@@ -2399,12 +2399,11 @@ function _lpDayCard(d) {
                     <span style="color:#888; font-size:0.85em; user-select:none;">${chevron}</span>
                     <strong>${_lpEsc(d.label || dateLabel || 'Day')}</strong>
                     ${d.location ? `<span style="color:#666; font-size:0.9em;">— ${_lpEsc(d.location)}</span>` : ''}
-                    ${collapsed && items.length > 0 ? `<span style="color:#94a3b8; font-size:0.8em;">(${items.length} item${items.length !== 1 ? 's' : ''})</span>` : ''}
+                    ${collapsed && items.length > 0 ? `<span style="color:#94a3b8; font-size:0.8em;">(${items.length}<span class="lp-desktop-only"> item${items.length !== 1 ? 's' : ''}</span>)</span>` : ''}
                 </div>
                 <div style="display:flex; gap:4px;">
                     <button class="btn btn-small" onclick="_lpEditDay('${d.id}')" title="Edit day">✏️</button>
                     ${d.date && _lpJournalDates.has(d.date) ? `<button class="btn btn-small" onclick="_lpOpenJournalForDay('${d.date}')" title="Journal Entries" style="font-size:1em;">📓</button>` : ''}
-                    <button class="btn btn-small btn-danger" onclick="_lpDeleteDay('${d.id}')" title="Delete day">✕</button>
                 </div>
             </div>
             ${collapsed ? '' : `
@@ -2775,28 +2774,69 @@ async function _lpAddDay() {
     }
 }
 
-async function _lpEditDay(dayId) {
+function _lpEditDay(dayId) {
     const day = _lpDays.find(d => d.id === dayId);
     if (!day) return;
 
-    const label = prompt('Day label:', day.label || '');
-    if (!label || !label.trim()) return;
-    const date = prompt('Date (YYYY-MM-DD):', day.date || '') || '';
-    const location = prompt('Location:', day.location || '') || '';
+    // Build or reuse the edit-day modal
+    let modal = document.getElementById('lpEditDayModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'lpEditDayModal';
+        modal.className = 'modal-overlay';
+        document.getElementById('page-life-project').appendChild(modal);
+    }
 
+    modal.innerHTML = `
+        <div class="modal" style="max-width:420px;">
+            <h3 style="margin:0 0 16px;">Edit Day</h3>
+            <div class="form-group">
+                <label>Label</label>
+                <input type="text" id="lpEditDayLabel" class="form-control" value="${_lpEsc(day.label || '')}">
+            </div>
+            <div class="form-group">
+                <label>Date</label>
+                <input type="date" id="lpEditDayDate" class="form-control" value="${day.date || ''}">
+            </div>
+            <div class="form-group">
+                <label>Location</label>
+                <input type="text" id="lpEditDayLocation" class="form-control" value="${_lpEsc(day.location || '')}">
+            </div>
+            <div class="modal-actions" style="justify-content:space-between; align-items:center;">
+                <button class="btn btn-danger btn-small" onclick="_lpDeleteDayFromModal('${dayId}')">🗑️ Delete Day</button>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn" onclick="closeModal('lpEditDayModal')">Cancel</button>
+                    <button class="btn btn-primary" onclick="_lpSaveEditDay('${dayId}')">Save</button>
+                </div>
+            </div>
+        </div>`;
+
+    openModal('lpEditDayModal');
+    setTimeout(() => document.getElementById('lpEditDayLabel')?.focus(), 50);
+}
+
+async function _lpSaveEditDay(dayId) {
+    const label    = document.getElementById('lpEditDayLabel')?.value.trim() || '';
+    const date     = document.getElementById('lpEditDayDate')?.value.trim()  || '';
+    const location = document.getElementById('lpEditDayLocation')?.value.trim() || '';
+    if (!label) { alert('Label is required.'); return; }
+
+    closeModal('lpEditDayModal');
     try {
-        await lpSub(_lpCurrentProjectId, 'days').doc(dayId).update({
-            label: label.trim(),
-            date: date.trim(),
-            location: location.trim()
-        });
-        // Update local state
-        Object.assign(day, { label: label.trim(), date: date.trim(), location: location.trim() });
+        await lpSub(_lpCurrentProjectId, 'days').doc(dayId).update({ label, date, location });
+        const day = _lpDays.find(d => d.id === dayId);
+        if (day) Object.assign(day, { label, date, location });
         const body = document.getElementById('lpBody_itinerary');
         if (body) _lpRenderItinerary(body);
     } catch (err) {
-        console.error('Error editing day:', err);
+        console.error('Error saving day:', err);
+        alert('Error saving day.');
     }
+}
+
+async function _lpDeleteDayFromModal(dayId) {
+    closeModal('lpEditDayModal');
+    await _lpDeleteDay(dayId);
 }
 
 async function _lpDeleteDay(dayId) {

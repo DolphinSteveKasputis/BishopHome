@@ -117,3 +117,9 @@ Related to: Life Projects, SecondBrain.
 ## Create Lists
 
 General-purpose list creation feature. Details TBD.
+
+---
+
+## Goals
+
+Create and manage daily, weekly, monthly, and yearly goals. Details TBD.

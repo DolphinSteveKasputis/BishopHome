@@ -586,15 +586,20 @@ function _lcNormalizeAppointment(id, data) {
     var title    = data.type || 'Appointment';
     if (provider) title += ' – ' + provider;
     return {
-        id:          id,
-        _kind:       'appt',
-        _apptStatus: data.status || 'scheduled',
-        startDate:   data.date   || '',
-        startTime:   data.time   || '',
-        title:       title,
-        notes:       data.notes  || ''
+        id:                id,
+        _kind:             'appt',
+        _apptStatus:       data.status || 'scheduled',
+        startDate:         data.date   || '',
+        startTime:         data.time   || '',
+        title:             title,
+        notes:             data.notes  || '',
+        facilityContactId: data.facilityContactId || null,
+        facilityText:      data.facilityText      || ''
     };
 }
+
+/** contactId → {name, phone, address} for facility contacts used in appointments */
+var _lcFacilityContactMap = {};
 
 /**
  * Return appointments to include for the current view.
@@ -763,6 +768,21 @@ function _lcRenderEventList(events, categories) {
             ? '<span class="lc-event-time">' + escapeHtml(_lcFormatTime(ev.startTime)) + '</span> '
             : '';
 
+        // For today's appointments, show facility address and phone (clickable)
+        var todayStr = _lcIsoDate(new Date());
+        var apptTodayHtml = '';
+        if (isAppt && ev.startDate === todayStr) {
+            var fc = ev.facilityContactId ? (_lcFacilityContactMap[ev.facilityContactId] || null) : null;
+            var apptAddr  = fc ? (fc.address || '') : '';
+            var apptPhone = fc ? (fc.phone   || '') : '';
+            var todayParts = [];
+            if (apptAddr)  todayParts.push('<a href="https://maps.google.com/?q=' + encodeURIComponent(apptAddr) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:#2563eb; font-size:0.85em;">📍 ' + escapeHtml(apptAddr) + '</a>');
+            if (apptPhone) todayParts.push('<a href="tel:' + escapeHtml(apptPhone.replace(/\s/g,'')) + '" onclick="event.stopPropagation()" style="color:#2563eb; font-size:0.85em;">📞 ' + escapeHtml(apptPhone) + '</a>');
+            if (todayParts.length) {
+                apptTodayHtml = '<div style="margin-top:4px; display:flex; flex-direction:column; gap:2px;">' + todayParts.join('') + '</div>';
+            }
+        }
+
         // data- attribute drives click navigation: appointments go to health-appointments page
         var dataAttr = isAppt ? 'data-appt="true"' : ('data-id="' + escapeHtml(ev.id) + '"');
 
@@ -776,6 +796,7 @@ function _lcRenderEventList(events, categories) {
                         ${location}
                         <span class="lc-status-badge ${statusCls}">${escapeHtml(statusLbl)}</span>
                     </div>
+                    ${apptTodayHtml}
                 </div>
             </div>
         `;
@@ -1125,6 +1146,20 @@ async function loadLifeCalendarPage() {
         _lcAllAppointments = apptsSnap.docs
             .map(function(d) { return _lcNormalizeAppointment(d.id, d.data()); })
             .filter(function(a) { return !!a.startDate; }); // only appointments with a date
+
+        // Fetch facility contacts so today's appointments can show address/phone
+        var facilityIds = [...new Set(
+            apptsSnap.docs.map(function(d) { return d.data().facilityContactId; }).filter(Boolean)
+        )];
+        _lcFacilityContactMap = {};
+        if (facilityIds.length > 0) {
+            await Promise.all(facilityIds.map(async function(cid) {
+                try {
+                    var snap = await userCol('people').doc(cid).get();
+                    if (snap.exists) _lcFacilityContactMap[cid] = snap.data();
+                } catch(e) { /* ignore */ }
+            }));
+        }
 
         // Set default view based on screen size (only on first visit)
         if (_lcViewMode === null) {

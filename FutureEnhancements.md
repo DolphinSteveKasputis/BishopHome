@@ -111,3 +111,9 @@ Related to: Life Projects, Itinerary days.
 Integrate the Projects system with SecondBrain for voice/AI-powered queries like "What's my plan for Day 3?", "What excursions have I confirmed?", "How much have I spent on this trip?". Exact integration TBD after the Projects system is built and in use.
 
 Related to: Life Projects, SecondBrain.
+
+---
+
+## Create Lists
+
+General-purpose list creation feature. Details TBD.

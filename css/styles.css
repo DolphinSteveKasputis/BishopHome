@@ -327,6 +327,17 @@ button {
     text-align: center;
 }
 
+/* ---------- Responsive Utility: Desktop/Mobile Visibility ---------- */
+/* .lp-desktop-only: visible on desktop, hidden on mobile (≤640px)    */
+/* .lp-mobile-only:  hidden on desktop, visible on mobile (≤640px)    */
+.lp-desktop-only { /* natural display — no override needed */ }
+.lp-mobile-only  { display: none; }
+
+@media (max-width: 640px) {
+    .lp-desktop-only { display: none !important; }
+    .lp-mobile-only  { display: flex !important; }
+}
+
 /* ---------- Buttons ---------- */
 .btn {
     display: inline-flex;

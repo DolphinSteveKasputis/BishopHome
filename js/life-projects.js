@@ -1992,16 +1992,16 @@ function _lpPlanningItemRow(groupId, item) {
         <div class="lp-planning-item" data-item-id="${item.id}" style="padding:6px 0; border-bottom:1px solid #f0f0f0;">
             <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
                 <span class="lp-item-drag" style="cursor:grab; color:#ccc; font-size:0.8em;">⠿</span>
-                <span style="background:${st.bg};color:${st.color};font-size:0.7em;padding:1px 8px;border-radius:10px;font-weight:600;">${st.label}</span>
+                <span class="lp-desktop-only" style="background:${st.bg};color:${st.color};font-size:0.7em;padding:1px 8px;border-radius:10px;font-weight:600;">${st.label}</span>
                 <span style="flex:1; min-width:0; font-weight:500; cursor:pointer;" onclick="_lpTogglePlanningItemDetails('${groupId}','${item.id}')">${_lpEsc(item.title)}</span>
-                ${locBadge}
-                <div style="display:flex; gap:2px; flex-shrink:0;">
+                <span class="lp-desktop-only">${locBadge}</span>
+                <div class="lp-desktop-only" style="display:flex; gap:2px; flex-shrink:0;">
                     <button class="btn btn-small" onclick="_lpEditPlanningItem('${groupId}','${item.id}')" title="Edit item" style="padding:2px 6px;">✏️</button>
                     ${locBtn}
                 </div>
             </div>
             <div class="lp-planning-item-details" id="lpPgItemDetails_${groupId}_${item.id}" style="display:none; margin-top:6px; padding-left:28px; font-size:0.88em; color:#555;">
-                ${_lpItemDetailsContent(item)}
+                ${_lpItemDetailsContent(item, { type: 'planning', groupId })}
             </div>
         </div>
     `;
@@ -2453,19 +2453,19 @@ function _lpItemRow(dayId, item) {
                 <div style="flex:1; min-width:0;">
                     <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
                         <span class="lp-item-drag" style="cursor:grab; color:#ccc; font-size:0.8em;">⠿</span>
-                        <span style="background:${st.bg};color:${st.color};font-size:0.7em;padding:1px 8px;border-radius:10px;font-weight:600;">${st.label}</span>
+                        <span class="lp-desktop-only" style="background:${st.bg};color:${st.color};font-size:0.7em;padding:1px 8px;border-radius:10px;font-weight:600;">${st.label}</span>
                         ${!isTimeline && item.time ? `<span style="color:#888; font-size:0.85em;">${_lpEsc(item.time)}</span>` : ''}
                         <span style="flex:1; min-width:0; font-weight:500; cursor:pointer;" onclick="_lpToggleItemDetails('${dayId}','${item.id}')">${_lpEsc(item.title)}</span>
-                        ${_lpBookingBadge(item.bookingRef)}
+                        <span class="lp-desktop-only">${_lpBookingBadge(item.bookingRef)}</span>
                         ${item.showOnCalendar ? '<span title="On calendar" style="font-size:0.75em;">📅</span>' : ''}
-                        ${locBadge}
-                        <div style="display:flex; gap:2px; flex-shrink:0;">
+                        <span class="lp-desktop-only">${locBadge}</span>
+                        <div class="lp-desktop-only" style="display:flex; gap:2px; flex-shrink:0;">
                             <button class="btn btn-small" onclick="_lpEditItem('${dayId}','${item.id}')" title="Edit item" style="padding:2px 6px;">✏️</button>
                             ${locBtn}
                         </div>
                     </div>
                     <div class="lp-item-details" id="lpItemDetails_${dayId}_${item.id}" style="display:none; margin-top:6px; padding-left:28px; font-size:0.88em; color:#555;">
-                        ${_lpItemDetailsContent(item)}
+                        ${_lpItemDetailsContent(item, { type: 'itinerary', dayId })}
                     </div>
                 </div>
             </div>
@@ -2599,9 +2599,47 @@ function _lpBuildDayItemsHtml(dayId, items) {
     return html;
 }
 
-function _lpItemDetailsContent(item) {
+/**
+ * Render the expanded detail content for an itinerary or planning item.
+ * @param {object} item - The item data
+ * @param {object} ctx  - Context: { type: 'itinerary'|'planning', dayId?, groupId? }
+ *                        Used to render mobile-only action buttons inside the detail panel.
+ */
+function _lpItemDetailsContent(item, ctx) {
+    ctx = ctx || {};
     const travel = _lpIsTravelMode();
     const parts = [];
+
+    // ---- Mobile-only header: status badge + location badge + booking + action buttons ----
+    // On desktop these live in the collapsed row; on mobile they move here.
+    {
+        const st = LP_ITEM_STATUSES[item.status] || LP_ITEM_STATUSES.idea;
+        const mLoc = item.locationId ? _lpLocations.find(l => l.id === item.locationId) : null;
+        const mLocBadge = mLoc
+            ? `<span title="${_lpEsc(mLoc.name)}${mLoc.address ? '\n'+mLoc.address : ''}${mLoc.phone ? '\n'+mLoc.phone : ''}" style="font-size:0.75em; color:#2563eb; white-space:nowrap;">📍 ${_lpEsc(mLoc.name)}</span>`
+            : '';
+        const mBookingBadge = _lpBookingBadge(item.bookingRef);
+        const parentId = ctx.type === 'itinerary' ? ctx.dayId : ctx.groupId;
+        const mEditBtn = ctx.type === 'itinerary'
+            ? `<button class="btn btn-small" onclick="_lpEditItem('${ctx.dayId}','${item.id}')" style="padding:2px 6px;">✏️</button>`
+            : `<button class="btn btn-small" onclick="_lpEditPlanningItem('${ctx.groupId}','${item.id}')" style="padding:2px 6px;">✏️</button>`;
+        const mLocBtn = !mLoc
+            ? `<button class="btn btn-small" onclick="_lpPickLocation('${ctx.type}','${parentId}','${item.id}')" title="Set location" style="padding:2px 6px;">📍</button>`
+            : `<button class="btn btn-small" onclick="_lpOpenAddDistance('${ctx.type}','${parentId}','${item.id}')" title="Add distance from here" style="padding:2px 6px;">🛣️</button>`;
+
+        parts.push(`
+            <div class="lp-mobile-only" style="flex-direction:column; gap:6px; margin-bottom:8px; padding-bottom:8px; border-bottom:1px solid #e2e8f0;">
+                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                    <span style="background:${st.bg};color:${st.color};font-size:0.7em;padding:1px 8px;border-radius:10px;font-weight:600;">${st.label}</span>
+                    ${mLocBadge}
+                    ${mBookingBadge}
+                </div>
+                <div style="display:flex; gap:4px;">
+                    ${mEditBtn}
+                    ${mLocBtn}
+                </div>
+            </div>`);
+    }
 
     // Location row — always first when expanded
     const loc = item.locationId ? _lpLocations.find(l => l.id === item.locationId) : null;

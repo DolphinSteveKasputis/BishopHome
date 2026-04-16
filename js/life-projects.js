@@ -1154,8 +1154,8 @@ function _lpRenderLocations(body) {
         <div style="display:flex; align-items:flex-start; gap:8px; padding:8px 0; border-bottom:1px solid #f0f0f0;">
             <div style="flex:1; min-width:0;">
                 <div style="font-weight:600;">${_lpEsc(loc.name)}</div>
-                ${loc.address ? `<div style="font-size:0.85em; color:#666;">${_lpEsc(loc.address)}</div>` : ''}
-                ${loc.phone   ? `<div style="font-size:0.85em; color:#666;">${_lpEsc(loc.phone)}</div>` : ''}
+                ${loc.address ? `<div style="font-size:0.85em;"><a href="https://maps.google.com/?q=${encodeURIComponent(loc.address)}" onclick="event.stopPropagation();window.open(this.href,'_blank');return false;" style="color:#2563eb;" title="Get directions">${_lpEsc(loc.address)}</a></div>` : ''}
+                ${loc.phone   ? `<div style="font-size:0.85em;"><a href="tel:${_lpEsc(loc.phone.replace(/\s/g,''))}" style="color:#2563eb;">${_lpEsc(loc.phone)}</a></div>` : ''}
                 ${loc.website ? `<div style="font-size:0.85em;"><a href="${_lpEsc(loc.website)}" onclick="event.stopPropagation();window.open(this.href,'_blank');return false;" style="color:#2563eb;">${_lpEsc(loc.website)}</a></div>` : ''}
             </div>
             <div style="display:flex; gap:4px; flex-shrink:0;">

@@ -1870,7 +1870,7 @@ function _lpRenderTodos(body) {
 function _lpTodoItem(t) {
     return `
         <div class="lp-todo-item" data-id="${t.id}" style="display:flex; align-items:flex-start; gap:8px; padding:6px 4px; border-bottom:1px solid #f0f0f0;">
-            <span class="lp-drag-handle" style="cursor:grab; color:#ccc; padding:2px;">⠿</span>
+            <span class="lp-drag-handle lp-desktop-only" style="cursor:grab; color:#ccc; padding:2px;">⠿</span>
             <input type="checkbox" ${t.done ? 'checked' : ''} onchange="_lpToggleTodo('${t.id}', this.checked)" style="margin-top:3px;">
             <div style="flex:1; min-width:0;">
                 <span style="${t.done ? 'text-decoration:line-through; color:#999;' : ''}">${_lpEsc(t.text)}</span>
@@ -3505,7 +3505,7 @@ function _lpBookingCard(b) {
             <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                 <div style="flex:1; min-width:0;">
                     <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-                        <span class="lp-booking-drag" style="cursor:grab; color:#ccc;">⠿</span>
+                        <span class="lp-booking-drag lp-desktop-only" style="cursor:grab; color:#ccc;">⠿</span>
                         <strong style="cursor:pointer;" onclick="_lpEditBooking('${b.id}')">${_lpEsc(b.name)}</strong>
                         ${b.type ? `<span style="background:#e0e7ff;color:#4338ca;font-size:0.7em;padding:1px 8px;border-radius:10px;">${_lpEsc(b.type)}</span>` : ''}
                         ${ps.label ? `<span style="color:${ps.color};font-size:0.75em;font-weight:600;">${ps.label}</span>` : ''}
@@ -3513,9 +3513,10 @@ function _lpBookingCard(b) {
                     ${dateStr ? `<div style="color:#666; font-size:0.85em; margin-top:2px;">${dateStr}${endStr}${timeStr ? ` &middot; ${_lpEsc(timeStr)}` : ''}</div>` : ''}
                     ${!_lpIsTravelMode() && b.cost != null && b.cost !== '' ? `<div style="color:#555; font-size:0.85em;">$${Number(b.cost).toFixed(2)}${b.costNote ? ` (${_lpEsc(b.costNote)})` : ''}</div>` : ''}
                 </div>
-                <div style="display:flex; gap:4px; flex-shrink:0;">
+                <div style="display:flex; gap:4px; flex-shrink:0; align-items:center;">
                     <button class="btn btn-small lp-desktop-only" onclick="_lpEditBooking('${b.id}')" title="Edit">✏️</button>
-                    <button class="btn btn-small" onclick="_lpBookingScreenshots('${b.id}')" title="Screenshots${_lpBookingPhotoCounts[b.id] ? ` (${_lpBookingPhotoCounts[b.id]})` : ''}" style="${_lpBookingPhotoCounts[b.id] ? 'background:#16a34a; color:#fff;' : ''}">📷</button>
+                    <button class="btn btn-small lp-desktop-only" onclick="_lpBookingScreenshots('${b.id}')" title="Screenshots${_lpBookingPhotoCounts[b.id] ? ` (${_lpBookingPhotoCounts[b.id]})` : ''}" style="${_lpBookingPhotoCounts[b.id] ? 'background:#16a34a; color:#fff;' : ''}">📷</button>
+                    ${_lpBookingPhotoCounts[b.id] ? `<span class="lp-mobile-only" onclick="_lpBookingScreenshots('${b.id}')" style="background:#16a34a; color:#fff; font-size:0.75em; padding:2px 8px; border-radius:10px; cursor:pointer;">📷 ${_lpBookingPhotoCounts[b.id]}</span>` : ''}
                 </div>
             </div>
             ${_lpBookingDetailsHtml(b)}
@@ -3650,6 +3651,11 @@ function _lpShowBookingModal(booking) {
                 <label for="lpBkNotes">Notes</label>
                 <textarea id="lpBkNotes" class="form-control" rows="2">${_lpEsc(b.notes || '')}</textarea>
             </div>
+            ${isEdit ? `
+            <div style="border-top:1px solid #e2e8f0; margin-top:12px; padding-top:12px;">
+                <div style="font-weight:600; margin-bottom:8px; font-size:0.95em;">📷 Screenshots</div>
+                <div id="lpBkScreenshotSection" style="color:#999; font-size:0.9em;">Loading…</div>
+            </div>` : ''}
             <div class="modal-actions">
                 ${isEdit ? `<button class="btn btn-danger" onclick="closeModal('lpBookingModal');_lpDeleteBooking('${b.id}')" style="margin-right:auto;">Delete</button>` : ''}
                 <button class="btn" onclick="closeModal('lpBookingModal')">Cancel</button>
@@ -3659,6 +3665,127 @@ function _lpShowBookingModal(booking) {
     `;
 
     openModal('lpBookingModal');
+
+    // Async-load screenshots section if editing
+    if (isEdit) _lpLoadBookingModalScreenshots(b.id);
+}
+
+/** Load and render the screenshots section inside the edit booking modal */
+async function _lpLoadBookingModalScreenshots(bookingId) {
+    const section = document.getElementById('lpBkScreenshotSection');
+    if (!section) return;
+    try {
+        let photos = [];
+        try {
+            const snap = await lpSub(_lpCurrentProjectId, 'bookingPhotos').where('bookingId', '==', bookingId).orderBy('createdAt', 'desc').get();
+            snap.forEach(doc => photos.push({ id: doc.id, ...doc.data() }));
+        } catch {
+            const snap = await lpSub(_lpCurrentProjectId, 'bookingPhotos').where('bookingId', '==', bookingId).get();
+            snap.forEach(doc => photos.push({ id: doc.id, ...doc.data() }));
+        }
+        _lpRenderBookingModalScreenshots(bookingId, photos);
+    } catch (err) {
+        if (section) section.innerHTML = '<span style="color:red;">Error loading screenshots.</span>';
+    }
+}
+
+/** Render thumbnails + add buttons into the edit modal screenshots section */
+function _lpRenderBookingModalScreenshots(bookingId, photos) {
+    const section = document.getElementById('lpBkScreenshotSection');
+    if (!section) return;
+
+    const thumbs = photos.map(ph => `
+        <div style="position:relative; padding-bottom:100%; background:#f1f5f9; border-radius:6px; overflow:hidden;">
+            <img src="${ph.imageData}" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; cursor:pointer;"
+                onclick="_lpBkModalViewPhoto('${ph.id}')" alt="Screenshot">
+            <button onclick="_lpBkModalDeletePhoto('${bookingId}','${ph.id}')"
+                style="position:absolute; top:2px; right:2px; background:rgba(0,0,0,0.55); color:#fff; border:none; border-radius:4px; font-size:0.7em; padding:1px 5px; cursor:pointer;">✕</button>
+        </div>`).join('');
+
+    section.innerHTML = `
+        ${photos.length > 0
+            ? `<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:10px;">${thumbs}</div>`
+            : '<p style="color:#999; font-size:0.85em; margin-bottom:8px;">No screenshots yet.</p>'}
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <label class="btn btn-small btn-primary" style="cursor:pointer;">
+                📷 Add Screenshot
+                <input type="file" accept="image/*" style="display:none;" onchange="_lpBkModalUpload('${bookingId}', this.files)">
+            </label>
+            <button class="btn btn-small btn-primary" onclick="_lpBkModalPaste('${bookingId}')">📋 Paste</button>
+        </div>`;
+}
+
+async function _lpBkModalUpload(bookingId, files) {
+    if (!files || !files.length) return;
+    try {
+        const imageData = await compressImage(files[0]);
+        const caption = prompt('Caption (optional):') || '';
+        await lpSub(_lpCurrentProjectId, 'bookingPhotos').add({
+            bookingId, imageData, caption: caption.trim(),
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        _lpUpdateBookingCameraIcon(bookingId, +1);
+        await _lpLoadBookingModalScreenshots(bookingId);
+    } catch (err) {
+        console.error('Error uploading screenshot:', err);
+        alert('Error uploading screenshot.');
+    }
+}
+
+async function _lpBkModalPaste(bookingId) {
+    if (!navigator.clipboard || !navigator.clipboard.read) {
+        alert('Clipboard paste is not supported in this browser. Try the Add Screenshot button instead.');
+        return;
+    }
+    try {
+        const items = await navigator.clipboard.read();
+        let imageBlob = null;
+        for (const item of items) {
+            const imageType = item.types.find(t => t.startsWith('image/'));
+            if (imageType) { imageBlob = await item.getType(imageType); break; }
+        }
+        if (!imageBlob) { alert('No image on the clipboard.\n\nRight-click a screenshot and choose "Copy image", then click Paste.'); return; }
+        const ext = imageBlob.type === 'image/png' ? '.png' : '.jpg';
+        const file = new File([imageBlob], 'pasted-screenshot' + ext, { type: imageBlob.type });
+        const imageData = await compressImage(file);
+        const caption = prompt('Caption (optional):') || '';
+        await lpSub(_lpCurrentProjectId, 'bookingPhotos').add({
+            bookingId, imageData, caption: caption.trim(),
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        _lpUpdateBookingCameraIcon(bookingId, +1);
+        await _lpLoadBookingModalScreenshots(bookingId);
+    } catch (err) {
+        if (err.name === 'NotAllowedError') alert('Clipboard access was denied. Click "Allow" when the browser asks, then try again.');
+        else { console.error('Paste error:', err); alert('Could not read clipboard. Try the Add Screenshot button instead.'); }
+    }
+}
+
+async function _lpBkModalDeletePhoto(bookingId, photoId) {
+    if (!confirm('Delete this screenshot?')) return;
+    try {
+        await lpSub(_lpCurrentProjectId, 'bookingPhotos').doc(photoId).delete();
+        _lpUpdateBookingCameraIcon(bookingId, -1);
+        await _lpLoadBookingModalScreenshots(bookingId);
+    } catch (err) {
+        console.error('Error deleting screenshot:', err);
+    }
+}
+
+function _lpBkModalViewPhoto(photoId) {
+    // Find photo across all booking photos loaded in the screenshot modal, or fetch
+    const allPhotos = [];
+    document.querySelectorAll('#lpBkScreenshotSection img').forEach(img => {
+        // Build minimal objects from rendered thumbnails for lightbox
+    });
+    // Open standalone lightbox with the image src
+    const img = document.querySelector(`#lpBkScreenshotSection img[onclick*="${photoId}"]`);
+    if (!img) return;
+    const lb = document.createElement('div');
+    lb.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:10000;display:flex;align-items:center;justify-content:center;cursor:pointer;';
+    lb.onclick = () => document.body.removeChild(lb);
+    lb.innerHTML = `<img src="${img.src}" style="max-width:92vw;max-height:90vh;object-fit:contain;border-radius:6px;cursor:default;" onclick="event.stopPropagation()">`;
+    document.body.appendChild(lb);
 }
 
 function _lpBookingTypeChange(sel) {
@@ -3880,18 +4007,40 @@ async function _lpDeleteScreenshot(bookingId, photoId) {
     }
 }
 
-/** Update the camera button color on a booking card after add/delete */
+/** Update the camera button and mobile badge on a booking card after add/delete */
 function _lpUpdateBookingCameraIcon(bookingId, delta) {
     const prev = _lpBookingPhotoCounts[bookingId] || 0;
     const next = Math.max(0, prev + delta);
     _lpBookingPhotoCounts[bookingId] = next;
     const card = document.getElementById(`lpBooking_${bookingId}`);
     if (!card) return;
-    const btn = card.querySelector('button[title="Screenshots"]');
-    if (!btn) return;
-    btn.style.background = next > 0 ? '#16a34a' : '';
-    btn.style.color      = next > 0 ? '#fff'    : '';
-    btn.title = next > 0 ? `Screenshots (${next})` : 'Screenshots';
+
+    // Desktop camera button
+    const btn = card.querySelector('button[title^="Screenshots"]');
+    if (btn) {
+        btn.style.background = next > 0 ? '#16a34a' : '';
+        btn.style.color      = next > 0 ? '#fff'    : '';
+        btn.title = next > 0 ? `Screenshots (${next})` : 'Screenshots';
+    }
+
+    // Mobile badge — add, update, or remove
+    let badge = card.querySelector('.lp-bk-photo-badge');
+    if (next > 0) {
+        if (!badge) {
+            badge = document.createElement('span');
+            badge.className = 'lp-mobile-only lp-bk-photo-badge';
+            badge.style.cssText = 'background:#16a34a;color:#fff;font-size:0.75em;padding:2px 8px;border-radius:10px;cursor:pointer;';
+            badge.onclick = () => _lpBookingScreenshots(bookingId);
+            card.querySelector('.lp-booking-drag')?.parentElement?.after(badge) ||
+                card.querySelector('[style*="flex-shrink:0"]')?.appendChild(badge);
+            // Simpler: just append to the button group
+            const btnGroup = card.querySelector('[style*="flex-shrink:0"]');
+            if (btnGroup && !btnGroup.contains(badge)) btnGroup.appendChild(badge);
+        }
+        badge.textContent = `📷 ${next}`;
+    } else if (badge) {
+        badge.remove();
+    }
 }
 
 // ---------- Booking badge on day items ----------

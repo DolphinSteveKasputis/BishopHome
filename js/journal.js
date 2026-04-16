@@ -182,6 +182,21 @@ async function loadJournalPage() {
     // Wire up toolbar buttons (safe to call each time — replaces listeners)
     _journalWireToolbar();
 
+    // Check for a preset date passed via localStorage (from Life Project itinerary journal icon)
+    var presetDate = localStorage.getItem('journalPresetDate');
+    if (presetDate) {
+        localStorage.removeItem('journalPresetDate');
+        var sel = document.getElementById('journalRangeSelect');
+        if (sel) sel.value = 'custom';
+        var fromEl = document.getElementById('journalFromDate');
+        var toEl   = document.getElementById('journalToDate');
+        if (fromEl) fromEl.value = presetDate;
+        if (toEl)   toEl.value   = presetDate;
+        _journalToggleCustomRange();
+        await loadJournalData();
+        return; // skip normal preference restore
+    }
+
     // Restore saved date range preference
     try {
         var settingDoc = await userCol('settings').doc('journal').get();

@@ -2221,6 +2221,9 @@ const LP_ITEM_STATUSES = {
 
 let _lpDays = [];
 
+/** Dates (YYYY-MM-DD) that have at least one journal entry — populated when itinerary loads */
+let _lpJournalDates = new Set();
+
 /** State for the shared item edit modal */
 let _lpItemModalCtx = null; // { type: 'itinerary'|'planning', dayId, groupId, itemId }
 
@@ -2229,7 +2232,18 @@ async function _lpLoadItinerary() {
     if (!body || !_lpCurrentProjectId) return;
 
     try {
-        // Load bookings in parallel (needed for booking badges on items)
+        // Build journal date set for the project date range (1 query, no composite index needed)
+        _lpJournalDates = new Set();
+        const p = _lpCurrentProject;
+        if (p && p.startDate && p.endDate) {
+            const jSnap = await userCol('journalEntries')
+                .where('date', '>=', p.startDate)
+                .where('date', '<=', p.endDate)
+                .get();
+            jSnap.forEach(doc => _lpJournalDates.add(doc.data().date));
+        }
+
+        // Load days and bookings in parallel (bookings needed for booking badges on items)
         const [daySnap, bookingSnap] = await Promise.all([
             lpSub(_lpCurrentProjectId, 'days').orderBy('sortOrder').get(),
             lpSub(_lpCurrentProjectId, 'bookings').orderBy('sortOrder').get()
@@ -2243,6 +2257,15 @@ async function _lpLoadItinerary() {
         console.error('Error loading itinerary:', err);
         body.innerHTML = '<p style="color:red;">Error loading itinerary.</p>';
     }
+}
+
+/**
+ * Open the Life Journal in a new tab, pre-filtered to the given day.
+ * Uses localStorage to pass the date across tabs — journal.js reads it on load.
+ */
+function _lpOpenJournalForDay(date) {
+    localStorage.setItem('journalPresetDate', date);
+    window.open('index.html#journal', '_blank');
 }
 
 function _lpRenderItinerary(body) {
@@ -2331,6 +2354,7 @@ function _lpDayCard(d) {
                 </div>
                 <div style="display:flex; gap:4px;">
                     <button class="btn btn-small" onclick="_lpEditDay('${d.id}')" title="Edit day">✏️</button>
+                    ${d.date && _lpJournalDates.has(d.date) ? `<button class="btn btn-small" onclick="_lpOpenJournalForDay('${d.date}')" title="Journal Entries" style="font-size:1em;">📓</button>` : ''}
                     <button class="btn btn-small btn-danger" onclick="_lpDeleteDay('${d.id}')" title="Delete day">✕</button>
                 </div>
             </div>

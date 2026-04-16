@@ -3605,11 +3605,12 @@ async function _lpBookingScreenshots(bookingId) {
                     </div>
                 `).join('')}
             </div>
-            <div style="margin-top:8px;">
+            <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
                 <label class="btn btn-small btn-primary" style="cursor:pointer;">
                     📷 Add Screenshot
                     <input type="file" accept="image/*" style="display:none;" onchange="_lpUploadScreenshot('${bookingId}', this.files)">
                 </label>
+                <button class="btn btn-small btn-primary" onclick="_lpPasteScreenshot('${bookingId}')" title="Paste image from clipboard">📋 Paste</button>
             </div>
             <div class="modal-actions" style="margin-top:12px;">
                 <button class="btn" onclick="closeModal('lpScreenshotModal')">Close</button>
@@ -3636,6 +3637,43 @@ async function _lpUploadScreenshot(bookingId, files) {
     } catch (err) {
         console.error('Error uploading screenshot:', err);
         alert('Error uploading screenshot.');
+    }
+}
+
+async function _lpPasteScreenshot(bookingId) {
+    if (!navigator.clipboard || !navigator.clipboard.read) {
+        alert('Clipboard paste is not supported in this browser. Try the Add Screenshot button instead.');
+        return;
+    }
+    try {
+        const items = await navigator.clipboard.read();
+        let imageBlob = null;
+        for (const item of items) {
+            const imageType = item.types.find(t => t.startsWith('image/'));
+            if (imageType) { imageBlob = await item.getType(imageType); break; }
+        }
+        if (!imageBlob) {
+            alert('No image on the clipboard.\n\nRight-click a screenshot and choose "Copy image", then click Paste.');
+            return;
+        }
+        const ext = imageBlob.type === 'image/png' ? '.png' : '.jpg';
+        const file = new File([imageBlob], 'pasted-screenshot' + ext, { type: imageBlob.type });
+        const imageData = await compressImage(file);
+        const caption = prompt('Caption (optional):') || '';
+        await lpSub(_lpCurrentProjectId, 'bookingPhotos').add({
+            bookingId,
+            imageData,
+            caption: caption.trim(),
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        await _lpBookingScreenshots(bookingId);
+    } catch (err) {
+        if (err.name === 'NotAllowedError') {
+            alert('Clipboard access was denied. Click "Allow" when the browser asks, then try again.');
+        } else {
+            console.error('Paste screenshot error:', err);
+            alert('Could not read clipboard. Try the Add Screenshot button instead.');
+        }
     }
 }
 

@@ -857,6 +857,7 @@ function visitJournalAction() {
 /**
  * Gather all visit data (including async sub-collections) and open the journal
  * entry form pre-populated with labeled lines.
+ * If an LLM is configured, prompts the user to have AI write the entry.
  */
 async function createVisitJournalEntry() {
     var visit = window.currentHealthVisit;
@@ -917,34 +918,224 @@ async function createVisitJournalEntry() {
             })
         ]);
 
-        // --- Medications ---
+        // --- Medications prescribed at this visit ---
         var medSnap = await userCol('medications').where('prescribedAtVisitId', '==', visit.id).get();
         var medLines = medSnap.docs.map(function(d) {
             var m = d.data();
             return m.name + (m.dosage ? ' — ' + m.dosage : '');
         }).filter(Boolean);
 
-        // --- Assemble labeled lines (skip any that are blank) ---
-        var lines = [];
-        var add = function(label, value) {
-            if (value && value.trim()) lines.push(label + ': ' + value.trim());
-        };
-        add('Facility',        facilityName);
-        add('Provider',        providerName);
-        add('Provider Type',   visit.providerType || '');
-        add('Reason for Visit', visit.reason       || '');
-        add('What Was Done',   visit.whatWasDone   || '');
-        add('Outcome / Next Steps', visit.outcome  || '');
-        add('Cost',            visit.cost ? '$' + visit.cost : '');
-        add('Notes',           visit.notes         || '');
-        if (coveredNames.length > 0)  lines.push('Conditions / Concerns: ' + coveredNames.join(', '));
-        if (visitNoteLines.length > 0) lines.push('Visit Notes:\n' + visitNoteLines.map(function(l) { return '  ' + l; }).join('\n'));
-        if (medLines.length > 0)       lines.push('Medications Prescribed:\n' + medLines.map(function(l) { return '  ' + l; }).join('\n'));
+        // --- Blood work ordered at this visit ---
+        var bwSnap = await userCol('bloodWorkRecords').where('orderedAtVisitId', '==', visit.id).get();
 
-        var preText = lines.join('\n');
+        // --- Check if LLM is configured ---
+        var llmDoc = await userCol('settings').doc('llm').get();
+        var useLLM = false;
+        if (llmDoc.exists) {
+            var llmCfg = llmDoc.data();
+            if (llmCfg.provider && llmCfg.apiKey) {
+                useLLM = confirm('Have AI create entry?');
+            }
+        }
 
-        // Open the journal entry form pre-filled, passing visit linkage context
-        openVisitJournalEntryPreFilled(visit.date, visit.time || '', preText, visit.id);
+        if (useLLM) {
+            // ── AI path ─────────────────────────────────────────────────────
+            if (btn) btn.textContent = 'AI Writing…';
+
+            var llmCfg = llmDoc.data();
+            var provider = llmCfg.provider;
+            var apiKey   = llmCfg.apiKey;
+            var model    = llmCfg.model || '';
+
+            // Build the full visit context for the LLM prompt
+            var ctx = [];
+            var addCtx = function(label, value) {
+                if (value && String(value).trim()) ctx.push(label + ': ' + String(value).trim());
+            };
+            addCtx('Date',             visit.date);
+            addCtx('Time',             visit.time);
+            addCtx('Facility',         facilityName);
+            addCtx('Provider',         providerName);
+            addCtx('Provider Type',    visit.providerType);
+            addCtx('Reason for Visit', visit.reason);
+            addCtx('What Was Done',    visit.whatWasDone);
+            addCtx('Outcome / Next Steps', visit.outcome);
+            addCtx('Cost',             visit.cost ? '$' + visit.cost : '');
+            addCtx('Notes',            visit.notes);
+            if (coveredNames.length > 0) {
+                ctx.push('Concerns / Conditions Addressed: ' + coveredNames.join(', '));
+            }
+            if (visitNoteLines.length > 0) {
+                ctx.push('Visit Notes:\n' + visitNoteLines.map(function(l) { return '  ' + l; }).join('\n'));
+            }
+            if (medLines.length > 0) {
+                ctx.push('Medications Prescribed:\n' + medLines.map(function(l) { return '  ' + l; }).join('\n'));
+            }
+
+            // Blood work results
+            if (!bwSnap.empty) {
+                bwSnap.docs.forEach(function(d) {
+                    var bw = d.data();
+                    var bwLines = ['Blood Work — ' + (bw.date || 'Date unknown') + (bw.lab ? ' at ' + bw.lab : '')];
+                    if (bw.notes) bwLines.push('  Notes: ' + bw.notes);
+                    (bw.markers || []).forEach(function(m) {
+                        var markerLine = '  ' + m.name + ': ' + m.value + (m.unit ? ' ' + m.unit : '');
+                        if (m.flagged) markerLine += ' [FLAGGED]';
+                        if (m.note)    markerLine += ' — ' + m.note;
+                        bwLines.push(markerLine);
+                    });
+                    ctx.push(bwLines.join('\n'));
+                });
+            }
+
+            // Full history for each addressed concern (all prior updates, not just this visit)
+            await Promise.all(concernIds.map(async function(cid) {
+                var [concernSnap, allUpdates] = await Promise.all([
+                    userCol('concerns').doc(cid).get(),
+                    userCol('concernUpdates').where('concernId', '==', cid).orderBy('date', 'asc').get().catch(function() {
+                        // fallback without orderBy if no index
+                        return userCol('concernUpdates').where('concernId', '==', cid).get();
+                    })
+                ]);
+                if (!concernSnap.exists) return;
+                var c = concernSnap.data();
+                var histLines = ['Concern History — ' + (c.title || cid)];
+                if (c.description) histLines.push('  Description: ' + c.description);
+                if (c.status)      histLines.push('  Status: ' + c.status);
+                allUpdates.docs.forEach(function(ud) {
+                    var u = ud.data();
+                    if (!u.note && !u.status) return;
+                    var line = '  [' + (u.date || '?') + ']';
+                    if (u.status) line += ' Status: ' + u.status;
+                    if (u.note)   line += ' — ' + u.note;
+                    histLines.push(line);
+                });
+                ctx.push(histLines.join('\n'));
+            }));
+
+            // Full history for each addressed condition (all prior logs, not just this visit)
+            await Promise.all(conditionIds.map(async function(cid) {
+                var [condSnap, allLogs] = await Promise.all([
+                    userCol('conditions').doc(cid).get(),
+                    userCol('healthConditionLogs').where('conditionId', '==', cid).orderBy('date', 'asc').get().catch(function() {
+                        return userCol('healthConditionLogs').where('conditionId', '==', cid).get();
+                    })
+                ]);
+                if (!condSnap.exists) return;
+                var c = condSnap.data();
+                var histLines = ['Condition History — ' + (c.name || cid)];
+                if (c.description) histLines.push('  Description: ' + c.description);
+                if (c.status)      histLines.push('  Status: ' + c.status);
+                if (c.diagnosedDate) histLines.push('  Diagnosed: ' + c.diagnosedDate);
+                allLogs.docs.forEach(function(ld) {
+                    var l = ld.data();
+                    if (!l.note && !l.status) return;
+                    var line = '  [' + (l.date || '?') + ']';
+                    if (l.status) line += ' Status: ' + l.status;
+                    if (l.note)   line += ' — ' + l.note;
+                    histLines.push(line);
+                });
+                ctx.push(histLines.join('\n'));
+            }));
+
+            var systemPrompt =
+                'You are a compassionate writing assistant helping someone write a personal health journal entry. ' +
+                'Write in first person, conversational tone — this is NOT a clinical note, it is a personal journal. ' +
+                'Focus on how the person might feel about the visit, what they learned, and what comes next. ' +
+                'Keep it concise (3–6 sentences) unless the detail warrants more. ' +
+                'Do not use medical jargon. Do not invent information not provided. Output plain text only — no headers, no bullet points.';
+
+            var userPrompt =
+                'Here is the information from my medical visit. Please write a personal journal entry about it.\n\n' +
+                ctx.join('\n\n');
+
+            // Resolve provider endpoint and model
+            var endpoint, llmModel;
+            if (provider === 'openai') {
+                endpoint = 'https://api.openai.com/v1/chat/completions';
+                llmModel = model || 'gpt-4o';
+            } else if (provider === 'anthropic') {
+                endpoint = 'https://api.anthropic.com/v1/messages';
+                llmModel = model || 'claude-opus-4-6';
+            } else if (provider === 'grok') {
+                endpoint = 'https://api.x.ai/v1/chat/completions';
+                llmModel = model || 'grok-3-mini';
+            } else if (provider === 'openrouter') {
+                endpoint = 'https://openrouter.ai/api/v1/chat/completions';
+                llmModel = model || 'openai/gpt-4o';
+            } else {
+                throw new Error('Unknown LLM provider: ' + provider);
+            }
+
+            var tokenParam = (provider === 'openai') ? 'max_completion_tokens' : 'max_tokens';
+            var reqBody = {
+                model    : llmModel,
+                messages : [
+                    { role: 'user', content: userPrompt }
+                ]
+            };
+            reqBody[tokenParam] = 1000;
+
+            var headers = {
+                'Content-Type'  : 'application/json',
+                'Authorization' : 'Bearer ' + apiKey
+            };
+            if (provider === 'anthropic') {
+                headers['x-api-key'] = apiKey;
+                delete headers['Authorization'];
+                headers['anthropic-version'] = '2023-06-01';
+                reqBody.system = systemPrompt;
+            } else {
+                // For OpenAI-compatible providers, prepend system message
+                reqBody.messages.unshift({ role: 'system', content: systemPrompt });
+            }
+
+            var response = await fetch(endpoint, {
+                method  : 'POST',
+                headers : headers,
+                body    : JSON.stringify(reqBody)
+            });
+            if (!response.ok) {
+                var errText = await response.text();
+                throw new Error('LLM error ' + response.status + ': ' + errText.slice(0, 200));
+            }
+            var data = await response.json();
+            var aiText = (data.choices && data.choices[0] && data.choices[0].message)
+                ? data.choices[0].message.content
+                : (data.content && data.content[0] ? data.content[0].text : '');
+
+            openVisitJournalEntryPreFilled(visit.date, visit.time || '', aiText.trim(), visit.id);
+
+        } else {
+            // ── Manual path — assemble labeled lines ──────────────────────
+            var lines = [];
+            var add = function(label, value) {
+                if (value && value.trim()) lines.push(label + ': ' + value.trim());
+            };
+            add('Facility',        facilityName);
+            add('Provider',        providerName);
+            add('Provider Type',   visit.providerType || '');
+            add('Reason for Visit', visit.reason       || '');
+            add('What Was Done',   visit.whatWasDone   || '');
+            add('Outcome / Next Steps', visit.outcome  || '');
+            add('Cost',            visit.cost ? '$' + visit.cost : '');
+            add('Notes',           visit.notes         || '');
+            if (coveredNames.length > 0)   lines.push('Conditions / Concerns: ' + coveredNames.join(', '));
+            if (visitNoteLines.length > 0) lines.push('Visit Notes:\n' + visitNoteLines.map(function(l) { return '  ' + l; }).join('\n'));
+            if (medLines.length > 0)       lines.push('Medications Prescribed:\n' + medLines.map(function(l) { return '  ' + l; }).join('\n'));
+
+            // Blood work summary (manual path)
+            if (!bwSnap.empty) {
+                var bwSummary = bwSnap.docs.map(function(d) {
+                    var bw = d.data();
+                    return (bw.date || 'Date unknown') + (bw.lab ? ' at ' + bw.lab : '');
+                });
+                lines.push('Blood Work: ' + bwSummary.join('; '));
+            }
+
+            var preText = lines.join('\n');
+            openVisitJournalEntryPreFilled(visit.date, visit.time || '', preText, visit.id);
+        }
 
     } catch(err) {
         console.error('createVisitJournalEntry error:', err);

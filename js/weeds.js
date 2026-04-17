@@ -590,10 +590,29 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!weedLlmPending) return;
         var btn          = this;
         var nameOverride = document.getElementById('weedReviewName').value.trim();
+
+        // Duplicate detection: check if the LLM flagged an existing weed match
+        var pending = weedLlmPending;
+        if (pending.parsed.existingWeedId && pending.existingWeedsMap && pending.existingWeedsMap[pending.parsed.existingWeedId]) {
+            var matchName = pending.existingWeedsMap[pending.parsed.existingWeedId];
+            weedLlmPending = null;
+            closeModal('weedLlmReviewModal');
+            var goToIt = confirm(
+                '\u26a0\ufe0f "' + matchName + '" already exists in your weed collection.\n\n' +
+                'Would you like to go to that weed?'
+            );
+            if (goToIt) {
+                location.hash = '#weed/' + pending.parsed.existingWeedId;
+            } else {
+                location.hash = '#weeds';
+            }
+            return;
+        }
+
         btn.disabled     = true;
         btn.textContent  = 'Saving\u2026';
         try {
-            await weedSaveFromLlm(weedLlmPending.parsed, weedLlmPending.images, nameOverride);
+            await weedSaveFromLlm(pending.parsed, pending.images, nameOverride);
             weedLlmPending = null;
             closeModal('weedLlmReviewModal');
             loadWeedsList();
@@ -634,6 +653,7 @@ var WEED_ID_PROMPT = [
     '  "applicationTiming": "",',
     '  "whatToLookFor": "",',
     '  "urlMoreInfo": "",',
+    '  "existingWeedId": "",',
     '  "additionalMessage": ""',
     '}',
     '',
@@ -647,6 +667,8 @@ var WEED_ID_PROMPT = [
     '  The page MUST clearly reference the weed in the title or main content.',
     '  Do NOT guess or fabricate URLs.',
     '  If you are not completely certain the URL is correct, return "".',
+    '- existingWeedId: if the identified weed appears to match one of the existing weeds provided below,',
+    '  return its exact ID string. If there is no match, return "".',
     '- additionalMessage: use for issues such as unclear image or weed not recognized. Leave "" if no issues.',
     '',
     'If you cannot identify the weed, return all fields as "" and explain in additionalMessage.'
@@ -751,6 +773,17 @@ async function weedSendToLlm(images) {
         if (cityState) prompt += '\n\nLocation: ' + cityState;
         prompt += '\nThis picture was taken ' + todayStr + '.';
 
+        // Fetch existing weeds and append to the prompt so the LLM can detect duplicates
+        var existingWeedsSnap = await userCol('weeds').get();
+        var existingWeedsMap  = {};  // id → name, used for the confirm message
+        if (!existingWeedsSnap.empty) {
+            var weedLines = existingWeedsSnap.docs.map(function(d) {
+                existingWeedsMap[d.id] = d.data().name || 'Unknown';
+                return d.id + ' | ' + (d.data().name || 'Unknown');
+            });
+            prompt += '\n\nExisting weeds in this collection (ID | Name):\n' + weedLines.join('\n');
+        }
+
         // Build content: prompt + images (already compressed base64)
         var content = [{ type: 'text', text: prompt }];
         images.forEach(function(url) {
@@ -763,11 +796,27 @@ async function weedSendToLlm(images) {
 
         var showToggle = document.getElementById('weedShowResponseToggle');
         if (modalOpen && showToggle && showToggle.checked) {
-            weedLlmPending = { parsed: parsed, images: images };
+            weedLlmPending = { parsed: parsed, images: images, existingWeedsMap: existingWeedsMap };
             if (statusEl) { statusEl.textContent = ''; statusEl.classList.add('hidden'); }
             closeModal('weedModal');
             weedShowReviewModal(prompt, responseText, parsed);
         } else {
+            // --- Duplicate detection: LLM matched an existing weed ---
+            if (parsed.existingWeedId && existingWeedsMap[parsed.existingWeedId]) {
+                var matchName = existingWeedsMap[parsed.existingWeedId];
+                if (modalOpen) { closeModal('weedModal'); }
+                var goToIt = confirm(
+                    '\u26a0\ufe0f "' + matchName + '" already exists in your weed collection.\n\n' +
+                    'Would you like to go to that weed?'
+                );
+                if (goToIt) {
+                    location.hash = '#weed/' + parsed.existingWeedId;
+                } else {
+                    location.hash = '#weeds';
+                }
+                return;
+            }
+
             if (!parsed.name && parsed.additionalMessage) {
                 if (modalOpen && statusEl) {
                     statusEl.textContent = '\u26a0 ' + parsed.additionalMessage;

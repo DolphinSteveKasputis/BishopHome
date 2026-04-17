@@ -147,10 +147,13 @@ Weeds are tracked by type (not by zone instance). Each weed type stores its trea
 
 **LLM Identification** (if LLM configured):
 - User takes/uploads a photo of the weed
-- Photo sent to LLM with prompt to identify name, treatment, timing, tips, and reference URL
-- Result shown in a review modal (all fields editable)
+- Before calling the LLM, all existing weeds (ID + name) are fetched and appended to the prompt
+- LLM returns `existingWeedId` in the JSON if the photo matches an existing weed in the collection
+- **Duplicate detection**: if `existingWeedId` is returned, a confirm dialog asks "Would you like to go to that weed?" — Yes navigates to `#weed/{id}`; No returns to `#weeds`. No new record is created.
+- If no duplicate: result shown in a review modal (all fields editable)
 - On save: creates weed record + a Fact (reference URL) + saves photo(s)
 - If LLM cannot identify: shows "Could Not Identify" modal — user can still save manually
+- Duplicate check applies to both the normal flow and the "show response" review modal path
 
 **[Shared]**: Facts, Problems, Quick Task List, Activities, Photos, Calendar Events
 

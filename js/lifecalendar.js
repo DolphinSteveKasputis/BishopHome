@@ -1510,6 +1510,10 @@ function _lcRenderEventForm(event, categories, prefillDate) {
                             <input type="radio" name="lcLocMode" value="contacts"
                                    ${locMode === 'contacts' ? 'checked' : ''}> Contacts
                         </label>
+                        <label class="lc-loc-radio-label" id="lcLocShowPersonalWrap"
+                               style="white-space:nowrap;${locMode !== 'contacts' ? ' display:none;' : ''}">
+                            <input type="checkbox" id="lcLocShowPersonal"> Show Personal
+                        </label>
                         <label class="lc-loc-radio-label">
                             <input type="radio" name="lcLocMode" value="manual"
                                    ${locMode === 'manual' ? 'checked' : ''}> Manual
@@ -1519,9 +1523,6 @@ function _lcRenderEventForm(event, categories, prefillDate) {
                         <select id="lcEventLocationContact" class="form-control">
                             <option value="">— Loading contacts… —</option>
                         </select>
-                        <label class="lc-loc-show-personal-label" style="margin-top:6px; display:flex; align-items:center; gap:6px; font-size:0.85rem; color:#666;">
-                            <input type="checkbox" id="lcLocShowPersonal"> Show Personal
-                        </label>
                     </div>
                     <div id="lcLocManualGroup"${locMode !== 'manual' ? ' class="hidden"' : ''}>
                         <input type="text" id="lcEventLocation" class="form-control"
@@ -1740,8 +1741,10 @@ function _lcRenderEventForm(event, categories, prefillDate) {
             var isContacts = (this.value === 'contacts');
             var cg  = document.getElementById('lcLocContactsGroup');
             var mg  = document.getElementById('lcLocManualGroup');
-            if (cg) cg.classList.toggle('hidden', !isContacts);
-            if (mg) mg.classList.toggle('hidden', isContacts);
+            var spw = document.getElementById('lcLocShowPersonalWrap');
+            if (cg)  cg.classList.toggle('hidden', !isContacts);
+            if (mg)  mg.classList.toggle('hidden', isContacts);
+            if (spw) spw.style.display = isContacts ? '' : 'none';
             _lcEventDirty = true;
         });
     });

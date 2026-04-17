@@ -523,16 +523,11 @@ async function renderHouseChecklistsPanel() {
             var t = doc.data().targetType;
             if (t === 'house' || t === 'floor' || t === 'room') count++;
         });
-        var metaText = count === 0
-            ? 'No active checklists'
-            : count + ' active checklist' + (count !== 1 ? 's' : '');
         var card = document.createElement('div');
-        card.className = 'card card--clickable';
+        card.className = 'card card--clickable house-more-card';
         card.innerHTML =
-            '<div class="card-main">' +
-                '<span class="card-title">Checklists</span>' +
-                '<span class="house-floor-meta"> &middot; ' + escapeHtml(metaText) + '</span>' +
-            '</div>' +
+            '<span class="house-more-icon">✅</span>' +
+            '<div class="card-main"><span class="card-title">Checklists (' + count + ')</span></div>' +
             '<span class="card-arrow">›</span>';
         card.addEventListener('click', function() {
             window.location.hash = '#checklists/house';

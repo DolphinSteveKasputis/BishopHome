@@ -1506,14 +1506,16 @@ function _lcRenderEventForm(event, categories, prefillDate) {
                 <div class="form-group">
                     <label>Location</label>
                     <div class="lc-loc-mode-row">
-                        <label class="lc-loc-radio-label">
-                            <input type="radio" name="lcLocMode" value="contacts"
-                                   ${locMode === 'contacts' ? 'checked' : ''}> Contacts
-                        </label>
-                        <label class="lc-loc-radio-label" id="lcLocShowPersonalWrap"
-                               ${locMode !== 'contacts' ? 'style="display:none;"' : ''}>
-                            <input type="checkbox" id="lcLocShowPersonal"><span>Show Personal</span>
-                        </label>
+                        <div class="lc-loc-contacts-col">
+                            <label class="lc-loc-radio-label">
+                                <input type="radio" name="lcLocMode" value="contacts"
+                                       ${locMode === 'contacts' ? 'checked' : ''}> Contacts
+                            </label>
+                            <label class="lc-loc-radio-label lc-loc-show-personal-label" id="lcLocShowPersonalWrap"
+                                   ${locMode !== 'contacts' ? 'style="display:none;"' : ''}>
+                                <input type="checkbox" id="lcLocShowPersonal"><span>Show Personal</span>
+                            </label>
+                        </div>
                         <label class="lc-loc-radio-label">
                             <input type="radio" name="lcLocMode" value="manual"
                                    ${locMode === 'manual' ? 'checked' : ''}> Manual

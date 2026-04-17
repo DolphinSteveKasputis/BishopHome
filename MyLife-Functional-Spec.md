@@ -284,6 +284,15 @@ Things, Sub-Things, and Items can all be added via `+Photo` button:
 ### Floor Plan (`floorplan.js`)
 An interactive SVG drawing tool for each floor. Accessed via `#floorplan/{floorId}`.
 
+#### View / Edit Mode
+
+The floor plan editor opens in **View mode** by default whenever an existing plan is loaded:
+- **View mode**: all items are clickable and selectable; dragging is disabled; the toolbar (Row 2) is hidden; the Dimensions button is hidden; the props bar shows "View Room" / "View Marker" buttons (modal opens with all inputs disabled and Save hidden); Delete button in props bar is hidden; keyboard Delete/Backspace and Ctrl+S are no-ops.
+- **Edit mode**: full editing — dragging, adding items, saving, deleting — exactly as before.
+- The header shows an **Edit** button in view mode; clicking it switches to edit mode and shows the **Save** button.
+- If **no plan exists yet**, the page opens directly in edit mode (nothing to protect) and the floor detail page shows **"Add Floor Plan"** instead of "View Floor Plan".
+- On the floor detail page the button reads **"View Floor Plan"** when a plan exists, **"Add Floor Plan"** when it does not.
+
 **Firestore**: `userCol('floorPlans').doc(floorId)` — same document ID as the parent floor. Fields: `widthFt`, `heightFt`, `rooms[]`, `doors[]`, `windows[]`, `plumbing[]`, `ceilingFixtures[]`, `recessedLights[]`, `wallPlates[]`, `fixtures[]`, `plumbingEndpoints[]`, `updatedAt`
 
 ---
@@ -452,10 +461,11 @@ Placed in Plumbing mode. Click inside a room to drop (no modal for spigot; modal
 
 **Row 3 — Properties bar** (amber tint): appears when any item is selected in Select mode.
 - Shows item type label
-- Buttons always present for non-room items: **Edit Marker**, **Remove**, **Details →** (navigates to `#floorplanitem/{planId}/{itemType}/{itemId}`)
-- **Rotate** (⟳) button: fixtures only; cycles orientation
-- **Edit Targets** button: wall plates in Electrical mode only; enters target-selection mode
-- For rooms: **Edit Room** button only (no Remove, no Details)
+- In **edit mode** for non-room items: **Edit Marker**, **Remove**, **Details →** (navigates to `#floorplanitem/{planId}/{itemType}/{itemId}`)
+- In **view mode** for non-room items: **View Marker** (opens modal read-only), **Details →** only — Remove is hidden
+- **Rotate** (⟳) button: fixtures only; edit mode only; cycles orientation
+- **Edit Targets** button: wall plates in Electrical mode only; edit mode only; enters target-selection mode
+- For rooms in edit mode: **Edit Room** button (no Remove, no Details); in view mode: **View Room**
 
 Layout items (rooms, doors, windows, fixtures) can only be interacted with in Layout mode. Electrical items only in Electrical mode. Plumbing items only in Plumbing mode.
 

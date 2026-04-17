@@ -1083,7 +1083,7 @@
             <!-- Floor Plan section (Phase H8) -->
             <div class="section-header">
                 <h3 class="section-heading">Floor Plan</h3>
-                <a id="editFloorPlanBtn" href="#house" class="btn btn-secondary btn-small">Edit Floor Plan</a>
+                <a id="editFloorPlanBtn" href="#house" class="btn btn-secondary btn-small">View Floor Plan</a>
             </div>
             <div id="floorPlanThumbnailContainer" class="fp-thumbnail-wrapper" title="Click to open floor plan editor">
                 <p class="empty-state" id="floorPlanThumbnailEmpty">No floor plan drawn yet. Click "Edit Floor Plan" to start drawing.</p>
@@ -1568,7 +1568,8 @@
                         <span id="fpZoomLabel" class="fp-zoom-label" title="Double-click to reset to 100%">100%</span>
                         <input type="range" id="fpZoomSlider" class="fp-zoom-slider" min="0.25" max="8" step="0.05" value="1">
                     </div>
-                    <button id="fpSaveBtn" class="btn btn-primary btn-small">Save</button>
+                    <button id="fpEditBtn" class="btn btn-primary btn-small">Edit</button>
+                    <button id="fpSaveBtn" class="btn btn-primary btn-small" style="display:none">Save</button>
                 </div>
             </div>
 
@@ -7935,8 +7936,8 @@
     <script src="js/gps.js?v=350"></script>
     <script src="js/settings.js?v=352"></script>
     <script src="js/devnotes.js?v=376"></script>
-    <script src="js/house.js?v=401"></script>
-    <script src="js/floorplan.js?v=394"></script>
+    <script src="js/house.js?v=402"></script>
+    <script src="js/floorplan.js?v=395"></script>
     <script src="js/floorplanitem.js?v=393"></script>
     <script src="js/search.js?v=350"></script>
     <script src="js/activityreport.js?v=350"></script>

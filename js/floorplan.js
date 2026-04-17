@@ -26,6 +26,7 @@ var fpPlan        = null;   // floorPlans doc: {widthFt, heightFt, rooms[], door
 var fpRoomList    = [];     // rooms on this floor (for linking new shapes + stairs detection)
 var fpAllFloors   = {};     // floorId → {name, floorNumber} — for stairs "connects to" labels
 var fpDirty       = false;  // unsaved changes?
+var fpViewMode    = true;   // true = view-only (default), false = edit mode
 
 // Drawing tool state
 var fpActiveTool   = 'select';
@@ -75,6 +76,7 @@ var FP_DIR_VEC = { R:{dx:1,dy:0}, L:{dx:-1,dy:0}, U:{dx:0,dy:-1}, D:{dx:0,dy:1} 
 function loadFloorPlanPage(floorId) {
     fpFloorId      = floorId;
     fpDirty        = false;
+    fpViewMode     = true;   // reset to view mode each time the page loads
     fpDrawing      = false;
     fpDrawPoints   = [];
     fpPreviewPoint = null;
@@ -148,6 +150,7 @@ function loadFloorPlanPage(floorId) {
         })
         .then(function(planDoc) {
             if (planDoc.exists) {
+                fpViewMode = true;   // existing plan — open in view mode by default
                 fpPlan = planDoc.data();
                 // Ensure all arrays exist (backwards compat)
                 if (!fpPlan.rooms)    fpPlan.rooms    = [];
@@ -160,7 +163,8 @@ function loadFloorPlanPage(floorId) {
                 if (!fpPlan.recessedLights)   fpPlan.recessedLights   = [];
                 if (!fpPlan.wallPlates)       fpPlan.wallPlates       = [];
             } else {
-                // First time — show dimensions dialog, init with defaults
+                // First time — no plan to protect, jump straight into edit mode
+                fpViewMode = false;
                 fpPlan = { widthFt: 40, heightFt: 30, rooms: [], doors: [], windows: [], outlets: [], switches: [], plumbing: [], ceilingFixtures: [], recessedLights: [], wallPlates: [], fixtures: [], plumbingEndpoints: [] };
                 document.getElementById('fpWidthInput').value  = 40;
                 document.getElementById('fpHeightInput').value = 30;
@@ -168,7 +172,10 @@ function loadFloorPlanPage(floorId) {
             }
             fpInitSvg();
             fpRender();
-            fpSetStatus('Select a tool to begin. Use "Room" to draw rooms, "Door"/"Window" to place them on walls.');
+            fpApplyViewMode();
+            fpSetStatus(fpViewMode
+                ? 'View mode — click any item to inspect it. Press Edit to make changes.'
+                : 'Edit mode — select a tool to begin drawing.');
         })
         .catch(function(err) {
             console.error('loadFloorPlanPage error:', err);
@@ -666,6 +673,7 @@ function fpFmtFeetIn(ft) {
 
 function fpMakeDraggableHandle(handle, room, ptIndex) {
     handle.addEventListener('mousedown', function(eDown) {
+        if (fpViewMode) return;
         eDown.preventDefault();
         eDown.stopPropagation();
 
@@ -710,6 +718,7 @@ function fpMakeDraggableHandle(handle, room, ptIndex) {
 
     // Double-click a corner handle → enter inline length editing mode
     handle.addEventListener('dblclick', function(e) {
+        if (fpViewMode) return;
         e.stopPropagation();
         e.preventDefault();
         fpEnterCornerEdit(room, ptIndex);
@@ -725,6 +734,7 @@ function fpMakeDraggableRoom(poly, room) {
     poly.addEventListener('mousedown', function(eDown) {
         if (fpActiveTool !== 'select') return;
         if (fpActiveMode !== 'layout') return;
+        if (fpViewMode) return;
         eDown.preventDefault();
         eDown.stopPropagation();
 
@@ -796,6 +806,7 @@ function fpMakeDraggableCeilingFixture(el, fix) {
     el.addEventListener('mousedown', function(eDown) {
         if (fpActiveTool !== 'select') return;
         if (fpActiveMode !== 'electrical') return;
+        if (fpViewMode) return;
         eDown.preventDefault();
         eDown.stopPropagation();
 
@@ -854,6 +865,7 @@ function fpMakeDraggableDoor(el, door) {
     el.addEventListener('mousedown', function(eDown) {
         if (fpActiveTool !== 'select') return;
         if (fpActiveMode !== 'layout') return;
+        if (fpViewMode) return;
         eDown.preventDefault();
         eDown.stopPropagation();
 
@@ -894,6 +906,7 @@ function fpMakeDraggableWindow(el, win) {
     el.addEventListener('mousedown', function(eDown) {
         if (fpActiveTool !== 'select') return;
         if (fpActiveMode !== 'layout') return;
+        if (fpViewMode) return;
         eDown.preventDefault();
         eDown.stopPropagation();
 
@@ -932,6 +945,7 @@ function fpMakeDraggableOutlet(el, outlet) {
     el.style.cursor = 'grab';
     el.addEventListener('mousedown', function(eDown) {
         if (fpActiveTool !== 'select') return;
+        if (fpViewMode) return;
         eDown.preventDefault();
         eDown.stopPropagation();
         var dragged = false;
@@ -966,6 +980,7 @@ function fpMakeDraggableSwitch(el, sw) {
     el.style.cursor = 'grab';
     el.addEventListener('mousedown', function(eDown) {
         if (fpActiveTool !== 'select') return;
+        if (fpViewMode) return;
         eDown.preventDefault();
         eDown.stopPropagation();
         var dragged = false;
@@ -1938,6 +1953,7 @@ function fpOpenRoomEditModal() {
     });
 
     document.getElementById('fpRoomEditModal').dataset.editId = fpSelectedId;
+    fpConfigureModalViewMode('fpRoomEditModal', 'fpRoomEditSaveBtn');
     openModal('fpRoomEditModal');
 }
 
@@ -2195,6 +2211,7 @@ function fpOpenDoorEditModal(door) {
 
     document.getElementById('fpDoorDeleteBtn').style.display = '';
     document.getElementById('fpDoorSaveBtn').textContent = 'Save';
+    fpConfigureModalViewMode('fpDoorModal', 'fpDoorSaveBtn');
     openModal('fpDoorModal');
 }
 
@@ -2209,7 +2226,7 @@ function fpOpenWindowEditModal(win) {
     document.getElementById('fpWindowInseamInput').value = fpFmtFeetIn(win.inseamWidth || Math.max((win.width || 3) - 4/12, 0.5));
     document.getElementById('fpWindowDeleteBtn').style.display = '';
 
-    // Position-from-wall section
+    // Position-from-wall section (populated below, then fpConfigureModalViewMode runs before open)
     var posSection = document.getElementById('fpWindowPositionSection');
     var room = (fpPlan.rooms || []).find(function(r) { return r.id === win.roomId; });
     var seg  = room ? fpGetSegment(room.points, win.segmentIndex) : null;
@@ -2227,6 +2244,7 @@ function fpOpenWindowEditModal(win) {
         posSection.style.display = 'none';
     }
 
+    fpConfigureModalViewMode('fpWindowModal', 'fpWindowSaveBtn');
     openModal('fpWindowModal');
 }
 
@@ -2327,6 +2345,7 @@ function fpMakeDraggableFixture(el, fix) {
     el.addEventListener('mousedown', function(eDown) {
         if (fpActiveTool !== 'select') return;
         if (fpActiveMode !== 'layout') return;
+        if (fpViewMode) return;
         eDown.preventDefault();
         eDown.stopPropagation();
 
@@ -2456,6 +2475,7 @@ function fpMakeDraggablePlumbingEndpoint(el, ep) {
     el.addEventListener('mousedown', function(eDown) {
         if (fpActiveTool !== 'select') return;
         if (fpActiveMode !== 'plumbing') return;
+        if (fpViewMode) return;
         eDown.preventDefault();
         eDown.stopPropagation();
 
@@ -2562,6 +2582,7 @@ function fpOpenFixtureEditModal(fx) {
     document.getElementById('fpFixtureNotes').value       = fx.notes || '';
     var modal = document.getElementById('fpFixtureModal');
     modal.dataset.editId = fx.id;
+    fpConfigureModalViewMode('fpFixtureModal', 'fpFixtureSaveBtn');
     openModal('fpFixtureModal');
 }
 
@@ -2575,6 +2596,7 @@ function fpOpenPlumbingEndpointEditModal(ep) {
     document.getElementById('fpPlumbingEpNotes').value   = ep.notes || '';
     var modal = document.getElementById('fpPlumbingEndpointModal');
     modal.dataset.editId = ep.id;
+    fpConfigureModalViewMode('fpPlumbingEndpointModal', 'fpPlumbingEpSaveBtn');
     openModal('fpPlumbingEndpointModal');
 }
 
@@ -2891,6 +2913,8 @@ document.addEventListener('keydown', function(e) {
 });
 
 function fpSetTool(tool) {
+    // In view mode only the Select tool is allowed
+    if (fpViewMode && tool !== 'select') return;
     fpActiveTool = tool;
     // Cancel any in-progress drawing
     if (tool !== 'room') {
@@ -2950,6 +2974,66 @@ function fpSetTool(tool) {
 }
 
 // ============================================================
+// VIEW / EDIT MODE
+// ============================================================
+
+/**
+ * Apply or remove view-mode restrictions on the floor plan editor.
+ * Call this whenever fpViewMode changes (on load and when Edit button is pressed).
+ * View mode: Save hidden, Edit button shown, toolbar hidden, nothing editable.
+ * Edit mode: Save shown, Edit hidden, toolbar visible, full editing enabled.
+ */
+function fpApplyViewMode() {
+    var saveBtn = document.getElementById('fpSaveBtn');
+    var editBtn = document.getElementById('fpEditBtn');
+    var toolbar = document.querySelector('.fp-toolbar');
+    var dimBtn  = document.getElementById('fpSetDimensionsBtn');
+
+    if (fpViewMode) {
+        if (saveBtn) saveBtn.style.display = 'none';
+        if (editBtn) editBtn.style.display = '';
+        if (toolbar) toolbar.style.display = 'none';
+        if (dimBtn)  dimBtn.style.display  = 'none';
+    } else {
+        if (saveBtn) saveBtn.style.display = '';
+        if (editBtn) editBtn.style.display = 'none';
+        if (toolbar) toolbar.style.display = '';
+        if (dimBtn)  dimBtn.style.display  = '';
+    }
+
+    // Rebuild props bar so button labels/visibility update immediately
+    fpUpdatePropsBar();
+}
+
+/**
+ * Configure a floor plan modal for the current view/edit mode.
+ * In view mode: disable all inputs and hide the save + delete buttons.
+ * In edit mode: re-enable inputs and restore button visibility.
+ * Call this just before openModal() in every marker/room modal open function.
+ *
+ * @param {string} modalId   - ID of the modal element
+ * @param {string} saveBtnId - ID of the modal's Save button
+ */
+function fpConfigureModalViewMode(modalId, saveBtnId) {
+    var modal = document.getElementById(modalId);
+    if (modal) {
+        // Disable (or re-enable) every form field in the modal
+        modal.querySelectorAll('input, select, textarea').forEach(function(el) {
+            el.disabled = fpViewMode;
+        });
+        // Hide (or restore) delete buttons inside the modal
+        modal.querySelectorAll('.btn-danger').forEach(function(btn) {
+            btn.style.display = fpViewMode ? 'none' : '';
+        });
+    }
+    // Hide (or restore) the modal's Save button
+    if (saveBtnId) {
+        var saveBtn = document.getElementById(saveBtnId);
+        if (saveBtn) saveBtn.style.display = fpViewMode ? 'none' : '';
+    }
+}
+
+// ============================================================
 // TOOLBAR BUTTONS
 // ============================================================
 
@@ -2961,6 +3045,12 @@ document.getElementById('fpGridToggle').addEventListener('change', function() {
 
 document.getElementById('fpSaveBtn').addEventListener('click', function() {
     fpSave();
+});
+
+document.getElementById('fpEditBtn').addEventListener('click', function() {
+    fpViewMode = false;
+    fpApplyViewMode();
+    fpSetStatus('Edit mode — drag items to reposition, use tools to add new items. Click Save when done.');
 });
 
 // ============================================================
@@ -3066,12 +3156,13 @@ document.addEventListener('keydown', function(e) {
         }
     }
     if ((e.key === 'Delete' || e.key === 'Backspace') && fpSelectedId) {
+        if (fpViewMode) return;
         e.preventDefault();
         fpDeleteSelected();
     }
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
-        fpSave();
+        if (!fpViewMode) fpSave();
     }
 });
 
@@ -3762,6 +3853,7 @@ function fpOpenOutletModal(editId, data) {
     // Populate breaker dropdown (async — loads after modal opens)
     fpLoadBreakerOptions('fpOutletBreakerSelect', data.breakerId || '');
 
+    fpConfigureModalViewMode('fpOutletModal', 'fpOutletSaveBtn');
     openModal('fpOutletModal');
 }
 
@@ -3884,6 +3976,7 @@ function fpOpenSwitchModal(editId, data) {
     // Populate breaker dropdown (async)
     fpLoadBreakerOptions('fpSwitchBreakerSelect', data.breakerId || '');
 
+    fpConfigureModalViewMode('fpSwitchModal', 'fpSwitchSaveBtn');
     openModal('fpSwitchModal');
 }
 
@@ -3973,6 +4066,7 @@ function fpOpenPlumbingEditModal(editId, data) {
     loadProblems('plumbing', editId,
         'fpPlumbingProblemsContainer', 'fpPlumbingProblemsEmptyState');
 
+    fpConfigureModalViewMode('fpPlumbingModal', 'fpPlumbingSaveBtn');
     openModal('fpPlumbingModal');
 }
 
@@ -4310,6 +4404,7 @@ function fpOpenCeilingModal(editId, data) {
             });
     }
 
+    fpConfigureModalViewMode('fpCeilingModal', 'fpCeilingSaveBtn');
     openModal('fpCeilingModal');
 }
 
@@ -4470,6 +4565,7 @@ function fpMakeDraggableRecessedLight(el, light) {
     el.addEventListener('mousedown', function(eDown) {
         if (fpActiveTool !== 'select') return;
         if (fpActiveMode !== 'electrical') return;
+        if (fpViewMode) return;
         eDown.preventDefault();
         eDown.stopPropagation();
 
@@ -4558,6 +4654,7 @@ function fpOpenRecessedModal(editId, data) {
         document.getElementById('fpRecessedDeleteBtn').style.display = 'none';
     }
 
+    fpConfigureModalViewMode('fpRecessedModal', 'fpRecessedSaveBtn');
     openModal('fpRecessedModal');
 }
 
@@ -4763,6 +4860,7 @@ function fpMakeDraggableWallPlate(el, plate) {
     el.addEventListener('mousedown', function(eDown) {
         if (fpActiveTool !== 'select') return;
         if (fpActiveMode !== 'electrical') return;
+        if (fpViewMode) return;
         eDown.preventDefault();
         eDown.stopPropagation();
         var dragged = false;
@@ -4835,6 +4933,7 @@ function fpOpenWallPlateModal(editId, data) {
     // Load breaker options for all slots (async)
     fpWallPlateLoadBreakers();
 
+    fpConfigureModalViewMode('fpWallPlateModal', 'fpWallPlateSaveBtn');
     openModal('fpWallPlateModal');
 }
 
@@ -5779,10 +5878,12 @@ function fpUpdatePropsBar() {
     sep.className = 'fp-props-sep';
     bar.appendChild(sep);
 
-    // Edit button (Edit Room for rooms, Edit Marker for everything else)
+    // View/Edit button — label depends on mode; always opens the modal (disabled in view mode)
     var editBtn = document.createElement('button');
     editBtn.className   = 'btn btn-secondary btn-small';
-    editBtn.textContent = (type === 'room') ? 'Edit Room' : 'Edit Marker';
+    editBtn.textContent = fpViewMode
+        ? ((type === 'room') ? 'View Room' : 'View Marker')
+        : ((type === 'room') ? 'Edit Room' : 'Edit Marker');
     editBtn.addEventListener('click', function() {
         if (type === 'room') {
             fpOpenRoomEditModal();
@@ -5792,8 +5893,8 @@ function fpUpdatePropsBar() {
     });
     bar.appendChild(editBtn);
 
-    // Rotate button — fixtures only (toilet/sink/tub), cycles orientation 0→1→2→3→0
-    if (type === 'fixture') {
+    // Rotate button — fixtures only, edit mode only
+    if (!fpViewMode && type === 'fixture') {
         var fix = (fpPlan.fixtures || []).find(function(f) { return f.id === fpSelectedId; });
         if (fix) {
             var rotBtn = document.createElement('button');
@@ -5810,8 +5911,8 @@ function fpUpdatePropsBar() {
         }
     }
 
-    // Edit Targets button — wall plates in electrical mode only, not while already editing
-    if (type === 'wallplate' && fpActiveMode === 'electrical' && !fpTargetEditMode) {
+    // Edit Targets button — wall plates in electrical mode only, not in view mode
+    if (!fpViewMode && type === 'wallplate' && fpActiveMode === 'electrical' && !fpTargetEditMode) {
         var targBtn = document.createElement('button');
         targBtn.className   = 'btn btn-secondary btn-small';
         targBtn.textContent = 'Edit Targets';
@@ -5819,8 +5920,8 @@ function fpUpdatePropsBar() {
         bar.appendChild(targBtn);
     }
 
-    // Remove button — everything except rooms (rooms have their own delete flow)
-    if (type !== 'room') {
+    // Remove button — edit mode only, not shown for rooms (rooms use keyboard Delete)
+    if (!fpViewMode && type !== 'room') {
         var removeBtn = document.createElement('button');
         removeBtn.className   = 'btn btn-danger btn-small';
         removeBtn.textContent = 'Remove';

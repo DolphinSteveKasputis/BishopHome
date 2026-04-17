@@ -680,6 +680,19 @@ function renderFloorDetail(floor) {
         fpLoadAndRenderThumbnail(floor.id, 'floorPlanThumbnailContainer', 'floorPlanThumbnailEmpty');
     }
 
+    // Set button text: "View Floor Plan" if a plan exists, "Add Floor Plan" if not.
+    // loadFloorPlanPage automatically opens in edit mode when no plan exists.
+    userCol('floorPlans').doc(floor.id).get().then(function(planDoc) {
+        var btn = document.getElementById('editFloorPlanBtn');
+        if (btn) btn.textContent = planDoc.exists ? 'View Floor Plan' : 'Add Floor Plan';
+        var emptyMsg = document.getElementById('floorPlanThumbnailEmpty');
+        if (emptyMsg && !planDoc.exists) {
+            emptyMsg.textContent = 'No floor plan drawn yet. Click "Add Floor Plan" to start drawing.';
+        }
+    }).catch(function(err) {
+        console.warn('renderFloorDetail: could not check floor plan existence', err);
+    });
+
     // ---- Load all feature sections ----
     loadProblems('floor', floor.id, 'floorProblemsContainer', 'floorProblemsEmptyState');
     loadFacts(   'floor', floor.id, 'floorFactsContainer',    'floorFactsEmptyState');

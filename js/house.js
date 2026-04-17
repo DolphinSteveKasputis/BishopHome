@@ -340,7 +340,7 @@ async function loadHouseCalendarRollup() {
 function renderHouseSummaryStats(el, stats) {
     var items = [];
 
-    // Upcoming events (next 30 days)
+    // Upcoming events (next 30 days) — rendered as a clickable link to the events list page
     if (stats.upcomingEvents > 0 || stats.recurringEvents > 0) {
         var eventParts = [];
         if (stats.upcomingEvents > 0) {
@@ -350,11 +350,11 @@ function renderHouseSummaryStats(el, stats) {
             eventParts.push(stats.recurringEvents + ' recurring');
         }
         items.push(
-            '<span class="house-stat house-stat--events">' +
+            '<a href="#house-calendar-events" class="house-stat house-stat--events house-stat--link">' +
                 '<span class="house-stat-num">' + eventParts.join(', ') + '</span>' +
                 '<span class="house-stat-label"> calendar event' +
                     (stats.upcomingEvents + stats.recurringEvents !== 1 ? 's' : '') + '</span>' +
-            '</span>'
+            '</a>'
         );
     } else {
         items.push(
@@ -365,6 +365,79 @@ function renderHouseSummaryStats(el, stats) {
     }
 
     el.innerHTML = items.join('<span class="house-stat-sep">·</span>');
+}
+
+/**
+ * Load the House Calendar Events page — all calendar events tied to house
+ * entities (floor, room, thing, subthing, item), showing the next 3 months
+ * of occurrences. Each card is clickable via the standard edit modal.
+ */
+async function loadHouseCalendarEventsPage() {
+    var container = document.getElementById('houseCalEventsContainer');
+    if (!container) return;
+    container.innerHTML = '<p class="empty-state">Loading\u2026</p>';
+
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+    var todayStr = today.toISOString().slice(0, 10);
+    var endDate  = new Date(today);
+    endDate.setMonth(endDate.getMonth() + 3);
+    var endStr   = endDate.toISOString().slice(0, 10);
+
+    try {
+        // Firestore 'in' supports up to 10 values; split house types across two queries
+        var [snap1, snap2] = await Promise.all([
+            userCol('calendarEvents').where('targetType', 'in', ['floor', 'room', 'thing']).get(),
+            userCol('calendarEvents').where('targetType', 'in', ['subthing', 'item']).get()
+        ]);
+
+        // Merge into a deduped map
+        var eventsMap = {};
+        snap1.docs.forEach(function(d) { eventsMap[d.id] = Object.assign({ id: d.id }, d.data()); });
+        snap2.docs.forEach(function(d) { eventsMap[d.id] = Object.assign({ id: d.id }, d.data()); });
+
+        var allEvents = Object.values(eventsMap);
+        if (allEvents.length === 0) {
+            container.innerHTML = '<p class="empty-state">No house calendar events found.</p>';
+            return;
+        }
+
+        // Separate overdue (past uncompleted one-time) from upcoming occurrences
+        var overdueOccs  = [];
+        var upcomingOccs = [];
+
+        allEvents.forEach(function(event) {
+            // Overdue: one-time events before today, not completed
+            if (!event.recurring && event.date && event.date < todayStr && !event.completed) {
+                overdueOccs.push(Object.assign({}, event, { occurrenceDate: event.date, completed: false }));
+            }
+            // Upcoming window (generateOccurrences is defined in calendar.js)
+            var occs = generateOccurrences(event, todayStr, endStr);
+            occs.forEach(function(occ) { upcomingOccs.push(occ); });
+        });
+
+        overdueOccs.sort(function(a, b)  { return a.occurrenceDate.localeCompare(b.occurrenceDate); });
+        upcomingOccs.sort(function(a, b) { return a.occurrenceDate.localeCompare(b.occurrenceDate); });
+
+        var allOccs = overdueOccs.concat(upcomingOccs);
+
+        if (allOccs.length === 0) {
+            container.innerHTML = '<p class="empty-state">No upcoming house calendar events in the next 3 months.</p>';
+            return;
+        }
+
+        container.innerHTML = '';
+        var reloadFn = loadHouseCalendarEventsPage;
+
+        allOccs.forEach(function(occ) {
+            // createCalendarEventCard is defined in calendar.js (loaded before house.js)
+            container.appendChild(createCalendarEventCard(occ, reloadFn));
+        });
+
+    } catch (err) {
+        console.error('loadHouseCalendarEventsPage error:', err);
+        container.innerHTML = '<p class="empty-state">Error loading events.</p>';
+    }
 }
 
 /**

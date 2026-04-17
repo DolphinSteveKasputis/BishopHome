@@ -2495,6 +2495,15 @@ button {
 .house-stat--neutral .house-stat-num  { color: #374151; }   /* neutral — room count */
 .house-stat--ok .house-stat-label     { color: #15803d; }   /* green — all clear */
 
+/* Clickable stat chip (rendered as <a>) */
+.house-stat--link {
+    text-decoration: none;
+    cursor: pointer;
+}
+.house-stat--link:hover .house-stat-num {
+    text-decoration: underline;
+}
+
 /* Floor card: room count sub-label */
 .house-floor-card-rooms {
     font-size: 0.82rem;

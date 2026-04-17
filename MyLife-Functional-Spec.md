@@ -208,11 +208,13 @@ Lists all quick tasks whose `targetType` is `zone`, `plant`, or `weed`. Each car
 
 The House section tracks the interior of the home using a 4-level hierarchy: Floor → Room → Thing → Sub-Thing → Item.
 
-**House page (`#house`)** shows: summary stats bar (upcoming calendar events only), **Open Problems** single panel card (shows count; clicking navigates to `#house-problems`), Floors section (clickable cards), a static **More** section with icon cards linking to Garage (`#garage`), Vehicles (`#vehicles`), and Collections (`#collections`), an Upcoming calendar rollup, and a Breaker Panels section. Garage, Vehicles, and Collections are no longer on the main landing page — they live under House → More. Room count removed from stats bar (visible per-floor already).
+**House page (`#house`)** shows: summary stats bar (upcoming calendar events only), **Open Problems** single panel card (shows count; clicking navigates to `#house-problems`), Floors section (clickable cards), a static **More** section with icon cards linking to Garage (`#garage`), Vehicles (`#vehicles`), and Collections (`#collections`), an Upcoming calendar rollup, and a Breaker Panels section. Garage, Vehicles, and Collections are no longer on the main landing page — they live under House → More. Room count removed from stats bar (visible per-floor already). The **events stat chip** (e.g. "1 upcoming calendar event") is a clickable link to `#house-calendar-events`.
 
 **House Quick Tasks page (`#house-projects`)**: Lists all quick tasks from floors, rooms, and things. Each card shows the task title and location path. Clicking navigates to the owning entity. Breadcrumb: House › All Quick Tasks.
 
 **House Problems page (`#house-problems`)**: Lists all open problems from floors, rooms, and things. Each card shows the problem description and a location path (Floor › Room › Thing). Clicking a card navigates to the owning entity. Breadcrumb: House › Open Problems.
+
+**House Calendar Events page (`#house-calendar-events`)**: Lists all calendar events tied to house entities (floor, room, thing, subthing, item). Shows the next 3 months of occurrences plus any overdue uncompleted one-time events, sorted chronologically. Each event renders as a full calendar event card (Edit, Complete, Delete buttons). Reached by clicking the events stat chip on the house home page.
 
 ### Floors (`house.js`)
 The top level of the house hierarchy.

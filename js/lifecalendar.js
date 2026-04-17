@@ -1827,6 +1827,31 @@ function _lcRenderEventForm(event, categories, prefillDate) {
         });
     });
 
+    // When end date is empty and focused, temporarily set it to the start date so
+    // the browser's native date picker opens at the correct month instead of today.
+    // Clear the temporary value on blur if the user didn't actually pick anything.
+    (function() {
+        var endEl   = document.getElementById('lcEventEndDate');
+        var startEl = document.getElementById('lcEventStartDate');
+        if (!endEl || !startEl) return;
+        var _tempSet = false;
+        endEl.addEventListener('focus', function() {
+            if (!endEl.value && startEl.value) {
+                endEl.value = startEl.value;
+                _tempSet = true;
+            }
+        });
+        endEl.addEventListener('change', function() {
+            _tempSet = false;   // user made a real selection — keep it
+        });
+        endEl.addEventListener('blur', function() {
+            if (_tempSet) {
+                endEl.value = '';   // user dismissed without picking — restore empty
+                _tempSet = false;
+            }
+        });
+    })();
+
     // Mark dirty on any field change
     ['lcEventTitle','lcEventCategory','lcEventStartDate','lcEventEndDate',
      'lcEventStartTime','lcEventEndTime',

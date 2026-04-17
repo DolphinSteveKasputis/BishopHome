@@ -7677,6 +7677,22 @@ a.health-chip--link:hover { filter: brightness(0.93); }
     box-shadow: 0 8px 24px rgba(13, 148, 136, 0.35);
 }
 
+/* ── Life landing: Checklists tile (lime-green gradient) ── */
+.landing-tile--life-checklists {
+    background: linear-gradient(135deg, #16a34a, #4ade80);
+    color: #fff;
+}
+.landing-tile--life-checklists:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(22, 163, 74, 0.35);
+}
+
+/* ── Life feature grid: 3-column layout ── */
+#lifeFeatureGrid {
+    grid-template-columns: 1fr 1fr 1fr;
+    max-width: 720px;
+}
+
 /* ── Life Calendar — page layout ── */
 .lc-page-body {
     padding: 16px;

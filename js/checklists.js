@@ -52,6 +52,8 @@ async function loadChecklistsPage() {
             bar.innerHTML = '<a href="#zones">Yard</a><span class="separator">&rsaquo;</span><span>Checklists</span>';
         } else if (ctx.type === 'house' || ctx.type === 'floor' || ctx.type === 'room') {
             bar.innerHTML = '<a href="#house">House</a><span class="separator">&rsaquo;</span><span>Checklists</span>';
+        } else if (ctx.type === 'life') {
+            bar.innerHTML = '<a href="#life">Life</a><span class="separator">&rsaquo;</span><span>Checklists</span>';
         } else {
             bar.innerHTML = '';
         }

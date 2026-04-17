@@ -836,7 +836,7 @@ A notebook-organized note-taking system.
 
 ### Life Main Page (`#life`)
 
-Landing page showing tile shortcuts to Journal, Contacts, Health, Notes, and Calendar. Below the tiles, a **"Coming Up"** section (hidden when empty) shows events within the next 30 days, sorted by date. Two sources are merged:
+Landing page showing a **3-column grid** of tile shortcuts: Journal, Contacts, Health, Notes, Calendar, Projects, and Checklists. The Checklists tile navigates to `#checklists/life`. Below the tiles, a **"Coming Up"** section (hidden when empty) shows events within the next 30 days, sorted by date. Two sources are merged:
 - **Annual contact dates** (`peopleImportantDates` where `recurrence == annual`) — shows label, person name (tappable link to `#contact/{id}`), and "turns N" age badge if a birth year is set
 - **Upcoming life calendar events** (`lifeEvents` where `startDate` in next 30 days, excluding attended/missed/didntgo) — shows event title as a tappable link to `#life-event/{id}`. For **today's events**, also shows a clickable 📍 address (opens Google Maps) and 📞 phone number. Address/phone come from the linked location contact (`locationContactId` → `people` doc) if set, or from the plain-text `location` field (as address only).
 
@@ -1280,7 +1280,7 @@ Formerly named "Future Projects" — renamed to "Quick Task List" to distinguish
 - **Template modal**: Location dropdown shows the full hierarchy for the current context (e.g., Yard → zones → subzones), defaulting to the entity the user was on when they clicked Checklists; full hierarchy shown so user can pick any level. Delete button is inside the edit modal.
 - **Location badge**: shown on template/run cards in roll-up views (e.g., "📍 Front Yard")
 - **Context subtitle**: shown on the page header ("Showing: Front Yard (Zone)")
-- **Breadcrumb bar**: set on page load based on context — yard/zone context shows `Yard › Checklists` (linking to `#zones`); house/floor/room context shows `House › Checklists` (linking to `#house`); other contexts clear the bar
+- **Breadcrumb bar**: set on page load based on context — yard/zone context shows `Yard › Checklists` (linking to `#zones`); house/floor/room context shows `House › Checklists` (linking to `#house`); life context shows `Life › Checklists` (linking to `#life`); other contexts clear the bar
 - **Active run cards**:
   - Progress bar shows done/total count
   - **Edit mode**: toggled by an Edit/Done button on the card. In edit mode: ✕ remove buttons appear beside each item; a "+ Add item" input row appears at the bottom. Removing items never prompts to modify the template.

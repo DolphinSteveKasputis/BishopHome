@@ -757,8 +757,17 @@ function _lcRenderEventList(events, categories) {
             statusCls = 'lc-status-badge--' + (ev.status || 'upcoming');
         }
 
-        var location = (!isAppt && ev.location)
-            ? '<span class="lc-event-card-location">' + escapeHtml(ev.location) + '</span>'
+        // Location text: for contact-linked events show the contact name; otherwise show text
+        var locationText = '';
+        if (!isAppt) {
+            if (ev.locationContactId && _lcFacilityContactMap[ev.locationContactId]) {
+                locationText = _lcFacilityContactMap[ev.locationContactId].name || '';
+            } else {
+                locationText = ev.location || '';
+            }
+        }
+        var location = locationText
+            ? '<span class="lc-event-card-location">' + escapeHtml(locationText) + '</span>'
             : '';
 
         // Small "Appt" pill for appointment cards so they're visually distinct
@@ -768,18 +777,25 @@ function _lcRenderEventList(events, categories) {
             ? '<span class="lc-event-time">' + escapeHtml(_lcFormatTime(ev.startTime)) + '</span> '
             : '';
 
-        // For today's appointments, show facility address and phone (clickable)
+        // For today's events/appointments: show address and phone from linked contact
         var todayStr = _lcIsoDate(new Date());
         var apptTodayHtml = '';
-        if (isAppt && ev.startDate === todayStr) {
-            var fc = ev.facilityContactId ? (_lcFacilityContactMap[ev.facilityContactId] || null) : null;
-            var apptAddr  = fc ? (fc.address || '') : '';
-            var apptPhone = fc ? (fc.phone   || '') : '';
-            var todayParts = [];
-            if (apptAddr)  todayParts.push('<a href="https://maps.google.com/?q=' + encodeURIComponent(apptAddr) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:#2563eb; font-size:0.85em;">📍 ' + escapeHtml(apptAddr) + '</a>');
-            if (apptPhone) todayParts.push('<a href="tel:' + escapeHtml(apptPhone.replace(/\s/g,'')) + '" onclick="event.stopPropagation()" style="color:#2563eb; font-size:0.85em;">📞 ' + escapeHtml(apptPhone) + '</a>');
-            if (todayParts.length) {
-                apptTodayHtml = '<div style="margin-top:4px; display:flex; flex-direction:column; gap:2px;">' + todayParts.join('') + '</div>';
+        if (ev.startDate === todayStr) {
+            var contactForToday = null;
+            if (isAppt && ev.facilityContactId) {
+                contactForToday = _lcFacilityContactMap[ev.facilityContactId] || null;
+            } else if (!isAppt && ev.locationContactId) {
+                contactForToday = _lcFacilityContactMap[ev.locationContactId] || null;
+            }
+            if (contactForToday) {
+                var apptAddr  = contactForToday.address || '';
+                var apptPhone = contactForToday.phone   || '';
+                var todayParts = [];
+                if (apptAddr)  todayParts.push('<a href="https://maps.google.com/?q=' + encodeURIComponent(apptAddr) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:#2563eb; font-size:0.85em;">📍 ' + escapeHtml(apptAddr) + '</a>');
+                if (apptPhone) todayParts.push('<a href="tel:' + escapeHtml(apptPhone.replace(/\s/g,'')) + '" onclick="event.stopPropagation()" style="color:#2563eb; font-size:0.85em;">📞 ' + escapeHtml(apptPhone) + '</a>');
+                if (todayParts.length) {
+                    apptTodayHtml = '<div style="margin-top:4px; display:flex; flex-direction:column; gap:2px;">' + todayParts.join('') + '</div>';
+                }
             }
         }
 
@@ -1147,13 +1163,18 @@ async function loadLifeCalendarPage() {
             .map(function(d) { return _lcNormalizeAppointment(d.id, d.data()); })
             .filter(function(a) { return !!a.startDate; }); // only appointments with a date
 
-        // Fetch facility contacts so today's appointments can show address/phone
+        // Fetch facility contacts (health appointments) AND life event location contacts
+        // so today's cards can show address/phone and all cards can show contact name.
         var facilityIds = [...new Set(
             apptsSnap.docs.map(function(d) { return d.data().facilityContactId; }).filter(Boolean)
         )];
+        var locationContactIds = [...new Set(
+            _lcAllEvents.map(function(ev) { return ev.locationContactId; }).filter(Boolean)
+        )];
+        var allContactIdsToFetch = [...new Set([...facilityIds, ...locationContactIds])];
         _lcFacilityContactMap = {};
-        if (facilityIds.length > 0) {
-            await Promise.all(facilityIds.map(async function(cid) {
+        if (allContactIdsToFetch.length > 0) {
+            await Promise.all(allContactIdsToFetch.map(async function(cid) {
                 try {
                     var snap = await userCol('people').doc(cid).get();
                     if (snap.exists) _lcFacilityContactMap[cid] = snap.data();
@@ -1398,6 +1419,8 @@ function _lcRenderEventForm(event, categories, prefillDate) {
     const startTime = isNew ? '' : (event.startTime || '');
     const endTime   = isNew ? '' : (event.endTime   || '');
     const location  = isNew ? '' : (event.location  || '');
+    const locationContactId = isNew ? null : (event.locationContactId || null);
+    const locMode = locationContactId ? 'contacts' : 'manual';
     const cost     = isNew ? '' : (event.cost != null ? event.cost : '');
     const status   = isNew ? 'upcoming' : (event.status || 'upcoming');
     const didntGoReason = isNew ? '' : (event.didntGoReason || '');
@@ -1464,9 +1487,26 @@ function _lcRenderEventForm(event, categories, prefillDate) {
                 </div>
 
                 <div class="form-group">
-                    <label for="lcEventLocation">Location</label>
-                    <input type="text" id="lcEventLocation" class="form-control"
-                           placeholder="City, venue, etc." value="${escapeHtml(location)}">
+                    <label>Location</label>
+                    <div class="lc-loc-mode-row">
+                        <label class="lc-loc-radio-label">
+                            <input type="radio" name="lcLocMode" value="contacts"
+                                   ${locMode === 'contacts' ? 'checked' : ''}> Contacts
+                        </label>
+                        <label class="lc-loc-radio-label">
+                            <input type="radio" name="lcLocMode" value="manual"
+                                   ${locMode === 'manual' ? 'checked' : ''}> Manual
+                        </label>
+                    </div>
+                    <div id="lcLocContactsGroup"${locMode !== 'contacts' ? ' class="hidden"' : ''}>
+                        <select id="lcEventLocationContact" class="form-control">
+                            <option value="">— Loading contacts… —</option>
+                        </select>
+                    </div>
+                    <div id="lcLocManualGroup"${locMode !== 'manual' ? ' class="hidden"' : ''}>
+                        <input type="text" id="lcEventLocation" class="form-control"
+                               placeholder="City, venue, etc." value="${escapeHtml(location)}">
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -1673,6 +1713,44 @@ function _lcRenderEventForm(event, categories, prefillDate) {
         </div>
         ` : ''}
     `;
+
+    // Wire location mode radio buttons (Contacts / Manual)
+    section.querySelectorAll('input[name="lcLocMode"]').forEach(function(radio) {
+        radio.addEventListener('change', function() {
+            var isContacts = (this.value === 'contacts');
+            var cg = document.getElementById('lcLocContactsGroup');
+            var mg = document.getElementById('lcLocManualGroup');
+            if (cg) cg.classList.toggle('hidden', !isContacts);
+            if (mg) mg.classList.toggle('hidden', isContacts);
+            _lcEventDirty = true;
+        });
+    });
+
+    // Lazy-load all contacts into the location picker dropdown
+    (function(savedContactId) {
+        userCol('people').where('parentPersonId', '==', null).get()
+            .then(function(snap) {
+                var contacts = [];
+                snap.forEach(function(d) { contacts.push({ id: d.id, name: d.data().name || '' }); });
+                contacts.sort(function(a, b) { return a.name.localeCompare(b.name); });
+                var sel = document.getElementById('lcEventLocationContact');
+                if (!sel) return;
+                sel.innerHTML = '<option value="">— Select a contact —</option>';
+                contacts.forEach(function(c) {
+                    var opt = document.createElement('option');
+                    opt.value       = c.id;
+                    opt.textContent = c.name || '(no name)';
+                    if (c.id === savedContactId) opt.selected = true;
+                    sel.appendChild(opt);
+                });
+                sel.addEventListener('change', function() { _lcEventDirty = true; });
+            })
+            .catch(function(err) {
+                console.error('location picker: could not load contacts', err);
+                var sel = document.getElementById('lcEventLocationContact');
+                if (sel) sel.innerHTML = '<option value="">— Could not load contacts —</option>';
+            });
+    }(locationContactId));
 
     // Toggle "Didn't Go" reason visibility when status changes
     section.querySelectorAll('input[name="lcEventStatus"]').forEach(function(radio) {
@@ -2458,7 +2536,8 @@ function _lcReadEventForm() {
         endDate:       endDate,
         startTime:     document.getElementById('lcEventStartTime').value || '',
         endTime:       document.getElementById('lcEventEndTime').value || '',
-        location:      (document.getElementById('lcEventLocation').value || '').trim(),
+        location:          '',   // set below based on location mode radio
+        locationContactId: null, // set below based on location mode radio
         status:        status,
         didntGoReason: status === 'didntgo'
             ? (document.getElementById('lcEventDidntGoReason').value || '').trim()
@@ -2466,6 +2545,18 @@ function _lcReadEventForm() {
         description:   (document.getElementById('lcEventDescription').value || '').trim(),
         outcome:       (document.getElementById('lcEventOutcome').value || '').trim(),
     };
+
+    // Resolve location: contacts mode stores a contact ID; manual mode stores text
+    var locModeEl = document.querySelector('input[name="lcLocMode"]:checked');
+    if (locModeEl && locModeEl.value === 'contacts') {
+        var contSel = document.getElementById('lcEventLocationContact');
+        data.locationContactId = (contSel && contSel.value) ? contSel.value : null;
+        data.location = '';
+    } else {
+        var locInput = document.getElementById('lcEventLocation');
+        data.location = locInput ? (locInput.value || '').trim() : '';
+        data.locationContactId = null;
+    }
 
     var costVal = document.getElementById('lcEventCost').value;
     data.cost = costVal !== '' ? parseFloat(costVal) : null;

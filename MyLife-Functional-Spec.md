@@ -835,7 +835,7 @@ Each item shows a relative time label: "Today!", "Tomorrow", or "In N days".
 Tracks major life events — trips, milestones, goals, relationships.
 
 **Firestore**:
-- `lifeEvents` — `title`, `description`, `startDate`, `endDate?`, `startTime?` (HH:MM), `endTime?` (HH:MM), `location?`, `categoryId?`, `status` (upcoming/in-progress/completed/past), `peopleIds[]`, `notes?`, `miniLogEnabled`, `createdAt`
+- `lifeEvents` — `title`, `description`, `startDate`, `endDate?`, `startTime?` (HH:MM), `endTime?` (HH:MM), `location?` (manual text), `locationContactId?` (people doc ID — mutually exclusive with `location`), `categoryId?`, `status` (upcoming/in-progress/completed/past), `peopleIds[]`, `notes?`, `miniLogEnabled`, `createdAt`
 - `lifeCategories` — `name`, `color`, `createdAt`
 - `lifeEventLogs` — `logDate`, `logTime`, `body`, `eventId`, `mentionedPersonIds[]`, `createdAt`
 
@@ -857,7 +857,13 @@ Tracks major life events — trips, milestones, goals, relationships.
 
 **Event Form**:
 - Title, start date, end date (with validation — end date cannot be before start date), optional start time, optional end time
-- Category (color-coded), status dropdown, location, people tags, description
+- Category (color-coded), status dropdown, **location** (see below), people tags, description
+- **Location field**: two radio buttons — **Contacts** and **Manual**
+  - **Contacts** (default for new events): shows a dropdown of all top-level contacts; selecting one stores `locationContactId` on the event; `location` is cleared
+  - **Manual**: shows a free-text input ("City, venue, etc."); stores `location`; `locationContactId` is cleared
+  - On edit: presence of `locationContactId` sets the radio to Contacts and pre-selects the contact; otherwise Manual is selected
+  - Event cards show the **contact name** as the location badge when `locationContactId` is set
+  - **Today's events**: if a life event has `locationContactId` and its `startDate` equals today, the card shows the contact's address (📍 link to Google Maps) and phone (📞 tel: link) — same as health appointments with `facilityContactId`
 - Mini log textarea (journal-style notes attached to the event)
 - Top-level Save button (next to title) and bottom Save button
 - Saving a **new** event navigates to `#life-calendar` (not the event detail page)
@@ -1389,7 +1395,7 @@ All collections live under `/users/{uid}/`. Every module uses `userCol('collecti
 | `journalEntries` | date, entryTime, entryText, mentionedPersonIds[], placeIds[], isCheckin, sourceEventId?, createdAt, updatedAt |
 | `journalTrackingItems` | date, category, value, createdAt |
 | `journalCategories` | name, createdAt |
-| `lifeEvents` | title, description, startDate, endDate?, startTime?, endTime?, location?, categoryId?, status, peopleIds[], notes?, miniLogEnabled, createdAt |
+| `lifeEvents` | title, description, startDate, endDate?, startTime?, endTime?, location? (manual text), locationContactId? (people doc ID), categoryId?, status, peopleIds[], notes?, miniLogEnabled, createdAt |
 | `lifeCategories` | name, color, createdAt |
 | `lifeEventLogs` | logDate, logTime, body, eventId, mentionedPersonIds[], createdAt |
 | `notebooks` | name, color, noteCount, createdAt, updatedAt |

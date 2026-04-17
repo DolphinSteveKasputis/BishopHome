@@ -8000,7 +8000,8 @@ a.health-chip--link:hover { filter: brightness(0.93); }
     flex-direction: column;
     gap: 4px;
 }
-.lc-loc-radio-label {
+/* Use .form-group prefix to beat the .form-group label { display:block } rule */
+.form-group .lc-loc-radio-label {
     display: flex;
     align-items: center;
     gap: 6px;
@@ -8009,7 +8010,13 @@ a.health-chip--link:hover { filter: brightness(0.93); }
     font-size: 0.95em;
     font-weight: normal;
 }
-.lc-loc-show-personal-label {
+/* Beat .form-group input { width:100%; padding:10px } for radio/checkbox */
+.form-group .lc-loc-radio-label input[type="radio"],
+.form-group .lc-loc-radio-label input[type="checkbox"] {
+    width: auto;
+    padding: 0;
+}
+.form-group .lc-loc-show-personal-label {
     font-size: 0.82em;
     color: #666;
     gap: 4px;

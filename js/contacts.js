@@ -1472,13 +1472,17 @@ async function loadLifePage() {
 
         items.sort(function(a, b) { return a.nextDate - b.nextDate; });
 
-        // Fetch contact details (address + phone) for today's events that have a linked contact
+        // Fetch contact details (address + phone) for today's events that have a linked contact.
+        // Use daysAway rounding (same as the display logic) instead of toDateString() because
+        // dates parsed from ISO strings ("2026-04-17") are UTC midnight and may appear as the
+        // previous day in local time, causing toDateString() to not match even when the event
+        // is correctly displayed as "Today!".
         var locationContactMap = {};
         var contactIdsToFetch = items
             .filter(function(i) {
-                return i._type === 'event' &&
-                       i.locationContactId &&
-                       i.nextDate.toDateString() === today.toDateString();
+                if (i._type !== 'event' || !i.locationContactId) return false;
+                var dAway = Math.round((i.nextDate - today) / 86400000);
+                return dAway === 0;
             })
             .map(function(i) { return i.locationContactId; });
         contactIdsToFetch = contactIdsToFetch.filter(function(id, idx) { return contactIdsToFetch.indexOf(id) === idx; }); // dedupe

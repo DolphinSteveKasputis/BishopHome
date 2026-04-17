@@ -1519,6 +1519,9 @@ function _lcRenderEventForm(event, categories, prefillDate) {
                         <select id="lcEventLocationContact" class="form-control">
                             <option value="">— Loading contacts… —</option>
                         </select>
+                        <label class="lc-loc-show-personal-label" style="margin-top:6px; display:flex; align-items:center; gap:6px; font-size:0.85rem; color:#666;">
+                            <input type="checkbox" id="lcLocShowPersonal"> Show Personal
+                        </label>
                     </div>
                     <div id="lcLocManualGroup"${locMode !== 'manual' ? ' class="hidden"' : ''}>
                         <input type="text" id="lcEventLocation" class="form-control"
@@ -1735,32 +1738,71 @@ function _lcRenderEventForm(event, categories, prefillDate) {
     section.querySelectorAll('input[name="lcLocMode"]').forEach(function(radio) {
         radio.addEventListener('change', function() {
             var isContacts = (this.value === 'contacts');
-            var cg = document.getElementById('lcLocContactsGroup');
-            var mg = document.getElementById('lcLocManualGroup');
+            var cg  = document.getElementById('lcLocContactsGroup');
+            var mg  = document.getElementById('lcLocManualGroup');
             if (cg) cg.classList.toggle('hidden', !isContacts);
             if (mg) mg.classList.toggle('hidden', isContacts);
             _lcEventDirty = true;
         });
     });
 
-    // Lazy-load all contacts into the location picker dropdown
+    // Lazy-load all contacts into the location picker dropdown.
+    // By default, Personal contacts are excluded unless "Show Personal" is checked.
     (function(savedContactId) {
+        var _allLocContacts = [];   // full list (name + category), loaded once
+
+        function _populateLocationSelect(showPersonal) {
+            var sel = document.getElementById('lcEventLocationContact');
+            if (!sel) return;
+            var filtered = showPersonal
+                ? _allLocContacts
+                : _allLocContacts.filter(function(c) { return c.category !== 'Personal'; });
+            var currentVal = sel.value;
+            sel.innerHTML = '<option value="">— Select a contact —</option>';
+            filtered.forEach(function(c) {
+                var opt = document.createElement('option');
+                opt.value       = c.id;
+                opt.textContent = c.name || '(no name)';
+                // Preserve current selection if it still appears in the filtered list
+                if (c.id === currentVal || c.id === savedContactId) opt.selected = true;
+                sel.appendChild(opt);
+            });
+        }
+
         userCol('people').where('parentPersonId', '==', null).get()
             .then(function(snap) {
-                var contacts = [];
-                snap.forEach(function(d) { contacts.push({ id: d.id, name: d.data().name || '' }); });
-                contacts.sort(function(a, b) { return a.name.localeCompare(b.name); });
+                snap.forEach(function(d) {
+                    _allLocContacts.push({
+                        id:       d.id,
+                        name:     d.data().name     || '',
+                        category: d.data().category || ''
+                    });
+                });
+                _allLocContacts.sort(function(a, b) { return a.name.localeCompare(b.name); });
+
                 var sel = document.getElementById('lcEventLocationContact');
                 if (!sel) return;
-                sel.innerHTML = '<option value="">— Select a contact —</option>';
-                contacts.forEach(function(c) {
-                    var opt = document.createElement('option');
-                    opt.value       = c.id;
-                    opt.textContent = c.name || '(no name)';
-                    if (c.id === savedContactId) opt.selected = true;
-                    sel.appendChild(opt);
-                });
+
+                // If the saved contact is Personal, auto-check "Show Personal" so it's visible
+                var savedIsPersonal = savedContactId
+                    ? _allLocContacts.some(function(c) {
+                        return c.id === savedContactId && c.category === 'Personal';
+                      })
+                    : false;
+
+                var chk = document.getElementById('lcLocShowPersonal');
+                if (chk && savedIsPersonal) chk.checked = true;
+
+                _populateLocationSelect(savedIsPersonal);
                 sel.addEventListener('change', function() { _lcEventDirty = true; });
+
+                // Wire "Show Personal" checkbox
+                if (chk) {
+                    chk.addEventListener('change', function() {
+                        _populateLocationSelect(this.checked);
+                        _lcEventDirty = true;
+                    });
+                }
             })
             .catch(function(err) {
                 console.error('location picker: could not load contacts', err);

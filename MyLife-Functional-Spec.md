@@ -863,9 +863,9 @@ Tracks major life events — trips, milestones, goals, relationships.
 - Title, start date, end date (with validation — end date cannot be before start date), optional start time, optional end time
 - Category (color-coded), status dropdown, **location** (see below), people tags, description
 - **Location field**: two radio buttons — **Contacts** and **Manual**
-  - **Contacts** (default for new events): shows a dropdown of all top-level contacts; selecting one stores `locationContactId` on the event; `location` is cleared
-  - **Manual**: shows a free-text input ("City, venue, etc."); stores `location`; `locationContactId` is cleared
-  - On edit: presence of `locationContactId` sets the radio to Contacts and pre-selects the contact; otherwise Manual is selected
+  - **Contacts** (default for new events): shows a dropdown of top-level contacts with a **"Show Personal"** checkbox (unchecked by default); Personal-category contacts are hidden unless checked; selecting a contact stores `locationContactId`; `location` is cleared
+  - **Manual**: shows a free-text input ("City, venue, etc."); stores `location`; `locationContactId` is cleared; "Show Personal" checkbox is hidden
+  - On edit: presence of `locationContactId` sets the radio to Contacts and pre-selects the contact; if the saved contact is a Personal contact, "Show Personal" is auto-checked so it appears in the list
   - Event cards show the **contact name** as the location badge when `locationContactId` is set
   - **Today's events**: if a life event has `locationContactId` and its `startDate` equals today, the card shows the contact's address (📍 link to Google Maps) and phone (📞 tel: link) — same as health appointments with `facilityContactId`
 - Mini log textarea (journal-style notes attached to the event)

@@ -3897,6 +3897,16 @@ button {
 
 .cl-template-info { flex: 1; min-width: 0; }
 
+/* Clickable template card — pointer cursor + subtle hover highlight */
+.cl-template-card--clickable {
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+.cl-template-card--clickable:hover {
+    border-color: #aaa;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
 .cl-template-name {
     font-size: 1rem;
     font-weight: 600;

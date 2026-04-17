@@ -464,7 +464,10 @@ async function clLoadTemplates() {
  */
 function clBuildTemplateCard(template) {
     var card = document.createElement('div');
-    card.className = 'cl-template-card';
+    // Clicking the card body opens the edit modal
+    card.className = 'cl-template-card cl-template-card--clickable';
+    card.title     = 'Click to edit';
+    card.addEventListener('click', function() { clOpenEditTemplateModal(template); });
 
     var info = document.createElement('div');
     info.className = 'cl-template-info';
@@ -490,28 +493,19 @@ function clBuildTemplateCard(template) {
 
     card.appendChild(info);
 
-    // Buttons
+    // Only the Start button remains on the card — Edit is via card click, Delete is in the modal
     var btnGroup = document.createElement('div');
     btnGroup.className = 'cl-template-actions';
 
     var startBtn = document.createElement('button');
     startBtn.className   = 'btn btn-primary btn-small';
     startBtn.textContent = '▶ Start';
-    startBtn.addEventListener('click', function() { clStartRun(template); });
-
-    var editBtn = document.createElement('button');
-    editBtn.className   = 'btn btn-secondary btn-small';
-    editBtn.textContent = 'Edit';
-    editBtn.addEventListener('click', function() { clOpenEditTemplateModal(template); });
-
-    var delBtn = document.createElement('button');
-    delBtn.className   = 'btn btn-danger btn-small';
-    delBtn.textContent = 'Delete';
-    delBtn.addEventListener('click', function() { clDeleteTemplate(template.id); });
+    startBtn.addEventListener('click', function(e) {
+        e.stopPropagation();  // don't open the edit modal when clicking Start
+        clStartRun(template);
+    });
 
     btnGroup.appendChild(startBtn);
-    btnGroup.appendChild(editBtn);
-    btnGroup.appendChild(delBtn);
     card.appendChild(btnGroup);
 
     return card;
@@ -678,6 +672,9 @@ async function clOpenAddTemplateModal() {
     modal.dataset.mode = 'add';
     delete modal.dataset.editId;
 
+    // Delete button only shown in edit mode
+    document.getElementById('clTemplateModalDeleteBtn').classList.add('hidden');
+
     // Populate target picker (async: fetches zones / floors / rooms)
     var ctx = clCurrentContext || { type: 'yard' };
     await clPopulateTargetPicker(ctx, null);
@@ -699,6 +696,14 @@ async function clOpenEditTemplateModal(template) {
     var modal = document.getElementById('checklistTemplateModal');
     document.getElementById('clTemplateModalTitle').textContent = 'Edit Template';
     document.getElementById('clTemplateName').value = template.name || '';
+
+    // Show delete button and wire it to this template
+    var deleteBtn = document.getElementById('clTemplateModalDeleteBtn');
+    deleteBtn.classList.remove('hidden');
+    deleteBtn.onclick = function() {
+        closeModal('checklistTemplateModal');
+        clDeleteTemplate(template.id);
+    };
 
     var editor = document.getElementById('clTemplateItemsEditor');
     editor.innerHTML = '';

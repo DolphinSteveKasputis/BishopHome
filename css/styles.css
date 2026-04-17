@@ -3884,6 +3884,13 @@ button {
     color: #aaa;
 }
 
+/* Completion date shown inline next to a done item's strikethrough label */
+.cl-item-done-date {
+    font-size: 0.8em;
+    color: #bbb;
+    font-style: italic;
+}
+
 /* 📝 note button — small, low-key; sits to the right of the label */
 .cl-item-note-btn {
     background: none;

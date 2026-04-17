@@ -1284,6 +1284,8 @@ Formerly named "Future Projects" — renamed to "Quick Task List" to distinguish
   - **Mark Complete**: moves run to the Completed section
   - **Abandon button**: deletes the run after confirmation
 - **Per-item notes**: each item has a 📝 button that toggles an inline textarea. Note saves on blur or Enter. Escape discards changes. Note is displayed in muted italic below the item label when set.
+- **Item completion date**: checking an item records a `doneAt` ISO timestamp. The date is displayed inline next to the strikethrough label as `(Apr 17)` in muted italic. Unchecking clears `doneAt`. Stored in `items[].doneAt`.
+- **Item sort order**: undone items appear first (in their original order); done items sort to the bottom in the order they were completed (earliest first). Sort is display-only — storage order is preserved so indices remain stable for all Firestore operations.
 - **Blank lists**: "+ New Blank List" button in the Active section header creates a run with no template. Prompts for a name; inherits target context from the current page.
 - **Completed run accordion**: clicking a completed card expands/collapses a read-only item list (✓ done / ✗ missed). Notes are shown read-only below each item in the expanded view.
 

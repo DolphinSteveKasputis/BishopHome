@@ -367,8 +367,20 @@ function clBuildRunCard(run) {
 function clBuildItemsListEl(runId, items, card) {
     var list = document.createElement('ul');
     list.className = 'cl-item-list';
-    items.forEach(function(item, idx) {
-        list.appendChild(clBuildItemEl(runId, item, idx, card));
+
+    // Display order: undone items first (preserving their storage order),
+    // then done items sorted by completion time (earliest first).
+    // We track the original storage index (idx) so all Firestore operations
+    // remain index-stable regardless of display order.
+    var indexed = items.map(function(item, i) { return { item: item, idx: i }; });
+    var undone  = indexed.filter(function(x) { return !x.item.done; });
+    var done    = indexed.filter(function(x) { return  x.item.done; })
+                         .sort(function(a, b) {
+                             return (a.item.doneAt || '').localeCompare(b.item.doneAt || '');
+                         });
+
+    undone.concat(done).forEach(function(x) {
+        list.appendChild(clBuildItemEl(runId, x.item, x.idx, card));
     });
     return list;
 }
@@ -396,6 +408,14 @@ function clBuildItemEl(runId, item, idx, card) {
     var label = document.createElement('span');
     label.className   = 'cl-item-label' + (item.done ? ' cl-item-label--done' : '');
     label.textContent = item.label;
+
+    // Show completion date inline when the item is done
+    if (item.done && item.doneAt) {
+        var dateSpan = document.createElement('span');
+        dateSpan.className   = 'cl-item-done-date';
+        dateSpan.textContent = ' (' + clFormatShortDate(item.doneAt) + ')';
+        label.appendChild(dateSpan);
+    }
 
     // 📝 note button — toggles inline note editor
     var noteBtn = document.createElement('button');
@@ -565,7 +585,11 @@ async function clAddItemToRun(runId, templateId, label, card, inputEl) {
         }
 
         clRerenderRunItems(runId, items, templateId, card);
-        if (inputEl) { inputEl.value = ''; inputEl.focus(); }
+
+        // clRerenderRunItems rebuilt the add-item row, so the old inputEl is now detached.
+        // Find the new input and focus it so the user can keep typing items without re-clicking.
+        var newInput = card.querySelector('.cl-add-item-input');
+        if (newInput) newInput.focus();
 
     } catch (err) {
         console.error('Error adding item to run:', err);
@@ -660,24 +684,20 @@ async function clToggleItem(runId, checked, idx, card) {
         var doc = await userCol('checklistRuns').doc(runId).get();
         if (!doc.exists) return;
 
-        var items = doc.data().items;
-        items[idx].done = checked;
+        var runData = doc.data();
+        var items   = runData.items;
+
+        // Record or clear the completion timestamp alongside the done flag
+        items[idx] = Object.assign({}, items[idx], {
+            done:   checked,
+            doneAt: checked ? new Date().toISOString() : null
+        });
 
         await userCol('checklistRuns').doc(runId).update({ items: items });
 
-        // Update label style in the card without a full reload
-        var labels = card.querySelectorAll('.cl-item-label');
-        if (labels[idx]) {
-            labels[idx].className = 'cl-item-label' + (checked ? ' cl-item-label--done' : '');
-        }
-
-        // Refresh progress bar + text
-        var doneCount = items.filter(function(i) { return i.done; }).length;
-        var total     = items.length;
-        var fill      = card.querySelector('.cl-progress-fill');
-        var text      = card.querySelector('.cl-progress-text');
-        if (fill) fill.style.width = total > 0 ? Math.round(doneCount / total * 100) + '%' : '0%';
-        if (text) text.textContent = doneCount + ' / ' + total + ' done';
+        // Full re-render so the item moves to the bottom (done) or back up (undone)
+        // and the completion date appears/disappears next to the label.
+        clRerenderRunItems(runId, items, runData.templateId || null, card);
 
     } catch (err) {
         console.error('Error toggling checklist item:', err);
@@ -695,25 +715,15 @@ async function clClearAllItems(runId, card) {
         var doc = await userCol('checklistRuns').doc(runId).get();
         if (!doc.exists) return;
 
-        var items = doc.data().items.map(function(item) {
-            return Object.assign({}, item, { done: false });
+        var runData = doc.data();
+        var items = runData.items.map(function(item) {
+            return Object.assign({}, item, { done: false, doneAt: null });
         });
 
         await userCol('checklistRuns').doc(runId).update({ items: items });
 
-        // Uncheck all checkboxes and remove strikethrough styles
-        card.querySelectorAll('.cl-item input[type="checkbox"]').forEach(function(cb) {
-            cb.checked = false;
-        });
-        card.querySelectorAll('.cl-item-label').forEach(function(lbl) {
-            lbl.className = 'cl-item-label';
-        });
-
-        // Reset progress bar to 0
-        var fill = card.querySelector('.cl-progress-fill');
-        var text = card.querySelector('.cl-progress-text');
-        if (fill) fill.style.width = '0%';
-        if (text) text.textContent = '0 / ' + items.length + ' done';
+        // Full re-render: removes all completion dates and strikethroughs
+        clRerenderRunItems(runId, items, runData.templateId || null, card);
 
     } catch (err) {
         console.error('Error clearing checklist items:', err);
@@ -1354,6 +1364,18 @@ async function clSaveTemplate() {
 // ============================================================
 // HELPERS
 // ============================================================
+
+/**
+ * Formats an ISO date string into a compact month/day label (e.g., "Apr 17").
+ * Used for displaying item completion dates inline next to a done item's label.
+ * @param {string} isoStr
+ * @returns {string}
+ */
+function clFormatShortDate(isoStr) {
+    if (!isoStr) return '';
+    var d = new Date(isoStr);
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
 
 /**
  * Formats an ISO date string or Firestore Timestamp into a short date.

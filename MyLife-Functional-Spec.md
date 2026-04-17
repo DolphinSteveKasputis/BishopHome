@@ -1267,9 +1267,9 @@ The app has three navigation contexts, each with its own nav bar:
 
 | Context | Nav Items |
 |---------|-----------|
-| **Yard** | Home (zones), Weeds, Products (chemicals), Calendar, Activity Report, Saved Actions, Bulk Activity, Structures, Search |
-| **House** | House (floors), Garage, Vehicles, Checklists |
-| **Life** | Journal, Places, Contacts, Health, Notes, Collections, Life Calendar, Projects, SecondBrain, Chat |
+| **Yard** | Zones, Calendar, History, Checklists, Structures, Search, Chat |
+| **House** | House (floors), Rooms, Calendar, Checklists, Yard, Things, Collections, Search, Chat |
+| **Life** | Journal, Contacts, Notes, Checklists, Chat |
 
 **Shared pages** (retain last active context): Settings, Change Password, GPS Map
 

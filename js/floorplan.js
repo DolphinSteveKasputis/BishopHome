@@ -35,8 +35,9 @@ var fpDrawPoints   = [];     // [{x,y}] in feet — corners placed so far
 var fpPreviewPoint = null;   // {x,y} — live cursor position (snapped, constrained)
 
 // Selection state
-var fpSelectedId   = null;   // ID of selected room shape or marker
-var fpSelectedType = 'room'; // 'room' | 'outlet' | 'switch' | 'plumbing' | 'ceiling' | 'recessedLight' | 'door' | 'window' | 'wallplate'
+var fpSelectedId        = null;    // ID of selected room shape or marker
+var fpSelectedType      = 'room';  // 'room' | 'outlet' | 'switch' | 'plumbing' | 'ceiling' | 'recessedLight' | 'door' | 'window' | 'wallplate'
+var fpSelectedSlotIndex = null;    // index of focused slot within a wall-plate (null = whole-plate view)
 
 // Electrical mode state
 var fpActiveMode = 'layout';   // 'layout' | 'electrical' — which layer is being edited
@@ -1659,7 +1660,8 @@ function fpUpdateCoordsBar(x, y, len) {
             fpHandleRoomClick(e);
         } else if (fpActiveTool === 'select' && e.target === svg) {
             // Background click → deselect
-            fpSelectedId = null;
+            fpSelectedId        = null;
+            fpSelectedSlotIndex = null;
             if (fpCornerEditState) fpExitCornerEdit();
             fpSetStatus('Ready.');
             fpRender();
@@ -3648,6 +3650,9 @@ function fpRenderPlumbing(svg, fix) {
 // ---- Marker Selection ----
 
 function fpSelectMarker(type, id) {
+    // Changing selection always clears slot focus (wall plate click sets it explicitly after)
+    if (type !== 'wallplate' || id !== fpSelectedId) fpSelectedSlotIndex = null;
+
     if (fpSelectedId === id && fpSelectedType === type) {
         fpSelectedId   = null;
         fpSelectedType = 'room';
@@ -4783,6 +4788,9 @@ function fpRenderWallPlate(svg, plate) {
     var cy = info.hinge.y;
     var isSelected = (fpSelectedId === plate.id && fpSelectedType === 'wallplate');
 
+    // Store centre X for slot hit-testing in fpComputeClickedSlot()
+    plate._svgCx = cx;
+
     // Check 3-way detection flag (set at render time)
     var isThreeWay = plate._threeway || false;
 
@@ -4797,6 +4805,20 @@ function fpRenderWallPlate(svg, plate) {
         'stroke-width': isSelected ? 2 : 1.5,
         rx: 2, 'pointer-events': 'none'
     });
+
+    // Focused-slot highlight — amber tint behind the selected slot (rendered under symbols)
+    if (isSelected && fpSelectedSlotIndex !== null && fpSelectedSlotIndex < slots.length) {
+        var fsi = fpSelectedSlotIndex;
+        fpSvgEl(g, 'rect', {
+            x:      cx - hw + padding / 2 + fsi * slotW,
+            y:      cy - hh + 1,
+            width:  slotW,
+            height: totalH - 2,
+            fill:   '#fcd34d',  // amber-300 — clearly distinct from the plate background
+            rx: 1,
+            'pointer-events': 'none'
+        });
+    }
 
     // Per-slot symbols + dividers
     slots.forEach(function(slot, i) {
@@ -4868,6 +4890,38 @@ function fpRenderWallPlate(svg, plate) {
  * Makes a wall plate draggable along its wall segment.
  * Tap = select; drag = slide. Silent-saves on drag up.
  */
+/**
+ * Given a mouseup event and a wall plate, returns the 0-based slot index that
+ * was clicked, or null if the click was outside the slot area or the plate has
+ * only one slot (no need to distinguish).
+ * Uses plate._svgCx stored by fpRenderWallPlate() and the zoom/pan state.
+ * @param {Object} plate — wall plate data with _svgCx set
+ * @param {MouseEvent} e
+ * @returns {number|null}
+ */
+function fpComputeClickedSlot(plate, e) {
+    var slots = plate.slots || [];
+    if (slots.length < 2) return null;             // single slot — nothing to distinguish
+    if (plate._svgCx === undefined) return null;   // not yet rendered
+
+    var slotW   = 14;
+    var padding = 6;
+    var hw      = (slots.length * slotW + padding) / 2;
+
+    // Convert the mouse's client X to SVG internal X (same calculation as fpMouseToFeet)
+    var svg  = document.getElementById('fpSvg');
+    if (!svg) return null;
+    var rect  = svg.getBoundingClientRect();
+    var svgX  = fpViewX + (e.clientX - rect.left) / rect.width * fpViewW;
+
+    // Position of slot 0's left edge in SVG coords
+    var slotAreaStart = plate._svgCx - hw + padding / 2;
+    var relX          = svgX - slotAreaStart;
+    var idx           = Math.floor(relX / slotW);
+
+    return (idx >= 0 && idx < slots.length) ? idx : null;
+}
+
 function fpMakeDraggableWallPlate(el, plate) {
     el.style.cursor = 'ew-resize';
     el.addEventListener('mousedown', function(eDown) {
@@ -4889,11 +4943,28 @@ function fpMakeDraggableWallPlate(el, plate) {
             fpRender();
         }
 
-        function onUp() {
+        function onUp(eUp) {
             document.removeEventListener('mousemove', onMove);
             document.removeEventListener('mouseup',  onUp);
-            if (dragged) fpSilentSave();
-            else fpSelectMarker('wallplate', plate.id);
+            if (dragged) {
+                fpSilentSave();
+            } else {
+                // Determine which slot was clicked so the props bar can show its controls info.
+                // Direct assignment (no toggle) so slot navigation doesn't accidentally deselect.
+                var slotIdx = fpComputeClickedSlot(plate, eUp);
+
+                // If clicking the same slot on the already-selected plate: clear slot focus
+                // (but keep the plate selected so the user can still open/edit it)
+                if (fpSelectedId === plate.id && fpSelectedSlotIndex === slotIdx && slotIdx !== null) {
+                    fpSelectedSlotIndex = null;
+                } else {
+                    fpSelectedSlotIndex = slotIdx;
+                }
+
+                fpSelectedId   = plate.id;
+                fpSelectedType = 'wallplate';
+                fpRender();
+            }
         }
 
         document.addEventListener('mousemove', onMove);
@@ -5882,12 +5953,46 @@ function fpUpdatePropsBar() {
         'fixture':          'Fixture',
         'plumbingEndpoint': 'Plumbing EP'
     };
+
+    // ── Wall-plate slot focus: override label + show controls text ──────────
+    var slotControlsText = '';
+    if (type === 'wallplate' && fpSelectedSlotIndex !== null) {
+        var wpData  = (fpPlan.wallPlates || []).find(function(m) { return m.id === fpSelectedId; });
+        var wpSlots = wpData ? (wpData.slots || []) : [];
+        var slot    = wpSlots[fpSelectedSlotIndex];
+        if (slot) {
+            var slotNames = {
+                'switch/single-pole': 'Switch',  'switch/3-way':  '3-Way Switch',
+                'switch/dimmer':      'Dimmer',  'switch/timer':  'Timer Switch',
+                'outlet/standard':    'Outlet',  'outlet/gfci':   'GFCI Outlet',
+                'outlet/220v':        '240V Outlet', 'outlet/usb': 'USB Outlet'
+            };
+            var slotKey  = (slot.type || 'switch') + '/' + (slot.subtype || 'single-pole');
+            var slotName = slotNames[slotKey] || (slot.type || 'Switch');
+            labelMap['wallplate'] = 'Slot ' + (fpSelectedSlotIndex + 1) + '/' + wpSlots.length
+                                  + '\u2009·\u2009' + slotName;  // thin-space · thin-space
+            slotControlsText = (slot.controls || '').trim();
+        }
+    }
+
     var lbl = document.createElement('span');
     lbl.className   = 'fp-props-label';
     lbl.textContent = labelMap[type] || type;
     bar.appendChild(lbl);
 
-    // Separator
+    // Controls info for the focused slot (shown between label and action buttons)
+    if (slotControlsText) {
+        var infoSep = document.createElement('span');
+        infoSep.className = 'fp-props-sep';
+        bar.appendChild(infoSep);
+
+        var infoSpan = document.createElement('span');
+        infoSpan.className   = 'fp-props-info';
+        infoSpan.textContent = 'Controls: ' + slotControlsText;
+        bar.appendChild(infoSpan);
+    }
+
+    // Separator before action buttons
     var sep = document.createElement('span');
     sep.className = 'fp-props-sep';
     bar.appendChild(sep);

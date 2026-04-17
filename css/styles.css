@@ -2728,6 +2728,12 @@ button {
     background: #fde68a;
     margin: 0 2px;
 }
+/* Controls text shown in the props bar when a wall-plate slot is focused */
+.fp-props-info {
+    font-size: 0.82rem;
+    color: #78350f;
+    font-style: italic;
+}
 .fp-tool-btn {
     padding: 5px 13px;
     border: 1px solid #ccc;

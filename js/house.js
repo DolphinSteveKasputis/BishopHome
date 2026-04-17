@@ -231,6 +231,9 @@ function loadHousePage() {
                 renderHouseProjects(projContainer, allProjectDocs);
             }
 
+            // --- Render Checklists panel card (async, fire-and-forget) ---
+            renderHouseChecklistsPanel();
+
             // --- Load fp item rollup: Open Concerns + Active Projects for whole house ---
             loadFpItemRollupForHouse('houseFpRollupContainer');
 
@@ -503,6 +506,40 @@ function renderHouseProjects(container, projects) {
     });
 
     container.appendChild(card);
+}
+
+/**
+ * Render the "Checklists" panel card on the house home page.
+ * Shows count of active (incomplete) checklist runs scoped to house, floor, or room.
+ * Clicking navigates to #checklists/house.
+ */
+async function renderHouseChecklistsPanel() {
+    var container = document.getElementById('houseChecklistsPanelContainer');
+    if (!container) return;
+    try {
+        var snap = await userCol('checklistRuns').where('completedAt', '==', null).get();
+        var count = 0;
+        snap.forEach(function(doc) {
+            var t = doc.data().targetType;
+            if (t === 'house' || t === 'floor' || t === 'room') count++;
+        });
+        var metaText = count === 0
+            ? 'No active checklists'
+            : count + ' active checklist' + (count !== 1 ? 's' : '');
+        var card = document.createElement('div');
+        card.className = 'card card--clickable';
+        card.innerHTML =
+            '<div class="card-main">' +
+                '<span class="card-title">Checklists</span>' +
+                '<span class="house-floor-meta"> &middot; ' + escapeHtml(metaText) + '</span>' +
+            '</div>' +
+            '<span class="card-arrow">›</span>';
+        card.addEventListener('click', function() {
+            window.location.hash = '#checklists/house';
+        });
+        container.innerHTML = '';
+        container.appendChild(card);
+    } catch (err) { console.error('renderHouseChecklistsPanel error:', err); }
 }
 
 /**

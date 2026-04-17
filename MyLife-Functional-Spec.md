@@ -214,7 +214,7 @@ Lists all quick tasks whose `targetType` is `zone`, `plant`, or `weed`. Each car
 
 The House section tracks the interior of the home using a 4-level hierarchy: Floor → Room → Thing → Sub-Thing → Item.
 
-**House page (`#house`)** shows: summary stats bar (upcoming calendar events only), **Open Problems** single panel card (shows count; clicking navigates to `#house-problems`), Floors section (clickable cards), a static **More** section with icon cards linking to Garage (`#garage`), Vehicles (`#vehicles`), and Collections (`#collections`), an Upcoming calendar rollup, and a Breaker Panels section. Garage, Vehicles, and Collections are no longer on the main landing page — they live under House → More. Room count removed from stats bar (visible per-floor already). The **events stat chip** (e.g. "1 upcoming calendar event") is a clickable link to `#house-calendar-events`.
+**House page (`#house`)** shows: summary stats bar (upcoming calendar events only), **Open Problems** single panel card (shows count; clicking navigates to `#house-problems`), **All Quick Tasks** panel card, Floors section (clickable cards), a **More** section with a dynamic **Checklists** card (count of active runs for house/floor/room; navigates to `#checklists/house`) followed by static icon cards for Garage (`#garage`), Vehicles (`#vehicles`), and Collections (`#collections`), an Upcoming calendar rollup, and a Breaker Panels section. Garage, Vehicles, and Collections are no longer on the main landing page — they live under House → More. Room count removed from stats bar (visible per-floor already). The **events stat chip** (e.g. "1 upcoming calendar event") is a clickable link to `#house-calendar-events`.
 
 **House Quick Tasks page (`#house-projects`)**: Lists all quick tasks from floors, rooms, and things. Each card shows the task title and location path. Clicking navigates to the owning entity. Breadcrumb: House › All Quick Tasks.
 
@@ -1280,6 +1280,7 @@ Formerly named "Future Projects" — renamed to "Quick Task List" to distinguish
 - **Template modal**: Location dropdown shows the full hierarchy for the current context (e.g., Yard → zones → subzones), defaulting to the entity the user was on when they clicked Checklists; full hierarchy shown so user can pick any level. Delete button is inside the edit modal.
 - **Location badge**: shown on template/run cards in roll-up views (e.g., "📍 Front Yard")
 - **Context subtitle**: shown on the page header ("Showing: Front Yard (Zone)")
+- **Breadcrumb bar**: set on page load based on context — yard/zone context shows `Yard › Checklists` (linking to `#zones`); house/floor/room context shows `House › Checklists` (linking to `#house`); other contexts clear the bar
 - **Active run cards**:
   - Progress bar shows done/total count
   - **Edit mode**: toggled by an Edit/Done button on the card. In edit mode: ✕ remove buttons appear beside each item; a "+ Add item" input row appears at the bottom. Removing items never prompts to modify the template.

@@ -44,6 +44,19 @@ async function loadChecklistsPage() {
         subtitle.textContent = 'Showing: ' + clContextLabel(clCurrentContext);
     }
 
+    // Set breadcrumb bar based on context (yard → #zones, house → #house, others → nothing)
+    var bar = document.getElementById('breadcrumbBar');
+    if (bar) {
+        var ctx = clCurrentContext;
+        if (ctx.type === 'yard' || ctx.type === 'zone') {
+            bar.innerHTML = '<a href="#zones">Yard</a><span class="separator">&rsaquo;</span><span>Checklists</span>';
+        } else if (ctx.type === 'house' || ctx.type === 'floor' || ctx.type === 'room') {
+            bar.innerHTML = '<a href="#house">House</a><span class="separator">&rsaquo;</span><span>Checklists</span>';
+        } else {
+            bar.innerHTML = '';
+        }
+    }
+
     // Wire buttons exactly once (guards against re-entry on repeated page loads)
     var addBtn   = document.getElementById('addChecklistTemplateBtn');
     var blankBtn = document.getElementById('addBlankChecklistBtn');

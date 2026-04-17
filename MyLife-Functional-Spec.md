@@ -292,7 +292,7 @@ An interactive SVG drawing tool for each floor. Accessed via `#floorplan/{floorI
 #### View / Edit Mode
 
 The floor plan editor opens in **View mode** by default whenever an existing plan is loaded:
-- **View mode**: all items are clickable and selectable; dragging is disabled; the toolbar (Row 2) is hidden; the Dimensions button is hidden; the props bar shows "View Room" / "View Marker" buttons (modal opens with all inputs disabled and Save hidden); Delete button in props bar is hidden; keyboard Delete/Backspace and Ctrl+S are no-ops.
+- **View mode**: all items are clickable and selectable regardless of the active layer mode (Layout / Electrical / Plumbing); dragging is disabled in all modes; the toolbar (Row 2) is hidden; the Dimensions button is hidden; the props bar shows "View Room" / "View Marker" buttons (modal opens with all inputs disabled and Save hidden); Delete button in props bar is hidden; keyboard Delete/Backspace and Ctrl+S are no-ops. Windows turn amber when selected (matching doors and other items).
 - **Edit mode**: full editing — dragging, adding items, saving, deleting — exactly as before.
 - The header shows an **Edit** button in view mode; clicking it switches to edit mode and shows the **Save** button.
 - If **no plan exists yet**, the page opens directly in edit mode (nothing to protect) and the floor detail page shows **"Add Floor Plan"** instead of "View Floor Plan".

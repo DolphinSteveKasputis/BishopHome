@@ -733,7 +733,7 @@ function fpMakeDraggableHandle(handle, room, ptIndex) {
 function fpMakeDraggableRoom(poly, room) {
     poly.addEventListener('mousedown', function(eDown) {
         if (fpActiveTool !== 'select') return;
-        if (fpActiveMode !== 'layout') return;
+        if (!fpViewMode && fpActiveMode !== 'layout') return;  // edit-mode: layout only; view mode: any mode
         // View mode: allow clicks (for selection) but block dragging (handled in onMove)
         eDown.preventDefault();
         eDown.stopPropagation();
@@ -806,7 +806,7 @@ function fpMakeDraggableCeilingFixture(el, fix) {
     el.style.cursor = 'move';
     el.addEventListener('mousedown', function(eDown) {
         if (fpActiveTool !== 'select') return;
-        if (fpActiveMode !== 'electrical') return;
+        if (!fpViewMode && fpActiveMode !== 'electrical') return;  // edit-mode: electrical only; view mode: any mode
         // View mode: allow clicks (for selection) but block dragging (handled in onMove)
         eDown.preventDefault();
         eDown.stopPropagation();
@@ -866,7 +866,7 @@ function fpMakeDraggableDoor(el, door) {
     el.style.cursor = 'ew-resize';
     el.addEventListener('mousedown', function(eDown) {
         if (fpActiveTool !== 'select') return;
-        if (fpActiveMode !== 'layout') return;
+        if (!fpViewMode && fpActiveMode !== 'layout') return;  // edit-mode: layout only; view mode: any mode
         // View mode: allow clicks (for selection) but block dragging (handled in onMove)
         eDown.preventDefault();
         eDown.stopPropagation();
@@ -908,7 +908,7 @@ function fpMakeDraggableWindow(el, win) {
     el.style.cursor = 'ew-resize';
     el.addEventListener('mousedown', function(eDown) {
         if (fpActiveTool !== 'select') return;
-        if (fpActiveMode !== 'layout') return;
+        if (!fpViewMode && fpActiveMode !== 'layout') return;  // edit-mode: layout only; view mode: any mode
         // View mode: allow clicks (for selection) but block dragging (handled in onMove)
         eDown.preventDefault();
         eDown.stopPropagation();
@@ -1525,6 +1525,10 @@ function fpRenderWindow(svg, win) {
     var h  = info.hinge;
     var oe = info.openEnd;
 
+    var isSelected  = fpSelectedId === win.id && fpSelectedType === 'window';
+    var strokeColor = isSelected ? '#f59e0b' : '#4488cc';  // amber when selected, blue otherwise
+    var strokeW     = isSelected ? 2.5 : 1.5;
+
     // Gap (erase wall)
     fpSvgEl(svg, 'line', {
         x1: h.x, y1: h.y, x2: oe.x, y2: oe.y,
@@ -1539,7 +1543,7 @@ function fpRenderWindow(svg, win) {
             y1: h.y  + sign * off * info.ny,
             x2: oe.x + sign * off * info.nx,
             y2: oe.y + sign * off * info.ny,
-            stroke: '#4488cc', 'stroke-width': 1.5, 'pointer-events': 'none'
+            stroke: strokeColor, 'stroke-width': strokeW, 'pointer-events': 'none'
         });
     });
 
@@ -1547,12 +1551,12 @@ function fpRenderWindow(svg, win) {
     fpSvgEl(svg, 'line', {
         x1: h.x  - off * info.nx, y1: h.y  - off * info.ny,
         x2: h.x  + off * info.nx, y2: h.y  + off * info.ny,
-        stroke: '#4488cc', 'stroke-width': 1.5, 'pointer-events': 'none'
+        stroke: strokeColor, 'stroke-width': strokeW, 'pointer-events': 'none'
     });
     fpSvgEl(svg, 'line', {
         x1: oe.x - off * info.nx, y1: oe.y - off * info.ny,
         x2: oe.x + off * info.nx, y2: oe.y + off * info.ny,
-        stroke: '#4488cc', 'stroke-width': 1.5, 'pointer-events': 'none'
+        stroke: strokeColor, 'stroke-width': strokeW, 'pointer-events': 'none'
     });
 
     // Transparent hit-area line for drag + click
@@ -2350,8 +2354,8 @@ function fpMakeDraggableFixture(el, fix) {
     el.style.cursor = 'move';
     el.addEventListener('mousedown', function(eDown) {
         if (fpActiveTool !== 'select') return;
-        if (fpActiveMode !== 'layout') return;
-        if (fpViewMode) return;
+        if (!fpViewMode && fpActiveMode !== 'layout') return;  // edit-mode: layout only; view mode: any mode
+        // View mode: allow clicks (for selection) but block dragging (handled in onMove)
         eDown.preventDefault();
         eDown.stopPropagation();
 
@@ -2360,6 +2364,7 @@ function fpMakeDraggableFixture(el, fix) {
         var dragged = false;
 
         function onMove(e) {
+            if (fpViewMode) return;   // no dragging in view mode
             var cur = fpMouseToFeet(e);
             dragged = true;
             fix.x = fpSnap(Math.max(0, Math.min(fpPlan.widthFt,  startX + cur.x - startPt.x)));
@@ -2480,8 +2485,8 @@ function fpMakeDraggablePlumbingEndpoint(el, ep) {
     el.style.cursor = 'move';
     el.addEventListener('mousedown', function(eDown) {
         if (fpActiveTool !== 'select') return;
-        if (fpActiveMode !== 'plumbing') return;
-        if (fpViewMode) return;
+        if (!fpViewMode && fpActiveMode !== 'plumbing') return;  // edit-mode: plumbing only; view mode: any mode
+        // View mode: allow clicks (for selection) but block dragging (handled in onMove)
         eDown.preventDefault();
         eDown.stopPropagation();
 
@@ -2490,6 +2495,7 @@ function fpMakeDraggablePlumbingEndpoint(el, ep) {
         var dragged = false;
 
         function onMove(e) {
+            if (fpViewMode) return;   // no dragging in view mode
             var cur = fpMouseToFeet(e);
             dragged = true;
             ep.x = fpSnap(Math.max(0, Math.min(fpPlan.widthFt,  startX + cur.x - startPt.x)));
@@ -4570,8 +4576,8 @@ function fpMakeDraggableRecessedLight(el, light) {
     el.style.cursor = 'move';
     el.addEventListener('mousedown', function(eDown) {
         if (fpActiveTool !== 'select') return;
-        if (fpActiveMode !== 'electrical') return;
-        if (fpViewMode) return;
+        if (!fpViewMode && fpActiveMode !== 'electrical') return;  // edit-mode: electrical only; view mode: any mode
+        // View mode: allow clicks (for selection) but block dragging (handled in onMove)
         eDown.preventDefault();
         eDown.stopPropagation();
 
@@ -4580,6 +4586,7 @@ function fpMakeDraggableRecessedLight(el, light) {
         var dragged  = false;
 
         function onMove(e) {
+            if (fpViewMode) return;   // no dragging in view mode
             var cur = fpMouseToFeet(e);
             dragged = true;
             light.x = fpSnap(Math.max(0, Math.min(fpPlan.widthFt,  startX + cur.x - startPt.x)));
@@ -4865,13 +4872,14 @@ function fpMakeDraggableWallPlate(el, plate) {
     el.style.cursor = 'ew-resize';
     el.addEventListener('mousedown', function(eDown) {
         if (fpActiveTool !== 'select') return;
-        if (fpActiveMode !== 'electrical') return;
-        if (fpViewMode) return;
+        if (!fpViewMode && fpActiveMode !== 'electrical') return;  // edit-mode: electrical only; view mode: any mode
+        // View mode: allow clicks (for selection) but block dragging (handled in onMove)
         eDown.preventDefault();
         eDown.stopPropagation();
         var dragged = false;
 
         function onMove(e) {
+            if (fpViewMode) return;   // no dragging in view mode
             var room = (fpPlan.rooms || []).find(function(r) { return r.id === plate.roomId; });
             if (!room) return;
             var pt = fpMouseToFeet(e);

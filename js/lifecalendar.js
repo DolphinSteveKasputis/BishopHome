@@ -1759,7 +1759,7 @@ function _lcRenderEventForm(event, categories, prefillDate) {
             if (!sel) return;
             var filtered = showPersonal
                 ? _allLocContacts
-                : _allLocContacts.filter(function(c) { return c.category !== 'Personal'; });
+                : _allLocContacts.filter(function(c) { return c.category !== 'Personal' && c.category !== 'Pet'; });
             var currentVal = sel.value;
             sel.innerHTML = '<option value="">— Select a contact —</option>';
             filtered.forEach(function(c) {
@@ -1789,7 +1789,7 @@ function _lcRenderEventForm(event, categories, prefillDate) {
                 // If the saved contact is Personal, auto-check "Show Personal" so it's visible
                 var savedIsPersonal = savedContactId
                     ? _allLocContacts.some(function(c) {
-                        return c.id === savedContactId && c.category === 'Personal';
+                        return c.id === savedContactId && (c.category === 'Personal' || c.category === 'Pet');
                       })
                     : false;
 

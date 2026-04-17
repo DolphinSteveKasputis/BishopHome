@@ -1,22 +1,49 @@
 // ============================================================
-// Checklists.js — Seasonal Care Checklists
+// Checklists.js — Context-Aware Seasonal Care Checklists
 // Lets the user define reusable checklist templates (e.g.
 // "Spring Startup") and run them as interactive to-do lists.
 //
+// Templates and runs are scoped to a target (yard, zone, house,
+// floor, room, or vehicle).  When the Checklists page loads, it
+// reads window.checklistsContext (set by the router in app.js)
+// and shows only templates / runs that belong to the current
+// location or any of its descendants (roll-up).
+//
 // Firestore collections:
-//   checklistTemplates  — { name, items:[{label}], createdAt }
+//   checklistTemplates  — { name, targetType, targetId, targetName,
+//                           items:[{label}], createdAt }
 //   checklistRuns       — { templateId, templateName,
+//                           targetType, targetId, targetName,
 //                           startedAt, completedAt,
 //                           items:[{label, done}] }
 // ============================================================
+
+// ---- Module-level context (resolved once per page load) ----
+/** Resolved context for the current checklists page view.
+ *  Set by loadChecklistsPage(); used by all sub-loaders.
+ *  Shape: { type, id?, name?, filterIds? }
+ */
+var clCurrentContext = null;
 
 // ---------- Page Entry Point ----------
 
 /**
  * Called by the router when navigating to #checklists.
- * Loads active runs and templates in parallel; wires controls once.
+ * Resolves the current context (yard / zone / house / floor / room /
+ * vehicle / life), then loads active runs and templates in parallel.
  */
 async function loadChecklistsPage() {
+    // Resolve context from the global set by app.js router
+    clCurrentContext = await clResolveContextFilter(
+        window.checklistsContext || { type: 'yard' }
+    );
+
+    // Show context subtitle so the user knows what they're looking at
+    var subtitle = document.getElementById('clContextSubtitle');
+    if (subtitle) {
+        subtitle.textContent = 'Showing: ' + clContextLabel(clCurrentContext);
+    }
+
     // Wire the "New Template" button and completed toggle exactly once
     var addBtn = document.getElementById('addChecklistTemplateBtn');
     var toggle = document.getElementById('clShowCompletedToggle');
@@ -27,11 +54,11 @@ async function loadChecklistsPage() {
         addBtn.addEventListener('click', clOpenAddTemplateModal);
 
         toggle.addEventListener('change', function() {
-            var completedDiv  = document.getElementById('clCompletedContainer');
+            var completedDiv   = document.getElementById('clCompletedContainer');
             var completedEmpty = document.getElementById('clCompletedEmptyState');
             if (toggle.checked) {
                 completedDiv.classList.remove('hidden');
-                clLoadCompletedRuns();   // load on first show
+                clLoadCompletedRuns();
             } else {
                 completedDiv.classList.add('hidden');
                 completedEmpty.classList.add('hidden');
@@ -52,11 +79,128 @@ async function loadChecklistsPage() {
 }
 
 // ============================================================
+// CONTEXT RESOLUTION
+// ============================================================
+
+/**
+ * Returns a human-readable label for the current context.
+ * Shown as a subtitle on the Checklists page.
+ * @param {Object} ctx
+ * @returns {string}
+ */
+function clContextLabel(ctx) {
+    if (!ctx) return 'Yard';
+    switch (ctx.type) {
+        case 'life':    return 'Life';
+        case 'yard':    return 'Yard';
+        case 'zone':    return (ctx.name || 'Zone') + ' (Zone)';
+        case 'house':   return 'House';
+        case 'floor':   return (ctx.name || 'Floor') + ' (Floor)';
+        case 'room':    return (ctx.name || 'Room') + ' (Room)';
+        case 'vehicle': return ctx.name || 'Vehicle';
+        default:        return 'Yard';
+    }
+}
+
+/**
+ * Augments a raw context object with filterIds[] for rollup queries.
+ *
+ * - zone context: fetches all zones; computes descendant IDs so that
+ *   a zone page shows templates/runs for that zone AND its children.
+ * - floor context: fetches rooms on this floor for rollup.
+ * - All other contexts need no extra data.
+ *
+ * @param {Object} ctx  — Raw context from window.checklistsContext.
+ * @returns {Object}    — Context with filterIds[] added when applicable.
+ */
+async function clResolveContextFilter(ctx) {
+    if (!ctx) return { type: 'yard' };
+    var result = Object.assign({}, ctx);
+
+    if (ctx.type === 'zone') {
+        // BFS: find all zones that are descendants of ctx.id
+        var snap = await userCol('zones').get();
+        var allZones = {};
+        snap.forEach(function(doc) { allZones[doc.id] = doc.data(); });
+
+        var desc  = [];
+        var queue = [ctx.id];
+        while (queue.length) {
+            var cur = queue.shift();
+            Object.keys(allZones).forEach(function(zid) {
+                if (allZones[zid].parentId === cur) {
+                    desc.push(zid);
+                    queue.push(zid);
+                }
+            });
+        }
+        // filterIds includes the zone itself plus all descendants
+        result.filterIds = [ctx.id].concat(desc);
+
+    } else if (ctx.type === 'floor') {
+        // Floor shows itself + all rooms on that floor
+        var rSnap = await userCol('rooms').where('floorId', '==', ctx.id).get();
+        result.filterIds = rSnap.docs.map(function(d) { return d.id; });
+    }
+
+    return result;
+}
+
+/**
+ * Returns true if a template or run doc belongs to the current context.
+ * Implements the "roll-up" rule: a child entity's items appear on the
+ * parent page, but a parent's items do NOT appear on a child page.
+ *
+ * @param {Object} item — Template or run document data.
+ * @param {Object} ctx  — Resolved context with filterIds if applicable.
+ * @returns {boolean}
+ */
+function clMatchesContext(item, ctx) {
+    var t  = item.targetType || null;
+    var id = item.targetId   || null;
+
+    switch (ctx.type) {
+        case 'life':
+            // Life shows templates explicitly tagged 'life' (or untagged legacy)
+            return !t || t === 'life';
+
+        case 'yard':
+            // Yard top-level rolls up everything: yard-general and all zones
+            return t === 'yard' || t === 'zone';
+
+        case 'zone':
+            // Zone page shows that zone + its children (filterIds pre-computed)
+            return t === 'zone' && (ctx.filterIds || []).indexOf(id) !== -1;
+
+        case 'house':
+            // House top-level rolls up: house-general, floors, and rooms
+            return t === 'house' || t === 'floor' || t === 'room';
+
+        case 'floor':
+            // Floor page shows floor templates + rooms on that floor
+            if (t === 'floor' && id === ctx.id) return true;
+            if (t === 'room'  && (ctx.filterIds || []).indexOf(id) !== -1) return true;
+            return false;
+
+        case 'room':
+            // Room page shows only that room's templates
+            return t === 'room' && id === ctx.id;
+
+        case 'vehicle':
+            // Vehicle page shows only that vehicle's templates
+            return t === 'vehicle' && id === ctx.id;
+
+        default:
+            return false;
+    }
+}
+
+// ============================================================
 // ACTIVE RUNS
 // ============================================================
 
 /**
- * Loads all non-completed runs (completedAt is null/absent) and renders them.
+ * Loads all non-completed runs and filters to the current context.
  */
 async function clLoadActiveRuns() {
     var container = document.getElementById('clActiveRunsContainer');
@@ -66,18 +210,20 @@ async function clLoadActiveRuns() {
     emptyEl.classList.add('hidden');
 
     try {
-        // Avoid composite index requirement by filtering + sorting client-side
         var snap = await userCol('checklistRuns')
             .where('completedAt', '==', null)
             .get();
 
-        container.innerHTML = '';
+        var ctx = clCurrentContext || { type: 'yard' };
 
         var runs = snap.docs
             .map(function(doc) { return Object.assign({ id: doc.id }, doc.data()); })
+            .filter(function(run) { return clMatchesContext(run, ctx); })
             .sort(function(a, b) {
                 return (b.startedAt || '').localeCompare(a.startedAt || '');
             });
+
+        container.innerHTML = '';
 
         if (runs.length === 0) {
             emptyEl.classList.remove('hidden');
@@ -109,6 +255,14 @@ function clBuildRunCard(run) {
     title.className   = 'cl-run-title';
     title.textContent = run.templateName || 'Checklist';
     card.appendChild(title);
+
+    // Location badge (shown on roll-up views so user knows which entity it belongs to)
+    if (run.targetName) {
+        var badge = document.createElement('div');
+        badge.className   = 'cl-target-badge';
+        badge.textContent = '📍 ' + run.targetName;
+        card.appendChild(badge);
+    }
 
     var dateEl = document.createElement('div');
     dateEl.className   = 'cl-run-date';
@@ -190,13 +344,11 @@ function clBuildRunCard(run) {
 }
 
 /**
- * Toggles one item's done state.
- * Reads the run, flips the item, writes the whole array back.
- * Updates the card's progress bar and item label in-place (no full reload).
- * @param {string}  runId   — Firestore document ID of the run.
- * @param {boolean} checked — New done state.
- * @param {number}  idx     — Index of the item in the items array.
- * @param {HTMLElement} card — The run card element (for in-place UI update).
+ * Toggles one item's done state and updates the card in-place.
+ * @param {string}  runId
+ * @param {boolean} checked
+ * @param {number}  idx
+ * @param {HTMLElement} card
  */
 async function clToggleItem(runId, checked, idx, card) {
     try {
@@ -246,7 +398,7 @@ async function clMarkRunComplete(runId) {
 /**
  * Deletes a run after confirmation.
  * @param {string} runId
- * @param {string} section — 'active' or 'completed' (controls which list reloads).
+ * @param {string} section — 'active' or 'completed'
  */
 async function clDeleteRun(runId, section) {
     var msg = section === 'active'
@@ -270,7 +422,7 @@ async function clDeleteRun(runId, section) {
 // ============================================================
 
 /**
- * Loads all checklist templates and renders them.
+ * Loads all checklist templates, filters to the current context, and renders them.
  */
 async function clLoadTemplates() {
     var container = document.getElementById('clTemplatesContainer');
@@ -284,13 +436,19 @@ async function clLoadTemplates() {
             .orderBy('name')
             .get();
 
-        if (snap.empty) {
+        var ctx = clCurrentContext || { type: 'yard' };
+
+        var templates = snap.docs
+            .map(function(doc) { return Object.assign({ id: doc.id }, doc.data()); })
+            .filter(function(t) { return clMatchesContext(t, ctx); });
+
+        if (templates.length === 0) {
             emptyEl.classList.remove('hidden');
             return;
         }
 
-        snap.forEach(function(doc) {
-            container.appendChild(clBuildTemplateCard({ id: doc.id, ...doc.data() }));
+        templates.forEach(function(tmpl) {
+            container.appendChild(clBuildTemplateCard(tmpl));
         });
 
     } catch (err) {
@@ -301,7 +459,6 @@ async function clLoadTemplates() {
 
 /**
  * Builds a compact card for one template.
- * Shows the name, item count, and Start / Edit / Delete buttons.
  * @param {Object} template
  * @returns {HTMLElement}
  */
@@ -316,6 +473,14 @@ function clBuildTemplateCard(template) {
     name.className   = 'cl-template-name';
     name.textContent = template.name;
     info.appendChild(name);
+
+    // Location badge — helpful when viewing a roll-up (e.g. all zone templates on the Yard page)
+    if (template.targetName) {
+        var badge = document.createElement('div');
+        badge.className   = 'cl-target-badge';
+        badge.textContent = '📍 ' + template.targetName;
+        info.appendChild(badge);
+    }
 
     var count = document.createElement('div');
     var itemCount = (template.items || []).length;
@@ -353,9 +518,9 @@ function clBuildTemplateCard(template) {
 }
 
 /**
- * Creates a new run from a template snapshot and reloads the active runs section.
- * The run stores a copy of the template's items so it is independent of future
- * template edits.
+ * Creates a new run from a template snapshot.
+ * Copies targetType / targetId / targetName from the template so the
+ * run is independently filterable by context.
  * @param {Object} template
  */
 async function clStartRun(template) {
@@ -372,13 +537,15 @@ async function clStartRun(template) {
         await userCol('checklistRuns').add({
             templateId:   template.id,
             templateName: template.name,
+            targetType:   template.targetType  || null,
+            targetId:     template.targetId    || null,
+            targetName:   template.targetName  || null,
             startedAt:    new Date().toISOString(),
             completedAt:  null,
             items:        items,
             createdAt:    firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        // Scroll to the top of the page so the user sees the new run
         window.scrollTo({ top: 0, behavior: 'smooth' });
         clLoadActiveRuns();
 
@@ -390,7 +557,6 @@ async function clStartRun(template) {
 
 /**
  * Deletes a template after confirmation.
- * Existing runs are not affected (they carry a snapshot of the items).
  * @param {string} templateId
  */
 async function clDeleteTemplate(templateId) {
@@ -408,7 +574,7 @@ async function clDeleteTemplate(templateId) {
 // ============================================================
 
 /**
- * Loads completed runs and renders them in the Completed section.
+ * Loads completed runs, filters to context, renders in the Completed section.
  * Called when the "Show completed" toggle is checked.
  */
 async function clLoadCompletedRuns() {
@@ -419,20 +585,29 @@ async function clLoadCompletedRuns() {
     emptyEl.classList.add('hidden');
 
     try {
+        // Fetch all completed runs and sort client-side to avoid composite index
         var snap = await userCol('checklistRuns')
             .where('completedAt', '!=', null)
-            .orderBy('completedAt', 'desc')
             .get();
+
+        var ctx = clCurrentContext || { type: 'yard' };
+
+        var runs = snap.docs
+            .map(function(doc) { return Object.assign({ id: doc.id }, doc.data()); })
+            .filter(function(run) { return clMatchesContext(run, ctx); })
+            .sort(function(a, b) {
+                return (b.completedAt || '').localeCompare(a.completedAt || '');
+            });
 
         container.innerHTML = '';
 
-        if (snap.empty) {
+        if (runs.length === 0) {
             emptyEl.classList.remove('hidden');
             return;
         }
 
-        snap.forEach(function(doc) {
-            container.appendChild(clBuildCompletedCard({ id: doc.id, ...doc.data() }));
+        runs.forEach(function(run) {
+            container.appendChild(clBuildCompletedCard(run));
         });
 
     } catch (err) {
@@ -457,6 +632,13 @@ function clBuildCompletedCard(run) {
     name.className   = 'cl-completed-name';
     name.textContent = run.templateName || 'Checklist';
     info.appendChild(name);
+
+    if (run.targetName) {
+        var badge = document.createElement('div');
+        badge.className   = 'cl-target-badge';
+        badge.textContent = '📍 ' + run.targetName;
+        info.appendChild(badge);
+    }
 
     var items     = run.items || [];
     var doneCount = items.filter(function(i) { return i.done; }).length;
@@ -485,9 +667,10 @@ function clBuildCompletedCard(run) {
 // ============================================================
 
 /**
- * Opens the template modal in Add mode with a blank form.
+ * Opens the template modal in Add mode.
+ * Populates the target picker defaulting to the current context entity.
  */
-function clOpenAddTemplateModal() {
+async function clOpenAddTemplateModal() {
     var modal = document.getElementById('checklistTemplateModal');
     document.getElementById('clTemplateModalTitle').textContent = 'New Template';
     document.getElementById('clTemplateName').value = '';
@@ -495,7 +678,11 @@ function clOpenAddTemplateModal() {
     modal.dataset.mode = 'add';
     delete modal.dataset.editId;
 
-    // Start with 3 blank item rows so the user can get started immediately
+    // Populate target picker (async: fetches zones / floors / rooms)
+    var ctx = clCurrentContext || { type: 'yard' };
+    await clPopulateTargetPicker(ctx, null);
+
+    // Start with 3 blank item rows
     clAddItemRow('');
     clAddItemRow('');
     clAddItemRow('');
@@ -508,7 +695,7 @@ function clOpenAddTemplateModal() {
  * Opens the template modal in Edit mode pre-filled with existing data.
  * @param {Object} template
  */
-function clOpenEditTemplateModal(template) {
+async function clOpenEditTemplateModal(template) {
     var modal = document.getElementById('checklistTemplateModal');
     document.getElementById('clTemplateModalTitle').textContent = 'Edit Template';
     document.getElementById('clTemplateName').value = template.name || '';
@@ -518,14 +705,134 @@ function clOpenEditTemplateModal(template) {
     (template.items || []).forEach(function(item) {
         clAddItemRow(item.label);
     });
-    // Always leave one empty row at the bottom so adding more is easy
-    clAddItemRow('');
+    clAddItemRow('');  // always leave one blank row at bottom
 
     modal.dataset.mode   = 'edit';
     modal.dataset.editId = template.id;
 
+    // Populate target picker, pre-selecting the template's existing target
+    var ctx = clCurrentContext || { type: 'yard' };
+    await clPopulateTargetPicker(ctx, template);
+
     openModal('checklistTemplateModal');
     document.getElementById('clTemplateName').focus();
+}
+
+/**
+ * Populates the Location dropdown in the template modal.
+ *
+ * - Yard context: shows "Yard (general)" + all zones (indented by level)
+ * - House context: shows "House (general)" + floors + rooms (indented)
+ * - Vehicle context: shows just the vehicle (no other choice)
+ * - Life context: hides the picker entirely
+ *
+ * @param {Object} ctx            — Current resolved context.
+ * @param {Object|null} existing  — Existing template (edit mode) or null (add mode).
+ */
+async function clPopulateTargetPicker(ctx, existing) {
+    var group  = document.getElementById('clTargetPickerGroup');
+    var select = document.getElementById('clTemplateTarget');
+    select.innerHTML = '';
+
+    if (ctx.type === 'life') {
+        group.classList.add('hidden');
+        return;
+    }
+    group.classList.remove('hidden');
+
+    // When editing, restore the saved value; otherwise default to the current context entity
+    var existingValue = existing
+        ? ((existing.targetType || '') + '|' + (existing.targetId || ''))
+        : null;
+
+    // ── Yard / Zone context ────────────────────────────────────────────────
+    if (ctx.type === 'yard' || ctx.type === 'zone') {
+        var yardOpt = document.createElement('option');
+        yardOpt.value = 'yard|';
+        yardOpt.textContent = 'Yard (general)';
+        select.appendChild(yardOpt);
+
+        // Fetch all zones and render hierarchically (Level 1 → Level 2 → Level 3)
+        var snap = await userCol('zones').get();
+        var zones = {};
+        snap.forEach(function(doc) {
+            zones[doc.id] = Object.assign({ id: doc.id }, doc.data());
+        });
+
+        function addZoneOptions(parentId, prefix) {
+            Object.values(zones)
+                .filter(function(z) { return (z.parentId || null) === (parentId || null); })
+                .sort(function(a, b) { return a.name.localeCompare(b.name); })
+                .forEach(function(z) {
+                    var o = document.createElement('option');
+                    o.value = 'zone|' + z.id;
+                    o.textContent = prefix + z.name;
+                    select.appendChild(o);
+                    addZoneOptions(z.id, prefix + '\u00a0\u00a0');  // non-breaking spaces for visual indent
+                });
+        }
+        addZoneOptions(null, '\u2014 ');  // em-dash prefix for top-level zones
+
+        // Set selection
+        if (existingValue && existingValue !== '|') {
+            select.value = existingValue;
+        } else {
+            select.value = ctx.type === 'zone' ? ('zone|' + ctx.id) : 'yard|';
+        }
+    }
+
+    // ── House / Floor / Room context ───────────────────────────────────────
+    else if (ctx.type === 'house' || ctx.type === 'floor' || ctx.type === 'room') {
+        var houseOpt = document.createElement('option');
+        houseOpt.value = 'house|';
+        houseOpt.textContent = 'House (general)';
+        select.appendChild(houseOpt);
+
+        var floorsSnap = await userCol('floors').get();
+        var floors = floorsSnap.docs
+            .map(function(d) { return Object.assign({ id: d.id }, d.data()); })
+            .sort(function(a, b) { return (a.order || 0) - (b.order || 0) || a.name.localeCompare(b.name); });
+
+        var roomsSnap = await userCol('rooms').get();
+        var roomsByFloor = {};
+        roomsSnap.forEach(function(doc) {
+            var r = Object.assign({ id: doc.id }, doc.data());
+            if (!roomsByFloor[r.floorId]) roomsByFloor[r.floorId] = [];
+            roomsByFloor[r.floorId].push(r);
+        });
+
+        floors.forEach(function(floor) {
+            var fo = document.createElement('option');
+            fo.value = 'floor|' + floor.id;
+            fo.textContent = '\u2014 ' + floor.name;
+            select.appendChild(fo);
+
+            (roomsByFloor[floor.id] || [])
+                .sort(function(a, b) { return a.name.localeCompare(b.name); })
+                .forEach(function(room) {
+                    var ro = document.createElement('option');
+                    ro.value = 'room|' + room.id;
+                    ro.textContent = '\u00a0\u00a0\u2014 ' + room.name;
+                    select.appendChild(ro);
+                });
+        });
+
+        // Set selection
+        if (existingValue && existingValue !== '|') {
+            select.value = existingValue;
+        } else if (ctx.type === 'room')  { select.value = 'room|'  + ctx.id; }
+        else if (ctx.type === 'floor') { select.value = 'floor|' + ctx.id; }
+        else                           { select.value = 'house|'; }
+    }
+
+    // ── Vehicle context ────────────────────────────────────────────────────
+    else if (ctx.type === 'vehicle') {
+        var vOpt = document.createElement('option');
+        vOpt.value = 'vehicle|' + ctx.id;
+        vOpt.textContent = ctx.name || 'Vehicle';
+        select.appendChild(vOpt);
+        select.value = 'vehicle|' + ctx.id;
+    }
 }
 
 /**
@@ -544,25 +851,22 @@ function clAddItemRow(value) {
     input.placeholder = 'Task description…';
     input.value       = value || '';
 
-    // Pressing Enter in an item row adds a new blank row below it
+    // Pressing Enter adds a new blank row below and focuses it
     input.addEventListener('keydown', function(e) {
         if (e.key === 'Enter') {
             e.preventDefault();
             clAddItemRow('');
-            // Focus the newly added row's input
             var rows = editor.querySelectorAll('.cl-item-input');
             rows[rows.length - 1].focus();
         }
     });
 
     var removeBtn = document.createElement('button');
-    removeBtn.type      = 'button';
-    removeBtn.className = 'cl-item-remove-btn';
-    removeBtn.title     = 'Remove this item';
+    removeBtn.type        = 'button';
+    removeBtn.className   = 'cl-item-remove-btn';
+    removeBtn.title       = 'Remove this item';
     removeBtn.textContent = '✕';
-    removeBtn.addEventListener('click', function() {
-        row.remove();
-    });
+    removeBtn.addEventListener('click', function() { row.remove(); });
 
     row.appendChild(input);
     row.appendChild(removeBtn);
@@ -584,12 +888,14 @@ function clGetItemsFromModal() {
 }
 
 /**
- * Saves the template (add or edit mode) and reloads the templates section.
+ * Saves the template (add or edit mode).
+ * Reads the Location picker to get targetType / targetId / targetName.
  */
 async function clSaveTemplate() {
     var modal = document.getElementById('checklistTemplateModal');
     var name  = document.getElementById('clTemplateName').value.trim();
     var items = clGetItemsFromModal();
+    var ctx   = clCurrentContext || { type: 'yard' };
 
     if (!name) {
         alert('Please enter a template name.');
@@ -601,18 +907,43 @@ async function clSaveTemplate() {
         return;
     }
 
+    // Resolve target from picker (or hardcode 'life' for Life context)
+    var targetType, targetId, targetName;
+    if (ctx.type === 'life') {
+        targetType = 'life';
+        targetId   = null;
+        targetName = 'Life';
+    } else {
+        var select = document.getElementById('clTemplateTarget');
+        var parts  = (select.value || 'yard|').split('|');
+        targetType = parts[0] || 'yard';
+        targetId   = parts[1] || null;
+
+        // Get the human-readable name from the selected option, stripping indent chars
+        var selOpt = select.options[select.selectedIndex];
+        targetName = selOpt
+            ? selOpt.textContent.replace(/^[\u2014\u00a0\s]+/, '').trim()
+            : targetType;
+    }
+
     try {
         var mode = modal.dataset.mode;
         if (mode === 'add') {
             await userCol('checklistTemplates').add({
-                name:      name,
-                items:     items,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                name:       name,
+                items:      items,
+                targetType: targetType,
+                targetId:   targetId   || null,
+                targetName: targetName,
+                createdAt:  firebase.firestore.FieldValue.serverTimestamp()
             });
         } else {
             await userCol('checklistTemplates').doc(modal.dataset.editId).update({
-                name:  name,
-                items: items
+                name:       name,
+                items:      items,
+                targetType: targetType,
+                targetId:   targetId   || null,
+                targetName: targetName
             });
         }
         closeModal('checklistTemplateModal');
@@ -629,9 +960,8 @@ async function clSaveTemplate() {
 // ============================================================
 
 /**
- * Formats an ISO date string or Firestore Timestamp into a readable short date.
- * Returns '—' for missing values.
- * @param {string|Object} val — ISO string or Firestore Timestamp.
+ * Formats an ISO date string or Firestore Timestamp into a short date.
+ * @param {string|Object} val
  * @returns {string}
  */
 function clFormatDate(val) {
@@ -669,7 +999,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Template modal — "+ Add Item" button
     document.getElementById('clAddItemBtn').addEventListener('click', function() {
         clAddItemRow('');
-        // Focus the new row
         var inputs = document.querySelectorAll('#clTemplateItemsEditor .cl-item-input');
         if (inputs.length) inputs[inputs.length - 1].focus();
     });

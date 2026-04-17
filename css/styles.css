@@ -3909,6 +3909,20 @@ button {
     margin-top: 1px;
 }
 
+/* Location badge shown on template/run cards in roll-up views */
+.cl-target-badge {
+    font-size: 0.72rem;
+    color: #777;
+    margin-top: 2px;
+}
+
+/* Subtitle below the Checklists page header showing active context */
+.cl-context-subtitle {
+    font-size: 0.85rem;
+    color: #777;
+    margin: -8px 0 12px;
+}
+
 .cl-template-actions {
     display: flex;
     gap: 6px;

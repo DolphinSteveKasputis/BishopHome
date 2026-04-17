@@ -43,8 +43,10 @@ const ALL_PAGES = [
  * Shared pages (calendar, settings) keep whichever context was last active.
  */
 const HOUSE_PAGES = ['house', 'floor', 'room', 'thing', 'subthing', 'item', 'floorplan', 'panel', 'rooms', 'things', 'house-problems', 'house-projects', 'house-calendar-events', 'floorplanitem'];
-const YARD_PAGES  = ['main', 'home', 'zones', 'zone', 'plant', 'weeds', 'weed', 'chemicals', 'chemical', 'actions', 'gpsmap', 'yardmap', 'activityreport', 'checklists',
+const YARD_PAGES  = ['main', 'home', 'zones', 'zone', 'plant', 'weeds', 'weed', 'chemicals', 'chemical', 'actions', 'gpsmap', 'yardmap', 'activityreport',
                      'structures', 'structure', 'structurething', 'structuresubthing', 'yard-projects', 'yard-problems'];
+// NOTE: 'checklists' is intentionally NOT in any context list — it is a shared page
+// that inherits the nav context that was active when the user clicked the Checklists link.
 const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'journal-categories', 'people', 'contacts', 'person', 'contact',
                      'notes', 'notebook', 'note',
                      'health', 'health-visits', 'health-visit', 'health-visit-step2',
@@ -58,6 +60,53 @@ const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'jo
 
 /** Tracks which nav context is currently active ('yard', 'house', or 'life'). */
 var currentNavContext = 'yard';
+
+/**
+ * Tracks the type of entity most recently loaded ('zone', 'floor', 'room',
+ * 'vehicle', or null for top-level pages).  Used by clCaptureContext() to
+ * determine which entity global is current vs. stale from a prior page.
+ * Set in handleRoute() before each page load.
+ */
+window.clLastEntityType = null;
+
+/**
+ * Captures the current navigation context for the Checklists page.
+ * Called in handleRoute() immediately before navigating to #checklists,
+ * while entity globals (currentZone, currentRoom, etc.) are still fresh.
+ *
+ * Uses clLastEntityType to distinguish "I'm on a zone page" from "I was
+ * on a zone page earlier but am now on a top-level yard page."
+ *
+ * @returns {Object}  — { type, id?, name? }
+ */
+function clCaptureContext() {
+    var lastType = window.clLastEntityType;
+
+    if (currentNavContext === 'life') {
+        return { type: 'life' };
+    }
+
+    if (currentNavContext === 'house') {
+        if (lastType === 'room' && window.currentRoom) {
+            return { type: 'room', id: window.currentRoom.id, name: window.currentRoom.name };
+        }
+        if (lastType === 'floor' && window.currentFloor) {
+            return { type: 'floor', id: window.currentFloor.id, name: window.currentFloor.name };
+        }
+        return { type: 'house' };
+    }
+
+    // Yard context (also covers garage / vehicle pages which share the yard nav)
+    if (lastType === 'vehicle' && window.currentVehicle) {
+        var v = window.currentVehicle;
+        var vName = [v.year, v.make, v.model].filter(Boolean).join(' ') || 'Vehicle';
+        return { type: 'vehicle', id: v.id, name: vName };
+    }
+    if (lastType === 'zone' && window.currentZone) {
+        return { type: 'zone', id: window.currentZone.id, name: window.currentZone.name };
+    }
+    return { type: 'yard' };
+}
 
 /**
  * Navigate to a page by showing/hiding the right section.
@@ -149,6 +198,7 @@ function handleRoute() {
     const id    = parts[1] || null;
 
     if (page === 'zone' && id) {
+        window.clLastEntityType = 'zone';
         showPage('zone');
         loadZoneDetail(id);
     } else if (page === 'plant' && id) {
@@ -163,9 +213,11 @@ function handleRoute() {
         window.location.replace('#main');
         return;
     } else if (page === 'zones') {
+        window.clLastEntityType = null;
         showPage('home');
         loadZonesList();
     } else if (page === 'main') {
+        window.clLastEntityType = null;
         showPage('main');
     } else if (page === 'weeds') {
         showPage('weeds');
@@ -189,6 +241,7 @@ function handleRoute() {
         showPage('yardmap');
         loadYardMapPage();
     } else if (page === 'house') {
+        window.clLastEntityType = null;
         showPage('house');
         loadHousePage();
     } else if (page === 'rooms') {
@@ -213,9 +266,11 @@ function handleRoute() {
         showPage('house-calendar-events');
         loadHouseCalendarEventsPage();
     } else if (page === 'floor' && id) {
+        window.clLastEntityType = 'floor';
         showPage('floor');
         loadFloorDetail(id);
     } else if (page === 'room' && id) {
+        window.clLastEntityType = 'room';
         showPage('room');
         loadRoomDetail(id);
     } else if (page === 'thing' && id) {
@@ -237,6 +292,8 @@ function handleRoute() {
         showPage('item');
         loadItemDetail(id);
     } else if (page === 'checklists') {
+        // Capture context BEFORE showPage (entity globals still reflect the page the user came from)
+        window.checklistsContext = clCaptureContext();
         showPage('checklists');
         loadChecklistsPage();
     } else if (page === 'activityreport') {
@@ -264,12 +321,15 @@ function handleRoute() {
         showPage('chat');
         loadChatPage();
     } else if (page === 'vehicles') {
+        window.clLastEntityType = null;
         showPage('vehicles');
         loadVehiclesPage();
     } else if (page === 'vehicle' && id) {
+        window.clLastEntityType = 'vehicle';
         showPage('vehicle');
         loadVehiclePage(id);
     } else if (page === 'garage') {
+        window.clLastEntityType = null;
         showPage('garage');
         loadGaragePage();
     } else if (page === 'garageroom' && id) {

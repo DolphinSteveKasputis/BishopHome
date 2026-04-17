@@ -1255,9 +1255,27 @@ Formerly named "Future Projects" — renamed to "Quick Task List" to distinguish
 - Clicking a result navigates to the entity detail page
 
 ### Checklists (`checklists.js`)
-- **Route**: `#checklists`
-- Standalone quick checklists (shopping lists, to-do lists, packing lists)
-- Independent of the project system — lightweight, quick-access
+- **Route**: `#checklists` — shared page; retains the nav context active when the link was clicked
+- Accessible from Yard, House, and Life nav bars
+- **Context-aware**: shows only templates and runs relevant to the current location
+- **Context detection**: `app.js` sets `window.clLastEntityType` ('zone', 'floor', 'room', 'vehicle', or null) on every page route, and `clCaptureContext()` reads it + entity globals to determine the active context before navigating to checklists
+- **Roll-up rule**: a child entity's checklists appear on the parent page (e.g., zone checklists appear on the Yard page), but a parent's checklists do NOT appear on child pages
+- **Contexts and roll-up behaviour**:
+  - Yard: shows all yard-general + all zone templates/runs
+  - Zone: shows that zone + all its descendant zones
+  - House: shows all house-general + all floors + all rooms
+  - Floor: shows that floor + all rooms on that floor
+  - Room: shows that room only
+  - Vehicle: shows that vehicle only
+  - Life: shows all life-tagged templates/runs (no sub-targets)
+- **Templates** (`checklistTemplates`): `{ name, targetType, targetId, targetName, items:[{label}], createdAt }`
+  - `targetType`: 'yard' | 'zone' | 'house' | 'floor' | 'room' | 'vehicle' | 'life'
+  - `targetId`: Firestore ID of the entity, or null for top-level targets (yard/house/life)
+  - `targetName`: human-readable label stored at save time (e.g., "Front Yard", "Kitchen")
+- **Runs** (`checklistRuns`): same `targetType`/`targetId`/`targetName` fields, copied from template at start time
+- **Template modal**: Location dropdown shows the full hierarchy for the current context (e.g., Yard → zones → subzones), defaulting to the entity the user was on when they clicked Checklists; full hierarchy shown so user can pick any level
+- **Location badge**: shown on template/run cards in roll-up views (e.g., "📍 Front Yard")
+- **Context subtitle**: shown on the page header ("Showing: Front Yard (Zone)")
 
 ---
 
@@ -1271,7 +1289,7 @@ The app has three navigation contexts, each with its own nav bar:
 | **House** | House (floors), Rooms, Calendar, Checklists, Yard, Things, Collections, Search, Chat |
 | **Life** | Journal, Contacts, Notes, Checklists, Chat |
 
-**Shared pages** (retain last active context): Settings, Change Password, GPS Map
+**Shared pages** (retain last active context): Settings, Change Password, GPS Map, Checklists
 
 **Mobile nav**: Hamburger menu that toggles a full-screen overlay. Desktop nav: horizontal bar.
 

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=409">
+    <link rel="stylesheet" href="css/styles.css?v=410">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -2097,6 +2097,8 @@
                 <h2>Checklists</h2>
                 <button class="btn btn-primary btn-small" id="addChecklistTemplateBtn">+ New Template</button>
             </div>
+            <!-- Context subtitle: shows which location's checklists are displayed -->
+            <p class="cl-context-subtitle" id="clContextSubtitle"></p>
 
             <!-- Active runs — checklists currently in progress -->
             <div class="section-header">
@@ -2862,6 +2864,13 @@
             <div class="form-group">
                 <label for="clTemplateName">Template Name</label>
                 <input type="text" id="clTemplateName" placeholder="e.g., Spring Startup, Fall Winterization">
+            </div>
+            <!-- Location picker: hidden for Life context, shown for all others -->
+            <div class="form-group" id="clTargetPickerGroup">
+                <label for="clTemplateTarget">Location</label>
+                <select id="clTemplateTarget" class="form-select">
+                    <!-- Options populated dynamically by clPopulateTargetPicker() -->
+                </select>
             </div>
             <div class="form-group">
                 <label>Items <span class="label-hint">(Enter to add a new row)</span></label>
@@ -7981,7 +7990,7 @@
     <script src="js/floorplanitem.js?v=393"></script>
     <script src="js/search.js?v=350"></script>
     <script src="js/activityreport.js?v=350"></script>
-    <script src="js/checklists.js?v=351"></script>
+    <script src="js/checklists.js?v=352"></script>
     <script src="js/bulkactivity.js?v=350"></script>
     <script src="js/vehicles.js?v=356"></script>
     <script src="js/garage.js?v=356"></script>
@@ -7999,7 +8008,7 @@
     <script src="js/secondbrain.js?v=351"></script>
     <script src="js/sbissues.js?v=350"></script>
     <script src="js/places.js?v=350"></script>
-    <script src="js/app.js?v=402"></script>
+    <script src="js/app.js?v=403"></script>
 
 </body>
 </html>

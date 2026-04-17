@@ -835,7 +835,7 @@ A notebook-organized note-taking system.
 
 Landing page showing tile shortcuts to Journal, Contacts, Health, Notes, and Calendar. Below the tiles, a **"Coming Up"** section (hidden when empty) shows events within the next 30 days, sorted by date. Two sources are merged:
 - **Annual contact dates** (`peopleImportantDates` where `recurrence == annual`) — shows label, person name (tappable link to `#contact/{id}`), and "turns N" age badge if a birth year is set
-- **Upcoming life calendar events** (`lifeEvents` where `startDate` in next 30 days, excluding attended/missed/didntgo) — shows event title as a tappable link to `#life-event/{id}`
+- **Upcoming life calendar events** (`lifeEvents` where `startDate` in next 30 days, excluding attended/missed/didntgo) — shows event title as a tappable link to `#life-event/{id}`. For **today's events**, also shows a clickable 📍 address (opens Google Maps) and 📞 phone number. Address/phone come from the linked location contact (`locationContactId` → `people` doc) if set, or from the plain-text `location` field (as address only).
 
 Each item shows a relative time label: "Today!", "Tomorrow", or "In N days".
 

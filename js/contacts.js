@@ -1458,12 +1458,38 @@ async function loadLifePage() {
         eventsSnap.forEach(function(doc) {
             var d = doc.data();
             if (d.status === 'attended' || d.status === 'missed' || d.status === 'didntgo') return;
-            items.push({ _type: 'event', _id: doc.id, label: d.title || '', nextDate: new Date(d.startDate) });
+            items.push({
+                _type:             'event',
+                _id:               doc.id,
+                label:             d.title             || '',
+                nextDate:          new Date(d.startDate),
+                location:          d.location          || '',
+                locationContactId: d.locationContactId || null
+            });
         });
 
         if (!items.length) { section.style.display = 'none'; return; }
 
         items.sort(function(a, b) { return a.nextDate - b.nextDate; });
+
+        // Fetch contact details (address + phone) for today's events that have a linked contact
+        var locationContactMap = {};
+        var contactIdsToFetch = items
+            .filter(function(i) {
+                return i._type === 'event' &&
+                       i.locationContactId &&
+                       i.nextDate.toDateString() === today.toDateString();
+            })
+            .map(function(i) { return i.locationContactId; });
+        contactIdsToFetch = contactIdsToFetch.filter(function(id, idx) { return contactIdsToFetch.indexOf(id) === idx; }); // dedupe
+        if (contactIdsToFetch.length) {
+            await Promise.all(contactIdsToFetch.map(async function(cid) {
+                try {
+                    var cSnap = await userCol('people').doc(cid).get();
+                    if (cSnap.exists) locationContactMap[cid] = cSnap.data();
+                } catch(e) { /* ignore */ }
+            }));
+        }
 
         var html = '<h3 class=life-calendar-heading>Coming Up</h3>';
         items.forEach(function(item) {
@@ -1472,10 +1498,31 @@ async function loadLifePage() {
             var dayLabel = daysAway === 0 ? 'Today!' : daysAway === 1 ? 'Tomorrow' : 'In ' + daysAway + ' days';
 
             if (item._type === 'event') {
+                // For today's events: show a clickable address and/or phone number
+                var todayLinksHtml = '';
+                if (daysAway === 0) {
+                    var addr  = '';
+                    var phone = '';
+                    if (item.locationContactId && locationContactMap[item.locationContactId]) {
+                        // Linked contact — use their stored address and phone
+                        addr  = locationContactMap[item.locationContactId].address || '';
+                        phone = locationContactMap[item.locationContactId].phone   || '';
+                    } else if (item.location) {
+                        // Plain-text location — treat as address only
+                        addr = item.location;
+                    }
+                    var todayParts = [];
+                    if (addr)  todayParts.push('<a href="https://maps.google.com/?q=' + encodeURIComponent(addr) + '" target="_blank" rel="noopener" class="life-cal-today-link">📍 ' + escapeHtml(addr) + '</a>');
+                    if (phone) todayParts.push('<a href="tel:' + escapeHtml(phone.replace(/\s/g, '')) + '" class="life-cal-today-link">📞 ' + escapeHtml(phone) + '</a>');
+                    if (todayParts.length) {
+                        todayLinksHtml = '<div class="life-cal-today-links">' + todayParts.join('') + '</div>';
+                    }
+                }
                 html +=
                     '<div class=life-cal-item>' +
                         '<div class=life-cal-info>' +
                             '<a class="life-cal-label life-cal-event-link" href=#life-event/' + escapeHtml(item._id) + '>' + escapeHtml(item.label) + '</a>' +
+                            todayLinksHtml +
                         '</div>' +
                         '<span class=life-cal-days>' + escapeHtml(dayLabel) + '</span>' +
                     '</div>';

@@ -5858,6 +5858,20 @@ img.collection-item-row-thumb {
     color: #0d9488;
     white-space: nowrap;
 }
+/* Address + phone links shown for today's events in the Coming Up section */
+.life-cal-today-links {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 4px;
+}
+.life-cal-today-link {
+    font-size: 0.8rem;
+    color: #2563eb;
+    text-decoration: none;
+    word-break: break-word;
+}
+.life-cal-today-link:hover { text-decoration: underline; }
 
 /* ============================================================
    ENTITY PROFILE THUMBNAILS  (plants, weeds, things, vehicles, people)

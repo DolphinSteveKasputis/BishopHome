@@ -850,8 +850,9 @@ Tracks major life events — trips, milestones, goals, relationships.
 - Visible in list view; hidden in grid view
 - Off by default; not sticky (resets on every page load and when switching back to list view from grid)
 - When OFF: list view shows only events/appointments with `startDate >= today` (for "Upcoming" and "Upcoming + Attended" status filters)
-- When ON: date cutoff extends to 30 days in the past
-- Does not apply to "Attended", "Missed", or "All" status filters — those intentionally show past events
+- When ON: date cutoff extends to 30 days in the past; **attended and "didn't go" events within that window are also shown** — the status filter is relaxed for past events so nothing disappears after being marked
+- Does not apply to "Attended", "Missed", or "All" status filters — those are already past-looking and keep their own filter
+- **Grid view**: same relaxation applies — past events (any date before today) are shown regardless of status when an upcoming-style filter is active, so browsing previous months shows attended/missed events
 
 **Routes**: `#life-calendar` (list), `#life-event/{id}` (detail/edit), `#life-event/new` (create)
 

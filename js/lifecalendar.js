@@ -662,14 +662,31 @@ function _lcGetFilteredEvents() {
         listDateCutoff = cutoff.toISOString().slice(0, 10);
     }
 
+    var todayStr = _lcIsoDate(new Date());
+
     return _lcAllEvents.filter(function(ev) {
-        // Status filter
-        if (_lcStatusFilter === 'upcoming'          && ev.status !== 'upcoming')  return false;
-        if (_lcStatusFilter === 'upcoming+attended' && ev.status === 'didntgo')   return false;
-        if (_lcStatusFilter === 'attended'          && ev.status !== 'attended')  return false;
-        if (_lcStatusFilter === 'missed'            && ev.status !== 'didntgo')   return false;
+        var evDate = ev.startDate || '';
+
+        // For past events, bypass the status filter when:
+        //   - List view + "Show Past 30 Days" is on  (user wants attended/didntgo visible in the window)
+        //   - Grid view while browsing any month     (grid always shows past appointments; life events match)
+        // Only applies to upcoming-style filters; "Attended only" / "Missed only" filters are
+        // already past-looking and intentional, so they keep their own status filter.
+        var isUpcomingStyleFilter = (_lcStatusFilter === 'upcoming' || _lcStatusFilter === 'upcoming+attended');
+        var bypassStatusFilter    = isUpcomingStyleFilter &&
+                                    evDate < todayStr &&
+                                    (_lcShowPast || _lcViewMode === 'grid');
+
+        if (!bypassStatusFilter) {
+            // Status filter (upcoming/future events, and non-bypassed past events)
+            if (_lcStatusFilter === 'upcoming'          && ev.status !== 'upcoming')  return false;
+            if (_lcStatusFilter === 'upcoming+attended' && ev.status === 'didntgo')   return false;
+            if (_lcStatusFilter === 'attended'          && ev.status !== 'attended')  return false;
+            if (_lcStatusFilter === 'missed'            && ev.status !== 'didntgo')   return false;
+        }
+
         // Date cutoff (list view, upcoming-style filters only)
-        if (listDateCutoff && (ev.startDate || '') < listDateCutoff) return false;
+        if (listDateCutoff && evDate < listDateCutoff) return false;
         // Category filter
         if (_lcCategoryFilter && ev.categoryId !== _lcCategoryFilter) return false;
         // Search filter (title + location, case-insensitive)

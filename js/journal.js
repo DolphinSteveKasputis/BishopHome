@@ -787,7 +787,7 @@ function openAddJournalEntry() {
  * @param {string} preText    - Pre-assembled labeled text to populate the textarea
  * @param {string} visitId    - Firestore ID of the health visit (for back-linking)
  */
-function openVisitJournalEntryPreFilled(visitDate, preText, visitId) {
+function openVisitJournalEntryPreFilled(visitDate, visitTime, preText, visitId) {
     window.journalEditMode     = false;
     window.currentJournalEntry = null;
     window._journalSourceVisitId = visitId;
@@ -809,7 +809,7 @@ function openVisitJournalEntryPreFilled(visitDate, preText, visitId) {
 
     if (titleEl)   titleEl.textContent = 'New Journal Entry';
     if (dateEl)    dateEl.value  = visitDate || journalFormatDate(new Date());
-    if (timeEl)    timeEl.value  = '';
+    if (timeEl)    timeEl.value  = visitTime || '';
     if (textEl)    textEl.value  = preText || '';
     if (deleteBtn) deleteBtn.classList.add('hidden');
 

@@ -698,6 +698,12 @@ function loadHealthVisitDetail(id) {
 }
 
 async function renderVisitDetail(visit) {
+    // Breadcrumb
+    var crumb = document.getElementById('breadcrumbBar');
+    if (crumb) crumb.innerHTML =
+        '<a href="#health">Health</a><span class="separator">&rsaquo;</span>' +
+        '<a href="#health-visits">Visits</a>';
+
     // Title: "[Type] — [formatted date]", fall back to "Visit — [date]" for older records
     var titleType = visit.type || 'Visit';
     var titleDate = visit.date ? _apptFormatDate(visit.date) : '\u2014';
@@ -817,6 +823,7 @@ async function renderVisitDetail(visit) {
 async function _updateVisitJournalBtn(visit) {
     var btn = document.getElementById('visitJournalBtn');
     if (!btn) return;
+    btn.disabled = false;   // always re-enable on page load (may have been disabled during creation)
     if (visit.linkedJournalEntryId) {
         try {
             var snap = await userCol('journalEntries').doc(visit.linkedJournalEntryId).get();
@@ -937,7 +944,7 @@ async function createVisitJournalEntry() {
         var preText = lines.join('\n');
 
         // Open the journal entry form pre-filled, passing visit linkage context
-        openVisitJournalEntryPreFilled(visit.date, preText, visit.id);
+        openVisitJournalEntryPreFilled(visit.date, visit.time || '', preText, visit.id);
 
     } catch(err) {
         console.error('createVisitJournalEntry error:', err);

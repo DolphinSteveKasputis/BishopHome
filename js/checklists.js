@@ -66,20 +66,26 @@ async function clLoadActiveRuns() {
     emptyEl.classList.add('hidden');
 
     try {
+        // Avoid composite index requirement by filtering + sorting client-side
         var snap = await userCol('checklistRuns')
             .where('completedAt', '==', null)
-            .orderBy('startedAt', 'desc')
             .get();
 
         container.innerHTML = '';
 
-        if (snap.empty) {
+        var runs = snap.docs
+            .map(function(doc) { return Object.assign({ id: doc.id }, doc.data()); })
+            .sort(function(a, b) {
+                return (b.startedAt || '').localeCompare(a.startedAt || '');
+            });
+
+        if (runs.length === 0) {
             emptyEl.classList.remove('hidden');
             return;
         }
 
-        snap.forEach(function(doc) {
-            container.appendChild(clBuildRunCard({ id: doc.id, ...doc.data() }));
+        runs.forEach(function(run) {
+            container.appendChild(clBuildRunCard(run));
         });
 
     } catch (err) {

@@ -350,6 +350,13 @@ function clBuildRunCard(run) {
         clMarkRunComplete(run.id);
     });
 
+    var clearBtn = document.createElement('button');
+    clearBtn.className   = 'btn btn-secondary btn-small';
+    clearBtn.textContent = 'Clear All';
+    clearBtn.addEventListener('click', function() {
+        clClearAllItems(run.id, card);
+    });
+
     var deleteBtn = document.createElement('button');
     deleteBtn.className   = 'btn btn-danger btn-small';
     deleteBtn.textContent = 'Abandon';
@@ -358,6 +365,7 @@ function clBuildRunCard(run) {
     });
 
     actions.appendChild(completeBtn);
+    actions.appendChild(clearBtn);
     actions.appendChild(deleteBtn);
     card.appendChild(actions);
 
@@ -397,6 +405,42 @@ async function clToggleItem(runId, checked, idx, card) {
 
     } catch (err) {
         console.error('Error toggling checklist item:', err);
+    }
+}
+
+/**
+ * Unchecks every item in a run without confirmation.
+ * Updates Firestore and resets the card's checkboxes, labels, and progress bar in-place.
+ * @param {string}      runId
+ * @param {HTMLElement} card
+ */
+async function clClearAllItems(runId, card) {
+    try {
+        var doc = await userCol('checklistRuns').doc(runId).get();
+        if (!doc.exists) return;
+
+        var items = doc.data().items.map(function(item) {
+            return Object.assign({}, item, { done: false });
+        });
+
+        await userCol('checklistRuns').doc(runId).update({ items: items });
+
+        // Uncheck all checkboxes and remove strikethrough styles
+        card.querySelectorAll('.cl-item input[type="checkbox"]').forEach(function(cb) {
+            cb.checked = false;
+        });
+        card.querySelectorAll('.cl-item-label').forEach(function(lbl) {
+            lbl.className = 'cl-item-label';
+        });
+
+        // Reset progress bar to 0
+        var fill = card.querySelector('.cl-progress-fill');
+        var text = card.querySelector('.cl-progress-text');
+        if (fill) fill.style.width = '0%';
+        if (text) text.textContent = '0 / ' + items.length + ' done';
+
+    } catch (err) {
+        console.error('Error clearing checklist items:', err);
     }
 }
 

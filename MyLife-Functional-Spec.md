@@ -708,20 +708,23 @@ Daily entry logging with optional tracking metrics.
 Renamed from "People". Tracks personal contacts and medical/service professionals and facilities.
 
 **Firestore** (collection name unchanged: `people`):
-- `people` — `name`, `nickname`, `category` (see below), `specialty?`, `personalType?`, `phone`, `email`, `address`, `website?`, `facebookUrl`, `howKnown`, `notes`, `profilePhotoData?`, `parentPersonId?`, `createdAt`
+- `people` — `name`, `nickname`, `category` (see below), `specialty?`, `personalType?`, `businessType?`, `phone`, `email`, `address`, `website?`, `facebookUrl`, `howKnown`, `notes`, `profilePhotoData?`, `parentPersonId?`, `createdAt`
 - `peopleImportantDates` — `personId`, `label`, `month`, `day`, `year?`, `recurrence`, `createdAt`
 - `peopleInteractions` — `personId`, `date`, `text`, `sourceType`, `createdAt`
 - `lookups/serviceTrades` — `{ values: [...] }` full list of trades (defaults: Plumber, Electrician, HVAC, Pest Control, Handyman)
 - `lookups/personalContactTypes` — `{ values: [...] }` full list of relationship types (defaults: Friend, Family, Neighbor, Coworker, Acquaintance)
+- `lookups/businessTypes` — `{ values: [...] }` full list of business categories (defaults: Electronics Store, Garden Store, Restaurant, Hardware Store, Grocery Store)
 
 **Contact type categories** (stored in `category` field):
 - **Personal** — shows `personalType` dropdown (Friend, Family, Neighbor, Coworker, Acquaintance + user-defined); types stored in `lookups/personalContactTypes`; on-the-fly add in modal
 - **Medical Professional** — shows `specialty` text input with datalist (~35 built-in options); custom specialties saved to `lookups/specialties`
 - **Medical Facility** — clinic, hospital, lab, pharmacy
 - **Service Professional** — shows `trade` dropdown (Plumber, Electrician, HVAC, Pest Control, Handyman + user-defined); trades stored in `lookups/serviceTrades`; on-the-fly add in modal
+- **Business** — shows `businessType` dropdown (Electronics Store, Garden Store, Restaurant, Hardware Store, Grocery Store + user-defined); types stored in `lookups/businessTypes`; on-the-fly add in modal
+- **Pet**
 - **Other**
 
-**Contact Lists settings page** (`#settings-contact-lists`): Accessible from Settings hub. Two cards — "Service Trades" and "Personal Contact Types". Each shows a list of all items with Rename and Delete buttons per item. An "Add" input at the bottom adds new items. Changes are saved immediately to Firestore.
+**Contact Types settings page** (`#settings-contact-lists`): Accessible from Settings hub (tile renamed from "Contact Lists" to "Contact Types"). Three cards — "Service Trades", "Personal Contact Types", and "Business Types". Each shows a list of all items with Rename and Delete buttons per item. An "Add" input at the bottom adds new items. Changes are saved immediately to Firestore.
 
 **Routes**: `#contacts` (list), `#contact/{id}` (detail). Legacy `#people` / `#person/{id}` redirect to the new routes.
 

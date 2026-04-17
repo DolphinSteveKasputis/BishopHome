@@ -622,16 +622,16 @@
                 </a>
                 <a href="#settings-contact-lists" class="landing-tile">
                     <span class="landing-tile-icon">👥</span>
-                    <span class="landing-tile-label">Contact Lists</span>
+                    <span class="landing-tile-label">Contact Types</span>
                 </a>
             </div>
         </section>
 
-        <!-- Page: Contact Lists Settings (#settings-contact-lists) -->
+        <!-- Page: Contact Types Settings (#settings-contact-lists) -->
         <section class="page hidden" id="page-settings-contact-lists">
             <div class="page-header">
                 <button class="btn btn-secondary btn-small back-btn" onclick="window.location.hash='#settings'">&#8592; Back</button>
-                <h2>Contact Lists</h2>
+                <h2>Contact Types</h2>
                 <div></div>
             </div>
 
@@ -657,6 +657,19 @@
                     <div style="display:flex; gap:6px; align-items:center; width:100%;">
                         <input type="text" id="settingsPersonalTypeNewInput" placeholder="New relationship type" style="flex:1;">
                         <button class="btn btn-primary btn-small" onclick="settingsAddPersonalType()">+ Add</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Business Types -->
+            <div class="settings-card">
+                <h3 class="settings-section-title">Business Types</h3>
+                <p class="settings-section-desc">Business categories available when adding a Business contact.</p>
+                <div id="settingsBusinessTypesList"></div>
+                <div class="settings-save-row" style="margin-top:12px;">
+                    <div style="display:flex; gap:6px; align-items:center; width:100%;">
+                        <input type="text" id="settingsBusinessTypeNewInput" placeholder="New business type" style="flex:1;">
+                        <button class="btn btn-primary btn-small" onclick="settingsAddBusinessType()">+ Add</button>
                     </div>
                 </div>
             </div>
@@ -3214,6 +3227,19 @@
                         <input type="text" id="personPersonalTypeNewInput" placeholder="New relationship type" style="flex:1;">
                         <button type="button" class="btn btn-primary btn-small" onclick="_contactAddPersonalTypeOnTheFly()">Add</button>
                         <button type="button" class="btn btn-secondary btn-small" onclick="_contactCancelAddPersonalType()">Cancel</button>
+                    </div>
+                </div>
+            </div>
+            <!-- Business Type — shown for Business contacts only -->
+            <div class="form-group" id="personBusinessTypeGroup" style="display:none;">
+                <label>Business Type</label>
+                <select id="personBusinessTypeSelect"></select>
+                <!-- Inline add row — shown when user picks "Add new..." from the select -->
+                <div id="personBusinessTypeAddRow" style="display:none; margin-top:6px;">
+                    <div style="display:flex; gap:6px; align-items:center;">
+                        <input type="text" id="personBusinessTypeNewInput" placeholder="New business type" style="flex:1;">
+                        <button type="button" class="btn btn-primary btn-small" onclick="_contactAddBusinessTypeOnTheFly()">Add</button>
+                        <button type="button" class="btn btn-secondary btn-small" onclick="_contactCancelAddBusinessType()">Cancel</button>
                     </div>
                 </div>
             </div>
@@ -7934,7 +7960,7 @@
     <script src="js/weeds.js?v=350"></script>
     <script src="js/calendar.js?v=350"></script>
     <script src="js/gps.js?v=350"></script>
-    <script src="js/settings.js?v=352"></script>
+    <script src="js/settings.js?v=353"></script>
     <script src="js/devnotes.js?v=376"></script>
     <script src="js/house.js?v=402"></script>
     <script src="js/floorplan.js?v=395"></script>
@@ -7948,7 +7974,7 @@
     <script src="js/structures.js?v=350"></script>
     <script src="js/moveThings.js?v=350"></script>
     <script src="js/journal.js?v=358"></script>
-    <script src="js/contacts.js?v=375"></script>
+    <script src="js/contacts.js?v=376"></script>
     <script src="js/collections.js?v=356"></script>
     <script src="js/health.js?v=376"></script>
     <script src="js/notes.js?v=350"></script>

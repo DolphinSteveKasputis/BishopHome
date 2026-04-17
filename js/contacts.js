@@ -19,6 +19,7 @@ var CONTACT_CATEGORIES = [
     'Medical Professional',
     'Medical Facility',
     'Service Professional',
+    'Business',
     'Pet',
     'Other'
 ];
@@ -31,6 +32,7 @@ var CONTACT_CATEGORIES = [
 
 var _DEFAULT_SERVICE_TRADES  = ['Plumber','Electrician','HVAC','Pest Control','Handyman'];
 var _DEFAULT_PERSONAL_TYPES  = ['Friend','Family','Neighbor','Coworker','Acquaintance'];
+var _DEFAULT_BUSINESS_TYPES  = ['Electronics Store','Garden Store','Restaurant','Hardware Store','Grocery Store'];
 
 // Built-in specialties (for Medical Professional datalist — kept as autocomplete)
 var _BUILTIN_SPECIALTIES = new Set([
@@ -167,6 +169,50 @@ async function _loadPersonalTypes(selectedValue) {
     };
 }
 
+/**
+ * Load the business contact types from Firestore and populate the business type <select>.
+ * Falls back to _DEFAULT_BUSINESS_TYPES if no Firestore doc exists yet.
+ */
+async function _loadBusinessTypes(selectedValue) {
+    var sel = document.getElementById('personBusinessTypeSelect');
+    if (!sel) return;
+    var types = _DEFAULT_BUSINESS_TYPES.slice();
+    try {
+        var snap = await userCol('lookups').doc('businessTypes').get();
+        if (snap.exists) {
+            var vals = snap.data().values || [];
+            if (vals.length > 0) {
+                var hasDefault = _DEFAULT_BUSINESS_TYPES.some(function(d) { return vals.indexOf(d) !== -1; });
+                if (!hasDefault) {
+                    types = _DEFAULT_BUSINESS_TYPES.slice();
+                    vals.forEach(function(v) { if (types.indexOf(v) === -1) types.push(v); });
+                    userCol('lookups').doc('businessTypes').set({ values: types }).catch(function(){});
+                } else {
+                    types = vals;
+                }
+            }
+        }
+    } catch (err) { console.warn('_loadBusinessTypes error:', err); }
+    sel.innerHTML = '<option value="">— Select type —</option>';
+    types.forEach(function(t) {
+        var opt = document.createElement('option');
+        opt.value = t; opt.textContent = t;
+        if (t === selectedValue) opt.selected = true;
+        sel.appendChild(opt);
+    });
+    var addOpt = document.createElement('option');
+    addOpt.value = '__add_new__'; addOpt.textContent = '+ Add new type...';
+    sel.appendChild(addOpt);
+
+    sel.onchange = function() {
+        if (sel.value === '__add_new__') {
+            sel.value = '';
+            document.getElementById('personBusinessTypeAddRow').style.display = '';
+            document.getElementById('personBusinessTypeNewInput').focus();
+        }
+    };
+}
+
 /** Cancel adding a new trade — hide the inline row. */
 function _contactCancelAddTrade() {
     document.getElementById('personTradeAddRow').style.display = 'none';
@@ -177,6 +223,12 @@ function _contactCancelAddTrade() {
 function _contactCancelAddPersonalType() {
     document.getElementById('personPersonalTypeAddRow').style.display = 'none';
     document.getElementById('personPersonalTypeNewInput').value = '';
+}
+
+/** Cancel adding a new business type — hide the inline row. */
+function _contactCancelAddBusinessType() {
+    document.getElementById('personBusinessTypeAddRow').style.display = 'none';
+    document.getElementById('personBusinessTypeNewInput').value = '';
 }
 
 /**
@@ -220,6 +272,26 @@ async function _contactAddPersonalTypeOnTheFly() {
 }
 
 /**
+ * "Add on the fly" handler for the business type field in the contact modal.
+ * Saves the new type to Firestore, repopulates the select, and selects it.
+ */
+async function _contactAddBusinessTypeOnTheFly() {
+    var input = document.getElementById('personBusinessTypeNewInput');
+    var val = input.value.trim();
+    if (!val) return;
+    try {
+        var snap = await userCol('lookups').doc('businessTypes').get();
+        var existing = (snap.exists && snap.data().values && snap.data().values.length > 0)
+            ? snap.data().values : _DEFAULT_BUSINESS_TYPES.slice();
+        if (existing.indexOf(val) === -1) existing.push(val);
+        await userCol('lookups').doc('businessTypes').set({ values: existing });
+    } catch (err) { console.warn('_contactAddBusinessTypeOnTheFly save error:', err); }
+    await _loadBusinessTypes(val);
+    input.value = '';
+    document.getElementById('personBusinessTypeAddRow').style.display = 'none';
+}
+
+/**
  * Show/hide the category-specific fields based on selected contact type.
  * Medical Professional → specialty text input (datalist autocomplete)
  * Service Professional → trade select + add-on-the-fly
@@ -227,13 +299,15 @@ async function _contactAddPersonalTypeOnTheFly() {
  * Others               → all hidden
  */
 function _configureTypeFields(category) {
-    var specialtyGrp    = document.getElementById('personSpecialtyGroup');
-    var tradeGrp        = document.getElementById('personTradeGroup');
-    var personalTypeGrp = document.getElementById('personPersonalTypeGroup');
+    var specialtyGrp     = document.getElementById('personSpecialtyGroup');
+    var tradeGrp         = document.getElementById('personTradeGroup');
+    var personalTypeGrp  = document.getElementById('personPersonalTypeGroup');
+    var businessTypeGrp  = document.getElementById('personBusinessTypeGroup');
 
     if (specialtyGrp)    specialtyGrp.style.display    = (category === 'Medical Professional') ? '' : 'none';
     if (tradeGrp)        tradeGrp.style.display        = (category === 'Service Professional') ? '' : 'none';
     if (personalTypeGrp) personalTypeGrp.style.display = (category === 'Personal')            ? '' : 'none';
+    if (businessTypeGrp) businessTypeGrp.style.display = (category === 'Business')            ? '' : 'none';
 }
 
 // Backwards-compat alias (still referenced in a few older places)
@@ -355,6 +429,8 @@ function buildPersonCard(person, lastInteraction) {
         subTypeLabel = ' <span class="person-subtype-label">' + escapeHtml(person.specialty) + '</span>';
     } else if (contactType === 'Medical Professional' && person.specialty) {
         subTypeLabel = ' <span class="person-subtype-label">' + escapeHtml(person.specialty) + '</span>';
+    } else if (contactType === 'Business' && person.businessType) {
+        subTypeLabel = ' <span class="person-subtype-label">' + escapeHtml(person.businessType) + '</span>';
     }
 
     var categoryBadge = contactType
@@ -486,6 +562,8 @@ function renderPersonDetail(person, parentPerson) {
         rows += _contactRow('Specialty', escapeHtml(person.specialty));
     if (person.specialty && person.category === 'Service Professional')
         rows += _contactRow('Trade', escapeHtml(person.specialty));
+    if (person.businessType && person.category === 'Business')
+        rows += _contactRow('Business Type', escapeHtml(person.businessType));
     if (person.phone)
         rows += _contactRow('Phone', '<a href="tel:' + escapeHtml(person.phone) + '">' + escapeHtml(person.phone) + '</a>');
     if (person.email)
@@ -656,6 +734,7 @@ async function openAddContactModal(parentPersonId) {
     // Reset inline-add rows
     document.getElementById('personTradeAddRow').style.display        = 'none';
     document.getElementById('personPersonalTypeAddRow').style.display = 'none';
+    document.getElementById('personBusinessTypeAddRow').style.display = 'none';
 
     var modal = document.getElementById('personModal');
     modal.dataset.mode           = 'add';
@@ -667,6 +746,7 @@ async function openAddContactModal(parentPersonId) {
     _loadCustomSpecialties();
     _loadServiceTrades('');
     _loadPersonalTypes('');
+    _loadBusinessTypes('');
     openModal('personModal');
     document.getElementById('personNameInput').focus();
 }
@@ -691,6 +771,7 @@ async function openEditContactModal(person) {
     // Reset inline-add rows
     document.getElementById('personTradeAddRow').style.display        = 'none';
     document.getElementById('personPersonalTypeAddRow').style.display = 'none';
+    document.getElementById('personBusinessTypeAddRow').style.display = 'none';
 
     var catVal = CONTACT_CATEGORIES.indexOf(person.category) !== -1 ? person.category : 'Personal';
     _populateContactCategorySelect('personCategorySelect', catVal);
@@ -702,8 +783,9 @@ async function openEditContactModal(person) {
     modal.dataset.parentPersonId = person.parentPersonId || '';
 
     _loadCustomSpecialties();
-    _loadServiceTrades(person.specialty  || '');   // trade stored in specialty field
+    _loadServiceTrades(person.specialty    || '');   // trade stored in specialty field
     _loadPersonalTypes(person.personalType || '');
+    _loadBusinessTypes(person.businessType || '');
     openModal('personModal');
 }
 
@@ -752,6 +834,9 @@ async function handleContactModalSave() {
         specialty:    specialtyVal,
         personalType: (catVal === 'Personal')
                           ? document.getElementById('personPersonalTypeSelect').value
+                          : '',
+        businessType: (catVal === 'Business')
+                          ? document.getElementById('personBusinessTypeSelect').value
                           : '',
     };
 
@@ -1702,6 +1787,8 @@ function buildContactPicker(containerId, options) {
                                      ? document.getElementById('personTradeSelect').value : '',
                 personalType: catVal === 'Personal'
                                  ? document.getElementById('personPersonalTypeSelect').value : '',
+                businessType: catVal === 'Business'
+                                 ? document.getElementById('personBusinessTypeSelect').value : '',
                 parentPersonId:   null,
                 profilePhotoData: null,
                 createdAt:        firebase.firestore.FieldValue.serverTimestamp()

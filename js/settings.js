@@ -18,17 +18,26 @@ function loadSettingsHub() {
 // Both are stored in Firestore lookups collection.
 // ============================================================
 
-var _DEFAULT_TRADES_FOR_SETTINGS = ['Plumber','Electrician','HVAC','Pest Control','Handyman'];
+var _DEFAULT_TRADES_FOR_SETTINGS         = ['Plumber','Electrician','HVAC','Pest Control','Handyman'];
 var _DEFAULT_PERSONAL_TYPES_FOR_SETTINGS = ['Friend','Family','Neighbor','Coworker','Acquaintance'];
+var _DEFAULT_BUSINESS_TYPES_FOR_SETTINGS = ['Electronics Store','Garden Store','Restaurant','Hardware Store','Grocery Store'];
+
+// Map docKey → { containerId, defaults } for the generic lookup helpers
+var _LOOKUP_LIST_CONFIG = {
+    serviceTrades:       { containerId: 'settingsTradesList',        defaults: _DEFAULT_TRADES_FOR_SETTINGS },
+    personalContactTypes:{ containerId: 'settingsPersonalTypesList', defaults: _DEFAULT_PERSONAL_TYPES_FOR_SETTINGS },
+    businessTypes:       { containerId: 'settingsBusinessTypesList', defaults: _DEFAULT_BUSINESS_TYPES_FOR_SETTINGS }
+};
 
 /**
- * Load the Contact Lists settings page.
- * Fetches trades and personal types from Firestore and renders editable lists.
+ * Load the Contact Types settings page.
+ * Fetches trades, personal types, and business types from Firestore and renders editable lists.
  */
 async function loadContactListsPage() {
     await Promise.all([
-        _renderLookupList('serviceTrades',       'settingsTradesList',       _DEFAULT_TRADES_FOR_SETTINGS),
-        _renderLookupList('personalContactTypes', 'settingsPersonalTypesList', _DEFAULT_PERSONAL_TYPES_FOR_SETTINGS)
+        _renderLookupList('serviceTrades',        'settingsTradesList',        _DEFAULT_TRADES_FOR_SETTINGS),
+        _renderLookupList('personalContactTypes',  'settingsPersonalTypesList', _DEFAULT_PERSONAL_TYPES_FOR_SETTINGS),
+        _renderLookupList('businessTypes',         'settingsBusinessTypesList', _DEFAULT_BUSINESS_TYPES_FOR_SETTINGS)
     ]);
 }
 
@@ -115,8 +124,9 @@ async function _lookupSaveRename(docKey, index) {
     var newVal = input.value.trim();
     if (!newVal) { alert('Value cannot be empty.'); return; }
 
-    var defaults = docKey === 'serviceTrades' ? _DEFAULT_TRADES_FOR_SETTINGS : _DEFAULT_PERSONAL_TYPES_FOR_SETTINGS;
-    var containerId = docKey === 'serviceTrades' ? 'settingsTradesList' : 'settingsPersonalTypesList';
+    var cfg = _LOOKUP_LIST_CONFIG[docKey] || { containerId: '', defaults: [] };
+    var defaults    = cfg.defaults;
+    var containerId = cfg.containerId;
 
     // Load current list, replace at index, save back
     var values = defaults.slice();
@@ -151,8 +161,9 @@ function _lookupCancelRename(docKey, index) {
 async function _lookupDelete(docKey, index) {
     if (!confirm('Delete this item?')) return;
 
-    var defaults    = docKey === 'serviceTrades' ? _DEFAULT_TRADES_FOR_SETTINGS : _DEFAULT_PERSONAL_TYPES_FOR_SETTINGS;
-    var containerId = docKey === 'serviceTrades' ? 'settingsTradesList' : 'settingsPersonalTypesList';
+    var cfg = _LOOKUP_LIST_CONFIG[docKey] || { containerId: '', defaults: [] };
+    var defaults    = cfg.defaults;
+    var containerId = cfg.containerId;
 
     var values = defaults.slice();
     try {
@@ -194,6 +205,21 @@ async function settingsAddPersonalType() {
     } catch (err) { alert('Error adding type.'); return; }
     input.value = '';
     _renderLookupList('personalContactTypes', 'settingsPersonalTypesList', _DEFAULT_PERSONAL_TYPES_FOR_SETTINGS);
+}
+
+/** Add a new business type from the settings page input. */
+async function settingsAddBusinessType() {
+    var input = document.getElementById('settingsBusinessTypeNewInput');
+    var val = input.value.trim();
+    if (!val) return;
+    try {
+        await userCol('lookups').doc('businessTypes').set(
+            { values: firebase.firestore.FieldValue.arrayUnion(val) },
+            { merge: true }
+        );
+    } catch (err) { alert('Error adding business type.'); return; }
+    input.value = '';
+    _renderLookupList('businessTypes', 'settingsBusinessTypesList', _DEFAULT_BUSINESS_TYPES_FOR_SETTINGS);
 }
 
 /**

@@ -4052,8 +4052,8 @@ async function openConvertToVisitModal(apptId) {
     modal.dataset.concernIds        = JSON.stringify(appt.concernIds  || []);
     modal.dataset.conditionIds      = JSON.stringify(appt.conditionIds || []);
 
-    // Date pre-filled to today, time from appointment
-    document.getElementById('acvDate').value = new Date().toISOString().slice(0, 10);
+    // Date pre-filled from the appointment's date (not today)
+    document.getElementById('acvDate').value = appt.date || new Date().toISOString().slice(0, 10);
     document.getElementById('acvTime').value = appt.time || '';
 
     // Visit type — pre-filled from appointment type

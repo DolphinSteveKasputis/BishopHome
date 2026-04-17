@@ -264,19 +264,54 @@ async function loadEventsForTarget(targetType, targetId, containerId, emptyState
             return;
         }
 
-        // Generate upcoming uncompleted occurrences
-        var allOccurrences = [];
+        var yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        var yesterdayStr = formatDateISO(yesterday);
+
+        // --- Overdue: past uncompleted occurrences (shown above upcoming) ---
+        var overdueOccs = [];
+        events.forEach(function(event) {
+            if (!event.date) return;
+            var eventStart = new Date(event.date + 'T00:00:00');
+            if (eventStart >= today) return; // hasn't started yet — not overdue
+
+            if (!event.recurring) {
+                if (!event.completed) {
+                    overdueOccs.push({
+                        eventId: event.id, title: event.title,
+                        description: event.description || '',
+                        occurrenceDate: event.date, recurring: null,
+                        completed: false, overdue: true,
+                        targetType: event.targetType || null,
+                        targetId: event.targetId || null,
+                        savedActionId: event.savedActionId || null,
+                        zoneIds: event.zoneIds || []
+                    });
+                }
+            } else {
+                var pastOccs = generateOccurrences(event, event.date, yesterdayStr);
+                pastOccs.forEach(function(occ) {
+                    if (!occ.completed) { occ.overdue = true; overdueOccs.push(occ); }
+                });
+            }
+        });
+        // Most-recent overdue first (same as main calendar overdue section)
+        overdueOccs.sort(function(a, b) {
+            return b.occurrenceDate.localeCompare(a.occurrenceDate);
+        });
+
+        // --- Upcoming: uncompleted occurrences from today forward ---
+        var upcomingOccs = [];
         events.forEach(function(event) {
             var occurrences = generateOccurrences(event, rangeStart, rangeEnd);
             var upcoming = occurrences.filter(function(occ) { return !occ.completed; });
-            allOccurrences = allOccurrences.concat(upcoming);
+            upcomingOccs = upcomingOccs.concat(upcoming);
         });
-
-        allOccurrences.sort(function(a, b) {
+        upcomingOccs.sort(function(a, b) {
             return a.occurrenceDate.localeCompare(b.occurrenceDate);
         });
 
-        if (allOccurrences.length === 0) {
+        if (overdueOccs.length === 0 && upcomingOccs.length === 0) {
             emptyState.textContent = 'No upcoming events in next ' + months + ' month' + (months === 1 ? '' : 's') + '.';
             emptyState.style.display = 'block';
             return;
@@ -289,7 +324,13 @@ async function loadEventsForTarget(targetType, targetId, containerId, emptyState
             loadEventsForTarget(targetType, targetId, containerId, emptyStateId, months);
         };
 
-        allOccurrences.forEach(function(occ) {
+        // Render overdue first (with orange badge), then upcoming
+        overdueOccs.forEach(function(occ) {
+            var card = createCalendarEventCard(occ, reloadFn);
+            card.classList.add('calendar-overdue-card');
+            container.appendChild(card);
+        });
+        upcomingOccs.forEach(function(occ) {
             var card = createCalendarEventCard(occ, reloadFn);
             container.appendChild(card);
         });

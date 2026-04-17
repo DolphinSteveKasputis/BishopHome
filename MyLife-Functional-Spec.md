@@ -1227,7 +1227,7 @@ Formerly named "Future Projects" — renamed to "Quick Task List" to distinguish
 3. Creates an Activity record on the linked entity (if `targetType`/`targetId` set)
 4. Marks the occurrence as completed (`completed = true` for one-time, adds date to `completedDates[]` for recurring)
 
-**Overdue section**: Past-due uncompleted events shown at the top with orange "OVERDUE" badge.
+**Overdue section**: Past-due uncompleted events shown at the top with orange "OVERDUE" badge. This applies both to the main calendar page (`loadOverdueEvents()`) and to every entity detail page calendar section (`loadEventsForTarget()`). On entity pages, overdue cards appear above the upcoming list so missed events (e.g. a recurring maintenance reminder) are never silently dropped — they stay visible until completed.
 
 **Delete recurring**: Shows warning that ALL occurrences will be removed.
 

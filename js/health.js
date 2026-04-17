@@ -804,6 +804,146 @@ async function renderVisitDetail(visit) {
     loadVisitLinkedMeds(visit.id);
     loadVisitLinkedConditions(visit.id);
     loadVisitLinkedBloodWork(visit.id);
+
+    // Journal button — "View Journal" if already linked, "Create Journal" otherwise
+    _updateVisitJournalBtn(visit);
+}
+
+/**
+ * Set the visit journal button label based on whether a linked journal entry exists.
+ * If the visit has a linkedJournalEntryId, verify it still exists in Firestore
+ * (guards against stale links if the user deleted the journal entry).
+ */
+async function _updateVisitJournalBtn(visit) {
+    var btn = document.getElementById('visitJournalBtn');
+    if (!btn) return;
+    if (visit.linkedJournalEntryId) {
+        try {
+            var snap = await userCol('journalEntries').doc(visit.linkedJournalEntryId).get();
+            if (snap.exists) {
+                btn.textContent = 'View Journal';
+                return;
+            }
+            // Stale link — clear it silently
+            userCol('healthVisits').doc(visit.id).update({ linkedJournalEntryId: null }).catch(function(){});
+            window.currentHealthVisit.linkedJournalEntryId = null;
+        } catch(e) { /* ignore — fall through to default */ }
+    }
+    btn.textContent = 'Create Journal';
+}
+
+/**
+ * Dispatched by the Visit Journal button.
+ * Either opens the existing linked journal entry or starts creation.
+ */
+function visitJournalAction() {
+    var visit = window.currentHealthVisit;
+    if (!visit) return;
+    if (visit.linkedJournalEntryId) {
+        // Navigate to the existing journal entry in edit mode
+        openEditJournalEntry(visit.linkedJournalEntryId);
+    } else {
+        createVisitJournalEntry();
+    }
+}
+
+/**
+ * Gather all visit data (including async sub-collections) and open the journal
+ * entry form pre-populated with labeled lines.
+ */
+async function createVisitJournalEntry() {
+    var visit = window.currentHealthVisit;
+    if (!visit) return;
+    var btn = document.getElementById('visitJournalBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Loading…'; }
+
+    try {
+        // --- Resolve facility name ---
+        var facilityName = '';
+        if (visit.facilityContactId) {
+            var fSnap = await userCol('people').doc(visit.facilityContactId).get();
+            facilityName = fSnap.exists ? (fSnap.data().name || '') : '';
+        } else if (visit.facilityText) {
+            facilityName = visit.facilityText;
+        }
+
+        // --- Resolve provider name ---
+        var providerName = visit.providerText || visit.provider || '';
+        if (visit.providerContactId) {
+            var pSnap = await userCol('people').doc(visit.providerContactId).get();
+            if (pSnap.exists) providerName = pSnap.data().name || providerName;
+        }
+
+        // --- Resolve concern/condition names covered ---
+        var coveredNames = [];
+        var concernIds   = visit.concernIds   || [];
+        var conditionIds = visit.conditionIds || [];
+        await Promise.all([
+            ...concernIds.map(async function(cid) {
+                var s = await userCol('concerns').doc(cid).get();
+                if (s.exists) coveredNames.push(s.data().title || cid);
+            }),
+            ...conditionIds.map(async function(cid) {
+                var s = await userCol('conditions').doc(cid).get();
+                if (s.exists) coveredNames.push(s.data().name || cid);
+            })
+        ]);
+
+        // --- Visit notes (from concernUpdates + healthConditionLogs) ---
+        var [cUpdateSnap, condLogSnap] = await Promise.all([
+            userCol('concernUpdates').where('visitId', '==', visit.id).get(),
+            userCol('healthConditionLogs').where('visitId', '==', visit.id).get()
+        ]);
+        var visitNoteLines = [];
+        await Promise.all([
+            ...cUpdateSnap.docs.filter(function(d) { return d.data().note; }).map(async function(d) {
+                var u = d.data();
+                var ns = await userCol('concerns').doc(u.concernId).get();
+                var name = ns.exists ? (ns.data().title || u.concernId) : u.concernId;
+                visitNoteLines.push(name + ': ' + u.note);
+            }),
+            ...condLogSnap.docs.filter(function(d) { return d.data().note; }).map(async function(d) {
+                var u = d.data();
+                var ns = await userCol('conditions').doc(u.conditionId).get();
+                var name = ns.exists ? (ns.data().name || u.conditionId) : u.conditionId;
+                visitNoteLines.push(name + ': ' + u.note);
+            })
+        ]);
+
+        // --- Medications ---
+        var medSnap = await userCol('medications').where('prescribedAtVisitId', '==', visit.id).get();
+        var medLines = medSnap.docs.map(function(d) {
+            var m = d.data();
+            return m.name + (m.dosage ? ' — ' + m.dosage : '');
+        }).filter(Boolean);
+
+        // --- Assemble labeled lines (skip any that are blank) ---
+        var lines = [];
+        var add = function(label, value) {
+            if (value && value.trim()) lines.push(label + ': ' + value.trim());
+        };
+        add('Facility',        facilityName);
+        add('Provider',        providerName);
+        add('Provider Type',   visit.providerType || '');
+        add('Reason for Visit', visit.reason       || '');
+        add('What Was Done',   visit.whatWasDone   || '');
+        add('Outcome / Next Steps', visit.outcome  || '');
+        add('Cost',            visit.cost ? '$' + visit.cost : '');
+        add('Notes',           visit.notes         || '');
+        if (coveredNames.length > 0)  lines.push('Conditions / Concerns: ' + coveredNames.join(', '));
+        if (visitNoteLines.length > 0) lines.push('Visit Notes:\n' + visitNoteLines.map(function(l) { return '  ' + l; }).join('\n'));
+        if (medLines.length > 0)       lines.push('Medications Prescribed:\n' + medLines.map(function(l) { return '  ' + l; }).join('\n'));
+
+        var preText = lines.join('\n');
+
+        // Open the journal entry form pre-filled, passing visit linkage context
+        openVisitJournalEntryPreFilled(visit.date, preText, visit.id);
+
+    } catch(err) {
+        console.error('createVisitJournalEntry error:', err);
+        alert('Error preparing journal entry. See console for details.');
+        if (btn) { btn.disabled = false; btn.textContent = 'Create Journal'; }
+    }
 }
 
 function loadVisitLinkedMeds(visitId) {

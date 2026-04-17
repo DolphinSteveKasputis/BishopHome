@@ -62,6 +62,19 @@ window.currentTrackingItem = null;
 /** True when the journal-entry page is in edit mode. */
 window.journalEditMode = false;
 
+/**
+ * When the journal entry was opened from a health visit, this holds the visit's
+ * Firestore ID so saveJournalEntry() can write the back-link.
+ * Null when opening a normal journal entry.
+ */
+window._journalSourceVisitId = null;
+
+/**
+ * Where the Cancel button navigates. Normally '#journal'; set to the visit
+ * detail route when opening from a health visit so Cancel goes back there.
+ */
+window._journalCancelTarget = '#journal';
+
 /** True when the journal-tracking page is in edit mode. */
 window.journalTrackingEditMode = false;
 
@@ -719,8 +732,10 @@ function journalGoToDate() {
  * Called by the "New Entry" button.
  */
 function openAddJournalEntry() {
-    window.journalEditMode = false;
-    window.currentJournalEntry = null;
+    window.journalEditMode       = false;
+    window.currentJournalEntry   = null;
+    window._journalSourceVisitId = null;
+    window._journalCancelTarget  = '#journal';
     _journalMentionedPersonIds = new Set();   // fresh mention set for new entry
     _journalPeopleCache = null;               // refresh people list
     _updateMentionChips();                    // clear any chips from previous session
@@ -742,6 +757,10 @@ function openAddJournalEntry() {
     if (textEl)   textEl.value = '';
     if (deleteBtn) deleteBtn.classList.add('hidden');
 
+    // Hide "View Visit" button (not relevant for regular journal entries)
+    var visitBtn = document.getElementById('journalVisitSourceBtn');
+    if (visitBtn) visitBtn.classList.add('hidden');
+
     // Clear links
     var linksContainer = document.getElementById('journalLinksContainer');
     if (linksContainer) linksContainer.innerHTML = '';
@@ -759,6 +778,66 @@ function openAddJournalEntry() {
     var crumb = document.getElementById('breadcrumbBar');
     if (crumb) crumb.innerHTML = '<a href="#life">Life</a><span class="separator">&rsaquo;</span><a href="#journal">Journal</a><span class="separator">&rsaquo;</span><span>Entry</span>';
 
+}
+
+/**
+ * Open the journal entry form pre-filled with health visit data.
+ * Called by createVisitJournalEntry() in health.js.
+ * @param {string} visitDate  - YYYY-MM-DD date string from the visit
+ * @param {string} preText    - Pre-assembled labeled text to populate the textarea
+ * @param {string} visitId    - Firestore ID of the health visit (for back-linking)
+ */
+function openVisitJournalEntryPreFilled(visitDate, preText, visitId) {
+    window.journalEditMode     = false;
+    window.currentJournalEntry = null;
+    window._journalSourceVisitId = visitId;
+    window._journalCancelTarget  = '#health-visit/' + visitId;
+
+    _journalMentionedPersonIds = new Set();
+    _journalPeopleCache = null;
+    _updateMentionChips();
+    _journalPlaceIds = new Set();
+    _updateJournalPlaceChips();
+    _journalCheckinMode  = false;
+    _journalCheckinVenue = null;
+
+    var titleEl   = document.getElementById('journalEntryPageTitle');
+    var dateEl    = document.getElementById('journalEntryDate');
+    var timeEl    = document.getElementById('journalEntryTime');
+    var textEl    = document.getElementById('journalEntryText');
+    var deleteBtn = document.getElementById('journalEntryDeleteBtn');
+
+    if (titleEl)   titleEl.textContent = 'New Journal Entry';
+    if (dateEl)    dateEl.value  = visitDate || journalFormatDate(new Date());
+    if (timeEl)    timeEl.value  = '';
+    if (textEl)    textEl.value  = preText || '';
+    if (deleteBtn) deleteBtn.classList.add('hidden');
+
+    var linksContainer = document.getElementById('journalLinksContainer');
+    if (linksContainer) linksContainer.innerHTML = '';
+
+    var saveBtn = document.getElementById('journalEntrySaveBtn');
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save'; }
+
+    // Hide the "View Visit" button (not relevant until after save)
+    var visitBtn = document.getElementById('journalVisitSourceBtn');
+    if (visitBtn) visitBtn.classList.add('hidden');
+
+    _journalWireEntryPage();
+
+    window.location.hash = '#journal-entry';
+
+    var crumb = document.getElementById('breadcrumbBar');
+    if (crumb) crumb.innerHTML =
+        '<a href="#life">Life</a><span class="separator">&rsaquo;</span>' +
+        '<a href="#health-visits">Visits</a><span class="separator">&rsaquo;</span>' +
+        '<span>Journal Entry</span>';
+
+    // Focus textarea after navigation settles
+    setTimeout(function() {
+        var ta = document.getElementById('journalEntryText');
+        if (ta) ta.focus();
+    }, 100);
 }
 
 /**
@@ -818,6 +897,25 @@ async function openEditJournalEntry(id) {
         // Reset save button in case it was left in "Saving..." state
         var saveBtn = document.getElementById('journalEntrySaveBtn');
         if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save'; }
+
+        // "View Visit" button — shown only when this entry was created from a visit
+        var visitBtn = document.getElementById('journalVisitSourceBtn');
+        if (visitBtn) {
+            if (data.sourceVisitId) {
+                visitBtn.classList.remove('hidden');
+                visitBtn.onclick = function() {
+                    window.location.hash = '#health-visit/' + data.sourceVisitId;
+                };
+            } else {
+                visitBtn.classList.add('hidden');
+            }
+        }
+
+        // Cancel goes back to the visit if sourced from one, otherwise journal feed
+        window._journalSourceVisitId = null;  // editing existing — no re-link needed
+        window._journalCancelTarget  = data.sourceVisitId
+            ? '#health-visit/' + data.sourceVisitId
+            : '#journal';
 
         // Wire buttons
         _journalWireEntryPage();
@@ -886,7 +984,11 @@ function _journalWireEntryPage() {
     var deleteBtn = document.getElementById('journalEntryDeleteBtn');
 
     if (saveBtn)   saveBtn.onclick   = saveJournalEntry;
-    if (cancelBtn) cancelBtn.onclick = function() { window.location.hash = '#journal'; };
+    if (cancelBtn) cancelBtn.onclick = function() {
+        window.location.hash = window._journalCancelTarget || '#journal';
+        window._journalCancelTarget  = '#journal';
+        window._journalSourceVisitId = null;
+    };
     if (deleteBtn) deleteBtn.onclick = function() {
         if (window.currentJournalEntry) {
             deleteJournalEntry(window.currentJournalEntry.id);
@@ -967,7 +1069,7 @@ async function saveJournalEntry() {
             await _syncJournalMentionInteractions(entryId, date, text, mentionedIds);
         } else {
             // Add new entry — need the generated ID to link interactions
-            var ref = await userCol('journalEntries').add({
+            var newEntryData = {
                 date:               date,
                 entryTime:          entryTime,
                 entryText:          text,
@@ -976,13 +1078,32 @@ async function saveJournalEntry() {
                 links:              links,
                 isCheckin:          isCheckinEntry,
                 createdAt:          firebase.firestore.FieldValue.serverTimestamp()
-            });
+            };
+            // If opened from a health visit, store the back-link on the entry
+            var sourceVisitId = window._journalSourceVisitId || null;
+            if (sourceVisitId) newEntryData.sourceVisitId = sourceVisitId;
+
+            var ref = await userCol('journalEntries').add(newEntryData);
+
+            // Write the forward-link onto the visit so the button updates to "View Journal"
+            if (sourceVisitId) {
+                await userCol('healthVisits').doc(sourceVisitId).update({
+                    linkedJournalEntryId: ref.id
+                });
+                if (window.currentHealthVisit && window.currentHealthVisit.id === sourceVisitId) {
+                    window.currentHealthVisit.linkedJournalEntryId = ref.id;
+                }
+            }
+
             if (mentionedIds.length > 0) {
                 await _syncJournalMentionInteractions(ref.id, date, text, mentionedIds);
             }
         }
 
-        window.location.hash = '#journal';
+        var cancelTarget = window._journalCancelTarget || '#journal';
+        window._journalSourceVisitId = null;
+        window._journalCancelTarget  = '#journal';
+        window.location.hash = cancelTarget;
 
     } catch (err) {
         console.error('Error saving journal entry:', err);

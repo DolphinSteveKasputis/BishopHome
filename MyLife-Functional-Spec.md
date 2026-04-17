@@ -680,7 +680,7 @@ The Life section covers personal tracking — journal, people, health, notes, an
 Daily entry logging with optional tracking metrics.
 
 **Firestore**:
-- `journalEntries` — `date`, `entryTime` (HH:MM), `entryText`, `mentionedPersonIds[]`, `placeIds[]`, `isCheckin` (bool), `sourceEventId?`, `createdAt`, `updatedAt`
+- `journalEntries` — `date`, `entryTime` (HH:MM), `entryText`, `mentionedPersonIds[]`, `placeIds[]`, `isCheckin` (bool), `sourceEventId?`, `sourceVisitId?`, `createdAt`, `updatedAt`
 - `journalTrackingItems` — `date`, `category`, `value`, `createdAt`
 - `journalCategories` — `name`, `createdAt`
 - `lifeEventLogs` — `logDate`, `logTime`, `body`, `eventId`, `mentionedPersonIds[]`, `createdAt` (mini logs from Life Calendar)
@@ -764,7 +764,7 @@ Row 1: Conditions, Concerns | Row 2: Appointments, Health Visits | Row 3: Medica
 
 | Collection | Key Fields |
 |------------|------------|
-| `healthVisits` | date, type, provider (legacy), providerType (legacy), facilityContactId, providerContactId, concernIds[], conditionIds[], reason, whatWasDone, outcome, cost, notes |
+| `healthVisits` | date, type, provider (legacy), providerType (legacy), facilityContactId, providerContactId, concernIds[], conditionIds[], reason, whatWasDone, outcome, cost, notes, linkedJournalEntryId? |
 | `medications` | name, dosage, purpose, prescribedBy, startDate, endDate, status (active/completed), type (Ongoing/Short-term/As-needed), concernIds[], conditionIds[] |
 | `concerns` | title, bodyArea, startDate, status (open/resolved/promoted), resolvedDate, summary, promotedToConditionId, promotedDate |
 | `healthConcernLogs` | concernId, date, note, painScale?, type (manual/system/visit-note), visitId? |
@@ -1396,7 +1396,7 @@ All collections live under `/users/{uid}/`. Every module uses `userCol('collecti
 | `peopleImportantDates` | personId, label, month, day, year?, notes, createdAt |
 | `peopleInteractions` | personId, date, notes, createdAt |
 | `peopleCategories` | name, createdAt |
-| `journalEntries` | date, entryTime, entryText, mentionedPersonIds[], placeIds[], isCheckin, sourceEventId?, createdAt, updatedAt |
+| `journalEntries` | date, entryTime, entryText, mentionedPersonIds[], placeIds[], isCheckin, sourceEventId?, sourceVisitId?, createdAt, updatedAt |
 | `journalTrackingItems` | date, category, value, createdAt |
 | `journalCategories` | name, createdAt |
 | `lifeEvents` | title, description, startDate, endDate?, startTime?, endTime?, location? (manual text), locationContactId? (people doc ID), categoryId?, status, peopleIds[], notes?, miniLogEnabled, createdAt |
@@ -1409,7 +1409,7 @@ All collections live under `/users/{uid}/`. Every module uses `userCol('collecti
 
 | Collection | Key Fields |
 |------------|------------|
-| `healthVisits` | date, type, provider (legacy), providerType (legacy), facilityContactId, providerContactId, concernIds[], conditionIds[], reason, whatWasDone, outcome, cost, notes |
+| `healthVisits` | date, type, provider (legacy), providerType (legacy), facilityContactId, providerContactId, concernIds[], conditionIds[], reason, whatWasDone, outcome, cost, notes, linkedJournalEntryId? |
 | `medications` | name, dosage, purpose, prescribedBy, prescribedAtVisitId?, startDate, endDate, status, type, concernIds[], conditionIds[] |
 | `concerns` | title, bodyArea, startDate, status (open/resolved/promoted), resolvedDate, summary, promotedToConditionId?, promotedDate? |
 | `healthConcernLogs` | concernId, date, note, painScale?, type (manual/system/visit-note), visitId? |

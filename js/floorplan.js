@@ -734,7 +734,7 @@ function fpMakeDraggableRoom(poly, room) {
     poly.addEventListener('mousedown', function(eDown) {
         if (fpActiveTool !== 'select') return;
         if (fpActiveMode !== 'layout') return;
-        if (fpViewMode) return;
+        // View mode: allow clicks (for selection) but block dragging (handled in onMove)
         eDown.preventDefault();
         eDown.stopPropagation();
 
@@ -759,6 +759,7 @@ function fpMakeDraggableRoom(poly, room) {
         });
 
         function onMove(e) {
+            if (fpViewMode) return;   // no dragging in view mode — clicks still select
             var cur = fpMouseToFeet(e);
             var dx  = cur.x - startPt.x;
             var dy  = cur.y - startPt.y;
@@ -806,7 +807,7 @@ function fpMakeDraggableCeilingFixture(el, fix) {
     el.addEventListener('mousedown', function(eDown) {
         if (fpActiveTool !== 'select') return;
         if (fpActiveMode !== 'electrical') return;
-        if (fpViewMode) return;
+        // View mode: allow clicks (for selection) but block dragging (handled in onMove)
         eDown.preventDefault();
         eDown.stopPropagation();
 
@@ -815,6 +816,7 @@ function fpMakeDraggableCeilingFixture(el, fix) {
         var dragged  = false;
 
         function onMove(e) {
+            if (fpViewMode) return;   // no dragging in view mode
             var cur = fpMouseToFeet(e);
             dragged = true;
             fix.x = fpSnap(Math.max(0, Math.min(fpPlan.widthFt,  startX + cur.x - startPt.x)));
@@ -865,7 +867,7 @@ function fpMakeDraggableDoor(el, door) {
     el.addEventListener('mousedown', function(eDown) {
         if (fpActiveTool !== 'select') return;
         if (fpActiveMode !== 'layout') return;
-        if (fpViewMode) return;
+        // View mode: allow clicks (for selection) but block dragging (handled in onMove)
         eDown.preventDefault();
         eDown.stopPropagation();
 
@@ -873,6 +875,7 @@ function fpMakeDraggableDoor(el, door) {
         var startPt    = fpMouseToFeet(eDown);  // snapshot mousedown position
 
         function onMove(e) {
+            if (fpViewMode) return;   // no dragging in view mode
             var pt   = fpMouseToFeet(e);
             // Require at least 0.3 ft of movement before treating as a drag.
             // Prevents tiny touch-synthesis mousemove events from nudging the door.
@@ -906,7 +909,7 @@ function fpMakeDraggableWindow(el, win) {
     el.addEventListener('mousedown', function(eDown) {
         if (fpActiveTool !== 'select') return;
         if (fpActiveMode !== 'layout') return;
-        if (fpViewMode) return;
+        // View mode: allow clicks (for selection) but block dragging (handled in onMove)
         eDown.preventDefault();
         eDown.stopPropagation();
 
@@ -914,6 +917,7 @@ function fpMakeDraggableWindow(el, win) {
         var startPt = fpMouseToFeet(eDown);  // snapshot mousedown position
 
         function onMove(e) {
+            if (fpViewMode) return;   // no dragging in view mode
             var pt = fpMouseToFeet(e);
             // Require at least 0.3 ft of movement before treating as a drag.
             if (!dragged && Math.hypot(pt.x - startPt.x, pt.y - startPt.y) < 0.3) return;
@@ -945,12 +949,13 @@ function fpMakeDraggableOutlet(el, outlet) {
     el.style.cursor = 'grab';
     el.addEventListener('mousedown', function(eDown) {
         if (fpActiveTool !== 'select') return;
-        if (fpViewMode) return;
+        // View mode: allow clicks (for selection) but block dragging (handled in onMove)
         eDown.preventDefault();
         eDown.stopPropagation();
         var dragged = false;
 
         function onMove(e) {
+            if (fpViewMode) return;   // no dragging in view mode
             var room = (fpPlan.rooms || []).find(function(r) { return r.id === outlet.roomId; });
             if (!room) return;
             var pt = fpMouseToFeet(e);
@@ -980,12 +985,13 @@ function fpMakeDraggableSwitch(el, sw) {
     el.style.cursor = 'grab';
     el.addEventListener('mousedown', function(eDown) {
         if (fpActiveTool !== 'select') return;
-        if (fpViewMode) return;
+        // View mode: allow clicks (for selection) but block dragging (handled in onMove)
         eDown.preventDefault();
         eDown.stopPropagation();
         var dragged = false;
 
         function onMove(e) {
+            if (fpViewMode) return;   // no dragging in view mode
             var room = (fpPlan.rooms || []).find(function(r) { return r.id === sw.roomId; });
             if (!room) return;
             var pt = fpMouseToFeet(e);

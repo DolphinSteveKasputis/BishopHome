@@ -1511,8 +1511,8 @@ function _lcRenderEventForm(event, categories, prefillDate) {
                                    ${locMode === 'contacts' ? 'checked' : ''}> Contacts
                         </label>
                         <label class="lc-loc-radio-label" id="lcLocShowPersonalWrap"
-                               style="white-space:nowrap;${locMode !== 'contacts' ? ' display:none;' : ''}">
-                            <input type="checkbox" id="lcLocShowPersonal"> Show Personal
+                               ${locMode !== 'contacts' ? 'style="display:none;"' : ''}>
+                            <input type="checkbox" id="lcLocShowPersonal"><span>Show Personal</span>
                         </label>
                         <label class="lc-loc-radio-label">
                             <input type="radio" name="lcLocMode" value="manual"

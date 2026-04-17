@@ -118,11 +118,17 @@ async function clResolveContextFilter(ctx) {
     var result = Object.assign({}, ctx);
 
     if (ctx.type === 'zone') {
-        // BFS: find all zones that are descendants of ctx.id
+        // Fetch all zones in one query — used for both the name lookup and descendant BFS
         var snap = await userCol('zones').get();
         var allZones = {};
         snap.forEach(function(doc) { allZones[doc.id] = doc.data(); });
 
+        // If name is missing (e.g. after browser refresh), pull it from the fetched data
+        if (!result.name && ctx.id && allZones[ctx.id]) {
+            result.name = allZones[ctx.id].name;
+        }
+
+        // BFS: collect all descendant zone IDs
         var desc  = [];
         var queue = [ctx.id];
         while (queue.length) {
@@ -134,13 +140,28 @@ async function clResolveContextFilter(ctx) {
                 }
             });
         }
-        // filterIds includes the zone itself plus all descendants
         result.filterIds = [ctx.id].concat(desc);
 
     } else if (ctx.type === 'floor') {
+        // Fetch floor name if missing (refresh case)
+        if (!result.name && ctx.id) {
+            var floorDoc = await userCol('floors').doc(ctx.id).get();
+            if (floorDoc.exists) result.name = floorDoc.data().name;
+        }
         // Floor shows itself + all rooms on that floor
         var rSnap = await userCol('rooms').where('floorId', '==', ctx.id).get();
         result.filterIds = rSnap.docs.map(function(d) { return d.id; });
+
+    } else if (ctx.type === 'room' && !result.name && ctx.id) {
+        var roomDoc = await userCol('rooms').doc(ctx.id).get();
+        if (roomDoc.exists) result.name = roomDoc.data().name;
+
+    } else if (ctx.type === 'vehicle' && !result.name && ctx.id) {
+        var vDoc = await userCol('vehicles').doc(ctx.id).get();
+        if (vDoc.exists) {
+            var vd = vDoc.data();
+            result.name = [vd.year, vd.make, vd.model].filter(Boolean).join(' ') || 'Vehicle';
+        }
     }
 
     return result;

@@ -292,8 +292,26 @@ function handleRoute() {
         showPage('item');
         loadItemDetail(id);
     } else if (page === 'checklists') {
-        // Capture context BEFORE showPage (entity globals still reflect the page the user came from)
-        window.checklistsContext = clCaptureContext();
+        // Context is encoded in the hash: #checklists/{type}/{id?}
+        // e.g. #checklists/house, #checklists/zone/abc123, #checklists/yard
+        // This makes the context survive browser refresh.
+        var ctxType = parts[1] || null;
+        var ctxId   = parts[2] || null;
+        if (ctxType) {
+            // Restore context from hash (e.g. on refresh or back-navigation)
+            window.checklistsContext = { type: ctxType, id: ctxId || null };
+            // Set the nav bar to match the context so the right links show on refresh
+            if (ctxType === 'house' || ctxType === 'floor' || ctxType === 'room') {
+                currentNavContext = 'house';
+            } else if (ctxType === 'life') {
+                currentNavContext = 'life';
+            } else {
+                currentNavContext = 'yard';
+            }
+        } else {
+            // Direct navigation with no context in hash (e.g. old bookmark): capture from globals
+            window.checklistsContext = clCaptureContext();
+        }
         showPage('checklists');
         loadChecklistsPage();
     } else if (page === 'activityreport') {
@@ -567,6 +585,23 @@ if (signOutBtnMobileLife) {
 window.addEventListener('hashchange', handleRoute);
 
 /**
+ * Intercept all Checklists nav link clicks and replace the plain #checklists
+ * href with a context-aware hash like #checklists/house or #checklists/zone/id.
+ * This encodes the context in the URL so it survives browser refresh.
+ * Runs after the DOM is fully built (auth.js calls initApp which follows DOMContentLoaded).
+ */
+function _initChecklistsNavLinks() {
+    document.querySelectorAll('a[data-page="checklists"]').forEach(function(link) {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            var ctx  = clCaptureContext();
+            var hash = 'checklists/' + ctx.type + (ctx.id ? '/' + ctx.id : '');
+            window.location.hash = hash;
+        });
+    });
+}
+
+/**
  * Handle the Android (and desktop) back button.
  * If a modal is open, close it instead of letting the browser navigate away.
  * Because our routing uses hashchange (not popstate), this listener only fires
@@ -604,6 +639,7 @@ function initApp() {
         handleRoute();
     });
     _initTabIndentTextareas();
+    _initChecklistsNavLinks();
     console.log("Bishop app initialized.");
 }
 

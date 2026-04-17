@@ -890,9 +890,11 @@ async function openAddCalendarEventModal(targetType, targetId, reloadFn) {
         linkedEntityEl.style.display = 'none';
     }
 
-    // Show zone checkboxes — hidden for plant-linked events, visible otherwise
+    // Show zone checkboxes only for yard-type events (zone, weed, or standalone).
+    // Entity-linked events (plant, thing, room, vehicle, etc.) don't need a zone.
     var zoneSection = document.getElementById('calEventZoneSection');
-    if (targetType === 'plant') {
+    var isYardType = (!targetType || targetType === 'zone' || targetType === 'weed');
+    if (!isYardType) {
         zoneSection.style.display = 'none';
     } else {
         zoneSection.style.display = 'block';
@@ -959,14 +961,15 @@ async function openEditCalendarEventModal(eventId, reloadFn, occurrenceDate) {
         // Show delete button in edit mode
         document.getElementById('calEventDeleteBtn').style.display = 'inline-block';
 
-        // For plant-linked events: show read-only plant label, hide zone section.
-        // For everything else: hide label, show editable zone checkboxes.
+        // Entity-linked events (not zone/weed/standalone): show entity label, hide zone section.
+        // Zone/weed/standalone events: hide label, show editable zone checkboxes.
         var linkedEntityEl = document.getElementById('calEventLinkedEntity');
         var zoneSection = document.getElementById('calEventZoneSection');
+        var editIsYardType = (!event.targetType || event.targetType === 'zone' || event.targetType === 'weed');
 
-        if (event.targetType === 'plant' && event.targetId) {
-            var entityName = await resolveTargetName('plant', event.targetId);
-            linkedEntityEl.textContent = 'Linked to plant: ' + entityName;
+        if (!editIsYardType && event.targetId) {
+            var entityName = await resolveTargetName(event.targetType, event.targetId);
+            linkedEntityEl.textContent = 'Linked to: ' + entityName;
             linkedEntityEl.style.display = 'block';
             zoneSection.style.display = 'none';
         } else {
@@ -1092,10 +1095,12 @@ async function handleCalendarEventModalSave() {
         return;
     }
 
-    // Require at least one zone or plant to be linked
-    var isPlantLinked = (modal.dataset.targetType === 'plant') && !!modal.dataset.targetId;
-    if (!isPlantLinked && zoneIds.length === 0) {
-        alert('Please link this event to at least one zone (or open it from a plant page).');
+    // Zone selection is only required for standalone or yard-linked (zone/weed) events.
+    // Entity-linked events (plant, thing, room, vehicle, etc.) carry their own location context.
+    var saveTargetType = modal.dataset.targetType || '';
+    var isEntityLinked = saveTargetType && saveTargetType !== 'zone' && saveTargetType !== 'weed';
+    if (!isEntityLinked && zoneIds.length === 0) {
+        alert('Please link this event to at least one zone.');
         return;
     }
 
@@ -1239,9 +1244,28 @@ async function handleCalEventSavedActionSelect() {
  * @returns {Promise<string>} The entity name.
  */
 async function resolveTargetName(targetType, targetId) {
+    // Maps each targetType to its Firestore collection name
+    var TYPE_COLLECTION = {
+        plant:             'plants',
+        zone:              'zones',
+        weed:              'weeds',
+        floor:             'floors',
+        room:              'rooms',
+        thing:             'things',
+        subthing:          'subThings',
+        item:              'subThingItems',
+        structure:         'structures',
+        structurething:    'structureThings',
+        structuresubthing: 'structureSubThings',
+        vehicle:           'vehicles',
+        garageroom:        'garageRooms',
+        garagething:       'garageThings',
+        garagesubthing:    'garageSubThings'
+    };
     try {
-        var collection = targetType === 'plant' ? 'plants' : 'zones';
-        var doc = await userCol(collection).doc(targetId).get();
+        var col = TYPE_COLLECTION[targetType];
+        if (!col) return targetId;
+        var doc = await userCol(col).doc(targetId).get();
         if (doc.exists) return doc.data().name || targetId;
     } catch (e) { /* ignore */ }
     return targetId;

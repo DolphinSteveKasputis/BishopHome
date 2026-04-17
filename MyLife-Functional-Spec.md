@@ -1233,7 +1233,7 @@ Formerly named "Future Projects" — renamed to "Quick Task List" to distinguish
 
 **Multi-zone**: Events can be linked to multiple zones via `zoneIds[]`.
 
-**Entity-linked events**: Events on zone/plant/vehicle/house entity detail pages show only events for that entity.
+**Entity-linked events**: Events on zone/plant/vehicle/house entity detail pages show only events for that entity. When opening the Add Event modal from any non-yard entity page (plant, thing, subthing, item, floor, room, structure, structurething, structuresubthing, vehicle, garageroom, garagething, garagesubthing), the zone picker is hidden and no zone selection is required — the linked entity IS the location context. Zone selection is only required for standalone calendar events or events opened from a yard zone/weed page. The modal header shows "Adding event for: [entity name]" when opened from an entity page. Edit modal likewise hides the zone picker for existing entity-linked events and shows "Linked to: [entity name]".
 
 **Used by**: All sections (yard, house, garage, vehicles, life, structures)
 

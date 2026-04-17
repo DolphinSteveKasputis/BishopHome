@@ -611,13 +611,25 @@ async function clLoadCompletedRuns() {
 }
 
 /**
- * Builds a compact read-only card for one completed run.
+ * Builds an accordion card for one completed run.
+ * The header row (name, dates, Delete) is always visible.
+ * Clicking the card expands/collapses a read-only item list below.
  * @param {Object} run
  * @returns {HTMLElement}
  */
 function clBuildCompletedCard(run) {
     var card = document.createElement('div');
     card.className = 'cl-completed-card';
+
+    // ── Header row (always visible) ───────────────────────────
+    var header = document.createElement('div');
+    header.className = 'cl-completed-header';
+
+    // Chevron indicator shows expanded/collapsed state
+    var chevron = document.createElement('span');
+    chevron.className   = 'cl-completed-chevron';
+    chevron.textContent = '▶';
+    header.appendChild(chevron);
 
     var info = document.createElement('div');
     info.className = 'cl-completed-info';
@@ -644,14 +656,40 @@ function clBuildCompletedCard(run) {
                         ' · ' + doneCount + '/' + items.length + ' items done';
     info.appendChild(dates);
 
-    card.appendChild(info);
+    header.appendChild(info);
 
     var delBtn = document.createElement('button');
     delBtn.className   = 'btn btn-danger btn-small';
     delBtn.textContent = 'Delete';
     delBtn.style.flexShrink = '0';
-    delBtn.addEventListener('click', function() { clDeleteRun(run.id, 'completed'); });
-    card.appendChild(delBtn);
+    delBtn.addEventListener('click', function(e) {
+        e.stopPropagation();  // don't toggle accordion when clicking Delete
+        clDeleteRun(run.id, 'completed');
+    });
+    header.appendChild(delBtn);
+
+    card.appendChild(header);
+
+    // ── Item list (hidden by default, toggled on card click) ───
+    var itemsList = document.createElement('ul');
+    itemsList.className = 'cl-completed-items hidden';
+
+    items.forEach(function(item) {
+        var li = document.createElement('li');
+        li.className = item.done ? 'cl-completed-item cl-completed-item--done'
+                                 : 'cl-completed-item cl-completed-item--missed';
+        li.textContent = (item.done ? '✓ ' : '✗ ') + item.label;
+        itemsList.appendChild(li);
+    });
+
+    card.appendChild(itemsList);
+
+    // ── Toggle accordion on card click ─────────────────────────
+    card.addEventListener('click', function() {
+        var isOpen = !itemsList.classList.contains('hidden');
+        itemsList.classList.toggle('hidden', isOpen);
+        chevron.textContent = isOpen ? '▶' : '▼';
+    });
 
     return card;
 }

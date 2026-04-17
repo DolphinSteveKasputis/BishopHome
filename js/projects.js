@@ -379,7 +379,7 @@ async function loadYardProblemsPage() {
     if (!container) return;
     container.innerHTML = '<p class="empty-state">Loading…</p>';
     if (emptyState) emptyState.textContent = '';
-    if (bar) bar.innerHTML = '<a href="#home">Yard</a><span class="separator">&rsaquo;</span><span>Open Problems</span>';
+    if (bar) bar.innerHTML = '<a href="#zones">Yard</a><span class="separator">&rsaquo;</span><span>Open Problems</span>';
 
     try {
         var [problemSnap, zoneSnap, plantSnap, weedSnap] = await Promise.all([
@@ -491,8 +491,51 @@ async function renderYardProjectsPanel() {
  */
 function loadYardProjectsPage() {
     var bar = document.getElementById('breadcrumbBar');
-    if (bar) bar.innerHTML = '<a href="#home">Yard</a><span class="separator">&rsaquo;</span><span>All Quick Tasks</span>';
+    if (bar) bar.innerHTML = '<a href="#zones">Yard</a><span class="separator">&rsaquo;</span><span>All Quick Tasks</span>';
     loadAllProjects();
+}
+
+// ---------- Yard Checklists Panel ----------
+
+/**
+ * Render the "Checklists" panel card in the Yard More section.
+ * Shows a count of active (non-completed) runs scoped to the yard context
+ * (targetType === 'yard' OR targetType === 'zone').
+ * Clicking navigates to #checklists/yard.
+ */
+async function renderYardChecklistsPanel() {
+    var container = document.getElementById('yardChecklistsPanelContainer');
+    if (!container) return;
+
+    try {
+        // Fetch all active (non-completed) checklist runs and filter to yard context
+        var snap = await userCol('checklistRuns').where('completedAt', '==', null).get();
+        var count = 0;
+        snap.forEach(function(doc) {
+            var t = doc.data().targetType;
+            if (t === 'yard' || t === 'zone') count++;
+        });
+
+        var metaText = count === 0
+            ? 'No active checklists'
+            : count + ' active checklist' + (count !== 1 ? 's' : '');
+
+        var card = document.createElement('div');
+        card.className = 'card card--clickable';
+        card.innerHTML =
+            '<div class="card-main">' +
+                '<span class="card-title">Checklists</span>' +
+                '<span class="house-floor-meta"> &middot; ' + escapeHtml(metaText) + '</span>' +
+            '</div>' +
+            '<span class="card-arrow">›</span>';
+        card.addEventListener('click', function() {
+            window.location.hash = '#checklists/yard';
+        });
+        container.innerHTML = '';
+        container.appendChild(card);
+    } catch (err) {
+        console.error('renderYardChecklistsPanel error:', err);
+    }
 }
 
 // ---------- Create a Project Card Element ----------

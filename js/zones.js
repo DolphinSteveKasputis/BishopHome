@@ -45,12 +45,15 @@ async function loadZonesList() {
             container.appendChild(card);
         });
 
-        // Load the More section panels (All Problems, All Projects) and upcoming calendar events
+        // Load the More section panels (All Problems, All Projects, Checklists) and upcoming calendar events
         if (typeof renderYardProblemsPanel === 'function') {
             renderYardProblemsPanel();
         }
         if (typeof renderYardProjectsPanel === 'function') {
             renderYardProjectsPanel();
+        }
+        if (typeof renderYardChecklistsPanel === 'function') {
+            renderYardChecklistsPanel();
         }
         if (typeof loadHomeCalendar === 'function') {
             loadHomeCalendar();

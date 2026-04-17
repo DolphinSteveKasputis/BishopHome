@@ -175,9 +175,10 @@ See [Shared: Activities](#activities) for the full description. Nuances in the Y
 - Saved Actions: reusable templates to pre-fill activity description + chemical selection
 
 ### Yard "More" Section (`#home`)
-The yard main page has a **More** section below the zone list containing two panel cards:
+The yard main page has a **More** section below the zone list containing three panel cards:
 - **Open Problems** — shows count of open problems across zones, plants, and weeds; clicking navigates to `#yard-problems`
 - **All Quick Tasks** — shows count of all quick tasks across zones, plants, and weeds; clicking navigates to `#yard-projects`
+- **Checklists** — shows count of active (incomplete) checklist runs whose `targetType` is `yard` or `zone`; clicking navigates to `#checklists/yard`
 
 ### Yard Problems Page (`projects.js`)
 **Route**: `#yard-problems`
@@ -185,6 +186,7 @@ The yard main page has a **More** section below the zone list containing two pan
 Lists all open problems (`status === 'open'`) across zones, plants, and weeds. Each card shows the problem description and a location label (for plants: "Zone › Plant Name"; for zones/weeds: the entity name). Clicking navigates to the owning entity's detail page.
 
 **Breadcrumb**: Yard › Open Problems
+**"Yard" breadcrumb link**: navigates to `#zones` (the yard zones list page), not `#home`/`#main`
 
 ### Yard Quick Tasks Page (`projects.js`)
 **Route**: `#yard-projects`
@@ -192,6 +194,7 @@ Lists all open problems (`status === 'open'`) across zones, plants, and weeds. E
 Lists all quick tasks whose `targetType` is `zone`, `plant`, or `weed`. Each card is expandable and shows its title, target entity, and checklist.
 
 **Breadcrumb**: Yard › All Quick Tasks
+**"Yard" breadcrumb link**: navigates to `#zones` (the yard zones list page), not `#home`/`#main`
 
 ### Activity Reports (`activityreport.js`)
 - **Route**: `#activityreport`

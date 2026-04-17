@@ -1272,10 +1272,20 @@ Formerly named "Future Projects" — renamed to "Quick Task List" to distinguish
   - `targetType`: 'yard' | 'zone' | 'house' | 'floor' | 'room' | 'vehicle' | 'life'
   - `targetId`: Firestore ID of the entity, or null for top-level targets (yard/house/life)
   - `targetName`: human-readable label stored at save time (e.g., "Front Yard", "Kitchen")
-- **Runs** (`checklistRuns`): same `targetType`/`targetId`/`targetName` fields, copied from template at start time
-- **Template modal**: Location dropdown shows the full hierarchy for the current context (e.g., Yard → zones → subzones), defaulting to the entity the user was on when they clicked Checklists; full hierarchy shown so user can pick any level
+- **Runs** (`checklistRuns`): same `targetType`/`targetId`/`targetName` fields, copied from template at start time; `items` array is `[{label, done, note}]`
+- **Template modal**: Location dropdown shows the full hierarchy for the current context (e.g., Yard → zones → subzones), defaulting to the entity the user was on when they clicked Checklists; full hierarchy shown so user can pick any level. Delete button is inside the edit modal.
 - **Location badge**: shown on template/run cards in roll-up views (e.g., "📍 Front Yard")
 - **Context subtitle**: shown on the page header ("Showing: Front Yard (Zone)")
+- **Active run cards**:
+  - Progress bar shows done/total count
+  - **Edit mode**: toggled by an Edit/Done button on the card. In edit mode: ✕ remove buttons appear beside each item; a "+ Add item" input row appears at the bottom. Removing items never prompts to modify the template.
+  - **Adding items in edit mode**: if the run is derived from a template, user is prompted "Add to template too?" Adding items to a blank list never prompts.
+  - **Clear All button**: unchecks all items in-place without confirmation
+  - **Mark Complete**: moves run to the Completed section
+  - **Abandon button**: deletes the run after confirmation
+- **Per-item notes**: each item has a 📝 button that toggles an inline textarea. Note saves on blur or Enter. Escape discards changes. Note is displayed in muted italic below the item label when set.
+- **Blank lists**: "+ New Blank List" button in the Active section header creates a run with no template. Prompts for a name; inherits target context from the current page.
+- **Completed run accordion**: clicking a completed card expands/collapses a read-only item list (✓ done / ✗ missed). Notes are shown read-only below each item in the expanded view.
 
 ---
 

@@ -44,14 +44,16 @@ async function loadChecklistsPage() {
         subtitle.textContent = 'Showing: ' + clContextLabel(clCurrentContext);
     }
 
-    // Wire the "New Template" button and completed toggle exactly once
-    var addBtn = document.getElementById('addChecklistTemplateBtn');
-    var toggle = document.getElementById('clShowCompletedToggle');
+    // Wire buttons exactly once (guards against re-entry on repeated page loads)
+    var addBtn   = document.getElementById('addChecklistTemplateBtn');
+    var blankBtn = document.getElementById('addBlankChecklistBtn');
+    var toggle   = document.getElementById('clShowCompletedToggle');
 
     if (!addBtn.dataset.wired) {
         addBtn.dataset.wired = 'true';
 
         addBtn.addEventListener('click', clOpenAddTemplateModal);
+        blankBtn.addEventListener('click', clNewBlankList);
 
         toggle.addEventListener('change', function() {
             var completedDiv   = document.getElementById('clCompletedContainer');
@@ -263,6 +265,7 @@ async function clLoadActiveRuns() {
 
 /**
  * Builds a full interactive card for one active run.
+ * Includes edit mode (add/remove items), per-item notes, and progress bar.
  * @param {Object} run — Run document data including id.
  * @returns {HTMLElement}
  */
@@ -277,7 +280,6 @@ function clBuildRunCard(run) {
     title.textContent = run.templateName || 'Checklist';
     card.appendChild(title);
 
-    // Location badge (shown on roll-up views so user knows which entity it belongs to)
     if (run.targetName) {
         var badge = document.createElement('div');
         badge.className   = 'cl-target-badge';
@@ -291,53 +293,30 @@ function clBuildRunCard(run) {
     card.appendChild(dateEl);
 
     // ── Progress bar ──────────────────────────────────────────
-    var items    = run.items || [];
+    var items     = run.items || [];
     var doneCount = items.filter(function(i) { return i.done; }).length;
-    var total    = items.length;
+    var total     = items.length;
 
     var progressRow = document.createElement('div');
     progressRow.className = 'cl-progress-row';
-
-    var bar = document.createElement('div');
+    var bar  = document.createElement('div');
     bar.className = 'cl-progress-bar';
     var fill = document.createElement('div');
     fill.className = 'cl-progress-fill';
     fill.style.width = total > 0 ? Math.round(doneCount / total * 100) + '%' : '0%';
     bar.appendChild(fill);
-
     var progressText = document.createElement('span');
     progressText.className   = 'cl-progress-text';
     progressText.textContent = doneCount + ' / ' + total + ' done';
-
     progressRow.appendChild(bar);
     progressRow.appendChild(progressText);
     card.appendChild(progressRow);
 
-    // ── Item checklist ────────────────────────────────────────
-    var list = document.createElement('ul');
-    list.className = 'cl-item-list';
+    // ── Item list ─────────────────────────────────────────────
+    card.appendChild(clBuildItemsListEl(run.id, items, card));
 
-    items.forEach(function(item, idx) {
-        var li = document.createElement('li');
-        li.className = 'cl-item';
-
-        var cb = document.createElement('input');
-        cb.type    = 'checkbox';
-        cb.checked = !!item.done;
-        cb.addEventListener('change', function() {
-            clToggleItem(run.id, cb.checked, idx, card);
-        });
-
-        var label = document.createElement('span');
-        label.className   = 'cl-item-label' + (item.done ? ' cl-item-label--done' : '');
-        label.textContent = item.label;
-
-        li.appendChild(cb);
-        li.appendChild(label);
-        list.appendChild(li);
-    });
-
-    card.appendChild(list);
+    // ── Add-item row (visible in edit mode only) ───────────────
+    card.appendChild(clBuildAddItemRow(run.id, run.templateId || null, card));
 
     // ── Action buttons ────────────────────────────────────────
     var actions = document.createElement('div');
@@ -346,30 +325,327 @@ function clBuildRunCard(run) {
     var completeBtn = document.createElement('button');
     completeBtn.className   = 'btn btn-primary btn-small';
     completeBtn.textContent = 'Mark Complete';
-    completeBtn.addEventListener('click', function() {
-        clMarkRunComplete(run.id);
-    });
+    completeBtn.addEventListener('click', function() { clMarkRunComplete(run.id); });
 
     var clearBtn = document.createElement('button');
     clearBtn.className   = 'btn btn-secondary btn-small';
     clearBtn.textContent = 'Clear All';
-    clearBtn.addEventListener('click', function() {
-        clClearAllItems(run.id, card);
+    clearBtn.addEventListener('click', function() { clClearAllItems(run.id, card); });
+
+    // Edit toggle button — shows/hides remove buttons and add-item row
+    var editBtn = document.createElement('button');
+    editBtn.className   = 'btn btn-secondary btn-small';
+    editBtn.textContent = 'Edit';
+    editBtn.addEventListener('click', function() {
+        var editing = card.classList.toggle('cl-run-card--editing');
+        editBtn.textContent = editing ? 'Done' : 'Edit';
     });
 
     var deleteBtn = document.createElement('button');
     deleteBtn.className   = 'btn btn-danger btn-small';
     deleteBtn.textContent = 'Abandon';
-    deleteBtn.addEventListener('click', function() {
-        clDeleteRun(run.id, 'active');
-    });
+    deleteBtn.addEventListener('click', function() { clDeleteRun(run.id, 'active'); });
 
     actions.appendChild(completeBtn);
     actions.appendChild(clearBtn);
+    actions.appendChild(editBtn);
     actions.appendChild(deleteBtn);
     card.appendChild(actions);
 
     return card;
+}
+
+/**
+ * Builds the <ul> item list for a run card.
+ * Extracted so it can be rebuilt in-place after add/remove operations
+ * without re-rendering the whole card.
+ * @param {string}      runId
+ * @param {Array}       items
+ * @param {HTMLElement} card  — Parent card (used by item event handlers).
+ * @returns {HTMLElement}
+ */
+function clBuildItemsListEl(runId, items, card) {
+    var list = document.createElement('ul');
+    list.className = 'cl-item-list';
+    items.forEach(function(item, idx) {
+        list.appendChild(clBuildItemEl(runId, item, idx, card));
+    });
+    return list;
+}
+
+/**
+ * Builds one <li> for an active run item.
+ * Contains: checkbox, label, 📝 note button, ✕ remove button (edit-mode only),
+ * an inline note textarea (toggled by 📝), and a read-only note display.
+ */
+function clBuildItemEl(runId, item, idx, card) {
+    var li = document.createElement('li');
+    li.className = 'cl-item';
+
+    // ── Main row: checkbox + label + buttons ───────────────────
+    var row = document.createElement('div');
+    row.className = 'cl-item-row';
+
+    var cb = document.createElement('input');
+    cb.type    = 'checkbox';
+    cb.checked = !!item.done;
+    cb.addEventListener('change', function() {
+        clToggleItem(runId, cb.checked, idx, card);
+    });
+
+    var label = document.createElement('span');
+    label.className   = 'cl-item-label' + (item.done ? ' cl-item-label--done' : '');
+    label.textContent = item.label;
+
+    // 📝 note button — toggles inline note editor
+    var noteBtn = document.createElement('button');
+    noteBtn.type      = 'button';
+    noteBtn.className = 'cl-item-note-btn';
+    noteBtn.title     = item.note ? 'Edit note' : 'Add note';
+    noteBtn.textContent = '📝';
+
+    // ✕ remove button — only visible when card has cl-run-card--editing class
+    var removeBtn = document.createElement('button');
+    removeBtn.type        = 'button';
+    removeBtn.className   = 'cl-item-remove-btn-run';
+    removeBtn.title       = 'Remove item';
+    removeBtn.textContent = '✕';
+    removeBtn.addEventListener('click', function() {
+        clRemoveItemFromRun(runId, idx, card);
+    });
+
+    row.appendChild(cb);
+    row.appendChild(label);
+    row.appendChild(noteBtn);
+    row.appendChild(removeBtn);
+    li.appendChild(row);
+
+    // ── Note display (shown read-only when a note exists) ──────
+    var noteDisplay = document.createElement('div');
+    noteDisplay.className = 'cl-item-note-text' + (item.note ? '' : ' hidden');
+    noteDisplay.textContent = item.note || '';
+    li.appendChild(noteDisplay);
+
+    // ── Note editor (hidden; toggled by 📝 button) ─────────────
+    var noteWrap = document.createElement('div');
+    noteWrap.className = 'cl-item-note-wrap hidden';
+    var noteInput = document.createElement('textarea');
+    noteInput.className   = 'cl-item-note-input';
+    noteInput.placeholder = 'Add a note…';
+    noteInput.value       = item.note || '';
+    noteInput.rows        = 2;
+    noteWrap.appendChild(noteInput);
+    li.appendChild(noteWrap);
+
+    // Helper: saves note value and collapses the editor
+    function collapseNoteEditor() {
+        var text = noteInput.value.trim();
+        noteWrap.classList.add('hidden');
+        noteDisplay.textContent = text;
+        noteDisplay.classList.toggle('hidden', !text);
+        noteBtn.title = text ? 'Edit note' : 'Add note';
+        clSaveItemNote(runId, idx, text);
+    }
+
+    // 📝 button: open if closed, save+close if open
+    noteBtn.addEventListener('click', function() {
+        if (!noteWrap.classList.contains('hidden')) {
+            collapseNoteEditor();
+        } else {
+            noteWrap.classList.remove('hidden');
+            noteInput.focus();
+            noteInput.select();
+        }
+    });
+
+    // Also save on blur (user clicks away) and on Ctrl+Enter / Enter
+    noteInput.addEventListener('blur', collapseNoteEditor);
+    noteInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            collapseNoteEditor();
+        }
+        if (e.key === 'Escape') {
+            noteInput.value = item.note || '';  // discard changes
+            noteWrap.classList.add('hidden');
+        }
+    });
+
+    return li;
+}
+
+/**
+ * Builds the add-item row shown at the bottom of the item list in edit mode.
+ * CSS hides it until the card has the cl-run-card--editing class.
+ * @param {string}      runId
+ * @param {string|null} templateId  — If set, prompts to add the item to the template too.
+ * @param {HTMLElement} card
+ * @returns {HTMLElement}
+ */
+function clBuildAddItemRow(runId, templateId, card) {
+    var row = document.createElement('div');
+    row.className = 'cl-add-item-row';
+
+    var input = document.createElement('input');
+    input.type        = 'text';
+    input.className   = 'cl-add-item-input';
+    input.placeholder = 'New item…';
+
+    var addBtn = document.createElement('button');
+    addBtn.type      = 'button';
+    addBtn.className = 'btn btn-secondary btn-small';
+    addBtn.textContent = '+ Add';
+
+    function doAdd() {
+        clAddItemToRun(runId, templateId, input.value, card, input);
+    }
+    addBtn.addEventListener('click', doAdd);
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); doAdd(); }
+    });
+
+    row.appendChild(input);
+    row.appendChild(addBtn);
+    return row;
+}
+
+/**
+ * Re-renders just the item list within a card after an add or remove.
+ * Preserves edit mode (card class is unchanged).
+ * Also refreshes the progress bar.
+ */
+function clRerenderRunItems(runId, items, templateId, card) {
+    var oldList = card.querySelector('.cl-item-list');
+    var newList = clBuildItemsListEl(runId, items, card);
+    card.replaceChild(newList, oldList);
+
+    // Rebuild the add-item row with the correct templateId in scope
+    var oldAddRow = card.querySelector('.cl-add-item-row');
+    var newAddRow = clBuildAddItemRow(runId, templateId, card);
+    card.replaceChild(newAddRow, oldAddRow);
+
+    // Refresh progress bar
+    var doneCount = items.filter(function(i) { return i.done; }).length;
+    var total     = items.length;
+    var fill = card.querySelector('.cl-progress-fill');
+    var text = card.querySelector('.cl-progress-text');
+    if (fill) fill.style.width = total > 0 ? Math.round(doneCount / total * 100) + '%' : '0%';
+    if (text) text.textContent = doneCount + ' / ' + total + ' done';
+}
+
+/**
+ * Adds a new item to an active run.
+ * If the run is derived from a template, offers to add the item there too.
+ * @param {string}           runId
+ * @param {string|null}      templateId
+ * @param {string}           label
+ * @param {HTMLElement}      card
+ * @param {HTMLInputElement} inputEl  — Cleared and re-focused after add.
+ */
+async function clAddItemToRun(runId, templateId, label, card, inputEl) {
+    label = (label || '').trim();
+    if (!label) return;
+
+    try {
+        var doc = await userCol('checklistRuns').doc(runId).get();
+        if (!doc.exists) return;
+
+        var items = (doc.data().items || []).concat([{ label: label, done: false, note: null }]);
+        await userCol('checklistRuns').doc(runId).update({ items: items });
+
+        // Offer to add to the template as well (template-derived runs only)
+        if (templateId) {
+            if (confirm('Add "' + label + '" to the template too?')) {
+                var tmplDoc = await userCol('checklistTemplates').doc(templateId).get();
+                if (tmplDoc.exists) {
+                    var tmplItems = (tmplDoc.data().items || []).concat([{ label: label }]);
+                    await userCol('checklistTemplates').doc(templateId).update({ items: tmplItems });
+                }
+            }
+        }
+
+        clRerenderRunItems(runId, items, templateId, card);
+        if (inputEl) { inputEl.value = ''; inputEl.focus(); }
+
+    } catch (err) {
+        console.error('Error adding item to run:', err);
+        alert('Error adding item. Please try again.');
+    }
+}
+
+/**
+ * Removes an item from a run by index.
+ * No template prompt — removals never propagate to the template.
+ * @param {string}      runId
+ * @param {number}      idx
+ * @param {HTMLElement} card
+ */
+async function clRemoveItemFromRun(runId, idx, card) {
+    try {
+        var doc = await userCol('checklistRuns').doc(runId).get();
+        if (!doc.exists) return;
+
+        var runData  = doc.data();
+        var items    = runData.items.filter(function(_, i) { return i !== idx; });
+        await userCol('checklistRuns').doc(runId).update({ items: items });
+
+        clRerenderRunItems(runId, items, runData.templateId || null, card);
+
+    } catch (err) {
+        console.error('Error removing item from run:', err);
+    }
+}
+
+/**
+ * Saves or clears the note for one item in a run.
+ * @param {string} runId
+ * @param {number} idx
+ * @param {string} noteText  — Empty string clears the note.
+ */
+async function clSaveItemNote(runId, idx, noteText) {
+    try {
+        var doc = await userCol('checklistRuns').doc(runId).get();
+        if (!doc.exists) return;
+
+        var items = doc.data().items;
+        items[idx] = Object.assign({}, items[idx], { note: noteText || null });
+        await userCol('checklistRuns').doc(runId).update({ items: items });
+
+    } catch (err) {
+        console.error('Error saving item note:', err);
+    }
+}
+
+/**
+ * Creates a brand-new blank run with no template and no items.
+ * Prompts for a name; inherits target from the current checklist context.
+ */
+async function clNewBlankList() {
+    var name = prompt('Name for this list:');
+    if (!name || !name.trim()) return;
+
+    var ctx = clCurrentContext || { type: 'yard' };
+
+    try {
+        await userCol('checklistRuns').add({
+            templateId:   null,
+            templateName: name.trim(),
+            targetType:   ctx.type || 'yard',
+            targetId:     ctx.id   || null,
+            targetName:   ctx.name || clContextLabel(ctx),
+            startedAt:    new Date().toISOString(),
+            completedAt:  null,
+            items:        [],
+            createdAt:    firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        clLoadActiveRuns();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    } catch (err) {
+        console.error('Error creating blank list:', err);
+        alert('Error creating list. Please try again.');
+    }
 }
 
 /**
@@ -743,7 +1019,19 @@ function clBuildCompletedCard(run) {
         var li = document.createElement('li');
         li.className = item.done ? 'cl-completed-item cl-completed-item--done'
                                  : 'cl-completed-item cl-completed-item--missed';
-        li.textContent = (item.done ? '✓ ' : '✗ ') + item.label;
+
+        var labelSpan = document.createElement('span');
+        labelSpan.textContent = (item.done ? '✓ ' : '✗ ') + item.label;
+        li.appendChild(labelSpan);
+
+        // Show note read-only below the label if one was recorded
+        if (item.note) {
+            var noteEl = document.createElement('div');
+            noteEl.className   = 'cl-completed-item-note';
+            noteEl.textContent = item.note;
+            li.appendChild(noteEl);
+        }
+
         itemsList.appendChild(li);
     });
 

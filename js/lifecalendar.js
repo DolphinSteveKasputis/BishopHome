@@ -667,15 +667,23 @@ function _lcGetFilteredEvents() {
     return _lcAllEvents.filter(function(ev) {
         var evDate = ev.startDate || '';
 
-        // For past events, bypass the status filter when:
-        //   - List view + "Show Past 30 Days" is on  (user wants attended/didntgo visible in the window)
-        //   - Grid view while browsing any month     (grid always shows past appointments; life events match)
-        // Only applies to upcoming-style filters; "Attended only" / "Missed only" filters are
+        // Bypass the status filter when we're looking at an upcoming-style filter but the
+        // event has already been marked attended/didntgo (it happened — still worth showing).
+        //
+        // Grid view: ALWAYS bypass for all dates.  The grid is a calendar visualisation —
+        //   health appointments already show unconditionally on the grid; life events should
+        //   match that behaviour.  An event marked "attended" (even if its scheduled date is
+        //   in the future, e.g. user went early) should stay visible on the grid.
+        //
+        // List view: bypass for events on or before today when "Show Past 30 Days" is on.
+        //   The list has an explicit status filter dropdown for past-only views.
+        //
+        // Only applies to upcoming-style filters; "Attended only" / "Missed only" are
         // already past-looking and intentional, so they keep their own status filter.
         var isUpcomingStyleFilter = (_lcStatusFilter === 'upcoming' || _lcStatusFilter === 'upcoming+attended');
         var bypassStatusFilter    = isUpcomingStyleFilter &&
-                                    evDate < todayStr &&
-                                    (_lcShowPast || _lcViewMode === 'grid');
+                                    (_lcViewMode === 'grid' ||
+                                     (evDate <= todayStr && _lcShowPast));
 
         if (!bypassStatusFilter) {
             // Status filter (upcoming/future events, and non-bypassed past events)

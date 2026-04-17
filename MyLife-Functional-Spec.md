@@ -862,7 +862,7 @@ Tracks major life events — trips, milestones, goals, relationships.
 - When OFF: list view shows only events/appointments with `startDate >= today` (for "Upcoming" and "Upcoming + Attended" status filters)
 - When ON: date cutoff extends to 30 days in the past; **attended and "didn't go" events within that window are also shown** — the status filter is relaxed for past events so nothing disappears after being marked
 - Does not apply to "Attended", "Missed", or "All" status filters — those are already past-looking and keep their own filter
-- **Grid view**: same relaxation applies — past events (any date before today) are shown regardless of status when an upcoming-style filter is active, so browsing previous months shows attended/missed events
+- **Grid view**: all life events are shown regardless of status filter (same as health appointments). Events on any date — past, today, or future — are always visible on the grid when an upcoming-style filter is active. This means an event marked "attended" (even if its scheduled date is today or in the future, e.g. user went early) remains visible on the grid.
 
 **Routes**: `#life-calendar` (list), `#life-event/{id}` (detail/edit), `#life-event/new` (create)
 

@@ -715,3 +715,203 @@ Adding people while writing:
 - `memories.js` must be added to `index.html` with a `?v=N` cache-busting version tag
 - Bump the version counter on ALL `<script>` tags and the CSS `<link>` tag when adding this file (currently at v=355/380)
 - Drag-and-drop: reuse or mirror the touch+mouse implementation from `top10lists.js`
+
+---
+
+## End to End Testing
+
+**Environment:** Preview server at http://localhost:8080  
+**Credentials:** skasputi@pattersoncompanies.com / steve2a2  
+**Resolutions tested:** Desktop (1280×800) and Mobile (375×667)
+
+Confirmation popups are suppressed via `window.confirm = () => true` injected before any destructive action.
+
+---
+
+### T1 — Navigation & Tile
+
+| Step | Action | Expected |
+|---|---|---|
+| T1.1 | Log in; navigate to Thoughts (`#thoughts`) | Thoughts landing shows Memories tile with amber gradient |
+| T1.2 | Tile label shows `Memories (N)` | Count matches number of memories in Firestore |
+| T1.3 | Click Memories tile | Navigates to `#memories` |
+| T1.4 | Breadcrumb shows `Thoughts › Memories` | Correct |
+
+---
+
+### T2 — Empty State & List Page
+
+| Step | Action | Expected |
+|---|---|---|
+| T2.1 | Open `#memories` with no memories | Shows "No memories yet" placeholder |
+| T2.2 | "In Progress only" filter — check | Shows "No in-progress memories" |
+| T2.3 | Uncheck filter | Returns to full list |
+
+---
+
+### T3 — Create Memory Flow
+
+| Step | Action | Expected |
+|---|---|---|
+| T3.1 | Click "+ New Memory" | Navigates to `#memory-create`; title input focused |
+| T3.2 | Breadcrumb shows `Thoughts › Memories › New Memory` | Correct |
+| T3.3 | Press Cancel | Returns to `#memories`; no doc created |
+| T3.4 | Click "+ New Memory" again; type "Summer Trip to the Lake"; blur (or Enter) | App creates Firestore doc, navigates to `#memory-edit/:id` |
+| T3.5 | Edit page loads with title pre-filled | Correct |
+
+---
+
+### T4 — Edit Page: Core Fields
+
+| Step | Action | Expected |
+|---|---|---|
+| T4.1 | Title field shows "Summer Trip to the Lake" | Correct |
+| T4.2 | "In Progress" checkbox is checked (default) | Correct |
+| T4.3 | Type `Fall of '87` in When field; tab away | sortDate recalculates; no error in console |
+| T4.4 | Type `Grandma's house` in Location field | Auto-saves after 1.5 s |
+| T4.5 | Type a multi-paragraph body in the textarea | Textarea grows as text is added |
+| T4.6 | Breadcrumb title updates to match the title field as you type | Correct |
+| T4.7 | Uncheck "In Progress" | Saves after 1.5 s |
+
+---
+
+### T5 — Tags
+
+| Step | Action | Expected |
+|---|---|---|
+| T5.1 | Tags section is visible | Shows any existing tags as pills |
+| T5.2 | Type `family` in "Add tag..." input; press Enter | Tag created; amber pill appears checked |
+| T5.3 | Type `vacation` in "Add tag..." input; press Enter | Second tag created and checked |
+| T5.4 | Click `family` pill to uncheck | Pill becomes unchecked; tag removed from memory |
+| T5.5 | Click `family` pill again to re-check | Pill checked; tag re-added |
+
+---
+
+### T6 — Body / Speak Button
+
+| Step | Action | Expected |
+|---|---|---|
+| T6.1 | "🎤 Speak" button is visible above body textarea | Correct |
+| T6.2 | Click Speak button | Button turns red "🔴 Listening..." (if browser supports speech) OR button is hidden (if not supported) |
+| T6.3 | Click again to stop | Button returns to "🎤 Speak" |
+
+---
+
+### T7 — @-Mention Autocomplete
+
+| Step | Action | Expected |
+|---|---|---|
+| T7.1 | In body textarea, type `@` | Dropdown appears (empty if no contacts match) |
+| T7.2 | Continue typing a contact's name | Dropdown filters to matching contacts |
+| T7.3 | Press Tab or Enter | First contact inserted as `@FirstName`; teal chip appears in People section |
+| T7.4 | People section header is now visible | Correct |
+| T7.5 | Chip links to `#contact/:id` | href is correct |
+
+---
+
+### T8 — ++ Free-Form Names
+
+| Step | Action | Expected |
+|---|---|---|
+| T8.1 | In body textarea, type `++Rob ` (with trailing space) | `++Rob` stripped from text; amber "Rob" chip appears in People section |
+| T8.2 | Type `++"Sally Smith" ` | `++"Sally Smith"` stripped; amber "Sally Smith" chip appears |
+| T8.3 | Both chips visible in People section | Correct |
+| T8.4 | Click × on "Rob" chip | Chip removed; auto-save triggers |
+| T8.5 | Type `++Rob` (no trailing space); blur textarea | Blur scan catches it; "Rob" chip re-appears |
+
+---
+
+### T9 — URL List
+
+| Step | Action | Expected |
+|---|---|---|
+| T9.1 | Links section is visible | Shows "Add URL" button |
+| T9.2 | Click "+ Add URL" | Inline form opens with label + URL inputs |
+| T9.3 | Leave label blank; type `https://example.com`; click Save | URL entry appears showing 🔗 https://example.com with pencil and × |
+| T9.4 | Click pencil | Inline form opens pre-filled |
+| T9.5 | Add label `Example Site`; click Save | Entry now shows "Example Site" as display text |
+| T9.6 | Click the link | Opens https://example.com in new tab |
+| T9.7 | Click × | Entry removed |
+
+---
+
+### T10 — Linked Memories
+
+| Step | Action | Expected |
+|---|---|---|
+| T10.1 | Create a second memory "Fishing with Dad" (new memory flow) | Second memory created |
+| T10.2 | On first memory edit page, Linked Memories section is visible | Shows "No linked memories yet" |
+| T10.3 | Click "Link a Memory" | Picker modal opens |
+| T10.4 | "Fishing with Dad" appears in the list | Correct |
+| T10.5 | Type part of title in search | List filters correctly |
+| T10.6 | Click "Fishing with Dad" | Modal closes; link appears in Linked Memories section |
+| T10.7 | Navigate to "Fishing with Dad" memory | Its Linked Memories section shows "Summer Trip to the Lake" (bidirectional) |
+| T10.8 | Click × (unlink) on one side | Link removed; both sides no longer show the link |
+
+---
+
+### T11 — Help Modal
+
+| Step | Action | Expected |
+|---|---|---|
+| T11.1 | Click `?` button (top-right of edit page) | Help modal opens |
+| T11.2 | Modal shows When field, @mention, ++Name explanations | Correct content |
+| T11.3 | Click "Got it" | Modal closes |
+
+---
+
+### T12 — Sort Order
+
+| Step | Action | Expected |
+|---|---|---|
+| T12.1 | Create a third memory "Christmas 1988" with When = `Christmas 1988` | Memory sorted by sortDate |
+| T12.2 | Return to memories list | Chronological order: Christmas 1988 → Fall of '87 → (undated memories at bottom) |
+| T12.3 | Drag a row to a different position | Row moves; no other rows jump; sortOrder updated |
+
+---
+
+### T13 — In Progress Filter
+
+| Step | Action | Expected |
+|---|---|---|
+| T13.1 | On list page, one memory has inProgress=true, one has false | Both visible by default |
+| T13.2 | Check "In Progress only" | Only in-progress memory shown |
+| T13.3 | Uncheck | All memories shown again |
+
+---
+
+### T14 — Cancel & Revert
+
+| Step | Action | Expected |
+|---|---|---|
+| T14.1 | Open a memory; change the title to "CHANGED TITLE" | Auto-save fires |
+| T14.2 | Wait 2 s (auto-save completes); change title to "CHANGED AGAIN" | Not yet saved |
+| T14.3 | Click Cancel before auto-save fires | Confirm dialog → app restores original title in Firestore; navigates to `#memories` |
+| T14.4 | Re-open the memory | Title is the pre-edit value (original, not "CHANGED AGAIN") |
+
+---
+
+### T15 — Delete Memory
+
+| Step | Action | Expected |
+|---|---|---|
+| T15.1 | On edit page for a linked memory, click "Delete Memory" | Confirm dialog → memory deleted; all `memoryLinks` referencing it deleted; navigates to `#memories` |
+| T15.2 | The other previously-linked memory no longer shows the link | Correct (link doc was deleted) |
+| T15.3 | Memories tile count on Thoughts page decrements | Correct |
+
+---
+
+### T16 — Mobile (375×667)
+
+Repeat the following at 375px viewport width:
+
+| Step | Action | Expected |
+|---|---|---|
+| T16.1 | Memories list: date text is hidden; In Progress badge is compact | Correct (CSS hides .memory-list-date at 480px) |
+| T16.2 | Header: "+ New Memory" button and filter label don't overflow | Wrap to second line if needed |
+| T16.3 | Edit page: all inputs full-width, no horizontal scroll | Correct |
+| T16.4 | Body textarea: visible, scrollable, no iOS clipping | Correct |
+| T16.5 | People chips wrap to multiple lines | Correct (flex-wrap) |
+| T16.6 | URL row: long URL truncates with ellipsis | Correct (text-overflow) |
+| T16.7 | Link picker modal: scrollable list | Correct (max-height + overflow-y) |
+| T16.8 | Drag handle: visible and tappable (44px min-height) | Correct |

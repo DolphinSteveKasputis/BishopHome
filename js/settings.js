@@ -417,9 +417,18 @@ function backupTimestamp() {
            pad(now.getMinutes());
 }
 
+// Subcollections nested under each lifeProjects document
+var LP_SUBCOLLECTIONS = [
+    'bookingPhotos', 'bookings', 'days', 'packingItems',
+    'planningGroups', 'projectLocations', 'projectNotes',
+    'projectPhotos', 'todoItems'
+];
+
 /**
  * Read all documents from a list of user collections and return as
  * a plain object: { collectionName: [ { id, data }, ... ], ... }
+ * For lifeProjects, each entry also includes a `subcollections` map
+ * with all nested subcollection docs so nothing is silently omitted.
  */
 async function backupReadCollections(collectionNames) {
     var result = {};
@@ -427,12 +436,32 @@ async function backupReadCollections(collectionNames) {
         var name = collectionNames[i];
         var snap = await userCol(name).get();
         result[name] = [];
+        // Must collect docs synchronously, then async-augment below
+        var entries = [];
         snap.forEach(function(doc) {
-            // Convert Firestore Timestamps to ISO strings so JSON.stringify works
             var raw  = doc.data();
             var data = backupSerialize(raw);
-            result[name].push({ id: doc.id, data: data });
+            entries.push({ id: doc.id, data: data });
         });
+        // For lifeProjects, read each project's subcollections
+        if (name === 'lifeProjects') {
+            for (var j = 0; j < entries.length; j++) {
+                var entry = entries[j];
+                entry.subcollections = {};
+                for (var s = 0; s < LP_SUBCOLLECTIONS.length; s++) {
+                    var subName = LP_SUBCOLLECTIONS[s];
+                    var subSnap = await userCol('lifeProjects').doc(entry.id).collection(subName).get();
+                    entry.subcollections[subName] = [];
+                    subSnap.forEach(function(sdoc) {
+                        entry.subcollections[subName].push({
+                            id: sdoc.id,
+                            data: backupSerialize(sdoc.data())
+                        });
+                    });
+                }
+            }
+        }
+        result[name] = entries;
     }
     return result;
 }
@@ -582,12 +611,32 @@ function restoreSetProgress(pct) {
 
 /**
  * Delete all documents in a user collection in batches of 400.
+ * For lifeProjects, also deletes each project's subcollections first.
  */
 async function restoreDeleteCollection(colName) {
     var snap = await userCol(colName).get();
     if (snap.empty) return;
-    var docs   = snap.docs;
-    var i      = 0;
+    var docs = snap.docs;
+    // Delete subcollections before parent docs to avoid orphans
+    if (colName === 'lifeProjects') {
+        for (var p = 0; p < docs.length; p++) {
+            for (var s = 0; s < LP_SUBCOLLECTIONS.length; s++) {
+                var subSnap = await userCol('lifeProjects').doc(docs[p].id).collection(LP_SUBCOLLECTIONS[s]).get();
+                if (!subSnap.empty) {
+                    var si = 0;
+                    while (si < subSnap.docs.length) {
+                        var batch = db.batch();
+                        subSnap.docs.slice(si, si + 400).forEach(function(sd) {
+                            batch.delete(sd.ref);
+                        });
+                        await batch.commit();
+                        si += 400;
+                    }
+                }
+            }
+        }
+    }
+    var i = 0;
     while (i < docs.length) {
         var batch = db.batch();
         var chunk = docs.slice(i, i + 400);
@@ -599,7 +648,8 @@ async function restoreDeleteCollection(colName) {
 
 /**
  * Write documents from a backup collection array in batches of 400.
- * Each entry is { id, data }.
+ * Each entry is { id, data }. For lifeProjects, also writes subcollections
+ * when the entry contains a `subcollections` map.
  */
 async function restoreWriteCollection(colName, docs) {
     var i = 0;
@@ -611,6 +661,28 @@ async function restoreWriteCollection(colName, docs) {
         });
         await batch.commit();
         i += 400;
+    }
+    // Write lifeProjects subcollections
+    if (colName === 'lifeProjects') {
+        for (var p = 0; p < docs.length; p++) {
+            var entry = docs[p];
+            if (!entry.subcollections) continue;
+            var subNames = Object.keys(entry.subcollections);
+            for (var s = 0; s < subNames.length; s++) {
+                var subName  = subNames[s];
+                var subDocs  = entry.subcollections[subName];
+                var si = 0;
+                while (si < subDocs.length) {
+                    var batch = db.batch();
+                    subDocs.slice(si, si + 400).forEach(function(sdoc) {
+                        var ref = userCol('lifeProjects').doc(entry.id).collection(subName).doc(sdoc.id);
+                        batch.set(ref, sdoc.data);
+                    });
+                    await batch.commit();
+                    si += 400;
+                }
+            }
+        }
     }
 }
 

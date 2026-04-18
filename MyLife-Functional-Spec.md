@@ -1172,6 +1172,15 @@ LLM is configured per-user in `userCol('settings').doc('llm')`:
 - `apiKey`: user's personal API key (stored behind auth, not in localStorage)
 - `model`: optional override (defaults: `gpt-4o-mini` for OpenAI, `grok-3` for xAI)
 
+#### Backup & Restore
+Two separate backup files — **data** (all Firestore collections) and **photos** (Base64 image data from the `photos` collection).
+
+**Data backup** covers all top-level `userCol()` collections defined in `BACKUP_DATA_COLLECTIONS` (67 collections spanning Yard, House, Garage, Vehicles, People, Health, Life, Thoughts, and Misc). Additionally, `lifeProjects` subcollections (`bookingPhotos`, `bookings`, `days`, `packingItems`, `planningGroups`, `projectLocations`, `projectNotes`, `projectPhotos`, `todoItems`) are embedded inside each project's backup entry under a `subcollections` map, so vacation itineraries, bookings, and packing lists are fully preserved.
+
+**Restore** reads the backup JSON, deletes then rewrites each collection. For `lifeProjects`, subcollections under each project doc are deleted first (to avoid orphans), then rewritten from the `subcollections` map in the backup entry.
+
+**Photos backup** is a separate file (can be large) — downloads just the `photos` collection.
+
 ### Chat (`chat.js`)
 Simple conversational AI interface.
 

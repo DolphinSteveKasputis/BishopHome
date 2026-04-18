@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=418">
+    <link rel="stylesheet" href="css/styles.css?v=460">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -8017,14 +8017,15 @@
                     <option value="newest">Newest First</option>
                     <option value="oldest">Oldest First</option>
                     <option value="az">A–Z</option>
+                    <option value="category">By Category</option>
                 </select>
                 <button class="btn btn-secondary" onclick="t10ApplySort()">Sort</button>
             </div>
             <div id="t10AccordionContainer"></div>
             <div class="t10-manage-categories-link">
-                <a href="#" onclick="return false;">Manage Categories</a>
-                <span style="color:#ccc; font-size:0.8rem;"> — coming in Phase 4</span>
+                <a href="#" onclick="t10ToggleManageCategories(); return false;">Manage Categories</a>
             </div>
+            <div id="t10ManageCatPanel" class="hidden t10-manage-panel"></div>
         </section>
 
         <!-- Page: Create / Edit Top 10 List (#top10list-create, #top10list-edit/:id) -->
@@ -8079,9 +8080,9 @@
     <script src="js/secondbrain.js?v=351"></script>
     <script src="js/sbissues.js?v=350"></script>
     <script src="js/places.js?v=350"></script>
-    <script src="js/thoughts.js?v=457"></script>
-    <script src="js/top10lists.js?v=457"></script>
-    <script src="js/app.js?v=457"></script>
+    <script src="js/thoughts.js?v=460"></script>
+    <script src="js/top10lists.js?v=460"></script>
+    <script src="js/app.js?v=460"></script>
 
 </body>
 </html>

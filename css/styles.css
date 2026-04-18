@@ -9573,3 +9573,84 @@ a.health-chip--link:hover { filter: brightness(0.93); }
     color: #6366f1;
     text-decoration: underline;
 }
+
+/* ── Category badge variants ── */
+.t10-cat-named {
+    background: #e0e7ff;
+    color: #4338ca;
+}
+
+/* ── Manage Categories panel ── */
+.t10-manage-panel {
+    margin-top: 16px;
+    padding: 16px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+}
+.t10-manage-cat-title {
+    margin: 0 0 12px 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #374151;
+}
+.t10-manage-cat-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+.t10-manage-cat-input {
+    flex: 1;
+}
+.t10-manage-cat-add {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #e2e8f0;
+}
+.t10-manage-cat-add .form-control {
+    flex: 1;
+}
+
+/* ── "Add New Category" inline area in create/edit form ── */
+.t10-add-new-cat-area {
+    margin-top: 8px;
+    padding: 12px;
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: 6px;
+}
+.t10-add-new-cat-btns {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+/* ── By-Category nested accordion ── */
+.t10-cat-group {
+    margin-bottom: 8px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+.t10-cat-group-header {
+    background: #f1f5f9;
+    padding: 10px 14px;
+}
+.t10-cat-group-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #374151;
+}
+.t10-cat-group-body {
+    padding: 8px;
+    background: #fff;
+}
+.t10-cat-group-body .t10-accordion-item {
+    margin-bottom: 6px;
+}
+.t10-cat-group-body .t10-accordion-item:last-child {
+    margin-bottom: 0;
+}

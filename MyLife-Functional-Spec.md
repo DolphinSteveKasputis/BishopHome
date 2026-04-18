@@ -1010,7 +1010,7 @@ Rich project management for the Life section — supports day-by-day itineraries
 **JS files**: `js/thoughts.js`, `js/top10lists.js`
 **Routes**: `#thoughts`, `#top10lists`, `#top10list-create`, `#top10list-edit/:id`
 **Nav context**: `THOUGHTS_PAGES` (amber tile on main landing; thoughts-specific nav bar with no links)
-**Firestore**: `top10lists` collection; sort pref in `userCol('settings').doc('thoughts')`
+**Firestore**: `top10lists`, `top10categories` collections; sort pref + seed flag in `userCol('settings').doc('thoughts')`
 
 ### Main Landing Tile (`#main`)
 - Thoughts card appears as the 4th tile on the main landing page (2×2 grid with Yard / House / Life)
@@ -1022,14 +1022,22 @@ Rich project management for the Life section — supports day-by-day itineraries
 - Breadcrumb: _(none — top-level page)_
 
 ### Top 10 Lists Page (`#top10lists`)
-- **Sort control**: dropdown (Newest First / Oldest First / A–Z) + Sort button
+- **Sort control**: dropdown (Newest First / Oldest First / A–Z / **By Category**) + Sort button
   - Selection is saved to `userCol('settings').doc('thoughts')` → `top10SortPref` and persists across devices
 - **Accordion list** of all Top 10 Lists:
-  - **Collapsed**: list name + "None" category badge
+  - **Flat sort** (Newest / Oldest / A–Z): single-level accordion, one item per row
+  - **By Category**: two-level nested accordion — outer groups are categories (None first, then alpha), inner items are lists
+  - **Collapsed**: list name + category badge (gray "None" or indigo named category)
   - **Expanded**: description (if any), read-only preview of ranks 1–10, Edit button
   - Edit button navigates to `#top10list-edit/:id`
   - Returning from create/edit: the saved list is auto-expanded
-- **"Manage Categories"** link at bottom (placeholder — active in Phase 4)
+- **"Manage Categories"** link at bottom — toggles inline Manage Categories panel:
+  - Lists all categories with Edit / Delete buttons per row
+  - Edit: unlocks the name input, swaps buttons to Save / Cancel
+  - Delete: confirms, removes category from Firestore, moves affected lists to None, re-renders
+  - Add field + Add button at bottom to create a new category
+- On first load, three default categories (Books, Movies, Music) are seeded into `top10categories`;
+  a `categoriesSeeded` flag is written to `userCol('settings').doc('thoughts')` to prevent re-seeding
 - Breadcrumb: Thoughts › Top 10 Lists
 
 ### Create / Edit Page (`#top10list-create` / `#top10list-edit/:id`)
@@ -1038,6 +1046,8 @@ Both routes share the `page-top10list-edit` HTML section.
 **Fields**:
 - Name (required)
 - Description (optional textarea)
+- **Category** (select): None + seeded/user categories + "+ Add New Category…"
+  - Choosing "+ Add New Category…" shows an inline input; Add saves to Firestore, inserts into select and selects it; Cancel restores prior selection
 
 **The List — 20 ranked slots**:
 - Always 20 slots visible; empty slots are allowed; no adding beyond 20
@@ -1049,7 +1059,7 @@ Both routes share the `page-top10list-edit` HTML section.
   - Click → inline textarea expands below the row (multi-line)
   - **Save** button commits and collapses; **Cancel** restores previous value; **Escape** key also cancels
 - **Delete List** button (edit mode only) — confirm dialog before deleting
-- Save → writes to Firestore, returns to `#top10lists` with the saved list auto-expanded
+- Save → writes to Firestore (including `categoryId`), returns to `#top10lists` with the saved list auto-expanded
 - Cancel → returns to `#top10lists` without saving
 - Breadcrumb: Thoughts › Top 10 Lists › New List (or Edit List)
 
@@ -1058,10 +1068,16 @@ Both routes share the `page-top10list-edit` HTML section.
 |-------|------|-------|
 | title | string | Required |
 | description | string | Optional |
-| categoryId | string\|null | FK → `top10categories` (Phase 4) |
+| categoryId | string\|null | FK → `top10categories`; null = "None" |
 | items | array | 20 `{title, notes}` objects in rank order |
 | createdAt | timestamp | |
 | updatedAt | timestamp | |
+
+### Firestore: `top10categories`
+| Field | Type | Notes |
+|-------|------|-------|
+| name | string | Category name |
+| createdAt | timestamp | |
 
 ---
 

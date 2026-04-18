@@ -233,16 +233,19 @@ function loadMemoryEditPage(id, opts) {
             inProgress:         data.inProgress !== false,
             tags:               (data.tags               || []).slice(),
             mentionedPersonIds: (data.mentionedPersonIds || []).slice(),
-            mentionedNames:     (data.mentionedNames     || []).slice()
+            mentionedNames:     (data.mentionedNames     || []).slice(),
+            urls:               (data.urls               || []).map(function(u) { return Object.assign({}, u); })
         };
-        _memCurrentTags  = (data.tags               || []).slice();
-        _memMentionedIds = new Set(data.mentionedPersonIds || []);
-        _memFreeformNames = (data.mentionedNames    || []).slice();
+        _memCurrentTags   = (data.tags               || []).slice();
+        _memMentionedIds  = new Set(data.mentionedPersonIds || []);
+        _memFreeformNames = (data.mentionedNames     || []).slice();
+        _memUrls          = (data.urls               || []).map(function(u) { return Object.assign({}, u); });
 
         _memPopulateEditFields(data);
         _memWireEditHandlers();
         _memLoadAndRenderTags(data.tags || []);
         _memRenderPeopleChips();
+        _memRenderUrls();
     }).catch(function(err) {
         console.error('loadMemoryEditPage error:', err);
     });
@@ -299,6 +302,9 @@ function _memWireEditHandlers() {
 
     var ipEl = fld('memoryEditInProgress');
     if (ipEl) ipEl.onchange = _memScheduleSave;
+
+    var addUrlBtn = fld('memoryAddUrlBtn');
+    if (addUrlBtn) addUrlBtn.onclick = function() { _memOpenUrlForm(-1); };
 
     var cancelBtn = fld('memoryEditCancel');
     if (cancelBtn) cancelBtn.onclick = _memHandleCancel;
@@ -901,6 +907,107 @@ function _memScanPlusPlusOnBlur(ta) {
 
     if (newText !== ta.value) ta.value = newText;
     if (anyFound) { _memRenderPeopleChips(); _memScheduleSave(); }
+}
+
+// ============================================================
+// M7 — URL LIST
+// ============================================================
+
+var _memUrls = []; // [{label, url}]
+
+function _memRenderUrls() {
+    var container = document.getElementById('memoryEditUrls');
+    var section   = document.getElementById('memoryUrlsSection');
+    if (!container) return;
+
+    if (section) section.classList.remove('hidden'); // always visible once wired
+
+    if (_memUrls.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    var html = _memUrls.map(function(entry, i) {
+        var display = _memEscape(entry.label || entry.url || '(no URL)');
+        var href    = _memEscape(entry.url || '');
+        return '<div class="memory-url-row" data-index="' + i + '">' +
+            '<a href="' + href + '" target="_blank" rel="noopener" class="memory-url-link">' +
+                '&#128279; ' + display +
+            '</a>' +
+            '<button class="memory-url-btn memory-url-edit-btn" title="Edit" data-index="' + i + '">&#9998;</button>' +
+            '<button class="memory-url-btn memory-url-delete-btn" title="Remove" data-index="' + i + '">&times;</button>' +
+        '</div>';
+    }).join('');
+
+    container.innerHTML = html;
+
+    container.querySelectorAll('.memory-url-edit-btn').forEach(function(btn) {
+        btn.onclick = function() { _memOpenUrlForm(parseInt(btn.dataset.index)); };
+    });
+    container.querySelectorAll('.memory-url-delete-btn').forEach(function(btn) {
+        btn.onclick = function() {
+            _memUrls.splice(parseInt(btn.dataset.index), 1);
+            _memRenderUrls();
+            _memSaveUrls();
+        };
+    });
+}
+
+// Show an inline edit/add form.  index = -1 means "new".
+function _memOpenUrlForm(index) {
+    var container = document.getElementById('memoryEditUrls');
+    if (!container) return;
+
+    var existing = index >= 0 ? _memUrls[index] : { label: '', url: '' };
+
+    // Replace the target row (or append) with an inline form
+    var rows = container.querySelectorAll('.memory-url-row');
+    var formHtml =
+        '<div class="memory-url-edit-form">' +
+            '<input type="text" class="memory-url-form-label" placeholder="Label (optional)" value="' + _memEscape(existing.label) + '" maxlength="100">' +
+            '<input type="url"  class="memory-url-form-url"   placeholder="https://..." value="' + _memEscape(existing.url) + '" maxlength="2048">' +
+            '<div class="memory-url-form-btns">' +
+                '<button class="btn btn-primary btn-sm" id="memUrlSaveBtn">Save</button>' +
+                '<button class="btn btn-secondary btn-sm" id="memUrlCancelBtn">Cancel</button>' +
+            '</div>' +
+        '</div>';
+
+    if (index >= 0 && rows[index]) {
+        rows[index].outerHTML = formHtml;
+    } else {
+        container.insertAdjacentHTML('beforeend', formHtml);
+    }
+
+    var form     = container.querySelector('.memory-url-edit-form');
+    var labelInp = form.querySelector('.memory-url-form-label');
+    var urlInp   = form.querySelector('.memory-url-form-url');
+
+    form.querySelector('#memUrlSaveBtn').onclick = function() {
+        var label = labelInp.value.trim();
+        var url   = urlInp.value.trim();
+        if (!url) { urlInp.focus(); return; }
+        if (index >= 0) {
+            _memUrls[index] = { label: label, url: url };
+        } else {
+            _memUrls.push({ label: label, url: url });
+        }
+        _memRenderUrls();
+        _memSaveUrls();
+    };
+
+    form.querySelector('#memUrlCancelBtn').onclick = function() {
+        _memRenderUrls();
+    };
+
+    urlInp.focus();
+}
+
+function _memSaveUrls() {
+    if (!_memId) return;
+    userCol('memories').doc(_memId).update({
+        urls:      _memUrls.slice(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).catch(function(err) { console.error('URL save error:', err); });
 }
 
 // ============================================================

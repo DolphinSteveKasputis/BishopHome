@@ -357,15 +357,51 @@ function loadBackupPage() {
 
 // Collections included in the DATA backup (everything except photos)
 var BACKUP_DATA_COLLECTIONS = [
-    'activities', 'breakerPanels', 'calendarEvents', 'chemicals',
+    // Yard / Garden
+    'activities', 'calendarEvents', 'chemicals', 'facts', 'plants',
+    'problems', 'projects', 'savedActions', 'weeds', 'zones',
+
+    // House / Structure
+    'breakerPanels', 'floorPlans', 'floors', 'gpsShapes',
+    'rooms', 'structures', 'structureSubThings', 'structureThings',
+
+    // Garage
+    'garageRooms', 'garageSubThings', 'garageThings',
+
+    // Things / Collections
     'collections', 'collectionItems',
-    'facts', 'floorPlans', 'floors', 'garageRooms', 'garageSubThings', 'garageThings',
-    'gpsShapes', 'journalCategories', 'journalEntries', 'journalTrackingItems',
-    'mileageLogs', 'plants',
-    'problems', 'projects', 'rooms', 'savedActions', 'settings',
-    'structures', 'structureSubThings', 'structureThings',
+    'subThings', 'subThingItems', 'tags', 'things',
+
+    // Vehicles
+    'mileageLogs', 'vehicles',
+
+    // Journal / Notes
+    'journalCategories', 'journalEntries', 'journalTrackingItems',
+    'notebooks', 'notes', 'places',
+
+    // People / Contacts
     'people', 'peopleCategories', 'peopleImportantDates', 'peopleInteractions',
-    'subThings', 'tags', 'things', 'vehicles', 'weeds', 'zones'
+
+    // Health
+    'allergies', 'appointments', 'bloodWorkRecords',
+    'checklistRuns', 'checklistTemplates',
+    'concernUpdates', 'concerns', 'conditions',
+    'distances', 'emergencyInfo', 'eyePrescriptions',
+    'healthAppointments', 'healthCareTeam', 'healthConditionLogs', 'healthVisits',
+    'insurancePolicies', 'medications', 'supplements', 'vaccinations', 'vitals',
+
+    // Life / Calendar
+    'lifeCategories', 'lifeEventLogs', 'lifeEvents', 'lifeProjects',
+    'locations', 'lookups',
+
+    // Thoughts — Top 10 Lists
+    'top10categories', 'top10lists',
+
+    // Thoughts — Memories
+    'memories', 'memoryLinks', 'memoryTags',
+
+    // Misc
+    'sbIssues', 'settings'
 ];
 
 /**

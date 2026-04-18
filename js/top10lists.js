@@ -198,8 +198,11 @@ function _t10RenderCategoryAccordion(container) {
 }
 
 function _t10BuildCategoryGroup(catId, catName, lists) {
+    // Auto-expand this group if it contains the list to highlight
+    var groupHasTarget = _t10ExpandId && lists.some(function(l) { return l.id === _t10ExpandId; });
+
     var wrapper = document.createElement('div');
-    wrapper.className = 'collapsible-section t10-cat-group';
+    wrapper.className = 'collapsible-section t10-cat-group' + (groupHasTarget ? '' : ' collapsed');
     if (catId) wrapper.dataset.catId = catId;
 
     var innerHtml = '';
@@ -211,10 +214,14 @@ function _t10BuildCategoryGroup(catId, catName, lists) {
         innerHtml += el.outerHTML;
     });
 
+    var countLabel = lists.length === 1 ? '1 list' : lists.length + ' lists';
+
     wrapper.innerHTML =
         '<div class="collapsible-header t10-cat-group-header" ' +
             'onclick="this.parentElement.classList.toggle(\'collapsed\')">' +
-            '<span class="t10-cat-group-name">' + escapeHtml(catName) + '</span>' +
+            '<span class="t10-cat-group-name">' + escapeHtml(catName) +
+                ' <span class="t10-cat-group-count">(' + countLabel + ')</span>' +
+            '</span>' +
             '<span class="collapsible-chevron">&#8250;</span>' +
         '</div>' +
         '<div class="collapsible-body t10-cat-group-body">' +

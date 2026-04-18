@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=469">
+    <link rel="stylesheet" href="css/styles.css?v=470">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -7989,6 +7989,46 @@
     </div>
 
         <!-- ══════════════════════════════════════════════
+             MEMORIES MODALS
+             ══════════════════════════════════════════════ -->
+
+        <!-- Memories: Link Picker -->
+        <div class="modal-overlay hidden" id="memoryLinkPickerModal">
+            <div class="modal">
+                <h3>Link a Memory</h3>
+                <input type="text" id="memoryLinkSearch" class="memory-link-search"
+                    placeholder="Search memories..." autocomplete="off">
+                <div id="memoryLinkPickerList" class="memory-link-picker-list"></div>
+                <div class="modal-buttons">
+                    <button class="btn btn-secondary" onclick="closeModal('memoryLinkPickerModal')">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Memories: Help Modal -->
+        <div class="modal-overlay hidden" id="memoryHelpModal">
+            <div class="modal">
+                <h3>Memory Tips</h3>
+                <div class="memory-help-body">
+                    <p><strong>When field</strong><br>
+                    Type anything — the app uses it to order the memory chronologically.<br>
+                    Examples: <em>Fall of '87</em>, <em>mid 80's</em>, <em>March 1992</em>, <em>Christmas 1988</em>, <em>early 70s</em>.<br>
+                    You can always drag rows to fine-tune the order.</p>
+
+                    <p><strong>@Name — mention a contact</strong><br>
+                    Type <code>@</code> followed by a name to search your contacts. Press Enter or Tab to insert the first match. A teal chip links to that person's contact page.</p>
+
+                    <p><strong>++Name — add a free-form person</strong><br>
+                    Type <code>++Rob</code> to add Rob to the People list without interrupting your writing — the <code>++</code> disappears and Rob appears as a chip.<br>
+                    Use quotes for multi-word names: <code>++"Rob Smith"</code>.</p>
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn btn-primary" onclick="closeModal('memoryHelpModal')">Got it</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════
              THOUGHTS SECTION
              ══════════════════════════════════════════════ -->
 
@@ -8192,8 +8232,8 @@
     <script src="js/places.js?v=350"></script>
     <script src="js/thoughts.js?v=465"></script>
     <script src="js/top10lists.js?v=465"></script>
-    <script src="js/memories.js?v=469"></script>
-    <script src="js/app.js?v=469"></script>
+    <script src="js/memories.js?v=470"></script>
+    <script src="js/app.js?v=470"></script>
 
 </body>
 </html>

@@ -246,6 +246,7 @@ function loadMemoryEditPage(id, opts) {
         _memLoadAndRenderTags(data.tags || []);
         _memRenderPeopleChips();
         _memRenderUrls();
+        _memLoadLinkedMemories();
     }).catch(function(err) {
         console.error('loadMemoryEditPage error:', err);
     });
@@ -305,6 +306,14 @@ function _memWireEditHandlers() {
 
     // Speak button — reuse journal.js voice-to-text helper
     initVoiceToText('memoryEditBody', 'memorySpeakBtn');
+
+    // Help button (M10)
+    var helpBtn = fld('memoryHelpBtn');
+    if (helpBtn) helpBtn.onclick = function() { openModal('memoryHelpModal'); };
+
+    // Link picker button (M9)
+    var linkBtn = fld('memoryLinkBtn');
+    if (linkBtn) linkBtn.onclick = _memOpenLinkPicker;
 
     var addUrlBtn = fld('memoryAddUrlBtn');
     if (addUrlBtn) addUrlBtn.onclick = function() { _memOpenUrlForm(-1); };
@@ -910,6 +919,149 @@ function _memScanPlusPlusOnBlur(ta) {
 
     if (newText !== ta.value) ta.value = newText;
     if (anyFound) { _memRenderPeopleChips(); _memScheduleSave(); }
+}
+
+// ============================================================
+// M9 — LINKED MEMORIES
+// ============================================================
+
+var _memLinkedDocs = []; // [{linkDocId, otherId, title, dateText}]
+
+function _memLoadLinkedMemories() {
+    if (!_memId) return;
+    var section = document.getElementById('memoryLinkedSection');
+    if (section) section.classList.remove('hidden');
+
+    userCol('memoryLinks').where('memoryIds', 'array-contains', _memId).get()
+        .then(function(snap) {
+            if (snap.empty) { _memLinkedDocs = []; _memRenderLinkedList(); return; }
+
+            var otherIds = snap.docs.map(function(d) {
+                var ids = d.data().memoryIds || [];
+                return { linkDocId: d.id, otherId: ids.find(function(i) { return i !== _memId; }) || null };
+            }).filter(function(x) { return x.otherId; });
+
+            // Fetch the other memory docs in parallel
+            var promises = otherIds.map(function(x) {
+                return userCol('memories').doc(x.otherId).get().then(function(doc) {
+                    return {
+                        linkDocId: x.linkDocId,
+                        otherId:   x.otherId,
+                        title:     doc.exists ? (doc.data().title || 'Untitled') : '(deleted)',
+                        dateText:  doc.exists ? (doc.data().dateText || '') : ''
+                    };
+                });
+            });
+
+            return Promise.all(promises).then(function(results) {
+                _memLinkedDocs = results;
+                _memRenderLinkedList();
+            });
+        })
+        .catch(function(err) { console.error('_memLoadLinkedMemories error:', err); });
+}
+
+function _memRenderLinkedList() {
+    var container = document.getElementById('memoryLinkedList');
+    if (!container) return;
+
+    if (_memLinkedDocs.length === 0) {
+        container.innerHTML = '<p class="memory-empty-msg" style="margin:4px 0 8px;">No linked memories yet.</p>';
+        return;
+    }
+
+    container.innerHTML = _memLinkedDocs.map(function(item) {
+        var dateSpan = item.dateText
+            ? ' <span class="memory-list-date">' + _memEscape(item.dateText) + '</span>'
+            : '';
+        return '<div class="memory-linked-row">' +
+            '<a href="#memory-edit/' + item.otherId + '" class="memory-linked-title">' +
+                '&#128214; ' + _memEscape(item.title) + dateSpan +
+            '</a>' +
+            '<button class="memory-url-btn memory-url-delete-btn memory-linked-unlink-btn"' +
+                ' data-link-id="' + _memEscape(item.linkDocId) + '" title="Unlink">&times;</button>' +
+        '</div>';
+    }).join('');
+
+    container.querySelectorAll('.memory-linked-unlink-btn').forEach(function(btn) {
+        btn.onclick = function() {
+            var linkId = btn.dataset.linkId;
+            userCol('memoryLinks').doc(linkId).delete()
+                .then(function() {
+                    _memLinkedDocs = _memLinkedDocs.filter(function(d) { return d.linkDocId !== linkId; });
+                    _memRenderLinkedList();
+                })
+                .catch(function(err) { console.error('Unlink error:', err); });
+        };
+    });
+}
+
+function _memOpenLinkPicker() {
+    openModal('memoryLinkPickerModal');
+
+    var searchEl = document.getElementById('memoryLinkSearch');
+    var listEl   = document.getElementById('memoryLinkPickerList');
+    if (!listEl) return;
+
+    listEl.innerHTML = '<p class="memory-empty-msg">Loading...</p>';
+    if (searchEl) { searchEl.value = ''; }
+
+    var alreadyLinkedIds = new Set(_memLinkedDocs.map(function(d) { return d.otherId; }));
+
+    userCol('memories').orderBy('sortOrder', 'asc').get().then(function(snap) {
+        var candidates = snap.docs
+            .filter(function(d) { return d.id !== _memId && !alreadyLinkedIds.has(d.id); })
+            .map(function(d) {
+                return { id: d.id, title: d.data().title || 'Untitled', dateText: d.data().dateText || '' };
+            });
+
+        function render(filter) {
+            var lower  = (filter || '').toLowerCase();
+            var shown  = lower
+                ? candidates.filter(function(c) { return c.title.toLowerCase().includes(lower) || c.dateText.toLowerCase().includes(lower); })
+                : candidates;
+
+            if (!shown.length) {
+                listEl.innerHTML = '<p class="memory-empty-msg">No memories found.</p>';
+                return;
+            }
+            listEl.innerHTML = shown.map(function(c) {
+                var dateSpan = c.dateText
+                    ? ' <span class="memory-list-date">' + _memEscape(c.dateText) + '</span>'
+                    : '';
+                return '<div class="memory-link-picker-row" data-id="' + c.id + '">' +
+                    '<span class="memory-linked-title">' + _memEscape(c.title) + '</span>' + dateSpan +
+                '</div>';
+            }).join('');
+
+            listEl.querySelectorAll('.memory-link-picker-row').forEach(function(row) {
+                row.onclick = function() { _memCreateLink(row.dataset.id); };
+            });
+        }
+
+        render('');
+        if (searchEl) {
+            searchEl.oninput = function() { render(searchEl.value); };
+            setTimeout(function() { searchEl.focus(); }, 80);
+        }
+    }).catch(function(err) {
+        console.error('_memOpenLinkPicker error:', err);
+        if (listEl) listEl.innerHTML = '<p class="memory-empty-msg">Error loading memories.</p>';
+    });
+}
+
+function _memCreateLink(otherId) {
+    if (!_memId || !otherId) return;
+    var ids    = [_memId, otherId].sort();
+    var docId  = ids[0] + '_' + ids[1];
+
+    userCol('memoryLinks').doc(docId).set({
+        memoryIds: ids,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function() {
+        closeModal('memoryLinkPickerModal');
+        _memLoadLinkedMemories(); // re-fetch to get title + dateText
+    }).catch(function(err) { console.error('_memCreateLink error:', err); });
 }
 
 // ============================================================

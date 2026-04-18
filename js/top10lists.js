@@ -243,16 +243,23 @@ function _t10GetCategoryName(categoryId) {
 function _t10BuildAccordionItem(list) {
     var items = Array.isArray(list.items) ? list.items : [];
 
+    // Build preview for ranks 1–10, including a note line per item (hidden until toggled)
     var previewHtml = '';
+    var anyNotes    = false;
     for (var i = 0; i < 10; i++) {
         var item  = items[i] || {};
         var title = item.title || '';
+        var notes = item.notes || '';
+        if (notes.trim()) anyNotes = true;
         previewHtml +=
             '<div class="t10-preview-item' + (title ? '' : ' t10-preview-empty') + '">' +
                 '<span class="t10-rank">' + (i + 1) + '</span>' +
                 '<span class="t10-item-title">' +
                     (title ? escapeHtml(title) : '<em>empty</em>') +
                 '</span>' +
+                (notes.trim()
+                    ? '<div class="t10-preview-note">' + escapeHtml(notes) + '</div>'
+                    : '') +
             '</div>';
     }
 
@@ -262,6 +269,13 @@ function _t10BuildAccordionItem(list) {
 
     var catName  = _t10GetCategoryName(list.categoryId);
     var catClass = list.categoryId ? 't10-cat-named' : 't10-cat-none';
+
+    // Notes toggle icon only rendered when at least one item has notes;
+    // CSS hides it when the accordion is collapsed
+    var notesIconHtml = anyNotes
+        ? '<button class="t10-list-icon t10-list-notes-btn" title="Toggle item notes" ' +
+              'onclick="t10ToggleListNotes(this,event)">&#8801;</button>'
+        : '';
 
     var el = document.createElement('div');
     el.className = 'collapsible-section collapsed t10-accordion-item';
@@ -273,18 +287,28 @@ function _t10BuildAccordionItem(list) {
                 '<span class="t10-acc-name">' + escapeHtml(list.title || 'Untitled') + '</span>' +
                 '<span class="t10-cat-badge ' + catClass + '">' + escapeHtml(catName) + '</span>' +
             '</div>' +
+            '<div class="t10-acc-icons">' +
+                notesIconHtml +
+                '<button class="t10-list-icon t10-list-edit-btn" title="Edit list" ' +
+                    'onclick="event.stopPropagation();window.location.hash=\'#top10list-edit/' + list.id + '\'">&#9998;</button>' +
+            '</div>' +
             '<span class="collapsible-chevron">&#8250;</span>' +
         '</div>' +
         '<div class="collapsible-body">' +
             descHtml +
             '<div class="t10-preview-list">' + previewHtml + '</div>' +
-            '<div class="t10-acc-actions">' +
-                '<button class="btn btn-sm" ' +
-                    'onclick="event.stopPropagation();' +
-                    'window.location.hash=\'#top10list-edit/' + list.id + '\'">Edit</button>' +
-            '</div>' +
         '</div>';
     return el;
+}
+
+// Toggle visibility of item notes in an accordion list
+function t10ToggleListNotes(btn, event) {
+    event.stopPropagation();
+    var item = btn.closest('.t10-accordion-item');
+    if (item) {
+        item.classList.toggle('t10-notes-visible');
+        btn.classList.toggle('t10-list-notes-btn--active', item.classList.contains('t10-notes-visible'));
+    }
 }
 
 // Called by the Sort button
@@ -484,7 +508,7 @@ function _t10SetEditBreadcrumb(last) {
 function _t10RenderForm(id, data) {
     // Normalise items array to exactly 20 entries
     var items = (data && Array.isArray(data.items)) ? data.items.slice() : [];
-    while (items.length < 20) items.push({ title: '', notes: '' });
+    while (items.length < 20) items.push({ title: '', notes: '', url: '' });
     items = items.slice(0, 20);
 
     // Build category select options
@@ -506,6 +530,7 @@ function _t10RenderForm(id, data) {
         var item      = items[i] || {};
         var itemTitle = item.title || '';
         var itemNotes = item.notes || '';
+        var itemUrl   = item.url   || '';
         var hasNotes  = itemNotes.trim().length > 0;
         rowsHtml +=
             '<div class="t10-item-row" data-index="' + i + '">' +
@@ -516,13 +541,17 @@ function _t10RenderForm(id, data) {
                     'value="' + escapeHtml(itemTitle) + '">' +
                 '<button type="button" ' +
                     'class="t10-note-btn' + (hasNotes ? ' t10-note-btn--has-notes' : '') + '" ' +
-                    'title="' + (hasNotes ? 'Edit note' : 'Add note') + '" ' +
+                    'title="' + (hasNotes ? 'Edit note / URL' : 'Add note / URL') + '" ' +
                     'data-notes="' + escapeHtml(itemNotes) + '" ' +
+                    'data-url="' + escapeHtml(itemUrl) + '" ' +
                     'onclick="t10ToggleNote(this)">&#9998;</button>' +
                 '<div class="t10-note-area hidden">' +
                     '<textarea class="t10-note-textarea" ' +
                         'placeholder="Notes for this item…" ' +
                         'rows="3">' + escapeHtml(itemNotes) + '</textarea>' +
+                    '<input type="url" class="t10-note-url-input form-control" ' +
+                        'placeholder="URL (optional)" ' +
+                        'value="' + escapeHtml(itemUrl) + '">' +
                     '<div class="t10-note-btns">' +
                         '<button type="button" class="btn btn-sm btn-primary t10-note-save-btn" ' +
                             'onclick="t10SaveNote(this)">Save</button>' +
@@ -710,16 +739,19 @@ function t10SaveNote(saveBtn) {
     var row      = saveBtn.closest('.t10-item-row');
     var noteArea = row.querySelector('.t10-note-area');
     var textarea = noteArea.querySelector('.t10-note-textarea');
+    var urlInput = noteArea.querySelector('.t10-note-url-input');
     var noteBtn  = row.querySelector('.t10-note-btn');
     var notes    = textarea.value;
+    var url      = urlInput ? urlInput.value.trim() : '';
 
     noteBtn.dataset.notes = notes;
+    noteBtn.dataset.url   = url;
     if (notes.trim()) {
         noteBtn.classList.add('t10-note-btn--has-notes');
-        noteBtn.title = 'Edit note';
+        noteBtn.title = 'Edit note / URL';
     } else {
         noteBtn.classList.remove('t10-note-btn--has-notes');
-        noteBtn.title = 'Add note';
+        noteBtn.title = 'Add note / URL';
     }
     noteArea.classList.add('hidden');
 }
@@ -728,9 +760,11 @@ function t10CancelNote(cancelBtn) {
     var row      = cancelBtn.closest('.t10-item-row');
     var noteArea = row.querySelector('.t10-note-area');
     var textarea = noteArea.querySelector('.t10-note-textarea');
+    var urlInput = noteArea.querySelector('.t10-note-url-input');
     var noteBtn  = row.querySelector('.t10-note-btn');
 
     textarea.value = noteBtn.dataset.notes || '';
+    if (urlInput) urlInput.value = noteBtn.dataset.url || '';
     noteArea.classList.add('hidden');
 }
 
@@ -759,9 +793,11 @@ function t10SaveList(id) {
     document.querySelectorAll('#t10ItemList .t10-item-row').forEach(function(row) {
         var titleEl = row.querySelector('.t10-item-title-input');
         var noteEl  = row.querySelector('.t10-note-textarea');
+        var urlEl   = row.querySelector('.t10-note-url-input');
         items.push({
             title: titleEl ? titleEl.value.trim() : '',
-            notes: noteEl  ? noteEl.value        : ''
+            notes: noteEl  ? noteEl.value        : '',
+            url:   urlEl   ? urlEl.value.trim()  : ''
         });
     });
 

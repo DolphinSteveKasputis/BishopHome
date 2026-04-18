@@ -1026,11 +1026,12 @@ Rich project management for the Life section — supports day-by-day itineraries
   - Selection is saved to `userCol('settings').doc('thoughts')` → `top10SortPref` and persists across devices
 - **Accordion list** of all Top 10 Lists:
   - **Flat sort** (Newest / Oldest / A–Z): single-level accordion, one item per row
-  - **By Category**: two-level nested accordion — outer groups are categories (None first, then alpha), inner items are lists
-  - **Collapsed**: list name + category badge (gray "None" or indigo named category)
-  - **Expanded**: description (if any), read-only preview of ranks 1–10, Edit button
-  - Edit button navigates to `#top10list-edit/:id`
-  - Returning from create/edit: the saved list is auto-expanded
+  - **By Category**: two-level nested accordion — outer groups are categories (None first, then alpha) with list count shown; inner items are lists
+  - **Collapsed**: list name + category badge (gray "None" or indigo named category) + **✎ edit icon** (always visible)
+  - **Expanded**: same header plus **≡ notes toggle icon** (only visible when expanded, only rendered if any item has notes); body shows description (if any) + read-only preview of ranks 1–10
+    - **✎ edit icon** navigates to `#top10list-edit/:id`
+    - **≡ notes toggle**: clicking shows/hides item notes inline below each rank row (only items with notes show anything); icon highlights when active
+  - Returning from create/edit: the saved list is auto-expanded (in By Category mode, the outer group also auto-expands)
 - **"Manage Categories"** link at bottom — toggles inline Manage Categories panel:
   - Lists all categories with Edit / Delete buttons per row
   - Edit: unlocks the name input, swaps buttons to Save / Cancel
@@ -1055,9 +1056,9 @@ Both routes share the `page-top10list-edit` HTML section.
 - Ranks re-number automatically after every drag
 - **"Runners Up" separator** (non-draggable) always sits between rank 10 and rank 11; repositions after drag
 - **Note icon (✎)** per row:
-  - Gray = no notes; **green** = notes exist
-  - Click → inline textarea expands below the row (multi-line)
-  - **Save** button commits and collapses; **Cancel** restores previous value; **Escape** key also cancels
+  - Gray = no notes; **green** = notes text exists
+  - Click → inline area expands below the row with: multi-line notes textarea + **URL input** (one link per item, optional)
+  - **Save** button commits both note text and URL, collapses; **Cancel** restores previous values; **Escape** key also cancels
 - **Delete List** button (edit mode only) — confirm dialog before deleting
 - Save → writes to Firestore (including `categoryId`), returns to `#top10lists` with the saved list auto-expanded
 - Cancel → returns to `#top10lists` without saving
@@ -1069,7 +1070,7 @@ Both routes share the `page-top10list-edit` HTML section.
 | title | string | Required |
 | description | string | Optional |
 | categoryId | string\|null | FK → `top10categories`; null = "None" |
-| items | array | 20 `{title, notes}` objects in rank order |
+| items | array | 20 `{title, notes, url}` objects in rank order |
 | createdAt | timestamp | |
 | updatedAt | timestamp | |
 

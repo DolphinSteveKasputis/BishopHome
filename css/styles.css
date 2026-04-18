@@ -9659,3 +9659,55 @@ a.health-chip--link:hover { filter: brightness(0.93); }
 .t10-cat-group-body .t10-accordion-item:last-child {
     margin-bottom: 0;
 }
+
+/* ── Per-list header icons (edit + notes toggle) ── */
+.t10-acc-icons {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: auto;
+    margin-right: 6px;
+    flex-shrink: 0;
+}
+.t10-list-icon {
+    background: none;
+    border: none;
+    padding: 2px 5px;
+    font-size: 1rem;
+    cursor: pointer;
+    color: #94a3b8;
+    border-radius: 4px;
+    line-height: 1;
+}
+.t10-list-icon:hover {
+    color: #4f46e5;
+    background: #e0e7ff;
+}
+/* Notes toggle hidden while the accordion is collapsed */
+.collapsed .t10-list-notes-btn {
+    display: none;
+}
+/* Active state when notes are visible */
+.t10-list-notes-btn--active {
+    color: #4f46e5 !important;
+    background: #e0e7ff !important;
+}
+
+/* ── Item notes in accordion preview ── */
+.t10-preview-note {
+    display: none;
+    font-size: 0.8rem;
+    color: #6b7280;
+    margin: 2px 0 4px 22px;
+    font-style: italic;
+    white-space: pre-wrap;
+}
+.t10-notes-visible .t10-preview-note {
+    display: block;
+}
+
+/* ── URL input in per-item note area (edit form) ── */
+.t10-note-url-input {
+    margin-top: 6px;
+    font-size: 0.85rem;
+}

@@ -1106,7 +1106,8 @@ Both routes share the `page-top10list-edit` HTML section.
 ### Memory Edit Page (`#memory-edit/:id`)
 - Always editable — no separate view/read mode
 - Breadcrumb: Thoughts › Memories › [title]
-- Fields (top to bottom): Title · In Progress checkbox · When (free-text date) · Location · Tags _(M4)_ · Body textarea · People chips _(M5/M6)_ · URLs _(M7)_ · Linked Memories _(M9)_
+- Fields (top to bottom): Title · In Progress checkbox · When (free-text date) · Location · Tags · Body textarea · People chips _(M5/M6)_ · URLs _(M7)_ · Linked Memories _(M9)_
+- **Tags**: pill checkboxes (alphabetical); tap to toggle; "Add tag..." inline input creates new tag on Enter (stored in `memoryTags`, applied immediately); tags saved immediately on change (not debounced)
 - **Help button** (`?`, top-right): explains date field syntax, `++Name`, and `@mention` _(M10)_
 - **Speak button** above body textarea for speech-to-text _(M8)_
 - **Auto-save**: debounced 1.5 s after last keystroke; saves title, body, dateText, location, inProgress
@@ -1116,7 +1117,10 @@ Both routes share the `page-top10list-edit` HTML section.
 ### Sort Order
 - `sortOrder` is a float stored per document (initial gap: 10000 per item)
 - Drag assigns midpoint float between neighbors — never updates any other document
-- New memories inserted at `lastSortOrder + 10000` (bottom of list) until M3 adds smart date-based placement
+- New memories (no dateText yet) inserted at bottom (`lastSortOrder + 10000`)
+- When `dateText` is filled/changed and the field is blurred, `sortDate` is parsed and `sortOrder` is recalculated to slot the memory in the correct chronological position among existing memories
+- Date parser handles: exact dates, month+year, year-only, season+year, decade prefixes (early/mid/late), named holidays (Christmas, Thanksgiving), two-digit years with apostrophe
+- Rebalance runs automatically if a gap collapses below 0.0001
 
 ### Data Model
 
@@ -1126,10 +1130,10 @@ Both routes share the `page-top10list-edit` HTML section.
 | `title` | string | Required; shown in list |
 | `body` | string | Free-form narrative (can be very long) |
 | `dateText` | string | Exactly as typed by user |
-| `sortDate` | string\|null | ISO date derived from dateText — for initial placement (M3) |
+| `sortDate` | string\|null | ISO date derived from dateText on blur — used for sort placement |
 | `sortOrder` | float | Manual drag order |
 | `location` | string | Free-form text |
-| `tags` | string[] | Tag names (M4) |
+| `tags` | string[] | Tag names (lowercase); assigned from global `memoryTags` collection |
 | `mentionedPersonIds` | string[] | Contact IDs from @-mentions (M5) |
 | `mentionedNames` | string[] | Free-form names from ++Name (M6) |
 | `urls` | object[] | `{label, url}` pairs (M7) |

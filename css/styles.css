@@ -9571,10 +9571,61 @@ a.health-chip--link:hover { filter: brightness(0.93); }
 }
 
 /* placeholder containers (hidden until their phase is implemented) */
-.memory-tags-container,
 .memory-people-chips,
 .memory-urls-list,
 .memory-linked-list { min-height: 8px; }
+
+/* ── M4: Tag pills ── */
+.memory-tag-pills-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+.memory-tag-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid #d1d5db;
+    background: #f9fafb;
+    color: #374151;
+    font-size: 0.85rem;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.memory-tag-pill input[type="checkbox"] {
+    display: none;
+}
+.memory-tag-pill.active {
+    background: #b45309;
+    border-color: #b45309;
+    color: #fff;
+}
+.memory-tag-pill:hover:not(.active) {
+    background: #f3f4f6;
+    border-color: #9ca3af;
+}
+.memory-new-tag-row {
+    margin-top: 4px;
+}
+.memory-new-tag-input {
+    padding: 5px 10px;
+    border: 1px dashed #d1d5db;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    color: #374151;
+    background: transparent;
+    width: 140px;
+    font-family: inherit;
+}
+.memory-new-tag-input:focus {
+    outline: none;
+    border-color: #b45309;
+    border-style: solid;
+    background: #fff;
+}
 
 @media (max-width: 480px) {
     .memory-list-date { display: none; }

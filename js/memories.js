@@ -11,6 +11,9 @@ var _memCachedList     = [];     // last-loaded list (for filter toggle)
 var _memSortable       = null;   // SortableJS instance on the list page
 var _memCurrentTags    = [];     // live tag names for the memory being edited
 var _memAllTags        = [];     // all tags from memoryTags collection (alphabetical)
+var _memPeopleCache    = null;   // [{id, name, nickname}] — lazy-loaded once
+var _memMentionedIds   = new Set(); // person IDs added via @-mention
+var _memFreeformNames  = [];     // plain-text names added via ++Name
 
 // ============================================================
 // LIST PAGE — #memories
@@ -221,20 +224,25 @@ function loadMemoryEditPage(id, opts) {
         var data = doc.data();
 
         _memOriginal = {
-            title:      data.title      || '',
-            body:       data.body       || '',
-            dateText:   data.dateText   || '',
-            sortDate:   data.sortDate   || null,
-            sortOrder:  data.sortOrder  || 0,
-            location:   data.location   || '',
-            inProgress: data.inProgress !== false,
-            tags:       (data.tags      || []).slice()
+            title:              data.title              || '',
+            body:               data.body               || '',
+            dateText:           data.dateText           || '',
+            sortDate:           data.sortDate           || null,
+            sortOrder:          data.sortOrder          || 0,
+            location:           data.location           || '',
+            inProgress:         data.inProgress !== false,
+            tags:               (data.tags               || []).slice(),
+            mentionedPersonIds: (data.mentionedPersonIds || []).slice(),
+            mentionedNames:     (data.mentionedNames     || []).slice()
         };
-        _memCurrentTags = (data.tags || []).slice();
+        _memCurrentTags  = (data.tags               || []).slice();
+        _memMentionedIds = new Set(data.mentionedPersonIds || []);
+        _memFreeformNames = (data.mentionedNames    || []).slice();
 
         _memPopulateEditFields(data);
         _memWireEditHandlers();
         _memLoadAndRenderTags(data.tags || []);
+        _memRenderPeopleChips();
     }).catch(function(err) {
         console.error('loadMemoryEditPage error:', err);
     });
@@ -297,6 +305,8 @@ function _memWireEditHandlers() {
 
     var deleteBtn = fld('memoryEditDelete');
     if (deleteBtn) deleteBtn.onclick = _memHandleDelete;
+
+    _memInitMentions();
 }
 
 // ── Date blur: recalculate sortDate + sortOrder ────────────
@@ -350,11 +360,13 @@ function _memDoSave() {
 function _memCollectFields() {
     var fld = function(id) { return document.getElementById(id); };
     return {
-        title:      (fld('memoryEditTitle')     || {}).value || '',
-        body:       (fld('memoryEditBody')      || {}).value || '',
-        dateText:   (fld('memoryEditDateText')  || {}).value || '',
-        location:   (fld('memoryEditLocation')  || {}).value || '',
-        inProgress: !!((fld('memoryEditInProgress') || {}).checked)
+        title:              (fld('memoryEditTitle')      || {}).value || '',
+        body:               (fld('memoryEditBody')       || {}).value || '',
+        dateText:           (fld('memoryEditDateText')   || {}).value || '',
+        location:           (fld('memoryEditLocation')   || {}).value || '',
+        inProgress:         !!((fld('memoryEditInProgress') || {}).checked),
+        mentionedPersonIds: Array.from(_memMentionedIds),
+        mentionedNames:     _memFreeformNames.slice()
     };
 }
 
@@ -645,6 +657,250 @@ function _memAddNewTag(name) {
     }).catch(function(err) {
         console.error('_memAddNewTag error:', err);
     });
+}
+
+// ============================================================
+// M5 — @-MENTION AUTOCOMPLETE
+// ============================================================
+
+async function _memLoadPeopleCache() {
+    if (_memPeopleCache) return _memPeopleCache;
+    try {
+        var snap = await userCol('people').get();
+        _memPeopleCache = [];
+        snap.forEach(function(doc) {
+            var d = doc.data();
+            _memPeopleCache.push({ id: doc.id, name: d.name || '', nickname: d.nickname || '' });
+        });
+        _memPeopleCache.sort(function(a, b) { return a.name.localeCompare(b.name); });
+    } catch (err) {
+        console.error('_memLoadPeopleCache:', err);
+        _memPeopleCache = [];
+    }
+    return _memPeopleCache;
+}
+
+function _memGetMentionPrefix(ta) {
+    var before = ta.value.substring(0, ta.selectionStart);
+    var match  = before.match(/@(\w*)$/);
+    return match ? match[1] : null;
+}
+
+async function _memHandleBodyInput() {
+    var ta = document.getElementById('memoryEditBody');
+    if (!ta) return;
+
+    // ++ free-form name detection (M6)
+    _memScanPlusPlus(ta);
+
+    // @-mention autocomplete
+    var prefix = _memGetMentionPrefix(ta);
+    if (prefix === null) { _memHideMentionDropdown(); return; }
+
+    var people = await _memLoadPeopleCache();
+    var lower   = prefix.toLowerCase();
+    var matches = people.filter(function(p) {
+        return p.name.toLowerCase().startsWith(lower) ||
+               (p.nickname && p.nickname.toLowerCase().startsWith(lower));
+    }).slice(0, 7);
+    _memShowMentionDropdown(matches);
+}
+
+function _memShowMentionDropdown(matches) {
+    var drop = document.getElementById('memoryMentionDropdown');
+    if (!drop) return;
+    drop.innerHTML = '';
+    if (!matches.length) { drop.classList.add('hidden'); return; }
+
+    matches.forEach(function(person) {
+        var item = document.createElement('div');
+        item.className     = 'mention-item';
+        item._mentionPerson = person;
+        var label = _memEscape(person.name);
+        if (person.nickname) label += ' <span class="mention-item-nick">(' + _memEscape(person.nickname) + ')</span>';
+        item.innerHTML = label;
+        item.addEventListener('mousedown', function(e) { e.preventDefault(); _memSelectMention(person); });
+        item.addEventListener('touchend',  function(e) { e.preventDefault(); _memSelectMention(person); });
+        drop.appendChild(item);
+    });
+    drop.classList.remove('hidden');
+}
+
+function _memHideMentionDropdown() {
+    var drop = document.getElementById('memoryMentionDropdown');
+    if (drop) drop.classList.add('hidden');
+}
+
+function _memSelectMention(person) {
+    var ta = document.getElementById('memoryEditBody');
+    if (!ta) return;
+    var prefix = _memGetMentionPrefix(ta);
+    if (prefix === null) { _memHideMentionDropdown(); return; }
+
+    var pos    = ta.selectionStart;
+    var before = ta.value.substring(0, pos - prefix.length - 1);
+    var after  = ta.value.substring(pos);
+    var name   = person.nickname || person.name.split(' ')[0];
+    ta.value   = before + '@' + name + ' ' + after;
+    var newPos = before.length + 1 + name.length + 1;
+    ta.selectionStart = ta.selectionEnd = newPos;
+
+    _memMentionedIds.add(person.id);
+    _memHideMentionDropdown();
+    ta.focus();
+    _memRenderPeopleChips();
+    _memScheduleSave();
+}
+
+function _memInitMentions() {
+    var ta = document.getElementById('memoryEditBody');
+    if (!ta) return;
+
+    ta.removeEventListener('input', _memHandleBodyInput);
+    ta.addEventListener('input', _memHandleBodyInput);
+
+    ta.addEventListener('blur', function() {
+        setTimeout(_memHideMentionDropdown, 180);
+        _memScanPlusPlusOnBlur(ta);
+    });
+
+    ta.addEventListener('keydown', function(e) {
+        var drop = document.getElementById('memoryMentionDropdown');
+        if (!drop || drop.classList.contains('hidden') || !drop.children.length) return;
+        if (e.key === 'Escape') {
+            _memHideMentionDropdown();
+        } else if (e.key === 'Tab' || e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
+            var first = drop.children[0];
+            if (first && first._mentionPerson) _memSelectMention(first._mentionPerson);
+        }
+    });
+
+    _memLoadPeopleCache();
+}
+
+function _memRenderPeopleChips() {
+    var container = document.getElementById('memoryPeopleChips');
+    var section   = document.getElementById('memoryPeopleSection');
+    if (!container) return;
+
+    var hasContacts  = _memMentionedIds.size > 0;
+    var hasFreeform  = _memFreeformNames.length > 0;
+    if (!hasContacts && !hasFreeform) {
+        container.innerHTML = '';
+        if (section) section.classList.add('hidden');
+        return;
+    }
+
+    if (section) section.classList.remove('hidden');
+
+    var html = '';
+
+    // Contact chips — link to contact detail page
+    var cacheById = {};
+    if (_memPeopleCache) _memPeopleCache.forEach(function(p) { cacheById[p.id] = p; });
+    _memMentionedIds.forEach(function(id) {
+        var p    = cacheById[id];
+        var name = p ? (p.nickname || p.name.split(' ')[0]) : '...';
+        html += '<a href="#contact/' + id + '" class="mention-chip">@' + _memEscape(name) + '</a>';
+    });
+
+    // Free-form chips — plain text with × remove button
+    _memFreeformNames.forEach(function(name) {
+        html += '<span class="mention-chip mention-chip--freeform">' +
+            _memEscape(name) +
+            ' <button class="mention-chip-remove" data-name="' + _memEscape(name) + '" title="Remove">&times;</button>' +
+        '</span>';
+    });
+
+    container.innerHTML = html;
+
+    container.querySelectorAll('.mention-chip-remove').forEach(function(btn) {
+        btn.onclick = function(e) {
+            e.preventDefault();
+            var removeName = btn.dataset.name;
+            _memFreeformNames = _memFreeformNames.filter(function(n) { return n !== removeName; });
+            _memRenderPeopleChips();
+            _memScheduleSave();
+        };
+    });
+}
+
+// ============================================================
+// M6 — ++ FREE-FORM NAME CHIPS
+// ============================================================
+
+// Scan text up to cursor for completed ++ patterns (followed by space/punct or end-of-before)
+function _memScanPlusPlus(ta) {
+    // Only process text before the cursor, requiring pattern ends before cursor
+    var text       = ta.value;
+    var cursorPos  = ta.selectionStart;
+    var re         = /\+\+(?:"([^"]+)"|(\S+))(?=[\s,.!?]|$)/g;
+    var match;
+    var newText    = text;
+    var newCursor  = cursorPos;
+    var offset     = 0;
+    var anyFound   = false;
+
+    while ((match = re.exec(text)) !== null) {
+        var matchEnd = match.index + match[0].length;
+        if (matchEnd > cursorPos) continue; // still being typed — skip
+
+        var rawName    = match[1] || match[2];
+        if (!rawName) continue;
+        var normalized = rawName.trim();
+        if (!normalized) continue;
+
+        var lower      = normalized.toLowerCase();
+        var alreadyHas = _memFreeformNames.some(function(n) { return n.toLowerCase() === lower; });
+        if (!alreadyHas) { _memFreeformNames.push(normalized); anyFound = true; }
+
+        // Replace ++Name → Name in newText (track cumulative offset)
+        var start    = match.index + offset;
+        var fullLen  = match[0].length;
+        var repLen   = normalized.length;
+        newText      = newText.substring(0, start) + normalized + newText.substring(start + fullLen);
+        var delta    = repLen - fullLen;
+        if (newCursor > start + fullLen)       newCursor += delta;
+        else if (newCursor > start)            newCursor  = start + repLen;
+        offset      += delta;
+    }
+
+    if (newText !== text) {
+        ta.value = newText;
+        ta.selectionStart = ta.selectionEnd = Math.max(0, newCursor);
+    }
+    if (anyFound) { _memRenderPeopleChips(); _memScheduleSave(); }
+}
+
+// Full-text scan on blur — catches anything not yet followed by a space
+function _memScanPlusPlusOnBlur(ta) {
+    var re    = /\+\+(?:"([^"]+)"|(\S+))/g;
+    var match;
+    var newText   = ta.value;
+    var anyFound  = false;
+    var offset    = 0;
+
+    while ((match = re.exec(ta.value)) !== null) {
+        var rawName    = match[1] || match[2];
+        if (!rawName) continue;
+        var normalized = rawName.trim();
+        if (!normalized) continue;
+
+        var lower      = normalized.toLowerCase();
+        var alreadyHas = _memFreeformNames.some(function(n) { return n.toLowerCase() === lower; });
+        if (!alreadyHas) { _memFreeformNames.push(normalized); anyFound = true; }
+
+        // Replace in newText
+        var start   = match.index + offset;
+        var fullLen = match[0].length;
+        newText     = newText.substring(0, start) + normalized + newText.substring(start + fullLen);
+        offset     += normalized.length - fullLen;
+    }
+
+    if (newText !== ta.value) ta.value = newText;
+    if (anyFound) { _memRenderPeopleChips(); _memScheduleSave(); }
 }
 
 // ============================================================

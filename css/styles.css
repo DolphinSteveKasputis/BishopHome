@@ -5931,6 +5931,24 @@ img.collection-item-row-thumb {
     white-space: nowrap;
 }
 .mention-chip:hover { background: #0f766e; }
+.mention-chip--freeform {
+    background: #b45309;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+.mention-chip--freeform:hover { background: #92400e; }
+.mention-chip-remove {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 1rem;
+    line-height: 1;
+    padding: 0;
+    cursor: pointer;
+    opacity: 0.75;
+}
+.mention-chip-remove:hover { opacity: 1; }
 
 
 /* ============================================================

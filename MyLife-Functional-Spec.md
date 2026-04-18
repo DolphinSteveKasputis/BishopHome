@@ -1106,11 +1106,13 @@ Both routes share the `page-top10list-edit` HTML section.
 ### Memory Edit Page (`#memory-edit/:id`)
 - Always editable — no separate view/read mode
 - Breadcrumb: Thoughts › Memories › [title]
-- Fields (top to bottom): Title · In Progress checkbox · When (free-text date) · Location · Tags · Body textarea · People chips _(M5/M6)_ · URLs _(M7)_ · Linked Memories _(M9)_
+- Fields (top to bottom): Title · In Progress checkbox · When (free-text date) · Location · Tags · Body textarea · People chips · URLs _(M7)_ · Linked Memories _(M9)_
 - **Tags**: pill checkboxes (alphabetical); tap to toggle; "Add tag..." inline input creates new tag on Enter (stored in `memoryTags`, applied immediately); tags saved immediately on change (not debounced)
+- **@-mentions**: type `@Name` in the body textarea; autocomplete dropdown appears (filters by name/nickname); Tab or Enter picks first result; tapping an item selects it; selected contacts shown as teal chips (clickable links to `#contact/:id`) below the People section header; chips populated from `userCol('people')`; stored as `mentionedPersonIds[]`
+- **Free-form names (++ trigger)**: type `++Name` or `++"Full Name"` in the body; on space/punctuation the `++` prefix is stripped from the textarea and an amber chip is added below; × button removes the chip; names deduplicated case-insensitively; stored as `mentionedNames[]`; People section hidden until at least one chip exists; full scan runs on blur to catch anything not followed by a space
 - **Help button** (`?`, top-right): explains date field syntax, `++Name`, and `@mention` _(M10)_
 - **Speak button** above body textarea for speech-to-text _(M8)_
-- **Auto-save**: debounced 1.5 s after last keystroke; saves title, body, dateText, location, inProgress
+- **Auto-save**: debounced 1.5 s after last keystroke; saves title, body, dateText, location, inProgress, mentionedPersonIds, mentionedNames
 - **Cancel**: if new memory → confirm "Discard this memory?" → delete doc → `#memories`; if existing → confirm "Discard your changes?" → restore original → `#memories`
 - **Delete**: confirm → delete memory doc + all `memoryLinks` referencing it → `#memories`
 

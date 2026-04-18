@@ -226,8 +226,12 @@ async function loadJournalPage() {
     // Show/hide custom range inputs based on current selection
     _journalToggleCustomRange();
 
-    // Load and render the feed
-    await loadJournalData();
+    // Load and render the feed — normal journal or all-activity based on toggle state
+    if (_journalAllActivity) {
+        await loadAllActivityFeed();
+    } else {
+        await loadJournalData();
+    }
 }
 
 /**
@@ -241,7 +245,7 @@ function _journalWireToolbar() {
             _journalToggleCustomRange();
             if (rangeSelect.value !== 'custom') {
                 saveJournalRangePreference(rangeSelect.value);
-                loadJournalData();
+                _journalAllActivity ? loadAllActivityFeed() : loadJournalData();
             }
         };
     }
@@ -250,7 +254,7 @@ function _journalWireToolbar() {
     if (applyBtn) {
         applyBtn.onclick = function() {
             saveJournalRangePreference('custom');
-            loadJournalData();
+            _journalAllActivity ? loadAllActivityFeed() : loadJournalData();
         };
     }
 
@@ -299,6 +303,23 @@ function _journalWireToolbar() {
             localStorage.setItem('bishop_journal_checkinsOnly', _journalCheckinsOnly ? 'true' : 'false');
             var feedEl = document.getElementById('journalFeed');
             if (feedEl) feedEl.classList.toggle('journal-feed--checkins-only', _journalCheckinsOnly);
+        };
+    }
+
+    // "All Activity" toggle — unified timeline across the whole app
+    var allActivityChk = document.getElementById('journalAllActivityToggle');
+    if (allActivityChk) {
+        allActivityChk.checked = _journalAllActivity;
+        _journalSetAllActivityMode(_journalAllActivity);
+        allActivityChk.onchange = function() {
+            _journalAllActivity = this.checked;
+            localStorage.setItem('bishop_journal_allActivity', _journalAllActivity ? 'true' : 'false');
+            _journalSetAllActivityMode(_journalAllActivity);
+            if (_journalAllActivity) {
+                loadAllActivityFeed();
+            } else {
+                loadJournalData();
+            }
         };
     }
 }
@@ -2571,3 +2592,414 @@ async function _journalHandleUseLocation() {
     );
 }
 
+
+// ============================================================
+// All-Activity Feed — unified timeline across the whole app
+// ============================================================
+
+/** Whether the "All Activity" unified timeline toggle is active. */
+var _journalAllActivity = localStorage.getItem('bishop_journal_allActivity') === 'true';
+
+/** Flat sorted array of all normalized feed items for the active query. */
+var _journalAllActivityItems = [];
+
+/** How many items are currently rendered (50 at a time). */
+var _journalAllActivityShown = 50;
+
+/** Route prefix map for activity targetTypes. */
+var _AF_TARGET_ROUTES = {
+    plant:     '#plant/',
+    zone:      '#zone/',
+    weed:      '#weed/',
+    vehicle:   '#vehicle/',
+    room:      '#room/'
+};
+
+/**
+ * Load and render the "All Activity" unified timeline.
+ * Fires when the toggle turns on or the date range changes while the toggle is on.
+ */
+async function loadAllActivityFeed() {
+    var feedEl = document.getElementById('journalFeed');
+    if (!feedEl) return;
+    feedEl.innerHTML = '<p class="empty-state">Loading timeline\u2026</p>';
+    _journalAllActivityItems = [];
+    _journalAllActivityShown = 50;
+
+    var range = getJournalDateRange();
+    if (!range.fromDate || !range.toDate) {
+        feedEl.innerHTML = '<p class="empty-state">Please select a valid date range.</p>';
+        return;
+    }
+
+    // Cap toDate at today so only past events appear
+    var todayStr = journalFormatDate(new Date());
+    var toDate   = range.toDate > todayStr ? todayStr : range.toDate;
+    var fromDate = range.fromDate;
+
+    try {
+        // Fire all entity-name map reads AND timeline collection reads in parallel
+        var results = await Promise.all([
+            // Entity name maps (index 0-8)
+            userCol('zones').get(),
+            userCol('plants').get(),
+            userCol('weeds').get(),
+            userCol('vehicles').get(),
+            userCol('rooms').get(),
+            userCol('concerns').get(),
+            userCol('conditions').get(),
+            userCol('lifeEvents').get(),
+            userCol('people').get(),
+            // Timeline collections (index 9-20)
+            userCol('activities').where('date', '>=', fromDate).where('date', '<=', toDate).get(),
+            userCol('calendarEvents').where('date', '>=', fromDate).where('date', '<=', toDate).get(),
+            userCol('healthVisits').where('date', '>=', fromDate).where('date', '<=', toDate).get(),
+            userCol('healthAppointments').where('date', '>=', fromDate).where('date', '<=', toDate).get(),
+            userCol('concernUpdates').where('date', '>=', fromDate).where('date', '<=', toDate).get(),
+            userCol('healthConditionLogs').where('date', '>=', fromDate).where('date', '<=', toDate).get(),
+            userCol('bloodWorkRecords').where('date', '>=', fromDate).where('date', '<=', toDate).get(),
+            userCol('vitals').where('date', '>=', fromDate).where('date', '<=', toDate).get(),
+            userCol('peopleInteractions').where('date', '>=', fromDate).where('date', '<=', toDate).get(),
+            userCol('journalEntries').where('date', '>=', fromDate).where('date', '<=', toDate).get(),
+            userCol('journalTrackingItems').where('date', '>=', fromDate).where('date', '<=', toDate).get(),
+            userCol('lifeEventLogs').where('logDate', '>=', fromDate).where('logDate', '<=', toDate).get()
+        ]);
+
+        var zonesSnap = results[0], plantsSnap = results[1], weedsSnap = results[2];
+        var vehiclesSnap = results[3], roomsSnap = results[4];
+        var concernsSnap = results[5], conditionsSnap = results[6];
+        var lifeEventsSnap = results[7], peopleSnap = results[8];
+        var activitiesSnap = results[9], calendarSnap = results[10];
+        var visitsSnap = results[11], apptsSnap = results[12];
+        var concernUpdatesSnap = results[13], conditionLogsSnap = results[14];
+        var bloodWorkSnap = results[15], vitalsSnap = results[16];
+        var interactionsSnap = results[17];
+        var journalEntriesSnap = results[18], trackingSnap = results[19], lifeLogsSnap = results[20];
+
+        // ---- Build entity name lookup maps ----
+        var zonesMap = {}, plantsMap = {}, weedsMap = {}, vehiclesMap = {}, roomsMap = {};
+        zonesSnap.forEach(function(d) { zonesMap[d.id] = d.data().name || ''; });
+        plantsSnap.forEach(function(d) { plantsMap[d.id] = d.data().name || ''; });
+        weedsSnap.forEach(function(d) { weedsMap[d.id] = d.data().name || ''; });
+        vehiclesSnap.forEach(function(d) {
+            var v = d.data();
+            vehiclesMap[d.id] = [v.year, v.make, v.model].filter(Boolean).join(' ') || v.name || '';
+        });
+        roomsSnap.forEach(function(d) { roomsMap[d.id] = d.data().name || ''; });
+        var allEntityMaps = { zone: zonesMap, plant: plantsMap, weed: weedsMap, vehicle: vehiclesMap, room: roomsMap };
+
+        var concernsMap = {}, conditionsMap = {}, lifeEventsMap = {}, peopleMap = {};
+        concernsSnap.forEach(function(d)   { concernsMap[d.id]   = d.data().title || d.data().name || ''; });
+        conditionsSnap.forEach(function(d) { conditionsMap[d.id] = d.data().name  || ''; });
+        lifeEventsSnap.forEach(function(d) { lifeEventsMap[d.id] = d.data().title || ''; });
+        peopleSnap.forEach(function(d) {
+            var p = d.data();
+            var full = ((p.firstName || '') + ' ' + (p.lastName || '')).trim();
+            peopleMap[d.id] = p.nickname || p.name || full || '';
+        });
+
+        // ---- Normalize all docs into a common item shape ----
+        var items = [];
+
+        // Journal entries
+        journalEntriesSnap.forEach(function(doc) {
+            var d    = doc.data();
+            var text = _afTruncate(d.entryText || '', 140);
+            items.push({
+                id: doc.id, sortDate: d.date || '', sortTime: d.entryTime || '',
+                sortTs: d.createdAt ? d.createdAt.toMillis() : 0,
+                type: 'journalEntry', icon: '📝', typeLabel: 'Journal',
+                typeBg: '#dcfce7', typeColor: '#166534',
+                title: text || '(Journal entry)',
+                subtitle: d.isCheckin ? '📍 Check-in' : null,
+                route: null, specialAction: 'openEditJournalEntry', specialId: doc.id
+            });
+        });
+
+        // Tracking items
+        trackingSnap.forEach(function(doc) {
+            var d = doc.data();
+            items.push({
+                id: doc.id, sortDate: d.date || '', sortTime: '',
+                sortTs: d.createdAt ? d.createdAt.toMillis() : 0,
+                type: 'tracking', icon: '⚖️', typeLabel: 'Tracking',
+                typeBg: '#fef9c3', typeColor: '#854d0e',
+                title: (d.category || '') + (d.value ? ': ' + d.value : '') || '(Tracking)',
+                subtitle: null, route: null
+            });
+        });
+
+        // Life event mini-logs
+        lifeLogsSnap.forEach(function(doc) {
+            var d = doc.data();
+            items.push({
+                id: doc.id, sortDate: d.logDate || '', sortTime: d.logTime || '',
+                sortTs: d.createdAt ? d.createdAt.toMillis() : 0,
+                type: 'lifeLog', icon: '📅', typeLabel: 'Event Note',
+                typeBg: '#e0e7ff', typeColor: '#3730a3',
+                title: _afTruncate(d.body || '', 140) || '(Event note)',
+                subtitle: lifeEventsMap[d.eventId] || null,
+                route: d.eventId ? '#life-event/' + d.eventId : null
+            });
+        });
+
+        // Activities (yard/house/garage/vehicles/etc.)
+        activitiesSnap.forEach(function(doc) {
+            var d = doc.data();
+            var entityMap = allEntityMaps[d.targetType];
+            var entityName = entityMap ? (entityMap[d.targetId] || d.targetType || '') : (d.targetType || '');
+            var route = _AF_TARGET_ROUTES[d.targetType] ? _AF_TARGET_ROUTES[d.targetType] + d.targetId : null;
+            items.push({
+                id: doc.id, sortDate: d.date || '', sortTime: '',
+                sortTs: d.createdAt ? d.createdAt.toMillis() : 0,
+                type: 'activity', icon: '🌿', typeLabel: 'Activity',
+                typeBg: '#f0fdf4', typeColor: '#15803d',
+                title: d.description || '(Activity)',
+                subtitle: entityName || null,
+                route: route
+            });
+        });
+
+        // Calendar events
+        calendarSnap.forEach(function(doc) {
+            var d = doc.data();
+            items.push({
+                id: doc.id, sortDate: d.date || '', sortTime: '',
+                sortTs: d.createdAt ? d.createdAt.toMillis() : 0,
+                type: 'calendarEvent', icon: '📅', typeLabel: 'Calendar',
+                typeBg: '#dbeafe', typeColor: '#1e40af',
+                title: d.title || '(Calendar event)',
+                subtitle: _afTruncate(d.description || '', 80) || null,
+                route: '#calendar'
+            });
+        });
+
+        // Health visits
+        visitsSnap.forEach(function(doc) {
+            var d = doc.data();
+            items.push({
+                id: doc.id, sortDate: d.date || '', sortTime: '',
+                sortTs: d.createdAt ? d.createdAt.toMillis() : 0,
+                type: 'healthVisit', icon: '🏥', typeLabel: 'Visit',
+                typeBg: '#f3e8ff', typeColor: '#6b21a8',
+                title: d.reason || d.whatWasDone || d.providerText || 'Health Visit',
+                subtitle: d.providerText || null,
+                route: '#health-visit/' + doc.id
+            });
+        });
+
+        // Health appointments (past only — toDate is already capped at today)
+        apptsSnap.forEach(function(doc) {
+            var d = doc.data();
+            items.push({
+                id: doc.id, sortDate: d.date || '', sortTime: d.time || '',
+                sortTs: d.createdAt ? d.createdAt.toMillis() : 0,
+                type: 'appointment', icon: '📋', typeLabel: 'Appointment',
+                typeBg: '#fff7ed', typeColor: '#9a3412',
+                title: d.notes || d.type || 'Appointment',
+                subtitle: d.type || null,
+                route: '#health-appointments'
+            });
+        });
+
+        // Concern journal updates
+        concernUpdatesSnap.forEach(function(doc) {
+            var d = doc.data();
+            items.push({
+                id: doc.id, sortDate: d.date || '', sortTime: '',
+                sortTs: d.createdAt ? d.createdAt.toMillis() : 0,
+                type: 'concernUpdate', icon: '💬', typeLabel: 'Concern Note',
+                typeBg: '#fef3c7', typeColor: '#92400e',
+                title: _afTruncate(d.note || '', 140) || '(Concern note)',
+                subtitle: d.concernId ? (concernsMap[d.concernId] || 'Concern') : 'Concern',
+                route: d.concernId ? '#health-concern/' + d.concernId : '#health-concerns'
+            });
+        });
+
+        // Condition log entries
+        conditionLogsSnap.forEach(function(doc) {
+            var d = doc.data();
+            items.push({
+                id: doc.id, sortDate: d.date || '', sortTime: '',
+                sortTs: d.createdAt ? d.createdAt.toMillis() : 0,
+                type: 'conditionLog', icon: '📋', typeLabel: 'Condition',
+                typeBg: '#ccfbf1', typeColor: '#134e4a',
+                title: _afTruncate(d.note || '', 140) || '(Condition log)',
+                subtitle: d.conditionId ? (conditionsMap[d.conditionId] || 'Condition') : 'Condition',
+                route: d.conditionId ? '#health-condition/' + d.conditionId : '#health-conditions'
+            });
+        });
+
+        // Blood work records
+        bloodWorkSnap.forEach(function(doc) {
+            var d = doc.data();
+            items.push({
+                id: doc.id, sortDate: d.date || '', sortTime: '',
+                sortTs: d.createdAt ? d.createdAt.toMillis() : 0,
+                type: 'bloodWork', icon: '🩸', typeLabel: 'Blood Work',
+                typeBg: '#fce7f3', typeColor: '#9d174d',
+                title: 'Blood Work' + (d.lab ? ' \u2014 ' + d.lab : ''),
+                subtitle: d.orderedBy ? 'Ordered by: ' + d.orderedBy : null,
+                route: '#health-bloodwork/' + doc.id
+            });
+        });
+
+        // Vitals readings
+        vitalsSnap.forEach(function(doc) {
+            var d = doc.data();
+            var val = d.value1 || '';
+            if (d.value2) val += '/' + d.value2;
+            items.push({
+                id: doc.id, sortDate: d.date || '', sortTime: d.time || '',
+                sortTs: d.createdAt ? d.createdAt.toMillis() : 0,
+                type: 'vital', icon: '💓', typeLabel: 'Vital',
+                typeBg: '#e0e7ff', typeColor: '#3730a3',
+                title: ((d.type || 'Vital') + ': ' + val + (d.unit ? ' ' + d.unit : '')).trim(),
+                subtitle: d.notes || null,
+                route: '#health-vitals'
+            });
+        });
+
+        // People interactions
+        interactionsSnap.forEach(function(doc) {
+            var d = doc.data();
+            items.push({
+                id: doc.id, sortDate: d.date || '', sortTime: '',
+                sortTs: d.createdAt ? d.createdAt.toMillis() : 0,
+                type: 'interaction', icon: '💬', typeLabel: 'Interaction',
+                typeBg: '#e0f2fe', typeColor: '#0c4a6e',
+                title: _afTruncate(d.text || '', 140) || '(Interaction)',
+                subtitle: d.personId ? (peopleMap[d.personId] || null) : null,
+                route: d.personId ? '#contact/' + d.personId : '#contacts'
+            });
+        });
+
+        // ---- Sort: date desc → time desc (no time = end of day) → createdAt desc ----
+        items.sort(function(a, b) {
+            if (a.sortDate > b.sortDate) return -1;
+            if (a.sortDate < b.sortDate) return  1;
+            var ta = a.sortTime || '99:99';
+            var tb = b.sortTime || '99:99';
+            if (ta > tb) return -1;
+            if (ta < tb) return  1;
+            return (b.sortTs || 0) - (a.sortTs || 0);
+        });
+
+        _journalAllActivityItems = items;
+        _renderAllActivityFeed();
+
+    } catch (err) {
+        console.error('Error loading all-activity feed:', err);
+        feedEl.innerHTML = '<p class="empty-state" style="color:#b91c1c;">Error loading timeline. See console for details.</p>';
+    }
+}
+
+/** Truncate a string to maxLen characters, appending '…' if cut. */
+function _afTruncate(str, maxLen) {
+    if (!str) return '';
+    return str.length > maxLen ? str.slice(0, maxLen) + '\u2026' : str;
+}
+
+/**
+ * Render the current page of the all-activity feed into #journalFeed.
+ * Groups visible items by date and shows a "Show 50 more" button when needed.
+ */
+function _renderAllActivityFeed() {
+    var feedEl = document.getElementById('journalFeed');
+    if (!feedEl) return;
+
+    var items   = _journalAllActivityItems;
+    var total   = items.length;
+    var visible = items.slice(0, _journalAllActivityShown);
+
+    if (total === 0) {
+        feedEl.innerHTML = '<p class="empty-state">No activity in this date range.</p>';
+        return;
+    }
+
+    // Group by date
+    var dateMap = {};
+    visible.forEach(function(item) {
+        var d = item.sortDate || '';
+        if (!dateMap[d]) dateMap[d] = [];
+        dateMap[d].push(item);
+    });
+    var sortedDates = Object.keys(dateMap).sort().reverse();
+
+    var html = '';
+    sortedDates.forEach(function(date) {
+        if (date) {
+            html += '<div class="journal-date-header" data-journal-date="' + journalEscape(date) + '">' +
+                        journalFormatDateHeader(date) +
+                    '</div>';
+        }
+        dateMap[date].forEach(function(item) {
+            html += _renderAllActivityCard(item);
+        });
+    });
+
+    if (total > _journalAllActivityShown) {
+        var remaining = total - _journalAllActivityShown;
+        html += '<button class="af-show-more" onclick="_journalAllActivityShowMore()">' +
+                    'Show 50 more (' + remaining + ' remaining)' +
+                '</button>';
+    } else {
+        html += '<p class="af-end-of-feed">All ' + total + ' item' + (total === 1 ? '' : 's') + ' shown</p>';
+    }
+
+    feedEl.innerHTML = html;
+}
+
+/**
+ * Build the HTML for a single unified activity-feed card.
+ * Cards with a route are tappable and show a › arrow.
+ */
+function _renderAllActivityCard(item) {
+    var badgeStyle = 'background:' + journalEscape(item.typeBg) + ';color:' + journalEscape(item.typeColor);
+    var badge = '<span class="af-type-badge" style="' + badgeStyle + '">' +
+                    item.icon + ' ' + journalEscape(item.typeLabel) +
+                '</span>';
+
+    var subtitle = item.subtitle
+        ? '<div class="af-subtitle">' + journalEscape(item.subtitle) + '</div>'
+        : '';
+
+    var hasAction = !!(item.route || item.specialAction);
+    var arrow     = hasAction ? '<span class="af-arrow">\u203a</span>' : '';
+
+    var onclick = '';
+    if (item.specialAction === 'openEditJournalEntry') {
+        onclick = ' onclick="openEditJournalEntry(\'' + journalEscape(item.specialId) + '\')"';
+    } else if (item.route) {
+        onclick = ' onclick="window.location.hash=\'' + journalEscape(item.route) + '\'"';
+    }
+
+    return '<div class="af-card' + (hasAction ? ' af-card--tappable' : '') + '"' + onclick + '>' +
+               '<div class="af-card-body">' +
+                   badge +
+                   '<div class="af-title">' + journalEscape(item.title) + '</div>' +
+                   subtitle +
+               '</div>' +
+               arrow +
+           '</div>';
+}
+
+/**
+ * Load the next 50 items in the all-activity feed, preserving scroll position.
+ */
+function _journalAllActivityShowMore() {
+    _journalAllActivityShown += 50;
+    var scrollY = window.pageYOffset || document.documentElement.scrollTop;
+    _renderAllActivityFeed();
+    window.scrollTo(0, scrollY);
+}
+
+/**
+ * Dim or un-dim the normal journal filter toggles when all-activity mode changes.
+ */
+function _journalSetAllActivityMode(active) {
+    var labels = document.querySelectorAll('#page-journal .journal-toggle-label--dimmable');
+    labels.forEach(function(lbl) {
+        lbl.classList.toggle('journal-toggle-label--dimmed', active);
+    });
+}

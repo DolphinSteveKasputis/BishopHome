@@ -9026,6 +9026,107 @@ a.health-chip--link:hover { filter: brightness(0.93); }
     display: none;
 }
 
+/* ── All-Activity Feed ─────────────────────────────────────── */
+
+/* Toolbar row for the All Activity toggle */
+.journal-toggle-label--all-activity {
+    font-weight: 600;
+    color: #1d4ed8;
+}
+.journal-all-activity-hint {
+    font-size: 0.78rem;
+    color: #6b7280;
+    align-self: center;
+}
+/* Dim the normal filter toggles while All Activity is on */
+.journal-toggle-label--dimmed {
+    opacity: 0.38;
+    pointer-events: none;
+}
+
+/* Unified activity-feed card */
+.af-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.af-card--tappable {
+    cursor: pointer;
+}
+.af-card--tappable:hover {
+    background: #f9fafb;
+}
+.af-card-body {
+    flex: 1;
+    min-width: 0;
+}
+.af-type-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 0.7em;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 10px;
+    margin-bottom: 4px;
+    white-space: nowrap;
+}
+.af-title {
+    font-size: 0.88rem;
+    color: #111827;
+    line-height: 1.4;
+    /* Clamp to 2 lines */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.af-subtitle {
+    font-size: 0.78rem;
+    color: #6b7280;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.af-arrow {
+    font-size: 1.3rem;
+    color: #9ca3af;
+    flex-shrink: 0;
+    line-height: 1;
+}
+.af-show-more {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    margin-top: 8px;
+    background: #f3f4f6;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    color: #374151;
+    cursor: pointer;
+    text-align: center;
+}
+.af-show-more:hover { background: #e5e7eb; }
+.af-end-of-feed {
+    text-align: center;
+    font-size: 0.8rem;
+    color: #9ca3af;
+    padding: 12px 0 4px;
+}
+
+@media (max-width: 480px) {
+    .journal-all-activity-hint { display: none; }
+    .af-title { font-size: 0.85rem; }
+    .af-subtitle { font-size: 0.75rem; }
+}
+
 /* ── Phase 7: Activity Place Field ────────────────────────── */
 
 /* Selected place chip inside the activity modal */

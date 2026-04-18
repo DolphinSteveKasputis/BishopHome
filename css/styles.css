@@ -9400,7 +9400,11 @@ a.health-chip--link:hover { filter: brightness(0.93); }
     color: #9ca3af;
     font-size: 1.2rem;
     padding: 4px 6px;
-    min-width: 28px;
+    min-width: 36px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     text-align: center;
     user-select: none;
     touch-action: none;
@@ -9555,6 +9559,7 @@ a.health-chip--link:hover { filter: brightness(0.93); }
     font-family: inherit;
     line-height: 1.65;
     resize: vertical;
+    -webkit-appearance: none;
 }
 .memory-body-textarea:focus {
     outline: none;
@@ -9589,8 +9594,14 @@ a.health-chip--link:hover { filter: brightness(0.93); }
     gap: 12px;
 }
 
-/* placeholder containers (hidden until their phase is implemented) */
-.memory-people-chips,
+/* People chips row — flex wrap for graceful overflow */
+.memory-people-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-height: 8px;
+}
+/* placeholder containers */
 .memory-urls-list,
 .memory-linked-list { min-height: 8px; }
 
@@ -9755,9 +9766,20 @@ a.health-chip--link:hover { filter: brightness(0.93); }
 .memory-url-form-btns { display: flex; gap: 6px; }
 
 @media (max-width: 480px) {
+    /* List page */
     .memory-list-date { display: none; }
     .memory-in-progress-tag { font-size: 0.62rem; padding: 1px 4px; }
+    /* Wrap the header actions (filter + button) to a second line if needed */
+    .page-header-actions { flex-wrap: wrap; gap: 6px; }
+
+    /* Edit page */
     .memory-edit-container { padding: 12px; }
+    /* Full-width URL/linked rows, prevent overflow */
+    .memory-url-row, .memory-linked-row { flex-wrap: wrap; }
+    .memory-url-link { max-width: calc(100vw - 120px); }
+    /* Picker modal: keep it scrollable and not too tall */
+    .memory-link-picker-list { max-height: 240px; }
+    #memoryLinkPickerModal .modal { max-height: 90vh; overflow-y: auto; }
 }
 
 /* ── Top 10 Lists: sort control bar ── */

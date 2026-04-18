@@ -243,23 +243,31 @@ function _t10GetCategoryName(categoryId) {
 function _t10BuildAccordionItem(list) {
     var items = Array.isArray(list.items) ? list.items : [];
 
-    // Build preview for ranks 1–10, including a note line per item (hidden until toggled)
-    var previewHtml = '';
-    var anyNotes    = false;
+    // Build preview for ranks 1–10, including notes/URL per item (hidden until toggled)
+    var previewHtml  = '';
+    var anyNoteOrUrl = false;
     for (var i = 0; i < 10; i++) {
         var item  = items[i] || {};
         var title = item.title || '';
         var notes = item.notes || '';
-        if (notes.trim()) anyNotes = true;
+        var url   = item.url   || '';
+        if (notes.trim() || url.trim()) anyNoteOrUrl = true;
+
+        var noteUrlHtml = '';
+        if (notes.trim() || url.trim()) {
+            noteUrlHtml = '<div class="t10-preview-note">';
+            if (notes.trim()) noteUrlHtml += '<span>' + escapeHtml(notes) + '</span>';
+            if (url.trim())   noteUrlHtml += '<a class="t10-preview-url" href="' + escapeHtml(url) + '" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">' + escapeHtml(url) + '</a>';
+            noteUrlHtml += '</div>';
+        }
+
         previewHtml +=
             '<div class="t10-preview-item' + (title ? '' : ' t10-preview-empty') + '">' +
                 '<span class="t10-rank">' + (i + 1) + '</span>' +
                 '<span class="t10-item-title">' +
                     (title ? escapeHtml(title) : '<em>empty</em>') +
                 '</span>' +
-                (notes.trim()
-                    ? '<div class="t10-preview-note">' + escapeHtml(notes) + '</div>'
-                    : '') +
+                noteUrlHtml +
             '</div>';
     }
 
@@ -270,9 +278,9 @@ function _t10BuildAccordionItem(list) {
     var catName  = _t10GetCategoryName(list.categoryId);
     var catClass = list.categoryId ? 't10-cat-named' : 't10-cat-none';
 
-    // Notes toggle icon only rendered when at least one item has notes;
+    // Notes toggle icon only rendered when at least one item has notes or a URL;
     // CSS hides it when the accordion is collapsed
-    var notesIconHtml = anyNotes
+    var notesIconHtml = anyNoteOrUrl
         ? '<button class="t10-list-icon t10-list-notes-btn" title="Toggle item notes" ' +
               'onclick="t10ToggleListNotes(this,event)">&#8801;</button>'
         : '';

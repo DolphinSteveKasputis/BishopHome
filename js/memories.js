@@ -303,6 +303,9 @@ function _memWireEditHandlers() {
     var ipEl = fld('memoryEditInProgress');
     if (ipEl) ipEl.onchange = _memScheduleSave;
 
+    // Speak button — reuse journal.js voice-to-text helper
+    initVoiceToText('memoryEditBody', 'memorySpeakBtn');
+
     var addUrlBtn = fld('memoryAddUrlBtn');
     if (addUrlBtn) addUrlBtn.onclick = function() { _memOpenUrlForm(-1); };
 

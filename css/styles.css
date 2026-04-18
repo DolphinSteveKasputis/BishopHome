@@ -9541,6 +9541,7 @@ a.health-chip--link:hover { filter: brightness(0.93); }
 }
 
 .memory-speak-btn { margin-bottom: 8px; font-size: 0.85rem; padding: 5px 12px; }
+.memory-speak-btn.journal-voice-active { background: #dc2626 !important; color: #fff !important; }
 
 .memory-body-textarea {
     width: 100%;

@@ -8,6 +8,14 @@ function loadThoughtsPage() {
         var el = document.getElementById('top10ListsCount');
         if (el) el.textContent = 'Top 10 Lists (' + snap.size + ')';
     }).catch(function(err) {
-        console.error('loadThoughtsPage error:', err);
+        console.error('loadThoughtsPage top10lists error:', err);
+    });
+
+    // Count Memories and update the tile label
+    userCol('memories').get().then(function(snap) {
+        var el = document.getElementById('memoriesCount');
+        if (el) el.textContent = 'Memories (' + snap.size + ')';
+    }).catch(function(err) {
+        console.error('loadThoughtsPage memories error:', err);
     });
 }

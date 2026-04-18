@@ -4,6 +4,17 @@ Items that are out of scope for current work but should be revisited later.
 
 ---
 
+## Memories: Filter / Sort Toggle
+
+On the Memories list page, add the ability to:
+- Filter the list by tag (e.g., show only "Family" or "Travel" memories)
+- Filter by person mentioned (show only memories that include a specific contact or name)
+- Temporarily sort by date (using `sortDate`) instead of manual drag order, to browse chronologically
+
+The list is currently manual drag-order only. This enhancement would add a toggle or filter bar without removing the drag capability.
+
+---
+
 ## Service Professional Tracking
 
 Once "People → Contacts" is done and Service Professional is a contact

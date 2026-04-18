@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=464">
+    <link rel="stylesheet" href="css/styles.css?v=465">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -8000,6 +8000,10 @@
                     <span class="landing-tile-icon">🏆</span>
                     <span class="landing-tile-label" id="top10ListsCount">Top 10 Lists</span>
                 </a>
+                <a href="#memories" class="landing-tile landing-tile--memories">
+                    <span class="landing-tile-icon">📖</span>
+                    <span class="landing-tile-label" id="memoriesCount">Memories</span>
+                </a>
             </div>
         </section>
 
@@ -8026,6 +8030,112 @@
                 <a href="#" onclick="t10ToggleManageCategories(); return false;">Manage Categories</a>
             </div>
             <div id="t10ManageCatPanel" class="hidden t10-manage-panel"></div>
+        </section>
+
+        <!-- Page: Memories List (#memories) -->
+        <section class="page hidden" id="page-memories">
+            <div class="page-header">
+                <h2>Memories</h2>
+                <div class="page-header-actions">
+                    <label class="mem-filter-label">
+                        <input type="checkbox" id="memoriesInProgressFilter"> In Progress only
+                    </label>
+                    <button class="btn btn-primary" id="addMemoryBtn">+ New Memory</button>
+                </div>
+            </div>
+            <div id="memoriesList" class="memories-list"></div>
+        </section>
+
+        <!-- Page: New Memory (#memory-create) -->
+        <section class="page hidden" id="page-memory-create">
+            <div class="memory-create-container">
+                <h3>New Memory</h3>
+                <p class="memory-create-hint">Give this memory a title to get started.</p>
+                <input type="text" id="memoryCreateTitle" class="memory-create-title-input"
+                       placeholder="What do you want to call this memory?">
+                <div class="memory-create-actions">
+                    <button class="btn btn-secondary" id="memoryCreateCancel">Cancel</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Page: Edit Memory (#memory-edit/:id) -->
+        <section class="page hidden" id="page-memory-edit">
+            <div class="memory-edit-container">
+                <div class="memory-edit-header-row">
+                    <h3>Memory</h3>
+                    <button class="memory-help-btn" id="memoryHelpBtn" title="Help">?</button>
+                </div>
+
+                <!-- Title -->
+                <div class="memory-field-group">
+                    <label for="memoryEditTitle">Title</label>
+                    <input type="text" id="memoryEditTitle" class="memory-title-input"
+                           placeholder="One-line description">
+                </div>
+
+                <!-- In Progress -->
+                <div class="memory-field-group">
+                    <label class="memory-checkbox-label">
+                        <input type="checkbox" id="memoryEditInProgress"> In Progress
+                    </label>
+                </div>
+
+                <!-- When -->
+                <div class="memory-field-group">
+                    <label for="memoryEditDateText">When</label>
+                    <input type="text" id="memoryEditDateText"
+                           placeholder="e.g. Fall of '87, mid 80's, March 1992, Christmas 1988">
+                </div>
+
+                <!-- Location -->
+                <div class="memory-field-group">
+                    <label for="memoryEditLocation">Location</label>
+                    <input type="text" id="memoryEditLocation"
+                           placeholder="e.g. Grandma's house, Lake Wildwood">
+                </div>
+
+                <!-- Tags — wired in M4 -->
+                <div class="memory-field-group hidden" id="memoryTagsSection">
+                    <label>Tags</label>
+                    <div id="memoryEditTags" class="memory-tags-container"></div>
+                </div>
+
+                <!-- Body -->
+                <div class="memory-field-group">
+                    <label for="memoryEditBody">Memory</label>
+                    <button class="btn btn-secondary memory-speak-btn" id="memorySpeakBtn">🎤 Speak</button>
+                    <textarea id="memoryEditBody" class="memory-body-textarea"
+                              placeholder="Write your memory here... Type @ to mention a contact, or ++Name to add someone not in your contacts."></textarea>
+                </div>
+
+                <!-- People — wired in M5/M6 -->
+                <div class="memory-field-group hidden" id="memoryPeopleSection">
+                    <label>People</label>
+                    <div id="memoryMentionDropdown" class="mention-dropdown hidden"></div>
+                    <div id="memoryPeopleChips" class="memory-people-chips"></div>
+                </div>
+
+                <!-- URLs — wired in M7 -->
+                <div class="memory-field-group hidden" id="memoryUrlsSection">
+                    <label>Links</label>
+                    <div id="memoryEditUrls" class="memory-urls-list"></div>
+                    <button class="btn btn-secondary btn-sm" id="memoryAddUrlBtn">+ Add URL</button>
+                </div>
+
+                <!-- Linked Memories — wired in M9 -->
+                <div class="memory-field-group hidden" id="memoryLinkedSection">
+                    <label>Linked Memories</label>
+                    <div id="memoryLinkedList" class="memory-linked-list"></div>
+                    <button class="btn btn-secondary btn-sm" id="memoryLinkBtn">Link a Memory</button>
+                </div>
+
+                <!-- Actions -->
+                <div class="memory-edit-actions">
+                    <button class="btn btn-secondary" id="memoryEditCancel">Cancel</button>
+                    <button class="btn btn-danger" id="memoryEditDelete">Delete Memory</button>
+                </div>
+            </div>
         </section>
 
         <!-- Page: Create / Edit Top 10 List (#top10list-create, #top10list-edit/:id) -->
@@ -8080,9 +8190,10 @@
     <script src="js/secondbrain.js?v=351"></script>
     <script src="js/sbissues.js?v=350"></script>
     <script src="js/places.js?v=350"></script>
-    <script src="js/thoughts.js?v=462"></script>
-    <script src="js/top10lists.js?v=464"></script>
-    <script src="js/app.js?v=462"></script>
+    <script src="js/thoughts.js?v=465"></script>
+    <script src="js/top10lists.js?v=465"></script>
+    <script src="js/memories.js?v=465"></script>
+    <script src="js/app.js?v=465"></script>
 
 </body>
 </html>

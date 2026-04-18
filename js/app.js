@@ -14,7 +14,7 @@ const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'h
                          'health', 'health-visits', 'health-medications', 'health-conditions', 'health-concerns', 'health-bloodwork',
                          'health-vitals', 'health-insurance', 'health-emergency', 'health-appointments', 'health-care-team',
                          'life-calendar', 'life-projects',
-                         'thoughts', 'top10lists'];
+                         'thoughts', 'top10lists', 'memories'];
 
 /**
  * All pages that can be shown (includes detail pages not in the nav).
@@ -36,7 +36,8 @@ const ALL_PAGES = [
     'health-bloodwork-detail', 'health-insurance-detail',
     'life-event',
     'life-projects', 'life-project',
-    'top10list-create', 'top10list-edit'
+    'top10list-create', 'top10list-edit',
+    'memory-create', 'memory-edit'
 ];
 
 /**
@@ -540,6 +541,16 @@ function handleRoute() {
     } else if (page === 'top10list-edit' && id) {
         showPage('top10list-edit');
         loadTop10ListEditPage(id);
+    // ---------- Memories routes ----------
+    } else if (page === 'memories') {
+        showPage('memories');
+        loadMemoriesPage();
+    } else if (page === 'memory-create') {
+        showPage('memory-create');
+        loadMemoryCreatePage();
+    } else if (page === 'memory-edit' && id) {
+        showPage('memory-edit');
+        loadMemoryEditPage(id);
     // ---------- Places routes ----------
     } else if (page === 'places') {
         showPage('places');

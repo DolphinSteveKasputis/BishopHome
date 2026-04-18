@@ -1007,18 +1007,19 @@ Rich project management for the Life section — supports day-by-day itineraries
 
 ## Part 10: Thoughts
 
-**JS files**: `js/thoughts.js`, `js/top10lists.js`
-**Routes**: `#thoughts`, `#top10lists`, `#top10list-create`, `#top10list-edit/:id`
+**JS files**: `js/thoughts.js`, `js/top10lists.js`, `js/memories.js`
+**Routes**: `#thoughts`, `#top10lists`, `#top10list-create`, `#top10list-edit/:id`, `#memories`, `#memory-create`, `#memory-edit/:id`
 **Nav context**: `THOUGHTS_PAGES` (amber tile on main landing; thoughts-specific nav bar with no links)
-**Firestore**: `top10lists`, `top10categories` collections; sort pref + seed flag in `userCol('settings').doc('thoughts')`
+**Firestore**: `top10lists`, `top10categories`, `memories`, `memoryLinks`, `memoryTags` collections; sort pref + seed flag in `userCol('settings').doc('thoughts')`
 
 ### Main Landing Tile (`#main`)
 - Thoughts card appears as the 4th tile on the main landing page (2×2 grid with Yard / House / Life)
 - Amber gradient (`landing-tile--thoughts`); navigates to `#thoughts`
 
 ### Thoughts Landing Page (`#thoughts`)
-- Shows a grid of feature cards (currently one: Top 10 Lists)
+- Shows a grid of feature cards: Top 10 Lists and Memories
 - **Top 10 Lists (x)** tile: displays the live count of created lists; navigates to `#top10lists`
+- **Memories (x)** tile: displays the live count of memories; amber gradient; navigates to `#memories`
 - Breadcrumb: _(none — top-level page)_
 
 ### Top 10 Lists Page (`#top10lists`)
@@ -1079,6 +1080,77 @@ Both routes share the `page-top10list-edit` HTML section.
 |-------|------|-------|
 | name | string | Category name |
 | createdAt | timestamp | |
+
+---
+
+## Part 10a: Memories
+
+**JS file**: `js/memories.js`
+**Routes**: `#memories`, `#memory-create`, `#memory-edit/:id`
+**Firestore**: `memories`, `memoryLinks`, `memoryTags`
+**Plan document**: `MemoriesPlan.md`
+
+### Memories List Page (`#memories`)
+- Header: "Memories" + "+ New Memory" button + "In Progress only" filter toggle
+- Breadcrumb: Thoughts › Memories
+- Each row: drag handle (left) · **In Progress** badge (if `inProgress: true`) · title · date text (subdued)
+- Rows are **draggable** via SortableJS; drag updates `sortOrder` float on the moved doc only — zero other writes
+- "In Progress only" toggle hides rows where `inProgress !== true`
+- Clicking a row navigates to `#memory-edit/:id`
+
+### New Memory Flow (`#memory-create`)
+- Shows a single title input; no Firestore write until title is filled and blurred (or Enter pressed)
+- On blur with non-empty title: creates Firestore doc, does `history.replaceState` to `#memory-edit/:id`, transitions to edit page without a visible navigation event
+- Cancel navigates back to `#memories` with nothing saved
+
+### Memory Edit Page (`#memory-edit/:id`)
+- Always editable — no separate view/read mode
+- Breadcrumb: Thoughts › Memories › [title]
+- Fields (top to bottom): Title · In Progress checkbox · When (free-text date) · Location · Tags _(M4)_ · Body textarea · People chips _(M5/M6)_ · URLs _(M7)_ · Linked Memories _(M9)_
+- **Help button** (`?`, top-right): explains date field syntax, `++Name`, and `@mention` _(M10)_
+- **Speak button** above body textarea for speech-to-text _(M8)_
+- **Auto-save**: debounced 1.5 s after last keystroke; saves title, body, dateText, location, inProgress
+- **Cancel**: if new memory → confirm "Discard this memory?" → delete doc → `#memories`; if existing → confirm "Discard your changes?" → restore original → `#memories`
+- **Delete**: confirm → delete memory doc + all `memoryLinks` referencing it → `#memories`
+
+### Sort Order
+- `sortOrder` is a float stored per document (initial gap: 10000 per item)
+- Drag assigns midpoint float between neighbors — never updates any other document
+- New memories inserted at `lastSortOrder + 10000` (bottom of list) until M3 adds smart date-based placement
+
+### Data Model
+
+#### `memories`
+| Field | Type | Notes |
+|---|---|---|
+| `title` | string | Required; shown in list |
+| `body` | string | Free-form narrative (can be very long) |
+| `dateText` | string | Exactly as typed by user |
+| `sortDate` | string\|null | ISO date derived from dateText — for initial placement (M3) |
+| `sortOrder` | float | Manual drag order |
+| `location` | string | Free-form text |
+| `tags` | string[] | Tag names (M4) |
+| `mentionedPersonIds` | string[] | Contact IDs from @-mentions (M5) |
+| `mentionedNames` | string[] | Free-form names from ++Name (M6) |
+| `urls` | object[] | `{label, url}` pairs (M7) |
+| `inProgress` | boolean | Default `true`; uncheck when done |
+| `createdAt` | timestamp | |
+| `updatedAt` | timestamp | |
+
+#### `memoryLinks`
+| Field | Type | Notes |
+|---|---|---|
+| `memoryIds` | string[2] | Always `[smallerId, largerId]` — sorted for uniqueness |
+| `createdAt` | timestamp | |
+- Doc ID: `${minId}_${maxId}` — idempotent, prevents duplicates
+- Query with `array-contains` to find all links for a memory
+- Bidirectional by nature: one record serves both sides
+
+#### `memoryTags`
+| Field | Type | Notes |
+|---|---|---|
+| `name` | string | Tag name |
+| `createdAt` | timestamp | |
 
 ---
 

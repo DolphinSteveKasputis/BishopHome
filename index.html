@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=417">
+    <link rel="stylesheet" href="css/styles.css?v=418">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -91,6 +91,11 @@
             <a href="#settings" class="nav-link" data-page="settings">⚙️</a>
             <button class="nav-signout-btn" id="signOutBtnLife" title="Sign out">Sign Out</button>
         </nav>
+        <!-- Thoughts nav (shown when on thoughts-context pages) -->
+        <nav class="header-nav hidden" id="thoughtsNav">
+            <a href="#settings" class="nav-link" data-page="settings">⚙️</a>
+            <button class="nav-signout-btn" id="signOutBtnThoughts" title="Sign out">Sign Out</button>
+        </nav>
         <!-- Hamburger menu for mobile -->
         <button class="hamburger" id="hamburgerBtn" aria-label="Toggle menu">
             <span></span>
@@ -126,6 +131,11 @@
             <a href="#chat" class="nav-link" data-page="chat">Chat</a>
             <a href="#settings" class="nav-link" data-page="settings">⚙️ Settings</a>
             <button class="nav-signout-btn" id="signOutBtnMobileLife">Sign Out</button>
+        </div>
+        <!-- Thoughts context links -->
+        <div id="mobileNavThoughts" class="hidden">
+            <a href="#settings" class="nav-link" data-page="settings">⚙️ Settings</a>
+            <button class="nav-signout-btn" id="signOutBtnMobileThoughts">Sign Out</button>
         </div>
         <!-- House context links -->
         <div id="mobileNavHouse" class="hidden">
@@ -165,6 +175,10 @@
                 <a href="#life" class="landing-tile landing-tile--life">
                     <span class="landing-tile-icon">🧠</span>
                     <span class="landing-tile-label">Life</span>
+                </a>
+                <a href="#thoughts" class="landing-tile landing-tile--thoughts">
+                    <span class="landing-tile-icon">💡</span>
+                    <span class="landing-tile-label">Thoughts</span>
                 </a>
             </div>
         </section>
@@ -7974,6 +7988,53 @@
         </div>
     </div>
 
+        <!-- ══════════════════════════════════════════════
+             THOUGHTS SECTION
+             ══════════════════════════════════════════════ -->
+
+        <!-- Page: Thoughts Landing (#thoughts) -->
+        <section class="page hidden" id="page-thoughts">
+            <div class="page-header"><h2>Thoughts</h2></div>
+            <div class="landing-grid" id="thoughtsFeatureGrid">
+                <a href="#top10lists" class="landing-tile landing-tile--top10lists">
+                    <span class="landing-tile-icon">🏆</span>
+                    <span class="landing-tile-label" id="top10ListsCount">Top 10 Lists</span>
+                </a>
+            </div>
+        </section>
+
+        <!-- Page: Top 10 Lists (#top10lists) -->
+        <section class="page hidden" id="page-top10lists">
+            <div class="page-header">
+                <h2>Top 10 Lists</h2>
+                <div class="page-header-actions">
+                    <button class="btn btn-primary"
+                        onclick="window.location.hash='#top10list-create'">+ New Top 10 List</button>
+                </div>
+            </div>
+            <div class="t10-sort-control">
+                <select id="t10SortSelect" class="form-control">
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                    <option value="az">A–Z</option>
+                </select>
+                <button class="btn btn-secondary" onclick="t10ApplySort()">Sort</button>
+            </div>
+            <div id="t10AccordionContainer"></div>
+            <div class="t10-manage-categories-link">
+                <a href="#" onclick="return false;">Manage Categories</a>
+                <span style="color:#ccc; font-size:0.8rem;"> — coming in Phase 4</span>
+            </div>
+        </section>
+
+        <!-- Page: Create / Edit Top 10 List (#top10list-create, #top10list-edit/:id) -->
+        <section class="page hidden" id="page-top10list-edit">
+            <div class="page-header">
+                <h2 id="t10EditPageTitle">Top 10 List</h2>
+            </div>
+            <div id="t10EditFormContainer"></div>
+        </section>
+
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="js/firebase-config.js?v=350"></script>
@@ -8018,7 +8079,9 @@
     <script src="js/secondbrain.js?v=351"></script>
     <script src="js/sbissues.js?v=350"></script>
     <script src="js/places.js?v=350"></script>
-    <script src="js/app.js?v=404"></script>
+    <script src="js/thoughts.js?v=457"></script>
+    <script src="js/top10lists.js?v=457"></script>
+    <script src="js/app.js?v=457"></script>
 
 </body>
 </html>

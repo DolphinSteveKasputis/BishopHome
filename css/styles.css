@@ -9326,3 +9326,250 @@ a.health-chip--link:hover { filter: brightness(0.93); }
     font-size: 0.85em;
     color: #2563eb;
 }
+
+/* ============================================================
+   THOUGHTS SECTION
+   ============================================================ */
+
+/* ── Main landing tile — Thoughts (amber gradient) ── */
+.landing-tile--thoughts {
+    background: linear-gradient(135deg, #d97706, #fbbf24);
+    color: #fff;
+}
+.landing-tile--thoughts:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(217, 119, 6, 0.35);
+}
+
+/* ── Thoughts landing: Top 10 Lists tile (indigo gradient) ── */
+.landing-tile--top10lists {
+    background: linear-gradient(135deg, #6366f1, #a5b4fc);
+    color: #fff;
+}
+.landing-tile--top10lists:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35);
+}
+
+/* ── Top 10 Lists: sort control bar ── */
+.t10-sort-control {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 16px;
+}
+.t10-sort-control select {
+    flex: 1;
+    max-width: 220px;
+}
+
+/* ── Accordion header content ── */
+.t10-acc-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+}
+.t10-acc-name {
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ── Category badge ── */
+.t10-cat-badge {
+    font-size: 0.72rem;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #e2e8f0;
+    color: #475569;
+    flex-shrink: 0;
+}
+.t10-cat-none {
+    background: #f1f5f9;
+    color: #94a3b8;
+}
+
+/* ── Accordion body: description ── */
+.t10-description {
+    font-size: 0.88rem;
+    color: #555;
+    margin: 0 0 10px;
+}
+
+/* ── Accordion body: read-only preview list (ranks 1–10) ── */
+.t10-preview-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-bottom: 12px;
+}
+.t10-preview-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.88rem;
+    padding: 2px 0;
+}
+.t10-preview-empty { color: #bbb; }
+.t10-rank {
+    font-weight: 700;
+    color: #6366f1;
+    min-width: 22px;
+    text-align: right;
+    flex-shrink: 0;
+}
+.t10-item-title { color: #333; }
+.t10-acc-actions { margin-top: 8px; }
+
+/* ── Create/Edit: section heading ── */
+.t10-list-heading {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #374151;
+    margin: 20px 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+/* ── Create/Edit: item list container ── */
+#t10ItemList {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 20px;
+}
+
+/* ── Create/Edit: single item row ── */
+.t10-item-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 4px;
+    border-radius: 6px;
+    background: #fff;
+    border: 1px solid transparent;
+    flex-wrap: wrap;
+}
+.t10-item-row:hover {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+}
+.t10-rank-num {
+    font-weight: 700;
+    color: #6366f1;
+    min-width: 24px;
+    text-align: right;
+    font-size: 0.88rem;
+    flex-shrink: 0;
+}
+.t10-item-title-input {
+    flex: 1;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: 0.9rem;
+    min-width: 0;
+}
+.t10-item-title-input:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.12);
+}
+
+/* ── Note icon button (pencil ✎) ── */
+.t10-note-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 6px;
+    font-size: 1rem;
+    color: #d1d5db;
+    flex-shrink: 0;
+    transition: color 0.15s;
+    line-height: 1;
+}
+.t10-note-btn:hover { color: #9ca3af; }
+.t10-note-btn--has-notes { color: #22c55e; }  /* green when notes exist */
+
+/* ── Note expand area (wraps to next line inside the flex row) ── */
+.t10-note-area {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    padding: 4px 4px 4px 60px; /* indent aligns with title input */
+    flex-basis: 100%;
+}
+.t10-note-textarea {
+    flex: 1;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 0.85rem;
+    resize: vertical;
+    min-height: 60px;
+    font-family: inherit;
+}
+.t10-note-textarea:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.12);
+}
+.t10-note-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+/* ── Runners Up separator ── */
+.t10-runners-up-separator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 10px 0 6px;
+    color: #9ca3af;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    user-select: none;
+}
+.t10-runners-up-separator::before,
+.t10-runners-up-separator::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e5e7eb;
+}
+
+/* ── Form action buttons row ── */
+.t10-form-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
+}
+.t10-delete-btn { margin-left: auto; }
+
+/* ── Manage Categories link at bottom of list page ── */
+.t10-manage-categories-link {
+    text-align: center;
+    margin-top: 28px;
+    padding-top: 16px;
+    border-top: 1px solid #f1f5f9;
+}
+.t10-manage-categories-link a {
+    color: #94a3b8;
+    font-size: 0.85rem;
+    text-decoration: none;
+}
+.t10-manage-categories-link a:hover {
+    color: #6366f1;
+    text-decoration: underline;
+}

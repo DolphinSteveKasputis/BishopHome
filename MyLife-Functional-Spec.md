@@ -1005,7 +1005,67 @@ Rich project management for the Life section — supports day-by-day itineraries
 
 ---
 
-## Part 10: AI / LLM Features
+## Part 10: Thoughts
+
+**JS files**: `js/thoughts.js`, `js/top10lists.js`
+**Routes**: `#thoughts`, `#top10lists`, `#top10list-create`, `#top10list-edit/:id`
+**Nav context**: `THOUGHTS_PAGES` (amber tile on main landing; thoughts-specific nav bar with no links)
+**Firestore**: `top10lists` collection; sort pref in `userCol('settings').doc('thoughts')`
+
+### Main Landing Tile (`#main`)
+- Thoughts card appears as the 4th tile on the main landing page (2×2 grid with Yard / House / Life)
+- Amber gradient (`landing-tile--thoughts`); navigates to `#thoughts`
+
+### Thoughts Landing Page (`#thoughts`)
+- Shows a grid of feature cards (currently one: Top 10 Lists)
+- **Top 10 Lists (x)** tile: displays the live count of created lists; navigates to `#top10lists`
+- Breadcrumb: _(none — top-level page)_
+
+### Top 10 Lists Page (`#top10lists`)
+- **Sort control**: dropdown (Newest First / Oldest First / A–Z) + Sort button
+  - Selection is saved to `userCol('settings').doc('thoughts')` → `top10SortPref` and persists across devices
+- **Accordion list** of all Top 10 Lists:
+  - **Collapsed**: list name + "None" category badge
+  - **Expanded**: description (if any), read-only preview of ranks 1–10, Edit button
+  - Edit button navigates to `#top10list-edit/:id`
+  - Returning from create/edit: the saved list is auto-expanded
+- **"Manage Categories"** link at bottom (placeholder — active in Phase 4)
+- Breadcrumb: Thoughts › Top 10 Lists
+
+### Create / Edit Page (`#top10list-create` / `#top10list-edit/:id`)
+Both routes share the `page-top10list-edit` HTML section.
+
+**Fields**:
+- Name (required)
+- Description (optional textarea)
+
+**The List — 20 ranked slots**:
+- Always 20 slots visible; empty slots are allowed; no adding beyond 20
+- **Drag-and-drop reorder** via SortableJS (touch-friendly); drag handle `⠿` on each row
+- Ranks re-number automatically after every drag
+- **"Runners Up" separator** (non-draggable) always sits between rank 10 and rank 11; repositions after drag
+- **Note icon (✎)** per row:
+  - Gray = no notes; **green** = notes exist
+  - Click → inline textarea expands below the row (multi-line)
+  - **Save** button commits and collapses; **Cancel** restores previous value; **Escape** key also cancels
+- **Delete List** button (edit mode only) — confirm dialog before deleting
+- Save → writes to Firestore, returns to `#top10lists` with the saved list auto-expanded
+- Cancel → returns to `#top10lists` without saving
+- Breadcrumb: Thoughts › Top 10 Lists › New List (or Edit List)
+
+### Firestore: `top10lists`
+| Field | Type | Notes |
+|-------|------|-------|
+| title | string | Required |
+| description | string | Optional |
+| categoryId | string\|null | FK → `top10categories` (Phase 4) |
+| items | array | 20 `{title, notes}` objects in rank order |
+| createdAt | timestamp | |
+| updatedAt | timestamp | |
+
+---
+
+## Part 10b: AI / LLM Features
 
 **Plan documents**: `Chat.md`, `SecondBrain.md`
 

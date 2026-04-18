@@ -13,7 +13,8 @@
 const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'house', 'settings', 'settings-general', 'settings-contact-lists', 'main', 'search', 'activityreport', 'checklists', 'notes', 'chat', 'vehicles', 'garage', 'structures', 'life', 'journal', 'collections', 'changepassword', 'people', 'contacts', 'places', 'devnotes',
                          'health', 'health-visits', 'health-medications', 'health-conditions', 'health-concerns', 'health-bloodwork',
                          'health-vitals', 'health-insurance', 'health-emergency', 'health-appointments', 'health-care-team',
-                         'life-calendar', 'life-projects'];
+                         'life-calendar', 'life-projects',
+                         'thoughts', 'top10lists'];
 
 /**
  * All pages that can be shown (includes detail pages not in the nav).
@@ -34,7 +35,8 @@ const ALL_PAGES = [
     'health-visit', 'health-visit-step2', 'health-medications', 'health-conditions', 'health-concerns', 'health-concern', 'health-condition',
     'health-bloodwork-detail', 'health-insurance-detail',
     'life-event',
-    'life-projects', 'life-project'
+    'life-projects', 'life-project',
+    'top10list-create', 'top10list-edit'
 ];
 
 /**
@@ -47,6 +49,8 @@ const YARD_PAGES  = ['main', 'home', 'zones', 'zone', 'plant', 'weeds', 'weed', 
                      'structures', 'structure', 'structurething', 'structuresubthing', 'yard-projects', 'yard-problems'];
 // NOTE: 'checklists' is intentionally NOT in any context list — it is a shared page
 // that inherits the nav context that was active when the user clicked the Checklists link.
+const THOUGHTS_PAGES = ['thoughts', 'top10lists', 'top10list-create', 'top10list-edit'];
+
 const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'journal-categories', 'people', 'contacts', 'person', 'contact',
                      'notes', 'notebook', 'note',
                      'health', 'health-visits', 'health-visit', 'health-visit-step2',
@@ -125,25 +129,31 @@ function showPage(page) {
     if (targetPage) targetPage.classList.remove('hidden');
 
     // Update nav context (shared pages keep the current context)
-    if (HOUSE_PAGES.indexOf(page) !== -1)     currentNavContext = 'house';
-    else if (YARD_PAGES.indexOf(page) !== -1) currentNavContext = 'yard';
-    else if (LIFE_PAGES.indexOf(page) !== -1) currentNavContext = 'life';
+    if (HOUSE_PAGES.indexOf(page) !== -1)          currentNavContext = 'house';
+    else if (YARD_PAGES.indexOf(page) !== -1)      currentNavContext = 'yard';
+    else if (LIFE_PAGES.indexOf(page) !== -1)      currentNavContext = 'life';
+    else if (THOUGHTS_PAGES.indexOf(page) !== -1)  currentNavContext = 'thoughts';
 
-    // Toggle yard / house / life nav bars (desktop + mobile sections)
-    var isHouse = currentNavContext === 'house';
-    var isLife  = currentNavContext === 'life';
-    var yardNavEl        = document.getElementById('yardNav');
-    var houseNavEl       = document.getElementById('houseNav');
-    var lifeNavEl        = document.getElementById('lifeNav');
-    var mobileYardNavEl  = document.getElementById('mobileNavYard');
-    var mobileHouseNavEl = document.getElementById('mobileNavHouse');
-    var mobileLifeNavEl  = document.getElementById('mobileNavLife');
-    if (yardNavEl)        yardNavEl.classList.toggle('hidden',  isHouse || isLife);
-    if (houseNavEl)       houseNavEl.classList.toggle('hidden', !isHouse || isLife);
-    if (lifeNavEl)        lifeNavEl.classList.toggle('hidden',  !isLife);
-    if (mobileYardNavEl)  mobileYardNavEl.classList.toggle('hidden',  isHouse || isLife);
-    if (mobileHouseNavEl) mobileHouseNavEl.classList.toggle('hidden', !isHouse || isLife);
-    if (mobileLifeNavEl)  mobileLifeNavEl.classList.toggle('hidden',  !isLife);
+    // Toggle yard / house / life / thoughts nav bars (desktop + mobile)
+    var isHouse    = currentNavContext === 'house';
+    var isLife     = currentNavContext === 'life';
+    var isThoughts = currentNavContext === 'thoughts';
+    var yardNavEl           = document.getElementById('yardNav');
+    var houseNavEl          = document.getElementById('houseNav');
+    var lifeNavEl           = document.getElementById('lifeNav');
+    var thoughtsNavEl       = document.getElementById('thoughtsNav');
+    var mobileYardNavEl     = document.getElementById('mobileNavYard');
+    var mobileHouseNavEl    = document.getElementById('mobileNavHouse');
+    var mobileLifeNavEl     = document.getElementById('mobileNavLife');
+    var mobileThoughtsNavEl = document.getElementById('mobileNavThoughts');
+    if (yardNavEl)           yardNavEl.classList.toggle('hidden',  isHouse || isLife || isThoughts);
+    if (houseNavEl)          houseNavEl.classList.toggle('hidden', !isHouse || isLife || isThoughts);
+    if (lifeNavEl)           lifeNavEl.classList.toggle('hidden',  !isLife  || isThoughts);
+    if (thoughtsNavEl)       thoughtsNavEl.classList.toggle('hidden', !isThoughts);
+    if (mobileYardNavEl)     mobileYardNavEl.classList.toggle('hidden',  isHouse || isLife || isThoughts);
+    if (mobileHouseNavEl)    mobileHouseNavEl.classList.toggle('hidden', !isHouse || isLife || isThoughts);
+    if (mobileLifeNavEl)     mobileLifeNavEl.classList.toggle('hidden',  !isLife  || isThoughts);
+    if (mobileThoughtsNavEl) mobileThoughtsNavEl.classList.toggle('hidden', !isThoughts);
 
     // Determine which nav link should be highlighted
     var navPage = page;
@@ -517,6 +527,19 @@ function handleRoute() {
     } else if (page === 'life-project' && id) {
         showPage('life-project');
         loadLifeProjectDetailPage(id);
+    // ---------- Thoughts routes ----------
+    } else if (page === 'thoughts') {
+        showPage('thoughts');
+        loadThoughtsPage();
+    } else if (page === 'top10lists') {
+        showPage('top10lists');
+        loadTop10ListsPage();
+    } else if (page === 'top10list-create') {
+        showPage('top10list-edit');
+        loadTop10ListCreatePage();
+    } else if (page === 'top10list-edit' && id) {
+        showPage('top10list-edit');
+        loadTop10ListEditPage(id);
     // ---------- Places routes ----------
     } else if (page === 'places') {
         showPage('places');
@@ -576,6 +599,20 @@ if (signOutBtnLife) {
 }
 if (signOutBtnMobileLife) {
     signOutBtnMobileLife.addEventListener('click', function() {
+        document.getElementById('signOutBtnMobile').click();
+    });
+}
+
+// Wire thoughts-context sign-out buttons
+var signOutBtnThoughts       = document.getElementById('signOutBtnThoughts');
+var signOutBtnMobileThoughts = document.getElementById('signOutBtnMobileThoughts');
+if (signOutBtnThoughts) {
+    signOutBtnThoughts.addEventListener('click', function() {
+        document.getElementById('signOutBtn').click();
+    });
+}
+if (signOutBtnMobileThoughts) {
+    signOutBtnMobileThoughts.addEventListener('click', function() {
         document.getElementById('signOutBtnMobile').click();
     });
 }

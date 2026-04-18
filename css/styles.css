@@ -9497,13 +9497,13 @@ a.health-chip--link:hover { filter: brightness(0.93); }
 /* ── Note expand area (wraps to next line inside the flex row) ── */
 .t10-note-area {
     display: flex;
-    gap: 8px;
-    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
     padding: 4px 4px 4px 60px; /* indent aligns with title input */
     flex-basis: 100%;
 }
 .t10-note-textarea {
-    flex: 1;
+    width: 100%;
     border: 1px solid #e2e8f0;
     border-radius: 6px;
     padding: 6px 8px;
@@ -9511,6 +9511,7 @@ a.health-chip--link:hover { filter: brightness(0.93); }
     resize: vertical;
     min-height: 60px;
     font-family: inherit;
+    box-sizing: border-box;
 }
 .t10-note-textarea:focus {
     outline: none;
@@ -9519,9 +9520,8 @@ a.health-chip--link:hover { filter: brightness(0.93); }
 }
 .t10-note-btns {
     display: flex;
-    flex-direction: column;
-    gap: 4px;
-    flex-shrink: 0;
+    flex-direction: row;
+    gap: 6px;
 }
 
 /* ── Runners Up separator ── */
@@ -9708,6 +9708,7 @@ a.health-chip--link:hover { filter: brightness(0.93); }
 
 /* ── URL input in per-item note area (edit form) ── */
 .t10-note-url-input {
-    margin-top: 6px;
+    width: 100%;
     font-size: 0.85rem;
+    box-sizing: border-box;
 }

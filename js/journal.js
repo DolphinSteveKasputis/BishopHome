@@ -97,6 +97,19 @@ function journalFormatDate(d) {
 }
 
 /**
+ * Update the day-of-week hint label below the date input.
+ * Shows e.g. "Sunday" when the date is 2026-04-19.
+ */
+function _journalUpdateDayOfWeek(yyyyMmDd) {
+    var el = document.getElementById('journalEntryDayOfWeek');
+    if (!el) return;
+    if (!yyyyMmDd) { el.textContent = ''; return; }
+    var parts = yyyyMmDd.split('-');
+    var d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]), 12, 0, 0);
+    el.textContent = d.toLocaleDateString('en-US', { weekday: 'long' });
+}
+
+/**
  * Format a YYYY-MM-DD string as "Monday, March 24, 2026" for display.
  * We parse the date manually to avoid timezone-shift issues.
  */
@@ -780,6 +793,7 @@ function openAddJournalEntry() {
     if (timeEl)   timeEl.value = journalCurrentTimeHHMM();
     if (textEl)   textEl.value = '';
     if (deleteBtn) deleteBtn.classList.add('hidden');
+    _journalUpdateDayOfWeek(dateEl ? dateEl.value : '');
 
     // Hide "View Visit" button (not relevant for regular journal entries)
     var visitBtn = document.getElementById('journalVisitSourceBtn');
@@ -836,6 +850,7 @@ function openVisitJournalEntryPreFilled(visitDate, visitTime, preText, visitId) 
     if (timeEl)    timeEl.value  = visitTime || '';
     if (textEl)    textEl.value  = preText || '';
     if (deleteBtn) deleteBtn.classList.add('hidden');
+    _journalUpdateDayOfWeek(dateEl ? dateEl.value : '');
 
     var linksContainer = document.getElementById('journalLinksContainer');
     if (linksContainer) linksContainer.innerHTML = '';
@@ -910,6 +925,7 @@ async function openEditJournalEntry(id) {
         if (timeEl)   timeEl.value = data.entryTime || journalTimestampToHHMM(data.createdAt);
         if (textEl)   textEl.value = data.entryText || '';
         if (deleteBtn) deleteBtn.classList.remove('hidden');
+        _journalUpdateDayOfWeek(dateEl ? dateEl.value : '');
 
         // Populate links
         var linksContainer = document.getElementById('journalLinksContainer');
@@ -1013,6 +1029,9 @@ function _journalWireEntryPage() {
         window._journalCancelTarget  = '#journal';
         window._journalSourceVisitId = null;
     };
+
+    var dateEl = document.getElementById('journalEntryDate');
+    if (dateEl) dateEl.onchange = function() { _journalUpdateDayOfWeek(this.value); };
     if (deleteBtn) deleteBtn.onclick = function() {
         if (window.currentJournalEntry) {
             deleteJournalEntry(window.currentJournalEntry.id);

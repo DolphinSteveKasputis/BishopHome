@@ -996,21 +996,28 @@ function renderRoomDetail(room, floor) {
         { label: room.name || 'Room',  hash: null }
     ]);
 
-    // ---- Load all feature sections ----
-    loadProblems('room', room.id, 'roomProblemsContainer', 'roomProblemsEmptyState');
-    loadFacts(   'room', room.id, 'roomFactsContainer',    'roomFactsEmptyState');
-    loadProjects('room', room.id, 'roomProjectsContainer', 'roomProjectsEmptyState');
-    loadActivities('room', room.id, 'roomActivityContainer', 'roomActivityEmptyState');
-    loadPhotos(  'room', room.id, 'roomPhotoContainer',    'roomPhotoEmptyState');
+    // ---- Load all feature sections, then update accordion counts ----
+    loadProblems('room', room.id, 'roomProblemsContainer', 'roomProblemsEmptyState')
+        .then(function() { _setDetailAccCount('roomProblemsAccCount', 'roomProblemsContainer'); });
+    loadFacts('room', room.id, 'roomFactsContainer', 'roomFactsEmptyState')
+        .then(function() { _setDetailAccCount('roomFactsAccCount', 'roomFactsContainer'); });
+    loadProjects('room', room.id, 'roomProjectsContainer', 'roomProjectsEmptyState')
+        .then(function() { _setDetailAccCount('roomTasksAccCount', 'roomProjectsContainer'); });
+    loadActivities('room', room.id, 'roomActivityContainer', 'roomActivityEmptyState')
+        .then(function() { _setDetailAccCount('roomActivityAccCount', 'roomActivityContainer'); });
+    loadPhotos('room', room.id, 'roomPhotoContainer', 'roomPhotoEmptyState')
+        .then(function() { _setDetailAccCount('roomPhotosAccCount', 'roomPhotoContainer'); });
 
     if (typeof loadEventsForTarget === 'function') {
         var months = parseInt(document.getElementById('roomCalendarRangeSelect').value, 10) || 3;
         loadEventsForTarget('room', room.id,
-            'roomCalendarEventsContainer', 'roomCalendarEventsEmptyState', months);
+            'roomCalendarEventsContainer', 'roomCalendarEventsEmptyState', months)
+            .then(function() { _setDetailAccCount('roomCalendarAccCount', 'roomCalendarEventsContainer'); });
     }
 
     // Load floor plan items that belong to this room
-    loadRoomFloorPlanItems(room.id, floor.id);
+    loadRoomFloorPlanItems(room.id, floor.id)
+        .then(function() { _setDetailAccCount('roomFloorPlanAccCount', 'roomFloorPlanItemsContainer'); });
 
     // Load fp item rollup: Open Concerns + Active Projects for items in this room
     loadFpItemRollup('room', room.id, floor.id, 'roomFpRollupContainer');
@@ -1977,6 +1984,7 @@ function loadThingsList(roomId) {
             docs.forEach(function(doc) {
                 container.appendChild(buildThingCard(doc.id, doc.data()));
             });
+            _setDetailAccCount('roomThingsAccCount', 'thingListContainer');
         })
         .catch(function(err) {
             console.error('loadThingsList error:', err);

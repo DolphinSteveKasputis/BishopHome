@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=478">
+    <link rel="stylesheet" href="css/styles.css?v=484">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -7213,49 +7213,70 @@
                 <h2>Journal</h2>
             </div>
 
-            <!-- Toolbar: date range selector, go-to-date, action buttons -->
-            <div class="journal-toolbar">
-                <div class="journal-toolbar-row">
-                    <select id="journalRangeSelect">
-                        <option value="7">Last 7 days</option>
-                        <option value="30">Last 30 days</option>
-                        <option value="60">Last 60 days</option>
-                        <option value="90">Last 90 days</option>
-                        <option value="custom">Custom range</option>
-                    </select>
-                    <div id="journalCustomRange" class="hidden">
-                        <input type="date" id="journalFromDate">
-                        <span>to</span>
-                        <input type="date" id="journalToDate">
-                        <button class="btn btn-secondary btn-small" id="journalCustomApplyBtn">Apply</button>
+            <div class="journal-page-layout">
+                <!-- Left: toolbar + feed -->
+                <div class="journal-main-col">
+                    <!-- Toolbar: date range selector, go-to-date, action buttons -->
+                    <div class="journal-toolbar">
+                        <div class="journal-toolbar-row">
+                            <select id="journalRangeSelect">
+                                <option value="7">Last 7 days</option>
+                                <option value="30">Last 30 days</option>
+                                <option value="60">Last 60 days</option>
+                                <option value="90">Last 90 days</option>
+                                <option value="custom">Custom range</option>
+                            </select>
+                            <div id="journalCustomRange" class="hidden">
+                                <input type="date" id="journalFromDate">
+                                <span>to</span>
+                                <input type="date" id="journalToDate">
+                                <button class="btn btn-secondary btn-small" id="journalCustomApplyBtn">Apply</button>
+                            </div>
+                        </div>
+                        <div class="journal-toolbar-row">
+                            <input type="date" id="journalGoToDateInput">
+                            <button class="btn btn-secondary btn-small" id="journalGoToDateBtn">Go to Date</button>
+                            <span id="journalGoToDateMsg" class="journal-goto-msg hidden"></span>
+                        </div>
+                        <div class="journal-toolbar-row">
+                            <button class="btn btn-primary btn-small" id="journalNewEntryBtn">+ New Entry</button>
+                            <button class="btn btn-secondary btn-small" id="journalAddTrackingBtn">+ Add Tracking</button>
+                            <button class="btn btn-secondary btn-small" id="journalManageCategoriesBtn">Manage Categories</button>
+                            <label class="journal-toggle-label journal-toggle-label--dimmable">
+                                <input type="checkbox" id="journalShowEventNotes"> Show Event Notes
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Journal feed — filled dynamically by journal.js -->
+                    <div id="journalFeed"></div>
+                </div>
+
+                <!-- Right: filter panel -->
+                <div class="journal-filter-panel">
+                    <div class="journal-filter-panel-header">Filter</div>
+
+                    <div class="journal-filter-section">
+                        <label class="journal-filter-label">Category</label>
+                        <select id="journalCategoryFilterSelect" class="journal-filter-select">
+                            <option value="">No Filter</option>
+                        </select>
+                    </div>
+
+                    <div class="journal-filter-section">
+                        <label class="journal-toggle-label journal-toggle-label--dimmable">
+                            <input type="checkbox" id="journalCheckinsOnly"> Check-Ins Only
+                        </label>
+                    </div>
+
+                    <div class="journal-filter-section">
+                        <label class="journal-toggle-label journal-toggle-label--all-activity">
+                            <input type="checkbox" id="journalAllActivityToggle"> 🌐 All Activity
+                        </label>
+                        <p class="journal-all-activity-hint" style="margin:4px 0 0;">Show everything logged across the entire app</p>
                     </div>
                 </div>
-                <div class="journal-toolbar-row">
-                    <input type="date" id="journalGoToDateInput">
-                    <button class="btn btn-secondary btn-small" id="journalGoToDateBtn">Go to Date</button>
-                    <span id="journalGoToDateMsg" class="journal-goto-msg hidden"></span>
-                </div>
-                <div class="journal-toolbar-row">
-                    <button class="btn btn-primary btn-small" id="journalNewEntryBtn">+ New Entry</button>
-                    <button class="btn btn-secondary btn-small" id="journalAddTrackingBtn">+ Add Tracking</button>
-                    <button class="btn btn-secondary btn-small" id="journalManageCategoriesBtn">Manage Categories</button>
-                    <label class="journal-toggle-label journal-toggle-label--dimmable">
-                        <input type="checkbox" id="journalShowEventNotes"> Show Event Notes
-                    </label>
-                    <label class="journal-toggle-label journal-toggle-label--dimmable">
-                        <input type="checkbox" id="journalCheckinsOnly"> Check-Ins Only
-                    </label>
-                </div>
-                <div class="journal-toolbar-row">
-                    <label class="journal-toggle-label journal-toggle-label--all-activity">
-                        <input type="checkbox" id="journalAllActivityToggle"> 🌐 All Activity
-                    </label>
-                    <span class="journal-all-activity-hint">Show everything logged across the entire app</span>
-                </div>
             </div>
-
-            <!-- Journal feed — filled dynamically by journal.js -->
-            <div id="journalFeed"></div>
         </section>
 
         <!-- Page: Journal Entry Add/Edit (#journal-entry) — full-page form -->
@@ -8391,7 +8412,7 @@ export default {
     <script src="js/garage.js?v=356"></script>
     <script src="js/structures.js?v=350"></script>
     <script src="js/moveThings.js?v=350"></script>
-    <script src="js/journal.js?v=483"></script>
+    <script src="js/journal.js?v=484"></script>
     <script src="js/contacts.js?v=378"></script>
     <script src="js/collections.js?v=356"></script>
     <script src="js/health.js?v=380"></script>

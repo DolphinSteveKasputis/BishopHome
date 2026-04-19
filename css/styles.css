@@ -4953,6 +4953,69 @@ a.ar-target-link:hover {
     box-shadow: 0 8px 24px rgba(245, 158, 11, 0.35);
 }
 
+/* Two-column layout: main feed + filter panel */
+.journal-page-layout {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+.journal-main-col {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Filter panel (right column) */
+.journal-filter-panel {
+    flex: 0 0 200px;
+    width: 200px;
+    background: var(--card-bg, #fff);
+    border: 1px solid var(--border, #e0e0e0);
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    font-size: 0.9em;
+}
+.journal-filter-panel-header {
+    font-weight: 600;
+    font-size: 0.95em;
+    color: var(--text-secondary, #6b7280);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border, #e0e0e0);
+}
+.journal-filter-section {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.journal-filter-label {
+    font-size: 0.8em;
+    color: var(--text-secondary, #6b7280);
+    font-weight: 500;
+}
+.journal-filter-select {
+    width: 100%;
+    padding: 5px 6px;
+    border: 1px solid var(--border, #ccc);
+    border-radius: 6px;
+    font-size: 0.88em;
+    background: var(--input-bg, #fff);
+}
+
+/* On mobile: filter panel sits above the feed, full width */
+@media (max-width: 640px) {
+    .journal-page-layout {
+        flex-direction: column-reverse;
+    }
+    .journal-filter-panel {
+        width: 100%;
+        flex: unset;
+    }
+}
+
 /* Toolbar on the main journal page */
 .journal-toolbar {
     display: flex;

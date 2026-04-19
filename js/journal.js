@@ -41,6 +41,9 @@ var _journalPlaceDropdownVenues = [];
 /** Whether the "Check-Ins Only" feed filter is active. */
 var _journalCheckinsOnly = localStorage.getItem('bishop_journal_checkinsOnly') === 'true';
 
+/** Category name to filter the feed to (empty string = no filter). */
+var _journalCategoryFilter = localStorage.getItem('bishop_journal_categoryFilter') || '';
+
 /** True when the entry form is opened in check-in mode (from the Check In button). */
 var _journalCheckinMode = false;
 
@@ -338,6 +341,65 @@ function _journalWireToolbar() {
             }
         };
     }
+
+    // Category filter dropdown
+    var catFilter = document.getElementById('journalCategoryFilterSelect');
+    if (catFilter) {
+        catFilter.value = _journalCategoryFilter;
+        catFilter.onchange = function() {
+            _journalCategoryFilter = this.value;
+            localStorage.setItem('bishop_journal_categoryFilter', _journalCategoryFilter);
+            loadJournalData();
+        };
+        _journalPopulateFilterPanel();
+    }
+}
+
+/**
+ * Populate the category filter dropdown with all tracking categories
+ * and the most recent date each was logged (e.g. "Hair Cut (04/17/2026)").
+ */
+async function _journalPopulateFilterPanel() {
+    var select = document.getElementById('journalCategoryFilterSelect');
+    if (!select) return;
+
+    // Ensure categories are loaded
+    if (!window.journalCategories || window.journalCategories.length === 0) {
+        await loadJournalCategories();
+    }
+    var cats = window.journalCategories || [];
+    if (cats.length === 0) return;
+
+    // Query last tracking item per category (no composite index needed — equality only)
+    var promises = cats.map(function(cat) {
+        return userCol('journalTrackingItems')
+            .where('category', '==', cat.name)
+            .get()
+            .then(function(snap) {
+                var maxDate = '';
+                snap.forEach(function(doc) {
+                    var d = doc.data().date || '';
+                    if (d > maxDate) maxDate = d;
+                });
+                return { name: cat.name, lastDate: maxDate };
+            });
+    });
+
+    var results = await Promise.all(promises);
+
+    var html = '<option value="">No Filter</option>';
+    results.forEach(function(r) {
+        var label = r.name;
+        if (r.lastDate) {
+            var p = r.lastDate.split('-');
+            label += ' (' + p[1] + '/' + p[2] + '/' + p[0] + ')';
+        }
+        var sel = (_journalCategoryFilter === r.name) ? ' selected' : '';
+        html += '<option value="' + journalEscape(r.name) + '"' + sel + '>' +
+                journalEscape(label) + '</option>';
+    });
+
+    select.innerHTML = html;
 }
 
 /**
@@ -542,7 +604,20 @@ async function loadJournalData() {
             await Promise.all(placeFetches);
         }
 
-        renderJournalFeed(grouped);
+        // Apply category filter — narrows feed to only that tracking category
+        var filteredGrouped = grouped;
+        if (_journalCategoryFilter) {
+            filteredGrouped = grouped.map(function(group) {
+                return {
+                    date: group.date,
+                    items: group.items.filter(function(item) {
+                        return item.type === 'tracking' && item.data.category === _journalCategoryFilter;
+                    })
+                };
+            }).filter(function(group) { return group.items.length > 0; });
+        }
+
+        renderJournalFeed(filteredGrouped, _journalCategoryFilter);
 
     } catch (err) {
         console.error('Error loading journal data:', err);
@@ -564,14 +639,18 @@ async function loadJournalData() {
 
 /**
  * Render the journal feed into #journalFeed.
- * @param {Array} groupedData - Array of { date: 'YYYY-MM-DD', items: [...] }
+ * @param {Array}  groupedData    - Array of { date: 'YYYY-MM-DD', items: [...] }
+ * @param {string} [categoryFilter] - If set, shown in the empty-state message.
  */
-function renderJournalFeed(groupedData) {
+function renderJournalFeed(groupedData, categoryFilter) {
     var feedEl = document.getElementById('journalFeed');
     if (!feedEl) return;
 
     if (groupedData.length === 0) {
-        feedEl.innerHTML = '<p class="empty-state">No entries in this date range. Add your first entry!</p>';
+        var emptyMsg = categoryFilter
+            ? 'No "' + categoryFilter + '" entries in this date range.'
+            : 'No entries in this date range. Add your first entry!';
+        feedEl.innerHTML = '<p class="empty-state">' + emptyMsg + '</p>';
         return;
     }
 

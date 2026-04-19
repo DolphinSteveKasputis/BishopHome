@@ -9168,7 +9168,9 @@ a.health-chip--link:hover { filter: brightness(0.93); }
 .journal-entry-links a:hover { text-decoration: underline; }
 
 /* Check-Ins Only filter: hide non-checkin entries */
-.journal-feed--checkins-only .journal-item--entry:not(.journal-item--checkin) {
+.journal-feed--checkins-only .journal-item--entry:not(.journal-item--checkin),
+.journal-feed--checkins-only .journal-item--tracking,
+.journal-feed--checkins-only .journal-item--lifeLog {
     display: none;
 }
 

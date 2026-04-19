@@ -244,6 +244,8 @@ Each room belongs to one floor.
 
 **Stairs**: A special room type marked as connecting two floors. Appears with a hatch pattern on the floor plan.
 
+**Detail page layout**: All sections are collapsible accordions (`.detail-acc`), all collapsed by default. Item count badge shown in each header. Sections: Things, Problems/Concerns, Facts, Quick Task List, Calendar Events, Activity History, Photos, Floor Plan.
+
 **[Shared]**: Facts, Problems (roll-up from things/sub-things), Quick Task List (roll-up), Activities, Photos, Calendar Events
 
 ### Things (`house.js`)
@@ -256,6 +258,8 @@ Items of significance in a room — furniture, appliances, fixtures.
 **Categories**: Furniture, Appliance, Ceiling Fan, Ceiling Light, Electronics, Other. Category badges are color-coded and shown on the list card.
 
 **Thumbnails**: `profilePhotoData` stored on the document; shown as a small image on the list card. Auto-set from the first photo added (LLM or manual). Can be overridden via "Use as Profile" button in the photo gallery.
+
+**Detail page layout**: All sections are collapsible accordions (`.detail-acc`), all collapsed by default. Item count badge shown in each header. Sections: Sub-Things, Problems/Concerns, Facts, Quick Task List, Calendar Events, Activity History, Photos.
 
 **[Shared]**: Facts, Problems, Quick Task List, Activities, Photos, Calendar Events
 
@@ -270,7 +274,9 @@ Sub-items within a Thing — drawers in a dresser, shelves in a bookcase, compar
 
 **Thumbnails**: Same pattern as Things — auto-set on first photo, overridable.
 
-**[Shared]**: Facts, Problems, Activities, Photos
+**Detail page layout**: All sections are collapsible accordions (`.detail-acc`), all collapsed by default. Item count badge shown in each header. Sections: Items, Problems/Concerns, Facts, Quick Task List, Calendar Events, Activity History, Photos.
+
+**[Shared]**: Facts, Problems, Quick Task List, Activities, Photos, Calendar Events
 
 ### Items (`house.js`, `SubThingItems.md`)
 The deepest level — individual items inside a Sub-Thing.
@@ -281,7 +287,9 @@ The deepest level — individual items inside a Sub-Thing.
 
 **Thumbnails**: Same pattern as Things — auto-set on first photo, overridable.
 
-**[Shared]**: Facts, Problems, Activities, Photos
+**Detail page layout**: All sections are collapsible accordions (`.detail-acc`), all collapsed by default. Item count badge shown in each header. Sections: Problems/Concerns, Facts, Quick Task List, Calendar Events, Activity History, Photos.
+
+**[Shared]**: Facts, Problems, Quick Task List, Activities, Photos, Calendar Events
 
 ### LLM Photo Identification (House)
 Things, Sub-Things, and Items can all be added via `+Photo` button:

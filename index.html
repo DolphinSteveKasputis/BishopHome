@@ -1605,73 +1605,130 @@
             <div id="stDetailsSection" class="thing-details-section" style="display:none"></div>
 
             <!-- Items section -->
-            <div class="section-header">
-                <h3 class="section-heading">Items</h3>
-                <button class="btn btn-primary btn-small" id="addItemBtn">+ Add Item</button>
-                <button class="btn btn-primary btn-small" id="quickAddItemPhotoBtn">+Photo</button>
-                <input type="file" id="quickItemCamInput" accept="image/*" capture="environment" style="display:none;">
+            <div class="detail-acc" id="stItemsAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('stItemsAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Items</span>
+                    <span class="detail-acc-count" id="stItemsAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="addItemBtn">+ Add Item</button>
+                        <button class="btn btn-primary btn-small" id="quickAddItemPhotoBtn">+Photo</button>
+                        <input type="file" id="quickItemCamInput" accept="image/*" capture="environment" style="display:none;">
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div class="card-list" id="itemListContainer"></div>
+                    <p class="empty-state" id="itemListEmptyState"></p>
+                </div>
             </div>
-            <div class="card-list" id="itemListContainer"></div>
-            <p class="empty-state" id="itemListEmptyState"></p>
 
             <!-- Problems -->
-            <div class="section-header">
-                <h3 class="section-heading">Problems / Concerns</h3>
-                <div class="section-header-actions">
-                    <label class="show-toggle"><input type="checkbox" id="showResolvedSubThingProblems"> Show resolved</label>
-                    <button class="btn btn-primary btn-small" id="addStProblemBtn">+ Add</button>
-                </div>
-            </div>
-            <div id="stProblemsContainer"></div>
-            <p class="empty-state" id="stProblemsEmptyState"></p>
-            <!-- Facts -->
-            <div class="section-header">
-                <h3 class="section-heading">Facts</h3>
-                <button class="btn btn-primary btn-small" id="addStFactBtn">+ Add</button>
-            </div>
-            <div id="stFactsContainer"></div>
-            <p class="empty-state" id="stFactsEmptyState"></p>
-            <!-- Quick Task List -->
-            <div class="section-header">
-                <h3 class="section-heading">Quick Task List</h3>
-                <button class="btn btn-primary btn-small" id="addStProjectBtn">+ Add</button>
-            </div>
-            <div id="stProjectsContainer"></div>
-            <p class="empty-state" id="stProjectsEmptyState"></p>
-            <!-- Calendar Events -->
-            <div class="section-header">
-                <h3 class="section-heading">Calendar Events</h3>
-                <div class="section-header-actions">
-                    <div class="calendar-range-picker">
-                        <label>Next</label>
-                        <select id="stCalendarRangeSelect" class="range-select">
-                            <option value="1">1 mo</option>
-                            <option value="3" selected>3 mo</option>
-                            <option value="6">6 mo</option>
-                            <option value="12">12 mo</option>
-                        </select>
+            <div class="detail-acc" id="stProblemsAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('stProblemsAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Problems / Concerns</span>
+                    <span class="detail-acc-count" id="stProblemsAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <label class="show-toggle"><input type="checkbox" id="showResolvedSubThingProblems"> Show resolved</label>
+                        <button class="btn btn-primary btn-small" id="addStProblemBtn">+ Add</button>
                     </div>
-                    <button class="btn btn-primary btn-small" id="addStCalendarEventBtn">+ Add Event</button>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="stProblemsContainer"></div>
+                    <p class="empty-state" id="stProblemsEmptyState"></p>
                 </div>
             </div>
-            <div id="stCalendarEventsContainer"></div>
-            <p class="empty-state" id="stCalendarEventsEmptyState"></p>
+
+            <!-- Facts -->
+            <div class="detail-acc" id="stFactsAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('stFactsAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Facts</span>
+                    <span class="detail-acc-count" id="stFactsAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="addStFactBtn">+ Add</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="stFactsContainer"></div>
+                    <p class="empty-state" id="stFactsEmptyState"></p>
+                </div>
+            </div>
+
+            <!-- Quick Task List -->
+            <div class="detail-acc" id="stTasksAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('stTasksAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Quick Task List</span>
+                    <span class="detail-acc-count" id="stTasksAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="addStProjectBtn">+ Add</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="stProjectsContainer"></div>
+                    <p class="empty-state" id="stProjectsEmptyState"></p>
+                </div>
+            </div>
+
+            <!-- Calendar Events -->
+            <div class="detail-acc" id="stCalendarAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('stCalendarAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Calendar Events</span>
+                    <span class="detail-acc-count" id="stCalendarAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <div class="calendar-range-picker">
+                            <label>Next</label>
+                            <select id="stCalendarRangeSelect" class="range-select">
+                                <option value="1">1 mo</option>
+                                <option value="3" selected>3 mo</option>
+                                <option value="6">6 mo</option>
+                                <option value="12">12 mo</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary btn-small" id="addStCalendarEventBtn">+ Add Event</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="stCalendarEventsContainer"></div>
+                    <p class="empty-state" id="stCalendarEventsEmptyState"></p>
+                </div>
+            </div>
+
             <!-- Activity History -->
-            <div class="section-header">
-                <h3 class="section-heading">Activity History</h3>
-                <button class="btn btn-primary btn-small" id="logStActivityBtn">+ Log Activity</button>
+            <div class="detail-acc" id="stActivityAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('stActivityAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Activity History</span>
+                    <span class="detail-acc-count" id="stActivityAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="logStActivityBtn">+ Log Activity</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="stActivityContainer"></div>
+                    <p class="empty-state" id="stActivityEmptyState">No activities logged yet.</p>
+                </div>
             </div>
-            <div id="stActivityContainer"></div>
-            <p class="empty-state" id="stActivityEmptyState">No activities logged yet.</p>
+
             <!-- Photos -->
-            <div class="section-header">
-                <h3 class="section-heading">Photos</h3>
-                <button class="btn btn-primary btn-small" id="addStCameraBtn">+ Camera</button>
-                <button class="btn btn-primary btn-small" id="addStGalleryBtn">+ Gallery</button>
-                <button class="btn btn-primary btn-small paste-photo-btn" data-entity="subthing">📋 Paste</button>
+            <div class="detail-acc" id="stPhotosAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('stPhotosAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Photos</span>
+                    <span class="detail-acc-count" id="stPhotosAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="addStCameraBtn">+ Camera</button>
+                        <button class="btn btn-primary btn-small" id="addStGalleryBtn">+ Gallery</button>
+                        <button class="btn btn-primary btn-small paste-photo-btn" data-entity="subthing">📋 Paste</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="stPhotoContainer"></div>
+                    <p class="empty-state" id="stPhotoEmptyState">No photos yet.</p>
+                </div>
             </div>
-            <div id="stPhotoContainer"></div>
-            <p class="empty-state" id="stPhotoEmptyState">No photos yet.</p>
         </section>
 
         <!-- Page: Item Detail (#item/{id}) -->
@@ -1687,63 +1744,112 @@
             <!-- Inventory details -->
             <div id="siDetailsSection" class="thing-details-section" style="display:none"></div>
             <!-- Problems -->
-            <div class="section-header">
-                <h3 class="section-heading">Problems / Concerns</h3>
-                <div class="section-header-actions">
-                    <label class="show-toggle"><input type="checkbox" id="showResolvedItemProblems"> Show resolved</label>
-                    <button class="btn btn-primary btn-small" id="addSiProblemBtn">+ Add</button>
-                </div>
-            </div>
-            <div id="siProblemsContainer"></div>
-            <p class="empty-state" id="siProblemsEmptyState"></p>
-            <!-- Facts -->
-            <div class="section-header">
-                <h3 class="section-heading">Facts</h3>
-                <button class="btn btn-primary btn-small" id="addSiFactBtn">+ Add</button>
-            </div>
-            <div id="siFactsContainer"></div>
-            <p class="empty-state" id="siFactsEmptyState"></p>
-            <!-- Quick Task List -->
-            <div class="section-header">
-                <h3 class="section-heading">Quick Task List</h3>
-                <button class="btn btn-primary btn-small" id="addSiProjectBtn">+ Add</button>
-            </div>
-            <div id="siProjectsContainer"></div>
-            <p class="empty-state" id="siProjectsEmptyState"></p>
-            <!-- Calendar Events -->
-            <div class="section-header">
-                <h3 class="section-heading">Calendar Events</h3>
-                <div class="section-header-actions">
-                    <div class="calendar-range-picker">
-                        <label>Next</label>
-                        <select id="siCalendarRangeSelect" class="range-select">
-                            <option value="1">1 mo</option>
-                            <option value="3" selected>3 mo</option>
-                            <option value="6">6 mo</option>
-                            <option value="12">12 mo</option>
-                        </select>
+            <div class="detail-acc" id="siProblemsAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('siProblemsAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Problems / Concerns</span>
+                    <span class="detail-acc-count" id="siProblemsAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <label class="show-toggle"><input type="checkbox" id="showResolvedItemProblems"> Show resolved</label>
+                        <button class="btn btn-primary btn-small" id="addSiProblemBtn">+ Add</button>
                     </div>
-                    <button class="btn btn-primary btn-small" id="addSiCalendarEventBtn">+ Add Event</button>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="siProblemsContainer"></div>
+                    <p class="empty-state" id="siProblemsEmptyState"></p>
                 </div>
             </div>
-            <div id="siCalendarEventsContainer"></div>
-            <p class="empty-state" id="siCalendarEventsEmptyState"></p>
+
+            <!-- Facts -->
+            <div class="detail-acc" id="siFactsAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('siFactsAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Facts</span>
+                    <span class="detail-acc-count" id="siFactsAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="addSiFactBtn">+ Add</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="siFactsContainer"></div>
+                    <p class="empty-state" id="siFactsEmptyState"></p>
+                </div>
+            </div>
+
+            <!-- Quick Task List -->
+            <div class="detail-acc" id="siTasksAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('siTasksAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Quick Task List</span>
+                    <span class="detail-acc-count" id="siTasksAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="addSiProjectBtn">+ Add</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="siProjectsContainer"></div>
+                    <p class="empty-state" id="siProjectsEmptyState"></p>
+                </div>
+            </div>
+
+            <!-- Calendar Events -->
+            <div class="detail-acc" id="siCalendarAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('siCalendarAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Calendar Events</span>
+                    <span class="detail-acc-count" id="siCalendarAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <div class="calendar-range-picker">
+                            <label>Next</label>
+                            <select id="siCalendarRangeSelect" class="range-select">
+                                <option value="1">1 mo</option>
+                                <option value="3" selected>3 mo</option>
+                                <option value="6">6 mo</option>
+                                <option value="12">12 mo</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary btn-small" id="addSiCalendarEventBtn">+ Add Event</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="siCalendarEventsContainer"></div>
+                    <p class="empty-state" id="siCalendarEventsEmptyState"></p>
+                </div>
+            </div>
+
             <!-- Activity History -->
-            <div class="section-header">
-                <h3 class="section-heading">Activity History</h3>
-                <button class="btn btn-primary btn-small" id="logSiActivityBtn">+ Log Activity</button>
+            <div class="detail-acc" id="siActivityAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('siActivityAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Activity History</span>
+                    <span class="detail-acc-count" id="siActivityAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="logSiActivityBtn">+ Log Activity</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="siActivityContainer"></div>
+                    <p class="empty-state" id="siActivityEmptyState">No activities logged yet.</p>
+                </div>
             </div>
-            <div id="siActivityContainer"></div>
-            <p class="empty-state" id="siActivityEmptyState">No activities logged yet.</p>
+
             <!-- Photos -->
-            <div class="section-header">
-                <h3 class="section-heading">Photos</h3>
-                <button class="btn btn-primary btn-small" id="addSiCameraBtn">+ Camera</button>
-                <button class="btn btn-primary btn-small" id="addSiGalleryBtn">+ Gallery</button>
-                <button class="btn btn-primary btn-small paste-photo-btn" data-entity="item">📋 Paste</button>
+            <div class="detail-acc" id="siPhotosAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('siPhotosAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Photos</span>
+                    <span class="detail-acc-count" id="siPhotosAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="addSiCameraBtn">+ Camera</button>
+                        <button class="btn btn-primary btn-small" id="addSiGalleryBtn">+ Gallery</button>
+                        <button class="btn btn-primary btn-small paste-photo-btn" data-entity="item">📋 Paste</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="siPhotoContainer"></div>
+                    <p class="empty-state" id="siPhotoEmptyState">No photos yet.</p>
+                </div>
             </div>
-            <div id="siPhotoContainer"></div>
-            <p class="empty-state" id="siPhotoEmptyState">No photos yet.</p>
         </section>
 
         <!-- Page: Rooms Tree (house nav → Rooms) -->
@@ -8579,7 +8685,7 @@ export default {
     <script src="js/gps.js?v=350"></script>
     <script src="js/settings.js?v=478"></script>
     <script src="js/devnotes.js?v=376"></script>
-    <script src="js/house.js?v=408"></script>
+    <script src="js/house.js?v=409"></script>
     <script src="js/floorplan.js?v=398"></script>
     <script src="js/floorplanitem.js?v=393"></script>
     <script src="js/search.js?v=350"></script>

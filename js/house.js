@@ -3372,6 +3372,7 @@ function loadItemsList(subThingId) {
             docs.forEach(function(doc) {
                 container.appendChild(buildItemCard(doc.id, doc.data()));
             });
+            _setDetailAccCount('stItemsAccCount', 'itemListContainer');
         })
         .catch(function(err) {
             console.error('loadItemsList error:', err);
@@ -3443,16 +3444,22 @@ function renderSubThingDetail(subThing, thing, room, floor) {
     loadItemsList(subThing.id);
 
     // All cross-entity feature sections
-    loadProblems(  'subthing', subThing.id, 'stProblemsContainer', 'stProblemsEmptyState');
-    loadFacts(     'subthing', subThing.id, 'stFactsContainer',    'stFactsEmptyState');
-    loadProjects(  'subthing', subThing.id, 'stProjectsContainer', 'stProjectsEmptyState');
-    loadActivities('subthing', subThing.id, 'stActivityContainer', 'stActivityEmptyState');
-    loadPhotos(    'subthing', subThing.id, 'stPhotoContainer',    'stPhotoEmptyState');
+    loadProblems(  'subthing', subThing.id, 'stProblemsContainer', 'stProblemsEmptyState')
+        .then(function() { _setDetailAccCount('stProblemsAccCount', 'stProblemsContainer'); });
+    loadFacts(     'subthing', subThing.id, 'stFactsContainer',    'stFactsEmptyState')
+        .then(function() { _setDetailAccCount('stFactsAccCount', 'stFactsContainer'); });
+    loadProjects(  'subthing', subThing.id, 'stProjectsContainer', 'stProjectsEmptyState')
+        .then(function() { _setDetailAccCount('stTasksAccCount', 'stProjectsContainer'); });
+    loadActivities('subthing', subThing.id, 'stActivityContainer', 'stActivityEmptyState')
+        .then(function() { _setDetailAccCount('stActivityAccCount', 'stActivityContainer'); });
+    loadPhotos(    'subthing', subThing.id, 'stPhotoContainer',    'stPhotoEmptyState')
+        .then(function() { _setDetailAccCount('stPhotosAccCount', 'stPhotoContainer'); });
 
     if (typeof loadEventsForTarget === 'function') {
         var months = parseInt(document.getElementById('stCalendarRangeSelect').value, 10) || 3;
         loadEventsForTarget('subthing', subThing.id,
-            'stCalendarEventsContainer', 'stCalendarEventsEmptyState', months);
+            'stCalendarEventsContainer', 'stCalendarEventsEmptyState', months)
+            .then(function() { _setDetailAccCount('stCalendarAccCount', 'stCalendarEventsContainer'); });
     }
 }
 
@@ -5067,16 +5074,22 @@ function renderItemDetail(item, subThing, thing, room, floor) {
     renderInventoryDetails(item, 'siDetailsSection');
 
     // All cross-entity feature sections
-    loadProblems(  'item', item.id, 'siProblemsContainer', 'siProblemsEmptyState');
-    loadFacts(     'item', item.id, 'siFactsContainer',    'siFactsEmptyState');
-    loadProjects(  'item', item.id, 'siProjectsContainer', 'siProjectsEmptyState');
-    loadActivities('item', item.id, 'siActivityContainer', 'siActivityEmptyState');
-    loadPhotos(    'item', item.id, 'siPhotoContainer',    'siPhotoEmptyState');
+    loadProblems(  'item', item.id, 'siProblemsContainer', 'siProblemsEmptyState')
+        .then(function() { _setDetailAccCount('siProblemsAccCount', 'siProblemsContainer'); });
+    loadFacts(     'item', item.id, 'siFactsContainer',    'siFactsEmptyState')
+        .then(function() { _setDetailAccCount('siFactsAccCount', 'siFactsContainer'); });
+    loadProjects(  'item', item.id, 'siProjectsContainer', 'siProjectsEmptyState')
+        .then(function() { _setDetailAccCount('siTasksAccCount', 'siProjectsContainer'); });
+    loadActivities('item', item.id, 'siActivityContainer', 'siActivityEmptyState')
+        .then(function() { _setDetailAccCount('siActivityAccCount', 'siActivityContainer'); });
+    loadPhotos(    'item', item.id, 'siPhotoContainer',    'siPhotoEmptyState')
+        .then(function() { _setDetailAccCount('siPhotosAccCount', 'siPhotoContainer'); });
 
     if (typeof loadEventsForTarget === 'function') {
         var months = parseInt(document.getElementById('siCalendarRangeSelect').value, 10) || 3;
         loadEventsForTarget('item', item.id,
-            'siCalendarEventsContainer', 'siCalendarEventsEmptyState', months);
+            'siCalendarEventsContainer', 'siCalendarEventsEmptyState', months)
+            .then(function() { _setDetailAccCount('siCalendarAccCount', 'siCalendarEventsContainer'); });
     }
 }
 

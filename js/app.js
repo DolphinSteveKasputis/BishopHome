@@ -14,7 +14,7 @@ const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'h
                          'health', 'health-visits', 'health-medications', 'health-conditions', 'health-concerns', 'health-bloodwork',
                          'health-vitals', 'health-insurance', 'health-emergency', 'health-appointments', 'health-care-team',
                          'life-calendar', 'life-projects',
-                         'thoughts', 'top10lists', 'memories'];
+                         'thoughts', 'top10lists', 'memories', 'views'];
 
 /**
  * All pages that can be shown (includes detail pages not in the nav).
@@ -37,7 +37,8 @@ const ALL_PAGES = [
     'life-event',
     'life-projects', 'life-project',
     'top10list-create', 'top10list-edit',
-    'memory-create', 'memory-edit'
+    'memory-create', 'memory-edit',
+    'view', 'view-history', 'views-categories'
 ];
 
 /**
@@ -50,7 +51,9 @@ const YARD_PAGES  = ['main', 'home', 'zones', 'zone', 'plant', 'weeds', 'weed', 
                      'structures', 'structure', 'structurething', 'structuresubthing', 'yard-projects', 'yard-problems'];
 // NOTE: 'checklists' is intentionally NOT in any context list — it is a shared page
 // that inherits the nav context that was active when the user clicked the Checklists link.
-const THOUGHTS_PAGES = ['thoughts', 'top10lists', 'top10list-create', 'top10list-edit'];
+const THOUGHTS_PAGES = ['thoughts', 'top10lists', 'top10list-create', 'top10list-edit',
+                        'memories', 'memory-create', 'memory-edit',
+                        'views', 'view', 'view-history', 'views-categories'];
 
 // Settings pages — hide all section navbars (yard/house/life/thoughts)
 const SETTINGS_PAGES = ['settings', 'settings-general', 'settings-contact-lists', 'changepassword', 'backup', 'devnotes', 'sb-issues'];
@@ -180,7 +183,10 @@ function showPage(page) {
     if (page === 'contact')    navPage = 'contacts'; // Sub-page of contacts
     if (page === 'notebook')   navPage = 'notes';  // Sub-page of notes
     if (page === 'note')       navPage = 'notes';  // Sub-page of notes
-    if (page === 'main')       navPage = '';       // No link highlighted on the landing page
+    if (page === 'main')           navPage = '';       // No link highlighted on the landing page
+    if (page === 'view')           navPage = 'views';
+    if (page === 'view-history')   navPage = 'views';
+    if (page === 'views-categories') navPage = 'views';
 
     document.querySelectorAll('.nav-link').forEach(function(link) {
         link.classList.remove('active');
@@ -557,6 +563,19 @@ function handleRoute() {
     } else if (page === 'memory-edit' && id) {
         showPage('memory-edit');
         loadMemoryEditPage(id);
+    // ---------- Views routes ----------
+    } else if (page === 'views') {
+        showPage('views');
+        loadViewsPage();
+    } else if (page === 'view' && id) {
+        showPage('view');
+        loadViewDetailPage(id);
+    } else if (page === 'view-history' && id) {
+        showPage('view-history');
+        loadViewHistoryPage(id, parts[2] || null);
+    } else if (page === 'views-categories') {
+        showPage('views-categories');
+        loadViewsCategoriesPage();
     // ---------- Places routes ----------
     } else if (page === 'places') {
         showPage('places');

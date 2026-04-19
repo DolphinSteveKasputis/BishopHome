@@ -18,4 +18,12 @@ function loadThoughtsPage() {
     }).catch(function(err) {
         console.error('loadThoughtsPage memories error:', err);
     });
+
+    // Count My Views and update the tile label
+    userCol('views').get().then(function(snap) {
+        var el = document.getElementById('viewsCount');
+        if (el) el.textContent = 'My Views (' + snap.size + ')';
+    }).catch(function(err) {
+        console.error('loadThoughtsPage views error:', err);
+    });
 }

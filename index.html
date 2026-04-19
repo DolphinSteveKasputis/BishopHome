@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=487">
+    <link rel="stylesheet" href="css/styles.css?v=490">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -93,6 +93,9 @@
         </nav>
         <!-- Thoughts nav (shown when on thoughts-context pages) -->
         <nav class="header-nav hidden" id="thoughtsNav">
+            <a href="#top10lists" class="nav-link" data-page="top10lists">Top 10 Lists</a>
+            <a href="#memories" class="nav-link" data-page="memories">Memories</a>
+            <a href="#views" class="nav-link" data-page="views">My Views</a>
             <a href="#settings" class="nav-link" data-page="settings">⚙️</a>
             <button class="nav-signout-btn" id="signOutBtnThoughts" title="Sign out">Sign Out</button>
         </nav>
@@ -134,6 +137,9 @@
         </div>
         <!-- Thoughts context links -->
         <div id="mobileNavThoughts" class="hidden">
+            <a href="#top10lists" class="nav-link" data-page="top10lists">Top 10 Lists</a>
+            <a href="#memories" class="nav-link" data-page="memories">Memories</a>
+            <a href="#views" class="nav-link" data-page="views">My Views</a>
             <a href="#settings" class="nav-link" data-page="settings">⚙️ Settings</a>
             <button class="nav-signout-btn" id="signOutBtnMobileThoughts">Sign Out</button>
         </div>
@@ -8989,6 +8995,10 @@ export default {
                     <span class="landing-tile-icon">📖</span>
                     <span class="landing-tile-label" id="memoriesCount">Memories</span>
                 </a>
+                <a href="#views" class="landing-tile landing-tile--views">
+                    <span class="landing-tile-icon">💬</span>
+                    <span class="landing-tile-label" id="viewsCount">My Views</span>
+                </a>
             </div>
         </section>
 
@@ -9131,6 +9141,49 @@ export default {
             <div id="t10EditFormContainer"></div>
         </section>
 
+        <!-- ══════════════════════════════════════════════
+             VIEWS SECTION
+             ══════════════════════════════════════════════ -->
+
+        <!-- Page: My Views List (#views) -->
+        <section class="page hidden" id="page-views">
+            <div class="page-header">
+                <h2>My Views</h2>
+                <div class="page-header-actions">
+                    <button class="btn btn-primary" onclick="window.location.hash='#view/new'">+ New View</button>
+                </div>
+            </div>
+            <div class="views-search-bar">
+                <input type="text" id="viewsSearchInput" class="form-control"
+                       placeholder="Search by title or short version...">
+            </div>
+            <div id="viewsAccordion"></div>
+            <div class="views-manage-link">
+                <a href="#views-categories">Manage Categories</a>
+            </div>
+        </section>
+
+        <!-- Page: View Detail (#view/:id) -->
+        <section class="page hidden" id="page-view">
+            <div id="viewDetailContent">
+                <p class="views-empty-state">Loading...</p>
+            </div>
+        </section>
+
+        <!-- Page: Historical Viewpoint (#view-history/:viewId/:historyId) -->
+        <section class="page hidden" id="page-view-history">
+            <div id="viewHistoryContent">
+                <p class="views-empty-state">Loading...</p>
+            </div>
+        </section>
+
+        <!-- Page: Manage Categories (#views-categories) -->
+        <section class="page hidden" id="page-views-categories">
+            <div id="viewsCategoriesContent">
+                <p class="views-empty-state">Loading...</p>
+            </div>
+        </section>
+
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="js/firebase-config.js?v=350"></script>
@@ -9175,10 +9228,11 @@ export default {
     <script src="js/secondbrain.js?v=351"></script>
     <script src="js/sbissues.js?v=350"></script>
     <script src="js/places.js?v=357"></script>
-    <script src="js/thoughts.js?v=465"></script>
+    <script src="js/thoughts.js?v=490"></script>
     <script src="js/top10lists.js?v=465"></script>
     <script src="js/memories.js?v=473"></script>
-    <script src="js/app.js?v=473"></script>
+    <script src="js/views.js?v=490"></script>
+    <script src="js/app.js?v=490"></script>
 
 </body>
 </html>

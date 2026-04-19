@@ -2562,13 +2562,12 @@ function _checkinPickerShowResults(venues) {
 function _checkinSelectPlace(idx) {
     var venue = _checkinPickerVenues[idx];
     if (!venue) return;
-    // Close the picker without history.back() — avoids a race where history.back()
-    // fires after the hash changes to #journal-entry and reverts the URL to #main.
     var overlay = document.getElementById('checkInPickerModal');
     if (overlay) overlay.classList.remove('open');
+    // replaceState is synchronous — avoids the race where history.back() (async)
+    // fires after openCheckInForm sets the hash and reverts the URL to #main.
     if (history.state && history.state.modal === 'checkInPickerModal') {
-        window._modalHistoryBack = true;
-        history.back();
+        history.replaceState(null, '');
     }
     openCheckInForm(venue, false);
 }

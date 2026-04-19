@@ -653,7 +653,11 @@ async function placesNearby(lat, lng) {
               '&fields=fsq_id,name,categories,location,geocodes';
 
     var resp = await fetch(url, {
-        headers: { 'Authorization': apiKey, 'Accept': 'application/json' }
+        headers: {
+            'Authorization': apiKey,
+            'Accept': 'application/json',
+            'X-Places-Api-Version': '1970-01-01'
+        }
     });
     if (!resp.ok) throw new Error('Foursquare nearby error: ' + resp.status);
 
@@ -771,7 +775,11 @@ async function placesSearchByName(query, biasLat, biasLng) {
             }
 
             var resp = await fetch(url, {
-                headers: { 'Authorization': apiKey, 'Accept': 'application/json' }
+                headers: {
+                    'Authorization': apiKey,
+                    'Accept': 'application/json',
+                    'X-Places-Api-Version': '1970-01-01'
+                }
             });
             if (resp.ok) {
                 var data = await resp.json();

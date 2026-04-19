@@ -3034,80 +3034,132 @@
             </div>
 
             <!-- Photos section -->
-            <div class="section-header">
-                <h3 class="section-heading">Photos</h3>
-                <button class="btn btn-primary btn-small" id="structureCameraBtn">+ Camera</button>
-                <button class="btn btn-primary btn-small" id="structureGalleryBtn">+ Gallery</button>
-                <button class="btn btn-primary btn-small paste-photo-btn" data-entity="structure">📋 Paste</button>
+            <div class="detail-acc" id="structurePhotosAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('structurePhotosAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Photos</span>
+                    <span class="detail-acc-count" id="structurePhotosAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="structureCameraBtn">+ Camera</button>
+                        <button class="btn btn-primary btn-small" id="structureGalleryBtn">+ Gallery</button>
+                        <button class="btn btn-primary btn-small paste-photo-btn" data-entity="structure">📋 Paste</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="structurePhotosSection"></div>
+                    <p class="empty-state" id="structurePhotosEmpty">No photos yet.</p>
+                </div>
             </div>
-            <div id="structurePhotosSection"></div>
-            <p class="empty-state" id="structurePhotosEmpty">No photos yet.</p>
 
             <!-- Things section — only shown when isStorage = true -->
             <div id="structureThingsSection" class="hidden">
-                <div class="section-header">
-                    <h3 class="section-heading">Things</h3>
-                    <button class="btn btn-primary btn-small" id="structureAddThingBtn">+Item</button>
-                    <button class="btn btn-primary btn-small" id="quickAddStructureThingPhotoBtn">+Photo</button>
-                    <input type="file" id="quickStructureThingCamInput" accept="image/*" capture="environment" style="display:none;">
+                <div class="detail-acc" id="structureThingsAcc">
+                    <div class="detail-acc-header" onclick="toggleDetailAcc('structureThingsAcc')">
+                        <span class="detail-acc-chevron">&#9658;</span>
+                        <span class="detail-acc-title">Things</span>
+                        <span class="detail-acc-count" id="structureThingsAccCount"></span>
+                        <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                            <button class="btn btn-primary btn-small" id="structureAddThingBtn">+Item</button>
+                            <button class="btn btn-primary btn-small" id="quickAddStructureThingPhotoBtn">+Photo</button>
+                            <input type="file" id="quickStructureThingCamInput" accept="image/*" capture="environment" style="display:none;">
+                        </div>
+                    </div>
+                    <div class="detail-acc-body">
+                        <div class="card-list" id="structureThingsList"></div>
+                        <p class="empty-state" id="structureThingsEmpty"></p>
+                    </div>
                 </div>
-                <div class="card-list" id="structureThingsList"></div>
-                <p class="empty-state" id="structureThingsEmpty"></p>
             </div>
 
             <!-- Activity History -->
-            <div class="section-header">
-                <h3 class="section-heading">Activity History</h3>
-                <button class="btn btn-primary btn-small" id="structureLogActivityBtn">+ Log Activity</button>
+            <div class="detail-acc" id="structureActivityAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('structureActivityAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Activity History</span>
+                    <span class="detail-acc-count" id="structureActivityAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="structureLogActivityBtn">+ Log Activity</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="structureActivitiesContainer"></div>
+                    <p class="empty-state" id="structureActivitiesEmpty">No activities logged yet.</p>
+                </div>
             </div>
-            <div id="structureActivitiesContainer"></div>
-            <p class="empty-state" id="structureActivitiesEmpty">No activities logged yet.</p>
 
             <!-- Calendar Events -->
-            <div class="section-header">
-                <h3 class="section-heading">Calendar Events</h3>
-                <div class="section-header-actions">
-                    <div class="calendar-range-picker">
-                        <label>Next</label>
-                        <select id="structureCalendarRangeSelect" class="range-select">
-                            <option value="1">1 mo</option>
-                            <option value="3" selected>3 mo</option>
-                            <option value="6">6 mo</option>
-                            <option value="12">12 mo</option>
-                        </select>
+            <div class="detail-acc" id="structureCalendarAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('structureCalendarAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Calendar Events</span>
+                    <span class="detail-acc-count" id="structureCalendarAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <div class="calendar-range-picker">
+                            <label>Next</label>
+                            <select id="structureCalendarRangeSelect" class="range-select">
+                                <option value="1">1 mo</option>
+                                <option value="3" selected>3 mo</option>
+                                <option value="6">6 mo</option>
+                                <option value="12">12 mo</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary btn-small" id="structureAddCalendarEventBtn">+ Add Event</button>
                     </div>
-                    <button class="btn btn-primary btn-small" id="structureAddCalendarEventBtn">+ Add Event</button>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="structureCalendarEventsContainer"></div>
+                    <p class="empty-state" id="structureCalendarEventsEmpty"></p>
                 </div>
             </div>
-            <div id="structureCalendarEventsContainer"></div>
-            <p class="empty-state" id="structureCalendarEventsEmpty"></p>
 
             <!-- Problems / Concerns -->
-            <div class="section-header">
-                <h3 class="section-heading">Problems / Concerns</h3>
-                <div class="section-header-actions">
-                    <label class="show-toggle"><input type="checkbox" id="showResolvedStructureProblems"> Show resolved</label>
-                    <button class="btn btn-primary btn-small" id="structureAddProblemBtn">+ Add</button>
+            <div class="detail-acc" id="structureProblemsAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('structureProblemsAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Problems / Concerns</span>
+                    <span class="detail-acc-count" id="structureProblemsAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <label class="show-toggle"><input type="checkbox" id="showResolvedStructureProblems"> Show resolved</label>
+                        <button class="btn btn-primary btn-small" id="structureAddProblemBtn">+ Add</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="structureProblemsContainer"></div>
+                    <p class="empty-state" id="structureProblemsEmpty"></p>
                 </div>
             </div>
-            <div id="structureProblemsContainer"></div>
-            <p class="empty-state" id="structureProblemsEmpty"></p>
 
             <!-- Facts -->
-            <div class="section-header">
-                <h3 class="section-heading">Facts</h3>
-                <button class="btn btn-primary btn-small" id="structureAddFactBtn">+ Add</button>
+            <div class="detail-acc" id="structureFactsAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('structureFactsAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Facts</span>
+                    <span class="detail-acc-count" id="structureFactsAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="structureAddFactBtn">+ Add</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="structureFactsContainer"></div>
+                    <p class="empty-state" id="structureFactsEmpty"></p>
+                </div>
             </div>
-            <div id="structureFactsContainer"></div>
-            <p class="empty-state" id="structureFactsEmpty"></p>
 
             <!-- Quick Task List -->
-            <div class="section-header">
-                <h3 class="section-heading">Quick Task List</h3>
-                <button class="btn btn-primary btn-small" id="structureAddProjectBtn">+ Add</button>
+            <div class="detail-acc" id="structureTasksAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('structureTasksAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Quick Task List</span>
+                    <span class="detail-acc-count" id="structureTasksAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="structureAddProjectBtn">+ Add</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="structureProjectsContainer"></div>
+                    <p class="empty-state" id="structureProjectsEmpty"></p>
+                </div>
             </div>
-            <div id="structureProjectsContainer"></div>
-            <p class="empty-state" id="structureProjectsEmpty"></p>
         </section>
 
         <!-- Page: Structure Thing Detail (#structurething/:id) -->
@@ -3128,76 +3180,128 @@
             <div id="structureThingDetailsSection" class="thing-details-section" style="display:none"></div>
 
             <!-- Photos -->
-            <div class="section-header">
-                <h3 class="section-heading">Photos</h3>
-                <button class="btn btn-primary btn-small" id="structureThingCameraBtn">+ Camera</button>
-                <button class="btn btn-primary btn-small" id="structureThingGalleryBtn">+ Gallery</button>
-                <button class="btn btn-primary btn-small paste-photo-btn" data-entity="structurething">📋 Paste</button>
+            <div class="detail-acc" id="structureThingPhotosAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('structureThingPhotosAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Photos</span>
+                    <span class="detail-acc-count" id="structureThingPhotosAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="structureThingCameraBtn">+ Camera</button>
+                        <button class="btn btn-primary btn-small" id="structureThingGalleryBtn">+ Gallery</button>
+                        <button class="btn btn-primary btn-small paste-photo-btn" data-entity="structurething">📋 Paste</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="structureThingPhotosSection"></div>
+                    <p class="empty-state" id="structureThingPhotosEmpty">No photos yet.</p>
+                </div>
             </div>
-            <div id="structureThingPhotosSection"></div>
-            <p class="empty-state" id="structureThingPhotosEmpty">No photos yet.</p>
 
             <!-- SubThings section -->
-            <div class="section-header">
-                <h3 class="section-heading">Sub-Items</h3>
-                <button class="btn btn-primary btn-small" id="structureAddSubThingBtn">+ Add Sub-Item</button>
+            <div class="detail-acc" id="structureThingSubItemsAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('structureThingSubItemsAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Sub-Items</span>
+                    <span class="detail-acc-count" id="structureThingSubItemsAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="structureAddSubThingBtn">+ Add Sub-Item</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div class="card-list" id="structureSubThingsList"></div>
+                    <p class="empty-state" id="structureSubThingsEmpty"></p>
+                </div>
             </div>
-            <div class="card-list" id="structureSubThingsList"></div>
-            <p class="empty-state" id="structureSubThingsEmpty"></p>
 
             <!-- Activity History -->
-            <div class="section-header">
-                <h3 class="section-heading">Activity History</h3>
-                <button class="btn btn-primary btn-small" id="structureThingLogActivityBtn">+ Log Activity</button>
+            <div class="detail-acc" id="structureThingActivityAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('structureThingActivityAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Activity History</span>
+                    <span class="detail-acc-count" id="structureThingActivityAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="structureThingLogActivityBtn">+ Log Activity</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="structureThingActivitiesContainer"></div>
+                    <p class="empty-state" id="structureThingActivitiesEmpty">No activities logged yet.</p>
+                </div>
             </div>
-            <div id="structureThingActivitiesContainer"></div>
-            <p class="empty-state" id="structureThingActivitiesEmpty">No activities logged yet.</p>
 
             <!-- Calendar Events -->
-            <div class="section-header">
-                <h3 class="section-heading">Calendar Events</h3>
-                <div class="section-header-actions">
-                    <div class="calendar-range-picker">
-                        <label>Next</label>
-                        <select id="structureThingCalendarRangeSelect" class="range-select">
-                            <option value="1">1 mo</option>
-                            <option value="3" selected>3 mo</option>
-                            <option value="6">6 mo</option>
-                            <option value="12">12 mo</option>
-                        </select>
+            <div class="detail-acc" id="structureThingCalendarAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('structureThingCalendarAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Calendar Events</span>
+                    <span class="detail-acc-count" id="structureThingCalendarAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <div class="calendar-range-picker">
+                            <label>Next</label>
+                            <select id="structureThingCalendarRangeSelect" class="range-select">
+                                <option value="1">1 mo</option>
+                                <option value="3" selected>3 mo</option>
+                                <option value="6">6 mo</option>
+                                <option value="12">12 mo</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary btn-small" id="structureThingAddCalendarEventBtn">+ Add Event</button>
                     </div>
-                    <button class="btn btn-primary btn-small" id="structureThingAddCalendarEventBtn">+ Add Event</button>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="structureThingCalendarEventsContainer"></div>
+                    <p class="empty-state" id="structureThingCalendarEventsEmpty"></p>
                 </div>
             </div>
-            <div id="structureThingCalendarEventsContainer"></div>
-            <p class="empty-state" id="structureThingCalendarEventsEmpty"></p>
 
             <!-- Problems / Concerns -->
-            <div class="section-header">
-                <h3 class="section-heading">Problems / Concerns</h3>
-                <div class="section-header-actions">
-                    <label class="show-toggle"><input type="checkbox" id="showResolvedStructureThingProblems"> Show resolved</label>
-                    <button class="btn btn-primary btn-small" id="structureThingAddProblemBtn">+ Add</button>
+            <div class="detail-acc" id="structureThingProblemsAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('structureThingProblemsAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Problems / Concerns</span>
+                    <span class="detail-acc-count" id="structureThingProblemsAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <label class="show-toggle"><input type="checkbox" id="showResolvedStructureThingProblems"> Show resolved</label>
+                        <button class="btn btn-primary btn-small" id="structureThingAddProblemBtn">+ Add</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="structureThingProblemsContainer"></div>
+                    <p class="empty-state" id="structureThingProblemsEmpty"></p>
                 </div>
             </div>
-            <div id="structureThingProblemsContainer"></div>
-            <p class="empty-state" id="structureThingProblemsEmpty"></p>
 
             <!-- Facts -->
-            <div class="section-header">
-                <h3 class="section-heading">Facts</h3>
-                <button class="btn btn-primary btn-small" id="structureThingAddFactBtn">+ Add</button>
+            <div class="detail-acc" id="structureThingFactsAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('structureThingFactsAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Facts</span>
+                    <span class="detail-acc-count" id="structureThingFactsAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="structureThingAddFactBtn">+ Add</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="structureThingFactsContainer"></div>
+                    <p class="empty-state" id="structureThingFactsEmpty"></p>
+                </div>
             </div>
-            <div id="structureThingFactsContainer"></div>
-            <p class="empty-state" id="structureThingFactsEmpty"></p>
 
             <!-- Quick Task List -->
-            <div class="section-header">
-                <h3 class="section-heading">Quick Task List</h3>
-                <button class="btn btn-primary btn-small" id="structureThingAddProjectBtn">+ Add</button>
+            <div class="detail-acc" id="structureThingTasksAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('structureThingTasksAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Quick Task List</span>
+                    <span class="detail-acc-count" id="structureThingTasksAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="structureThingAddProjectBtn">+ Add</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="structureThingProjectsContainer"></div>
+                    <p class="empty-state" id="structureThingProjectsEmpty"></p>
+                </div>
             </div>
-            <div id="structureThingProjectsContainer"></div>
-            <p class="empty-state" id="structureThingProjectsEmpty"></p>
         </section>
 
         <!-- Page: Structure SubThing Detail (#structuresubthing/:id) -->
@@ -3218,68 +3322,112 @@
             <div id="structureSubThingDetailsSection" class="thing-details-section" style="display:none"></div>
 
             <!-- Photos -->
-            <div class="section-header">
-                <h3 class="section-heading">Photos</h3>
-                <button class="btn btn-primary btn-small" id="structureSubThingCameraBtn">+ Camera</button>
-                <button class="btn btn-primary btn-small" id="structureSubThingGalleryBtn">+ Gallery</button>
-                <button class="btn btn-primary btn-small paste-photo-btn" data-entity="structuresubthing">📋 Paste</button>
+            <div class="detail-acc" id="structureSubThingPhotosAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('structureSubThingPhotosAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Photos</span>
+                    <span class="detail-acc-count" id="structureSubThingPhotosAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="structureSubThingCameraBtn">+ Camera</button>
+                        <button class="btn btn-primary btn-small" id="structureSubThingGalleryBtn">+ Gallery</button>
+                        <button class="btn btn-primary btn-small paste-photo-btn" data-entity="structuresubthing">📋 Paste</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="structureSubThingPhotosSection"></div>
+                    <p class="empty-state" id="structureSubThingPhotosEmpty">No photos yet.</p>
+                </div>
             </div>
-            <div id="structureSubThingPhotosSection"></div>
-            <p class="empty-state" id="structureSubThingPhotosEmpty">No photos yet.</p>
 
             <!-- Activity History -->
-            <div class="section-header">
-                <h3 class="section-heading">Activity History</h3>
-                <button class="btn btn-primary btn-small" id="structureSubThingLogActivityBtn">+ Log Activity</button>
+            <div class="detail-acc" id="structureSubThingActivityAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('structureSubThingActivityAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Activity History</span>
+                    <span class="detail-acc-count" id="structureSubThingActivityAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="structureSubThingLogActivityBtn">+ Log Activity</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="structureSubThingActivitiesContainer"></div>
+                    <p class="empty-state" id="structureSubThingActivitiesEmpty">No activities logged yet.</p>
+                </div>
             </div>
-            <div id="structureSubThingActivitiesContainer"></div>
-            <p class="empty-state" id="structureSubThingActivitiesEmpty">No activities logged yet.</p>
 
             <!-- Calendar Events -->
-            <div class="section-header">
-                <h3 class="section-heading">Calendar Events</h3>
-                <div class="section-header-actions">
-                    <div class="calendar-range-picker">
-                        <label>Next</label>
-                        <select id="structureSubThingCalendarRangeSelect" class="range-select">
-                            <option value="1">1 mo</option>
-                            <option value="3" selected>3 mo</option>
-                            <option value="6">6 mo</option>
-                            <option value="12">12 mo</option>
-                        </select>
+            <div class="detail-acc" id="structureSubThingCalendarAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('structureSubThingCalendarAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Calendar Events</span>
+                    <span class="detail-acc-count" id="structureSubThingCalendarAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <div class="calendar-range-picker">
+                            <label>Next</label>
+                            <select id="structureSubThingCalendarRangeSelect" class="range-select">
+                                <option value="1">1 mo</option>
+                                <option value="3" selected>3 mo</option>
+                                <option value="6">6 mo</option>
+                                <option value="12">12 mo</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary btn-small" id="structureSubThingAddCalendarEventBtn">+ Add Event</button>
                     </div>
-                    <button class="btn btn-primary btn-small" id="structureSubThingAddCalendarEventBtn">+ Add Event</button>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="structureSubThingCalendarEventsContainer"></div>
+                    <p class="empty-state" id="structureSubThingCalendarEventsEmpty"></p>
                 </div>
             </div>
-            <div id="structureSubThingCalendarEventsContainer"></div>
-            <p class="empty-state" id="structureSubThingCalendarEventsEmpty"></p>
 
             <!-- Problems / Concerns -->
-            <div class="section-header">
-                <h3 class="section-heading">Problems / Concerns</h3>
-                <div class="section-header-actions">
-                    <label class="show-toggle"><input type="checkbox" id="showResolvedStructureSubThingProblems"> Show resolved</label>
-                    <button class="btn btn-primary btn-small" id="structureSubThingAddProblemBtn">+ Add</button>
+            <div class="detail-acc" id="structureSubThingProblemsAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('structureSubThingProblemsAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Problems / Concerns</span>
+                    <span class="detail-acc-count" id="structureSubThingProblemsAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <label class="show-toggle"><input type="checkbox" id="showResolvedStructureSubThingProblems"> Show resolved</label>
+                        <button class="btn btn-primary btn-small" id="structureSubThingAddProblemBtn">+ Add</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="structureSubThingProblemsContainer"></div>
+                    <p class="empty-state" id="structureSubThingProblemsEmpty"></p>
                 </div>
             </div>
-            <div id="structureSubThingProblemsContainer"></div>
-            <p class="empty-state" id="structureSubThingProblemsEmpty"></p>
 
             <!-- Facts -->
-            <div class="section-header">
-                <h3 class="section-heading">Facts</h3>
-                <button class="btn btn-primary btn-small" id="structureSubThingAddFactBtn">+ Add</button>
+            <div class="detail-acc" id="structureSubThingFactsAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('structureSubThingFactsAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Facts</span>
+                    <span class="detail-acc-count" id="structureSubThingFactsAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="structureSubThingAddFactBtn">+ Add</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="structureSubThingFactsContainer"></div>
+                    <p class="empty-state" id="structureSubThingFactsEmpty"></p>
+                </div>
             </div>
-            <div id="structureSubThingFactsContainer"></div>
-            <p class="empty-state" id="structureSubThingFactsEmpty"></p>
 
             <!-- Quick Task List -->
-            <div class="section-header">
-                <h3 class="section-heading">Quick Task List</h3>
-                <button class="btn btn-primary btn-small" id="structureSubThingAddProjectBtn">+ Add</button>
+            <div class="detail-acc" id="structureSubThingTasksAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('structureSubThingTasksAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Quick Task List</span>
+                    <span class="detail-acc-count" id="structureSubThingTasksAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="structureSubThingAddProjectBtn">+ Add</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="structureSubThingProjectsContainer"></div>
+                    <p class="empty-state" id="structureSubThingProjectsEmpty"></p>
+                </div>
             </div>
-            <div id="structureSubThingProjectsContainer"></div>
-            <p class="empty-state" id="structureSubThingProjectsEmpty"></p>
         </section>
 
     </main>
@@ -8805,7 +8953,7 @@ export default {
     <script src="js/bulkactivity.js?v=350"></script>
     <script src="js/vehicles.js?v=356"></script>
     <script src="js/garage.js?v=356"></script>
-    <script src="js/structures.js?v=350"></script>
+    <script src="js/structures.js?v=351"></script>
     <script src="js/moveThings.js?v=350"></script>
     <script src="js/journal.js?v=485"></script>
     <script src="js/contacts.js?v=378"></script>

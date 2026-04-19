@@ -613,6 +613,8 @@ Outdoor structures separate from the main house — sheds, decks, pergolas, gaze
 
 **Features**: Full feature set — Facts, Problems (roll-up), Quick Task List (roll-up), Activities, Photos, Calendar Events. Same hierarchy as House but without floor plans or breaker panels.
 
+**Detail page layouts**: All three detail pages (structure, structure-thing, structure-subthing) use collapsible `.detail-acc` accordions, all collapsed by default with item count badges. Structure page sections: Photos, Things (hidden unless `isStorage=true`), Activity History, Calendar Events, Problems/Concerns, Facts, Quick Task List. Thing and Sub-thing pages follow the same pattern.
+
 ---
 
 ## Part 6: Vehicles

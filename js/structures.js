@@ -253,16 +253,22 @@ function renderStructurePage(structure) {
     ]);
 
     // ---- Load all cross-entity feature sections ----
-    loadPhotos(    'structure', structure.id, 'structurePhotosSection',          'structurePhotosEmpty');
-    loadActivities('structure', structure.id, 'structureActivitiesContainer',    'structureActivitiesEmpty');
-    loadProblems(  'structure', structure.id, 'structureProblemsContainer',      'structureProblemsEmpty');
-    loadFacts(     'structure', structure.id, 'structureFactsContainer',         'structureFactsEmpty');
-    loadProjects(  'structure', structure.id, 'structureProjectsContainer',      'structureProjectsEmpty');
+    loadPhotos(    'structure', structure.id, 'structurePhotosSection',          'structurePhotosEmpty')
+        .then(function() { _setDetailAccCount('structurePhotosAccCount', 'structurePhotosSection'); });
+    loadActivities('structure', structure.id, 'structureActivitiesContainer',    'structureActivitiesEmpty')
+        .then(function() { _setDetailAccCount('structureActivityAccCount', 'structureActivitiesContainer'); });
+    loadProblems(  'structure', structure.id, 'structureProblemsContainer',      'structureProblemsEmpty')
+        .then(function() { _setDetailAccCount('structureProblemsAccCount', 'structureProblemsContainer'); });
+    loadFacts(     'structure', structure.id, 'structureFactsContainer',         'structureFactsEmpty')
+        .then(function() { _setDetailAccCount('structureFactsAccCount', 'structureFactsContainer'); });
+    loadProjects(  'structure', structure.id, 'structureProjectsContainer',      'structureProjectsEmpty')
+        .then(function() { _setDetailAccCount('structureTasksAccCount', 'structureProjectsContainer'); });
 
     if (typeof loadEventsForTarget === 'function') {
         var months = parseInt(document.getElementById('structureCalendarRangeSelect').value, 10) || 3;
         loadEventsForTarget('structure', structure.id,
-            'structureCalendarEventsContainer', 'structureCalendarEventsEmpty', months);
+            'structureCalendarEventsContainer', 'structureCalendarEventsEmpty', months)
+            .then(function() { _setDetailAccCount('structureCalendarAccCount', 'structureCalendarEventsContainer'); });
     }
 
     // Show or hide the Things section based on isStorage flag
@@ -313,6 +319,7 @@ function loadStructureThings(structureId) {
             docs.forEach(function(doc) {
                 container.appendChild(buildStructureThingCard(doc.id, doc.data()));
             });
+            _setDetailAccCount('structureThingsAccCount', 'structureThingsList');
         })
         .catch(function(err) {
             console.error('loadStructureThings error:', err);
@@ -529,16 +536,22 @@ function renderStructureThingPage(thing, structure) {
     renderStructureInventoryDetails(thing, 'structureThingDetailsSection');
 
     // ---- Load all cross-entity feature sections ----
-    loadPhotos(    'structurething', thing.id, 'structureThingPhotosSection',          'structureThingPhotosEmpty');
-    loadActivities('structurething', thing.id, 'structureThingActivitiesContainer',    'structureThingActivitiesEmpty');
-    loadProblems(  'structurething', thing.id, 'structureThingProblemsContainer',      'structureThingProblemsEmpty');
-    loadFacts(     'structurething', thing.id, 'structureThingFactsContainer',         'structureThingFactsEmpty');
-    loadProjects(  'structurething', thing.id, 'structureThingProjectsContainer',      'structureThingProjectsEmpty');
+    loadPhotos(    'structurething', thing.id, 'structureThingPhotosSection',          'structureThingPhotosEmpty')
+        .then(function() { _setDetailAccCount('structureThingPhotosAccCount', 'structureThingPhotosSection'); });
+    loadActivities('structurething', thing.id, 'structureThingActivitiesContainer',    'structureThingActivitiesEmpty')
+        .then(function() { _setDetailAccCount('structureThingActivityAccCount', 'structureThingActivitiesContainer'); });
+    loadProblems(  'structurething', thing.id, 'structureThingProblemsContainer',      'structureThingProblemsEmpty')
+        .then(function() { _setDetailAccCount('structureThingProblemsAccCount', 'structureThingProblemsContainer'); });
+    loadFacts(     'structurething', thing.id, 'structureThingFactsContainer',         'structureThingFactsEmpty')
+        .then(function() { _setDetailAccCount('structureThingFactsAccCount', 'structureThingFactsContainer'); });
+    loadProjects(  'structurething', thing.id, 'structureThingProjectsContainer',      'structureThingProjectsEmpty')
+        .then(function() { _setDetailAccCount('structureThingTasksAccCount', 'structureThingProjectsContainer'); });
 
     if (typeof loadEventsForTarget === 'function') {
         var months = parseInt(document.getElementById('structureThingCalendarRangeSelect').value, 10) || 3;
         loadEventsForTarget('structurething', thing.id,
-            'structureThingCalendarEventsContainer', 'structureThingCalendarEventsEmpty', months);
+            'structureThingCalendarEventsContainer', 'structureThingCalendarEventsEmpty', months)
+            .then(function() { _setDetailAccCount('structureThingCalendarAccCount', 'structureThingCalendarEventsContainer'); });
     }
 }
 
@@ -602,6 +615,7 @@ function loadStructureSubThings(thingId) {
             docs.forEach(function(doc) {
                 container.appendChild(buildStructureSubThingCard(doc.id, doc.data()));
             });
+            _setDetailAccCount('structureThingSubItemsAccCount', 'structureSubThingsList');
         })
         .catch(function(err) {
             console.error('loadStructureSubThings error:', err);
@@ -808,16 +822,22 @@ function renderStructureSubThingPage(subThing, thing, structure) {
     renderStructureInventoryDetails(subThing, 'structureSubThingDetailsSection');
 
     // ---- Load all cross-entity feature sections ----
-    loadPhotos(    'structuresubthing', subThing.id, 'structureSubThingPhotosSection',          'structureSubThingPhotosEmpty');
-    loadActivities('structuresubthing', subThing.id, 'structureSubThingActivitiesContainer',    'structureSubThingActivitiesEmpty');
-    loadProblems(  'structuresubthing', subThing.id, 'structureSubThingProblemsContainer',      'structureSubThingProblemsEmpty');
-    loadFacts(     'structuresubthing', subThing.id, 'structureSubThingFactsContainer',         'structureSubThingFactsEmpty');
-    loadProjects(  'structuresubthing', subThing.id, 'structureSubThingProjectsContainer',      'structureSubThingProjectsEmpty');
+    loadPhotos(    'structuresubthing', subThing.id, 'structureSubThingPhotosSection',          'structureSubThingPhotosEmpty')
+        .then(function() { _setDetailAccCount('structureSubThingPhotosAccCount', 'structureSubThingPhotosSection'); });
+    loadActivities('structuresubthing', subThing.id, 'structureSubThingActivitiesContainer',    'structureSubThingActivitiesEmpty')
+        .then(function() { _setDetailAccCount('structureSubThingActivityAccCount', 'structureSubThingActivitiesContainer'); });
+    loadProblems(  'structuresubthing', subThing.id, 'structureSubThingProblemsContainer',      'structureSubThingProblemsEmpty')
+        .then(function() { _setDetailAccCount('structureSubThingProblemsAccCount', 'structureSubThingProblemsContainer'); });
+    loadFacts(     'structuresubthing', subThing.id, 'structureSubThingFactsContainer',         'structureSubThingFactsEmpty')
+        .then(function() { _setDetailAccCount('structureSubThingFactsAccCount', 'structureSubThingFactsContainer'); });
+    loadProjects(  'structuresubthing', subThing.id, 'structureSubThingProjectsContainer',      'structureSubThingProjectsEmpty')
+        .then(function() { _setDetailAccCount('structureSubThingTasksAccCount', 'structureSubThingProjectsContainer'); });
 
     if (typeof loadEventsForTarget === 'function') {
         var months = parseInt(document.getElementById('structureSubThingCalendarRangeSelect').value, 10) || 3;
         loadEventsForTarget('structuresubthing', subThing.id,
-            'structureSubThingCalendarEventsContainer', 'structureSubThingCalendarEventsEmpty', months);
+            'structureSubThingCalendarEventsContainer', 'structureSubThingCalendarEventsEmpty', months)
+            .then(function() { _setDetailAccCount('structureSubThingCalendarAccCount', 'structureSubThingCalendarEventsContainer'); });
     }
 }
 

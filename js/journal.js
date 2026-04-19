@@ -2076,7 +2076,7 @@ async function _journalLoadPeopleCache() {
         _journalPeopleCache = [];
         snap.forEach(function(doc) {
             var d = doc.data();
-            _journalPeopleCache.push({ id: doc.id, name: d.name || '', nickname: d.nickname || '', parentPersonId: d.parentPersonId || null });
+            _journalPeopleCache.push({ id: doc.id, name: d.name || '', nickname: d.nickname || '', parentPersonId: d.parentPersonId || null, quickMention: !!d.quickMention });
         });
         _journalPeopleCache.sort(function(a,b){ return a.name.localeCompare(b.name); });
     } catch(err) { console.error('_journalLoadPeopleCache:', err); _journalPeopleCache = []; }
@@ -2087,8 +2087,9 @@ function _journalGetMentionPrefix() {
     var ta = document.getElementById('journalEntryText');
     if (!ta) return null;
     var before = ta.value.substring(0, ta.selectionStart);
-    var match  = before.match(/@(\w*)$/);
-    return match ? match[1] : null;
+    var match  = before.match(/(@@?)(\w*)$/);
+    if (!match) return null;
+    return { text: match[2], full: match[1].length === 2 };
 }
 
 function _journalShowDropdown(matches) {
@@ -2116,11 +2117,12 @@ function _journalHideDropdown() {
 }
 
 function _journalSelectMention(person) {
-    var prefix = _journalGetMentionPrefix();
-    if (prefix === null) { _journalHideDropdown(); return; }
+    var result = _journalGetMentionPrefix();
+    if (result === null) { _journalHideDropdown(); return; }
     var ta = document.getElementById('journalEntryText');
     var pos = ta.selectionStart;
-    var before = ta.value.substring(0, pos - prefix.length - 1);
+    var atCount = result.full ? 2 : 1;
+    var before = ta.value.substring(0, pos - result.text.length - atCount);
     var after  = ta.value.substring(pos);
     // Insert first name only (or nickname) — not the full last name
     var name   = person.nickname || person.name.split(' ')[0];
@@ -2134,13 +2136,15 @@ function _journalSelectMention(person) {
 }
 
 async function _journalHandleTextareaInput() {
-    var prefix = _journalGetMentionPrefix();
-    if (prefix === null) { _journalHideDropdown(); return; }
+    var result = _journalGetMentionPrefix();
+    if (result === null) { _journalHideDropdown(); return; }
     var people = await _journalLoadPeopleCache();
-    var lower  = prefix.toLowerCase();
+    var lower  = result.text.toLowerCase();
     var matches = people.filter(function(p){
-        return p.name.toLowerCase().startsWith(lower) ||
-               (p.nickname && p.nickname.toLowerCase().startsWith(lower));
+        var nameMatch = p.name.toLowerCase().startsWith(lower) ||
+                        (p.nickname && p.nickname.toLowerCase().startsWith(lower));
+        // Single @ → quick list only; @@ → full list
+        return nameMatch && (result.full || p.quickMention);
     }).slice(0, 7);
     _journalShowDropdown(matches);
 }

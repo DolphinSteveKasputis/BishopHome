@@ -716,7 +716,7 @@ Daily entry logging with optional tracking metrics.
 
 **Routes**: `#journal` (list), `#journal-entry` (add/edit), `#journal-tracking` (tracking entries), `#journal-categories` (manage categories)
 
-**@Mentions**: Typing `@` in the entry text triggers an autocomplete dropdown of tracked people by name.
+**@Mentions**: Typing `@` in the entry text triggers an autocomplete dropdown filtered to contacts marked "Include in quick mentions". Typing `@@` opens the full contact list. Quick-mention contacts are flagged via a checkbox on the contact add/edit modal (`quickMention` field in Firestore). This behavior applies in journal entries, memories, and life calendar mini-logs.
 
 **Date range filter**: Sticky per-user preference (7/30/60/90 days or custom) saved to `userCol('settings').doc('journal')`.
 
@@ -744,7 +744,7 @@ Daily entry logging with optional tracking metrics.
 Renamed from "People". Tracks personal contacts and medical/service professionals and facilities.
 
 **Firestore** (collection name unchanged: `people`):
-- `people` — `name`, `nickname`, `category` (see below), `specialty?`, `personalType?`, `businessType?`, `phone`, `email`, `address`, `website?`, `facebookUrl`, `howKnown`, `notes`, `profilePhotoData?`, `parentPersonId?`, `createdAt`
+- `people` — `name`, `nickname`, `category` (see below), `specialty?`, `personalType?`, `businessType?`, `phone`, `email`, `address`, `website?`, `facebookUrl`, `howKnown`, `notes`, `quickMention` (bool — shown as "Include in quick mentions" checkbox in add/edit modal), `profilePhotoData?`, `parentPersonId?`, `createdAt`
 - `peopleImportantDates` — `personId`, `label`, `month`, `day`, `year?`, `recurrence`, `createdAt`
 - `peopleInteractions` — `personId`, `date`, `text`, `sourceType`, `createdAt`
 - `lookups/serviceTrades` — `{ values: [...] }` full list of trades (defaults: Plumber, Electrician, HVAC, Pest Control, Handyman)
@@ -1141,7 +1141,7 @@ Both routes share the `page-top10list-edit` HTML section.
 - Breadcrumb: Thoughts › Memories › [title]
 - Fields (top to bottom): Title · In Progress checkbox · When (free-text date) · Location · Tags · Body textarea · People chips · URLs · Linked Memories
 - **Tags**: pill checkboxes (alphabetical); tap to toggle; "Add tag..." inline input creates new tag on Enter (stored in `memoryTags`, applied immediately); tags saved immediately on change (not debounced)
-- **@-mentions**: type `@Name` in the body textarea; autocomplete dropdown appears (filters by name/nickname); Tab or Enter picks first result; tapping an item selects it; selected contacts shown as teal chips (clickable links to `#contact/:id`) below the People section header; chips populated from `userCol('people')`; stored as `mentionedPersonIds[]`
+- **@-mentions**: type `@Name` in the body textarea; autocomplete dropdown shows only contacts flagged "Include in quick mentions"; type `@@Name` to search the full contact list; Tab or Enter picks first result; tapping an item selects it; selected contacts shown as teal chips (clickable links to `#contact/:id`) below the People section header; chips populated from `userCol('people')`; stored as `mentionedPersonIds[]`
 - **Free-form names (++ trigger)**: type `++Name` or `++"Full Name"` in the body; on space/punctuation the `++` prefix is stripped from the textarea and an amber chip is added below; × button removes the chip; names deduplicated case-insensitively; stored as `mentionedNames[]`; People section hidden until at least one chip exists; full scan runs on blur to catch anything not followed by a space
 - **Linked Memories**: "Linked Memories" section always visible on edit page; each link shows the other memory's title + dateText as a clickable link (navigates to that memory's edit page) with an × unlink button; "Link a Memory" button opens a picker modal with a live search input filtering all memories (excluding current and already-linked); clicking a row in the picker creates a `memoryLinks` doc and closes the modal; links are bidirectional — one doc serves both sides; unlinking deletes the `memoryLinks` doc only (memory docs are untouched)
 - **Help button** (`?`, top-right): opens modal explaining the When field date syntax, `@mention`, and `++Name` shortcuts

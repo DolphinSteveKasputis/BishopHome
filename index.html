@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=486">
+    <link rel="stylesheet" href="css/styles.css?v=487">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -4072,6 +4072,12 @@
             <div class="form-group">
                 <label for="personNotesInput">Notes</label>
                 <textarea id="personNotesInput" placeholder="General notes about this contact…"></textarea>
+            </div>
+            <div class="form-group">
+                <label class="show-toggle" style="font-weight:normal;">
+                    <input type="checkbox" id="personQuickMentionInput">
+                    Include in quick mentions (@)
+                </label>
             </div>
             <div class="modal-buttons">
                 <button class="btn btn-danger" id="personModalDeleteBtn" style="display:none;">Delete</button>
@@ -9157,12 +9163,12 @@ export default {
     <script src="js/garage.js?v=357"></script>
     <script src="js/structures.js?v=351"></script>
     <script src="js/moveThings.js?v=350"></script>
-    <script src="js/journal.js?v=485"></script>
-    <script src="js/contacts.js?v=378"></script>
+    <script src="js/journal.js?v=486"></script>
+    <script src="js/contacts.js?v=379"></script>
     <script src="js/collections.js?v=356"></script>
     <script src="js/health.js?v=380"></script>
     <script src="js/notes.js?v=350"></script>
-    <script src="js/lifecalendar.js?v=407"></script>
+    <script src="js/lifecalendar.js?v=408"></script>
     <script src="js/life-projects.js?v=456"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="js/chat.js?v=350"></script>
@@ -9171,7 +9177,7 @@ export default {
     <script src="js/places.js?v=357"></script>
     <script src="js/thoughts.js?v=465"></script>
     <script src="js/top10lists.js?v=465"></script>
-    <script src="js/memories.js?v=471"></script>
+    <script src="js/memories.js?v=472"></script>
     <script src="js/app.js?v=473"></script>
 
 </body>

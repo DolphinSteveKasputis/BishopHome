@@ -328,7 +328,8 @@ async function lcLoadLogs(eventId) {
 async function lcLoadPeople() {
     var snap = await userCol('people').orderBy('name').get();
     return snap.docs.map(function(doc) {
-        return { id: doc.id, name: doc.data().name || '' };
+        var d = doc.data();
+        return { id: doc.id, name: d.name || '', quickMention: !!d.quickMention };
     });
 }
 
@@ -2258,8 +2259,9 @@ function _lcInitLogMention(textareaId, dropId, mentionSet) {
 
     function getMentionPrefix() {
         var before = ta.value.substring(0, ta.selectionStart);
-        var match  = before.match(/@(\w*)$/);
-        return match ? match[1] : null;
+        var match  = before.match(/(@@?)(\w*)$/);
+        if (!match) return null;
+        return { text: match[2], full: match[1].length === 2 };
     }
 
     function showDrop(matches) {
@@ -2271,12 +2273,13 @@ function _lcInitLogMention(textareaId, dropId, mentionSet) {
             item.textContent = person.name;
             item.addEventListener('mousedown', function(e) {
                 e.preventDefault();
-                var prefix = getMentionPrefix();
-                if (prefix === null) { drop.style.display = 'none'; return; }
+                var result = getMentionPrefix();
+                if (result === null) { drop.style.display = 'none'; return; }
                 var firstName = person.name.split(' ')[0];
-                var pos    = ta.selectionStart;
-                var before = ta.value.substring(0, pos - prefix.length - 1);
-                var after  = ta.value.substring(pos);
+                var pos     = ta.selectionStart;
+                var atCount = result.full ? 2 : 1;
+                var before  = ta.value.substring(0, pos - result.text.length - atCount);
+                var after   = ta.value.substring(pos);
                 ta.value   = before + '@' + firstName + ' ' + after;
                 var newPos = before.length + 1 + firstName.length + 1;
                 ta.selectionStart = ta.selectionEnd = newPos;
@@ -2291,11 +2294,13 @@ function _lcInitLogMention(textareaId, dropId, mentionSet) {
     }
 
     ta.addEventListener('input', function() {
-        var prefix = getMentionPrefix();
-        if (prefix === null) { drop.style.display = 'none'; return; }
-        var q = prefix.toLowerCase();
+        var result = getMentionPrefix();
+        if (result === null) { drop.style.display = 'none'; return; }
+        var q = result.text.toLowerCase();
         var matches = _lcAllPeople.filter(function(p) {
-            return p.name.toLowerCase().startsWith(q);
+            var nameMatch = p.name.toLowerCase().startsWith(q);
+            // Single @ → quick list only; @@ → full list
+            return nameMatch && (result.full || p.quickMention);
         }).slice(0, 7);
         showDrop(matches);
     });

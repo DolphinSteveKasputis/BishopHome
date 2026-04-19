@@ -729,6 +729,7 @@ async function openAddContactModal(parentPersonId) {
     document.getElementById('personFacebookInput').value   = '';
     document.getElementById('personNotesInput').value      = '';
     document.getElementById('personSpecialtyInput').value  = '';
+    document.getElementById('personQuickMentionInput').checked   = false;
     document.getElementById('personModalDeleteBtn').style.display = 'none';
 
     // Reset inline-add rows
@@ -766,6 +767,7 @@ async function openEditContactModal(person) {
     document.getElementById('personFacebookInput').value   = person.facebookUrl || '';
     document.getElementById('personNotesInput').value      = person.notes       || '';
     document.getElementById('personSpecialtyInput').value  = person.specialty   || '';
+    document.getElementById('personQuickMentionInput').checked   = !!person.quickMention;
     document.getElementById('personModalDeleteBtn').style.display = '';
 
     // Reset inline-add rows
@@ -838,6 +840,7 @@ async function handleContactModalSave() {
         businessType: (catVal === 'Business')
                           ? document.getElementById('personBusinessTypeSelect').value
                           : '',
+        quickMention: document.getElementById('personQuickMentionInput').checked,
     };
 
     var modal          = document.getElementById('personModal');

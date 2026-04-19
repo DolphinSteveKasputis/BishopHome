@@ -688,7 +688,7 @@ async function _memLoadPeopleCache() {
         _memPeopleCache = [];
         snap.forEach(function(doc) {
             var d = doc.data();
-            _memPeopleCache.push({ id: doc.id, name: d.name || '', nickname: d.nickname || '' });
+            _memPeopleCache.push({ id: doc.id, name: d.name || '', nickname: d.nickname || '', quickMention: !!d.quickMention });
         });
         _memPeopleCache.sort(function(a, b) { return a.name.localeCompare(b.name); });
     } catch (err) {
@@ -700,8 +700,9 @@ async function _memLoadPeopleCache() {
 
 function _memGetMentionPrefix(ta) {
     var before = ta.value.substring(0, ta.selectionStart);
-    var match  = before.match(/@(\w*)$/);
-    return match ? match[1] : null;
+    var match  = before.match(/(@@?)(\w*)$/);
+    if (!match) return null;
+    return { text: match[2], full: match[1].length === 2 };
 }
 
 async function _memHandleBodyInput() {
@@ -712,14 +713,16 @@ async function _memHandleBodyInput() {
     _memScanPlusPlus(ta);
 
     // @-mention autocomplete
-    var prefix = _memGetMentionPrefix(ta);
-    if (prefix === null) { _memHideMentionDropdown(); return; }
+    var result = _memGetMentionPrefix(ta);
+    if (result === null) { _memHideMentionDropdown(); return; }
 
     var people = await _memLoadPeopleCache();
-    var lower   = prefix.toLowerCase();
+    var lower   = result.text.toLowerCase();
     var matches = people.filter(function(p) {
-        return p.name.toLowerCase().startsWith(lower) ||
-               (p.nickname && p.nickname.toLowerCase().startsWith(lower));
+        var nameMatch = p.name.toLowerCase().startsWith(lower) ||
+                        (p.nickname && p.nickname.toLowerCase().startsWith(lower));
+        // Single @ → quick list only; @@ → full list
+        return nameMatch && (result.full || p.quickMention);
     }).slice(0, 7);
     _memShowMentionDropdown(matches);
 }
@@ -752,12 +755,13 @@ function _memHideMentionDropdown() {
 function _memSelectMention(person) {
     var ta = document.getElementById('memoryEditBody');
     if (!ta) return;
-    var prefix = _memGetMentionPrefix(ta);
-    if (prefix === null) { _memHideMentionDropdown(); return; }
+    var result = _memGetMentionPrefix(ta);
+    if (result === null) { _memHideMentionDropdown(); return; }
 
-    var pos    = ta.selectionStart;
-    var before = ta.value.substring(0, pos - prefix.length - 1);
-    var after  = ta.value.substring(pos);
+    var pos     = ta.selectionStart;
+    var atCount = result.full ? 2 : 1;
+    var before  = ta.value.substring(0, pos - result.text.length - atCount);
+    var after   = ta.value.substring(pos);
     var name   = person.nickname || person.name.split(' ')[0];
     ta.value   = before + '@' + name + ' ' + after;
     var newPos = before.length + 1 + name.length + 1;

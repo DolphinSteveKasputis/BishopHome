@@ -122,16 +122,16 @@ function _viewOnMajorCatChange(newCatId, saveToFirestore) {
     _viewCheckNewPageUnlock();
 }
 
-// Enables long-version textarea on the new-view page once both title + category are set
+// Enables Create button on the new-view page once both title + category are set
 function _viewCheckNewPageUnlock() {
-    if (_viewId) return; // only applies to new-view page
+    if (_viewId) return;
     var titleEl = document.getElementById('viewTitleInput');
     var majorEl = document.getElementById('viewMajorCatSelect');
-    var longEl  = document.getElementById('viewLongInput');
-    if (!longEl) return;
+    var btn     = document.getElementById('viewCreateBtn');
+    if (!btn) return;
     var hasTitle = titleEl && titleEl.value.trim().length > 0;
     var hasCat   = majorEl && majorEl.value;
-    longEl.disabled = !(hasTitle && hasCat);
+    btn.disabled = !(hasTitle && hasCat);
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -425,26 +425,8 @@ function _viewRenderNewPage() {
                 '</div>' +
             '</div>' +
 
-            '<div class="view-field-group">' +
-                '<div class="view-field-label-row">' +
-                    '<label class="view-field-label">Short Version</label>' +
-                    '<span class="view-char-counter" id="viewShortCounter">0 / 500</span>' +
-                '</div>' +
-                '<textarea id="viewShortInput" class="form-control" rows="3" maxlength="500" ' +
-                    'placeholder="Brief summary of your stance (optional)..."></textarea>' +
-            '</div>' +
-
-            '<div class="view-field-group">' +
-                '<div class="view-field-label-row">' +
-                    '<label class="view-field-label">Long Version</label>' +
-                    '<span class="view-field-hint">Enter title &amp; category first</span>' +
-                '</div>' +
-                '<textarea id="viewLongInput" class="form-control view-long-textarea" disabled ' +
-                    'placeholder="Your full viewpoint..."></textarea>' +
-            '</div>' +
-
             '<div class="view-create-actions">' +
-                '<button id="viewCreateBtn" class="btn btn-primary" onclick="_viewCreateNew()">Create View</button>' +
+                '<button id="viewCreateBtn" class="btn btn-primary" onclick="_viewCreateNew()" disabled>Create View</button>' +
                 '<a href="#views" class="btn btn-secondary">Cancel</a>' +
             '</div>' +
         '</div>';
@@ -452,28 +434,18 @@ function _viewRenderNewPage() {
     // Wire handlers
     var titleEl = document.getElementById('viewTitleInput');
     var majorEl = document.getElementById('viewMajorCatSelect');
-    var shortEl = document.getElementById('viewShortInput');
-    if (titleEl) titleEl.oninput = _viewCheckNewPageUnlock;
-    if (majorEl) majorEl.onchange = function() { _viewOnMajorCatChange(this.value, false); };
-    if (shortEl) shortEl.oninput = function() {
-        var c = document.getElementById('viewShortCounter');
-        if (c) c.textContent = this.value.length + ' / 500';
-    };
-    if (titleEl) titleEl.focus();
+    if (titleEl) { titleEl.oninput = _viewCheckNewPageUnlock; titleEl.focus(); }
+    if (majorEl) majorEl.onchange = function() { _viewOnMajorCatChange(this.value, false); _viewCheckNewPageUnlock(); };
 }
 
 function _viewCreateNew() {
     var titleEl = document.getElementById('viewTitleInput');
     var majorEl = document.getElementById('viewMajorCatSelect');
     var subEl   = document.getElementById('viewSubCatSelect');
-    var shortEl = document.getElementById('viewShortInput');
-    var longEl  = document.getElementById('viewLongInput');
 
     var title = titleEl ? titleEl.value.trim() : '';
     var catId  = majorEl ? majorEl.value        : '';
     var subId  = subEl  ? subEl.value           : '';
-    var short  = shortEl ? shortEl.value.trim() : '';
-    var long   = longEl  ? longEl.value.trim()  : '';
 
     if (!title) { alert('Please enter a title.'); if (titleEl) titleEl.focus(); return; }
     if (!catId) { alert('Please select a major category.'); if (majorEl) majorEl.focus(); return; }
@@ -483,8 +455,8 @@ function _viewCreateNew() {
 
     userCol('views').add({
         title:         title,
-        shortVersion:  short,
-        longVersion:   long,
+        shortVersion:  '',
+        longVersion:   '',
         urls:          [],
         categoryId:    catId || null,
         subcategoryId: subId || null,

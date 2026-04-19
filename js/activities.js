@@ -1088,13 +1088,22 @@ function _activityInitPlaceSearch() {
     dropdown.style.display = 'none';
 
     var debounceTimer = null;
+    var _biasLat = null, _biasLng = null;
+    // Grab GPS once so name searches are biased to the user's current location
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            function(pos) { _biasLat = pos.coords.latitude; _biasLng = pos.coords.longitude; },
+            function() {},
+            { timeout: 10000, maximumAge: 60000 }
+        );
+    }
     input.oninput = function() {
         clearTimeout(debounceTimer);
         var q = input.value.trim();
         if (q.length < 2) { dropdown.style.display = 'none'; return; }
         debounceTimer = setTimeout(async function() {
             try {
-                var results = await placesSearchByName(q);
+                var results = await placesSearchByName(q, _biasLat, _biasLng);
                 _activityShowPlaceDropdown(results);
             } catch (err) {
                 console.warn('Activity place search error:', err);

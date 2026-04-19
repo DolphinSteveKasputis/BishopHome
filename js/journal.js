@@ -49,6 +49,9 @@ var _journalCheckinVenue = null;
 
 /** Venues shown in the check-in place picker modal. */
 var _checkinPickerVenues = [];
+/** GPS coords captured when the check-in picker opens — used to bias name searches. */
+var _checkinPickerLat = null;
+var _checkinPickerLng = null;
 
 /**
  * Whether to show mini log entries from life events in the journal feed.
@@ -2408,7 +2411,7 @@ function openCheckIn() {
             _searchTimer = setTimeout(async function() {
                 if (statusEl) statusEl.textContent = '🔍 Searching...';
                 try {
-                    var results = await placesSearchByName(q);
+                    var results = await placesSearchByName(q, _checkinPickerLat, _checkinPickerLng);
                     _checkinPickerVenues = results;
                     _checkinPickerShowResults(results);
                     if (statusEl) statusEl.textContent = results.length
@@ -2428,6 +2431,8 @@ function openCheckIn() {
     }
     navigator.geolocation.getCurrentPosition(
         async function(pos) {
+            _checkinPickerLat = pos.coords.latitude;
+            _checkinPickerLng = pos.coords.longitude;
             if (statusEl) statusEl.textContent = '🔍 Finding nearby places...';
             try {
                 var venues = await placesNearby(pos.coords.latitude, pos.coords.longitude);

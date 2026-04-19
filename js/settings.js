@@ -4,6 +4,11 @@
 // document 'main'. Fields: appName, address, parcelId.
 // ============================================================
 
+/** Toggle an accordion card open/closed. */
+function toggleAccordion(btn) {
+    btn.closest('.accordion-card').classList.toggle('open');
+}
+
 /**
  * Loads the Settings Hub page — no async work needed, just a static card grid.
  * Called by app.js when routing to #settings.

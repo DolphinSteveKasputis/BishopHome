@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=477">
+    <link rel="stylesheet" href="css/styles.css?v=478">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -700,120 +700,141 @@
                 <button class="btn btn-secondary btn-small back-btn" onclick="window.location.hash='#settings'">&#8592; Back</button>
                 <h2>General Settings</h2>
             </div>
-            <div class="settings-card">
-                <div class="form-group">
-                    <label for="settingsAppName">App Name</label>
-                    <input type="text" id="settingsAppName" placeholder="e.g. My House" maxlength="40">
-                    <small class="form-hint">Shown in the header on every page. Default: "My House"</small>
-                </div>
-                <div class="form-group">
-                    <label for="settingsAddress">Property Address</label>
-                    <textarea id="settingsAddress" class="settings-textarea" placeholder="Enter your property address" rows="2"></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="settingsParcelId">Parcel ID</label>
-                    <input type="text" id="settingsParcelId" placeholder="e.g. 12-34-567-890">
-                </div>
-                <div class="form-group">
-                    <label for="settingsCityState">City / State</label>
-                    <input type="text" id="settingsCityState" placeholder="e.g. Charlotte, NC" maxlength="80">
-                    <small class="form-hint">Used to give location context to plant and weed identification.</small>
-                </div>
-                <div class="settings-save-row">
-                    <button class="btn btn-primary" id="settingsSaveBtn">Save Settings</button>
-                    <span class="settings-saved-msg hidden" id="settingsSavedMsg">✓ Saved</span>
-                </div>
-            </div>
 
-            <!-- ===== Backup & Restore Link ===== -->
-            <div class="settings-card">
-                <h3 class="settings-section-title">Backup &amp; Restore</h3>
-                <p class="settings-section-desc">Download a backup of your data or restore from a previous backup.</p>
-                <div class="settings-save-row">
-                    <a href="#backup" class="btn btn-secondary">&#8681; Backup &amp; Restore</a>
-                </div>
-            </div>
-
-            <!-- ===== AI Chat Section ===== -->
-            <div class="settings-card">
-                <h3 class="settings-section-title">AI Chat</h3>
-                <p class="settings-section-desc">
-                    Configure your LLM provider for the Chat feature.
-                    Get an API key from your provider's website and paste it here.
-                </p>
-                <div class="form-group">
-                    <label for="llmProvider">LLM Provider</label>
-                    <select id="llmProvider" class="settings-select">
-                        <option value="">— Select a provider —</option>
-                        <option value="openai">ChatGPT (OpenAI)</option>
-                        <option value="grok">Grok (xAI)</option>
-                    </select>
-                </div>
-                <!-- Model picker — shown only when OpenAI is selected -->
-                <div class="form-group hidden" id="llmModelGroup">
-                    <label for="llmModel">Model</label>
-                    <select id="llmModel" class="settings-select">
-                        <option value="gpt-4o-mini">gpt-4o-mini (faster, cheaper)</option>
-                        <option value="gpt-5.4-mini">gpt-5.4-mini (newer)</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="llmApiKey">API Key</label>
-                    <div class="api-key-row">
-                        <input type="password" id="llmApiKey" placeholder="Paste your API key here" class="api-key-input">
-                        <button type="button" class="btn btn-secondary btn-sm" id="llmApiKeyToggle">Show</button>
-                        <button type="button" class="btn btn-secondary btn-sm" id="llmHelpBtn" disabled>Select an LLM first</button>
+            <!-- Property Info -->
+            <div class="settings-card accordion-card">
+                <button class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>Property Info</span><span class="accordion-chevron">&#9658;</span>
+                </button>
+                <div class="accordion-body">
+                    <div class="form-group">
+                        <label for="settingsAppName">App Name</label>
+                        <input type="text" id="settingsAppName" placeholder="e.g. My House" maxlength="40">
+                        <small class="form-hint">Shown in the header on every page. Default: "My House"</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="settingsAddress">Property Address</label>
+                        <textarea id="settingsAddress" class="settings-textarea" placeholder="Enter your property address" rows="2"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="settingsParcelId">Parcel ID</label>
+                        <input type="text" id="settingsParcelId" placeholder="e.g. 12-34-567-890">
+                    </div>
+                    <div class="form-group">
+                        <label for="settingsCityState">City / State</label>
+                        <input type="text" id="settingsCityState" placeholder="e.g. Charlotte, NC" maxlength="80">
+                        <small class="form-hint">Used to give location context to plant and weed identification.</small>
+                    </div>
+                    <div class="settings-save-row">
+                        <button class="btn btn-primary" id="settingsSaveBtn">Save Settings</button>
+                        <span class="settings-saved-msg hidden" id="settingsSavedMsg">✓ Saved</span>
                     </div>
                 </div>
-                <div class="settings-save-row">
-                    <button class="btn btn-primary" id="llmSaveBtn">Save AI Settings</button>
-                    <button class="btn btn-secondary" id="llmTestBtn">Test</button>
-                    <span class="settings-saved-msg hidden" id="llmSavedMsg">&#10003; Saved</span>
-                </div>
-                <div class="hidden settings-test-result" id="llmTestResult"></div>
-                <div class="settings-save-row" style="margin-top:8px;">
-                    <a href="#sb-issues" class="btn btn-secondary btn-sm">🐛 View QuickLog Issues</a>
+            </div>
+
+            <!-- Backup & Restore -->
+            <div class="settings-card accordion-card">
+                <button class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>Backup &amp; Restore</span><span class="accordion-chevron">&#9658;</span>
+                </button>
+                <div class="accordion-body">
+                    <p class="accordion-desc">Download a backup of your data or restore from a previous backup.</p>
+                    <div class="settings-save-row">
+                        <a href="#backup" class="btn btn-secondary">&#8681; Backup &amp; Restore</a>
+                    </div>
                 </div>
             </div>
 
-            <!-- ===== Foursquare Places ===== -->
-            <div class="settings-card">
-                <h3 class="settings-section-title">Places (Foursquare)</h3>
-                <p class="settings-section-desc">
-                    Nearby place lookup uses <strong>Foursquare Places API</strong> via a Cloudflare proxy.
-                    Tap <strong>Help</strong> for step-by-step setup instructions.
-                </p>
-                <div class="form-group">
-                    <label for="foursquareWorkerUrl">Cloudflare Worker URL</label>
-                    <input type="url" id="foursquareWorkerUrl" placeholder="https://foursquare-proxy.yourname.workers.dev" class="api-key-input">
-                    <small class="form-hint">Your personal proxy URL — see Help for setup instructions.</small>
+            <!-- AI Chat -->
+            <div class="settings-card accordion-card">
+                <button class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>AI Chat</span><span class="accordion-chevron">&#9658;</span>
+                </button>
+                <div class="accordion-body">
+                    <p class="accordion-desc">Configure your LLM provider for the Chat feature. Get an API key from your provider's website and paste it here.</p>
+                    <div class="form-group">
+                        <label for="llmProvider">LLM Provider</label>
+                        <select id="llmProvider" class="settings-select">
+                            <option value="">— Select a provider —</option>
+                            <option value="openai">ChatGPT (OpenAI)</option>
+                            <option value="grok">Grok (xAI)</option>
+                        </select>
+                    </div>
+                    <div class="form-group hidden" id="llmModelGroup">
+                        <label for="llmModel">Model</label>
+                        <select id="llmModel" class="settings-select">
+                            <option value="gpt-4o-mini">gpt-4o-mini (faster, cheaper)</option>
+                            <option value="gpt-5.4-mini">gpt-5.4-mini (newer)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="llmApiKey">API Key</label>
+                        <div class="api-key-row">
+                            <input type="password" id="llmApiKey" placeholder="Paste your API key here" class="api-key-input">
+                            <button type="button" class="btn btn-secondary btn-sm" id="llmApiKeyToggle">Show</button>
+                            <button type="button" class="btn btn-secondary btn-sm" id="llmHelpBtn" disabled>Select an LLM first</button>
+                        </div>
+                    </div>
+                    <div class="settings-save-row">
+                        <button class="btn btn-primary" id="llmSaveBtn">Save AI Settings</button>
+                        <button class="btn btn-secondary" id="llmTestBtn">Test</button>
+                        <span class="settings-saved-msg hidden" id="llmSavedMsg">&#10003; Saved</span>
+                    </div>
+                    <div class="hidden settings-test-result" id="llmTestResult"></div>
+                    <div class="settings-save-row" style="margin-top:8px;">
+                        <a href="#sb-issues" class="btn btn-secondary btn-sm">🐛 View QuickLog Issues</a>
+                    </div>
                 </div>
-                <div class="settings-save-row">
-                    <button class="btn btn-primary" id="foursquareSaveBtn">Save</button>
-                    <button class="btn btn-secondary" id="foursquareTestBtn">Test</button>
-                    <button class="btn btn-secondary btn-sm" id="foursquareHelpBtn">Help</button>
-                    <span class="settings-saved-msg hidden" id="foursquareSavedMsg">&#10003; Saved</span>
-                </div>
-                <div class="hidden settings-test-result" id="foursquareTestResult"></div>
             </div>
 
-            <!-- ===== Change Password Link ===== -->
-            <div class="settings-card">
-                <h3 class="settings-section-title">Account</h3>
-                <p class="settings-section-desc">Change your login password.</p>
-                <div class="settings-save-row">
-                    <a href="#changepassword" class="btn btn-secondary">&#128274; Change Password</a>
+            <!-- Places (Foursquare) -->
+            <div class="settings-card accordion-card">
+                <button class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>Places (Foursquare)</span><span class="accordion-chevron">&#9658;</span>
+                </button>
+                <div class="accordion-body">
+                    <p class="accordion-desc">Nearby place lookup uses <strong>Foursquare Places API</strong> via a Cloudflare proxy. Tap <strong>Help</strong> for step-by-step setup instructions.</p>
+                    <div class="form-group">
+                        <label for="foursquareWorkerUrl">Cloudflare Worker URL</label>
+                        <input type="url" id="foursquareWorkerUrl" placeholder="https://foursquare-proxy.yourname.workers.dev" class="api-key-input">
+                        <small class="form-hint">Your personal proxy URL — see Help for setup instructions.</small>
+                    </div>
+                    <div class="settings-save-row">
+                        <button class="btn btn-primary" id="foursquareSaveBtn">Save</button>
+                        <button class="btn btn-secondary" id="foursquareTestBtn">Test</button>
+                        <button class="btn btn-secondary btn-sm" id="foursquareHelpBtn">Help</button>
+                        <span class="settings-saved-msg hidden" id="foursquareSavedMsg">&#10003; Saved</span>
+                    </div>
+                    <div class="hidden settings-test-result" id="foursquareTestResult"></div>
                 </div>
             </div>
 
-            <!-- ===== Dev Notes Section ===== -->
-            <div class="settings-card">
-                <h3 class="settings-section-title">Dev Notes</h3>
-                <p class="settings-section-desc">Shared scratchpad for tracking issues and ideas — visible to all users.</p>
-                <div class="settings-save-row">
-                    <a class="btn btn-secondary" href="#devnotes">&#128221; Open Dev Notes</a>
+            <!-- Account -->
+            <div class="settings-card accordion-card">
+                <button class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>Account</span><span class="accordion-chevron">&#9658;</span>
+                </button>
+                <div class="accordion-body">
+                    <p class="accordion-desc">Change your login password.</p>
+                    <div class="settings-save-row">
+                        <a href="#changepassword" class="btn btn-secondary">&#128274; Change Password</a>
+                    </div>
                 </div>
             </div>
+
+            <!-- Dev Notes -->
+            <div class="settings-card accordion-card">
+                <button class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>Dev Notes</span><span class="accordion-chevron">&#9658;</span>
+                </button>
+                <div class="accordion-body">
+                    <p class="accordion-desc">Shared scratchpad for tracking issues and ideas — visible to all users.</p>
+                    <div class="settings-save-row">
+                        <a class="btn btn-secondary" href="#devnotes">&#128221; Open Dev Notes</a>
+                    </div>
+                </div>
+            </div>
+
         </section>
 
         <!-- Page: Dev Notes (shared scratchpad) -->
@@ -8356,7 +8377,7 @@ export default {
     <script src="js/weeds.js?v=351"></script>
     <script src="js/calendar.js?v=352"></script>
     <script src="js/gps.js?v=350"></script>
-    <script src="js/settings.js?v=477"></script>
+    <script src="js/settings.js?v=478"></script>
     <script src="js/devnotes.js?v=376"></script>
     <script src="js/house.js?v=405"></script>
     <script src="js/floorplan.js?v=398"></script>

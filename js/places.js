@@ -640,8 +640,8 @@ function _placesMapFsqResult(item) {
         category  : category,
         fsqId     : item.fsq_place_id || null,
         osmId     : null,
-        lat       : item.latitude  || null,
-        lng       : item.longitude || null,
+        lat       : item.latitude  || (item.geocodes && item.geocodes.main && item.geocodes.main.latitude)  || null,
+        lng       : item.longitude || (item.geocodes && item.geocodes.main && item.geocodes.main.longitude) || null,
         existingId: null
     };
 }
@@ -664,7 +664,7 @@ async function placesNearby(lat, lng) {
     var workerUrl = await _placesGetWorkerUrl();
     if (!workerUrl) throw new Error('Cloudflare Worker URL not configured. Go to Settings → General → Places (tap Help for setup instructions).');
 
-    var url = workerUrl + '/places/search?ll=' + lat + ',' + lng + '&limit=20';
+    var url = workerUrl + '/places/search?ll=' + lat + ',' + lng + '&limit=20&fields=fsq_place_id,name,categories,location,geocodes';
 
     var resp = await fetch(url);
     if (!resp.ok) throw new Error('Foursquare nearby error: ' + resp.status);
@@ -772,7 +772,7 @@ async function placesSearchByName(query, biasLat, biasLng) {
     try {
         var workerUrl = await _placesGetWorkerUrl();
         if (workerUrl) {
-            var url = workerUrl + '/places/search?query=' + encodeURIComponent(query) + '&limit=8';
+            var url = workerUrl + '/places/search?query=' + encodeURIComponent(query) + '&limit=8&fields=fsq_place_id,name,categories,location,geocodes';
 
             // Bias toward a known location when provided
             if (biasLat != null && biasLng != null) {

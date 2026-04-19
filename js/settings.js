@@ -462,6 +462,9 @@ var BACKUP_DATA_COLLECTIONS = [
     // Thoughts — Memories
     'memories', 'memoryLinks', 'memoryTags',
 
+    // Thoughts — My Views
+    'views', 'viewCategories',
+
     // Misc
     'sbIssues', 'settings'
 ];
@@ -521,6 +524,34 @@ async function backupReadCollections(collectionNames) {
                         });
                     });
                 }
+            }
+        }
+        // For viewCategories, read each category's subcategories subcollection
+        if (name === 'viewCategories') {
+            for (var j = 0; j < entries.length; j++) {
+                var entry = entries[j];
+                var subSnap = await userCol('viewCategories').doc(entry.id).collection('subcategories').get();
+                entry.subcollections = { subcategories: [] };
+                subSnap.forEach(function(sdoc) {
+                    entry.subcollections.subcategories.push({
+                        id: sdoc.id,
+                        data: backupSerialize(sdoc.data())
+                    });
+                });
+            }
+        }
+        // For views, read each view's history subcollection
+        if (name === 'views') {
+            for (var j = 0; j < entries.length; j++) {
+                var entry = entries[j];
+                var subSnap = await userCol('views').doc(entry.id).collection('history').get();
+                entry.subcollections = { history: [] };
+                subSnap.forEach(function(sdoc) {
+                    entry.subcollections.history.push({
+                        id: sdoc.id,
+                        data: backupSerialize(sdoc.data())
+                    });
+                });
             }
         }
         result[name] = entries;

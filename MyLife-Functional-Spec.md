@@ -1268,6 +1268,10 @@ A personal viewpoint journal — record, edit, and historically track opinions a
 
 History subcollection (`views/{id}/history`): `shortVersion`, `longVersion`, `archivedAt` (timestamp), `prompt` (optional string).
 
+### Backup
+- `views` collection (with `history` subcollection per doc) included in `BACKUP_DATA_COLLECTIONS` in `settings.js`
+- `viewCategories` collection (with `subcategories` subcollection per doc) included in `BACKUP_DATA_COLLECTIONS`
+
 ### Category Maintenance Page (`#views-categories`)
 - Breadcrumb: Thoughts › My Views › Manage Categories
 - Accessible via "Manage Categories" link at bottom of views list

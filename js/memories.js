@@ -688,7 +688,7 @@ async function _memLoadPeopleCache() {
         _memPeopleCache = [];
         snap.forEach(function(doc) {
             var d = doc.data();
-            _memPeopleCache.push({ id: doc.id, name: d.name || '', nickname: d.nickname || '', quickMention: !!d.quickMention });
+            _memPeopleCache.push({ id: doc.id, name: d.name || '', nickname: d.nickname || '', howKnown: d.howKnown || '', quickMention: !!d.quickMention });
         });
         _memPeopleCache.sort(function(a, b) { return a.name.localeCompare(b.name); });
     } catch (err) {
@@ -739,6 +739,7 @@ function _memShowMentionDropdown(matches) {
         item._mentionPerson = person;
         var label = _memEscape(person.name);
         if (person.nickname) label += ' <span class="mention-item-nick">(' + _memEscape(person.nickname) + ')</span>';
+        if (person.howKnown) label += ' <span class="mention-item-nick">' + _memEscape(person.howKnown) + '</span>';
         item.innerHTML = label;
         item.addEventListener('mousedown', function(e) { e.preventDefault(); _memSelectMention(person); });
         item.addEventListener('touchend',  function(e) { e.preventDefault(); _memSelectMention(person); });

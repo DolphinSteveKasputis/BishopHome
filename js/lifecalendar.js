@@ -329,7 +329,7 @@ async function lcLoadPeople() {
     var snap = await userCol('people').orderBy('name').get();
     return snap.docs.map(function(doc) {
         var d = doc.data();
-        return { id: doc.id, name: d.name || '', quickMention: !!d.quickMention };
+        return { id: doc.id, name: d.name || '', howKnown: d.howKnown || '', quickMention: !!d.quickMention };
     });
 }
 
@@ -2270,7 +2270,9 @@ function _lcInitLogMention(textareaId, dropId, mentionSet) {
         matches.forEach(function(person) {
             var item = document.createElement('div');
             item.className = 'lc-log-mention-item';
-            item.textContent = person.name;
+            var lcLabel = escapeHtml(person.name);
+            if (person.howKnown) lcLabel += ' <span class="mention-item-nick">' + escapeHtml(person.howKnown) + '</span>';
+            item.innerHTML = lcLabel;
             item.addEventListener('mousedown', function(e) {
                 e.preventDefault();
                 var result = getMentionPrefix();

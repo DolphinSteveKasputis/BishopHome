@@ -2076,7 +2076,7 @@ async function _journalLoadPeopleCache() {
         _journalPeopleCache = [];
         snap.forEach(function(doc) {
             var d = doc.data();
-            _journalPeopleCache.push({ id: doc.id, name: d.name || '', nickname: d.nickname || '', parentPersonId: d.parentPersonId || null, quickMention: !!d.quickMention });
+            _journalPeopleCache.push({ id: doc.id, name: d.name || '', nickname: d.nickname || '', howKnown: d.howKnown || '', parentPersonId: d.parentPersonId || null, quickMention: !!d.quickMention });
         });
         _journalPeopleCache.sort(function(a,b){ return a.name.localeCompare(b.name); });
     } catch(err) { console.error('_journalLoadPeopleCache:', err); _journalPeopleCache = []; }
@@ -2103,6 +2103,7 @@ function _journalShowDropdown(matches) {
         item._mentionPerson = person; // stored for Tab-key access
         var label = escapeHtml(person.name);
         if (person.nickname) label += ' <span class=mention-item-nick>(' + escapeHtml(person.nickname) + ')</span>';
+        if (person.howKnown) label += ' <span class=mention-item-nick>' + escapeHtml(person.howKnown) + '</span>';
         item.innerHTML = label;
         item.addEventListener('mousedown', function(e){ e.preventDefault(); _journalSelectMention(person); });
         item.addEventListener('touchend',  function(e){ e.preventDefault(); _journalSelectMention(person); });

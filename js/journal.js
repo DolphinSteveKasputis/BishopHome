@@ -2704,7 +2704,7 @@ async function loadAllActivityFeed() {
         // Journal entries
         journalEntriesSnap.forEach(function(doc) {
             var d    = doc.data();
-            var text = _afTruncate(d.entryText || '', 140);
+            var text = d.entryText || '';
             items.push({
                 id: doc.id, sortDate: d.date || '', sortTime: d.entryTime || '',
                 sortTs: d.createdAt ? d.createdAt.toMillis() : 0,
@@ -2737,7 +2737,7 @@ async function loadAllActivityFeed() {
                 sortTs: d.createdAt ? d.createdAt.toMillis() : 0,
                 type: 'lifeLog', icon: '📅', typeLabel: 'Event Note',
                 typeBg: '#e0e7ff', typeColor: '#3730a3',
-                title: _afTruncate(d.body || '', 140) || '(Event note)',
+                title: d.body || '(Event note)',
                 subtitle: lifeEventsMap[d.eventId] || null,
                 route: d.eventId ? '#life-event/' + d.eventId : null
             });
@@ -2810,7 +2810,7 @@ async function loadAllActivityFeed() {
                 sortTs: d.createdAt ? d.createdAt.toMillis() : 0,
                 type: 'concernUpdate', icon: '💬', typeLabel: 'Concern Note',
                 typeBg: '#fef3c7', typeColor: '#92400e',
-                title: _afTruncate(d.note || '', 140) || '(Concern note)',
+                title: d.note || '(Concern note)',
                 subtitle: d.concernId ? (concernsMap[d.concernId] || 'Concern') : 'Concern',
                 route: d.concernId ? '#health-concern/' + d.concernId : '#health-concerns'
             });
@@ -2824,7 +2824,7 @@ async function loadAllActivityFeed() {
                 sortTs: d.createdAt ? d.createdAt.toMillis() : 0,
                 type: 'conditionLog', icon: '📋', typeLabel: 'Condition',
                 typeBg: '#ccfbf1', typeColor: '#134e4a',
-                title: _afTruncate(d.note || '', 140) || '(Condition log)',
+                title: d.note || '(Condition log)',
                 subtitle: d.conditionId ? (conditionsMap[d.conditionId] || 'Condition') : 'Condition',
                 route: d.conditionId ? '#health-condition/' + d.conditionId : '#health-conditions'
             });
@@ -2860,15 +2860,17 @@ async function loadAllActivityFeed() {
             });
         });
 
-        // People interactions
+        // People interactions — skip journal-generated records (sourceType:'journal')
+        // those are already shown as the journal entry itself
         interactionsSnap.forEach(function(doc) {
             var d = doc.data();
+            if (d.sourceType === 'journal') return;
             items.push({
                 id: doc.id, sortDate: d.date || '', sortTime: '',
                 sortTs: d.createdAt ? d.createdAt.toMillis() : 0,
                 type: 'interaction', icon: '💬', typeLabel: 'Interaction',
                 typeBg: '#e0f2fe', typeColor: '#0c4a6e',
-                title: _afTruncate(d.text || '', 140) || '(Interaction)',
+                title: d.text || '(Interaction)',
                 subtitle: d.personId ? (peopleMap[d.personId] || null) : null,
                 route: d.personId ? '#contact/' + d.personId : '#contacts'
             });

@@ -9080,11 +9080,8 @@ a.health-chip--link:hover { filter: brightness(0.93); }
     font-size: 0.88rem;
     color: #111827;
     line-height: 1.4;
-    /* Clamp to 2 lines */
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+    white-space: pre-wrap;
+    word-break: break-word;
 }
 .af-subtitle {
     font-size: 0.78rem;

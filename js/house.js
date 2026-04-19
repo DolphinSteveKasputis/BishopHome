@@ -2097,16 +2097,22 @@ function renderThingDetail(thing, room, floor) {
     ]);
 
     // ---- Load all feature sections ----
-    loadProblems('thing', thing.id, 'thingProblemsContainer', 'thingProblemsEmptyState');
-    loadFacts(   'thing', thing.id, 'thingFactsContainer',    'thingFactsEmptyState');
-    loadProjects('thing', thing.id, 'thingProjectsContainer', 'thingProjectsEmptyState');
-    loadActivities('thing', thing.id, 'thingActivityContainer', 'thingActivityEmptyState');
-    loadPhotos(  'thing', thing.id, 'thingPhotoContainer',    'thingPhotoEmptyState');
+    loadProblems('thing', thing.id, 'thingProblemsContainer', 'thingProblemsEmptyState')
+        .then(function() { _setDetailAccCount('thingProblemsAccCount', 'thingProblemsContainer'); });
+    loadFacts('thing', thing.id, 'thingFactsContainer', 'thingFactsEmptyState')
+        .then(function() { _setDetailAccCount('thingFactsAccCount', 'thingFactsContainer'); });
+    loadProjects('thing', thing.id, 'thingProjectsContainer', 'thingProjectsEmptyState')
+        .then(function() { _setDetailAccCount('thingTasksAccCount', 'thingProjectsContainer'); });
+    loadActivities('thing', thing.id, 'thingActivityContainer', 'thingActivityEmptyState')
+        .then(function() { _setDetailAccCount('thingActivityAccCount', 'thingActivityContainer'); });
+    loadPhotos('thing', thing.id, 'thingPhotoContainer', 'thingPhotoEmptyState')
+        .then(function() { _setDetailAccCount('thingPhotosAccCount', 'thingPhotoContainer'); });
 
     if (typeof loadEventsForTarget === 'function') {
         var months = parseInt(document.getElementById('thingCalendarRangeSelect').value, 10) || 3;
         loadEventsForTarget('thing', thing.id,
-            'thingCalendarEventsContainer', 'thingCalendarEventsEmptyState', months);
+            'thingCalendarEventsContainer', 'thingCalendarEventsEmptyState', months)
+            .then(function() { _setDetailAccCount('thingCalendarAccCount', 'thingCalendarEventsContainer'); });
     }
 
     // Load sub-things (items) list
@@ -3242,6 +3248,7 @@ function loadSubThingsList(thingId) {
             docs.forEach(function(doc) {
                 container.appendChild(buildSubThingCard(doc.id, doc.data()));
             });
+            _setDetailAccCount('thingItemsAccCount', 'subThingListContainer');
         })
         .catch(function(err) {
             console.error('loadSubThingsList error:', err);

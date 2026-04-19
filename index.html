@@ -1463,79 +1463,131 @@
             <!-- Inventory details (price, worth, year, description, comment) -->
             <div id="thingDetailsSection" class="thing-details-section" style="display:none"></div>
 
-            <!-- Sub-things / Items section -->
-            <div class="section-header">
-                <h3 class="section-heading">Items</h3>
-                <button class="btn btn-primary btn-small" id="addSubThingBtn">+Item</button>
-                <button class="btn btn-primary btn-small" id="quickAddSubThingPhotoBtn">+Photo</button>
-                <input type="file" id="quickSubThingCamInput" accept="image/*" capture="environment" style="display:none;">
+            <!-- Items (sub-things) -->
+            <div class="detail-acc" id="thingItemsAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('thingItemsAcc')">
+                    <span class="detail-acc-chevron">›</span>
+                    <span class="detail-acc-title">Items</span>
+                    <span class="detail-acc-count hidden" id="thingItemsAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="addSubThingBtn">+ Item</button>
+                        <button class="btn btn-primary btn-small" id="quickAddSubThingPhotoBtn">+ Photo</button>
+                        <input type="file" id="quickSubThingCamInput" accept="image/*" capture="environment" style="display:none;">
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div class="card-list" id="subThingListContainer"></div>
+                    <p class="empty-state" id="subThingListEmptyState"></p>
+                </div>
             </div>
-            <div class="card-list" id="subThingListContainer"></div>
-            <p class="empty-state" id="subThingListEmptyState"></p>
 
             <!-- Problems / Concerns -->
-            <div class="section-header">
-                <h3 class="section-heading">Problems / Concerns</h3>
-                <div class="section-header-actions">
-                    <label class="show-toggle"><input type="checkbox" id="showResolvedThingProblems"> Show resolved</label>
-                    <button class="btn btn-primary btn-small" id="addThingProblemBtn">+ Add</button>
+            <div class="detail-acc" id="thingProblemsAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('thingProblemsAcc')">
+                    <span class="detail-acc-chevron">›</span>
+                    <span class="detail-acc-title">Problems / Concerns</span>
+                    <span class="detail-acc-count hidden" id="thingProblemsAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <label class="show-toggle"><input type="checkbox" id="showResolvedThingProblems"> Show resolved</label>
+                        <button class="btn btn-primary btn-small" id="addThingProblemBtn">+ Add</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="thingProblemsContainer"></div>
+                    <p class="empty-state" id="thingProblemsEmptyState"></p>
                 </div>
             </div>
-            <div id="thingProblemsContainer"></div>
-            <p class="empty-state" id="thingProblemsEmptyState"></p>
 
             <!-- Facts -->
-            <div class="section-header">
-                <h3 class="section-heading">Facts</h3>
-                <button class="btn btn-primary btn-small" id="addThingFactBtn">+ Add</button>
-            </div>
-            <div id="thingFactsContainer"></div>
-            <p class="empty-state" id="thingFactsEmptyState"></p>
-
-            <!-- Quick Task List -->
-            <div class="section-header">
-                <h3 class="section-heading">Quick Task List</h3>
-                <button class="btn btn-primary btn-small" id="addThingProjectBtn">+ Add</button>
-            </div>
-            <div id="thingProjectsContainer"></div>
-            <p class="empty-state" id="thingProjectsEmptyState"></p>
-
-            <!-- Calendar Events -->
-            <div class="section-header">
-                <h3 class="section-heading">Calendar Events</h3>
-                <div class="section-header-actions">
-                    <div class="calendar-range-picker">
-                        <label>Next</label>
-                        <select id="thingCalendarRangeSelect" class="range-select">
-                            <option value="1">1 mo</option>
-                            <option value="3" selected>3 mo</option>
-                            <option value="6">6 mo</option>
-                            <option value="12">12 mo</option>
-                        </select>
+            <div class="detail-acc" id="thingFactsAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('thingFactsAcc')">
+                    <span class="detail-acc-chevron">›</span>
+                    <span class="detail-acc-title">Facts</span>
+                    <span class="detail-acc-count hidden" id="thingFactsAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="addThingFactBtn">+ Add</button>
                     </div>
-                    <button class="btn btn-primary btn-small" id="addThingCalendarEventBtn">+ Add Event</button>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="thingFactsContainer"></div>
+                    <p class="empty-state" id="thingFactsEmptyState"></p>
                 </div>
             </div>
-            <div id="thingCalendarEventsContainer"></div>
-            <p class="empty-state" id="thingCalendarEventsEmptyState"></p>
+
+            <!-- Quick Task List -->
+            <div class="detail-acc" id="thingTasksAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('thingTasksAcc')">
+                    <span class="detail-acc-chevron">›</span>
+                    <span class="detail-acc-title">Quick Task List</span>
+                    <span class="detail-acc-count hidden" id="thingTasksAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="addThingProjectBtn">+ Add</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="thingProjectsContainer"></div>
+                    <p class="empty-state" id="thingProjectsEmptyState"></p>
+                </div>
+            </div>
+
+            <!-- Calendar Events -->
+            <div class="detail-acc" id="thingCalendarAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('thingCalendarAcc')">
+                    <span class="detail-acc-chevron">›</span>
+                    <span class="detail-acc-title">Calendar Events</span>
+                    <span class="detail-acc-count hidden" id="thingCalendarAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <div class="calendar-range-picker">
+                            <label>Next</label>
+                            <select id="thingCalendarRangeSelect" class="range-select">
+                                <option value="1">1 mo</option>
+                                <option value="3" selected>3 mo</option>
+                                <option value="6">6 mo</option>
+                                <option value="12">12 mo</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary btn-small" id="addThingCalendarEventBtn">+ Add Event</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="thingCalendarEventsContainer"></div>
+                    <p class="empty-state" id="thingCalendarEventsEmptyState"></p>
+                </div>
+            </div>
 
             <!-- Activity History -->
-            <div class="section-header">
-                <h3 class="section-heading">Activity History</h3>
-                <button class="btn btn-primary btn-small" id="logThingActivityBtn">+ Log Activity</button>
+            <div class="detail-acc" id="thingActivityAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('thingActivityAcc')">
+                    <span class="detail-acc-chevron">›</span>
+                    <span class="detail-acc-title">Activity History</span>
+                    <span class="detail-acc-count hidden" id="thingActivityAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="logThingActivityBtn">+ Log Activity</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="thingActivityContainer"></div>
+                    <p class="empty-state" id="thingActivityEmptyState">No activities logged yet.</p>
+                </div>
             </div>
-            <div id="thingActivityContainer"></div>
-            <p class="empty-state" id="thingActivityEmptyState">No activities logged yet.</p>
 
             <!-- Photos -->
-            <div class="section-header">
-                <h3 class="section-heading">Photos</h3>
-                <button class="btn btn-primary btn-small" id="addThingCameraBtn">+ Camera</button>
-                <button class="btn btn-primary btn-small" id="addThingGalleryBtn">+ Gallery</button>
-                <button class="btn btn-primary btn-small paste-photo-btn" data-entity="thing">📋 Paste</button>
+            <div class="detail-acc" id="thingPhotosAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('thingPhotosAcc')">
+                    <span class="detail-acc-chevron">›</span>
+                    <span class="detail-acc-title">Photos</span>
+                    <span class="detail-acc-count hidden" id="thingPhotosAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="addThingCameraBtn">+ Camera</button>
+                        <button class="btn btn-primary btn-small" id="addThingGalleryBtn">+ Gallery</button>
+                        <button class="btn btn-primary btn-small paste-photo-btn" data-entity="thing">📋 Paste</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="thingPhotoContainer"></div>
+                    <p class="empty-state" id="thingPhotoEmptyState">No photos yet.</p>
+                </div>
             </div>
-            <div id="thingPhotoContainer"></div>
-            <p class="empty-state" id="thingPhotoEmptyState">No photos yet.</p>
         </section>
 
         <!-- Page: Sub-thing Detail (Things Enhancement) -->
@@ -8527,7 +8579,7 @@ export default {
     <script src="js/gps.js?v=350"></script>
     <script src="js/settings.js?v=478"></script>
     <script src="js/devnotes.js?v=376"></script>
-    <script src="js/house.js?v=407"></script>
+    <script src="js/house.js?v=408"></script>
     <script src="js/floorplan.js?v=398"></script>
     <script src="js/floorplanitem.js?v=393"></script>
     <script src="js/search.js?v=350"></script>

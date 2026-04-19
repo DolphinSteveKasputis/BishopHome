@@ -143,22 +143,31 @@ async function loadZoneDetail(zoneId) {
                 subZoneContainer.appendChild(card);
             });
         }
+        _setDetailAccCount('zoneSubZonesAccCount', 'subZoneListContainer');
 
         // --- Load plants in this zone ---
         await loadPlantsInZone(zoneId);
+        _setDetailAccCount('zonePlantsAccCount', 'zonePlantListContainer');
 
         // --- Load problems, facts, projects, calendar events, activities, photos ---
-        loadProblems('zone', zoneId, 'zoneProblemsContainer', 'zoneProblemsEmptyState');
-        loadFacts('zone', zoneId, 'zoneFactsContainer', 'zoneFactsEmptyState');
-        loadProjects('zone', zoneId, 'zoneProjectsContainer', 'zoneProjectsEmptyState');
+        loadProblems('zone', zoneId, 'zoneProblemsContainer', 'zoneProblemsEmptyState')
+            .then(function() { _setDetailAccCount('zoneProblemsAccCount', 'zoneProblemsContainer'); });
+        loadFacts('zone', zoneId, 'zoneFactsContainer', 'zoneFactsEmptyState')
+            .then(function() { _setDetailAccCount('zoneFactsAccCount', 'zoneFactsContainer'); });
+        loadProjects('zone', zoneId, 'zoneProjectsContainer', 'zoneProjectsEmptyState')
+            .then(function() { _setDetailAccCount('zoneTasksAccCount', 'zoneProjectsContainer'); });
         if (typeof loadEventsForTarget === 'function') {
             var zoneMonths = parseInt(document.getElementById('zoneCalendarRangeSelect').value, 10) || 3;
-            loadEventsForTarget('zone', zoneId, 'zoneCalendarEventsContainer', 'zoneCalendarEventsEmptyState', zoneMonths);
+            loadEventsForTarget('zone', zoneId, 'zoneCalendarEventsContainer', 'zoneCalendarEventsEmptyState', zoneMonths)
+                .then(function() { _setDetailAccCount('zoneCalendarAccCount', 'zoneCalendarEventsContainer'); });
         }
-        loadActivities('zone', zoneId, 'zoneActivityContainer', 'zoneActivityEmptyState');
-        loadPhotos('zone', zoneId, 'zonePhotoContainer', 'zonePhotoEmptyState');
+        loadActivities('zone', zoneId, 'zoneActivityContainer', 'zoneActivityEmptyState')
+            .then(function() { _setDetailAccCount('zoneActivityAccCount', 'zoneActivityContainer'); });
+        loadPhotos('zone', zoneId, 'zonePhotoContainer', 'zonePhotoEmptyState')
+            .then(function() { _setDetailAccCount('zonePhotosAccCount', 'zonePhotoContainer'); });
         if (typeof loadGpsSection === 'function') {
-            loadGpsSection(zoneId);
+            loadGpsSection(zoneId)
+                .then(function() { _setDetailAccCount('zoneGpsAccCount', 'zoneGpsPreview'); });
         }
 
         // Reset View All Plants section

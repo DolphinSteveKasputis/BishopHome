@@ -304,24 +304,38 @@
             </div>
 
             <!-- Sub-zones section -->
-            <h3 class="section-heading">Sub-zones</h3>
-            <div class="card-list" id="subZoneListContainer"></div>
-            <p class="empty-state" id="subZoneEmptyState"></p>
-
-            <!-- Plants section -->
-            <div class="section-header">
-                <h3 class="section-heading">Plants</h3>
-                <div class="section-header-actions">
-                    <button class="btn btn-primary btn-small" id="viewAllPlantsBtn" style="display:none;">View All Plants</button>
-                    <button class="btn btn-primary btn-small" id="addPlantBtn" style="display:none;">+Plant</button>
-                    <button class="btn btn-primary btn-small" id="quickAddPlantPhotoBtn" style="display:none;">+Photo</button>
-                    <input type="file" id="quickPlantCamInput" accept="image/*" capture="environment" style="display:none;">
+            <div class="detail-acc open" id="zoneSubZonesAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('zoneSubZonesAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Sub-zones</span>
+                    <span class="detail-acc-count" id="zoneSubZonesAccCount"></span>
+                </div>
+                <div class="detail-acc-body">
+                    <div class="card-list" id="subZoneListContainer"></div>
+                    <p class="empty-state" id="subZoneEmptyState"></p>
                 </div>
             </div>
-            <div class="card-list" id="zonePlantListContainer"></div>
-            <p class="empty-state" id="zonePlantEmptyState"></p>
 
-            <!-- View All Plants results (hidden by default) -->
+            <!-- Plants section -->
+            <div class="detail-acc" id="zonePlantsAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('zonePlantsAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Plants</span>
+                    <span class="detail-acc-count" id="zonePlantsAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="viewAllPlantsBtn" style="display:none;">View All Plants</button>
+                        <button class="btn btn-primary btn-small" id="addPlantBtn" style="display:none;">+Plant</button>
+                        <button class="btn btn-primary btn-small" id="quickAddPlantPhotoBtn" style="display:none;">+Photo</button>
+                        <input type="file" id="quickPlantCamInput" accept="image/*" capture="environment" style="display:none;">
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div class="card-list" id="zonePlantListContainer"></div>
+                    <p class="empty-state" id="zonePlantEmptyState"></p>
+                </div>
+            </div>
+
+            <!-- View All Plants results (hidden by default, JS-controlled) -->
             <div id="viewAllPlantsSection" style="display:none;">
                 <div class="section-header">
                     <h3 class="section-heading">All Plants in Zone Hierarchy</h3>
@@ -332,83 +346,131 @@
             </div>
 
             <!-- Zone Problems section -->
-            <div class="section-header">
-                <h3 class="section-heading">Problems / Concerns</h3>
-                <div class="section-header-actions">
-                    <label class="show-toggle"><input type="checkbox" id="showResolvedZoneProblems"> Show resolved</label>
-                    <button class="btn btn-primary btn-small" id="addZoneProblemBtn">+ Add</button>
+            <div class="detail-acc" id="zoneProblemsAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('zoneProblemsAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Problems / Concerns</span>
+                    <span class="detail-acc-count" id="zoneProblemsAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <label class="show-toggle"><input type="checkbox" id="showResolvedZoneProblems"> Show resolved</label>
+                        <button class="btn btn-primary btn-small" id="addZoneProblemBtn">+ Add</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="zoneProblemsContainer"></div>
+                    <p class="empty-state" id="zoneProblemsEmptyState"></p>
                 </div>
             </div>
-            <div id="zoneProblemsContainer"></div>
-            <p class="empty-state" id="zoneProblemsEmptyState"></p>
 
             <!-- Zone Facts section -->
-            <div class="section-header">
-                <h3 class="section-heading">Facts</h3>
-                <button class="btn btn-primary btn-small" id="addZoneFactBtn">+ Add</button>
+            <div class="detail-acc" id="zoneFactsAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('zoneFactsAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Facts</span>
+                    <span class="detail-acc-count" id="zoneFactsAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="addZoneFactBtn">+ Add</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="zoneFactsContainer"></div>
+                    <p class="empty-state" id="zoneFactsEmptyState"></p>
+                </div>
             </div>
-            <div id="zoneFactsContainer"></div>
-            <p class="empty-state" id="zoneFactsEmptyState"></p>
 
             <!-- Zone Projects section -->
-            <div class="section-header">
-                <h3 class="section-heading">Quick Task List</h3>
-                <div class="section-header-actions">
-                    <label class="show-toggle"><input type="checkbox" id="showSubZoneProjects"> Include sub-zones</label>
-                    <label class="show-toggle"><input type="checkbox" id="showCompletedZoneProjects"> Show completed</label>
-                    <button class="btn btn-primary btn-small" id="addZoneProjectBtn">+ Add</button>
+            <div class="detail-acc" id="zoneTasksAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('zoneTasksAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Quick Task List</span>
+                    <span class="detail-acc-count" id="zoneTasksAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <label class="show-toggle"><input type="checkbox" id="showSubZoneProjects"> Include sub-zones</label>
+                        <label class="show-toggle"><input type="checkbox" id="showCompletedZoneProjects"> Show completed</label>
+                        <button class="btn btn-primary btn-small" id="addZoneProjectBtn">+ Add</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="zoneProjectsContainer"></div>
+                    <p class="empty-state" id="zoneProjectsEmptyState"></p>
                 </div>
             </div>
-            <div id="zoneProjectsContainer"></div>
-            <p class="empty-state" id="zoneProjectsEmptyState"></p>
 
             <!-- Zone Calendar Events -->
-            <div class="section-header">
-                <h3 class="section-heading">Calendar Events</h3>
-                <div class="section-header-actions">
-                    <div class="calendar-range-picker">
-                        <label>Next</label>
-                        <select id="zoneCalendarRangeSelect" class="range-select">
-                            <option value="1">1 mo</option>
-                            <option value="3" selected>3 mo</option>
-                            <option value="6">6 mo</option>
-                            <option value="12">12 mo</option>
-                        </select>
+            <div class="detail-acc open" id="zoneCalendarAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('zoneCalendarAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Calendar Events</span>
+                    <span class="detail-acc-count" id="zoneCalendarAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <div class="calendar-range-picker">
+                            <label>Next</label>
+                            <select id="zoneCalendarRangeSelect" class="range-select">
+                                <option value="1">1 mo</option>
+                                <option value="3" selected>3 mo</option>
+                                <option value="6">6 mo</option>
+                                <option value="12">12 mo</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary btn-small" id="addZoneCalendarEventBtn">+ Add Event</button>
                     </div>
-                    <button class="btn btn-primary btn-small" id="addZoneCalendarEventBtn">+ Add Event</button>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="zoneCalendarEventsContainer"></div>
+                    <p class="empty-state" id="zoneCalendarEventsEmptyState"></p>
                 </div>
             </div>
-            <div id="zoneCalendarEventsContainer"></div>
-            <p class="empty-state" id="zoneCalendarEventsEmptyState"></p>
 
             <!-- Zone GPS Shape -->
-            <div class="section-header">
-                <h3 class="section-heading">GPS Shape</h3>
-                <button class="btn btn-secondary btn-small" id="zoneGpsBtn">📍 Map</button>
-            </div>
-            <div id="zoneGpsPreview"></div>
-            <p class="empty-state" id="zoneGpsEmptyState"></p>
-
-            <!-- Zone Activity History -->
-            <div class="section-header">
-                <h3 class="section-heading">Activity History</h3>
-                <div class="section-header-actions">
-                    <button class="btn btn-secondary btn-small" id="logBulkActivityBtn">Log Bulk</button>
-                    <button class="btn btn-primary btn-small" id="logZoneActivityBtn">+ Log Activity</button>
+            <div class="detail-acc" id="zoneGpsAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('zoneGpsAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">GPS Shape</span>
+                    <span class="detail-acc-count" id="zoneGpsAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-secondary btn-small" id="zoneGpsBtn">📍 Map</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="zoneGpsPreview"></div>
+                    <p class="empty-state" id="zoneGpsEmptyState"></p>
                 </div>
             </div>
-            <div id="zoneActivityContainer"></div>
-            <p class="empty-state" id="zoneActivityEmptyState"></p>
+
+            <!-- Zone Activity History -->
+            <div class="detail-acc" id="zoneActivityAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('zoneActivityAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Activity History</span>
+                    <span class="detail-acc-count" id="zoneActivityAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-secondary btn-small" id="logBulkActivityBtn">Log Bulk</button>
+                        <button class="btn btn-primary btn-small" id="logZoneActivityBtn">+ Log Activity</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="zoneActivityContainer"></div>
+                    <p class="empty-state" id="zoneActivityEmptyState"></p>
+                </div>
+            </div>
 
             <!-- Zone Photos -->
-            <div class="section-header">
-                <h3 class="section-heading">Photos</h3>
-                <button class="btn btn-primary btn-small" id="addZoneCameraBtn">+ Camera</button>
-                <button class="btn btn-primary btn-small" id="addZoneGalleryBtn">+ Gallery</button>
-                <button class="btn btn-primary btn-small paste-photo-btn" data-entity="zone">📋 Paste</button>
+            <div class="detail-acc" id="zonePhotosAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('zonePhotosAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Photos</span>
+                    <span class="detail-acc-count" id="zonePhotosAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="addZoneCameraBtn">+ Camera</button>
+                        <button class="btn btn-primary btn-small" id="addZoneGalleryBtn">+ Gallery</button>
+                        <button class="btn btn-primary btn-small paste-photo-btn" data-entity="zone">📋 Paste</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="zonePhotoContainer"></div>
+                    <p class="empty-state" id="zonePhotoEmptyState">No photos yet.</p>
+                </div>
             </div>
-            <div id="zonePhotoContainer"></div>
-            <p class="empty-state" id="zonePhotoEmptyState">No photos yet.</p>
         </section>
 
         <!-- Page: GPS Map (zone-specific shape recording and editing) -->
@@ -8668,7 +8730,7 @@ export default {
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="js/firebase-config.js?v=350"></script>
     <script src="js/auth.js?v=350"></script>
-    <script src="js/zones.js?v=354"></script>
+    <script src="js/zones.js?v=355"></script>
     <script src="js/plants.js?v=350"></script>
     <script src="js/problems.js?v=389"></script>
     <script src="js/facts.js?v=350"></script>

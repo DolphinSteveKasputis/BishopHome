@@ -117,6 +117,8 @@ Zones are the organizational backbone of the yard. They form a hierarchy up to 3
 - [Shared] Facts, Problems, Quick Task List, Activities, Photos, Calendar Events
 - Life Projects — rich project management (itineraries, bookings, packing, to-dos)
 
+**Zone detail page layout**: All sections are collapsible accordions (`.detail-acc`). Sub-zones and Calendar Events are expanded by default; all others start collapsed. Each accordion header shows an item count badge that populates after the section loads. Sections: Sub-zones, Plants, Problems/Concerns, Facts, Quick Task List, Calendar Events, GPS Shape, Activity History, Photos.
+
 **Edit/Delete modal**: The zone detail page has an Edit button that opens a modal pre-filled with the zone name. The Delete button is inside this edit modal (not on the detail page directly) — it appears only in edit mode, not when adding a new zone.
 
 **Zone reassignment**: Plants and sub-zones can be moved to a different parent zone via a modal picker that shows the full hierarchy with indentation.

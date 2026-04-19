@@ -301,6 +301,8 @@ function _viewSearch(term) {
             });
             major.querySelectorAll('.views-major-body > .views-card').forEach(function(c) { c.classList.remove('hidden'); });
         });
+        var nr = document.getElementById('viewsNoResults');
+        if (nr) nr.remove();
         return;
     }
 

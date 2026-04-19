@@ -1252,6 +1252,8 @@ function applySpokenPunctuation(text) {
         text = text.replace(rule[0], rule[1]);
     });
 
+    // Remove spaces that landed before punctuation (e.g. speech engine outputs " ." or " ,")
+    text = text.replace(/ ([.,;:!?])/g, '$1');
     // Collapse multiple spaces/tabs (but NOT newlines — those are intentional commands)
     text = text.replace(/[ \t]{2,}/g, ' ');
     // Strip leading/trailing spaces and tabs only — never strip \n or \n\n

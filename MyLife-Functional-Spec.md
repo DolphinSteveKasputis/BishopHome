@@ -898,7 +898,7 @@ Tracks major life events — trips, milestones, goals, relationships.
 
 **JS file**: `js/places.js`
 
-Tracks real-world places the user visits. Places tie together journal check-ins, activities, and a searchable location history. Uses **Foursquare Places API v3** for nearby discovery and text search; Nominatim (OpenStreetMap) is retained only for reverse geocoding (lat/lng → address). A Foursquare API key is required and stored in `userCol('settings').doc('places')` under the field `foursquareApiKey`.
+Tracks real-world places the user visits. Places tie together journal check-ins, activities, and a searchable location history. Uses the **Foursquare Places API** (new API: `places-api.foursquare.com`) for nearby discovery and text search via a **Cloudflare Worker proxy** (required to bypass CORS restrictions — configured in Settings → General Settings → Places). A Foursquare Service API Key is required, stored in `userCol('settings').doc('places').workerUrl`. Nominatim (OpenStreetMap) is retained only for reverse geocoding (lat/lng → address).
 
 ### Places List (`#places`)
 - Shows all saved places as cards (name, address/city, category)
@@ -921,18 +921,23 @@ Tracks real-world places the user visits. Places tie together journal check-ins,
 
 ### Check-In Flow
 1. User taps "📍 Check In" (QuickLog or SecondBrain)
-2. **Check-in form**: Shows nearby venues (via Foursquare `places/nearby`) or search results
-3. User selects a venue
-4. Form pre-fills as a journal entry with `isCheckin: true` and the venue pre-attached
-5. User edits entry text (optional) and taps Save
-6. Saves a `journalEntries` doc with `placeIds: [placeId]`, `isCheckin: true`
-7. If the place wasn't already in Firestore, `placesSaveNew()` creates it first (dedup by `fsqId` if available)
+2. **Check-in picker modal** opens. GPS fires immediately to find nearby places. A **Help** button (top-right) explains all behavior in plain language.
+3. On GPS success: nearby venues shown via `placesNearby()`. On failure: "Could not load" message + inline **Retry** button (re-fires GPS without closing the modal, using `maximumAge: 0` for a fresh reading).
+4. **Name search**: User can type in the search box; results come from Foursquare biased to the user's current GPS position. Each result shows name, address, category, and **distance from current location** (e.g. "0.3 mi") to disambiguate same-named locations.
+5. **Select a venue**: Tapping a result closes the picker and opens the journal entry form pre-filled with that venue. The check-in is **not saved yet** — the user must tap Save on the journal form.
+6. **Enter Manually**: Opens the journal entry form with a blank location. No place record is created — only a plain journal note. Manual entries have no GPS, address, or Foursquare ID and won't appear in the Places list or on a map.
+7. On Save: creates a `journalEntries` doc with `placeIds: [placeId]`, `isCheckin: true`. If the venue wasn't already in Firestore, `placesSaveNew()` creates the place record first (dedup by `fsqId`).
+8. **Finding check-ins**: Journal → "Check-Ins Only" filter checkbox. Check-in entries show a 📍 badge.
 
 ### Foursquare Integration
-- **Nearby search** (`placesNearby`): `GET /v3/places/nearby?ll=lat,lng&limit=20` — returns venues sorted by distance
-- **Text search** (`placesSearchByName`): `GET /v3/places/search?query=...&ll=lat,lng&limit=8` — `ll` bias optional
-- Auth header: `Authorization: <apiKey>` (no Bearer prefix)
-- Key loaded from `userCol('settings').doc('places').foursquareApiKey`; cached in memory for 5 minutes
+- **API**: `places-api.foursquare.com` (new API — not the retired `api.foursquare.com/v3`)
+- **Proxy required**: Browser cannot call Foursquare directly (CORS OPTIONS returns 400). A Cloudflare Worker proxy handles auth and adds CORS headers. Worker URL stored in `userCol('settings').doc('places').workerUrl`.
+- **Auth**: Worker adds `Authorization: Bearer <key>` and `X-Places-Api-Version: 2025-06-17` headers — no auth headers sent from browser.
+- **Nearby search** (`placesNearby`): `GET /places/search?ll=lat,lng&limit=20&fields=fsq_place_id,name,categories,location,geocodes`
+- **Text search** (`placesSearchByName`): `GET /places/search?query=...&ll=lat,lng&limit=8&fields=fsq_place_id,name,categories,location,geocodes` — `ll` bias toward user's GPS position
+- **Response shape**: `fsq_place_id` (not `fsq_id`); coordinates in `geocodes.main.latitude/longitude`
+- Worker URL cached in memory for 5 minutes (`_placesWorkerUrlCache`)
+- **Distance label**: `placesDistanceLabel(lat1,lng1,lat2,lng2)` — Haversine formula, returns e.g. "0.3 mi" or "nearby"
 - **Nominatim** (reverse geocode only): `https://nominatim.openstreetmap.org/reverse` — converts lat/lng to address; rate-limited to 1 req/sec
 
 ### LLM Enrichment (`placesEnrichWithLLM()`)

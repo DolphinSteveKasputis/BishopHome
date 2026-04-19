@@ -7953,20 +7953,24 @@
                     <li>Click <strong>Dismiss</strong>.</li>
                 </ol>
 
-                <h4>Part 2 — Set Up Your Cloudflare Proxy (free, no credit card)</h4>
-                <p>Foursquare can't be called directly from a browser, so you need a tiny free middleman server. Cloudflare provides this for free.</p>
+                <h4>Part 2 — Set Up Your Cloudflare Proxy (free, no credit card needed)</h4>
+                <p>Because of how the internet works, this app can't talk to Foursquare directly from your browser — it needs a tiny "middleman" server in between. Cloudflare gives you one for free. Don't worry — you can't break anything here. Just follow each step.</p>
                 <ol>
-                    <li>Go to <strong>cloudflare.com</strong> and create a free account.</li>
-                    <li>In the left sidebar, click <strong>Workers &amp; Pages</strong>.</li>
-                    <li>Click <strong>Create</strong> → <strong>Create Worker</strong>.</li>
-                    <li>Name it <code>foursquare-proxy</code>, then click <strong>Deploy</strong>.</li>
-                    <li>Click the <strong>Edit code</strong> button (blue, on the next screen).</li>
-                    <li><strong>Select all the existing code and delete it.</strong></li>
-                    <li>Click <strong>Copy Code</strong> below and paste it into the editor.</li>
-                    <li>Find the line that says <code>PASTE_YOUR_KEY_HERE</code> and replace it with your Foursquare API key from Part 1.</li>
-                    <li>Click <strong>Deploy</strong> in the top right.</li>
-                    <li>Copy the URL shown at the top — it looks like <code>https://foursquare-proxy.yourname.workers.dev</code>.</li>
+                    <li>Open a new browser tab and go to <strong>cloudflare.com</strong>. Click <strong>Sign Up</strong> and create a free account with your email address.</li>
+                    <li>After signing up, Cloudflare will walk you through a short setup wizard. When it asks <em>"How do you want to use Cloudflare?"</em> — click <strong>Personal</strong>.</li>
+                    <li>When it asks <em>"How many people work with you?"</em> — select <strong>Just me</strong> (or 1). Either is fine.</li>
+                    <li>When it asks <em>"How would you like to start building?"</em> — you'll see several tiles. Click the one that says <strong>Connect git repo or use template</strong> (it says "Workers Compute" underneath). Don't worry about the other options.</li>
+                    <li>The next screen says <em>"Ship something new."</em> Click <strong>Start with Hello World!</strong> — this creates a blank Worker you can paste our code into.</li>
+                    <li>You'll see a "Deploy Hello World" page with a <strong>Worker name</strong> box at the top — it will have a random name like <code>soft-leaf-8e88</code>. Click on that name box and change it to <code>foursquare-proxy</code>. Then click the blue <strong>Deploy</strong> button in the bottom-right corner.</li>
+                    <li>After clicking Deploy, you'll land on the <strong>foursquare-proxy overview page</strong> — you'll see a diagram with "Domains", "foursquare-proxy", and "Bindings" boxes. This means it worked! Now click <strong>Edit code</strong> in the top-right corner of the page (it may be partially hidden — look for the pencil icon or "Edit co..." text).</li>
+                    <li>The code editor opens. You'll see two panels: a <strong>code editor on the left</strong> with some starter "Hello World" code, and a preview panel on the right that may show an error — <strong>ignore the right side completely</strong>, it doesn't matter.</li>
+                    <li>Click anywhere inside the code on the <strong>left panel</strong> to make sure it's focused. Then press <strong>Ctrl+A</strong> (Windows) or <strong>Cmd+A</strong> (Mac) to select ALL the code. Then press the <strong>Delete</strong> or <strong>Backspace</strong> key. The editor should now be completely empty and blank.</li>
+                    <li>Now come back to this help screen and click the <strong>Copy Code</strong> button on the code block below. Then go back to the Cloudflare tab and click inside the empty code editor and press <strong>Ctrl+V</strong> (Windows) or <strong>Cmd+V</strong> (Mac) to paste it in.</li>
+                    <li>Look through the pasted code for the line that says <code>PASTE_YOUR_KEY_HERE</code>. Click right on those words and replace them — keeping the single quote marks on each side — with your Foursquare API key from Part 1. When done it should look like: <code>'abc123yourrealkeyhere'</code></li>
+                    <li>Click the blue <strong>Deploy</strong> button in the <strong>top-right corner</strong> of the page.</li>
+                    <li>After it deploys, look near the top of the right preview panel — you'll see your Worker's URL. It looks like <code>https://foursquare-proxy.yourname.workers.dev</code>. <strong>Copy that entire URL</strong> — you'll paste it into this app in Part 3. (You can also find it on the overview page under "Domains &amp; Routes".)</li>
                 </ol>
+                <p><em>You're almost done! The hard part is over.</em></p>
 
                 <div class="fsq-help-code-wrap">
                     <button class="btn btn-secondary btn-small fsq-copy-btn" onclick="fsqCopyWorkerCode(this)">Copy Code</button>

@@ -9216,6 +9216,12 @@ a.health-chip--link:hover { filter: brightness(0.93); }
     color: var(--text-muted, #888);
     margin-top: 2px;
 }
+.place-distance {
+    font-size: 0.75rem;
+    color: var(--text-muted, #888);
+    font-weight: normal;
+    margin-left: 6px;
+}
 /* Container for the search input + dropdown */
 #activityPlaceSearchRow {
     position: relative;

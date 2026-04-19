@@ -2467,13 +2467,16 @@ function _checkinPickerShowResults(venues) {
 
     var html = '';
     venues.forEach(function(v, idx) {
-        var sub = [];
+        var dist = placesDistanceLabel(_checkinPickerLat, _checkinPickerLng, v.lat, v.lng);
+        var sub  = [];
         if (v.category)  sub.push(v.category);
         if (v.address)   sub.push(v.address);
         var subText = sub.join(' · ');
 
         html += '<div class="checkin-picker-item" data-idx="' + idx + '">' +
-                    '<div class="checkin-picker-name">' + (v.name || 'Unnamed Place') + '</div>' +
+                    '<div class="checkin-picker-name">' + (v.name || 'Unnamed Place') +
+                        (dist ? ' <span class="place-distance">' + dist + '</span>' : '') +
+                    '</div>' +
                     (subText ? '<div class="checkin-picker-sub">' + subText + '</div>' : '') +
                 '</div>';
     });

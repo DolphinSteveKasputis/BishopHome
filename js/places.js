@@ -609,6 +609,22 @@ async function _placesGetWorkerUrl() {
 }
 
 /**
+ * Returns a human-readable distance string (e.g. "0.3 mi") between two lat/lng points.
+ * Returns null if any coordinate is missing.
+ */
+function placesDistanceLabel(lat1, lng1, lat2, lng2) {
+    if (lat1 == null || lng1 == null || lat2 == null || lng2 == null) return null;
+    var R = 3958.8; // Earth radius in miles
+    var dLat = (lat2 - lat1) * Math.PI / 180;
+    var dLng = (lng2 - lng1) * Math.PI / 180;
+    var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLng/2) * Math.sin(dLng/2);
+    var mi = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return mi < 0.1 ? 'nearby' : mi.toFixed(1) + ' mi';
+}
+
+/**
  * Map a Foursquare Places API result item to the standard venue object shape.
  * New API (places-api.foursquare.com) uses fsq_place_id and top-level lat/lng.
  */

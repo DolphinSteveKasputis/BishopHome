@@ -22,6 +22,9 @@ var _activityPlaceVenue = null;
 
 /** Venues shown in the activity place search dropdown. */
 var _activityPlaceDropdownVenues = [];
+/** GPS coords captured when the activity modal opens — used to bias name searches and show distance. */
+var _activityBiasLat = null;
+var _activityBiasLng = null;
 
 /**
  * Which modal most recently opened the chemical picker: 'activity' or 'savedAction'.
@@ -1088,11 +1091,12 @@ function _activityInitPlaceSearch() {
     dropdown.style.display = 'none';
 
     var debounceTimer = null;
-    var _biasLat = null, _biasLng = null;
+    _activityBiasLat = null;
+    _activityBiasLng = null;
     // Grab GPS once so name searches are biased to the user's current location
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
-            function(pos) { _biasLat = pos.coords.latitude; _biasLng = pos.coords.longitude; },
+            function(pos) { _activityBiasLat = pos.coords.latitude; _activityBiasLng = pos.coords.longitude; },
             function() {},
             { timeout: 10000, maximumAge: 60000 }
         );
@@ -1103,7 +1107,7 @@ function _activityInitPlaceSearch() {
         if (q.length < 2) { dropdown.style.display = 'none'; return; }
         debounceTimer = setTimeout(async function() {
             try {
-                var results = await placesSearchByName(q, _biasLat, _biasLng);
+                var results = await placesSearchByName(q, _activityBiasLat, _activityBiasLng);
                 _activityShowPlaceDropdown(results);
             } catch (err) {
                 console.warn('Activity place search error:', err);
@@ -1133,9 +1137,12 @@ function _activityShowPlaceDropdown(venues) {
     _activityPlaceDropdownVenues = venues.slice(0, 8);
     var html = '';
     _activityPlaceDropdownVenues.forEach(function(v, i) {
-        var sub = [v.category, v.address].filter(Boolean).join(' · ');
+        var dist = placesDistanceLabel(_activityBiasLat, _activityBiasLng, v.lat, v.lng);
+        var sub  = [v.category, v.address].filter(Boolean).join(' · ');
         html += '<div class="activity-place-dropdown-item" onmousedown="_activitySelectPlace(' + i + ')">' +
-                    '<div class="activity-place-dropdown-name">' + escapeHtml(v.name || '') + '</div>' +
+                    '<div class="activity-place-dropdown-name">' + escapeHtml(v.name || '') +
+                        (dist ? ' <span class="place-distance">' + dist + '</span>' : '') +
+                    '</div>' +
                     (sub ? '<div class="activity-place-dropdown-sub">' + escapeHtml(sub) + '</div>' : '') +
                 '</div>';
     });

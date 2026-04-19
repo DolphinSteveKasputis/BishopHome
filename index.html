@@ -2594,149 +2594,203 @@
                 <span id="vehicleArchiveBannerText"></span>
             </div>
 
-            <!-- Vehicle Info card — editable fields + Save button -->
-            <div class="card" style="flex-direction:column; align-items:stretch; cursor:default;">
-                <h3 class="section-heading" style="margin-top:0; margin-bottom:12px;">Vehicle Info</h3>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="vehicleInfoYear">Year</label>
-                        <input type="text" id="vehicleInfoYear" placeholder="e.g. 2021" maxlength="10">
-                    </div>
-                    <div class="form-group">
-                        <label for="vehicleInfoMake">Make</label>
-                        <input type="text" id="vehicleInfoMake" placeholder="e.g. Toyota" maxlength="80">
-                    </div>
-                    <div class="form-group">
-                        <label for="vehicleInfoModel">Model</label>
-                        <input type="text" id="vehicleInfoModel" placeholder="e.g. Tacoma" maxlength="80">
-                    </div>
+            <!-- Vehicle Info -->
+            <div class="detail-acc open" id="vehicleInfoAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('vehicleInfoAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Vehicle Info</span>
                 </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="vehicleInfoTrim">Trim</label>
-                        <input type="text" id="vehicleInfoTrim" placeholder="e.g. TRD Off-Road" maxlength="80">
+                <div class="detail-acc-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="vehicleInfoYear">Year</label>
+                            <input type="text" id="vehicleInfoYear" placeholder="e.g. 2021" maxlength="10">
+                        </div>
+                        <div class="form-group">
+                            <label for="vehicleInfoMake">Make</label>
+                            <input type="text" id="vehicleInfoMake" placeholder="e.g. Toyota" maxlength="80">
+                        </div>
+                        <div class="form-group">
+                            <label for="vehicleInfoModel">Model</label>
+                            <input type="text" id="vehicleInfoModel" placeholder="e.g. Tacoma" maxlength="80">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="vehicleInfoTrim">Trim</label>
+                            <input type="text" id="vehicleInfoTrim" placeholder="e.g. TRD Off-Road" maxlength="80">
+                        </div>
+                        <div class="form-group">
+                            <label for="vehicleInfoColor">Color</label>
+                            <input type="text" id="vehicleInfoColor" placeholder="e.g. Cement Gray" maxlength="80">
+                        </div>
+                        <div class="form-group">
+                            <label for="vehicleInfoLicensePlate">License Plate</label>
+                            <input type="text" id="vehicleInfoLicensePlate" placeholder="e.g. ABC-1234" maxlength="20">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="vehicleInfoVin">VIN</label>
+                            <input type="text" id="vehicleInfoVin" placeholder="17-character VIN" maxlength="17">
+                        </div>
+                        <div class="form-group">
+                            <label for="vehicleInfoPurchaseDate">Purchase Date</label>
+                            <input type="date" id="vehicleInfoPurchaseDate">
+                        </div>
+                        <div class="form-group">
+                            <label for="vehicleInfoPurchasePrice">Purchase Price</label>
+                            <input type="text" id="vehicleInfoPurchasePrice" placeholder="e.g. $32,500" maxlength="40">
+                        </div>
                     </div>
                     <div class="form-group">
-                        <label for="vehicleInfoColor">Color</label>
-                        <input type="text" id="vehicleInfoColor" placeholder="e.g. Cement Gray" maxlength="80">
+                        <label for="vehicleInfoNotes">Notes</label>
+                        <textarea id="vehicleInfoNotes" rows="3" placeholder="General notes about this vehicle"></textarea>
                     </div>
-                    <div class="form-group">
-                        <label for="vehicleInfoLicensePlate">License Plate</label>
-                        <input type="text" id="vehicleInfoLicensePlate" placeholder="e.g. ABC-1234" maxlength="20">
+                    <div class="settings-save-row">
+                        <button class="btn btn-primary" id="vehicleInfoSaveBtn">Save Info</button>
+                        <span class="settings-saved-msg hidden" id="vehicleInfoSavedMsg">&#10003; Saved</span>
                     </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="vehicleInfoVin">VIN</label>
-                        <input type="text" id="vehicleInfoVin" placeholder="17-character VIN" maxlength="17">
-                    </div>
-                    <div class="form-group">
-                        <label for="vehicleInfoPurchaseDate">Purchase Date</label>
-                        <input type="date" id="vehicleInfoPurchaseDate">
-                    </div>
-                    <div class="form-group">
-                        <label for="vehicleInfoPurchasePrice">Purchase Price</label>
-                        <input type="text" id="vehicleInfoPurchasePrice" placeholder="e.g. $32,500" maxlength="40">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="vehicleInfoNotes">Notes</label>
-                    <textarea id="vehicleInfoNotes" rows="3" placeholder="General notes about this vehicle"></textarea>
-                </div>
-                <div class="settings-save-row">
-                    <button class="btn btn-primary" id="vehicleInfoSaveBtn">Save Info</button>
-                    <span class="settings-saved-msg hidden" id="vehicleInfoSavedMsg">&#10003; Saved</span>
                 </div>
             </div>
 
             <!-- Mileage Log section -->
-            <div class="section-header">
-                <h3 class="section-heading">Mileage Log</h3>
-            </div>
-            <!-- Inline add form -->
-            <div class="mileage-add-form">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="mileageDate">Date</label>
-                        <input type="date" id="mileageDate">
-                    </div>
-                    <div class="form-group">
-                        <label for="mileageOdometer">Odometer (miles)</label>
-                        <input type="number" id="mileageOdometer" placeholder="e.g. 45230" min="0">
-                    </div>
-                    <div class="form-group">
-                        <label for="mileageNotes">Notes (optional)</label>
-                        <input type="text" id="mileageNotes" placeholder="e.g. Oil change, trip to mountains">
-                    </div>
+            <div class="detail-acc" id="vehicleMileageAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('vehicleMileageAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Mileage Log</span>
+                    <span class="detail-acc-count" id="vehicleMileageAccCount"></span>
                 </div>
-                <button class="btn btn-primary btn-small" id="vehicleMileageAddBtn">+ Add Entry</button>
+                <div class="detail-acc-body">
+                    <div class="mileage-add-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="mileageDate">Date</label>
+                                <input type="date" id="mileageDate">
+                            </div>
+                            <div class="form-group">
+                                <label for="mileageOdometer">Odometer (miles)</label>
+                                <input type="number" id="mileageOdometer" placeholder="e.g. 45230" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="mileageNotes">Notes (optional)</label>
+                                <input type="text" id="mileageNotes" placeholder="e.g. Oil change, trip to mountains">
+                            </div>
+                        </div>
+                        <button class="btn btn-primary btn-small" id="vehicleMileageAddBtn">+ Add Entry</button>
+                    </div>
+                    <div class="mileage-log-list" id="mileageLogList"></div>
+                    <p class="empty-state" id="mileageLogEmptyState"></p>
+                </div>
             </div>
-            <div class="mileage-log-list" id="mileageLogList"></div>
-            <p class="empty-state" id="mileageLogEmptyState"></p>
 
             <!-- Photos -->
-            <div class="section-header">
-                <h3 class="section-heading">Photos</h3>
-                <button class="btn btn-primary btn-small" id="addVehicleCameraBtn">+ Camera</button>
-                <button class="btn btn-primary btn-small" id="addVehicleGalleryBtn">+ Gallery</button>
-                <button class="btn btn-primary btn-small paste-photo-btn" data-entity="vehicle">📋 Paste</button>
+            <div class="detail-acc" id="vehiclePhotosAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('vehiclePhotosAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Photos</span>
+                    <span class="detail-acc-count" id="vehiclePhotosAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="addVehicleCameraBtn">+ Camera</button>
+                        <button class="btn btn-primary btn-small" id="addVehicleGalleryBtn">+ Gallery</button>
+                        <button class="btn btn-primary btn-small paste-photo-btn" data-entity="vehicle">📋 Paste</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="vehiclePhotoContainer"></div>
+                    <p class="empty-state" id="vehiclePhotoEmptyState">No photos yet.</p>
+                </div>
             </div>
-            <div id="vehiclePhotoContainer"></div>
-            <p class="empty-state" id="vehiclePhotoEmptyState">No photos yet.</p>
 
             <!-- Activity History -->
-            <div class="section-header">
-                <h3 class="section-heading">Activity History</h3>
-                <button class="btn btn-primary btn-small" id="logVehicleActivityBtn">+ Log Activity</button>
+            <div class="detail-acc" id="vehicleActivityAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('vehicleActivityAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Activity History</span>
+                    <span class="detail-acc-count" id="vehicleActivityAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="logVehicleActivityBtn">+ Log Activity</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="vehicleActivitiesContainer"></div>
+                    <p class="empty-state" id="vehicleActivitiesEmptyState">No activities logged yet.</p>
+                </div>
             </div>
-            <div id="vehicleActivitiesContainer"></div>
-            <p class="empty-state" id="vehicleActivitiesEmptyState">No activities logged yet.</p>
 
             <!-- Calendar Events -->
-            <div class="section-header">
-                <h3 class="section-heading">Calendar Events</h3>
-                <div class="section-header-actions">
-                    <div class="calendar-range-picker">
-                        <label>Next</label>
-                        <select id="vehicleCalendarRangeSelect" class="range-select">
-                            <option value="1">1 mo</option>
-                            <option value="3" selected>3 mo</option>
-                            <option value="6">6 mo</option>
-                            <option value="12">12 mo</option>
-                        </select>
+            <div class="detail-acc" id="vehicleCalendarAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('vehicleCalendarAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Calendar Events</span>
+                    <span class="detail-acc-count" id="vehicleCalendarAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <div class="calendar-range-picker">
+                            <label>Next</label>
+                            <select id="vehicleCalendarRangeSelect" class="range-select">
+                                <option value="1">1 mo</option>
+                                <option value="3" selected>3 mo</option>
+                                <option value="6">6 mo</option>
+                                <option value="12">12 mo</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary btn-small" id="addVehicleCalendarEventBtn">+ Add Event</button>
                     </div>
-                    <button class="btn btn-primary btn-small" id="addVehicleCalendarEventBtn">+ Add Event</button>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="vehicleCalendarEventsContainer"></div>
+                    <p class="empty-state" id="vehicleCalendarEventsEmptyState"></p>
                 </div>
             </div>
-            <div id="vehicleCalendarEventsContainer"></div>
-            <p class="empty-state" id="vehicleCalendarEventsEmptyState"></p>
 
             <!-- Problems / Concerns -->
-            <div class="section-header">
-                <h3 class="section-heading">Problems / Concerns</h3>
-                <div class="section-header-actions">
-                    <label class="show-toggle"><input type="checkbox" id="showResolvedVehicleProblems"> Show resolved</label>
-                    <button class="btn btn-primary btn-small" id="addVehicleProblemBtn">+ Add</button>
+            <div class="detail-acc" id="vehicleProblemsAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('vehicleProblemsAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Problems / Concerns</span>
+                    <span class="detail-acc-count" id="vehicleProblemsAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <label class="show-toggle"><input type="checkbox" id="showResolvedVehicleProblems"> Show resolved</label>
+                        <button class="btn btn-primary btn-small" id="addVehicleProblemBtn">+ Add</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="vehicleProblemsContainer"></div>
+                    <p class="empty-state" id="vehicleProblemsEmptyState"></p>
                 </div>
             </div>
-            <div id="vehicleProblemsContainer"></div>
-            <p class="empty-state" id="vehicleProblemsEmptyState"></p>
 
             <!-- Facts -->
-            <div class="section-header">
-                <h3 class="section-heading">Facts</h3>
-                <button class="btn btn-primary btn-small" id="addVehicleFactBtn">+ Add</button>
+            <div class="detail-acc" id="vehicleFactsAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('vehicleFactsAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Facts</span>
+                    <span class="detail-acc-count" id="vehicleFactsAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="addVehicleFactBtn">+ Add</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="vehicleFactsContainer"></div>
+                    <p class="empty-state" id="vehicleFactsEmptyState"></p>
+                </div>
             </div>
-            <div id="vehicleFactsContainer"></div>
-            <p class="empty-state" id="vehicleFactsEmptyState"></p>
 
             <!-- Quick Task List -->
-            <div class="section-header">
-                <h3 class="section-heading">Quick Task List</h3>
-                <button class="btn btn-primary btn-small" id="addVehicleProjectBtn">+ Add</button>
+            <div class="detail-acc" id="vehicleTasksAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('vehicleTasksAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Quick Task List</span>
+                    <span class="detail-acc-count" id="vehicleTasksAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="addVehicleProjectBtn">+ Add</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="vehicleProjectsContainer"></div>
+                    <p class="empty-state" id="vehicleProjectsEmptyState"></p>
+                </div>
             </div>
-            <div id="vehicleProjectsContainer"></div>
-            <p class="empty-state" id="vehicleProjectsEmptyState"></p>
 
             <!-- Archive / Unarchive buttons -->
             <div class="vehicle-bottom-actions">
@@ -9099,7 +9153,7 @@ export default {
     <script src="js/activityreport.js?v=350"></script>
     <script src="js/checklists.js?v=360"></script>
     <script src="js/bulkactivity.js?v=350"></script>
-    <script src="js/vehicles.js?v=356"></script>
+    <script src="js/vehicles.js?v=357"></script>
     <script src="js/garage.js?v=357"></script>
     <script src="js/structures.js?v=351"></script>
     <script src="js/moveThings.js?v=350"></script>

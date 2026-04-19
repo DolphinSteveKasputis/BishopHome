@@ -347,16 +347,22 @@ function renderVehicleDetail(vehicle) {
     loadMileageLog(vehicle.id);
 
     // ---- Load cross-entity sections ----
-    loadPhotos('vehicle', vehicle.id, 'vehiclePhotoContainer', 'vehiclePhotoEmptyState');
-    loadActivities('vehicle', vehicle.id, 'vehicleActivitiesContainer', 'vehicleActivitiesEmptyState');
-    loadProblems('vehicle', vehicle.id, 'vehicleProblemsContainer', 'vehicleProblemsEmptyState');
-    loadFacts('vehicle', vehicle.id, 'vehicleFactsContainer', 'vehicleFactsEmptyState');
-    loadProjects('vehicle', vehicle.id, 'vehicleProjectsContainer', 'vehicleProjectsEmptyState');
+    loadPhotos('vehicle', vehicle.id, 'vehiclePhotoContainer', 'vehiclePhotoEmptyState')
+        .then(function() { _setDetailAccCount('vehiclePhotosAccCount', 'vehiclePhotoContainer'); });
+    loadActivities('vehicle', vehicle.id, 'vehicleActivitiesContainer', 'vehicleActivitiesEmptyState')
+        .then(function() { _setDetailAccCount('vehicleActivityAccCount', 'vehicleActivitiesContainer'); });
+    loadProblems('vehicle', vehicle.id, 'vehicleProblemsContainer', 'vehicleProblemsEmptyState')
+        .then(function() { _setDetailAccCount('vehicleProblemsAccCount', 'vehicleProblemsContainer'); });
+    loadFacts('vehicle', vehicle.id, 'vehicleFactsContainer', 'vehicleFactsEmptyState')
+        .then(function() { _setDetailAccCount('vehicleFactsAccCount', 'vehicleFactsContainer'); });
+    loadProjects('vehicle', vehicle.id, 'vehicleProjectsContainer', 'vehicleProjectsEmptyState')
+        .then(function() { _setDetailAccCount('vehicleTasksAccCount', 'vehicleProjectsContainer'); });
 
     if (typeof loadEventsForTarget === 'function') {
         var months = parseInt(document.getElementById('vehicleCalendarRangeSelect').value, 10) || 3;
         loadEventsForTarget('vehicle', vehicle.id,
-            'vehicleCalendarEventsContainer', 'vehicleCalendarEventsEmptyState', months);
+            'vehicleCalendarEventsContainer', 'vehicleCalendarEventsEmptyState', months)
+            .then(function() { _setDetailAccCount('vehicleCalendarAccCount', 'vehicleCalendarEventsContainer'); });
     }
 }
 
@@ -452,6 +458,7 @@ function loadMileageLog(vehicleId) {
             docs.forEach(function(doc) {
                 container.appendChild(buildMileageEntry(doc.id, doc.data()));
             });
+            _setDetailAccCount('vehicleMileageAccCount', 'mileageLogList');
         })
         .catch(function(err) {
             console.error('loadMileageLog error:', err);

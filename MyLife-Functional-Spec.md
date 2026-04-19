@@ -636,6 +636,8 @@ Tracks vehicles with maintenance history, mileage, and documentation.
 - Add odometer reading entries; displayed newest-first with delete buttons
 - Can be logged via SecondBrain ("Add 35K miles to the truck")
 
+**Detail page layout**: All sections are collapsible accordions (`.detail-acc`). Vehicle Info is expanded by default; all others start collapsed. Count badges populate after each section loads (Vehicle Info has no count — it's a form). Sections: Vehicle Info, Mileage Log, Photos, Activity History, Calendar Events, Problems/Concerns, Facts, Quick Task List.
+
 **[Shared]**: Facts, Problems, Quick Task List, Activities, Photos, Calendar Events
 
 ---

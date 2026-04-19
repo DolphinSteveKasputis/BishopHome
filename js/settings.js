@@ -259,13 +259,13 @@ async function loadSettingsGeneralPage() {
 }
 
 /**
- * Load Foursquare API key from Firestore and populate the input field.
+ * Load Foursquare Worker URL from Firestore and populate the input field.
  */
 async function loadFoursquareSettings() {
     try {
         var doc = await userCol('settings').doc('places').get();
-        if (doc.exists && doc.data().foursquareApiKey) {
-            document.getElementById('foursquareApiKey').value = doc.data().foursquareApiKey;
+        if (doc.exists && doc.data().workerUrl) {
+            document.getElementById('foursquareWorkerUrl').value = doc.data().workerUrl;
         }
     } catch (err) {
         console.error('Error loading Foursquare settings:', err);
@@ -273,11 +273,11 @@ async function loadFoursquareSettings() {
 }
 
 /**
- * Save Foursquare API key to Firestore.
+ * Save Foursquare Cloudflare Worker URL to Firestore.
  */
 async function saveFoursquareKey() {
-    var key     = document.getElementById('foursquareApiKey').value.trim();
-    var saveBtn = document.getElementById('foursquareSaveBtn');
+    var url      = document.getElementById('foursquareWorkerUrl').value.trim().replace(/\/$/, '');
+    var saveBtn  = document.getElementById('foursquareSaveBtn');
     var savedMsg = document.getElementById('foursquareSavedMsg');
 
     saveBtn.disabled    = true;
@@ -286,18 +286,32 @@ async function saveFoursquareKey() {
 
     try {
         await userCol('settings').doc('places').set(
-            { foursquareApiKey: key, updatedAt: firebase.firestore.FieldValue.serverTimestamp() },
+            { workerUrl: url, updatedAt: firebase.firestore.FieldValue.serverTimestamp() },
             { merge: true }
         );
         savedMsg.classList.remove('hidden');
         setTimeout(function() { savedMsg.classList.add('hidden'); }, 3000);
     } catch (err) {
-        console.error('Error saving Foursquare key:', err);
-        alert('Error saving key — please try again.');
+        console.error('Error saving Foursquare settings:', err);
+        alert('Error saving — please try again.');
     }
 
     saveBtn.disabled    = false;
-    saveBtn.textContent = 'Save Key';
+    saveBtn.textContent = 'Save';
+}
+
+/**
+ * Copy the Cloudflare Worker code from the help modal to the clipboard.
+ */
+function fsqCopyWorkerCode(btn) {
+    var code = document.getElementById('fsqWorkerCode').textContent;
+    navigator.clipboard.writeText(code).then(function() {
+        var orig = btn.textContent;
+        btn.textContent = '✓ Copied!';
+        setTimeout(function() { btn.textContent = orig; }, 2000);
+    }).catch(function() {
+        alert('Copy failed — please select the code manually and copy it.');
+    });
 }
 
 /**
@@ -938,8 +952,8 @@ async function testLlmKey() {
  * Uses a hardcoded location (NYC) so GPS is not required.
  */
 async function testFoursquareKey() {
-    var apiKey = document.getElementById('foursquareApiKey').value.trim();
-    if (!apiKey) { alert('Please enter your Foursquare API key first.'); return; }
+    var workerUrl = document.getElementById('foursquareWorkerUrl').value.trim().replace(/\/$/, '');
+    if (!workerUrl) { alert('Please enter your Cloudflare Worker URL first.'); return; }
 
     var btn      = document.getElementById('foursquareTestBtn');
     var resultEl = document.getElementById('foursquareTestResult');
@@ -950,11 +964,7 @@ async function testFoursquareKey() {
 
     try {
         var resp = await fetch(
-            'https://places-api.foursquare.com/places/search?query=coffee&ll=40.7128,-74.0060&limit=1',
-            { headers: {
-                'Authorization': 'Bearer ' + apiKey,
-                'X-Places-Api-Version': '2025-06-17'
-            } }
+            workerUrl + '/places/search?query=coffee&ll=40.7128,-74.0060&limit=1'
         );
 
         if (resp.ok) {
@@ -1112,15 +1122,8 @@ document.getElementById('llmSaveBtn').addEventListener('click', saveLlmSettings)
 document.getElementById('llmProvider').addEventListener('change', updateLlmModelVisibility);
 document.getElementById('foursquareSaveBtn').addEventListener('click', saveFoursquareKey);
 document.getElementById('foursquareTestBtn').addEventListener('click', testFoursquareKey);
-document.getElementById('foursquareApiKeyToggle').addEventListener('click', function() {
-    var input = document.getElementById('foursquareApiKey');
-    if (input.type === 'password') {
-        input.type       = 'text';
-        this.textContent = 'Hide';
-    } else {
-        input.type       = 'password';
-        this.textContent = 'Show';
-    }
+document.getElementById('foursquareHelpBtn').addEventListener('click', function() {
+    openModal('fsqHelpModal');
 });
 document.getElementById('llmHelpBtn').addEventListener('click', openLlmHelp);
 document.getElementById('llmTestBtn').addEventListener('click', testLlmKey);

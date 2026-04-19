@@ -583,26 +583,27 @@ async function _placesNominatimRateLimit() {
     _placesNominatimLastCall = Date.now();
 }
 
-// Cache the Foursquare API key so we don't hit Firestore on every search
-var _placesApiKeyCache    = null;
-var _placesApiKeyCachedAt = 0;
+// Cache the Cloudflare Worker URL so we don't hit Firestore on every search
+var _placesWorkerUrlCache    = null;
+var _placesWorkerUrlCachedAt = 0;
 
 /**
- * Load the Foursquare API key from Firestore settings (cached for 5 minutes).
- * Returns the key string, or null if not configured.
+ * Load the Cloudflare Worker URL from Firestore settings (cached for 5 minutes).
+ * Returns the URL string (trailing slash stripped), or null if not configured.
  */
-async function _placesGetFoursquareKey() {
+async function _placesGetWorkerUrl() {
     var now = Date.now();
-    if (_placesApiKeyCache && (now - _placesApiKeyCachedAt) < 300000) {
-        return _placesApiKeyCache;
+    if (_placesWorkerUrlCache && (now - _placesWorkerUrlCachedAt) < 300000) {
+        return _placesWorkerUrlCache;
     }
     try {
         var doc = await userCol('settings').doc('places').get();
-        _placesApiKeyCache    = (doc.exists && doc.data().foursquareApiKey) || null;
-        _placesApiKeyCachedAt = now;
-        return _placesApiKeyCache;
+        var url = (doc.exists && doc.data().workerUrl) || null;
+        _placesWorkerUrlCache    = url ? url.replace(/\/$/, '') : null;
+        _placesWorkerUrlCachedAt = now;
+        return _placesWorkerUrlCache;
     } catch (err) {
-        console.warn('Could not load Foursquare key:', err);
+        console.warn('Could not load Foursquare Worker URL:', err);
         return null;
     }
 }
@@ -644,19 +645,12 @@ function _placesMapFsqResult(item) {
  *   existingId = Firestore doc ID if already in places, null if new
  */
 async function placesNearby(lat, lng) {
-    var apiKey = await _placesGetFoursquareKey();
-    if (!apiKey) throw new Error('Foursquare API key not configured. Go to Settings → General → Places to add your key.');
+    var workerUrl = await _placesGetWorkerUrl();
+    if (!workerUrl) throw new Error('Cloudflare Worker URL not configured. Go to Settings → General → Places (tap Help for setup instructions).');
 
-    var url = 'https://places-api.foursquare.com/places/search' +
-              '?ll=' + lat + ',' + lng +
-              '&limit=20';
+    var url = workerUrl + '/places/search?ll=' + lat + ',' + lng + '&limit=20';
 
-    var resp = await fetch(url, {
-        headers: {
-            'Authorization': 'Bearer ' + apiKey,
-            'X-Places-Api-Version': '2025-06-17'
-        }
-    });
+    var resp = await fetch(url);
     if (!resp.ok) throw new Error('Foursquare nearby error: ' + resp.status);
 
     var data   = await resp.json();
@@ -760,23 +754,16 @@ async function placesSearchByName(query, biasLat, biasLng) {
 
     // 2) Foursquare text search for anything not already found
     try {
-        var apiKey = await _placesGetFoursquareKey();
-        if (apiKey) {
-            var url = 'https://places-api.foursquare.com/places/search' +
-                      '?query=' + encodeURIComponent(query) +
-                      '&limit=8';
+        var workerUrl = await _placesGetWorkerUrl();
+        if (workerUrl) {
+            var url = workerUrl + '/places/search?query=' + encodeURIComponent(query) + '&limit=8';
 
             // Bias toward a known location when provided
             if (biasLat != null && biasLng != null) {
                 url += '&ll=' + biasLat + ',' + biasLng;
             }
 
-            var resp = await fetch(url, {
-                headers: {
-                    'Authorization': 'Bearer ' + apiKey,
-                    'X-Places-Api-Version': '2025-06-17'
-                }
-            });
+            var resp = await fetch(url);
             if (resp.ok) {
                 var data = await resp.json();
                 (data.results || []).forEach(function(item) {

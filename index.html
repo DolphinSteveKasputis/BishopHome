@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=475">
+    <link rel="stylesheet" href="css/styles.css?v=476">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -780,20 +780,18 @@
             <div class="settings-card">
                 <h3 class="settings-section-title">Places (Foursquare)</h3>
                 <p class="settings-section-desc">
-                    Nearby place lookup uses <strong>Foursquare Places API</strong>.
-                    Get a free API key at <a href="https://foursquare.com/developer" target="_blank">foursquare.com/developer</a>
-                    and paste it below.
+                    Nearby place lookup uses <strong>Foursquare Places API</strong> via a Cloudflare proxy.
+                    Tap <strong>Help</strong> for step-by-step setup instructions.
                 </p>
                 <div class="form-group">
-                    <label for="foursquareApiKey">API Key</label>
-                    <div class="api-key-row">
-                        <input type="password" id="foursquareApiKey" placeholder="Paste your Foursquare API key here" class="api-key-input">
-                        <button type="button" class="btn btn-secondary btn-sm" id="foursquareApiKeyToggle">Show</button>
-                    </div>
+                    <label for="foursquareWorkerUrl">Cloudflare Worker URL</label>
+                    <input type="url" id="foursquareWorkerUrl" placeholder="https://foursquare-proxy.yourname.workers.dev" class="api-key-input">
+                    <small class="form-hint">Your personal proxy URL — see Help for setup instructions.</small>
                 </div>
                 <div class="settings-save-row">
-                    <button class="btn btn-primary" id="foursquareSaveBtn">Save Key</button>
+                    <button class="btn btn-primary" id="foursquareSaveBtn">Save</button>
                     <button class="btn btn-secondary" id="foursquareTestBtn">Test</button>
+                    <button class="btn btn-secondary btn-sm" id="foursquareHelpBtn">Help</button>
                     <span class="settings-saved-msg hidden" id="foursquareSavedMsg">&#10003; Saved</span>
                 </div>
                 <div class="hidden settings-test-result" id="foursquareTestResult"></div>
@@ -7939,6 +7937,94 @@
     </div>
 
     <!-- ========== OPENSTREETMAP HELP MODAL ========== -->
+    <!-- ===== Foursquare / Cloudflare Setup Help Modal ===== -->
+    <div class="modal-overlay" id="fsqHelpModal">
+        <div class="modal modal-wide">
+            <h3>Setting Up Places (Foursquare)</h3>
+            <div class="fsq-help-body">
+
+                <h4>Part 1 — Get a Foursquare API Key (free)</h4>
+                <ol>
+                    <li>Go to <strong>foursquare.com/developer</strong> and create a free account.</li>
+                    <li>Create a new project — name it anything you like.</li>
+                    <li>In the left sidebar, click <strong>Service API Keys</strong>.</li>
+                    <li>Click <strong>Generate Service API Key</strong>, give it a name, click <strong>Next</strong>.</li>
+                    <li><strong>Copy the key shown</strong> — save it somewhere safe. You will not be able to see it again.</li>
+                    <li>Click <strong>Dismiss</strong>.</li>
+                </ol>
+
+                <h4>Part 2 — Set Up Your Cloudflare Proxy (free, no credit card)</h4>
+                <p>Foursquare can't be called directly from a browser, so you need a tiny free middleman server. Cloudflare provides this for free.</p>
+                <ol>
+                    <li>Go to <strong>cloudflare.com</strong> and create a free account.</li>
+                    <li>In the left sidebar, click <strong>Workers &amp; Pages</strong>.</li>
+                    <li>Click <strong>Create</strong> → <strong>Create Worker</strong>.</li>
+                    <li>Name it <code>foursquare-proxy</code>, then click <strong>Deploy</strong>.</li>
+                    <li>Click the <strong>Edit code</strong> button (blue, on the next screen).</li>
+                    <li><strong>Select all the existing code and delete it.</strong></li>
+                    <li>Click <strong>Copy Code</strong> below and paste it into the editor.</li>
+                    <li>Find the line that says <code>PASTE_YOUR_KEY_HERE</code> and replace it with your Foursquare API key from Part 1.</li>
+                    <li>Click <strong>Deploy</strong> in the top right.</li>
+                    <li>Copy the URL shown at the top — it looks like <code>https://foursquare-proxy.yourname.workers.dev</code>.</li>
+                </ol>
+
+                <div class="fsq-help-code-wrap">
+                    <button class="btn btn-secondary btn-small fsq-copy-btn" onclick="fsqCopyWorkerCode(this)">Copy Code</button>
+                    <pre class="fsq-help-code" id="fsqWorkerCode">// Paste your Foursquare Service API Key between the quotes on the next line:
+const FSQ_KEY = 'PASTE_YOUR_KEY_HERE';
+
+export default {
+  async fetch(request) {
+    // Handle browser preflight requests
+    if (request.method === 'OPTIONS') {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        }
+      });
+    }
+
+    // Forward the request to Foursquare and add CORS headers
+    const url = new URL(request.url);
+    const fsqUrl = 'https://places-api.foursquare.com' + url.pathname + url.search;
+
+    const response = await fetch(fsqUrl, {
+      headers: {
+        'Authorization': 'Bearer ' + FSQ_KEY,
+        'X-Places-Api-Version': '2025-06-17'
+      }
+    });
+
+    return new Response(await response.text(), {
+      status: response.status,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  }
+};</pre>
+                </div>
+
+                <h4>Part 3 — Connect It to This App</h4>
+                <ol>
+                    <li>Come back to this Settings page.</li>
+                    <li>Paste your Worker URL (from step 10 above) into the <strong>Cloudflare Worker URL</strong> field.</li>
+                    <li>Click <strong>Save</strong>, then <strong>Test</strong>.</li>
+                    <li>You should see a green success message with a nearby place name.</li>
+                </ol>
+
+                <p><strong>That's it!</strong> Places and check-ins will now work on all your devices.</p>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-primary" onclick="closeModal('fsqHelpModal')">Got It</button>
+            </div>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="osmHelpModal">
         <div class="modal modal-wide">
             <h3>About Places (OpenStreetMap)</h3>
@@ -8220,7 +8306,7 @@
     <script src="js/weeds.js?v=351"></script>
     <script src="js/calendar.js?v=352"></script>
     <script src="js/gps.js?v=350"></script>
-    <script src="js/settings.js?v=476"></script>
+    <script src="js/settings.js?v=477"></script>
     <script src="js/devnotes.js?v=376"></script>
     <script src="js/house.js?v=405"></script>
     <script src="js/floorplan.js?v=398"></script>
@@ -8244,7 +8330,7 @@
     <script src="js/chat.js?v=350"></script>
     <script src="js/secondbrain.js?v=351"></script>
     <script src="js/sbissues.js?v=350"></script>
-    <script src="js/places.js?v=353"></script>
+    <script src="js/places.js?v=354"></script>
     <script src="js/thoughts.js?v=465"></script>
     <script src="js/top10lists.js?v=465"></script>
     <script src="js/memories.js?v=471"></script>

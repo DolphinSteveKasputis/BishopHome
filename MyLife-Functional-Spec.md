@@ -599,6 +599,8 @@ The Garage section mirrors the House section structure but is separate. It pre-s
 
 **Features**: Same as House — Things, Sub-Things, and their cross-entity sections (Facts, Problems, Quick Task List, Activities, Photos, Calendar Events). LLM photo identification also available.
 
+**Detail page layouts**: All three detail pages (garage room, garage thing, garage subthing) use collapsible `.detail-acc` accordions, all collapsed by default with item count badges. Garage room sections: Photos, Things, Activity History, Calendar Events, Problems/Concerns, Facts, Quick Task List. Thing and sub-thing pages follow the same pattern.
+
 ---
 
 ## Part 5: Structures

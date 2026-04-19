@@ -148,16 +148,22 @@ function renderGarageRoomPage(room) {
     ]);
 
     // ---- Load all cross-entity feature sections ----
-    loadPhotos(    'garageroom', room.id, 'garageRoomPhotosSection',           'garageRoomPhotosEmpty');
-    loadActivities('garageroom', room.id, 'garageRoomActivitiesContainer',     'garageRoomActivitiesEmpty');
-    loadProblems(  'garageroom', room.id, 'garageRoomProblemsContainer',       'garageRoomProblemsEmpty');
-    loadFacts(     'garageroom', room.id, 'garageRoomFactsContainer',          'garageRoomFactsEmpty');
-    loadProjects(  'garageroom', room.id, 'garageRoomProjectsContainer',       'garageRoomProjectsEmpty');
+    loadPhotos(    'garageroom', room.id, 'garageRoomPhotosSection',           'garageRoomPhotosEmpty')
+        .then(function() { _setDetailAccCount('garageRoomPhotosAccCount', 'garageRoomPhotosSection'); });
+    loadActivities('garageroom', room.id, 'garageRoomActivitiesContainer',     'garageRoomActivitiesEmpty')
+        .then(function() { _setDetailAccCount('garageRoomActivityAccCount', 'garageRoomActivitiesContainer'); });
+    loadProblems(  'garageroom', room.id, 'garageRoomProblemsContainer',       'garageRoomProblemsEmpty')
+        .then(function() { _setDetailAccCount('garageRoomProblemsAccCount', 'garageRoomProblemsContainer'); });
+    loadFacts(     'garageroom', room.id, 'garageRoomFactsContainer',          'garageRoomFactsEmpty')
+        .then(function() { _setDetailAccCount('garageRoomFactsAccCount', 'garageRoomFactsContainer'); });
+    loadProjects(  'garageroom', room.id, 'garageRoomProjectsContainer',       'garageRoomProjectsEmpty')
+        .then(function() { _setDetailAccCount('garageRoomTasksAccCount', 'garageRoomProjectsContainer'); });
 
     if (typeof loadEventsForTarget === 'function') {
         var months = parseInt(document.getElementById('garageRoomCalendarRangeSelect').value, 10) || 3;
         loadEventsForTarget('garageroom', room.id,
-            'garageRoomCalendarEventsContainer', 'garageRoomCalendarEventsEmpty', months);
+            'garageRoomCalendarEventsContainer', 'garageRoomCalendarEventsEmpty', months)
+            .then(function() { _setDetailAccCount('garageRoomCalendarAccCount', 'garageRoomCalendarEventsContainer'); });
     }
 }
 
@@ -236,6 +242,7 @@ function loadGarageThings(roomId) {
             docs.forEach(function(doc) {
                 container.appendChild(buildGarageThingCard(doc.id, doc.data()));
             });
+            _setDetailAccCount('garageRoomThingsAccCount', 'garageThingsList');
         })
         .catch(function(err) {
             console.error('loadGarageThings error:', err);
@@ -442,16 +449,22 @@ function renderGarageThingPage(thing, room) {
     renderGarageInventoryDetails(thing, 'garageThingDetailsSection');
 
     // ---- Load all cross-entity feature sections ----
-    loadPhotos(    'garagething', thing.id, 'garageThingPhotosSection',           'garageThingPhotosEmpty');
-    loadActivities('garagething', thing.id, 'garageThingActivitiesContainer',     'garageThingActivitiesEmpty');
-    loadProblems(  'garagething', thing.id, 'garageThingProblemsContainer',       'garageThingProblemsEmpty');
-    loadFacts(     'garagething', thing.id, 'garageThingFactsContainer',          'garageThingFactsEmpty');
-    loadProjects(  'garagething', thing.id, 'garageThingProjectsContainer',       'garageThingProjectsEmpty');
+    loadPhotos(    'garagething', thing.id, 'garageThingPhotosSection',           'garageThingPhotosEmpty')
+        .then(function() { _setDetailAccCount('garageThingPhotosAccCount', 'garageThingPhotosSection'); });
+    loadActivities('garagething', thing.id, 'garageThingActivitiesContainer',     'garageThingActivitiesEmpty')
+        .then(function() { _setDetailAccCount('garageThingActivityAccCount', 'garageThingActivitiesContainer'); });
+    loadProblems(  'garagething', thing.id, 'garageThingProblemsContainer',       'garageThingProblemsEmpty')
+        .then(function() { _setDetailAccCount('garageThingProblemsAccCount', 'garageThingProblemsContainer'); });
+    loadFacts(     'garagething', thing.id, 'garageThingFactsContainer',          'garageThingFactsEmpty')
+        .then(function() { _setDetailAccCount('garageThingFactsAccCount', 'garageThingFactsContainer'); });
+    loadProjects(  'garagething', thing.id, 'garageThingProjectsContainer',       'garageThingProjectsEmpty')
+        .then(function() { _setDetailAccCount('garageThingTasksAccCount', 'garageThingProjectsContainer'); });
 
     if (typeof loadEventsForTarget === 'function') {
         var months = parseInt(document.getElementById('garageThingCalendarRangeSelect').value, 10) || 3;
         loadEventsForTarget('garagething', thing.id,
-            'garageThingCalendarEventsContainer', 'garageThingCalendarEventsEmpty', months);
+            'garageThingCalendarEventsContainer', 'garageThingCalendarEventsEmpty', months)
+            .then(function() { _setDetailAccCount('garageThingCalendarAccCount', 'garageThingCalendarEventsContainer'); });
     }
 }
 
@@ -493,6 +506,7 @@ function loadGarageSubThings(thingId) {
             docs.forEach(function(doc) {
                 container.appendChild(buildGarageSubThingCard(doc.id, doc.data()));
             });
+            _setDetailAccCount('garageThingSubItemsAccCount', 'garageSubThingsList');
         })
         .catch(function(err) {
             console.error('loadGarageSubThings error:', err);
@@ -702,16 +716,22 @@ function renderGarageSubThingPage(subThing, thing, room) {
     renderGarageInventoryDetails(subThing, 'garageSubThingDetailsSection');
 
     // ---- Load all cross-entity feature sections ----
-    loadPhotos(    'garagesubthing', subThing.id, 'garageSubThingPhotosSection',       'garageSubThingPhotosEmpty');
-    loadActivities('garagesubthing', subThing.id, 'garageSubThingActivitiesContainer', 'garageSubThingActivitiesEmpty');
-    loadProblems(  'garagesubthing', subThing.id, 'garageSubThingProblemsContainer',   'garageSubThingProblemsEmpty');
-    loadFacts(     'garagesubthing', subThing.id, 'garageSubThingFactsContainer',      'garageSubThingFactsEmpty');
-    loadProjects(  'garagesubthing', subThing.id, 'garageSubThingProjectsContainer',   'garageSubThingProjectsEmpty');
+    loadPhotos(    'garagesubthing', subThing.id, 'garageSubThingPhotosSection',       'garageSubThingPhotosEmpty')
+        .then(function() { _setDetailAccCount('garageSubThingPhotosAccCount', 'garageSubThingPhotosSection'); });
+    loadActivities('garagesubthing', subThing.id, 'garageSubThingActivitiesContainer', 'garageSubThingActivitiesEmpty')
+        .then(function() { _setDetailAccCount('garageSubThingActivityAccCount', 'garageSubThingActivitiesContainer'); });
+    loadProblems(  'garagesubthing', subThing.id, 'garageSubThingProblemsContainer',   'garageSubThingProblemsEmpty')
+        .then(function() { _setDetailAccCount('garageSubThingProblemsAccCount', 'garageSubThingProblemsContainer'); });
+    loadFacts(     'garagesubthing', subThing.id, 'garageSubThingFactsContainer',      'garageSubThingFactsEmpty')
+        .then(function() { _setDetailAccCount('garageSubThingFactsAccCount', 'garageSubThingFactsContainer'); });
+    loadProjects(  'garagesubthing', subThing.id, 'garageSubThingProjectsContainer',   'garageSubThingProjectsEmpty')
+        .then(function() { _setDetailAccCount('garageSubThingTasksAccCount', 'garageSubThingProjectsContainer'); });
 
     if (typeof loadEventsForTarget === 'function') {
         var months = parseInt(document.getElementById('garageSubThingCalendarRangeSelect').value, 10) || 3;
         loadEventsForTarget('garagesubthing', subThing.id,
-            'garageSubThingCalendarEventsContainer', 'garageSubThingCalendarEventsEmpty', months);
+            'garageSubThingCalendarEventsContainer', 'garageSubThingCalendarEventsEmpty', months)
+            .then(function() { _setDetailAccCount('garageSubThingCalendarAccCount', 'garageSubThingCalendarEventsContainer'); });
     }
 }
 

@@ -2766,78 +2766,130 @@
             </div>
 
             <!-- Photos section -->
-            <div class="section-header">
-                <h3 class="section-heading">Photos</h3>
-                <button class="btn btn-primary btn-small" id="garageRoomCameraBtn">+ Camera</button>
-                <button class="btn btn-primary btn-small" id="garageRoomGalleryBtn">+ Gallery</button>
-                <button class="btn btn-primary btn-small paste-photo-btn" data-entity="garageroom">📋 Paste</button>
+            <div class="detail-acc" id="garageRoomPhotosAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('garageRoomPhotosAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Photos</span>
+                    <span class="detail-acc-count" id="garageRoomPhotosAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="garageRoomCameraBtn">+ Camera</button>
+                        <button class="btn btn-primary btn-small" id="garageRoomGalleryBtn">+ Gallery</button>
+                        <button class="btn btn-primary btn-small paste-photo-btn" data-entity="garageroom">📋 Paste</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="garageRoomPhotosSection"></div>
+                    <p class="empty-state" id="garageRoomPhotosEmpty">No photos yet.</p>
+                </div>
             </div>
-            <div id="garageRoomPhotosSection"></div>
-            <p class="empty-state" id="garageRoomPhotosEmpty">No photos yet.</p>
 
             <!-- Things section -->
-            <div class="section-header">
-                <h3 class="section-heading">Things</h3>
-                <button class="btn btn-primary btn-small" id="garageAddThingBtn">+Item</button>
-                <button class="btn btn-primary btn-small" id="quickAddGarageThingPhotoBtn">+Photo</button>
-                <input type="file" id="quickGarageThingCamInput" accept="image/*" capture="environment" style="display:none;">
+            <div class="detail-acc" id="garageRoomThingsAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('garageRoomThingsAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Things</span>
+                    <span class="detail-acc-count" id="garageRoomThingsAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="garageAddThingBtn">+Item</button>
+                        <button class="btn btn-primary btn-small" id="quickAddGarageThingPhotoBtn">+Photo</button>
+                        <input type="file" id="quickGarageThingCamInput" accept="image/*" capture="environment" style="display:none;">
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div class="card-list" id="garageThingsList"></div>
+                    <p class="empty-state" id="garageThingsEmpty"></p>
+                </div>
             </div>
-            <div class="card-list" id="garageThingsList"></div>
-            <p class="empty-state" id="garageThingsEmpty"></p>
 
             <!-- Activity History -->
-            <div class="section-header">
-                <h3 class="section-heading">Activity History</h3>
-                <button class="btn btn-primary btn-small" id="garageRoomLogActivityBtn">+ Log Activity</button>
+            <div class="detail-acc" id="garageRoomActivityAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('garageRoomActivityAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Activity History</span>
+                    <span class="detail-acc-count" id="garageRoomActivityAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="garageRoomLogActivityBtn">+ Log Activity</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="garageRoomActivitiesContainer"></div>
+                    <p class="empty-state" id="garageRoomActivitiesEmpty">No activities logged yet.</p>
+                </div>
             </div>
-            <div id="garageRoomActivitiesContainer"></div>
-            <p class="empty-state" id="garageRoomActivitiesEmpty">No activities logged yet.</p>
 
             <!-- Calendar Events -->
-            <div class="section-header">
-                <h3 class="section-heading">Calendar Events</h3>
-                <div class="section-header-actions">
-                    <div class="calendar-range-picker">
-                        <label>Next</label>
-                        <select id="garageRoomCalendarRangeSelect" class="range-select">
-                            <option value="1">1 mo</option>
-                            <option value="3" selected>3 mo</option>
-                            <option value="6">6 mo</option>
-                            <option value="12">12 mo</option>
-                        </select>
+            <div class="detail-acc" id="garageRoomCalendarAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('garageRoomCalendarAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Calendar Events</span>
+                    <span class="detail-acc-count" id="garageRoomCalendarAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <div class="calendar-range-picker">
+                            <label>Next</label>
+                            <select id="garageRoomCalendarRangeSelect" class="range-select">
+                                <option value="1">1 mo</option>
+                                <option value="3" selected>3 mo</option>
+                                <option value="6">6 mo</option>
+                                <option value="12">12 mo</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary btn-small" id="garageRoomAddCalendarEventBtn">+ Add Event</button>
                     </div>
-                    <button class="btn btn-primary btn-small" id="garageRoomAddCalendarEventBtn">+ Add Event</button>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="garageRoomCalendarEventsContainer"></div>
+                    <p class="empty-state" id="garageRoomCalendarEventsEmpty"></p>
                 </div>
             </div>
-            <div id="garageRoomCalendarEventsContainer"></div>
-            <p class="empty-state" id="garageRoomCalendarEventsEmpty"></p>
 
             <!-- Problems / Concerns -->
-            <div class="section-header">
-                <h3 class="section-heading">Problems / Concerns</h3>
-                <div class="section-header-actions">
-                    <label class="show-toggle"><input type="checkbox" id="showResolvedGarageRoomProblems"> Show resolved</label>
-                    <button class="btn btn-primary btn-small" id="garageRoomAddProblemBtn">+ Add</button>
+            <div class="detail-acc" id="garageRoomProblemsAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('garageRoomProblemsAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Problems / Concerns</span>
+                    <span class="detail-acc-count" id="garageRoomProblemsAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <label class="show-toggle"><input type="checkbox" id="showResolvedGarageRoomProblems"> Show resolved</label>
+                        <button class="btn btn-primary btn-small" id="garageRoomAddProblemBtn">+ Add</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="garageRoomProblemsContainer"></div>
+                    <p class="empty-state" id="garageRoomProblemsEmpty"></p>
                 </div>
             </div>
-            <div id="garageRoomProblemsContainer"></div>
-            <p class="empty-state" id="garageRoomProblemsEmpty"></p>
 
             <!-- Facts -->
-            <div class="section-header">
-                <h3 class="section-heading">Facts</h3>
-                <button class="btn btn-primary btn-small" id="garageRoomAddFactBtn">+ Add</button>
+            <div class="detail-acc" id="garageRoomFactsAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('garageRoomFactsAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Facts</span>
+                    <span class="detail-acc-count" id="garageRoomFactsAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="garageRoomAddFactBtn">+ Add</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="garageRoomFactsContainer"></div>
+                    <p class="empty-state" id="garageRoomFactsEmpty"></p>
+                </div>
             </div>
-            <div id="garageRoomFactsContainer"></div>
-            <p class="empty-state" id="garageRoomFactsEmpty"></p>
 
             <!-- Quick Task List -->
-            <div class="section-header">
-                <h3 class="section-heading">Quick Task List</h3>
-                <button class="btn btn-primary btn-small" id="garageRoomAddProjectBtn">+ Add</button>
+            <div class="detail-acc" id="garageRoomTasksAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('garageRoomTasksAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Quick Task List</span>
+                    <span class="detail-acc-count" id="garageRoomTasksAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="garageRoomAddProjectBtn">+ Add</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="garageRoomProjectsContainer"></div>
+                    <p class="empty-state" id="garageRoomProjectsEmpty"></p>
+                </div>
             </div>
-            <div id="garageRoomProjectsContainer"></div>
-            <p class="empty-state" id="garageRoomProjectsEmpty"></p>
         </section>
 
         <!-- Page: Garage Thing Detail (#garagething/:id) -->
@@ -2858,76 +2910,128 @@
             <div id="garageThingDetailsSection" class="thing-details-section" style="display:none"></div>
 
             <!-- Photos -->
-            <div class="section-header">
-                <h3 class="section-heading">Photos</h3>
-                <button class="btn btn-primary btn-small" id="garageThingCameraBtn">+ Camera</button>
-                <button class="btn btn-primary btn-small" id="garageThingGalleryBtn">+ Gallery</button>
-                <button class="btn btn-primary btn-small paste-photo-btn" data-entity="garagething">📋 Paste</button>
+            <div class="detail-acc" id="garageThingPhotosAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('garageThingPhotosAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Photos</span>
+                    <span class="detail-acc-count" id="garageThingPhotosAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="garageThingCameraBtn">+ Camera</button>
+                        <button class="btn btn-primary btn-small" id="garageThingGalleryBtn">+ Gallery</button>
+                        <button class="btn btn-primary btn-small paste-photo-btn" data-entity="garagething">📋 Paste</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="garageThingPhotosSection"></div>
+                    <p class="empty-state" id="garageThingPhotosEmpty">No photos yet.</p>
+                </div>
             </div>
-            <div id="garageThingPhotosSection"></div>
-            <p class="empty-state" id="garageThingPhotosEmpty">No photos yet.</p>
 
             <!-- SubThings section -->
-            <div class="section-header">
-                <h3 class="section-heading">Sub-Items</h3>
-                <button class="btn btn-primary btn-small" id="garageAddSubThingBtn">+ Add Sub-Item</button>
+            <div class="detail-acc" id="garageThingSubItemsAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('garageThingSubItemsAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Sub-Items</span>
+                    <span class="detail-acc-count" id="garageThingSubItemsAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="garageAddSubThingBtn">+ Add Sub-Item</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div class="card-list" id="garageSubThingsList"></div>
+                    <p class="empty-state" id="garageSubThingsEmpty"></p>
+                </div>
             </div>
-            <div class="card-list" id="garageSubThingsList"></div>
-            <p class="empty-state" id="garageSubThingsEmpty"></p>
 
             <!-- Activity History -->
-            <div class="section-header">
-                <h3 class="section-heading">Activity History</h3>
-                <button class="btn btn-primary btn-small" id="garageThingLogActivityBtn">+ Log Activity</button>
+            <div class="detail-acc" id="garageThingActivityAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('garageThingActivityAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Activity History</span>
+                    <span class="detail-acc-count" id="garageThingActivityAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="garageThingLogActivityBtn">+ Log Activity</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="garageThingActivitiesContainer"></div>
+                    <p class="empty-state" id="garageThingActivitiesEmpty">No activities logged yet.</p>
+                </div>
             </div>
-            <div id="garageThingActivitiesContainer"></div>
-            <p class="empty-state" id="garageThingActivitiesEmpty">No activities logged yet.</p>
 
             <!-- Calendar Events -->
-            <div class="section-header">
-                <h3 class="section-heading">Calendar Events</h3>
-                <div class="section-header-actions">
-                    <div class="calendar-range-picker">
-                        <label>Next</label>
-                        <select id="garageThingCalendarRangeSelect" class="range-select">
-                            <option value="1">1 mo</option>
-                            <option value="3" selected>3 mo</option>
-                            <option value="6">6 mo</option>
-                            <option value="12">12 mo</option>
-                        </select>
+            <div class="detail-acc" id="garageThingCalendarAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('garageThingCalendarAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Calendar Events</span>
+                    <span class="detail-acc-count" id="garageThingCalendarAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <div class="calendar-range-picker">
+                            <label>Next</label>
+                            <select id="garageThingCalendarRangeSelect" class="range-select">
+                                <option value="1">1 mo</option>
+                                <option value="3" selected>3 mo</option>
+                                <option value="6">6 mo</option>
+                                <option value="12">12 mo</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary btn-small" id="garageThingAddCalendarEventBtn">+ Add Event</button>
                     </div>
-                    <button class="btn btn-primary btn-small" id="garageThingAddCalendarEventBtn">+ Add Event</button>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="garageThingCalendarEventsContainer"></div>
+                    <p class="empty-state" id="garageThingCalendarEventsEmpty"></p>
                 </div>
             </div>
-            <div id="garageThingCalendarEventsContainer"></div>
-            <p class="empty-state" id="garageThingCalendarEventsEmpty"></p>
 
             <!-- Problems / Concerns -->
-            <div class="section-header">
-                <h3 class="section-heading">Problems / Concerns</h3>
-                <div class="section-header-actions">
-                    <label class="show-toggle"><input type="checkbox" id="showResolvedGarageThingProblems"> Show resolved</label>
-                    <button class="btn btn-primary btn-small" id="garageThingAddProblemBtn">+ Add</button>
+            <div class="detail-acc" id="garageThingProblemsAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('garageThingProblemsAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Problems / Concerns</span>
+                    <span class="detail-acc-count" id="garageThingProblemsAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <label class="show-toggle"><input type="checkbox" id="showResolvedGarageThingProblems"> Show resolved</label>
+                        <button class="btn btn-primary btn-small" id="garageThingAddProblemBtn">+ Add</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="garageThingProblemsContainer"></div>
+                    <p class="empty-state" id="garageThingProblemsEmpty"></p>
                 </div>
             </div>
-            <div id="garageThingProblemsContainer"></div>
-            <p class="empty-state" id="garageThingProblemsEmpty"></p>
 
             <!-- Facts -->
-            <div class="section-header">
-                <h3 class="section-heading">Facts</h3>
-                <button class="btn btn-primary btn-small" id="garageThingAddFactBtn">+ Add</button>
+            <div class="detail-acc" id="garageThingFactsAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('garageThingFactsAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Facts</span>
+                    <span class="detail-acc-count" id="garageThingFactsAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="garageThingAddFactBtn">+ Add</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="garageThingFactsContainer"></div>
+                    <p class="empty-state" id="garageThingFactsEmpty"></p>
+                </div>
             </div>
-            <div id="garageThingFactsContainer"></div>
-            <p class="empty-state" id="garageThingFactsEmpty"></p>
 
             <!-- Quick Task List -->
-            <div class="section-header">
-                <h3 class="section-heading">Quick Task List</h3>
-                <button class="btn btn-primary btn-small" id="garageThingAddProjectBtn">+ Add</button>
+            <div class="detail-acc" id="garageThingTasksAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('garageThingTasksAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Quick Task List</span>
+                    <span class="detail-acc-count" id="garageThingTasksAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="garageThingAddProjectBtn">+ Add</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="garageThingProjectsContainer"></div>
+                    <p class="empty-state" id="garageThingProjectsEmpty"></p>
+                </div>
             </div>
-            <div id="garageThingProjectsContainer"></div>
-            <p class="empty-state" id="garageThingProjectsEmpty"></p>
         </section>
 
         <!-- Page: Garage SubThing Detail (#garagesubthing/:id) -->
@@ -2948,68 +3052,112 @@
             <div id="garageSubThingDetailsSection" class="thing-details-section" style="display:none"></div>
 
             <!-- Photos -->
-            <div class="section-header">
-                <h3 class="section-heading">Photos</h3>
-                <button class="btn btn-primary btn-small" id="garageSubThingCameraBtn">+ Camera</button>
-                <button class="btn btn-primary btn-small" id="garageSubThingGalleryBtn">+ Gallery</button>
-                <button class="btn btn-primary btn-small paste-photo-btn" data-entity="garagesubthing">📋 Paste</button>
+            <div class="detail-acc" id="garageSubThingPhotosAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('garageSubThingPhotosAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Photos</span>
+                    <span class="detail-acc-count" id="garageSubThingPhotosAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="garageSubThingCameraBtn">+ Camera</button>
+                        <button class="btn btn-primary btn-small" id="garageSubThingGalleryBtn">+ Gallery</button>
+                        <button class="btn btn-primary btn-small paste-photo-btn" data-entity="garagesubthing">📋 Paste</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="garageSubThingPhotosSection"></div>
+                    <p class="empty-state" id="garageSubThingPhotosEmpty">No photos yet.</p>
+                </div>
             </div>
-            <div id="garageSubThingPhotosSection"></div>
-            <p class="empty-state" id="garageSubThingPhotosEmpty">No photos yet.</p>
 
             <!-- Activity History -->
-            <div class="section-header">
-                <h3 class="section-heading">Activity History</h3>
-                <button class="btn btn-primary btn-small" id="garageSubThingLogActivityBtn">+ Log Activity</button>
+            <div class="detail-acc" id="garageSubThingActivityAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('garageSubThingActivityAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Activity History</span>
+                    <span class="detail-acc-count" id="garageSubThingActivityAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="garageSubThingLogActivityBtn">+ Log Activity</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="garageSubThingActivitiesContainer"></div>
+                    <p class="empty-state" id="garageSubThingActivitiesEmpty">No activities logged yet.</p>
+                </div>
             </div>
-            <div id="garageSubThingActivitiesContainer"></div>
-            <p class="empty-state" id="garageSubThingActivitiesEmpty">No activities logged yet.</p>
 
             <!-- Calendar Events -->
-            <div class="section-header">
-                <h3 class="section-heading">Calendar Events</h3>
-                <div class="section-header-actions">
-                    <div class="calendar-range-picker">
-                        <label>Next</label>
-                        <select id="garageSubThingCalendarRangeSelect" class="range-select">
-                            <option value="1">1 mo</option>
-                            <option value="3" selected>3 mo</option>
-                            <option value="6">6 mo</option>
-                            <option value="12">12 mo</option>
-                        </select>
+            <div class="detail-acc" id="garageSubThingCalendarAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('garageSubThingCalendarAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Calendar Events</span>
+                    <span class="detail-acc-count" id="garageSubThingCalendarAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <div class="calendar-range-picker">
+                            <label>Next</label>
+                            <select id="garageSubThingCalendarRangeSelect" class="range-select">
+                                <option value="1">1 mo</option>
+                                <option value="3" selected>3 mo</option>
+                                <option value="6">6 mo</option>
+                                <option value="12">12 mo</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary btn-small" id="garageSubThingAddCalendarEventBtn">+ Add Event</button>
                     </div>
-                    <button class="btn btn-primary btn-small" id="garageSubThingAddCalendarEventBtn">+ Add Event</button>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="garageSubThingCalendarEventsContainer"></div>
+                    <p class="empty-state" id="garageSubThingCalendarEventsEmpty"></p>
                 </div>
             </div>
-            <div id="garageSubThingCalendarEventsContainer"></div>
-            <p class="empty-state" id="garageSubThingCalendarEventsEmpty"></p>
 
             <!-- Problems / Concerns -->
-            <div class="section-header">
-                <h3 class="section-heading">Problems / Concerns</h3>
-                <div class="section-header-actions">
-                    <label class="show-toggle"><input type="checkbox" id="showResolvedGarageSubThingProblems"> Show resolved</label>
-                    <button class="btn btn-primary btn-small" id="garageSubThingAddProblemBtn">+ Add</button>
+            <div class="detail-acc" id="garageSubThingProblemsAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('garageSubThingProblemsAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Problems / Concerns</span>
+                    <span class="detail-acc-count" id="garageSubThingProblemsAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <label class="show-toggle"><input type="checkbox" id="showResolvedGarageSubThingProblems"> Show resolved</label>
+                        <button class="btn btn-primary btn-small" id="garageSubThingAddProblemBtn">+ Add</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="garageSubThingProblemsContainer"></div>
+                    <p class="empty-state" id="garageSubThingProblemsEmpty"></p>
                 </div>
             </div>
-            <div id="garageSubThingProblemsContainer"></div>
-            <p class="empty-state" id="garageSubThingProblemsEmpty"></p>
 
             <!-- Facts -->
-            <div class="section-header">
-                <h3 class="section-heading">Facts</h3>
-                <button class="btn btn-primary btn-small" id="garageSubThingAddFactBtn">+ Add</button>
+            <div class="detail-acc" id="garageSubThingFactsAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('garageSubThingFactsAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Facts</span>
+                    <span class="detail-acc-count" id="garageSubThingFactsAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="garageSubThingAddFactBtn">+ Add</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="garageSubThingFactsContainer"></div>
+                    <p class="empty-state" id="garageSubThingFactsEmpty"></p>
+                </div>
             </div>
-            <div id="garageSubThingFactsContainer"></div>
-            <p class="empty-state" id="garageSubThingFactsEmpty"></p>
 
             <!-- Quick Task List -->
-            <div class="section-header">
-                <h3 class="section-heading">Quick Task List</h3>
-                <button class="btn btn-primary btn-small" id="garageSubThingAddProjectBtn">+ Add</button>
+            <div class="detail-acc" id="garageSubThingTasksAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('garageSubThingTasksAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Quick Task List</span>
+                    <span class="detail-acc-count" id="garageSubThingTasksAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="garageSubThingAddProjectBtn">+ Add</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="garageSubThingProjectsContainer"></div>
+                    <p class="empty-state" id="garageSubThingProjectsEmpty"></p>
+                </div>
             </div>
-            <div id="garageSubThingProjectsContainer"></div>
-            <p class="empty-state" id="garageSubThingProjectsEmpty"></p>
         </section>
 
         <!-- =====================================================
@@ -8952,7 +9100,7 @@ export default {
     <script src="js/checklists.js?v=360"></script>
     <script src="js/bulkactivity.js?v=350"></script>
     <script src="js/vehicles.js?v=356"></script>
-    <script src="js/garage.js?v=356"></script>
+    <script src="js/garage.js?v=357"></script>
     <script src="js/structures.js?v=351"></script>
     <script src="js/moveThings.js?v=350"></script>
     <script src="js/journal.js?v=485"></script>

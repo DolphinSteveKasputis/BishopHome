@@ -1210,7 +1210,7 @@ A personal viewpoint journal — record, edit, and historically track opinions a
 - 5 seeded major categories: Politics & Society, Personal Beliefs, Life & Family, Practical, Other (with named subcategories under each)
 - Every major category always has a **General** subcategory (isDefault:true, order:0, protected from deletion)
 - Seeding runs once on first `#views` load; subsequent visits skip seeding if categories already exist
-- Category management page at `#views-categories` (stub — not yet built)
+- Category management page at `#views-categories` (fully built — see Category Maintenance Page section below)
 
 ### Views List Page (`#views`)
 - Header: "My Views" + "+ New View" button
@@ -1267,6 +1267,20 @@ A personal viewpoint journal — record, edit, and historically track opinions a
 | `createdAt` / `updatedAt` | timestamp | standard |
 
 History subcollection (`views/{id}/history`): `shortVersion`, `longVersion`, `archivedAt` (timestamp), `prompt` (optional string).
+
+### Category Maintenance Page (`#views-categories`)
+- Breadcrumb: Thoughts › My Views › Manage Categories
+- Accessible via "Manage Categories" link at bottom of views list
+- Lists all major categories with their subcategories; General always first in each major
+- **Major category rows**: drag handle (⋮), name, Rename + Delete buttons; all draggable to reorder
+- **Subcategory rows**: drag handle (⋮), name, Rename + Delete buttons (no drag / no delete on General)
+- **General row**: "default" badge, Rename only, no drag handle, always stays first
+- **+ Add Subcategory** button under each major: `prompt()` for name → creates doc + appends to list
+- **+ Add Major Category** button at bottom: `prompt()` for name → creates major cat doc + auto-creates General subcategory
+- **Rename**: inline — clicking Rename replaces name span with an input; Enter/blur saves, Escape cancels
+- **Delete subcategory**: checks if any views assigned; if yes: warns "X views will be moved to General. Continue?" and batch-moves them; then deletes sub doc
+- **Delete major category**: blocked (alert) if any views have `categoryId == catId`; otherwise batch-deletes all subcollection docs + major doc
+- **Drag-and-drop reorder**: HTML5 drag; majors reorder among majors; subs reorder within their major only; General cannot be displaced from first position; `order` fields updated in Firestore on drop
 
 ---
 

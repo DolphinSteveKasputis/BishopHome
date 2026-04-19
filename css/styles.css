@@ -10851,6 +10851,168 @@ a.health-chip--link:hover { filter: brightness(0.93); }
     margin: 0;
 }
 
+/* ══════════════════════════════════════════════════════════════
+   Category Maintenance Page  (#views-categories)
+   ══════════════════════════════════════════════════════════════ */
+
+.vcat-page {
+    max-width: 600px;
+    margin: 0 auto;
+    padding-bottom: 40px;
+}
+
+/* Major category row */
+.vcat-major-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    margin-bottom: 0;
+    cursor: grab;
+    user-select: none;
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+.vcat-major-row:hover {
+    background: #e9eaf0;
+}
+
+/* Subcategory list (indented below major) */
+.vcat-sub-list {
+    margin: 0 0 12px 24px;
+    border-left: 2px solid #e5e7eb;
+    padding-left: 12px;
+    padding-top: 4px;
+}
+
+/* Subcategory row */
+.vcat-sub-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    margin-bottom: 2px;
+    cursor: grab;
+    user-select: none;
+    font-size: 0.875rem;
+}
+.vcat-sub-row:hover {
+    background: #f3f4f6;
+}
+
+/* General (default) subcategory row */
+.vcat-general-row {
+    cursor: default;
+    color: #6b7280;
+    font-style: italic;
+}
+.vcat-general-row:hover {
+    background: none;
+}
+
+/* Drag handle icon */
+.vcat-drag-handle {
+    color: #9ca3af;
+    font-size: 1rem;
+    cursor: grab;
+    flex-shrink: 0;
+    line-height: 1;
+}
+.vcat-drag-spacer {
+    display: inline-block;
+    width: 1em;
+    flex-shrink: 0;
+}
+
+/* Row name */
+.vcat-row-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* "default" badge on General sub */
+.vcat-default-badge {
+    font-size: 0.72rem;
+    background: #e0f2fe;
+    color: #0369a1;
+    border-radius: 999px;
+    padding: 1px 7px;
+    font-style: normal;
+    font-weight: normal;
+    flex-shrink: 0;
+}
+
+/* Action buttons (Rename / Delete) per row */
+.vcat-row-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+.vcat-btn {
+    font-size: 0.78rem;
+    padding: 3px 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    background: #fff;
+    color: #374151;
+    cursor: pointer;
+}
+.vcat-btn:hover {
+    background: #f3f4f6;
+}
+.vcat-btn-danger {
+    color: #dc2626;
+    border-color: #fca5a5;
+}
+.vcat-btn-danger:hover {
+    background: #fef2f2;
+}
+
+/* Inline rename input */
+.vcat-rename-input {
+    flex: 1;
+    padding: 2px 6px !important;
+    font-size: 0.875rem !important;
+    height: auto !important;
+    min-width: 0;
+}
+
+/* + Add Major Category button */
+.vcat-add-major-btn {
+    margin-top: 16px;
+}
+
+/* + Add Subcategory button */
+.vcat-add-sub-btn {
+    display: block;
+    margin-top: 6px;
+    font-size: 0.78rem !important;
+    padding: 3px 10px !important;
+}
+
+/* Drag-and-drop states */
+.vcat-dragging {
+    opacity: 0.35;
+}
+.vcat-drag-over {
+    outline: 2px dashed #0d9488;
+    outline-offset: -2px;
+    background: #f0fdfa !important;
+}
+
+@media (max-width: 480px) {
+    .vcat-sub-list { margin-left: 12px; }
+    .vcat-btn { font-size: 0.72rem; padding: 2px 6px; }
+    .vcat-major-row { font-size: 0.875rem; padding: 9px 10px; }
+}
+
 /* ── History row on detail page ── */
 .view-history-row {
     display: flex;

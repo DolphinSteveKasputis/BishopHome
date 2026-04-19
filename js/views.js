@@ -936,12 +936,271 @@ function _viewDeleteHistoryPage(viewId, historyId) {
     });
 }
 
+// ══════════════════════════════════════════════════════════════
+// CATEGORY MAINTENANCE PAGE  (#views-categories)
+// Phases 9 + 10: CRUD + drag-and-drop reorder
+// ══════════════════════════════════════════════════════════════
+
+var _catPageData     = [];   // [{id, name, order, subs:[{id,name,isDefault,order}]}]
+var _catDragType     = null; // 'major' or 'sub'
+var _catDragId       = null; // ID of the item being dragged
+var _catDragParentId = null; // catId context for sub drags
+var _catDragOverEl   = null; // element highlighted as drop target
+
 function loadViewsCategoriesPage() {
     var crumb = document.getElementById('breadcrumbBar');
     if (crumb) crumb.innerHTML =
         '<a href="#thoughts">Thoughts</a><span class="separator">&rsaquo;</span>' +
         '<a href="#views">My Views</a><span class="separator">&rsaquo;</span>' +
         '<span>Manage Categories</span>';
+
     var container = document.getElementById('viewsCategoriesContent');
-    if (container) container.innerHTML = '<p class="views-empty-state">Category management coming in Phase 9.</p>';
+    if (!container) return;
+    container.innerHTML = '<p class="views-empty-state">Loading...</p>';
+
+    _viewLoadCatsData().then(function(cats) {
+        _catPageData = cats;
+        _viewCatRenderPage();
+    }).catch(function(err) {
+        console.error('loadViewsCategoriesPage error:', err);
+        container.innerHTML = '<p class="views-empty-state">Error loading categories.</p>';
+    });
+}
+
+function _viewCatRenderPage() {
+    var container = document.getElementById('viewsCategoriesContent');
+    if (!container) return;
+
+    var html = '<div class="vcat-page"><div id="vcatMajorList">';
+    _catPageData.forEach(function(cat) { html += _viewCatMajorHtml(cat); });
+    html += '</div>' +
+        '<button class="btn btn-secondary vcat-add-major-btn" onclick="_viewCatAddMajor()">+ Add Major Category</button>' +
+        '</div>';
+
+    container.innerHTML = html;
+}
+
+function _viewCatMajorHtml(cat) {
+    var cid = cat.id;
+    return (
+        '<div class="vcat-major-row" data-cat-id="' + cid + '" draggable="true" ' +
+            'ondragstart="_catOnDragStart(event,this,\'major\',\'' + cid + '\',null)" ' +
+            'ondragover="_catOnDragOver(event,this,\'major\',null)" ' +
+            'ondrop="_catOnDrop(event,this,\'major\',\'' + cid + '\',null)" ' +
+            'ondragend="_catOnDragEnd(event,this)">' +
+            '<span class="vcat-drag-handle" title="Drag to reorder">&#8942;</span>' +
+            '<span class="vcat-row-name" id="vcatMajorName_' + cid + '">' + _viewEsc(cat.name) + '</span>' +
+            '<div class="vcat-row-actions">' +
+                '<button class="vcat-btn" onclick="_viewCatRename(\'major\',\'' + cid + '\',null)">Rename</button>' +
+                '<button class="vcat-btn vcat-btn-danger" onclick="_viewCatDeleteMajor(\'' + cid + '\')">Delete</button>' +
+            '</div>' +
+        '</div>' +
+        '<div class="vcat-sub-list" data-parent-id="' + cid + '">' +
+            cat.subs.map(function(sub) { return _viewCatSubHtml(cid, sub); }).join('') +
+            '<button class="btn btn-small btn-secondary vcat-add-sub-btn" onclick="_viewCatAddSub(\'' + cid + '\')">+ Add Subcategory</button>' +
+        '</div>'
+    );
+}
+
+function _viewCatSubHtml(catId, sub) {
+    var sid  = sub.id;
+    var drag = !sub.isDefault
+        ? ' draggable="true"' +
+          ' ondragstart="_catOnDragStart(event,this,\'sub\',\'' + sid + '\',\'' + catId + '\')"' +
+          ' ondragover="_catOnDragOver(event,this,\'sub\',\'' + catId + '\')"' +
+          ' ondrop="_catOnDrop(event,this,\'sub\',\'' + sid + '\',\'' + catId + '\')"' +
+          ' ondragend="_catOnDragEnd(event,this)"'
+        : '';
+    return (
+        '<div class="vcat-sub-row' + (sub.isDefault ? ' vcat-general-row' : '') + '"' +
+            ' data-sub-id="' + sid + '" data-cat-id="' + catId + '"' + drag + '>' +
+            (!sub.isDefault
+                ? '<span class="vcat-drag-handle" title="Drag to reorder">&#8942;</span>'
+                : '<span class="vcat-drag-spacer"></span>') +
+            '<span class="vcat-row-name" id="vcatSubName_' + sid + '">' + _viewEsc(sub.name) + '</span>' +
+            (sub.isDefault ? '<span class="vcat-default-badge">default</span>' : '') +
+            '<div class="vcat-row-actions">' +
+                '<button class="vcat-btn" onclick="_viewCatRename(\'sub\',\'' + catId + '\',\'' + sid + '\')">Rename</button>' +
+                (!sub.isDefault
+                    ? '<button class="vcat-btn vcat-btn-danger" onclick="_viewCatDeleteSub(\'' + catId + '\',\'' + sid + '\')">Delete</button>'
+                    : '') +
+            '</div>' +
+        '</div>'
+    );
+}
+
+// ── Add major category ──
+function _viewCatAddMajor() {
+    var name = prompt('New major category name:');
+    if (!name || !name.trim()) return;
+    name = name.trim();
+    var maxOrd = _catPageData.length
+        ? Math.max.apply(null, _catPageData.map(function(c) { return c.order || 0; })) + 1 : 0;
+    var catRef = userCol('viewCategories').doc();
+    var genRef = catRef.collection('subcategories').doc();
+    var batch  = db.batch();
+    batch.set(catRef, { name: name, order: maxOrd, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+    batch.set(genRef, { name: 'General', order: 0, isDefault: true, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+    batch.commit().then(function() { loadViewsCategoriesPage(); })
+        .catch(function(err) { console.error('_viewCatAddMajor error:', err); });
+}
+
+// ── Add subcategory ──
+function _viewCatAddSub(catId) {
+    var name = prompt('New subcategory name:');
+    if (!name || !name.trim()) return;
+    name = name.trim();
+    var cat    = _catPageData.find(function(c) { return c.id === catId; });
+    var maxOrd = (cat && cat.subs.length)
+        ? Math.max.apply(null, cat.subs.map(function(s) { return s.order || 0; })) + 1 : 1;
+    userCol('viewCategories').doc(catId).collection('subcategories').add({
+        name: name, order: maxOrd, isDefault: false,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function() { loadViewsCategoriesPage(); })
+        .catch(function(err) { console.error('_viewCatAddSub error:', err); });
+}
+
+// ── Inline rename (major or sub) ──
+function _viewCatRename(type, catId, subId) {
+    var elemId   = type === 'major' ? 'vcatMajorName_' + catId : 'vcatSubName_' + subId;
+    var nameEl   = document.getElementById(elemId);
+    if (!nameEl) return;
+    var original = nameEl.textContent;
+
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.value = original;
+    input.className = 'form-control vcat-rename-input';
+    nameEl.replaceWith(input);
+    input.focus(); input.select();
+
+    function restore() {
+        var span = document.createElement('span');
+        span.id = elemId; span.className = 'vcat-row-name'; span.textContent = original;
+        if (input.parentNode) input.replaceWith(span);
+    }
+    function save() {
+        var val = input.value.trim();
+        if (!val) { restore(); return; }
+        var span = document.createElement('span');
+        span.id = elemId; span.className = 'vcat-row-name'; span.textContent = val;
+        input.onblur = null;
+        if (input.parentNode) input.replaceWith(span);
+        if (type === 'major') {
+            userCol('viewCategories').doc(catId).update({ name: val })
+                .catch(function(e) { console.error('rename major:', e); });
+            var c = _catPageData.find(function(c) { return c.id === catId; });
+            if (c) c.name = val;
+        } else {
+            userCol('viewCategories').doc(catId).collection('subcategories').doc(subId).update({ name: val })
+                .catch(function(e) { console.error('rename sub:', e); });
+            var c2 = _catPageData.find(function(c) { return c.id === catId; });
+            if (c2) { var s = c2.subs.find(function(s) { return s.id === subId; }); if (s) s.name = val; }
+        }
+    }
+    input.onblur = save;
+    input.onkeydown = function(e) {
+        if (e.key === 'Enter')  { e.preventDefault(); input.blur(); }
+        if (e.key === 'Escape') { input.onblur = null; restore(); }
+    };
+}
+
+// ── Delete major category ──
+function _viewCatDeleteMajor(catId) {
+    userCol('views').where('categoryId', '==', catId).limit(1).get().then(function(snap) {
+        if (!snap.empty) {
+            alert('This category still has views assigned to it. Move or delete those views first.');
+            return;
+        }
+        var cat = _catPageData.find(function(c) { return c.id === catId; });
+        if (!confirm('Delete "' + (cat ? cat.name : 'this category') + '" and all its subcategories? This cannot be undone.')) return;
+        userCol('viewCategories').doc(catId).collection('subcategories').get().then(function(subSnap) {
+            var batch = db.batch();
+            subSnap.docs.forEach(function(d) { batch.delete(d.ref); });
+            batch.delete(userCol('viewCategories').doc(catId));
+            return batch.commit();
+        }).then(function() { loadViewsCategoriesPage(); })
+          .catch(function(err) { console.error('_viewCatDeleteMajor error:', err); });
+    }).catch(function(err) { console.error('_viewCatDeleteMajor check:', err); });
+}
+
+// ── Delete subcategory ──
+function _viewCatDeleteSub(catId, subId) {
+    userCol('views').where('subcategoryId', '==', subId).get().then(function(snap) {
+        var cat     = _catPageData.find(function(c) { return c.id === catId; });
+        var sub     = cat ? cat.subs.find(function(s) { return s.id === subId; }) : null;
+        var general = cat ? cat.subs.find(function(s) { return s.isDefault; }) : null;
+        var subName = sub ? sub.name : 'this subcategory';
+        var msg = snap.size > 0
+            ? 'Delete "' + subName + '"? ' + snap.size + ' view' + (snap.size !== 1 ? 's' : '') + ' will be moved to General. Continue?'
+            : 'Delete "' + subName + '"?';
+        if (!confirm(msg)) return;
+        var batch = db.batch();
+        if (snap.size > 0 && general) {
+            snap.docs.forEach(function(d) { batch.update(d.ref, { subcategoryId: general.id }); });
+        }
+        batch.delete(userCol('viewCategories').doc(catId).collection('subcategories').doc(subId));
+        batch.commit().then(function() { loadViewsCategoriesPage(); })
+            .catch(function(err) { console.error('_viewCatDeleteSub error:', err); });
+    }).catch(function(err) { console.error('_viewCatDeleteSub check:', err); });
+}
+
+// ── Drag-and-drop handlers ──
+function _catOnDragStart(event, el, type, id, parentId) {
+    _catDragType = type; _catDragId = id; _catDragParentId = parentId;
+    event.dataTransfer.effectAllowed = 'move';
+    setTimeout(function() { el.classList.add('vcat-dragging'); }, 0);
+}
+
+function _catOnDragOver(event, el, type, parentId) {
+    if (type !== _catDragType) return;
+    if (type === 'sub' && parentId !== _catDragParentId) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    if (_catDragOverEl && _catDragOverEl !== el) _catDragOverEl.classList.remove('vcat-drag-over');
+    _catDragOverEl = el;
+    el.classList.add('vcat-drag-over');
+}
+
+function _catOnDrop(event, el, type, targetId, targetParentId) {
+    event.preventDefault();
+    if (_catDragOverEl) { _catDragOverEl.classList.remove('vcat-drag-over'); _catDragOverEl = null; }
+    if (!_catDragId || _catDragId === targetId || _catDragType !== type) return;
+    if (type === 'sub' && _catDragParentId !== targetParentId) return;
+    if (type === 'major') { _catReorderMajors(_catDragId, targetId); }
+    else                  { _catReorderSubs(_catDragParentId, _catDragId, targetId); }
+}
+
+function _catOnDragEnd(event, el) {
+    el.classList.remove('vcat-dragging');
+    if (_catDragOverEl) { _catDragOverEl.classList.remove('vcat-drag-over'); _catDragOverEl = null; }
+    _catDragType = _catDragId = _catDragParentId = null;
+}
+
+function _catReorderMajors(draggedId, targetId) {
+    var cats = _catPageData.slice();
+    var fi = cats.findIndex(function(c) { return c.id === draggedId; });
+    var ti = cats.findIndex(function(c) { return c.id === targetId; });
+    if (fi < 0 || ti < 0) return;
+    cats.splice(ti, 0, cats.splice(fi, 1)[0]);
+    var batch = db.batch();
+    cats.forEach(function(c, i) { c.order = i; batch.update(userCol('viewCategories').doc(c.id), { order: i }); });
+    _catPageData = cats;
+    batch.commit().catch(function(err) { console.error('_catReorderMajors error:', err); });
+    _viewCatRenderPage();
+}
+
+function _catReorderSubs(catId, draggedId, targetId) {
+    var cat = _catPageData.find(function(c) { return c.id === catId; });
+    if (!cat) return;
+    var subs = cat.subs.slice();
+    var fi = subs.findIndex(function(s) { return s.id === draggedId; });
+    var ti = subs.findIndex(function(s) { return s.id === targetId; });
+    if (fi < 0 || ti < 0 || subs[ti].isDefault) return;
+    subs.splice(ti, 0, subs.splice(fi, 1)[0]);
+    var batch = db.batch();
+    subs.forEach(function(s, i) { s.order = i; batch.update(userCol('viewCategories').doc(catId).collection('subcategories').doc(s.id), { order: i }); });
+    cat.subs = subs;
+    batch.commit().catch(function(err) { console.error('_catReorderSubs error:', err); });
+    _viewCatRenderPage();
 }

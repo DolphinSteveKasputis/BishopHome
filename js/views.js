@@ -304,6 +304,8 @@ function _viewSearch(term) {
         return;
     }
 
+    var anyHit = false;
+
     majors.forEach(function(major) {
         var majorHit = false;
         var majorBody = major.querySelector('.views-major-body');
@@ -329,8 +331,22 @@ function _viewSearch(term) {
         });
 
         major.classList.toggle('hidden', !majorHit);
-        if (majorHit) { if (majorBody) majorBody.classList.remove('hidden'); if (majorChev) majorChev.style.transform = 'rotate(90deg)'; }
+        if (majorHit) { anyHit = true; if (majorBody) majorBody.classList.remove('hidden'); if (majorChev) majorChev.style.transform = 'rotate(90deg)'; }
     });
+
+    // Show or clear the no-results message
+    var noResults = document.getElementById('viewsNoResults');
+    if (!anyHit) {
+        if (!noResults) {
+            var msg = document.createElement('p');
+            msg.id = 'viewsNoResults';
+            msg.className = 'views-empty-state';
+            msg.textContent = 'No views match "' + term.trim() + '"';
+            container.appendChild(msg);
+        }
+    } else {
+        if (noResults) noResults.remove();
+    }
 }
 
 function _viewCardMatches(card, lc) {

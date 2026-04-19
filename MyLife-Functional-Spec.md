@@ -1214,7 +1214,7 @@ A personal viewpoint journal — record, edit, and historically track opinions a
 
 ### Views List Page (`#views`)
 - Header: "My Views" + "+ New View" button
-- Search bar: filters by title and short version text; collapses non-matching accordions
+- Search bar: live filter by title and short version; matching accordions auto-expand; non-matching hidden; "No views match '…'" message when nothing matches; clearing search collapses all back to default
 - **Two-level accordion**: major categories are outer accordions; subcategories are inner accordions
   - Each shows view count in parens; empty categories/subcategories are hidden
   - All accordions collapsed by default; search auto-expands matching ones

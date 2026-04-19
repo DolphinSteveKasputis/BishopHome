@@ -798,21 +798,47 @@ function renderFloorDetail(floor) {
         console.warn('renderFloorDetail: could not check floor plan existence', err);
     });
 
-    // ---- Load all feature sections ----
-    loadProblems('floor', floor.id, 'floorProblemsContainer', 'floorProblemsEmptyState');
-    loadFacts(   'floor', floor.id, 'floorFactsContainer',    'floorFactsEmptyState');
-    loadProjects('floor', floor.id, 'floorProjectsContainer', 'floorProjectsEmptyState');
-    loadActivities('floor', floor.id, 'floorActivityContainer', 'floorActivityEmptyState');
-    loadPhotos(  'floor', floor.id, 'floorPhotoContainer',    'floorPhotoEmptyState');
+    // ---- Load all feature sections, then update accordion counts ----
+    loadProblems('floor', floor.id, 'floorProblemsContainer', 'floorProblemsEmptyState')
+        .then(function() { _setDetailAccCount('floorProblemsAccCount', 'floorProblemsContainer'); });
+    loadFacts('floor', floor.id, 'floorFactsContainer', 'floorFactsEmptyState')
+        .then(function() { _setDetailAccCount('floorFactsAccCount', 'floorFactsContainer'); });
+    loadProjects('floor', floor.id, 'floorProjectsContainer', 'floorProjectsEmptyState')
+        .then(function() { _setDetailAccCount('floorTasksAccCount', 'floorProjectsContainer'); });
+    loadActivities('floor', floor.id, 'floorActivityContainer', 'floorActivityEmptyState')
+        .then(function() { _setDetailAccCount('floorActivityAccCount', 'floorActivityContainer'); });
+    loadPhotos('floor', floor.id, 'floorPhotoContainer', 'floorPhotoEmptyState')
+        .then(function() { _setDetailAccCount('floorPhotosAccCount', 'floorPhotoContainer'); });
 
     if (typeof loadEventsForTarget === 'function') {
         var months = parseInt(document.getElementById('floorCalendarRangeSelect').value, 10) || 3;
         loadEventsForTarget('floor', floor.id,
-            'floorCalendarEventsContainer', 'floorCalendarEventsEmptyState', months);
+            'floorCalendarEventsContainer', 'floorCalendarEventsEmptyState', months)
+            .then(function() { _setDetailAccCount('floorCalendarAccCount', 'floorCalendarEventsContainer'); });
     }
 
     // Load fp item rollup: Open Concerns + Active Projects for all items on this floor
     loadFpItemRollup('floor', floor.id, floor.id, 'floorFpRollupContainer');
+}
+
+/**
+ * Update a detail-accordion count badge from the number of children in a container.
+ * Hides the badge when count is 0.
+ * @param {string} countId     - ID of the <span class="detail-acc-count"> element.
+ * @param {string} containerId - ID of the container whose children are the items.
+ */
+function _setDetailAccCount(countId, containerId) {
+    var countEl = document.getElementById(countId);
+    if (!countEl) return;
+    var container = document.getElementById(containerId);
+    var count = container ? container.children.length : 0;
+    if (count > 0) {
+        countEl.textContent = '(' + count + ')';
+        countEl.classList.remove('hidden');
+    } else {
+        countEl.textContent = '';
+        countEl.classList.add('hidden');
+    }
 }
 
 // ============================================================
@@ -852,6 +878,7 @@ function loadRoomsList(floorId) {
             docs.forEach(function(doc) {
                 container.appendChild(buildRoomCard(doc.id, doc.data()));
             });
+            _setDetailAccCount('floorRoomsAccCount', 'roomListContainer');
 
             // Enable drag-to-reorder via SortableJS
             if (window.Sortable) {

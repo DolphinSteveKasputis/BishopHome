@@ -725,3 +725,14 @@ function _initTabIndentTextareas() {
         el.selectionStart = el.selectionEnd = start + TAB_SPACES.length;
     });
 }
+
+
+// ── Detail-page accordion toggle (shared across all entity detail pages) ──
+/**
+ * Toggle a detail-page accordion open/closed.
+ * @param {string} id - The element ID of the .detail-acc div.
+ */
+function toggleDetailAcc(id) {
+    var el = document.getElementById(id);
+    if (el) el.classList.toggle('open');
+}

@@ -231,6 +231,8 @@ The top level of the house hierarchy.
 
 **[Shared]**: Facts, Problems (roll-up from rooms/things/sub-things), Quick Task List (roll-up), Activities, Photos, Calendar Events
 
+**Floor detail page layout**: All sections are collapsible accordions (`.detail-acc`). Rooms and Calendar Events are expanded by default; all others start collapsed. Each accordion header shows an item count badge (e.g. "Photos (3)") that populates after the section loads. `toggleDetailAcc(id)` in `app.js` handles expand/collapse. `_setDetailAccCount(countId, containerId)` in `house.js` updates the badge. This accordion pattern (`detail-acc`) is reusable across other entity detail pages.
+
 ### Rooms (`house.js`)
 Each room belongs to one floor.
 

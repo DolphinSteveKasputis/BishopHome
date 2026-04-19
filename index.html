@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=485">
+    <link rel="stylesheet" href="css/styles.css?v=486">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -1150,88 +1150,146 @@
             <!-- Floor number badge -->
             <p class="house-floor-meta" id="floorMeta"></p>
 
-            <!-- Floor Plan section (Phase H8) -->
-            <div class="section-header">
-                <h3 class="section-heading">Floor Plan</h3>
-                <a id="editFloorPlanBtn" href="#house" class="btn btn-secondary btn-small">View Floor Plan</a>
+            <!-- Floor Plan -->
+            <div class="detail-acc" id="floorPlanAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('floorPlanAcc')">
+                    <span class="detail-acc-chevron">›</span>
+                    <span class="detail-acc-title">Floor Plan</span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <a id="editFloorPlanBtn" href="#house" class="btn btn-secondary btn-small">View Floor Plan</a>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="floorPlanThumbnailContainer" class="fp-thumbnail-wrapper" title="Click to open floor plan editor">
+                        <p class="empty-state" id="floorPlanThumbnailEmpty">No floor plan drawn yet. Click "View Floor Plan" to start drawing.</p>
+                    </div>
+                    <div id="floorFpRollupContainer"></div>
+                </div>
             </div>
-            <div id="floorPlanThumbnailContainer" class="fp-thumbnail-wrapper" title="Click to open floor plan editor">
-                <p class="empty-state" id="floorPlanThumbnailEmpty">No floor plan drawn yet. Click "Edit Floor Plan" to start drawing.</p>
-            </div>
-            <!-- Floor Plan Item Rollup: Open Concerns + Active Projects (this floor) -->
-            <div id="floorFpRollupContainer"></div>
 
-            <!-- Rooms section -->
-            <div class="section-header">
-                <h3 class="section-heading">Rooms</h3>
-                <button class="btn btn-primary btn-small" id="addRoomBtn">+ Add Room</button>
+            <!-- Rooms -->
+            <div class="detail-acc open" id="floorRoomsAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('floorRoomsAcc')">
+                    <span class="detail-acc-chevron">›</span>
+                    <span class="detail-acc-title">Rooms</span>
+                    <span class="detail-acc-count hidden" id="floorRoomsAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="addRoomBtn">+ Add Room</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div class="card-list" id="roomListContainer"></div>
+                    <p class="empty-state" id="roomListEmptyState"></p>
+                </div>
             </div>
-            <div class="card-list" id="roomListContainer"></div>
-            <p class="empty-state" id="roomListEmptyState"></p>
 
             <!-- Problems / Concerns -->
-            <div class="section-header">
-                <h3 class="section-heading">Problems / Concerns</h3>
-                <div class="section-header-actions">
-                    <label class="show-toggle"><input type="checkbox" id="showResolvedFloorProblems"> Show resolved</label>
-                    <button class="btn btn-primary btn-small" id="addFloorProblemBtn">+ Add</button>
+            <div class="detail-acc" id="floorProblemsAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('floorProblemsAcc')">
+                    <span class="detail-acc-chevron">›</span>
+                    <span class="detail-acc-title">Problems / Concerns</span>
+                    <span class="detail-acc-count hidden" id="floorProblemsAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <label class="show-toggle"><input type="checkbox" id="showResolvedFloorProblems"> Show resolved</label>
+                        <button class="btn btn-primary btn-small" id="addFloorProblemBtn">+ Add</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="floorProblemsContainer"></div>
+                    <p class="empty-state" id="floorProblemsEmptyState"></p>
                 </div>
             </div>
-            <div id="floorProblemsContainer"></div>
-            <p class="empty-state" id="floorProblemsEmptyState"></p>
 
             <!-- Facts -->
-            <div class="section-header">
-                <h3 class="section-heading">Facts</h3>
-                <button class="btn btn-primary btn-small" id="addFloorFactBtn">+ Add</button>
-            </div>
-            <div id="floorFactsContainer"></div>
-            <p class="empty-state" id="floorFactsEmptyState"></p>
-
-            <!-- Quick Task List -->
-            <div class="section-header">
-                <h3 class="section-heading">Quick Task List</h3>
-                <button class="btn btn-primary btn-small" id="addFloorProjectBtn">+ Add</button>
-            </div>
-            <div id="floorProjectsContainer"></div>
-            <p class="empty-state" id="floorProjectsEmptyState"></p>
-
-            <!-- Calendar Events -->
-            <div class="section-header">
-                <h3 class="section-heading">Calendar Events</h3>
-                <div class="section-header-actions">
-                    <div class="calendar-range-picker">
-                        <label>Next</label>
-                        <select id="floorCalendarRangeSelect" class="range-select">
-                            <option value="1">1 mo</option>
-                            <option value="3" selected>3 mo</option>
-                            <option value="6">6 mo</option>
-                            <option value="12">12 mo</option>
-                        </select>
+            <div class="detail-acc" id="floorFactsAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('floorFactsAcc')">
+                    <span class="detail-acc-chevron">›</span>
+                    <span class="detail-acc-title">Facts</span>
+                    <span class="detail-acc-count hidden" id="floorFactsAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="addFloorFactBtn">+ Add</button>
                     </div>
-                    <button class="btn btn-primary btn-small" id="addFloorCalendarEventBtn">+ Add Event</button>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="floorFactsContainer"></div>
+                    <p class="empty-state" id="floorFactsEmptyState"></p>
                 </div>
             </div>
-            <div id="floorCalendarEventsContainer"></div>
-            <p class="empty-state" id="floorCalendarEventsEmptyState"></p>
+
+            <!-- Quick Task List -->
+            <div class="detail-acc" id="floorTasksAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('floorTasksAcc')">
+                    <span class="detail-acc-chevron">›</span>
+                    <span class="detail-acc-title">Quick Task List</span>
+                    <span class="detail-acc-count hidden" id="floorTasksAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="addFloorProjectBtn">+ Add</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="floorProjectsContainer"></div>
+                    <p class="empty-state" id="floorProjectsEmptyState"></p>
+                </div>
+            </div>
+
+            <!-- Calendar Events -->
+            <div class="detail-acc open" id="floorCalendarAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('floorCalendarAcc')">
+                    <span class="detail-acc-chevron">›</span>
+                    <span class="detail-acc-title">Calendar Events</span>
+                    <span class="detail-acc-count hidden" id="floorCalendarAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <div class="calendar-range-picker">
+                            <label>Next</label>
+                            <select id="floorCalendarRangeSelect" class="range-select">
+                                <option value="1">1 mo</option>
+                                <option value="3" selected>3 mo</option>
+                                <option value="6">6 mo</option>
+                                <option value="12">12 mo</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary btn-small" id="addFloorCalendarEventBtn">+ Add Event</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="floorCalendarEventsContainer"></div>
+                    <p class="empty-state" id="floorCalendarEventsEmptyState"></p>
+                </div>
+            </div>
 
             <!-- Activity History -->
-            <div class="section-header">
-                <h3 class="section-heading">Activity History</h3>
-                <button class="btn btn-primary btn-small" id="logFloorActivityBtn">+ Log Activity</button>
+            <div class="detail-acc" id="floorActivityAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('floorActivityAcc')">
+                    <span class="detail-acc-chevron">›</span>
+                    <span class="detail-acc-title">Activity History</span>
+                    <span class="detail-acc-count hidden" id="floorActivityAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="logFloorActivityBtn">+ Log Activity</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="floorActivityContainer"></div>
+                    <p class="empty-state" id="floorActivityEmptyState">No activities logged yet.</p>
+                </div>
             </div>
-            <div id="floorActivityContainer"></div>
-            <p class="empty-state" id="floorActivityEmptyState">No activities logged yet.</p>
 
             <!-- Photos -->
-            <div class="section-header">
-                <h3 class="section-heading">Photos</h3>
-                <button class="btn btn-primary btn-small" id="addFloorCameraBtn">+ Camera</button>
-                <button class="btn btn-primary btn-small" id="addFloorGalleryBtn">+ Gallery</button>
-                <button class="btn btn-primary btn-small paste-photo-btn" data-entity="floor">📋 Paste</button>
+            <div class="detail-acc" id="floorPhotosAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('floorPhotosAcc')">
+                    <span class="detail-acc-chevron">›</span>
+                    <span class="detail-acc-title">Photos</span>
+                    <span class="detail-acc-count hidden" id="floorPhotosAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="addFloorCameraBtn">+ Camera</button>
+                        <button class="btn btn-primary btn-small" id="addFloorGalleryBtn">+ Gallery</button>
+                        <button class="btn btn-primary btn-small paste-photo-btn" data-entity="floor">📋 Paste</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="floorPhotoContainer"></div>
+                    <p class="empty-state" id="floorPhotoEmptyState">No photos yet.</p>
+                </div>
             </div>
-            <div id="floorPhotoContainer"></div>
-            <p class="empty-state" id="floorPhotoEmptyState">No photos yet.</p>
         </section>
 
         <!-- Page: Room Detail -->
@@ -8413,7 +8471,7 @@ export default {
     <script src="js/gps.js?v=350"></script>
     <script src="js/settings.js?v=478"></script>
     <script src="js/devnotes.js?v=376"></script>
-    <script src="js/house.js?v=405"></script>
+    <script src="js/house.js?v=406"></script>
     <script src="js/floorplan.js?v=398"></script>
     <script src="js/floorplanitem.js?v=393"></script>
     <script src="js/search.js?v=350"></script>
@@ -8439,7 +8497,7 @@ export default {
     <script src="js/thoughts.js?v=465"></script>
     <script src="js/top10lists.js?v=465"></script>
     <script src="js/memories.js?v=471"></script>
-    <script src="js/app.js?v=472"></script>
+    <script src="js/app.js?v=473"></script>
 
 </body>
 </html>

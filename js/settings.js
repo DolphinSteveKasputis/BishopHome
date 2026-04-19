@@ -950,11 +950,10 @@ async function testFoursquareKey() {
 
     try {
         var resp = await fetch(
-            'https://api.foursquare.com/v3/places/search?query=coffee&ll=40.7128,-74.0060&limit=1',
+            'https://places-api.foursquare.com/places/search?query=coffee&ll=40.7128,-74.0060&limit=1',
             { headers: {
-                'Authorization': apiKey,
-                'Accept': 'application/json',
-                'X-Places-Api-Version': '1970-01-01'
+                'Authorization': 'Bearer ' + apiKey,
+                'X-Places-Api-Version': '2025-06-17'
             } }
         );
 

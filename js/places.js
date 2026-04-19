@@ -608,11 +608,11 @@ async function _placesGetFoursquareKey() {
 }
 
 /**
- * Map a Foursquare API result item to the standard venue object shape.
+ * Map a Foursquare Places API result item to the standard venue object shape.
+ * New API (places-api.foursquare.com) uses fsq_place_id and top-level lat/lng.
  */
 function _placesMapFsqResult(item) {
     var loc      = item.location || {};
-    var geo      = (item.geocodes && item.geocodes.main) || {};
     var cats     = item.categories || [];
     var category = cats.length > 0 ? cats[0].name : null;
     var address  = loc.formatted_address || loc.address || null;
@@ -621,10 +621,10 @@ function _placesMapFsqResult(item) {
         name      : item.name || '(unnamed)',
         address   : address,
         category  : category,
-        fsqId     : item.fsq_id || null,
+        fsqId     : item.fsq_place_id || null,
         osmId     : null,
-        lat       : geo.latitude  || null,
-        lng       : geo.longitude || null,
+        lat       : item.latitude  || null,
+        lng       : item.longitude || null,
         existingId: null
     };
 }
@@ -647,16 +647,14 @@ async function placesNearby(lat, lng) {
     var apiKey = await _placesGetFoursquareKey();
     if (!apiKey) throw new Error('Foursquare API key not configured. Go to Settings → General → Places to add your key.');
 
-    var url = 'https://api.foursquare.com/v3/places/nearby' +
+    var url = 'https://places-api.foursquare.com/places/search' +
               '?ll=' + lat + ',' + lng +
-              '&limit=20' +
-              '&fields=fsq_id,name,categories,location,geocodes';
+              '&limit=20';
 
     var resp = await fetch(url, {
         headers: {
-            'Authorization': apiKey,
-            'Accept': 'application/json',
-            'X-Places-Api-Version': '1970-01-01'
+            'Authorization': 'Bearer ' + apiKey,
+            'X-Places-Api-Version': '2025-06-17'
         }
     });
     if (!resp.ok) throw new Error('Foursquare nearby error: ' + resp.status);
@@ -764,10 +762,9 @@ async function placesSearchByName(query, biasLat, biasLng) {
     try {
         var apiKey = await _placesGetFoursquareKey();
         if (apiKey) {
-            var url = 'https://api.foursquare.com/v3/places/search' +
+            var url = 'https://places-api.foursquare.com/places/search' +
                       '?query=' + encodeURIComponent(query) +
-                      '&limit=8' +
-                      '&fields=fsq_id,name,categories,location,geocodes';
+                      '&limit=8';
 
             // Bias toward a known location when provided
             if (biasLat != null && biasLng != null) {
@@ -776,9 +773,8 @@ async function placesSearchByName(query, biasLat, biasLng) {
 
             var resp = await fetch(url, {
                 headers: {
-                    'Authorization': apiKey,
-                    'Accept': 'application/json',
-                    'X-Places-Api-Version': '1970-01-01'
+                    'Authorization': 'Bearer ' + apiKey,
+                    'X-Places-Api-Version': '2025-06-17'
                 }
             });
             if (resp.ok) {

@@ -285,7 +285,8 @@ async function loadEventsForTarget(targetType, targetId, containerId, emptyState
                         targetType: event.targetType || null,
                         targetId: event.targetId || null,
                         savedActionId: event.savedActionId || null,
-                        zoneIds: event.zoneIds || []
+                        zoneIds: event.zoneIds || [],
+                        trackingCategory: event.trackingCategory || ''
                     });
                 }
             } else {
@@ -394,7 +395,8 @@ async function loadOverdueEvents() {
                         targetType: event.targetType || null,
                         targetId: event.targetId || null,
                         savedActionId: event.savedActionId || null,
-                        overdue: true
+                        overdue: true,
+                        trackingCategory: event.trackingCategory || ''
                     });
                 }
             } else {
@@ -468,7 +470,8 @@ function generateOccurrences(event, rangeStart, rangeEnd) {
                 targetType: event.targetType || null,
                 targetId: event.targetId || null,
                 savedActionId: event.savedActionId || null,
-                zoneIds: event.zoneIds || []
+                zoneIds: event.zoneIds || [],
+                trackingCategory: event.trackingCategory || ''
             });
         }
         return occurrences;
@@ -505,7 +508,8 @@ function generateOccurrences(event, rangeStart, rangeEnd) {
                 targetType: event.targetType || null,
                 targetId: event.targetId || null,
                 savedActionId: event.savedActionId || null,
-                zoneIds: event.zoneIds || []
+                zoneIds: event.zoneIds || [],
+                trackingCategory: event.trackingCategory || ''
             });
         }
 
@@ -869,6 +873,32 @@ async function handleCompleteEvent() {
             });
         }
 
+        // Create a journal tracking item if the event has a tracking category configured.
+        // One-way: we create on attend but never delete on un-attend.
+        // Guard: skip if a tracking item already exists for this date + category.
+        if (occ.trackingCategory) {
+            try {
+                var existingSnap = await userCol('journalTrackingItems')
+                    .where('date', '==', occ.occurrenceDate)
+                    .where('category', '==', occ.trackingCategory)
+                    .limit(1)
+                    .get();
+                if (existingSnap.empty) {
+                    await userCol('journalTrackingItems').add({
+                        date: occ.occurrenceDate,
+                        category: occ.trackingCategory,
+                        value: occ.description || occ.title || '',
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    console.log('Tracking item created:', occ.trackingCategory, occ.occurrenceDate);
+                } else {
+                    console.log('Tracking item already exists — skipped:', occ.trackingCategory, occ.occurrenceDate);
+                }
+            } catch (e) {
+                console.warn('Could not create tracking item on attend:', e);
+            }
+        }
+
         console.log('Event completed:', occ.title, occ.occurrenceDate, '— activities created:', occ.targetType === 'plant' ? 1 : zoneIds.length);
 
         // Reload the activity history if we're on a zone/plant detail page
@@ -946,6 +976,13 @@ async function openAddCalendarEventModal(targetType, targetId, reloadFn) {
 
     // Load saved actions into dropdown
     await populateSavedActionsDropdown('calEventSavedActionSelect', null);
+
+    // Reset tracking-on-attended fields
+    var trackChk = document.getElementById('calEventTrackingEnabled');
+    if (trackChk) trackChk.checked = false;
+    var trackRow = document.getElementById('calEventTrackingRow');
+    if (trackRow) trackRow.classList.add('hidden');
+    await _calLoadTrackingCategories('');
 
     // Store reload callback
     calendarEventModalReloadFn = reloadFn || null;
@@ -1026,6 +1063,14 @@ async function openEditCalendarEventModal(eventId, reloadFn, occurrenceDate) {
 
         // Load saved actions dropdown with current selection
         await populateSavedActionsDropdown('calEventSavedActionSelect', event.savedActionId || null);
+
+        // Populate tracking-on-attended fields
+        var trackingCat = event.trackingCategory || '';
+        var trackChk = document.getElementById('calEventTrackingEnabled');
+        var trackRow = document.getElementById('calEventTrackingRow');
+        if (trackChk) trackChk.checked = !!trackingCat;
+        if (trackRow) trackRow.classList.toggle('hidden', !trackingCat);
+        await _calLoadTrackingCategories(trackingCat);
 
         // Store reload callback
         calendarEventModalReloadFn = reloadFn || null;
@@ -1115,6 +1160,8 @@ async function handleCalendarEventModalSave() {
     var frequency = document.getElementById('calEventFrequencySelect').value;
     var intervalDays = parseInt(document.getElementById('calEventIntervalInput').value) || 14;
     var savedActionId = document.getElementById('calEventSavedActionSelect').value || null;
+    var trackingEnabled = document.getElementById('calEventTrackingEnabled').checked;
+    var trackingCategory = (trackingEnabled && document.getElementById('calEventTrackingCategory').value) || '';
 
     // Collect selected zone IDs (only shown for non-plant events)
     var zoneIds = [];
@@ -1169,6 +1216,7 @@ async function handleCalendarEventModalSave() {
                 targetId: targetId || null,
                 zoneIds: zoneIds,
                 savedActionId: savedActionId,
+                trackingCategory: trackingCategory,
                 completed: false,
                 completedDates: [],
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -1185,7 +1233,8 @@ async function handleCalendarEventModalSave() {
                 targetType: targetType || null,
                 targetId: targetId || null,
                 zoneIds: zoneIds,
-                savedActionId: savedActionId
+                savedActionId: savedActionId,
+                trackingCategory: trackingCategory
             });
             console.log('Calendar event updated:', title);
         }
@@ -1397,6 +1446,41 @@ function toggleIntervalInput() {
     } else {
         intervalGroup.style.display = 'none';
     }
+}
+
+/**
+ * Show/hide the tracking category dropdown based on the checkbox state.
+ */
+function _calToggleTrackingRow() {
+    var enabled = document.getElementById('calEventTrackingEnabled').checked;
+    var row = document.getElementById('calEventTrackingRow');
+    if (row) row.classList.toggle('hidden', !enabled);
+}
+
+/**
+ * Load all journal tracking categories into the calEventTrackingCategory dropdown.
+ * @param {string} [selectedCat] - Category name to pre-select.
+ */
+async function _calLoadTrackingCategories(selectedCat) {
+    var select = document.getElementById('calEventTrackingCategory');
+    if (!select) return;
+    try {
+        var snap = await userCol('journalCategories').orderBy('name').get();
+        var html = '<option value="">-- Select Category --</option>';
+        snap.forEach(function(doc) {
+            var name = doc.data().name || '';
+            var sel = (name === selectedCat) ? ' selected' : '';
+            html += '<option value="' + _calEsc(name) + '"' + sel + '>' + _calEsc(name) + '</option>';
+        });
+        select.innerHTML = html;
+    } catch (e) {
+        console.warn('Could not load journal categories for calendar tracking:', e);
+    }
+}
+
+/** Minimal HTML-escape for option values/text. */
+function _calEsc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 // ---------- Date Formatting Helpers ----------

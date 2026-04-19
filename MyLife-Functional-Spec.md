@@ -1405,7 +1405,7 @@ Formerly named "Future Projects" — renamed to "Quick Task List" to distinguish
 
 ### Calendar Events (`calendar.js`)
 
-**Firestore**: `calendarEvents` — `title`, `description`, `date` (ISO string), `recurring` (null or `{type, intervalDays}`), `targetType?`, `targetId?`, `zoneIds[]`, `savedActionId?`, `completed`, `completedDates[]`, `cancelledDates[]`, `createdAt`
+**Firestore**: `calendarEvents` — `title`, `description`, `date` (ISO string), `recurring` (null or `{type, intervalDays}`), `targetType?`, `targetId?`, `zoneIds[]`, `savedActionId?`, `trackingCategory?` (string, journal category name), `completed`, `completedDates[]`, `cancelledDates[]`, `createdAt`
 
 **Recurring types**: `weekly` (+7 days), `monthly` (same day next month, clamped to month-end), `every_x_days` (user-specified interval)
 
@@ -1416,6 +1416,9 @@ Formerly named "Future Projects" — renamed to "Quick Task List" to distinguish
 2. Optional notes modal
 3. Creates an Activity record on the linked entity (if `targetType`/`targetId` set)
 4. Marks the occurrence as completed (`completed = true` for one-time, adds date to `completedDates[]` for recurring)
+5. If the event has `trackingCategory` set: creates a `journalTrackingItems` doc (`date` = occurrence date, `category` = trackingCategory, `value` = event description or title). Duplicate guard: skips creation if a tracking item already exists for that date + category. One-way: un-attending does NOT delete the tracking item.
+
+**Update Tracking on Attended**: Checkbox in the Add/Edit Event modal. When checked, a dropdown of all journal tracking categories appears. On attend, a tracking item is automatically created for the occurrence date using the selected category and the event's description as the value. Use case: events like "Hair Cut" or "Dental Cleaning" that should auto-log to the journal tracking history.
 
 **Overdue section**: Past-due uncompleted events shown at the top with orange "OVERDUE" badge. This applies both to the main calendar page (`loadOverdueEvents()`) and to every entity detail page calendar section (`loadEventsForTarget()`). On entity pages, overdue cards appear above the upcoming list so missed events (e.g. a recurring maintenance reminder) are never silently dropped — they stay visible until completed.
 
@@ -1658,7 +1661,7 @@ All collections live under `/users/{uid}/`. Every module uses `userCol('collecti
 | `facts` | targetType, targetId, label, value, createdAt |
 | `problems` | targetType, targetId, description, notes, status, dateLogged, resolvedAt |
 | `projects` | targetType, targetId, title, notes, status, items[], completedAt |
-| `calendarEvents` | title, description, date, recurring{type,intervalDays}?, targetType?, targetId?, zoneIds[], savedActionId?, completed, completedDates[], cancelledDates[] |
+| `calendarEvents` | title, description, date, recurring{type,intervalDays}?, targetType?, targetId?, zoneIds[], savedActionId?, trackingCategory?, completed, completedDates[], cancelledDates[] |
 
 ### Life Projects
 

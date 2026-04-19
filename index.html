@@ -3752,6 +3752,18 @@
                 <label>Linked Zones (optional)</label>
                 <div class="zone-checkbox-list" id="calEventZoneCheckboxList"></div>
             </div>
+            <!-- Tracking on Attended -->
+            <div class="form-group">
+                <label class="journal-toggle-label" style="font-weight:500;">
+                    <input type="checkbox" id="calEventTrackingEnabled" onchange="_calToggleTrackingRow()"> Update Tracking on Attended
+                </label>
+                <div id="calEventTrackingRow" class="hidden" style="margin-top:8px;">
+                    <label for="calEventTrackingCategory" style="font-size:0.85em;color:#6b7280;margin-bottom:4px;display:block;">Journal Tracking Category</label>
+                    <select id="calEventTrackingCategory" style="width:100%;">
+                        <option value="">-- Select Category --</option>
+                    </select>
+                </div>
+            </div>
             <div class="modal-buttons">
                 <button class="btn btn-danger" id="calEventDeleteBtn" style="display:none; margin-right:auto;">Delete</button>
                 <button class="btn btn-secondary" id="calEventCancelBtn">Cancel</button>
@@ -8397,7 +8409,7 @@ export default {
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
     <script src="js/photos.js?v=396"></script>
     <script src="js/weeds.js?v=351"></script>
-    <script src="js/calendar.js?v=352"></script>
+    <script src="js/calendar.js?v=353"></script>
     <script src="js/gps.js?v=350"></script>
     <script src="js/settings.js?v=478"></script>
     <script src="js/devnotes.js?v=376"></script>

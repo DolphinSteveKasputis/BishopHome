@@ -2156,160 +2156,209 @@
                 <span id="plantHealthSavedMsg" class="health-saved-msg" style="display:none;">✓ Saved</span>
             </div>
 
-            <!-- Metadata section -->
-            <h3 class="section-heading">Plant Care Info</h3>
-            <div id="plantMetadataForm" class="metadata-form">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="plantHeatTolerance">Heat Tolerance</label>
-                        <select id="plantHeatTolerance">
-                            <option value="">-- Select --</option>
-                            <option value="High">High</option>
-                            <option value="Medium-High">Medium-High</option>
-                            <option value="Medium">Medium</option>
-                            <option value="Medium-Low">Medium-Low</option>
-                            <option value="Low">Low</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="plantColdTolerance">Cold Tolerance</label>
-                        <select id="plantColdTolerance">
-                            <option value="">-- Select --</option>
-                            <option value="High">High</option>
-                            <option value="Medium-High">Medium-High</option>
-                            <option value="Medium">Medium</option>
-                            <option value="Medium-Low">Medium-Low</option>
-                            <option value="Low">Low</option>
-                        </select>
+            <!-- Plant Care Info (metadata) -->
+            <div class="detail-acc open" id="plantCareInfoAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('plantCareInfoAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Plant Care Info</span>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="plantMetadataForm" class="metadata-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="plantHeatTolerance">Heat Tolerance</label>
+                                <select id="plantHeatTolerance">
+                                    <option value="">-- Select --</option>
+                                    <option value="High">High</option>
+                                    <option value="Medium-High">Medium-High</option>
+                                    <option value="Medium">Medium</option>
+                                    <option value="Medium-Low">Medium-Low</option>
+                                    <option value="Low">Low</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="plantColdTolerance">Cold Tolerance</label>
+                                <select id="plantColdTolerance">
+                                    <option value="">-- Select --</option>
+                                    <option value="High">High</option>
+                                    <option value="Medium-High">Medium-High</option>
+                                    <option value="Medium">Medium</option>
+                                    <option value="Medium-Low">Medium-Low</option>
+                                    <option value="Low">Low</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="plantWateringNeeds">Watering Needs</label>
+                                <input type="text" id="plantWateringNeeds" placeholder="e.g., Weekly, Drought tolerant">
+                            </div>
+                            <div class="form-group">
+                                <label for="plantSunShade">Sun / Shade</label>
+                                <select id="plantSunShade">
+                                    <option value="">-- Select --</option>
+                                    <option value="Full Sun">Full Sun</option>
+                                    <option value="Partial Sun">Partial Sun</option>
+                                    <option value="Partial Shade">Partial Shade</option>
+                                    <option value="Full Shade">Full Shade</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="plantBloomMonth">Bloom Month</label>
+                                <select id="plantBloomMonth">
+                                    <option value="">-- Select --</option>
+                                    <option value="January">January</option>
+                                    <option value="February">February</option>
+                                    <option value="March">March</option>
+                                    <option value="April">April</option>
+                                    <option value="May">May</option>
+                                    <option value="June">June</option>
+                                    <option value="July">July</option>
+                                    <option value="August">August</option>
+                                    <option value="September">September</option>
+                                    <option value="October">October</option>
+                                    <option value="November">November</option>
+                                    <option value="December">December</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="plantDormantMonth">Dormant Month</label>
+                                <select id="plantDormantMonth">
+                                    <option value="">-- Select --</option>
+                                    <option value="January">January</option>
+                                    <option value="February">February</option>
+                                    <option value="March">March</option>
+                                    <option value="April">April</option>
+                                    <option value="May">May</option>
+                                    <option value="June">June</option>
+                                    <option value="July">July</option>
+                                    <option value="August">August</option>
+                                    <option value="September">September</option>
+                                    <option value="October">October</option>
+                                    <option value="November">November</option>
+                                    <option value="December">December</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="plantNotes">Notes</label>
+                            <textarea id="plantNotes" placeholder="General care notes..."></textarea>
+                        </div>
+                        <button class="btn btn-primary btn-small" id="saveMetadataBtn">Save Care Info</button>
                     </div>
                 </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="plantWateringNeeds">Watering Needs</label>
-                        <input type="text" id="plantWateringNeeds" placeholder="e.g., Weekly, Drought tolerant">
-                    </div>
-                    <div class="form-group">
-                        <label for="plantSunShade">Sun / Shade</label>
-                        <select id="plantSunShade">
-                            <option value="">-- Select --</option>
-                            <option value="Full Sun">Full Sun</option>
-                            <option value="Partial Sun">Partial Sun</option>
-                            <option value="Partial Shade">Partial Shade</option>
-                            <option value="Full Shade">Full Shade</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="plantBloomMonth">Bloom Month</label>
-                        <select id="plantBloomMonth">
-                            <option value="">-- Select --</option>
-                            <option value="January">January</option>
-                            <option value="February">February</option>
-                            <option value="March">March</option>
-                            <option value="April">April</option>
-                            <option value="May">May</option>
-                            <option value="June">June</option>
-                            <option value="July">July</option>
-                            <option value="August">August</option>
-                            <option value="September">September</option>
-                            <option value="October">October</option>
-                            <option value="November">November</option>
-                            <option value="December">December</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="plantDormantMonth">Dormant Month</label>
-                        <select id="plantDormantMonth">
-                            <option value="">-- Select --</option>
-                            <option value="January">January</option>
-                            <option value="February">February</option>
-                            <option value="March">March</option>
-                            <option value="April">April</option>
-                            <option value="May">May</option>
-                            <option value="June">June</option>
-                            <option value="July">July</option>
-                            <option value="August">August</option>
-                            <option value="September">September</option>
-                            <option value="October">October</option>
-                            <option value="November">November</option>
-                            <option value="December">December</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="plantNotes">Notes</label>
-                    <textarea id="plantNotes" placeholder="General care notes..."></textarea>
-                </div>
-                <button class="btn btn-primary btn-small" id="saveMetadataBtn">Save Care Info</button>
             </div>
 
             <!-- Plant Problems section -->
-            <div class="section-header">
-                <h3 class="section-heading">Problems / Concerns</h3>
-                <div class="section-header-actions">
-                    <label class="show-toggle"><input type="checkbox" id="showResolvedPlantProblems"> Show resolved</label>
-                    <button class="btn btn-primary btn-small" id="addPlantProblemBtn">+ Add</button>
+            <div class="detail-acc" id="plantProblemsAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('plantProblemsAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Problems / Concerns</span>
+                    <span class="detail-acc-count" id="plantProblemsAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <label class="show-toggle"><input type="checkbox" id="showResolvedPlantProblems"> Show resolved</label>
+                        <button class="btn btn-primary btn-small" id="addPlantProblemBtn">+ Add</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="plantProblemsContainer"></div>
+                    <p class="empty-state" id="plantProblemsEmptyState"></p>
                 </div>
             </div>
-            <div id="plantProblemsContainer"></div>
-            <p class="empty-state" id="plantProblemsEmptyState"></p>
 
             <!-- Plant Facts section -->
-            <div class="section-header">
-                <h3 class="section-heading">Facts</h3>
-                <button class="btn btn-primary btn-small" id="addPlantFactBtn">+ Add</button>
+            <div class="detail-acc" id="plantFactsAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('plantFactsAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Facts</span>
+                    <span class="detail-acc-count" id="plantFactsAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="addPlantFactBtn">+ Add</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="plantFactsContainer"></div>
+                    <p class="empty-state" id="plantFactsEmptyState"></p>
+                </div>
             </div>
-            <div id="plantFactsContainer"></div>
-            <p class="empty-state" id="plantFactsEmptyState"></p>
 
             <!-- Plant Projects section -->
-            <div class="section-header">
-                <h3 class="section-heading">Quick Task List</h3>
-                <div class="section-header-actions">
-                    <label class="show-toggle"><input type="checkbox" id="showCompletedPlantProjects"> Show completed</label>
-                    <button class="btn btn-primary btn-small" id="addPlantProjectBtn">+ Add</button>
+            <div class="detail-acc" id="plantTasksAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('plantTasksAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Quick Task List</span>
+                    <span class="detail-acc-count" id="plantTasksAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <label class="show-toggle"><input type="checkbox" id="showCompletedPlantProjects"> Show completed</label>
+                        <button class="btn btn-primary btn-small" id="addPlantProjectBtn">+ Add</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="plantProjectsContainer"></div>
+                    <p class="empty-state" id="plantProjectsEmptyState"></p>
                 </div>
             </div>
-            <div id="plantProjectsContainer"></div>
-            <p class="empty-state" id="plantProjectsEmptyState"></p>
 
             <!-- Plant Calendar Events -->
-            <div class="section-header">
-                <h3 class="section-heading">Calendar Events</h3>
-                <div class="section-header-actions">
-                    <div class="calendar-range-picker">
-                        <label>Next</label>
-                        <select id="plantCalendarRangeSelect" class="range-select">
-                            <option value="1">1 mo</option>
-                            <option value="3" selected>3 mo</option>
-                            <option value="6">6 mo</option>
-                            <option value="12">12 mo</option>
-                        </select>
+            <div class="detail-acc" id="plantCalendarAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('plantCalendarAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Calendar Events</span>
+                    <span class="detail-acc-count" id="plantCalendarAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <div class="calendar-range-picker">
+                            <label>Next</label>
+                            <select id="plantCalendarRangeSelect" class="range-select">
+                                <option value="1">1 mo</option>
+                                <option value="3" selected>3 mo</option>
+                                <option value="6">6 mo</option>
+                                <option value="12">12 mo</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary btn-small" id="addPlantCalendarEventBtn">+ Add Event</button>
                     </div>
-                    <button class="btn btn-primary btn-small" id="addPlantCalendarEventBtn">+ Add Event</button>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="plantCalendarEventsContainer"></div>
+                    <p class="empty-state" id="plantCalendarEventsEmptyState"></p>
                 </div>
             </div>
-            <div id="plantCalendarEventsContainer"></div>
-            <p class="empty-state" id="plantCalendarEventsEmptyState"></p>
 
             <!-- Plant Activity History -->
-            <div class="section-header">
-                <h3 class="section-heading">Activity History</h3>
-                <button class="btn btn-primary btn-small" id="logPlantActivityBtn">+ Log Activity</button>
+            <div class="detail-acc" id="plantActivityAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('plantActivityAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Activity History</span>
+                    <span class="detail-acc-count" id="plantActivityAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="logPlantActivityBtn">+ Log Activity</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="plantActivityContainer"></div>
+                    <p class="empty-state" id="plantActivityEmptyState">No activities logged yet.</p>
+                </div>
             </div>
-            <div id="plantActivityContainer"></div>
-            <p class="empty-state" id="plantActivityEmptyState">No activities logged yet.</p>
 
             <!-- Photos -->
-            <div class="section-header">
-                <h3 class="section-heading">Photos</h3>
-                <button class="btn btn-primary btn-small" id="addPlantCameraBtn">+ Camera</button>
-                <button class="btn btn-primary btn-small" id="addPlantGalleryBtn">+ Gallery</button>
-                <button class="btn btn-primary btn-small paste-photo-btn" data-entity="plant">📋 Paste</button>
+            <div class="detail-acc" id="plantPhotosAcc">
+                <div class="detail-acc-header" onclick="toggleDetailAcc('plantPhotosAcc')">
+                    <span class="detail-acc-chevron">&#9658;</span>
+                    <span class="detail-acc-title">Photos</span>
+                    <span class="detail-acc-count" id="plantPhotosAccCount"></span>
+                    <div class="detail-acc-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-primary btn-small" id="addPlantCameraBtn">+ Camera</button>
+                        <button class="btn btn-primary btn-small" id="addPlantGalleryBtn">+ Gallery</button>
+                        <button class="btn btn-primary btn-small paste-photo-btn" data-entity="plant">📋 Paste</button>
+                    </div>
+                </div>
+                <div class="detail-acc-body">
+                    <div id="plantPhotoContainer"></div>
+                    <p class="empty-state" id="plantPhotoEmptyState">No photos yet.</p>
+                </div>
             </div>
-            <div id="plantPhotoContainer"></div>
-            <p class="empty-state" id="plantPhotoEmptyState">No photos yet.</p>
         </section>
 
         <!-- Page: Weeds list -->
@@ -8731,7 +8780,7 @@ export default {
     <script src="js/firebase-config.js?v=350"></script>
     <script src="js/auth.js?v=350"></script>
     <script src="js/zones.js?v=355"></script>
-    <script src="js/plants.js?v=350"></script>
+    <script src="js/plants.js?v=351"></script>
     <script src="js/problems.js?v=389"></script>
     <script src="js/facts.js?v=350"></script>
     <script src="js/projects.js?v=402"></script>

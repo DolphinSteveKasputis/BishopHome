@@ -136,6 +136,8 @@ Each plant is an individual physical instance — 3 azalea bushes = 3 records. P
 
 **Zone reassignment**: Modal picker with full zone hierarchy to move a plant.
 
+**Plant detail page layout**: All sections are collapsible accordions (`.detail-acc`). Plant Care Info is expanded by default; all others start collapsed. Count badges populate after each section loads. Sections: Plant Care Info (no count — it's a form), Problems/Concerns, Facts, Quick Task List, Calendar Events, Activity History, Photos.
+
 **[Shared]**: Facts, Problems, Quick Task List, Activities, Photos, Calendar Events — all available on plant detail.
 
 ### Weeds (`weeds.js`)

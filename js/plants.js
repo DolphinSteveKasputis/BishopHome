@@ -250,19 +250,25 @@ async function loadPlantDetail(plantId) {
         snapshotOriginalMetadata();
 
         // Load problems, facts, projects, calendar events, and activities for this plant
-        loadProblems('plant', doc.id, 'plantProblemsContainer', 'plantProblemsEmptyState');
-        loadFacts('plant', doc.id, 'plantFactsContainer', 'plantFactsEmptyState');
-        loadProjects('plant', doc.id, 'plantProjectsContainer', 'plantProjectsEmptyState');
+        loadProblems('plant', doc.id, 'plantProblemsContainer', 'plantProblemsEmptyState')
+            .then(function() { _setDetailAccCount('plantProblemsAccCount', 'plantProblemsContainer'); });
+        loadFacts('plant', doc.id, 'plantFactsContainer', 'plantFactsEmptyState')
+            .then(function() { _setDetailAccCount('plantFactsAccCount', 'plantFactsContainer'); });
+        loadProjects('plant', doc.id, 'plantProjectsContainer', 'plantProjectsEmptyState')
+            .then(function() { _setDetailAccCount('plantTasksAccCount', 'plantProjectsContainer'); });
         if (typeof loadEventsForTarget === 'function') {
             var plantMonths = parseInt(document.getElementById('plantCalendarRangeSelect').value, 10) || 3;
-            loadEventsForTarget('plant', doc.id, 'plantCalendarEventsContainer', 'plantCalendarEventsEmptyState', plantMonths);
+            loadEventsForTarget('plant', doc.id, 'plantCalendarEventsContainer', 'plantCalendarEventsEmptyState', plantMonths)
+                .then(function() { _setDetailAccCount('plantCalendarAccCount', 'plantCalendarEventsContainer'); });
         }
 
         // Load activity history
-        loadActivities('plant', doc.id, 'plantActivityContainer', 'plantActivityEmptyState');
+        loadActivities('plant', doc.id, 'plantActivityContainer', 'plantActivityEmptyState')
+            .then(function() { _setDetailAccCount('plantActivityAccCount', 'plantActivityContainer'); });
 
         // Load photos
-        loadPhotos('plant', doc.id, 'plantPhotoContainer', 'plantPhotoEmptyState');
+        loadPhotos('plant', doc.id, 'plantPhotoContainer', 'plantPhotoEmptyState')
+            .then(function() { _setDetailAccCount('plantPhotosAccCount', 'plantPhotoContainer'); });
 
     } catch (error) {
         console.error('Error loading plant detail:', error);

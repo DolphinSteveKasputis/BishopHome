@@ -94,9 +94,11 @@ function runSearch(query) {
         { col: 'places',             label: 'Places',               icon: '📍', nameField: 'name',  urlFn: function(id) { return '#place/'           + id; } },
         { col: 'lifeProjects',       label: 'Life Projects',        icon: '✈️', nameField: 'title', urlFn: function(id) { return '#life-project/'    + id; } },
         // ── Thoughts ──
-        { col: 'memories',           label: 'Memories',             icon: '💭', nameField: 'title', urlFn: function(id) { return '#memory-edit/'     + id; } },
-        { col: 'views',              label: 'My Views',             icon: '💬', nameField: 'title', urlFn: function(id) { return '#view/'            + id; } },
-        { col: 'top10lists',         label: 'Top 10 Lists',         icon: '🔟', nameField: 'title', urlFn: function(id) { return '#top10list-edit/'  + id; } },
+        { col: 'memories',           label: 'Memories',             icon: '💭', nameField: 'title',       urlFn: function(id)       { return '#memory-edit/'     + id; } },
+        { col: 'views',              label: 'My Views',             icon: '💬', nameField: 'title',       urlFn: function(id)       { return '#view/'            + id; } },
+        { col: 'top10lists',         label: 'Top 10 Lists',         icon: '🔟', nameField: 'title',       urlFn: function(id)       { return '#top10list-edit/'  + id; } },
+        // ── Activities ──
+        { col: 'activities',         label: 'Activities',           icon: '📋', nameField: 'description', urlFn: function(id, data) { return _activityTargetRoute(data); } },
     ];
 
     // Fetch ALL docs from every collection in parallel.
@@ -179,9 +181,11 @@ function renderSearchGroup(def, matches, nameMap) {
 
         // Main clickable link
         var a = document.createElement('a');
-        a.href        = def.urlFn(item.id);
-        a.className   = 'search-result-name';
-        a.textContent = item.data[def.nameField] || item.data.name || item.data.title || '(Unnamed)';
+        a.href      = def.urlFn(item.id, item.data);
+        a.className = 'search-result-name';
+        var displayText = item.data[def.nameField] || item.data.name || item.data.title || '(Unnamed)';
+        // Truncate long descriptions (activities) to keep results readable
+        a.textContent = displayText.length > 80 ? displayText.substring(0, 80) + '…' : displayText;
         li.appendChild(a);
 
         // Optional secondary hint showing the parent context
@@ -213,7 +217,57 @@ function _searchGetHint(col, data, nameMap) {
         case 'garageThings':       return (nameMap['garageRooms']    || {})[data.roomId]           || '';
         case 'garageSubThings':    return (nameMap['garageThings']   || {})[data.thingId]          || '';
         case 'collectionItems':    return (nameMap['collections']    || {})[data.collectionId]     || '';
-        case 'notebooks':          return '';  // top-level, no parent
+        case 'activities':         return _activityHint(data, nameMap);
         default:                   return '';
+    }
+}
+
+/**
+ * Map an activity's targetType to its parent entity's detail route.
+ * The URL goes to the parent (plant, zone, etc.) since activities have no standalone page.
+ */
+function _activityTargetRoute(data) {
+    var id = data.targetId || '';
+    switch (data.targetType) {
+        case 'plant':             return '#plant/'           + id;
+        case 'zone':              return '#zone/'            + id;
+        case 'weed':              return '#weed/'            + id;
+        case 'chemical':          return '#chemical/'        + id;
+        case 'room':              return '#room/'            + id;
+        case 'thing':             return '#thing/'           + id;
+        case 'subthing':          return '#subthing/'        + id;
+        case 'structure':         return '#structure/'       + id;
+        case 'structurething':    return '#structurething/'  + id;
+        case 'structuresubthing': return '#structuresubthing/' + id;
+        case 'garagething':       return '#garagething/'     + id;
+        case 'garagesubthing':    return '#garagesubthing/'  + id;
+        case 'vehicle':           return '#vehicle/'         + id;
+        case 'place':             return '#place/'           + id;
+        default:                  return '#zones';
+    }
+}
+
+/**
+ * Return the parent entity name as a hint for an activity result.
+ * Looks up the targetId in whichever nameMap collection matches targetType.
+ */
+function _activityHint(data, nameMap) {
+    var id = data.targetId || '';
+    switch (data.targetType) {
+        case 'plant':             return (nameMap['plants']           || {})[id] || '';
+        case 'zone':              return (nameMap['zones']            || {})[id] || '';
+        case 'weed':              return (nameMap['weeds']            || {})[id] || '';
+        case 'chemical':          return (nameMap['chemicals']        || {})[id] || '';
+        case 'room':              return (nameMap['rooms']            || {})[id] || '';
+        case 'thing':             return (nameMap['things']           || {})[id] || '';
+        case 'subthing':          return (nameMap['subThings']        || {})[id] || '';
+        case 'structure':         return (nameMap['structures']       || {})[id] || '';
+        case 'structurething':    return (nameMap['structureThings']  || {})[id] || '';
+        case 'structuresubthing': return (nameMap['structureSubThings']|| {})[id] || '';
+        case 'garagething':       return (nameMap['garageThings']     || {})[id] || '';
+        case 'garagesubthing':    return (nameMap['garageSubThings']  || {})[id] || '';
+        case 'vehicle':           return (nameMap['vehicles']         || {})[id] || '';
+        case 'place':             return (nameMap['places']           || {})[id] || '';
+        default:                  return '';
     }
 }

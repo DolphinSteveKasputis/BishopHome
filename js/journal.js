@@ -2425,10 +2425,22 @@ function openCheckIn() {
     }
 
     // Fire GPS immediately
+    _checkinPickerFetchNearby();
+}
+
+/** Fetch GPS + nearby places. Called on open and by the Retry button. */
+function _checkinPickerFetchNearby() {
+    var statusEl  = document.getElementById('checkInPickerStatus');
+    var resultsEl = document.getElementById('checkInPickerResults');
+
     if (!navigator.geolocation) {
         if (statusEl) statusEl.textContent = 'GPS not available. Search by name above.';
         return;
     }
+
+    if (statusEl) statusEl.textContent = '📍 Getting your location...';
+    if (resultsEl) resultsEl.innerHTML = '';
+
     navigator.geolocation.getCurrentPosition(
         async function(pos) {
             _checkinPickerLat = pos.coords.latitude;
@@ -2442,13 +2454,15 @@ function openCheckIn() {
                     ? 'Nearby places — tap one to check in'
                     : 'No named places found nearby. Try searching by name.';
             } catch (err) {
-                if (statusEl) statusEl.textContent = 'Could not load nearby places. Search by name above.';
+                if (statusEl) statusEl.innerHTML = 'Could not load nearby places. Search by name above. ' +
+                    '<button class="btn btn-secondary btn-small" onclick="_checkinPickerFetchNearby()">Retry</button>';
             }
         },
         function() {
-            if (statusEl) statusEl.textContent = 'Location unavailable. Search by name above.';
+            if (statusEl) statusEl.innerHTML = 'Location unavailable. ' +
+                '<button class="btn btn-secondary btn-small" onclick="_checkinPickerFetchNearby()">Retry</button>';
         },
-        { timeout: 12000, maximumAge: 60000 }
+        { timeout: 12000, maximumAge: 0 }
     );
 }
 

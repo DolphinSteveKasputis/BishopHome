@@ -567,7 +567,7 @@ async function _placesConfirmDelete(placeId) {
 }
 
 // ============================================================
-// Phase 3 — OSM Utilities, Dedup, and LLM Enrichment
+// Phase 3 — Foursquare + Nominatim Utilities, Dedup, LLM Enrichment
 // ============================================================
 
 // Rate-limit guard: Nominatim asks for no more than 1 request/second
@@ -583,79 +583,100 @@ async function _placesNominatimRateLimit() {
     _placesNominatimLastCall = Date.now();
 }
 
+// Cache the Foursquare API key so we don't hit Firestore on every search
+var _placesApiKeyCache    = null;
+var _placesApiKeyCachedAt = 0;
+
+/**
+ * Load the Foursquare API key from Firestore settings (cached for 5 minutes).
+ * Returns the key string, or null if not configured.
+ */
+async function _placesGetFoursquareKey() {
+    var now = Date.now();
+    if (_placesApiKeyCache && (now - _placesApiKeyCachedAt) < 300000) {
+        return _placesApiKeyCache;
+    }
+    try {
+        var doc = await userCol('settings').doc('places').get();
+        _placesApiKeyCache    = (doc.exists && doc.data().foursquareApiKey) || null;
+        _placesApiKeyCachedAt = now;
+        return _placesApiKeyCache;
+    } catch (err) {
+        console.warn('Could not load Foursquare key:', err);
+        return null;
+    }
+}
+
+/**
+ * Map a Foursquare API result item to the standard venue object shape.
+ */
+function _placesMapFsqResult(item) {
+    var loc      = item.location || {};
+    var geo      = (item.geocodes && item.geocodes.main) || {};
+    var cats     = item.categories || [];
+    var category = cats.length > 0 ? cats[0].name : null;
+    var address  = loc.formatted_address || loc.address || null;
+
+    return {
+        name      : item.name || '(unnamed)',
+        address   : address,
+        category  : category,
+        fsqId     : item.fsq_id || null,
+        osmId     : null,
+        lat       : geo.latitude  || null,
+        lng       : geo.longitude || null,
+        existingId: null
+    };
+}
+
 // ============================================================
-// placesNearby — Overpass GPS-based venue search
+// placesNearby — Foursquare GPS-based venue search
 // ============================================================
 
 /**
- * Find named venues within 500m of (lat, lng) using the Overpass API.
- * Deduplicates against existing saved places by osmId.
+ * Find venues within ~500m of (lat, lng) using the Foursquare Places API.
+ * Deduplicates against existing saved places by fsqId.
  *
  * @param {number} lat
  * @param {number} lng
  * @returns {Promise<Array>} Array of venue objects:
- *   { name, address, category, osmId, lat, lng, existingId }
+ *   { name, address, category, fsqId, osmId, lat, lng, existingId }
  *   existingId = Firestore doc ID if already in places, null if new
  */
 async function placesNearby(lat, lng) {
-    var query = '[out:json][timeout:15];(' +
-        'node["name"](around:500,' + lat + ',' + lng + ');' +
-        'way["name"](around:500,' + lat + ',' + lng + ');' +
-        ');out center 30;';
+    var apiKey = await _placesGetFoursquareKey();
+    if (!apiKey) throw new Error('Foursquare API key not configured. Go to Settings → General → Places to add your key.');
 
-    var resp = await fetch('https://overpass-api.de/api/interpreter', {
-        method : 'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body   : query
+    var url = 'https://api.foursquare.com/v3/places/nearby' +
+              '?ll=' + lat + ',' + lng +
+              '&limit=20' +
+              '&fields=fsq_id,name,categories,location,geocodes';
+
+    var resp = await fetch(url, {
+        headers: { 'Authorization': apiKey, 'Accept': 'application/json' }
     });
-    if (!resp.ok) throw new Error('Overpass error: ' + resp.status);
+    if (!resp.ok) throw new Error('Foursquare nearby error: ' + resp.status);
 
-    var data     = await resp.json();
-    var elements = data.elements || [];
+    var data   = await resp.json();
+    var venues = (data.results || []).map(_placesMapFsqResult);
 
-    // Build raw venue list from OSM results
-    var venues = [];
-    elements.forEach(function(el) {
-        var name = el.tags && el.tags.name;
-        if (!name) return;
-
-        var osmId = el.type + '/' + el.id;
-        var vLat  = (el.type === 'node') ? el.lat : (el.center && el.center.lat);
-        var vLng  = (el.type === 'node') ? el.lon : (el.center && el.center.lon);
-
-        // Category: prefer amenity, then shop, leisure, tourism, office
-        var tags     = el.tags || {};
-        var category = tags.amenity || tags.shop || tags.leisure ||
-                       tags.tourism || tags.office || null;
-
-        // Address from OSM addr:* tags
-        var addrParts = [];
-        var street = [tags['addr:housenumber'], tags['addr:street']].filter(Boolean).join(' ');
-        if (street)             addrParts.push(street);
-        if (tags['addr:city'])  addrParts.push(tags['addr:city']);
-        var address = addrParts.join(', ') || null;
-
-        venues.push({ name: name, address: address, category: category,
-                      osmId: osmId, lat: vLat, lng: vLng, existingId: null });
-    });
-
-    // Dedup: check which osmIds are already in places
+    // Dedup: check which fsqIds are already in places
     if (venues.length > 0) {
-        var osmIds    = venues.map(function(v) { return v.osmId; });
-        var chunkSize = 30; // Firestore 'in' limit
+        var fsqIds    = venues.map(function(v) { return v.fsqId; }).filter(Boolean);
+        var chunkSize = 30;
         var existingMap = {};
-        for (var i = 0; i < osmIds.length; i += chunkSize) {
-            var chunk = osmIds.slice(i, i + chunkSize);
+        for (var i = 0; i < fsqIds.length; i += chunkSize) {
+            var chunk = fsqIds.slice(i, i + chunkSize);
             var snap  = await userCol('places')
-                .where('osmId', 'in', chunk)
+                .where('fsqId', 'in', chunk)
                 .where('status', '==', 1)
                 .get();
             snap.forEach(function(doc) {
-                existingMap[doc.data().osmId] = doc.id;
+                existingMap[doc.data().fsqId] = doc.id;
             });
         }
         venues.forEach(function(v) {
-            v.existingId = existingMap[v.osmId] || null;
+            v.existingId = existingMap[v.fsqId] || null;
         });
     }
 
@@ -701,22 +722,19 @@ async function placesGeocodeLocation(locationText) {
 
 /**
  * Search for places by name.
- * Priority: saved places (Firestore) first, then Nominatim text search.
- * When biasLat/biasLng/radiusKm are provided, a viewbox is added to the
- * Nominatim request to prefer results near that location.
+ * Priority: saved places (Firestore) first, then Foursquare text search.
  *
  * @param {string} query       - User-typed search string
- * @param {number} [biasLat]   - Latitude of search center (optional)
- * @param {number} [biasLng]   - Longitude of search center (optional)
- * @param {number} [radiusKm]  - Search radius in km (optional, requires biasLat/biasLng)
+ * @param {number} [biasLat]   - Latitude to bias Foursquare results toward (optional)
+ * @param {number} [biasLng]   - Longitude to bias Foursquare results toward (optional)
  * @returns {Promise<Array>} Merged array of venue objects
  */
-async function placesSearchByName(query, biasLat, biasLng, radiusKm) {
+async function placesSearchByName(query, biasLat, biasLng) {
     query = (query || '').trim();
     if (!query) return [];
 
     var results    = [];
-    var seenOsmIds = {};
+    var seenFsqIds = {};
 
     // 1) Search saved places in Firestore (client-side name filter)
     var snap = await userCol('places').where('status', '==', 1).get();
@@ -728,69 +746,44 @@ async function placesSearchByName(query, biasLat, biasLng, radiusKm) {
                 name      : d.name,
                 address   : d.address   || null,
                 category  : d.category  || null,
+                fsqId     : d.fsqId     || null,
                 osmId     : d.osmId     || null,
                 lat       : d.lat       || null,
                 lng       : d.lng       || null,
                 existingId: doc.id
             });
-            if (d.osmId) seenOsmIds[d.osmId] = true;
+            if (d.fsqId) seenFsqIds[d.fsqId] = true;
         }
     });
 
-    // 2) Nominatim text search for anything not already found
-    //    If a bias location + radius is provided, restrict results to that area
-    //    using Nominatim's viewbox + bounded parameters.
+    // 2) Foursquare text search for anything not already found
     try {
-        await _placesNominatimRateLimit();
-        var url = 'https://nominatim.openstreetmap.org/search?format=json&limit=8&addressdetails=1&q=' +
-                  encodeURIComponent(query);
+        var apiKey = await _placesGetFoursquareKey();
+        if (apiKey) {
+            var url = 'https://api.foursquare.com/v3/places/search' +
+                      '?query=' + encodeURIComponent(query) +
+                      '&limit=8' +
+                      '&fields=fsq_id,name,categories,location,geocodes';
 
-        // Add viewbox bias when coordinates + radius are provided
-        if (biasLat != null && biasLng != null && radiusKm) {
-            // Convert radius (km) to degrees for lat and lng
-            var dLat = radiusKm / 111;
-            var dLng = radiusKm / (111 * Math.cos(biasLat * Math.PI / 180));
-            // Nominatim viewbox format: left,top,right,bottom (lng/lat)
-            var viewbox = (biasLng - dLng).toFixed(6) + ',' +
-                          (biasLat + dLat).toFixed(6) + ',' +
-                          (biasLng + dLng).toFixed(6) + ',' +
-                          (biasLat - dLat).toFixed(6);
-            url += '&viewbox=' + viewbox + '&bounded=1';
-        }
-        var nomResp = await fetch(url, {
-            headers: { 'Accept-Language': 'en', 'User-Agent': 'MyLifeApp/1.0' }
-        });
-        if (nomResp.ok) {
-            var items = await nomResp.json();
-            items.forEach(function(item) {
-                var osmId = item.osm_type + '/' + item.osm_id;
-                if (seenOsmIds[osmId]) return; // already from saved places
-                seenOsmIds[osmId] = true;
+            // Bias toward a known location when provided
+            if (biasLat != null && biasLng != null) {
+                url += '&ll=' + biasLat + ',' + biasLng;
+            }
 
-                // Build short address from Nominatim structured parts
-                var a      = item.address || {};
-                var parts  = [];
-                var street = [a.house_number, a.road || a.pedestrian || a.path].filter(Boolean).join(' ');
-                if (street) parts.push(street);
-                var city = a.city || a.town || a.village || a.suburb || a.hamlet;
-                if (city)   parts.push(city);
-                if (a.state) parts.push(a.state);
-                var address  = parts.join(', ') || item.display_name || null;
-                var category = a.amenity || a.shop || a.leisure || a.tourism || null;
-
-                results.push({
-                    name      : item.name || item.display_name,
-                    address   : address,
-                    category  : category,
-                    osmId     : osmId,
-                    lat       : parseFloat(item.lat) || null,
-                    lng       : parseFloat(item.lon) || null,
-                    existingId: null
-                });
+            var resp = await fetch(url, {
+                headers: { 'Authorization': apiKey, 'Accept': 'application/json' }
             });
+            if (resp.ok) {
+                var data = await resp.json();
+                (data.results || []).forEach(function(item) {
+                    if (seenFsqIds[item.fsq_id]) return; // already from saved places
+                    if (item.fsq_id) seenFsqIds[item.fsq_id] = true;
+                    results.push(_placesMapFsqResult(item));
+                });
+            }
         }
     } catch (err) {
-        console.warn('Nominatim text search error:', err);
+        console.warn('Foursquare text search error:', err);
     }
 
     return results;
@@ -809,15 +802,19 @@ async function placesSearchByName(query, biasLat, biasLng, radiusKm) {
  * @returns {Promise<string>} Firestore doc ID (existing or newly created)
  */
 async function placesSaveNew(venueObj) {
-    // Dedup by osmId (only when osmId is present)
-    if (venueObj.osmId) {
-        var snap = await userCol('places')
+    // Dedup by fsqId (Foursquare) or osmId (legacy) when present
+    if (venueObj.fsqId) {
+        var snapFsq = await userCol('places')
+            .where('fsqId', '==', venueObj.fsqId)
+            .where('status', '==', 1)
+            .get();
+        if (!snapFsq.empty) return snapFsq.docs[0].id;
+    } else if (venueObj.osmId) {
+        var snapOsm = await userCol('places')
             .where('osmId', '==', venueObj.osmId)
             .where('status', '==', 1)
             .get();
-        if (!snap.empty) {
-            return snap.docs[0].id; // reuse existing place
-        }
+        if (!snapOsm.empty) return snapOsm.docs[0].id;
     }
 
     // Create new place doc
@@ -827,6 +824,7 @@ async function placesSaveNew(venueObj) {
         category : venueObj.category || null,
         lat      : venueObj.lat      || null,
         lng      : venueObj.lng      || null,
+        fsqId    : venueObj.fsqId    || null,
         osmId    : venueObj.osmId    || null,
         status   : 1,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()

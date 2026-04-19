@@ -255,6 +255,49 @@ async function loadSettingsGeneralPage() {
     }
 
     loadLlmSettings();
+    loadFoursquareSettings();
+}
+
+/**
+ * Load Foursquare API key from Firestore and populate the input field.
+ */
+async function loadFoursquareSettings() {
+    try {
+        var doc = await userCol('settings').doc('places').get();
+        if (doc.exists && doc.data().foursquareApiKey) {
+            document.getElementById('foursquareApiKey').value = doc.data().foursquareApiKey;
+        }
+    } catch (err) {
+        console.error('Error loading Foursquare settings:', err);
+    }
+}
+
+/**
+ * Save Foursquare API key to Firestore.
+ */
+async function saveFoursquareKey() {
+    var key     = document.getElementById('foursquareApiKey').value.trim();
+    var saveBtn = document.getElementById('foursquareSaveBtn');
+    var savedMsg = document.getElementById('foursquareSavedMsg');
+
+    saveBtn.disabled    = true;
+    saveBtn.textContent = 'Saving…';
+    savedMsg.classList.add('hidden');
+
+    try {
+        await userCol('settings').doc('places').set(
+            { foursquareApiKey: key, updatedAt: firebase.firestore.FieldValue.serverTimestamp() },
+            { merge: true }
+        );
+        savedMsg.classList.remove('hidden');
+        setTimeout(function() { savedMsg.classList.add('hidden'); }, 3000);
+    } catch (err) {
+        console.error('Error saving Foursquare key:', err);
+        alert('Error saving key — please try again.');
+    }
+
+    saveBtn.disabled    = false;
+    saveBtn.textContent = 'Save Key';
 }
 
 /**
@@ -1064,9 +1107,17 @@ document.getElementById('settingsSaveBtn').addEventListener('click', saveSetting
 document.getElementById('backupBtn').addEventListener('click', runBackup);
 document.getElementById('llmSaveBtn').addEventListener('click', saveLlmSettings);
 document.getElementById('llmProvider').addEventListener('change', updateLlmModelVisibility);
-document.getElementById('osmTestBtn').addEventListener('click', testOsmApi);
-document.getElementById('osmHelpBtn').addEventListener('click', function() {
-    openModal('osmHelpModal');
+document.getElementById('foursquareSaveBtn').addEventListener('click', saveFoursquareKey);
+document.getElementById('foursquareTestBtn').addEventListener('click', testFoursquareKey);
+document.getElementById('foursquareApiKeyToggle').addEventListener('click', function() {
+    var input = document.getElementById('foursquareApiKey');
+    if (input.type === 'password') {
+        input.type       = 'text';
+        this.textContent = 'Hide';
+    } else {
+        input.type       = 'password';
+        this.textContent = 'Show';
+    }
 });
 document.getElementById('llmHelpBtn').addEventListener('click', openLlmHelp);
 document.getElementById('llmTestBtn').addEventListener('click', testLlmKey);

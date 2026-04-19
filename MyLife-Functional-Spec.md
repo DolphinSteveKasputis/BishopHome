@@ -898,7 +898,7 @@ Tracks major life events — trips, milestones, goals, relationships.
 
 **JS file**: `js/places.js`
 
-Tracks real-world places the user visits. Places tie together journal check-ins, activities, and a searchable location history. Uses OpenStreetMap (OSM) data for discovery and geocoding — no paid API key required.
+Tracks real-world places the user visits. Places tie together journal check-ins, activities, and a searchable location history. Uses **Foursquare Places API v3** for nearby discovery and text search; Nominatim (OpenStreetMap) is retained only for reverse geocoding (lat/lng → address). A Foursquare API key is required and stored in `userCol('settings').doc('places')` under the field `foursquareApiKey`.
 
 ### Places List (`#places`)
 - Shows all saved places as cards (name, address/city, category)
@@ -916,23 +916,24 @@ Tracks real-world places the user visits. Places tie together journal check-ins,
 
 ### Add / Edit Place
 - Modal with fields: Name, Address, City, State, Zip, Category, Notes
-- **GPS capture**: "Use My Location" button calls `navigator.geolocation.getCurrentPosition`, then reverse-geocodes via Nominatim to auto-fill Name/Address/City/State/Zip
-- **Search**: Text search field queries OSM Nominatim for matching venues; results shown in dropdown; selecting auto-fills all fields including `lat`/`lng`/`osmId`
+- **GPS capture**: "Use My Location" button calls `navigator.geolocation.getCurrentPosition`, then reverse-geocodes via Nominatim to auto-fill address
+- **Search**: Text search field queries saved places (Firestore) first, then Foursquare `places/search`; results shown in dropdown; selecting auto-fills all fields including `lat`/`lng`/`fsqId`
 
 ### Check-In Flow
 1. User taps "📍 Check In" (QuickLog or SecondBrain)
-2. **Check-in form**: Shows nearby venues (via OSM Overpass API within 500m radius) or search results
+2. **Check-in form**: Shows nearby venues (via Foursquare `places/nearby`) or search results
 3. User selects a venue
 4. Form pre-fills as a journal entry with `isCheckin: true` and the venue pre-attached
 5. User edits entry text (optional) and taps Save
 6. Saves a `journalEntries` doc with `placeIds: [placeId]`, `isCheckin: true`
-7. If the place wasn't already in Firestore, `placesSaveNew()` creates it first (dedup by `osmId` if available)
+7. If the place wasn't already in Firestore, `placesSaveNew()` creates it first (dedup by `fsqId` if available)
 
-### OSM Integration
-- **Nominatim** (text search + reverse geocode): `https://nominatim.openstreetmap.org/search` and `/reverse`
-- **Overpass API** (nearby venues): Queries nodes within radius; returns name, lat, lng, address tags
-- Both endpoints are free, no API key needed; rate-limited (max 1 req/sec)
-- Results shown in a dropdown; user selects to populate place fields
+### Foursquare Integration
+- **Nearby search** (`placesNearby`): `GET /v3/places/nearby?ll=lat,lng&limit=20` — returns venues sorted by distance
+- **Text search** (`placesSearchByName`): `GET /v3/places/search?query=...&ll=lat,lng&limit=8` — `ll` bias optional
+- Auth header: `Authorization: <apiKey>` (no Bearer prefix)
+- Key loaded from `userCol('settings').doc('places').foursquareApiKey`; cached in memory for 5 minutes
+- **Nominatim** (reverse geocode only): `https://nominatim.openstreetmap.org/reverse` — converts lat/lng to address; rate-limited to 1 req/sec
 
 ### LLM Enrichment (`placesEnrichWithLLM()`)
 - Non-blocking background enrichment after a new place is saved
@@ -941,13 +942,13 @@ Tracks real-world places the user visits. Places tie together journal check-ins,
 - Silent failure — no UI feedback if LLM is not configured or enrichment fails
 
 ### Deduplication
-- Before creating a new place, `placesSaveNew()` checks if any existing place has the same `osmId` (if provided)
+- Before creating a new place, `placesSaveNew()` checks `fsqId` (Foursquare-sourced) or `osmId` (legacy) for a match
 - If a match is found, returns the existing place's ID without creating a duplicate
-- Places without `osmId` (manually entered) are never auto-deduped
+- Manually-entered places (no `fsqId` or `osmId`) are never auto-deduped
 
 ### Firestore
 - **Collection**: `places`
-- **Key fields**: `name`, `address`, `city`, `state`, `zip`, `country`, `lat`, `lng`, `osmId?`, `category?`, `notes`, `status` (1=active, 0=soft-deleted), `profilePhotoData?`, `createdAt`
+- **Key fields**: `name`, `address`, `lat`, `lng`, `fsqId?`, `osmId?` (legacy), `category?`, `status` (1=active, 0=soft-deleted), `createdAt`
 - **Soft delete**: `status: 0` (never hard-deleted)
 - **No `orderBy`** in queries — avoids composite index requirement; results sorted client-side
 
@@ -1174,6 +1175,10 @@ LLM is configured per-user in `userCol('settings').doc('llm')`:
 - `apiKey`: user's personal API key (stored behind auth, not in localStorage)
 - `model`: optional override (defaults: `gpt-4o-mini` for OpenAI, `grok-3` for xAI)
 
+Foursquare Places API key stored in `userCol('settings').doc('places')`:
+- `foursquareApiKey`: API key entered by user in Settings → General → Places (Foursquare) card
+- Saved/loaded with the same pattern as the LLM key; a Test button verifies the key with a live NYC coffee search
+
 #### Backup & Restore
 Two separate backup files — **data** (all Firestore collections) and **photos** (Base64 image data from the `photos` collection).
 
@@ -1334,7 +1339,7 @@ var PHOTO_CONTAINERS = { /* ... all entity types ... */ };
 - Notes textarea
 - Chemical multi-select: checkbox list of all chemicals, supports selecting multiple
 - "Use Saved Action" dropdown: pre-fills description and chemical selection
-- **Place (optional)**: Search field to attach a place to the activity. Typing opens a dropdown of matching places (via Nominatim + saved places). Selecting shows a chip with a clear button. If the place doesn't exist in Firestore yet, it is auto-created via `placesSaveNew()` when the activity is saved. Saved place name shown as a tappable link in the activity list row.
+- **Place (optional)**: Search field to attach a place to the activity. Typing opens a dropdown of matching places (saved places first, then Foursquare text search). Selecting shows a chip with a clear button. If the place doesn't exist in Firestore yet, it is auto-created via `placesSaveNew()` when the activity is saved. Saved place name shown as a tappable link in the activity list row.
 
 **Activity list**: Compact rows with date + description + Edit button. Edit modal shows full details (read-only) plus Save as Action and Delete.
 
@@ -1662,7 +1667,7 @@ All collections live under `/users/{uid}/`. Every module uses `userCol('collecti
 
 | Collection | Key Fields |
 |------------|------------|
-| `places` | name, address, city, state, zip, country, lat, lng, osmId?, category?, notes, status (1=active/0=deleted), profilePhotoData?, createdAt |
+| `places` | name, address, lat, lng, fsqId?, osmId? (legacy), category?, status (1=active/0=deleted), createdAt |
 
 ### Settings
 

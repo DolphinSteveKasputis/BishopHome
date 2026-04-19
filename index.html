@@ -776,18 +776,27 @@
                 </div>
             </div>
 
-            <!-- ===== OpenStreetMap Places ===== -->
+            <!-- ===== Foursquare Places ===== -->
             <div class="settings-card">
-                <h3 class="settings-section-title">Places (OpenStreetMap)</h3>
+                <h3 class="settings-section-title">Places (Foursquare)</h3>
                 <p class="settings-section-desc">
-                    Nearby place lookup uses <strong>OpenStreetMap</strong> — a free, open-source map database used by millions of apps worldwide.
-                    No API key or account required.
+                    Nearby place lookup uses <strong>Foursquare Places API</strong>.
+                    Get a free API key at <a href="https://foursquare.com/developer" target="_blank">foursquare.com/developer</a>
+                    and paste it below.
                 </p>
-                <div class="settings-save-row">
-                    <button class="btn btn-secondary" id="osmTestBtn">Test Connection</button>
-                    <button class="btn btn-secondary btn-sm" id="osmHelpBtn">What is this?</button>
+                <div class="form-group">
+                    <label for="foursquareApiKey">API Key</label>
+                    <div class="api-key-row">
+                        <input type="password" id="foursquareApiKey" placeholder="Paste your Foursquare API key here" class="api-key-input">
+                        <button type="button" class="btn btn-secondary btn-sm" id="foursquareApiKeyToggle">Show</button>
+                    </div>
                 </div>
-                <div class="hidden settings-test-result" id="osmTestResult"></div>
+                <div class="settings-save-row">
+                    <button class="btn btn-primary" id="foursquareSaveBtn">Save Key</button>
+                    <button class="btn btn-secondary" id="foursquareTestBtn">Test</button>
+                    <span class="settings-saved-msg hidden" id="foursquareSavedMsg">&#10003; Saved</span>
+                </div>
+                <div class="hidden settings-test-result" id="foursquareTestResult"></div>
             </div>
 
             <!-- ===== Change Password Link ===== -->
@@ -8211,7 +8220,7 @@
     <script src="js/weeds.js?v=351"></script>
     <script src="js/calendar.js?v=352"></script>
     <script src="js/gps.js?v=350"></script>
-    <script src="js/settings.js?v=473"></script>
+    <script src="js/settings.js?v=474"></script>
     <script src="js/devnotes.js?v=376"></script>
     <script src="js/house.js?v=405"></script>
     <script src="js/floorplan.js?v=398"></script>
@@ -8235,7 +8244,7 @@
     <script src="js/chat.js?v=350"></script>
     <script src="js/secondbrain.js?v=351"></script>
     <script src="js/sbissues.js?v=350"></script>
-    <script src="js/places.js?v=350"></script>
+    <script src="js/places.js?v=351"></script>
     <script src="js/thoughts.js?v=465"></script>
     <script src="js/top10lists.js?v=465"></script>
     <script src="js/memories.js?v=471"></script>

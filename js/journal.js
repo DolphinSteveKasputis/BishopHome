@@ -313,15 +313,14 @@ function _journalWireToolbar() {
         };
     }
 
-    // "Check-Ins Only" toggle — hides non-check-in journal entries
+    // "Check-Ins Only" toggle — reloads feed filtered to check-in entries only
     var checkinsOnlyChk = document.getElementById('journalCheckinsOnly');
     if (checkinsOnlyChk) {
         checkinsOnlyChk.checked = _journalCheckinsOnly;
         checkinsOnlyChk.onchange = function() {
             _journalCheckinsOnly = this.checked;
             localStorage.setItem('bishop_journal_checkinsOnly', _journalCheckinsOnly ? 'true' : 'false');
-            var feedEl = document.getElementById('journalFeed');
-            if (feedEl) feedEl.classList.toggle('journal-feed--checkins-only', _journalCheckinsOnly);
+            loadJournalData();
         };
     }
 
@@ -604,10 +603,22 @@ async function loadJournalData() {
             await Promise.all(placeFetches);
         }
 
-        // Apply category filter — narrows feed to only that tracking category
+        // Apply JS filters — each removes non-matching items and drops empty date groups
         var filteredGrouped = grouped;
+
+        if (_journalCheckinsOnly) {
+            filteredGrouped = filteredGrouped.map(function(group) {
+                return {
+                    date: group.date,
+                    items: group.items.filter(function(item) {
+                        return item.type === 'entry' && item.data.isCheckin;
+                    })
+                };
+            }).filter(function(group) { return group.items.length > 0; });
+        }
+
         if (_journalCategoryFilter) {
-            filteredGrouped = grouped.map(function(group) {
+            filteredGrouped = filteredGrouped.map(function(group) {
                 return {
                     date: group.date,
                     items: group.items.filter(function(item) {
@@ -674,9 +685,6 @@ function renderJournalFeed(groupedData, categoryFilter) {
     });
 
     feedEl.innerHTML = html;
-
-    // Apply the "check-ins only" filter
-    feedEl.classList.toggle('journal-feed--checkins-only', _journalCheckinsOnly);
 
     // Apply the "show event notes" toggle state
     if (!_journalShowEventNotes) {

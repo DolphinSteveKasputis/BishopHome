@@ -3873,6 +3873,24 @@ button {
     color: #888;
 }
 
+/* Journal toggle row */
+.search-journal-toggle {
+    padding: 0 0 14px;
+}
+.search-journal-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    color: #444;
+    cursor: pointer;
+    user-select: none;
+}
+.search-journal-hint {
+    color: #999;
+    font-size: 0.8rem;
+}
+
 /* ---------- Checklists (NF-5) ---------- */
 
 /* ── Active Run Card ─────────────────────────────── */

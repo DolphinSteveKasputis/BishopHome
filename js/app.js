@@ -425,6 +425,9 @@ function handleRoute() {
     } else if (page === 'journal') {
         showPage('journal');
         loadJournalPage();
+    } else if (page === 'journal-entry' && id) {
+        showPage('journal-entry');
+        openEditJournalEntry(id);
     } else if (page === 'journal-entry') {
         showPage('journal-entry');
         // Form state is managed by openAddJournalEntry() or openEditJournalEntry().

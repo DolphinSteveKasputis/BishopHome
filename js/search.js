@@ -101,6 +101,8 @@ function runSearch(query) {
         { col: 'activities',         label: 'Activities',           icon: '📋', nameField: 'description', urlFn: function(id, data) { return _activityTargetRoute(data); } },
     ];
 
+    var includeJournal = !!(document.getElementById('searchIncludeJournal') || {}).checked;
+
     // Fetch ALL docs from every collection in parallel.
     // We load everything (not just matches) so we can build cross-reference
     // name maps — e.g. show which zone a plant lives in.
@@ -114,7 +116,18 @@ function runSearch(query) {
         });
     });
 
-    Promise.all(promises).then(function (loaded) {
+    // Optionally fetch journal entries separately (body-text search, heavier)
+    var journalPromise = includeJournal
+        ? userCol('journalEntries').get().then(function(snap) {
+            var all = [];
+            snap.forEach(function(doc) { all.push({ id: doc.id, data: doc.data() }); });
+            return all;
+          })
+        : Promise.resolve(null);
+
+    Promise.all([Promise.all(promises), journalPromise]).then(function (both) {
+        var loaded       = both[0];
+        var journalDocs  = both[1]; // null when toggle off
 
         // Build name maps keyed by collection → { docId: name }
         // Used to add helpful hints under each result (e.g. zone name for a plant)
@@ -141,6 +154,17 @@ function runSearch(query) {
             resultsEl.appendChild(renderSearchGroup(g.def, matches, nameMap));
         });
 
+        // Journal entries — body-text search with excerpt display
+        if (journalDocs) {
+            var journalMatches = journalDocs.filter(function(item) {
+                return (item.data.entryText || '').toLowerCase().indexOf(q) !== -1;
+            });
+            if (journalMatches.length > 0) {
+                totalFound += journalMatches.length;
+                resultsEl.appendChild(renderJournalGroup(journalMatches, q));
+            }
+        }
+
         if (totalFound === 0) {
             emptyEl.textContent = 'No results found for "' + escapeHtml(query) + '".';
             emptyEl.classList.remove('hidden');
@@ -152,6 +176,69 @@ function runSearch(query) {
         emptyEl.textContent = 'Search error — please try again.';
         emptyEl.classList.remove('hidden');
     });
+}
+
+/**
+ * Build a result group for journal entries.
+ * Displays a date + excerpt centered on the match instead of a name.
+ */
+function renderJournalGroup(matches, q) {
+    var section = document.createElement('div');
+    section.className = 'search-group';
+
+    var heading = document.createElement('h3');
+    heading.className = 'search-group-heading';
+    heading.textContent = '📓 Journal Entries (' + matches.length + ')';
+    section.appendChild(heading);
+
+    var list = document.createElement('ul');
+    list.className = 'search-group-list';
+
+    matches.forEach(function(item) {
+        var li  = document.createElement('li');
+        var a   = document.createElement('a');
+        a.href      = '#journal-entry/' + item.id;
+        a.className = 'search-result-name';
+        // Show the date as the link text, excerpt below as the hint
+        var dateStr = item.data.date || '';
+        a.textContent = dateStr ? _formatJournalDate(dateStr) : '(No date)';
+        li.appendChild(a);
+
+        var excerpt = _journalExcerpt(item.data.entryText || '', q);
+        if (excerpt) {
+            var span = document.createElement('span');
+            span.className   = 'search-result-hint';
+            span.textContent = excerpt;
+            li.appendChild(span);
+        }
+
+        list.appendChild(li);
+    });
+
+    section.appendChild(list);
+    return section;
+}
+
+/** Format a YYYY-MM-DD date string to "Mon D, YYYY" for display. */
+function _formatJournalDate(dateStr) {
+    var parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    var d = new Date(parts[0], parseInt(parts[1], 10) - 1, parts[2]);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+/**
+ * Extract ~120 chars from text centered around the first match of query.
+ * Adds ellipsis where text is trimmed.
+ */
+function _journalExcerpt(text, query) {
+    if (!text) return '';
+    var lc  = text.toLowerCase();
+    var idx = lc.indexOf(query.toLowerCase());
+    if (idx === -1) return text.length > 120 ? text.substring(0, 120) + '…' : text;
+    var start   = Math.max(0, idx - 50);
+    var end     = Math.min(text.length, idx + query.length + 70);
+    return (start > 0 ? '…' : '') + text.substring(start, end) + (end < text.length ? '…' : '');
 }
 
 /**

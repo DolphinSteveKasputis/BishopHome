@@ -52,6 +52,9 @@ const YARD_PAGES  = ['main', 'home', 'zones', 'zone', 'plant', 'weeds', 'weed', 
 // that inherits the nav context that was active when the user clicked the Checklists link.
 const THOUGHTS_PAGES = ['thoughts', 'top10lists', 'top10list-create', 'top10list-edit'];
 
+// Settings pages — hide all section navbars (yard/house/life/thoughts)
+const SETTINGS_PAGES = ['settings', 'settings-general', 'settings-contact-lists', 'changepassword', 'backup', 'devnotes', 'sb-issues'];
+
 const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'journal-categories', 'people', 'contacts', 'person', 'contact',
                      'notes', 'notebook', 'note',
                      'health', 'health-visits', 'health-visit', 'health-visit-step2',
@@ -130,15 +133,18 @@ function showPage(page) {
     if (targetPage) targetPage.classList.remove('hidden');
 
     // Update nav context (shared pages keep the current context)
+    var isSettingsPage = SETTINGS_PAGES.indexOf(page) !== -1;
     if (HOUSE_PAGES.indexOf(page) !== -1)          currentNavContext = 'house';
     else if (YARD_PAGES.indexOf(page) !== -1)      currentNavContext = 'yard';
     else if (LIFE_PAGES.indexOf(page) !== -1)      currentNavContext = 'life';
     else if (THOUGHTS_PAGES.indexOf(page) !== -1)  currentNavContext = 'thoughts';
 
     // Toggle yard / house / life / thoughts nav bars (desktop + mobile)
-    var isHouse    = currentNavContext === 'house';
-    var isLife     = currentNavContext === 'life';
-    var isThoughts = currentNavContext === 'thoughts';
+    // Settings pages hide all section navbars entirely.
+    var isHouse    = !isSettingsPage && currentNavContext === 'house';
+    var isLife     = !isSettingsPage && currentNavContext === 'life';
+    var isThoughts = !isSettingsPage && currentNavContext === 'thoughts';
+    var isYard     = !isSettingsPage && currentNavContext === 'yard';
     var yardNavEl           = document.getElementById('yardNav');
     var houseNavEl          = document.getElementById('houseNav');
     var lifeNavEl           = document.getElementById('lifeNav');
@@ -147,13 +153,13 @@ function showPage(page) {
     var mobileHouseNavEl    = document.getElementById('mobileNavHouse');
     var mobileLifeNavEl     = document.getElementById('mobileNavLife');
     var mobileThoughtsNavEl = document.getElementById('mobileNavThoughts');
-    if (yardNavEl)           yardNavEl.classList.toggle('hidden',  isHouse || isLife || isThoughts);
-    if (houseNavEl)          houseNavEl.classList.toggle('hidden', !isHouse || isLife || isThoughts);
-    if (lifeNavEl)           lifeNavEl.classList.toggle('hidden',  !isLife  || isThoughts);
+    if (yardNavEl)           yardNavEl.classList.toggle('hidden',  !isYard);
+    if (houseNavEl)          houseNavEl.classList.toggle('hidden', !isHouse);
+    if (lifeNavEl)           lifeNavEl.classList.toggle('hidden',  !isLife);
     if (thoughtsNavEl)       thoughtsNavEl.classList.toggle('hidden', !isThoughts);
-    if (mobileYardNavEl)     mobileYardNavEl.classList.toggle('hidden',  isHouse || isLife || isThoughts);
-    if (mobileHouseNavEl)    mobileHouseNavEl.classList.toggle('hidden', !isHouse || isLife || isThoughts);
-    if (mobileLifeNavEl)     mobileLifeNavEl.classList.toggle('hidden',  !isLife  || isThoughts);
+    if (mobileYardNavEl)     mobileYardNavEl.classList.toggle('hidden',  !isYard);
+    if (mobileHouseNavEl)    mobileHouseNavEl.classList.toggle('hidden', !isHouse);
+    if (mobileLifeNavEl)     mobileLifeNavEl.classList.toggle('hidden',  !isLife);
     if (mobileThoughtsNavEl) mobileThoughtsNavEl.classList.toggle('hidden', !isThoughts);
 
     // Determine which nav link should be highlighted

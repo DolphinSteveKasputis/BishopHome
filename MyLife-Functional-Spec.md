@@ -1040,19 +1040,21 @@ Rich project management for the Life section — supports day-by-day itineraries
 
 ## Part 10: Thoughts
 
-**JS files**: `js/thoughts.js`, `js/top10lists.js`, `js/memories.js`
-**Routes**: `#thoughts`, `#top10lists`, `#top10list-create`, `#top10list-edit/:id`, `#memories`, `#memory-create`, `#memory-edit/:id`
-**Nav context**: `THOUGHTS_PAGES` (amber tile on main landing; thoughts-specific nav bar with no links)
-**Firestore**: `top10lists`, `top10categories`, `memories`, `memoryLinks`, `memoryTags` collections; sort pref + seed flag in `userCol('settings').doc('thoughts')`
+**JS files**: `js/thoughts.js`, `js/top10lists.js`, `js/memories.js`, `js/views.js`
+**Routes**: `#thoughts`, `#top10lists`, `#top10list-create`, `#top10list-edit/:id`, `#memories`, `#memory-create`, `#memory-edit/:id`, `#views`, `#view/:id`, `#view-history/:viewId/:historyId`, `#views-categories`
+**Nav context**: `THOUGHTS_PAGES` (amber tile on main landing; thoughts-specific nav bar with Top 10 Lists / Memories / My Views links)
+**Firestore**: `top10lists`, `top10categories`, `memories`, `memoryLinks`, `memoryTags`, `views`, `viewCategories` collections; sort pref + seed flag in `userCol('settings').doc('thoughts')`
 
 ### Main Landing Tile (`#main`)
 - Thoughts card appears as the 4th tile on the main landing page (2×2 grid with Yard / House / Life)
 - Amber gradient (`landing-tile--thoughts`); navigates to `#thoughts`
 
 ### Thoughts Landing Page (`#thoughts`)
-- Shows a grid of feature cards: Top 10 Lists and Memories
+- Shows a grid of feature cards: Top 10 Lists, Memories, and My Views
 - **Top 10 Lists (x)** tile: displays the live count of created lists; navigates to `#top10lists`
 - **Memories (x)** tile: displays the live count of memories; amber gradient; navigates to `#memories`
+- **My Views (x)** tile: displays the live count of views; teal gradient (`landing-tile--views`); navigates to `#views`
+- thoughtsNav bar shows on all Thoughts pages: Top 10 Lists / Memories / My Views links
 - Breadcrumb: _(none — top-level page)_
 
 ### Top 10 Lists Page (`#top10lists`)
@@ -1192,6 +1194,65 @@ Both routes share the `page-top10list-edit` HTML section.
 |---|---|---|
 | `name` | string | Tag name |
 | `createdAt` | timestamp | |
+
+---
+
+## Part 10c: My Views
+
+**JS file**: `js/views.js`
+**Routes**: `#views`, `#view/:id`, `#view/new`, `#view-history/:viewId/:historyId`, `#views-categories`
+**Firestore**: `views` collection; `views/{id}/history` subcollection; `viewCategories` collection with `subcategories` subcollection per major category
+
+A personal viewpoint journal — record, edit, and historically track opinions and stances on any subject.
+
+### Category System
+- Two-level hierarchy: **Major Category** → **Subcategory**
+- 5 seeded major categories: Politics & Society, Personal Beliefs, Life & Family, Practical, Other (with named subcategories under each)
+- Every major category always has a **General** subcategory (isDefault:true, order:0, protected from deletion)
+- Seeding runs once on first `#views` load; subsequent visits skip seeding if categories already exist
+- Category management page at `#views-categories` (stub — not yet built)
+
+### Views List Page (`#views`)
+- Header: "My Views" + "+ New View" button
+- Search bar: filters by title and short version text; collapses non-matching accordions
+- **Two-level accordion**: major categories are outer accordions; subcategories are inner accordions
+  - Each shows view count in parens; empty categories/subcategories are hidden
+  - All accordions collapsed by default; search auto-expands matching ones
+- **View cards** inside sub-accordions: title, date (currentDate), short version preview, history badge (if `historyCount > 0`)
+- Footer: "Manage Categories" link → `#views-categories`
+- Breadcrumb: Thoughts › My Views
+
+### New View Page (`#view/new`)
+- Fields: **Title** (required), **Major Category** (required), **Subcategory** (defaults to General when major selected), **Short Version** (optional, 500-char cap with live counter), **Long Version** (disabled until both title and major category are filled)
+- "Create View" button → writes doc to `views` collection → navigates to `#view/{id}`
+- Breadcrumb: Thoughts › My Views › New View
+
+### View Detail Page (`#view/:id`)
+- All fields editable in-place; each has its own Save button
+- **Title**: inline input + Save button; saving also updates breadcrumb label
+- **Category row**: Major Category + Subcategory dropdowns; changing either auto-saves to Firestore
+- **"I've Changed My View"** button (stub — enabled in Clump C)
+- **Delete View** button: confirms then batch-deletes `history` subcollection + view doc → navigates to `#views`
+- **Short Version**: textarea (500-char cap, live counter) + Save button
+- **Long Version**: large textarea (`min-height: 260px`) + Save button; also auto-saves on blur if value changed since last save; shows "Current since [date]" label
+- **Links section**: list of `{label, url}` pairs stored in `urls[]` array on the view doc; Add/Edit/Delete; saved to Firestore immediately
+- **Previous Views section**: stub showing "No previous views yet." (built in Clump C)
+- Breadcrumb: Thoughts › My Views › [title]
+
+### Firestore Data Model
+| Field | Type | Notes |
+|---|---|---|
+| `title` | string | global — never versioned |
+| `shortVersion` | string | 500-char cap |
+| `longVersion` | string | auto-saves on blur |
+| `urls` | array of {label, url} | links, not versioned |
+| `categoryId` | string | major category doc ID |
+| `subcategoryId` | string | subcategory doc ID |
+| `historyCount` | number | incremented on "I've Changed My View" |
+| `currentDate` | timestamp | set on create; updated on "I've Changed My View" |
+| `createdAt` / `updatedAt` | timestamp | standard |
+
+History subcollection (`views/{id}/history`): built in Clump C.
 
 ---
 

@@ -10649,3 +10649,204 @@ a.health-chip--link:hover { filter: brightness(0.93); }
     .views-card-header { flex-wrap: wrap; }
     .views-card-date { font-size: 0.75rem; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   View Detail Page  (#view/:id  and  #view/new)
+   ══════════════════════════════════════════════════════════════ */
+
+.view-detail-container {
+    max-width: 760px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-bottom: 40px;
+}
+
+/* ── New-view heading ── */
+.view-new-heading {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 4px;
+}
+
+/* ── Field group: label + single input (used on new page) ── */
+.view-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+}
+
+/* ── Label text ── */
+.view-field-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #374151;
+}
+
+/* ── Required asterisk ── */
+.view-required {
+    color: #dc2626;
+    margin-left: 2px;
+}
+
+/* ── Category row: two selects side by side ── */
+.view-category-row {
+    display: flex;
+    gap: 16px;
+}
+@media (max-width: 480px) {
+    .view-category-row { flex-direction: column; gap: 12px; }
+}
+
+/* ── Label + counter/hint row ── */
+.view-field-label-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+/* ── Char counter "X / 500" ── */
+.view-char-counter {
+    font-size: 0.78rem;
+    color: #9ca3af;
+    white-space: nowrap;
+}
+
+/* ── Hint text (e.g. "Enter title & category first") ── */
+.view-field-hint {
+    font-size: 0.78rem;
+    color: #9ca3af;
+    font-style: italic;
+}
+
+/* ── Taller textarea for long version ── */
+.view-long-textarea {
+    min-height: 260px;
+    resize: vertical;
+}
+
+/* ── Buttons row on new-view page ── */
+.view-create-actions {
+    display: flex;
+    gap: 10px;
+    padding-top: 4px;
+}
+
+/* ══ Existing view detail ══ */
+
+/* ── Title row: wide input + Save button inline ── */
+.view-title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.view-title-input {
+    flex: 1;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+/* ── "I've Changed My View" + Delete row ── */
+.view-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* ── Larger section block (short, long, links, history) ── */
+.view-field-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border-top: 1px solid #e5e7eb;
+    padding-top: 16px;
+}
+
+/* ── "Current since …" date label ── */
+.view-current-date {
+    font-size: 0.78rem;
+    color: #6b7280;
+    white-space: nowrap;
+}
+
+/* ── Per-section Save button ── */
+.view-save-btn {
+    align-self: flex-start;
+}
+
+/* ── "+ Add Link" button ── */
+.view-add-link-btn {
+    align-self: flex-start;
+}
+
+/* ── A single saved URL row ── */
+.view-url-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid #f3f4f6;
+}
+.view-url-row:last-child {
+    border-bottom: none;
+}
+
+/* ── URL anchor link ── */
+.view-url-link {
+    flex: 1;
+    font-size: 0.875rem;
+    color: #0d9488;
+    text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.view-url-link:hover {
+    text-decoration: underline;
+}
+
+/* ── Edit / Delete icon buttons on URL rows ── */
+.view-url-btn {
+    background: none;
+    border: none;
+    color: #6b7280;
+    font-size: 1rem;
+    padding: 2px 6px;
+    cursor: pointer;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+.view-url-btn:hover {
+    background: #f3f4f6;
+    color: #111827;
+}
+
+/* ── Inline URL edit form ── */
+.view-url-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    margin-bottom: 4px;
+}
+.view-url-form-btns {
+    display: flex;
+    gap: 8px;
+}
+
+/* ── Empty state for history list ── */
+.view-history-empty {
+    font-size: 0.875rem;
+    color: #9ca3af;
+    font-style: italic;
+    margin: 0;
+}

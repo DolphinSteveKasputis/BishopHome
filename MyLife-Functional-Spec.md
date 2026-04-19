@@ -1231,13 +1231,27 @@ A personal viewpoint journal — record, edit, and historically track opinions a
 - All fields editable in-place; each has its own Save button
 - **Title**: inline input + Save button; saving also updates breadcrumb label
 - **Category row**: Major Category + Subcategory dropdowns; changing either auto-saves to Firestore
-- **"I've Changed My View"** button (stub — enabled in Clump C)
+- **"I've Changed My View"** button: enabled when `currentDate` is NOT today; disabled (with tooltip) when it is today (one archive per calendar day)
 - **Delete View** button: confirms then batch-deletes `history` subcollection + view doc → navigates to `#views`
 - **Short Version**: textarea (500-char cap, live counter) + Save button
 - **Long Version**: large textarea (`min-height: 260px`) + Save button; also auto-saves on blur if value changed since last save; shows "Current since [date]" label
 - **Links section**: list of `{label, url}` pairs stored in `urls[]` array on the view doc; Add/Edit/Delete; saved to Firestore immediately
-- **Previous Views section**: stub showing "No previous views yet." (built in Clump C)
+- **Previous Views section**: list of archived dates, newest first; each row has a date link → `#view-history/{id}/{historyId}` and a delete button (confirm required); "No previous views yet." when empty
 - Breadcrumb: Thoughts › My Views › [title]
+
+### "I've Changed My View" Modal
+- Opens pre-filled with current short version and long version (both editable in the modal)
+- Optional "What prompted this change?" textarea
+- On Save: archives modal values to `views/{id}/history` subcollection with `archivedAt` timestamp; updates `currentDate` to today; increments `historyCount`; reloads detail page
+- Cancel closes modal with no changes
+
+### Historical Viewpoint Page (`#view-history/:viewId/:historyId`)
+- Read-only — no edit controls
+- Shows: current (global) title, "Archived [date]" label, "Past View — Read Only" badge
+- Sections: "What prompted this change?" (if present), Short Version, Long Version
+- Back button → `#view/{id}`
+- Delete button (confirm required) → removes history doc, decrements `historyCount`, redirects to `#view/{id}`
+- Breadcrumb: Thoughts › My Views › [title] › [archived date]
 
 ### Firestore Data Model
 | Field | Type | Notes |
@@ -1252,7 +1266,7 @@ A personal viewpoint journal — record, edit, and historically track opinions a
 | `currentDate` | timestamp | set on create; updated on "I've Changed My View" |
 | `createdAt` / `updatedAt` | timestamp | standard |
 
-History subcollection (`views/{id}/history`): built in Clump C.
+History subcollection (`views/{id}/history`): `shortVersion`, `longVersion`, `archivedAt` (timestamp), `prompt` (optional string).
 
 ---
 

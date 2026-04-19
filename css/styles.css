@@ -10850,3 +10850,84 @@ a.health-chip--link:hover { filter: brightness(0.93); }
     font-style: italic;
     margin: 0;
 }
+
+/* ── History row on detail page ── */
+.view-history-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 0;
+    border-bottom: 1px solid #f3f4f6;
+}
+.view-history-row:last-child {
+    border-bottom: none;
+}
+.view-history-link {
+    flex: 1;
+    font-size: 0.875rem;
+    color: #0d9488;
+    text-decoration: none;
+}
+.view-history-link:hover {
+    text-decoration: underline;
+}
+
+/* ── "I've Changed My View" modal hint + label notes ── */
+.view-changed-hint {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin: -4px 0 12px;
+}
+.view-changed-label-note {
+    font-size: 0.78rem;
+    font-weight: normal;
+    color: #9ca3af;
+}
+
+/* ── Historical viewpoint page ── */
+.view-history-page-header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+.view-history-page-date {
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+.view-history-badge-readonly {
+    display: inline-block;
+    font-size: 0.78rem;
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fde68a;
+    border-radius: 999px;
+    padding: 3px 10px;
+    align-self: flex-start;
+}
+.view-history-prompt {
+    font-size: 0.9rem;
+    color: #374151;
+    line-height: 1.5;
+    margin: 0;
+    font-style: italic;
+}
+.view-history-text {
+    font-size: 0.9rem;
+    color: #374151;
+    line-height: 1.5;
+    margin: 0;
+}
+.view-history-long {
+    font-size: 0.9rem;
+    color: #374151;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+.view-history-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding-top: 8px;
+    flex-wrap: wrap;
+}

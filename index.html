@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=491">
+    <link rel="stylesheet" href="css/styles.css?v=492">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -9184,6 +9184,33 @@ export default {
             </div>
         </section>
 
+        <!-- Modal: I've Changed My View -->
+        <div class="modal-overlay" id="viewChangedModal">
+            <div class="modal">
+                <h3>I've Changed My View</h3>
+                <p class="view-changed-hint">Review and archive your current stance before it's replaced.</p>
+                <div class="form-group">
+                    <label for="viewChangedShort">Short Version <span class="view-changed-label-note">(being archived)</span></label>
+                    <textarea id="viewChangedShort" class="form-control" rows="3" maxlength="500"
+                        placeholder="Brief summary of your previous stance..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="viewChangedLong">Long Version <span class="view-changed-label-note">(being archived)</span></label>
+                    <textarea id="viewChangedLong" class="form-control view-long-textarea"
+                        placeholder="Your previous full viewpoint..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="viewChangedPrompt">What prompted this change? <span class="view-changed-label-note">(optional)</span></label>
+                    <textarea id="viewChangedPrompt" class="form-control" rows="2"
+                        placeholder="A conversation, new information, an experience..."></textarea>
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn btn-secondary" onclick="closeModal('viewChangedModal')">Cancel</button>
+                    <button class="btn btn-primary" id="viewChangedSaveBtn" onclick="_viewSaveChangedView()">Archive &amp; Continue</button>
+                </div>
+            </div>
+        </div>
+
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="js/firebase-config.js?v=350"></script>
@@ -9231,7 +9258,7 @@ export default {
     <script src="js/thoughts.js?v=490"></script>
     <script src="js/top10lists.js?v=465"></script>
     <script src="js/memories.js?v=473"></script>
-    <script src="js/views.js?v=491"></script>
+    <script src="js/views.js?v=492"></script>
     <script src="js/app.js?v=490"></script>
 
 </body>

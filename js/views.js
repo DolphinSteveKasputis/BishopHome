@@ -48,6 +48,16 @@ function _viewFormatDate(ts) {
     return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
+// Returns true if the given Firestore timestamp is today (calendar day)
+function _viewIsToday(ts) {
+    if (!ts) return false;
+    var d     = ts.toDate ? ts.toDate() : new Date(ts);
+    var today = new Date();
+    return d.getFullYear() === today.getFullYear() &&
+           d.getMonth()    === today.getMonth()    &&
+           d.getDate()     === today.getDate();
+}
+
 // ─────── Load Category Data ───────
 function _viewLoadCatsData() {
     return userCol('viewCategories').orderBy('order').get().then(function(catSnap) {
@@ -519,11 +529,15 @@ function _viewRenderExistingPage() {
             '</div>' +
 
             // Action buttons
-            '<div class="view-header-actions">' +
-                '<button class="btn btn-secondary" disabled ' +
-                    'title="Coming in a later phase">I\'ve Changed My View</button>' +
-                '<button class="btn btn-danger btn-small" onclick="_viewDeleteView()">Delete View</button>' +
-            '</div>' +
+            (function() {
+                var canChange = !_viewIsToday(d.currentDate);
+                return '<div class="view-header-actions">' +
+                    '<button class="btn btn-secondary"' +
+                        (canChange ? ' onclick="_viewOpenChangedModal()"' : ' disabled title="You\'ve already archived this view today"') + '>' +
+                        'I\'ve Changed My View</button>' +
+                    '<button class="btn btn-danger btn-small" onclick="_viewDeleteView()">Delete View</button>' +
+                '</div>';
+            })() +
 
             // Short Version
             '<div class="view-field-section">' +
@@ -556,10 +570,10 @@ function _viewRenderExistingPage() {
                 '<button class="btn btn-small btn-secondary view-add-link-btn" onclick="_viewOpenUrlForm(-1)">+ Add Link</button>' +
             '</div>' +
 
-            // Previous Views (stub — filled in Phase 7)
+            // Previous Views
             '<div class="view-field-section">' +
                 '<label class="view-field-label">Previous Views</label>' +
-                '<div id="viewHistoryList"><p class="view-history-empty">No previous views yet.</p></div>' +
+                '<div id="viewHistoryList"><p class="view-history-empty">Loading...</p></div>' +
             '</div>' +
 
         '</div>';
@@ -567,6 +581,7 @@ function _viewRenderExistingPage() {
     _viewLongLast = longVal;
     _viewWireDetailHandlers();
     _viewRenderUrls();
+    _viewLoadHistory();
 }
 
 function _viewWireDetailHandlers() {
@@ -645,6 +660,95 @@ function _viewDeleteView() {
     }).then(function() {
         window.location.hash = '#views';
     }).catch(function(err) { console.error('_viewDeleteView error:', err); });
+}
+
+// ══════════════════════════════════════════════════════════════
+// "I'VE CHANGED MY VIEW" FLOW
+// ══════════════════════════════════════════════════════════════
+function _viewOpenChangedModal() {
+    var shortEl = document.getElementById('viewShortInput');
+    var longEl  = document.getElementById('viewLongInput');
+    document.getElementById('viewChangedShort').value  = shortEl ? shortEl.value : '';
+    document.getElementById('viewChangedLong').value   = longEl  ? longEl.value  : '';
+    document.getElementById('viewChangedPrompt').value = '';
+    openModal('viewChangedModal');
+}
+
+function _viewSaveChangedView() {
+    if (!_viewId) return;
+    var shortVal  = document.getElementById('viewChangedShort').value;
+    var longVal   = document.getElementById('viewChangedLong').value;
+    var promptVal = (document.getElementById('viewChangedPrompt').value || '').trim();
+
+    var saveBtn = document.getElementById('viewChangedSaveBtn');
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
+
+    var histRef = userCol('views').doc(_viewId).collection('history').doc();
+    var batch   = db.batch();
+    batch.set(histRef, {
+        shortVersion: shortVal,
+        longVersion:  longVal,
+        prompt:       promptVal || null,
+        archivedAt:   firebase.firestore.FieldValue.serverTimestamp()
+    });
+    batch.update(userCol('views').doc(_viewId), {
+        currentDate:  firebase.firestore.FieldValue.serverTimestamp(),
+        historyCount: firebase.firestore.FieldValue.increment(1),
+        updatedAt:    firebase.firestore.FieldValue.serverTimestamp()
+    });
+    batch.commit().then(function() {
+        closeModal('viewChangedModal');
+        // Reload the detail page fresh so button state and history list update correctly
+        loadViewDetailPage(_viewId);
+    }).catch(function(err) {
+        console.error('_viewSaveChangedView error:', err);
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Archive & Continue'; }
+    });
+}
+
+// ══════════════════════════════════════════════════════════════
+// HISTORY LIST  (on detail page)
+// ══════════════════════════════════════════════════════════════
+function _viewLoadHistory() {
+    var container = document.getElementById('viewHistoryList');
+    if (!container) return;
+
+    userCol('views').doc(_viewId).collection('history')
+        .orderBy('archivedAt', 'desc').get()
+        .then(function(snap) {
+            if (snap.empty) {
+                container.innerHTML = '<p class="view-history-empty">No previous views yet.</p>';
+                return;
+            }
+            var html = snap.docs.map(function(doc) {
+                var dateStr = _viewFormatDate(doc.data().archivedAt);
+                return '<div class="view-history-row">' +
+                    '<a href="#view-history/' + _viewId + '/' + doc.id + '" class="view-history-link">' +
+                        dateStr + '</a>' +
+                    '<button class="view-url-btn" title="Delete" ' +
+                        'onclick="_viewDeleteHistoryEntry(\'' + doc.id + '\')">&#x2715;</button>' +
+                '</div>';
+            }).join('');
+            container.innerHTML = html;
+        }).catch(function(err) {
+            console.error('_viewLoadHistory error:', err);
+            container.innerHTML = '<p class="view-history-empty">Error loading history.</p>';
+        });
+}
+
+function _viewDeleteHistoryEntry(historyId) {
+    if (!confirm('Delete this historical viewpoint? This cannot be undone.')) return;
+    var batch = db.batch();
+    batch.delete(userCol('views').doc(_viewId).collection('history').doc(historyId));
+    batch.update(userCol('views').doc(_viewId), {
+        historyCount: firebase.firestore.FieldValue.increment(-1),
+        updatedAt:    firebase.firestore.FieldValue.serverTimestamp()
+    });
+    batch.commit().then(function() {
+        _viewLoadHistory();
+    }).catch(function(err) {
+        console.error('_viewDeleteHistoryEntry error:', err);
+    });
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -728,13 +832,92 @@ function _viewSaveUrls() {
 // STUB PAGES  (built in later phases)
 // ══════════════════════════════════════════════════════════════
 function loadViewHistoryPage(viewId, historyId) {
-    var crumb = document.getElementById('breadcrumbBar');
-    if (crumb) crumb.innerHTML =
-        '<a href="#thoughts">Thoughts</a><span class="separator">&rsaquo;</span>' +
-        '<a href="#views">My Views</a><span class="separator">&rsaquo;</span>' +
-        '<span>Previous View</span>';
     var container = document.getElementById('viewHistoryContent');
-    if (container) container.innerHTML = '<p class="views-empty-state">History page coming in Phase 7.</p>';
+    if (!container) return;
+    container.innerHTML = '<p class="views-empty-state">Loading...</p>';
+
+    Promise.all([
+        userCol('views').doc(viewId).get(),
+        userCol('views').doc(viewId).collection('history').doc(historyId).get()
+    ]).then(function(results) {
+        var viewDoc    = results[0];
+        var histDoc    = results[1];
+
+        if (!viewDoc.exists || !histDoc.exists) {
+            container.innerHTML = '<p class="views-empty-state">Entry not found. <a href="#views">Back to My Views</a></p>';
+            return;
+        }
+
+        var vd      = viewDoc.data();
+        var hd      = histDoc.data();
+        var title   = vd.title || 'Untitled';
+        var dateStr = _viewFormatDate(hd.archivedAt);
+
+        var crumb = document.getElementById('breadcrumbBar');
+        if (crumb) crumb.innerHTML =
+            '<a href="#thoughts">Thoughts</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#views">My Views</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#view/' + viewId + '">' + _viewEsc(title) + '</a>' +
+            '<span class="separator">&rsaquo;</span>' +
+            '<span>' + _viewEsc(dateStr) + '</span>';
+
+        container.innerHTML =
+            '<div class="view-detail-container">' +
+
+                '<div class="view-history-page-header">' +
+                    '<h2 class="view-new-heading">' + _viewEsc(title) + '</h2>' +
+                    '<span class="view-history-page-date">Archived ' + _viewEsc(dateStr) + '</span>' +
+                '</div>' +
+
+                '<div class="view-history-badge-readonly">Past View — Read Only</div>' +
+
+                (hd.prompt ?
+                    '<div class="view-field-section">' +
+                        '<label class="view-field-label">What prompted this change?</label>' +
+                        '<p class="view-history-prompt">' + _viewEsc(hd.prompt) + '</p>' +
+                    '</div>' : '') +
+
+                '<div class="view-field-section">' +
+                    '<label class="view-field-label">Short Version</label>' +
+                    (hd.shortVersion
+                        ? '<p class="view-history-text">' + _viewEsc(hd.shortVersion) + '</p>'
+                        : '<p class="view-history-empty">No short version recorded.</p>') +
+                '</div>' +
+
+                '<div class="view-field-section">' +
+                    '<label class="view-field-label">Long Version</label>' +
+                    (hd.longVersion
+                        ? '<div class="view-history-long">' + _viewEsc(hd.longVersion).replace(/\n/g, '<br>') + '</div>'
+                        : '<p class="view-history-empty">No long version recorded.</p>') +
+                '</div>' +
+
+                '<div class="view-history-actions">' +
+                    '<a href="#view/' + viewId + '" class="btn btn-secondary">&larr; Back</a>' +
+                    '<button class="btn btn-danger" ' +
+                        'onclick="_viewDeleteHistoryPage(\'' + viewId + '\', \'' + historyId + '\')">' +
+                        'Delete This Entry</button>' +
+                '</div>' +
+
+            '</div>';
+    }).catch(function(err) {
+        console.error('loadViewHistoryPage error:', err);
+        container.innerHTML = '<p class="views-empty-state">Error loading entry.</p>';
+    });
+}
+
+function _viewDeleteHistoryPage(viewId, historyId) {
+    if (!confirm('Delete this historical viewpoint? This cannot be undone.')) return;
+    var batch = db.batch();
+    batch.delete(userCol('views').doc(viewId).collection('history').doc(historyId));
+    batch.update(userCol('views').doc(viewId), {
+        historyCount: firebase.firestore.FieldValue.increment(-1),
+        updatedAt:    firebase.firestore.FieldValue.serverTimestamp()
+    });
+    batch.commit().then(function() {
+        window.location.hash = '#view/' + viewId;
+    }).catch(function(err) {
+        console.error('_viewDeleteHistoryPage error:', err);
+    });
 }
 
 function loadViewsCategoriesPage() {

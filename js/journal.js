@@ -2380,10 +2380,14 @@ function openCheckIn() {
     var statusEl  = document.getElementById('checkInPickerStatus');
     var resultsEl = document.getElementById('checkInPickerResults');
     var searchEl  = document.getElementById('checkInPickerSearch');
+    var biasEl    = document.getElementById('checkInPickerBias');
 
     if (statusEl)  statusEl.textContent = '📍 Getting your location...';
     if (resultsEl) resultsEl.innerHTML  = '';
     if (searchEl)  searchEl.value       = '';
+    if (biasEl)    biasEl.value         = '';
+    _checkinPickerLat = null;
+    _checkinPickerLng = null;
     _checkinPickerVenues = [];
 
     // Wire Cancel button
@@ -2399,6 +2403,46 @@ function openCheckIn() {
             closeModal('checkInPickerModal');
             openCheckInForm(null, true);
         };
+    }
+
+    // Wire bias location input — geocode typed city/address and re-run nearby search
+    var _biasTimer = null;
+    if (biasEl) {
+        biasEl.oninput = function() {
+            clearTimeout(_biasTimer);
+            var text = biasEl.value.trim();
+            if (!text) {
+                biasEl.style.borderColor = '';
+                return;
+            }
+            _biasTimer = setTimeout(async function() {
+                biasEl.style.borderColor = '#aaa';
+                var coords = await placesGeocodeLocation(text);
+                if (coords) {
+                    _checkinPickerLat = coords.lat;
+                    _checkinPickerLng = coords.lng;
+                    biasEl.style.borderColor = 'var(--success, #2e7d32)';
+                    // Re-run nearby search with the new location
+                    var statusEl2 = document.getElementById('checkInPickerStatus');
+                    var resultsEl2 = document.getElementById('checkInPickerResults');
+                    if (statusEl2) statusEl2.textContent = '🔍 Finding nearby places...';
+                    if (resultsEl2) resultsEl2.innerHTML = '';
+                    try {
+                        var venues = await placesNearby(_checkinPickerLat, _checkinPickerLng);
+                        _checkinPickerVenues = venues;
+                        _checkinPickerShowResults(venues);
+                        if (statusEl2) statusEl2.textContent = venues.length
+                            ? 'Places near ' + text + ' — tap one to check in'
+                            : 'No named places found near ' + text + '. Try searching by name.';
+                    } catch (err) {
+                        if (statusEl2) statusEl2.textContent = 'Could not load places. Try searching by name.';
+                    }
+                } else {
+                    biasEl.style.borderColor = 'var(--danger, #c62828)';
+                }
+            }, 800);
+        };
+        biasEl.onfocus = function() { biasEl.style.borderColor = ''; };
     }
 
     // Wire name search input (debounced)
@@ -2446,6 +2490,8 @@ function _checkinPickerFetchNearby(forceRefresh) {
         async function(pos) {
             _checkinPickerLat = pos.coords.latitude;
             _checkinPickerLng = pos.coords.longitude;
+            var biasEl2 = document.getElementById('checkInPickerBias');
+            if (biasEl2 && !biasEl2.value) biasEl2.value = 'Current location';
             if (statusEl) statusEl.textContent = '🔍 Finding nearby places...';
             try {
                 var venues = await placesNearby(pos.coords.latitude, pos.coords.longitude);

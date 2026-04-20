@@ -4424,6 +4424,51 @@ button {
     margin-bottom: 2px;
 }
 
+/* Template editor item rows (replaces old .cl-item-row for modal) */
+.cl-template-item-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+    transition: padding-left 0.15s;
+}
+.cl-template-item-row--indented {
+    padding-left: 28px;
+}
+
+/* Drag handles — shared style for both template editor and run cards */
+.drag-handle {
+    cursor: grab;
+    color: #9ca3af;
+    font-size: 16px;
+    padding: 0 2px;
+    user-select: none;
+    flex-shrink: 0;
+}
+.drag-handle:active { cursor: grabbing; }
+
+/* Template editor drag handle */
+.cl-tmpl-drag-handle { display: inline; }
+
+/* Run-card drag handle: hidden by default, shown when card is in edit mode */
+.run-drag-handle { display: none; }
+.cl-run-card--editing .run-drag-handle { display: inline; }
+
+/* Indent toggle button in template editor */
+.cl-indent-btn {
+    background: none;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    padding: 2px 7px;
+    cursor: pointer;
+    font-size: 12px;
+    color: #6b7280;
+    flex-shrink: 0;
+    line-height: 1.4;
+}
+.cl-indent-btn:hover { background: #f3f4f6; }
+
+/* Keep .cl-item-row for the old Add Item button wire-up in DOMContentLoaded */
 .cl-item-row {
     display: flex;
     align-items: center;
@@ -4452,6 +4497,10 @@ button {
 }
 
 .cl-item-remove-btn:hover { background: #ffebee; }
+
+/* Sub-item indentation in active runs and completed cards */
+.cl-item--indented { padding-left: 28px; }
+.cl-completed-item--indented { padding-left: 24px; }
 
 /* ---------- Activity History Report (NF-2) ---------- */
 

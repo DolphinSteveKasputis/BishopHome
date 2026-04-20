@@ -397,7 +397,57 @@ function clBuildItemsListEl(runId, items, card) {
     undone.concat(done).forEach(function(x) {
         list.appendChild(clBuildItemEl(runId, x.item, x.idx, card));
     });
+
+    // Drag-and-drop reordering for undone items (done items are filtered out)
+    if (typeof Sortable !== 'undefined') {
+        Sortable.create(list, {
+            handle: '.run-drag-handle',
+            filter: '.cl-item--done',
+            preventOnFilter: false,
+            animation: 150,
+            onEnd: function() {
+                clSaveRunItemOrder(runId, list, items, card);
+            }
+        });
+    }
+
     return list;
+}
+
+/**
+ * Reads the current DOM order of undone + done items and saves the reordered
+ * array to Firestore, then re-renders the card's item list.
+ * @param {string}      runId
+ * @param {HTMLElement} listEl         — The <ul> after a drag-end event.
+ * @param {Array}       originalItems  — Items array from the last render (used as source of truth).
+ * @param {HTMLElement} card
+ */
+async function clSaveRunItemOrder(runId, listEl, originalItems, card) {
+    // Build a lookup from storage index → item object
+    var itemsByIdx = {};
+    originalItems.forEach(function(item, i) { itemsByIdx[i] = item; });
+
+    var newItems = [];
+    // Undone first in their new drag order
+    Array.from(listEl.querySelectorAll('.cl-item:not(.cl-item--done)')).forEach(function(li) {
+        var idx = parseInt(li.dataset.storageIdx);
+        if (itemsByIdx[idx] !== undefined) newItems.push(itemsByIdx[idx]);
+    });
+    // Done items follow in their existing completion-time order
+    Array.from(listEl.querySelectorAll('.cl-item--done')).forEach(function(li) {
+        var idx = parseInt(li.dataset.storageIdx);
+        if (itemsByIdx[idx] !== undefined) newItems.push(itemsByIdx[idx]);
+    });
+
+    try {
+        var doc = await userCol('checklistRuns').doc(runId).get();
+        if (!doc.exists) return;
+        var runData = doc.data();
+        await userCol('checklistRuns').doc(runId).update({ items: newItems });
+        clRerenderRunItems(runId, newItems, runData.templateId || null, card);
+    } catch (err) {
+        console.error('Error saving run item order:', err);
+    }
 }
 
 /**
@@ -407,11 +457,20 @@ function clBuildItemsListEl(runId, items, card) {
  */
 function clBuildItemEl(runId, item, idx, card) {
     var li = document.createElement('li');
-    li.className = 'cl-item';
+    li.className = 'cl-item' +
+        (item.indent ? ' cl-item--indented' : '') +
+        (item.done   ? ' cl-item--done'     : '');
+    li.dataset.storageIdx = String(idx);
 
-    // ── Main row: checkbox + label + buttons ───────────────────
+    // ── Main row: drag handle + checkbox + label + buttons ─────
     var row = document.createElement('div');
     row.className = 'cl-item-row';
+
+    // Drag handle — visible only when card is in edit mode (CSS-toggled)
+    var dragHandle = document.createElement('span');
+    dragHandle.className   = 'drag-handle run-drag-handle';
+    dragHandle.textContent = '⠿';
+    dragHandle.title       = 'Drag to reorder';
 
     var cb = document.createElement('input');
     cb.type    = 'checkbox';
@@ -449,6 +508,7 @@ function clBuildItemEl(runId, item, idx, card) {
         clRemoveItemFromRun(runId, idx, card);
     });
 
+    row.appendChild(dragHandle);
     row.appendChild(cb);
     row.appendChild(label);
     row.appendChild(noteBtn);
@@ -885,7 +945,7 @@ function clBuildTemplateCard(template) {
  */
 async function clStartRun(template) {
     var items = (template.items || []).map(function(item) {
-        return { label: item.label, done: false };
+        return { label: item.label, done: false, indent: item.indent || 0 };
     });
 
     if (items.length === 0) {
@@ -1042,8 +1102,9 @@ function clBuildCompletedCard(run) {
 
     items.forEach(function(item) {
         var li = document.createElement('li');
-        li.className = item.done ? 'cl-completed-item cl-completed-item--done'
-                                 : 'cl-completed-item cl-completed-item--missed';
+        li.className = (item.done ? 'cl-completed-item cl-completed-item--done'
+                                  : 'cl-completed-item cl-completed-item--missed') +
+                       (item.indent ? ' cl-completed-item--indented' : '');
 
         var labelSpan = document.createElement('span');
         labelSpan.textContent = (item.done ? '✓ ' : '✗ ') + item.label;
@@ -1099,6 +1160,7 @@ async function clOpenAddTemplateModal() {
     clAddItemRow('');
     clAddItemRow('');
     clAddItemRow('');
+    clInitTemplateSortable();
 
     openModal('checklistTemplateModal');
     document.getElementById('clTemplateName').focus();
@@ -1124,9 +1186,10 @@ async function clOpenEditTemplateModal(template) {
     var editor = document.getElementById('clTemplateItemsEditor');
     editor.innerHTML = '';
     (template.items || []).forEach(function(item) {
-        clAddItemRow(item.label);
+        clAddItemRow(item.label, item.indent || 0);
     });
     clAddItemRow('');  // always leave one blank row at bottom
+    clInitTemplateSortable();
 
     modal.dataset.mode   = 'edit';
     modal.dataset.editId = template.id;
@@ -1257,14 +1320,37 @@ async function clPopulateTargetPicker(ctx, existing) {
 }
 
 /**
- * Appends one item row (text input + remove button) to the editor.
- * @param {string} value — Pre-fill text, or empty string for a blank row.
+ * Appends one item row (drag handle + indent button + text input + remove button) to the editor.
+ * @param {string} value  — Pre-fill text, or empty string for a blank row.
+ * @param {number} indent — 0 (normal) or 1 (indented sub-item).
  */
-function clAddItemRow(value) {
+function clAddItemRow(value, indent) {
     var editor = document.getElementById('clTemplateItemsEditor');
+    indent = indent ? 1 : 0;
 
     var row = document.createElement('div');
-    row.className = 'cl-item-row';
+    row.className    = 'cl-template-item-row' + (indent ? ' cl-template-item-row--indented' : '');
+    row.dataset.indent = String(indent);
+
+    // Drag handle
+    var handle = document.createElement('span');
+    handle.className   = 'drag-handle cl-tmpl-drag-handle';
+    handle.textContent = '⠿';
+    handle.title       = 'Drag to reorder';
+
+    // Indent toggle button: → indents, ← removes indent
+    var indentBtn = document.createElement('button');
+    indentBtn.type        = 'button';
+    indentBtn.className   = 'cl-indent-btn';
+    indentBtn.title       = indent ? 'Remove indent' : 'Indent item';
+    indentBtn.textContent = indent ? '←' : '→';
+    indentBtn.addEventListener('click', function() {
+        var isIndented = row.dataset.indent === '1';
+        row.dataset.indent    = isIndented ? '0' : '1';
+        indentBtn.textContent = isIndented ? '→' : '←';
+        indentBtn.title       = isIndented ? 'Indent item' : 'Remove indent';
+        row.classList.toggle('cl-template-item-row--indented', !isIndented);
+    });
 
     var input = document.createElement('input');
     input.type        = 'text';
@@ -1272,13 +1358,29 @@ function clAddItemRow(value) {
     input.placeholder = 'Task description…';
     input.value       = value || '';
 
-    // Pressing Enter adds a new blank row below and focuses it
     input.addEventListener('keydown', function(e) {
+        // Enter: add a new blank row (inheriting current indent level)
         if (e.key === 'Enter') {
             e.preventDefault();
-            clAddItemRow('');
+            clAddItemRow('', parseInt(row.dataset.indent || '0'));
             var rows = editor.querySelectorAll('.cl-item-input');
             rows[rows.length - 1].focus();
+        }
+        // Tab: indent; Shift+Tab: unindent
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            var isIndented = row.dataset.indent === '1';
+            if (!e.shiftKey && !isIndented) {
+                row.dataset.indent    = '1';
+                indentBtn.textContent = '←';
+                indentBtn.title       = 'Remove indent';
+                row.classList.add('cl-template-item-row--indented');
+            } else if (e.shiftKey && isIndented) {
+                row.dataset.indent    = '0';
+                indentBtn.textContent = '→';
+                indentBtn.title       = 'Indent item';
+                row.classList.remove('cl-template-item-row--indented');
+            }
         }
     });
 
@@ -1289,21 +1391,39 @@ function clAddItemRow(value) {
     removeBtn.textContent = '✕';
     removeBtn.addEventListener('click', function() { row.remove(); });
 
+    row.appendChild(handle);
+    row.appendChild(indentBtn);
     row.appendChild(input);
     row.appendChild(removeBtn);
     editor.appendChild(row);
 }
 
 /**
- * Reads all non-blank item inputs from the editor.
- * @returns {Array<{label: string}>}
+ * Initialises (or re-initialises) SortableJS drag-and-drop on the template item editor.
+ * Called after rows are rendered in both add and edit modes.
+ */
+function clInitTemplateSortable() {
+    var editor = document.getElementById('clTemplateItemsEditor');
+    if (editor._sortable) { editor._sortable.destroy(); }
+    if (typeof Sortable !== 'undefined') {
+        editor._sortable = Sortable.create(editor, {
+            handle: '.cl-tmpl-drag-handle',
+            animation: 150
+        });
+    }
+}
+
+/**
+ * Reads all non-blank item inputs from the editor, including indent state.
+ * @returns {Array<{label: string, indent: number}>}
  */
 function clGetItemsFromModal() {
-    var inputs = document.querySelectorAll('#clTemplateItemsEditor .cl-item-input');
-    var items  = [];
-    inputs.forEach(function(input) {
-        var val = input.value.trim();
-        if (val) items.push({ label: val });
+    var rows  = document.querySelectorAll('#clTemplateItemsEditor .cl-template-item-row');
+    var items = [];
+    rows.forEach(function(row) {
+        var input = row.querySelector('.cl-item-input');
+        var val   = input ? input.value.trim() : '';
+        if (val) items.push({ label: val, indent: parseInt(row.dataset.indent || '0') });
     });
     return items;
 }

@@ -1577,27 +1577,34 @@ Formerly named "Future Projects" — renamed to "Quick Task List" to distinguish
   - Room: shows that room only
   - Vehicle: shows that vehicle only
   - Life: shows all life-tagged templates/runs (no sub-targets)
-- **Templates** (`checklistTemplates`): `{ name, targetType, targetId, targetName, items:[{label}], createdAt }`
+- **Templates** (`checklistTemplates`): `{ name, targetType, targetId, targetName, items:[{label, indent}], createdAt }`
   - `targetType`: 'yard' | 'zone' | 'house' | 'floor' | 'room' | 'vehicle' | 'life'
   - `targetId`: Firestore ID of the entity, or null for top-level targets (yard/house/life)
   - `targetName`: human-readable label stored at save time (e.g., "Front Yard", "Kitchen")
-- **Runs** (`checklistRuns`): same `targetType`/`targetId`/`targetName` fields, copied from template at start time; `items` array is `[{label, done, note}]`
+  - `items[].indent`: 0 = normal, 1 = indented sub-item (one level deep, Google Keep style)
+- **Runs** (`checklistRuns`): same `targetType`/`targetId`/`targetName` fields, copied from template at start time; `items` array is `[{label, done, doneAt, note, indent}]`
+  - `indent` is copied from the template item at run-start time; 0 or 1
 - **Template modal**: Location dropdown shows the full hierarchy for the current context (e.g., Yard → zones → subzones), defaulting to the entity the user was on when they clicked Checklists; full hierarchy shown so user can pick any level. Delete button is inside the edit modal.
+  - **Item editor**: each item row has a drag handle `⠿` (SortableJS drag-and-drop reordering), an indent toggle button (`→` to indent, `←` to remove indent), the text input, and a ✕ remove button
+  - **Indent shortcut**: Tab key on the text input indents the item; Shift+Tab removes indent
+  - **Enter key**: adds a new blank row inheriting the current row's indent level
 - **Location badge**: shown on template/run cards in roll-up views (e.g., "📍 Front Yard")
 - **Context subtitle**: shown on the page header ("Showing: Front Yard (Zone)")
 - **Breadcrumb bar**: set on page load based on context — yard/zone context shows `Yard › Checklists` (linking to `#zones`); house/floor/room context shows `House › Checklists` (linking to `#house`); life context shows `Life › Checklists` (linking to `#life`); other contexts clear the bar
 - **Active run cards**:
   - Progress bar shows done/total count
-  - **Edit mode**: toggled by an Edit/Done button on the card. In edit mode: ✕ remove buttons appear beside each item; a "+ Add item" input row appears at the bottom. Removing items never prompts to modify the template.
+  - **Edit mode**: toggled by an Edit/Done button on the card. In edit mode: ✕ remove buttons appear beside each item; a "+ Add item" input row appears at the bottom; drag handles `⠿` appear for drag-and-drop reordering of undone items. Removing items never prompts to modify the template.
+  - **Drag-and-drop reorder (runs)**: only undone items are draggable (SortableJS, `filter: .cl-item--done`). Done items remain sorted by completion time at the bottom. New order is saved to Firestore on drag-end and the list re-renders.
   - **Adding items in edit mode**: if the run is derived from a template, user is prompted "Add to template too?" Adding items to a blank list never prompts.
   - **Clear All button**: unchecks all items in-place without confirmation
   - **Mark Complete**: moves run to the Completed section
   - **Abandon button**: deletes the run after confirmation
+- **Sub-item indentation**: items with `indent: 1` are visually indented (~28px) in active run cards and completed card accordion views
 - **Per-item notes**: each item has a 📝 button that toggles an inline textarea. Note saves on blur or Enter. Escape discards changes. Note is displayed in muted italic below the item label when set.
 - **Item completion date**: checking an item records a `doneAt` ISO timestamp. The date is displayed inline next to the strikethrough label as `(Apr 17)` in muted italic. Unchecking clears `doneAt`. Stored in `items[].doneAt`.
-- **Item sort order**: undone items appear first (in their original order); done items sort to the bottom in the order they were completed (earliest first). Sort is display-only — storage order is preserved so indices remain stable for all Firestore operations.
+- **Item sort order**: undone items appear first (in their drag-reordered order); done items sort to the bottom in the order they were completed (earliest first).
 - **Blank lists**: "+ New Blank List" button in the Active section header creates a run with no template. Prompts for a name; inherits target context from the current page.
-- **Completed run accordion**: clicking a completed card expands/collapses a read-only item list (✓ done / ✗ missed). Notes are shown read-only below each item in the expanded view.
+- **Completed run accordion**: clicking a completed card expands/collapses a read-only item list (✓ done / ✗ missed). Notes are shown read-only below each item in the expanded view. Indented items are visually indented in the expanded view.
 
 ---
 

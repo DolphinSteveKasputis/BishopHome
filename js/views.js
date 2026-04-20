@@ -36,6 +36,7 @@ var _viewCatsData         = [];     // [{id, name, order, subs:[{id,name,isDefau
 var _viewUrls             = [];     // [{label, url}] — links on the current view
 var _viewLongLast         = '';     // last-saved long version (for auto-save change detection)
 var _viewAiPrevSuggestions = [];    // cumulative list of AI suggestions to exclude on retry
+var _viewAiCurrentTopics   = [];    // topics shown in the modal right now (indexed by button)
 
 // ─────── Helpers ───────
 function _viewEsc(str) {
@@ -599,8 +600,9 @@ function _viewShowAiTopicsModal(topics) {
         return;
     }
 
+    _viewAiCurrentTopics = topics;
     bodyEl.innerHTML = topics.map(function(topic, i) {
-        return '<button class="views-ai-topic-btn" onclick="_viewSelectAiTopic(' + JSON.stringify(topic) + ')">' +
+        return '<button class="views-ai-topic-btn" onclick="_viewSelectAiTopic(_viewAiCurrentTopics[' + i + '])">' +
             '<span class="views-ai-topic-num">' + (i + 1) + '</span>' +
             '<span class="views-ai-topic-text">' + _viewEsc(topic) + '</span>' +
             '</button>';

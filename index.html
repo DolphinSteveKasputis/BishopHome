@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=509">
+    <link rel="stylesheet" href="css/styles.css?v=510">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -76,8 +76,19 @@
                 <a href="#" id="forgotPasswordLink">Forgot password?</a>
             </p>
             <p class="login-forgot" id="forgotPasswordMsg" style="display:none"></p>
+            <div class="login-setup-divider">
+                <span>New here?</span>
+            </div>
+            <a href="#" class="btn btn-secondary btn-full login-setup-btn" onclick="fsbShowFromLogin(); return false;">
+                🔥 Set Up My Own Account
+            </a>
         </div>
     </div>
+
+    <!-- Firebase Setup Page — lives outside appWrapper so it's accessible before login -->
+    <section class="page hidden fsb-standalone" id="page-firebase-setup">
+        <!-- Content rendered by renderFirebaseSetupPage() in firebasesetup.js -->
+    </section>
 
     <!-- ========== APP WRAPPER (hidden until signed in) ========== -->
     <div id="appWrapper" class="hidden">
@@ -766,10 +777,6 @@
             </div>
         </section>
 
-        <!-- Page: Firebase / Data Storage Setup (#firebase-setup) -->
-        <section class="page hidden" id="page-firebase-setup">
-            <!-- Content rendered by renderFirebaseSetupPage() in firebasesetup.js -->
-        </section>
 
         <!-- Page: Contact Types Settings (#settings-contact-lists) -->
         <section class="page hidden" id="page-settings-contact-lists">
@@ -9330,7 +9337,7 @@ export default {
     <script src="js/thoughts.js?v=490"></script>
     <script src="js/top10lists.js?v=465"></script>
     <script src="js/memories.js?v=473"></script>
-    <script src="js/firebasesetup.js?v=509"></script>
+    <script src="js/firebasesetup.js?v=510"></script>
     <script src="js/views.js?v=505"></script>
     <script src="js/app.js?v=509"></script>
 

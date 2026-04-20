@@ -31,6 +31,37 @@
     box-shadow: 0 2px 6px rgba(0,0,0,0.2);
 }
 
+/* ---------- Login Screen — Setup Link ---------- */
+.login-setup-divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 20px 0 12px;
+    color: #9ca3af;
+    font-size: 0.8rem;
+}
+.login-setup-divider::before,
+.login-setup-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e5e7eb;
+}
+.login-setup-btn {
+    text-align: center;
+    text-decoration: none;
+}
+
+/* Firebase setup page when shown standalone (pre-auth, outside appWrapper) */
+.fsb-standalone {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: #f9fafb;
+    overflow-y: auto;
+    z-index: 500;
+    padding: 0 0 40px;
+}
+
 /* ---------- First-Run Firebase Banner ---------- */
 .first-run-banner {
     position: fixed;

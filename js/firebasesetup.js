@@ -21,6 +21,18 @@ function fsbDismiss() {
     if (banner) banner.classList.add('hidden');
 }
 
+// Tracks whether the page was opened from the login screen (pre-auth)
+var _fsbFromLogin = false;
+
+/** Called from the login screen "Set Up My Own Account" button. */
+function fsbShowFromLogin() {
+    _fsbFromLogin = true;
+    document.getElementById('loginScreen').style.display = 'none';
+    var pg = document.getElementById('page-firebase-setup');
+    if (pg) pg.classList.remove('hidden');
+    renderFirebaseSetupPage();
+}
+
 // ── Setup Page ──
 
 function renderFirebaseSetupPage() {
@@ -40,7 +52,7 @@ function renderFirebaseSetupPage() {
 
     pg.innerHTML =
         '<div class="page-header">' +
-            '<button class="btn btn-secondary btn-small back-btn" onclick="window.location.hash=\'#settings\'">&#8592; Back</button>' +
+            '<button class="btn btn-secondary btn-small back-btn" onclick="_fsbGoBack()">&#8592; Back</button>' +
             '<h2>Data Storage</h2>' +
             '<div></div>' +
         '</div>' +
@@ -122,7 +134,7 @@ function renderFirebaseSetupPage() {
             '</textarea>' +
             '<p id="fsbError" class="fsb-error hidden"></p>' +
             '<div class="modal-buttons" style="margin-top:12px;">' +
-                '<button class="btn btn-secondary" onclick="fsbDismiss(); window.location.hash=\'#settings\'">Skip for Now</button>' +
+                '<button class="btn btn-secondary" onclick="fsbDismiss(); _fsbGoBack()">Skip for Now</button>' +
                 '<button class="btn btn-primary" onclick="_fsbValidateAndSave()">✅ Validate &amp; Save</button>' +
             '</div>' +
         '</div>';
@@ -170,4 +182,16 @@ function _fsbShowError(msg) {
 
 function _fsbEsc(str) {
     return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/** Navigate back — to login screen if opened pre-auth, or to settings if opened post-auth. */
+function _fsbGoBack() {
+    var pg = document.getElementById('page-firebase-setup');
+    if (pg) pg.classList.add('hidden');
+    if (_fsbFromLogin) {
+        _fsbFromLogin = false;
+        document.getElementById('loginScreen').style.display = '';
+    } else {
+        window.location.hash = '#settings';
+    }
 }

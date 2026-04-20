@@ -3,6 +3,7 @@
 // Initializes Firebase and exposes the Firestore database
 // ============================================================
 
+// Default (developer) config — used when no user-provided config is stored
 const firebaseConfig = {
     apiKey: "AIzaSyAcgyLNK1yzbZEm9hf6FJi-T1U5O1Kwi7k",
     authDomain: "bishop-62d43.firebaseapp.com",
@@ -12,8 +13,21 @@ const firebaseConfig = {
     appId: "1:1067248723493:web:b8c0bc4bae883407ce81cc"
 };
 
+// Check localStorage for a user-provided Firebase config (set via the setup wizard).
+// If found, use it instead of the hardcoded default above.
+var _userFirebaseConfig = null;
+try {
+    var _raw = localStorage.getItem('bishopFirebaseConfig');
+    if (_raw) _userFirebaseConfig = JSON.parse(_raw);
+} catch(e) { console.warn('Could not parse stored Firebase config — using default.'); }
+
+var activeFirebaseConfig = _userFirebaseConfig || firebaseConfig;
+
+// True when the user has set up their own Firebase project
+var usingCustomFirebase = !!_userFirebaseConfig;
+
 // Initialize Firebase
-firebase.initializeApp(firebaseConfig);
+firebase.initializeApp(activeFirebaseConfig);
 
 // Get a reference to Firestore — this is what we'll use everywhere to read/write data
 const db = firebase.firestore();

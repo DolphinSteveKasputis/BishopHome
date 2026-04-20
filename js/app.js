@@ -100,7 +100,7 @@ function _pwaDismiss() {
  * List of top-level pages that map to nav links.
  * These pages clear the breadcrumb bar when shown.
  */
-const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'house', 'settings', 'settings-general', 'settings-contact-lists', 'main', 'search', 'activityreport', 'checklists', 'notes', 'chat', 'vehicles', 'garage', 'structures', 'life', 'journal', 'collections', 'changepassword', 'people', 'contacts', 'places', 'devnotes',
+const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'house', 'settings', 'settings-general', 'settings-contact-lists', 'firebase-setup', 'main', 'search', 'activityreport', 'checklists', 'notes', 'chat', 'vehicles', 'garage', 'structures', 'life', 'journal', 'collections', 'changepassword', 'people', 'contacts', 'places', 'devnotes',
                          'health', 'health-visits', 'health-medications', 'health-conditions', 'health-concerns', 'health-bloodwork',
                          'health-vitals', 'health-insurance', 'health-emergency', 'health-appointments', 'health-care-team',
                          'life-calendar', 'life-projects',
@@ -146,7 +146,7 @@ const THOUGHTS_PAGES = ['thoughts', 'top10lists', 'top10list-create', 'top10list
                         'views', 'view', 'view-history', 'views-categories'];
 
 // Settings pages — hide all section navbars (yard/house/life/thoughts)
-const SETTINGS_PAGES = ['settings', 'settings-general', 'settings-contact-lists', 'changepassword', 'backup', 'devnotes', 'sb-issues'];
+const SETTINGS_PAGES = ['settings', 'settings-general', 'settings-contact-lists', 'firebase-setup', 'changepassword', 'backup', 'devnotes', 'sb-issues'];
 
 const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'journal-categories', 'people', 'contacts', 'person', 'contact',
                      'notes', 'notebook', 'note',
@@ -442,6 +442,9 @@ function handleRoute() {
     } else if (page === 'settings-contact-lists') {
         showPage('settings-contact-lists');
         loadContactListsPage();
+    } else if (page === 'firebase-setup') {
+        showPage('firebase-setup');
+        renderFirebaseSetupPage();
     } else if (page === 'changepassword') {
         showPage('changepassword');
         loadChangePasswordPage();

@@ -31,6 +31,85 @@
     box-shadow: 0 2px 6px rgba(0,0,0,0.2);
 }
 
+/* ---------- First-Run Firebase Banner ---------- */
+.first-run-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 9998;
+    background: #1e40af;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 16px;
+    font-size: 0.85rem;
+}
+.first-run-banner a {
+    color: #bfdbfe;
+    text-decoration: underline;
+}
+.first-run-dismiss {
+    background: none;
+    border: none;
+    color: #bfdbfe;
+    font-size: 1rem;
+    cursor: pointer;
+    flex-shrink: 0;
+    padding: 2px 6px;
+}
+
+/* ---------- Firebase Setup Page ---------- */
+.fsb-why-list {
+    margin: 8px 0 0 20px;
+    color: #374151;
+    font-size: 0.9rem;
+    line-height: 1.7;
+}
+.fsb-steps {
+    margin: 12px 0 0 20px;
+    color: #374151;
+    font-size: 0.9rem;
+    line-height: 1.7;
+}
+.fsb-steps li {
+    margin-bottom: 14px;
+}
+.fsb-url {
+    background: #f3f4f6;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.85rem;
+    color: #1d4ed8;
+}
+.fsb-code {
+    display: block;
+    background: #f3f4f6;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-family: monospace;
+    font-size: 0.8rem;
+    white-space: pre;
+    margin: 8px 0;
+    overflow-x: auto;
+    color: #1f2937;
+}
+.fsb-config-textarea {
+    font-family: monospace;
+    font-size: 0.8rem;
+    min-height: 180px;
+    width: 100%;
+    margin-top: 10px;
+}
+.fsb-error {
+    color: #dc2626;
+    font-size: 0.85rem;
+    margin-top: 8px;
+}
+
 /* ---------- PWA Install Banner ---------- */
 .pwa-install-banner {
     position: fixed;

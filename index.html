@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bishop - Yard & Garden Tracker</title>
-    <link rel="stylesheet" href="css/styles.css?v=502">
+    <link rel="stylesheet" href="css/styles.css?v=503">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -9226,10 +9226,13 @@ export default {
 
         <!-- AI Topic Suggestions Modal -->
         <div id="viewAiTopicsModal" class="modal-overlay">
-            <div class="modal">
-                <h3>✨ AI Topic Suggestions</h3>
+            <div class="modal views-ai-modal">
+                <div class="views-ai-modal-header">
+                    <h3>✨ AI Topic Suggestions</h3>
+                    <p id="viewAiTopicsCatLabel" class="views-ai-cat-label"></p>
+                </div>
                 <div id="viewAiTopicsBody" class="views-ai-topics-body"></div>
-                <div class="modal-buttons">
+                <div class="modal-buttons views-ai-modal-footer">
                     <button class="btn btn-secondary" id="viewAiRetryBtn" onclick="_viewAskAiForTopic(true)">🔄 Get 10 Different Ones</button>
                     <button class="btn btn-secondary" onclick="closeModal('viewAiTopicsModal')">Close</button>
                 </div>
@@ -9283,7 +9286,7 @@ export default {
     <script src="js/thoughts.js?v=490"></script>
     <script src="js/top10lists.js?v=465"></script>
     <script src="js/memories.js?v=473"></script>
-    <script src="js/views.js?v=502"></script>
+    <script src="js/views.js?v=503"></script>
     <script src="js/app.js?v=501"></script>
 
 </body>

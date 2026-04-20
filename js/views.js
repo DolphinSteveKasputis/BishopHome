@@ -555,7 +555,13 @@ async function _viewAskAiForTopic(isRetry) {
         'Example format: ["Topic 1", "Topic 2", "Topic 3", "Topic 4", "Topic 5", ' +
         '"Topic 6", "Topic 7", "Topic 8", "Topic 9", "Topic 10"]';
 
-    // Show modal in loading state
+    // Set category label and show modal in loading state
+    var catLabelEl = document.getElementById('viewAiTopicsCatLabel');
+    if (catLabelEl) {
+        catLabelEl.textContent = subName && subName !== 'General'
+            ? catName + ' › ' + subName
+            : catName;
+    }
     _viewShowAiTopicsModal(null);
 
     try {

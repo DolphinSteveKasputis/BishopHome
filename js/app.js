@@ -6,9 +6,38 @@
 // ---------- PWA Service Worker Registration ----------
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', function() {
-        navigator.serviceWorker.register('/BishopHome/sw.js')
-            .catch(function(err) { console.warn('Service worker registration failed:', err); });
+        navigator.serviceWorker.register('/BishopHome/sw.js').then(function(reg) {
+
+            // Check if there's already a waiting SW on load (e.g. user opened a second tab)
+            if (reg.waiting) { _swShowUpdateBanner(reg); }
+
+            // Watch for a new SW finishing its install
+            reg.addEventListener('updatefound', function() {
+                var newSW = reg.installing;
+                newSW.addEventListener('statechange', function() {
+                    // 'installed' + existing controller = new version waiting to take over
+                    if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+                        _swShowUpdateBanner(reg);
+                    }
+                });
+            });
+
+        }).catch(function(err) { console.warn('Service worker registration failed:', err); });
+
+        // When the SW swaps in (after skipWaiting), reload to get fresh files
+        navigator.serviceWorker.addEventListener('controllerchange', function() {
+            window.location.reload();
+        });
     });
+}
+
+function _swShowUpdateBanner(reg) {
+    var banner = document.getElementById('swUpdateBanner');
+    if (!banner) return;
+    banner.classList.remove('hidden');
+    document.getElementById('swUpdateBtn').onclick = function() {
+        if (reg.waiting) reg.waiting.postMessage('SKIP_WAITING');
+    };
 }
 
 // ---------- Offline Banner ----------

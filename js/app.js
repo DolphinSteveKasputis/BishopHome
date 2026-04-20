@@ -3,6 +3,14 @@
 // Handles page routing (hash-based) and shared UI behavior
 // ============================================================
 
+// ---------- PWA Service Worker Registration ----------
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/BishopHome/sw.js')
+            .catch(function(err) { console.warn('Service worker registration failed:', err); });
+    });
+}
+
 // ---------- Router ----------
 // We use the URL hash (#main, #home, #house, etc.) to show/hide pages.
 

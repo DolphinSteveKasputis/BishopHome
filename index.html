@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=503">
+    <link rel="stylesheet" href="css/styles.css?v=507">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -27,6 +27,11 @@
     <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
 </head>
 <body>
+
+    <!-- Offline banner — shown automatically when network is lost -->
+    <div id="offlineBanner" class="offline-banner hidden">
+        ⚡ You're offline — changes will sync when you reconnect
+    </div>
 
     <!-- ========== LOGIN SCREEN ========== -->
     <!-- Shown when user is not authenticated. Hidden once signed in. -->
@@ -9296,7 +9301,7 @@ export default {
     <script src="js/top10lists.js?v=465"></script>
     <script src="js/memories.js?v=473"></script>
     <script src="js/views.js?v=505"></script>
-    <script src="js/app.js?v=506"></script>
+    <script src="js/app.js?v=507"></script>
 
 </body>
 </html>

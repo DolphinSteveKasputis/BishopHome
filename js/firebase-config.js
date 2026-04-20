@@ -18,6 +18,15 @@ firebase.initializeApp(firebaseConfig);
 // Get a reference to Firestore — this is what we'll use everywhere to read/write data
 const db = firebase.firestore();
 
+// Enable offline persistence — Firestore caches data locally so reads work without
+// a connection, and writes queue up and sync automatically when reconnected.
+firebase.firestore().enablePersistence({ synchronizeTabs: true })
+    .catch(function(err) {
+        if (err.code === 'unimplemented') {
+            console.warn('Offline persistence not supported in this browser.');
+        }
+    });
+
 // Get a reference to Firebase Auth — used by auth.js for login/logout
 const auth = firebase.auth();
 

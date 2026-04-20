@@ -11,6 +11,22 @@ if ('serviceWorker' in navigator) {
     });
 }
 
+// ---------- Offline Banner ----------
+(function() {
+    var banner = document.getElementById('offlineBanner');
+    if (!banner) return;
+    function update() {
+        if (navigator.onLine) {
+            banner.classList.add('hidden');
+        } else {
+            banner.classList.remove('hidden');
+        }
+    }
+    window.addEventListener('online', update);
+    window.addEventListener('offline', update);
+    update(); // set initial state
+}());
+
 // ---------- Router ----------
 // We use the URL hash (#main, #home, #house, etc.) to show/hide pages.
 

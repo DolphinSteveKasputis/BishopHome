@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=507">
+    <link rel="stylesheet" href="css/styles.css?v=508">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -31,6 +31,21 @@
     <!-- Offline banner — shown automatically when network is lost -->
     <div id="offlineBanner" class="offline-banner hidden">
         ⚡ You're offline — changes will sync when you reconnect
+    </div>
+
+    <!-- PWA Install banner — shown to users who haven't installed the app yet -->
+    <div id="pwaInstallBanner" class="pwa-install-banner hidden">
+        <div class="pwa-install-content">
+            <img src="icons/icon-192.png" alt="Bishop icon" class="pwa-install-icon">
+            <div class="pwa-install-text">
+                <strong>Install Bishop</strong>
+                <span id="pwaInstallHint">Add to your home screen for the best experience</span>
+            </div>
+        </div>
+        <div class="pwa-install-actions">
+            <button id="pwaInstallBtn" class="btn btn-primary btn-small" onclick="_pwaInstall()">Install</button>
+            <button class="pwa-install-dismiss" onclick="_pwaDismiss()" title="Dismiss">✕</button>
+        </div>
     </div>
 
     <!-- ========== LOGIN SCREEN ========== -->
@@ -9301,7 +9316,7 @@ export default {
     <script src="js/top10lists.js?v=465"></script>
     <script src="js/memories.js?v=473"></script>
     <script src="js/views.js?v=505"></script>
-    <script src="js/app.js?v=507"></script>
+    <script src="js/app.js?v=508"></script>
 
 </body>
 </html>

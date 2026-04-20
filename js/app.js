@@ -27,6 +27,72 @@ if ('serviceWorker' in navigator) {
     update(); // set initial state
 }());
 
+// ---------- PWA Install Banner ----------
+var _pwaDeferred = null; // holds the beforeinstallprompt event for later
+
+(function() {
+    // Don't show if already running as installed PWA
+    var isStandalone = window.navigator.standalone ||
+                       window.matchMedia('(display-mode: standalone)').matches;
+    if (isStandalone) return;
+
+    // Don't show if user already dismissed
+    if (localStorage.getItem('pwaInstallDismissed')) return;
+
+    var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) &&
+                !/crios|fxios/i.test(navigator.userAgent); // exclude Chrome/Firefox on iOS
+
+    if (isIOS) {
+        // iOS Safari: can't programmatically prompt — show manual instructions
+        var hint = document.getElementById('pwaInstallHint');
+        var installBtn = document.getElementById('pwaInstallBtn');
+        if (hint) hint.textContent = 'Tap Share ↑ then "Add to Home Screen"';
+        if (installBtn) installBtn.style.display = 'none'; // no button needed on iOS
+        // Show banner only in Safari (iOS Chrome can't install PWAs)
+        var isSafari = /safari/i.test(navigator.userAgent) && !/chrome/i.test(navigator.userAgent);
+        if (isSafari) _pwaShowBanner();
+        return;
+    }
+
+    // Android / desktop: wait for browser install prompt
+    window.addEventListener('beforeinstallprompt', function(e) {
+        e.preventDefault();
+        _pwaDeferred = e;
+        _pwaShowBanner();
+    });
+
+    // Hide banner if user installs via browser UI (not our button)
+    window.addEventListener('appinstalled', function() {
+        _pwaHideBanner();
+    });
+}());
+
+function _pwaShowBanner() {
+    var banner = document.getElementById('pwaInstallBanner');
+    if (banner) banner.classList.remove('hidden');
+}
+
+function _pwaHideBanner() {
+    var banner = document.getElementById('pwaInstallBanner');
+    if (banner) banner.classList.add('hidden');
+}
+
+function _pwaInstall() {
+    if (!_pwaDeferred) return;
+    _pwaDeferred.prompt();
+    _pwaDeferred.userChoice.then(function(result) {
+        if (result.outcome === 'accepted') {
+            _pwaHideBanner();
+        }
+        _pwaDeferred = null;
+    });
+}
+
+function _pwaDismiss() {
+    localStorage.setItem('pwaInstallDismissed', '1');
+    _pwaHideBanner();
+}
+
 // ---------- Router ----------
 // We use the URL hash (#main, #home, #house, etc.) to show/hide pages.
 

@@ -260,6 +260,13 @@ Bishop/
 - If no data exists in the test account for the feature being tested, verify by injecting mock state via `preview_eval` (e.g., populating `photoViewerState` to render the photo viewer)
 - Never skip verification for changes that are observable in the browser
 
+## Service Worker Cache — REQUIRED BEHAVIOR
+**IMPORTANT: Every time a commit touches JS, HTML, or CSS files, bump `CACHE_NAME` in `sw.js`.**
+- Current pattern: `'bishop-v2'` → `'bishop-v3'` → `'bishop-v4'` etc.
+- If you forget, users (including the developer) will get stale cached files after a deploy.
+- Do this in the same commit as the code change — not a separate commit.
+- This applies to every deploy, no exceptions.
+
 ## Git Push — REQUIRED BEHAVIOR
 **IMPORTANT: git push requires a Windows credential confirmation prompt. Always notify BEFORE pushing.**
 - Before every `git push`, send this curl notification first:

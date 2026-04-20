@@ -535,10 +535,21 @@ async function _viewAskAiForTopic(isRetry) {
         ? '"' + catName + '" › "' + subName + '"'
         : '"' + catName + '"';
 
-    var prompt = 'This user is logging their personal views on various subjects. ' +
-        'They are building a record of their opinions in the category ' + categoryDesc + '.\n\n' +
-        'Suggest 10 specific, thought-provoking topics they have not covered yet. ' +
-        'These should be topics where a person would have a clear personal stance or opinion.\n\n';
+    var prompt =
+        'You are helping an everyday working person log their personal opinions and views. ' +
+        'This person is a regular working adult — someone dealing with real life: paying bills, ' +
+        'raising a family, holding down a job. They likely have a high school diploma or an associate\'s degree. ' +
+        'They are NOT academics or political theorists. Keep language plain and grounded.\n\n' +
+        'They want to record their views in the category ' + categoryDesc + '.\n\n' +
+        'Suggest exactly 10 topic titles using this breakdown:\n' +
+        '- Topics 1–5: Current events or cultural issues that are in the news or affecting everyday life right now. ' +
+        'Real things people talk about at the dinner table or at work.\n' +
+        '- Topics 6–8: Timeless discussion topics that come up in everyday conversation — not tied to current events, ' +
+        'but things most people have a clear opinion on.\n' +
+        '- Topics 9–10: A little outside the box — designed for someone who wants to think deeper or consider ' +
+        'an angle most people overlook. Still relatable, not abstract philosophy.\n\n' +
+        'All topics should be written as short, clear titles (not full questions). ' +
+        'Avoid jargon, academic language, or anything that sounds like a college essay prompt.\n\n';
 
     if (existingTitles.length > 0) {
         prompt += 'Topics already logged (do not suggest these or close variants):\n';

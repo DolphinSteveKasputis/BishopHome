@@ -4107,14 +4107,41 @@ button {
 
 /* ---------- Checklists (NF-5) ---------- */
 
-/* ── Active Run Card ─────────────────────────────── */
+/* ── Active Run Card (accordion) ─────────────────── */
 .cl-run-card {
     background: #fff;
     border: 1px solid #e0e0e0;
     border-radius: 10px;
-    padding: 14px 16px;
     margin-bottom: 14px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    overflow: hidden;
+}
+
+/* Clickable accordion header */
+.cl-run-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 14px 16px;
+    cursor: pointer;
+    user-select: none;
+}
+.cl-run-header:hover { background: #f9f9f9; }
+.cl-run-header--open { background: #f5f5f5; }
+
+.cl-run-chevron {
+    font-size: 0.75rem;
+    color: #999;
+    margin-top: 4px;
+    flex-shrink: 0;
+}
+
+.cl-run-header-info { flex: 1; min-width: 0; }
+
+/* Accordion body — hidden by default */
+.cl-run-body {
+    padding: 0 16px 14px;
+    border-top: 1px solid #f0f0f0;
 }
 
 .cl-run-title {
@@ -4127,15 +4154,71 @@ button {
 .cl-run-date {
     font-size: 0.8rem;
     color: #888;
+    margin-bottom: 8px;
+}
+
+/* Tag chips */
+.cl-tag-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 6px;
+}
+.cl-tag-chip {
+    display: inline-block;
+    background: #e8f4fd;
+    color: #1565c0;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 12px;
+    white-space: nowrap;
+}
+
+/* URL items in run cards and completed accordions */
+.cl-item-label--url {
+    color: #1565c0;
+    text-decoration: underline;
+    cursor: pointer;
+    word-break: break-all;
+}
+.cl-item-label--url:hover { color: #0d47a1; }
+
+/* Filter row above active runs */
+.cl-filter-row {
     margin-bottom: 10px;
 }
+.cl-filter-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    box-sizing: border-box;
+}
+.cl-filter-input:focus { outline: none; border-color: #1976d2; box-shadow: 0 0 0 2px rgba(25,118,210,0.15); }
+
+/* Archived run card */
+.cl-archived-card {
+    background: #fafafa;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+}
+.cl-archived-info { flex: 1; min-width: 0; }
+.cl-archived-btns { display: flex; gap: 6px; flex-shrink: 0; }
 
 /* Progress bar row */
 .cl-progress-row {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
 }
 
 .cl-progress-bar {

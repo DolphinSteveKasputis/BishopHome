@@ -129,7 +129,7 @@ function _pwaDismiss() {
  * List of top-level pages that map to nav links.
  * These pages clear the breadcrumb bar when shown.
  */
-const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'house', 'settings', 'settings-general', 'settings-contact-lists', 'firebase-setup', 'main', 'search', 'activityreport', 'checklists', 'notes', 'chat', 'vehicles', 'garage', 'structures', 'life', 'journal', 'collections', 'changepassword', 'people', 'contacts', 'places', 'devnotes',
+const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'house', 'settings', 'settings-general', 'settings-contact-lists', 'firebase-setup', 'main', 'search', 'activityreport', 'checklists', 'checklist-focus', 'notes', 'chat', 'vehicles', 'garage', 'structures', 'life', 'journal', 'collections', 'changepassword', 'people', 'contacts', 'places', 'devnotes',
                          'health', 'health-visits', 'health-medications', 'health-conditions', 'health-concerns', 'health-bloodwork',
                          'health-vitals', 'health-insurance', 'health-emergency', 'health-appointments', 'health-care-team',
                          'life-calendar', 'life-projects',
@@ -433,6 +433,18 @@ function handleRoute() {
     } else if (page === 'item' && id) {
         showPage('item');
         loadItemDetail(id);
+    } else if (page === 'checklist-focus') {
+        // #checklist-focus/{runId}/{targetType}/{targetId?}
+        // Sets a focus run ID so loadChecklistsPage() auto-expands it.
+        var focusRunId = parts[1] || null;
+        var fcType     = parts[2] || 'yard';
+        var fcId       = parts[3] || null;
+        if (focusRunId) _clFocusRunId = focusRunId;
+        window.checklistsContext = { type: fcType, id: fcId || null };
+        currentNavContext = (fcType === 'house' || fcType === 'floor' || fcType === 'room') ? 'house'
+                          : fcType === 'life' ? 'life' : 'yard';
+        showPage('checklists');
+        loadChecklistsPage();
     } else if (page === 'checklists') {
         // Context is encoded in the hash: #checklists/{type}/{id?}
         // e.g. #checklists/house, #checklists/zone/abc123, #checklists/yard

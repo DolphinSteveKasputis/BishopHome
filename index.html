@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=512">
+    <link rel="stylesheet" href="css/styles.css?v=513">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -2608,6 +2608,9 @@
                 <h3 class="section-heading">Active</h3>
                 <button class="btn btn-secondary btn-small" id="addBlankChecklistBtn">+ New Blank List</button>
             </div>
+            <div class="cl-filter-row">
+                <input type="text" id="clFilterInput" class="cl-filter-input" placeholder="Filter lists by name or tag…">
+            </div>
             <div id="clActiveRunsContainer"></div>
             <p class="empty-state hidden" id="clActiveRunsEmptyState">
                 No active checklists. Press <strong>▶ Start</strong> on a template below to begin one.
@@ -2632,6 +2635,16 @@
             </div>
             <div id="clCompletedContainer" class="hidden"></div>
             <p class="empty-state hidden" id="clCompletedEmptyState">No completed checklists yet.</p>
+
+            <!-- Archived runs -->
+            <div class="section-header" style="margin-top:8px;">
+                <h3 class="section-heading">Archived</h3>
+                <label class="show-toggle">
+                    <input type="checkbox" id="clShowArchivedToggle"> Show archived
+                </label>
+            </div>
+            <div id="clArchivedContainer" class="hidden"></div>
+            <p class="empty-state hidden" id="clArchivedEmptyState">No archived checklists.</p>
         </section>
 
         <!-- Page: Saved Actions -->
@@ -3719,6 +3732,10 @@
             <div class="form-group">
                 <label for="clTemplateName">Template Name</label>
                 <input type="text" id="clTemplateName" placeholder="e.g., Spring Startup, Fall Winterization">
+            </div>
+            <div class="form-group">
+                <label for="clTagsInput">Tags <span class="label-hint">(comma-separated, e.g. Danielle, Finance)</span></label>
+                <input type="text" id="clTagsInput" placeholder="e.g., Danielle, Finance, Spring">
             </div>
             <!-- Location picker: hidden for Life context, shown for all others -->
             <div class="form-group" id="clTargetPickerGroup">
@@ -9320,9 +9337,9 @@ export default {
     <script src="js/house.js?v=409"></script>
     <script src="js/floorplan.js?v=398"></script>
     <script src="js/floorplanitem.js?v=393"></script>
-    <script src="js/search.js?v=501"></script>
+    <script src="js/search.js?v=513"></script>
     <script src="js/activityreport.js?v=350"></script>
-    <script src="js/checklists.js?v=512"></script>
+    <script src="js/checklists.js?v=513"></script>
     <script src="js/bulkactivity.js?v=350"></script>
     <script src="js/vehicles.js?v=357"></script>
     <script src="js/garage.js?v=357"></script>
@@ -9345,7 +9362,7 @@ export default {
     <script src="js/memories.js?v=473"></script>
     <script src="js/firebasesetup.js?v=510"></script>
     <script src="js/views.js?v=505"></script>
-    <script src="js/app.js?v=511"></script>
+    <script src="js/app.js?v=513"></script>
 
 </body>
 </html>

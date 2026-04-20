@@ -99,6 +99,44 @@ function runSearch(query) {
         { col: 'top10lists',         label: 'Top 10 Lists',         icon: '🔟', nameField: 'title',       urlFn: function(id)       { return '#top10list-edit/'  + id; } },
         // ── Activities ──
         { col: 'activities',         label: 'Activities',           icon: '📋', nameField: 'description', urlFn: function(id, data) { return _activityTargetRoute(data); } },
+        // ── Checklists ──
+        { col: 'checklistTemplates', label: 'Checklist Templates',  icon: '📋',
+          nameField: 'name',
+          matchFn: function(d, q) {
+              if ((d.name || '').toLowerCase().indexOf(q) !== -1) return true;
+              if ((d.tags || []).some(function(t) { return t.toLowerCase().indexOf(q) !== -1; })) return true;
+              if ((d.items || []).some(function(i) { return (i.label || '').toLowerCase().indexOf(q) !== -1; })) return true;
+              return false;
+          },
+          urlFn: function(id, data) {
+              var t  = data.targetType || 'yard';
+              var ti = data.targetId   || '';
+              return '#checklists/' + t + (ti ? '/' + ti : '');
+          }
+        },
+        { col: 'checklistRuns',      label: 'Active Lists',         icon: '✅',
+          nameField: 'templateName',
+          matchFn: function(d, q) {
+              if (d.archived) return false;
+              if ((d.templateName || '').toLowerCase().indexOf(q) !== -1) return true;
+              if ((d.tags || []).some(function(t) { return t.toLowerCase().indexOf(q) !== -1; })) return true;
+              if ((d.items || []).some(function(i) { return (i.label || '').toLowerCase().indexOf(q) !== -1; })) return true;
+              return false;
+          },
+          urlFn: function(id, data) {
+              var t  = data.targetType || 'yard';
+              var ti = data.targetId   || '';
+              return '#checklist-focus/' + id + '/' + t + (ti ? '/' + ti : '');
+          }
+        },
+        // ── Notes ──
+        { col: 'notes',              label: 'Notes',                icon: '📝',
+          nameField: 'body',
+          matchFn: function(d, q) {
+              return (d.body || '').toLowerCase().indexOf(q) !== -1;
+          },
+          urlFn: function(id, data) { return '#notebook/' + (data.notebookId || ''); }
+        },
     ];
 
     var includeJournal = !!(document.getElementById('searchIncludeJournal') || {}).checked;
@@ -145,6 +183,7 @@ function runSearch(query) {
 
         loaded.forEach(function (g) {
             var matches = g.all.filter(function (item) {
+                if (g.def.matchFn) return g.def.matchFn(item.data, q);
                 var val = (item.data[g.def.nameField] || '').toLowerCase();
                 return val.indexOf(q) !== -1;
             });
@@ -304,7 +343,10 @@ function _searchGetHint(col, data, nameMap) {
         case 'garageThings':       return (nameMap['garageRooms']    || {})[data.roomId]           || '';
         case 'garageSubThings':    return (nameMap['garageThings']   || {})[data.thingId]          || '';
         case 'collectionItems':    return (nameMap['collections']    || {})[data.collectionId]     || '';
-        case 'activities':         return _activityHint(data, nameMap);
+        case 'activities':          return _activityHint(data, nameMap);
+        case 'checklistTemplates':  return data.targetName || '';
+        case 'checklistRuns':       return (data.targetName ? data.targetName + ' · ' : '') + (data.completedAt ? 'completed' : 'active');
+        case 'notes':               return (nameMap['notebooks'] || {})[data.notebookId] || '';
         default:                   return '';
     }
 }

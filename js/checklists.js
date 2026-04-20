@@ -25,6 +25,11 @@
  */
 var clCurrentContext = null;
 
+/** Run ID set by the search navigator (#checklist-focus/…) so loadChecklistsPage
+ *  can auto-expand that specific run card after rendering.
+ *  Cleared immediately after use to avoid stale expansion on the next page load. */
+var _clFocusRunId = null;
+
 // ---------- Page Entry Point ----------
 
 /**
@@ -60,9 +65,11 @@ async function loadChecklistsPage() {
     }
 
     // Wire buttons exactly once (guards against re-entry on repeated page loads)
-    var addBtn   = document.getElementById('addChecklistTemplateBtn');
-    var blankBtn = document.getElementById('addBlankChecklistBtn');
-    var toggle   = document.getElementById('clShowCompletedToggle');
+    var addBtn        = document.getElementById('addChecklistTemplateBtn');
+    var blankBtn      = document.getElementById('addBlankChecklistBtn');
+    var toggle        = document.getElementById('clShowCompletedToggle');
+    var archiveToggle = document.getElementById('clShowArchivedToggle');
+    var filterInput   = document.getElementById('clFilterInput');
 
     if (!addBtn.dataset.wired) {
         addBtn.dataset.wired = 'true';
@@ -81,12 +88,39 @@ async function loadChecklistsPage() {
                 completedEmpty.classList.add('hidden');
             }
         });
+
+        archiveToggle.addEventListener('change', function() {
+            var archivedDiv   = document.getElementById('clArchivedContainer');
+            var archivedEmpty = document.getElementById('clArchivedEmptyState');
+            if (archiveToggle.checked) {
+                archivedDiv.classList.remove('hidden');
+                clLoadArchivedRuns();
+            } else {
+                archivedDiv.classList.add('hidden');
+                archivedEmpty.classList.add('hidden');
+            }
+        });
+
+        // Filter input: debounce and re-render active (+ completed if open)
+        var _clFilterTimer = null;
+        filterInput.addEventListener('input', function() {
+            clearTimeout(_clFilterTimer);
+            _clFilterTimer = setTimeout(function() {
+                clLoadActiveRuns();
+                if (toggle.checked) clLoadCompletedRuns();
+                if (archiveToggle.checked) clLoadArchivedRuns();
+            }, 250);
+        });
     }
 
-    // Reset completed section when page is re-entered
+    // Reset sections when page is re-entered
     toggle.checked = false;
+    archiveToggle.checked = false;
+    filterInput.value = '';
     document.getElementById('clCompletedContainer').classList.add('hidden');
     document.getElementById('clCompletedEmptyState').classList.add('hidden');
+    document.getElementById('clArchivedContainer').classList.add('hidden');
+    document.getElementById('clArchivedEmptyState').classList.add('hidden');
 
     // Load both sections simultaneously
     await Promise.all([
@@ -238,7 +272,8 @@ function clMatchesContext(item, ctx) {
 // ============================================================
 
 /**
- * Loads all non-completed runs and filters to the current context.
+ * Loads all non-completed, non-archived runs filtered to the current context.
+ * Also applies the text filter from #clFilterInput.
  */
 async function clLoadActiveRuns() {
     var container = document.getElementById('clActiveRunsContainer');
@@ -257,6 +292,8 @@ async function clLoadActiveRuns() {
         var runs = snap.docs
             .map(function(doc) { return Object.assign({ id: doc.id }, doc.data()); })
             .filter(function(run) { return clMatchesContext(run, ctx); })
+            .filter(function(run) { return !run.archived; })
+            .filter(clMatchesFilter)
             .sort(function(a, b) {
                 return (b.startedAt || '').localeCompare(a.startedAt || '');
             });
@@ -272,6 +309,21 @@ async function clLoadActiveRuns() {
             container.appendChild(clBuildRunCard(run));
         });
 
+        // Auto-expand the run highlighted from search (set by #checklist-focus route)
+        if (_clFocusRunId) {
+            var focusCard = container.querySelector('[data-id="' + _clFocusRunId + '"]');
+            _clFocusRunId = null;
+            if (focusCard) {
+                var body = focusCard.querySelector('.cl-run-body');
+                var hdr  = focusCard.querySelector('.cl-run-header');
+                if (body) body.classList.remove('hidden');
+                if (hdr)  hdr.classList.add('cl-run-header--open');
+                setTimeout(function() {
+                    focusCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 150);
+            }
+        }
+
     } catch (err) {
         console.error('Error loading active runs:', err);
         container.innerHTML = '<p class="ar-summary" style="color:#c62828;">Error loading active checklists.</p>';
@@ -279,8 +331,9 @@ async function clLoadActiveRuns() {
 }
 
 /**
- * Builds a full interactive card for one active run.
- * Includes edit mode (add/remove items), per-item notes, and progress bar.
+ * Builds an accordion card for one active run.
+ * Header (always visible): title, location badge, started date, progress bar, tags.
+ * Body (collapsed by default): item list, add-item row, action buttons.
  * @param {Object} run — Run document data including id.
  * @returns {HTMLElement}
  */
@@ -289,29 +342,40 @@ function clBuildRunCard(run) {
     card.className  = 'cl-run-card';
     card.dataset.id = run.id;
 
-    // ── Title row ─────────────────────────────────────────────
+    var items     = run.items || [];
+    var doneCount = items.filter(function(i) { return i.done; }).length;
+    var total     = items.length;
+
+    // ── Accordion header (always visible, click to expand/collapse) ──
+    var header = document.createElement('div');
+    header.className = 'cl-run-header';
+
+    var chevron = document.createElement('span');
+    chevron.className   = 'cl-run-chevron';
+    chevron.textContent = '▶';
+    header.appendChild(chevron);
+
+    var headerInfo = document.createElement('div');
+    headerInfo.className = 'cl-run-header-info';
+
     var title = document.createElement('div');
     title.className   = 'cl-run-title';
     title.textContent = run.templateName || 'Checklist';
-    card.appendChild(title);
+    headerInfo.appendChild(title);
 
     if (run.targetName) {
         var badge = document.createElement('div');
         badge.className   = 'cl-target-badge';
         badge.textContent = '📍 ' + run.targetName;
-        card.appendChild(badge);
+        headerInfo.appendChild(badge);
     }
 
     var dateEl = document.createElement('div');
     dateEl.className   = 'cl-run-date';
     dateEl.textContent = 'Started ' + clFormatDate(run.startedAt);
-    card.appendChild(dateEl);
+    headerInfo.appendChild(dateEl);
 
-    // ── Progress bar ──────────────────────────────────────────
-    var items     = run.items || [];
-    var doneCount = items.filter(function(i) { return i.done; }).length;
-    var total     = items.length;
-
+    // Progress bar inside header
     var progressRow = document.createElement('div');
     progressRow.className = 'cl-progress-row';
     var bar  = document.createElement('div');
@@ -325,15 +389,24 @@ function clBuildRunCard(run) {
     progressText.textContent = doneCount + ' / ' + total + ' done';
     progressRow.appendChild(bar);
     progressRow.appendChild(progressText);
-    card.appendChild(progressRow);
+    headerInfo.appendChild(progressRow);
 
-    // ── Item list ─────────────────────────────────────────────
-    card.appendChild(clBuildItemsListEl(run.id, items, card));
+    // Tags chips in header
+    if (run.tags && run.tags.length) {
+        headerInfo.appendChild(clBuildTagChips(run.tags));
+    }
 
-    // ── Add-item row (visible in edit mode only) ───────────────
-    card.appendChild(clBuildAddItemRow(run.id, run.templateId || null, card));
+    header.appendChild(headerInfo);
+    card.appendChild(header);
 
-    // ── Action buttons ────────────────────────────────────────
+    // ── Accordion body (collapsed by default) ─────────────────
+    var body = document.createElement('div');
+    body.className = 'cl-run-body hidden';
+
+    body.appendChild(clBuildItemsListEl(run.id, items, card));
+    body.appendChild(clBuildAddItemRow(run.id, run.templateId || null, card));
+
+    // Action buttons
     var actions = document.createElement('div');
     actions.className = 'cl-run-actions';
 
@@ -347,14 +420,24 @@ function clBuildRunCard(run) {
     clearBtn.textContent = 'Clear All';
     clearBtn.addEventListener('click', function() { clClearAllItems(run.id, card); });
 
-    // Edit toggle button — shows/hides remove buttons and add-item row
     var editBtn = document.createElement('button');
     editBtn.className   = 'btn btn-secondary btn-small';
     editBtn.textContent = 'Edit';
     editBtn.addEventListener('click', function() {
         var editing = card.classList.toggle('cl-run-card--editing');
         editBtn.textContent = editing ? 'Done' : 'Edit';
+        if (editing) {
+            // Ensure body is visible when entering edit mode
+            body.classList.remove('hidden');
+            header.classList.add('cl-run-header--open');
+            chevron.textContent = '▼';
+        }
     });
+
+    var archiveBtn = document.createElement('button');
+    archiveBtn.className   = 'btn btn-secondary btn-small';
+    archiveBtn.textContent = 'Archive';
+    archiveBtn.addEventListener('click', function() { clArchiveRun(run.id, true); });
 
     var deleteBtn = document.createElement('button');
     deleteBtn.className   = 'btn btn-danger btn-small';
@@ -364,8 +447,20 @@ function clBuildRunCard(run) {
     actions.appendChild(completeBtn);
     actions.appendChild(clearBtn);
     actions.appendChild(editBtn);
+    actions.appendChild(archiveBtn);
     actions.appendChild(deleteBtn);
-    card.appendChild(actions);
+    body.appendChild(actions);
+
+    card.appendChild(body);
+
+    // Toggle accordion on header click (ignore clicks on buttons)
+    header.addEventListener('click', function(e) {
+        if (e.target.tagName === 'BUTTON') return;
+        var isOpen = !body.classList.contains('hidden');
+        body.classList.toggle('hidden', isOpen);
+        header.classList.toggle('cl-run-header--open', !isOpen);
+        chevron.textContent = isOpen ? '▶' : '▼';
+    });
 
     return card;
 }
@@ -479,9 +574,19 @@ function clBuildItemEl(runId, item, idx, card) {
         clToggleItem(runId, cb.checked, idx, card);
     });
 
-    var label = document.createElement('span');
-    label.className   = 'cl-item-label' + (item.done ? ' cl-item-label--done' : '');
-    label.textContent = item.label;
+    // Render URLs as clickable links; plain text as spans
+    var isUrl = /^https?:\/\//i.test(item.label);
+    var label = document.createElement(isUrl ? 'a' : 'span');
+    label.className = 'cl-item-label' + (isUrl ? ' cl-item-label--url' : '') + (item.done ? ' cl-item-label--done' : '');
+    if (isUrl) {
+        label.href   = item.label;
+        label.target = '_blank';
+        label.rel    = 'noopener noreferrer';
+        var display  = item.label.length > 60 ? item.label.substring(0, 60) + '…' : item.label;
+        label.textContent = display;
+    } else {
+        label.textContent = item.label;
+    }
 
     // Show completion date inline when the item is done
     if (item.done && item.doneAt) {
@@ -610,14 +715,17 @@ function clBuildAddItemRow(runId, templateId, card) {
  * Also refreshes the progress bar.
  */
 function clRerenderRunItems(runId, items, templateId, card) {
-    var oldList = card.querySelector('.cl-item-list');
+    // Items live inside .cl-run-body (accordion), fall back to card directly
+    var body = card.querySelector('.cl-run-body') || card;
+
+    var oldList = body.querySelector('.cl-item-list');
     var newList = clBuildItemsListEl(runId, items, card);
-    card.replaceChild(newList, oldList);
+    body.replaceChild(newList, oldList);
 
     // Rebuild the add-item row with the correct templateId in scope
-    var oldAddRow = card.querySelector('.cl-add-item-row');
+    var oldAddRow = body.querySelector('.cl-add-item-row');
     var newAddRow = clBuildAddItemRow(runId, templateId, card);
-    card.replaceChild(newAddRow, oldAddRow);
+    body.replaceChild(newAddRow, oldAddRow);
 
     // Refresh progress bar
     var doneCount = items.filter(function(i) { return i.done; }).length;
@@ -829,12 +937,16 @@ async function clMarkRunComplete(runId) {
 async function clDeleteRun(runId, section) {
     var msg = section === 'active'
         ? 'Abandon this checklist? All progress will be lost.'
+        : section === 'archived'
+        ? 'Permanently delete this archived checklist?'
         : 'Delete this completed checklist record?';
     if (!confirm(msg)) return;
     try {
         await userCol('checklistRuns').doc(runId).delete();
         if (section === 'active') {
             clLoadActiveRuns();
+        } else if (section === 'archived') {
+            clLoadArchivedRuns();
         } else {
             clLoadCompletedRuns();
         }
@@ -917,6 +1029,10 @@ function clBuildTemplateCard(template) {
     count.textContent = itemCount + ' item' + (itemCount !== 1 ? 's' : '');
     info.appendChild(count);
 
+    if (template.tags && template.tags.length) {
+        info.appendChild(clBuildTagChips(template.tags));
+    }
+
     card.appendChild(info);
 
     // Only the Start button remains on the card — Edit is via card click, Delete is in the modal
@@ -947,6 +1063,7 @@ async function clStartRun(template) {
     var items = (template.items || []).map(function(item) {
         return { label: item.label, done: false, indent: item.indent || 0 };
     });
+    var tags = template.tags || [];
 
     if (items.length === 0) {
         alert('This template has no items. Edit the template and add at least one task first.');
@@ -957,11 +1074,13 @@ async function clStartRun(template) {
         await userCol('checklistRuns').add({
             templateId:   template.id,
             templateName: template.name,
+            tags:         tags,
             targetType:   template.targetType  || null,
             targetId:     template.targetId    || null,
             targetName:   template.targetName  || null,
             startedAt:    new Date().toISOString(),
             completedAt:  null,
+            archived:     false,
             items:        items,
             createdAt:    firebase.firestore.FieldValue.serverTimestamp()
         });
@@ -1015,6 +1134,8 @@ async function clLoadCompletedRuns() {
         var runs = snap.docs
             .map(function(doc) { return Object.assign({ id: doc.id }, doc.data()); })
             .filter(function(run) { return clMatchesContext(run, ctx); })
+            .filter(function(run) { return !run.archived; })
+            .filter(clMatchesFilter)
             .sort(function(a, b) {
                 return (b.completedAt || '').localeCompare(a.completedAt || '');
             });
@@ -1084,6 +1205,16 @@ function clBuildCompletedCard(run) {
 
     header.appendChild(info);
 
+    var archiveCBtn = document.createElement('button');
+    archiveCBtn.className      = 'btn btn-secondary btn-small';
+    archiveCBtn.textContent    = 'Archive';
+    archiveCBtn.style.flexShrink = '0';
+    archiveCBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        clArchiveRun(run.id, true);
+    });
+    header.appendChild(archiveCBtn);
+
     var delBtn = document.createElement('button');
     delBtn.className   = 'btn btn-danger btn-small';
     delBtn.textContent = 'Delete';
@@ -1106,9 +1237,22 @@ function clBuildCompletedCard(run) {
                                   : 'cl-completed-item cl-completed-item--missed') +
                        (item.indent ? ' cl-completed-item--indented' : '');
 
-        var labelSpan = document.createElement('span');
-        labelSpan.textContent = (item.done ? '✓ ' : '✗ ') + item.label;
-        li.appendChild(labelSpan);
+        var prefix = item.done ? '✓ ' : '✗ ';
+        var isUrl  = /^https?:\/\//i.test(item.label);
+        var labelEl;
+        if (isUrl) {
+            labelEl = document.createElement('a');
+            labelEl.href   = item.label;
+            labelEl.target = '_blank';
+            labelEl.rel    = 'noopener noreferrer';
+            labelEl.className = 'cl-item-label--url';
+            var disp = item.label.length > 60 ? item.label.substring(0, 60) + '…' : item.label;
+            labelEl.textContent = prefix + disp;
+        } else {
+            labelEl = document.createElement('span');
+            labelEl.textContent = prefix + item.label;
+        }
+        li.appendChild(labelEl);
 
         // Show note read-only below the label if one was recorded
         if (item.note) {
@@ -1134,6 +1278,164 @@ function clBuildCompletedCard(run) {
 }
 
 // ============================================================
+// ARCHIVED RUNS
+// ============================================================
+
+/**
+ * Loads all archived runs (regardless of completed state), filters to context,
+ * and renders in the Archived section.
+ * Called when the "Show archived" toggle is checked.
+ */
+async function clLoadArchivedRuns() {
+    var container = document.getElementById('clArchivedContainer');
+    var emptyEl   = document.getElementById('clArchivedEmptyState');
+
+    container.innerHTML = '<p class="ar-summary">Loading…</p>';
+    emptyEl.classList.add('hidden');
+
+    try {
+        var snap = await userCol('checklistRuns')
+            .where('archived', '==', true)
+            .get();
+
+        var ctx  = clCurrentContext || { type: 'yard' };
+        var runs = snap.docs
+            .map(function(doc) { return Object.assign({ id: doc.id }, doc.data()); })
+            .filter(function(run) { return clMatchesContext(run, ctx); })
+            .filter(clMatchesFilter)
+            .sort(function(a, b) {
+                return (b.startedAt || '').localeCompare(a.startedAt || '');
+            });
+
+        container.innerHTML = '';
+
+        if (runs.length === 0) {
+            emptyEl.classList.remove('hidden');
+            return;
+        }
+
+        runs.forEach(function(run) {
+            container.appendChild(clBuildArchivedCard(run));
+        });
+
+    } catch (err) {
+        console.error('Error loading archived runs:', err);
+        container.innerHTML = '<p class="ar-summary" style="color:#c62828;">Error loading archived checklists.</p>';
+    }
+}
+
+/**
+ * Builds a simple card for one archived run.
+ * Shows name, dates, status, and an Unarchive + Delete button.
+ * @param {Object} run
+ * @returns {HTMLElement}
+ */
+function clBuildArchivedCard(run) {
+    var card = document.createElement('div');
+    card.className = 'cl-archived-card';
+
+    var info = document.createElement('div');
+    info.className = 'cl-archived-info';
+
+    var name = document.createElement('div');
+    name.className   = 'cl-completed-name';
+    name.textContent = run.templateName || 'Checklist';
+    info.appendChild(name);
+
+    if (run.targetName) {
+        var badge = document.createElement('div');
+        badge.className   = 'cl-target-badge';
+        badge.textContent = '📍 ' + run.targetName;
+        info.appendChild(badge);
+    }
+
+    var items     = run.items || [];
+    var doneCount = items.filter(function(i) { return i.done; }).length;
+    var statusText = run.completedAt
+        ? 'Completed ' + clFormatDate(run.completedAt)
+        : 'Started ' + clFormatDate(run.startedAt);
+    var dates = document.createElement('div');
+    dates.className   = 'cl-completed-dates';
+    dates.textContent = statusText + ' · ' + doneCount + '/' + items.length + ' done';
+    info.appendChild(dates);
+
+    if (run.tags && run.tags.length) info.appendChild(clBuildTagChips(run.tags));
+
+    card.appendChild(info);
+
+    var btnGroup = document.createElement('div');
+    btnGroup.className = 'cl-archived-btns';
+
+    var unarchiveBtn = document.createElement('button');
+    unarchiveBtn.className   = 'btn btn-secondary btn-small';
+    unarchiveBtn.textContent = 'Unarchive';
+    unarchiveBtn.addEventListener('click', function() { clArchiveRun(run.id, false); });
+
+    var delBtn = document.createElement('button');
+    delBtn.className   = 'btn btn-danger btn-small';
+    delBtn.textContent = 'Delete';
+    delBtn.addEventListener('click', function() { clDeleteRun(run.id, 'archived'); });
+
+    btnGroup.appendChild(unarchiveBtn);
+    btnGroup.appendChild(delBtn);
+    card.appendChild(btnGroup);
+
+    return card;
+}
+
+/**
+ * Archives or unarchives a run by toggling the `archived` flag.
+ * Reloads all affected sections after the update.
+ * @param {string}  runId
+ * @param {boolean} archive — true to archive, false to unarchive
+ */
+async function clArchiveRun(runId, archive) {
+    try {
+        await userCol('checklistRuns').doc(runId).update({ archived: archive });
+        clLoadActiveRuns();
+        var completedToggle = document.getElementById('clShowCompletedToggle');
+        if (completedToggle && completedToggle.checked) clLoadCompletedRuns();
+        var archiveToggle = document.getElementById('clShowArchivedToggle');
+        if (archiveToggle && archiveToggle.checked) clLoadArchivedRuns();
+    } catch (err) {
+        console.error('Error archiving/unarchiving run:', err);
+    }
+}
+
+/**
+ * Returns true if a run matches the current text filter (name, tags, or item labels).
+ * An empty filter always returns true.
+ * @param {Object} run
+ * @returns {boolean}
+ */
+function clMatchesFilter(run) {
+    var filterEl = document.getElementById('clFilterInput');
+    var term = filterEl ? (filterEl.value || '').trim().toLowerCase() : '';
+    if (!term) return true;
+    if ((run.templateName || '').toLowerCase().indexOf(term) !== -1) return true;
+    if ((run.tags || []).some(function(t) { return t.toLowerCase().indexOf(term) !== -1; })) return true;
+    if ((run.items || []).some(function(i) { return (i.label || '').toLowerCase().indexOf(term) !== -1; })) return true;
+    return false;
+}
+
+/**
+ * Builds a row of tag chips for display on run cards.
+ * @param {string[]} tags
+ * @returns {HTMLElement}
+ */
+function clBuildTagChips(tags) {
+    var wrap = document.createElement('div');
+    wrap.className = 'cl-tag-chips';
+    (tags || []).forEach(function(tag) {
+        var chip = document.createElement('span');
+        chip.className   = 'cl-tag-chip';
+        chip.textContent = tag;
+        wrap.appendChild(chip);
+    });
+    return wrap;
+}
+
+// ============================================================
 // TEMPLATE MODAL — Add / Edit
 // ============================================================
 
@@ -1145,6 +1447,7 @@ async function clOpenAddTemplateModal() {
     var modal = document.getElementById('checklistTemplateModal');
     document.getElementById('clTemplateModalTitle').textContent = 'New Template';
     document.getElementById('clTemplateName').value = '';
+    document.getElementById('clTagsInput').value = '';
     document.getElementById('clTemplateItemsEditor').innerHTML = '';
     modal.dataset.mode = 'add';
     delete modal.dataset.editId;
@@ -1174,6 +1477,7 @@ async function clOpenEditTemplateModal(template) {
     var modal = document.getElementById('checklistTemplateModal');
     document.getElementById('clTemplateModalTitle').textContent = 'Edit Template';
     document.getElementById('clTemplateName').value = template.name || '';
+    document.getElementById('clTagsInput').value = (template.tags || []).join(', ');
 
     // Show delete button and wire it to this template
     var deleteBtn = document.getElementById('clTemplateModalDeleteBtn');
@@ -1433,10 +1737,12 @@ function clGetItemsFromModal() {
  * Reads the Location picker to get targetType / targetId / targetName.
  */
 async function clSaveTemplate() {
-    var modal = document.getElementById('checklistTemplateModal');
-    var name  = document.getElementById('clTemplateName').value.trim();
-    var items = clGetItemsFromModal();
-    var ctx   = clCurrentContext || { type: 'yard' };
+    var modal   = document.getElementById('checklistTemplateModal');
+    var name    = document.getElementById('clTemplateName').value.trim();
+    var tagsRaw = (document.getElementById('clTagsInput').value || '').trim();
+    var tags    = tagsRaw ? tagsRaw.split(',').map(function(t) { return t.trim(); }).filter(Boolean) : [];
+    var items   = clGetItemsFromModal();
+    var ctx     = clCurrentContext || { type: 'yard' };
 
     if (!name) {
         alert('Please enter a template name.');
@@ -1472,6 +1778,7 @@ async function clSaveTemplate() {
         if (mode === 'add') {
             await userCol('checklistTemplates').add({
                 name:       name,
+                tags:       tags,
                 items:      items,
                 targetType: targetType,
                 targetId:   targetId   || null,
@@ -1481,6 +1788,7 @@ async function clSaveTemplate() {
         } else {
             await userCol('checklistTemplates').doc(modal.dataset.editId).update({
                 name:       name,
+                tags:       tags,
                 items:      items,
                 targetType: targetType,
                 targetId:   targetId   || null,

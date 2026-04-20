@@ -1223,7 +1223,13 @@ A personal viewpoint journal — record, edit, and historically track opinions a
 - Breadcrumb: Thoughts › My Views
 
 ### New View Page (`#view/new`)
-- Fields: **Title** (required), **Major Category** (required), **Subcategory** (defaults to General when major selected), **Short Version** (optional, 500-char cap with live counter), **Long Version** (disabled until both title and major category are filled)
+- Form order: **Major Category** (required) and **Subcategory** (defaults to General) appear first, then **Title** (required); Short Version and Long Version fields removed from this screen
+- "Create View" button enabled only when both title and major category are filled
+- **"✨ Ask AI For a Topic" button**: shown below the title field only when LLM is configured (checks `userCol('settings').doc('llm')` on load); hidden otherwise
+  - Clicking opens the AI Topics modal showing 10 suggested topic titles for the chosen category/subcategory
+  - AI is given the existing view titles in that category to avoid overlap
+  - **"🔄 Get 10 Different Ones"** re-prompts, excluding all previously suggested topics (cumulative across retries)
+  - Selecting a suggestion populates the title field and closes the modal
 - "Create View" button → writes doc to `views` collection → navigates to `#view/{id}`
 - Breadcrumb: Thoughts › My Views › New View
 

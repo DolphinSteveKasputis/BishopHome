@@ -11064,6 +11064,55 @@ a.health-chip--link:hover { filter: brightness(0.93); }
     color: #9ca3af;
 }
 
+/* ── AI Topic Suggestions modal ── */
+.views-ai-topics-body {
+    min-height: 60px;
+    margin-bottom: 16px;
+}
+.views-ai-loading {
+    color: #6b7280;
+    font-size: 0.9rem;
+    padding: 12px 0;
+    text-align: center;
+}
+.views-ai-error {
+    color: #dc2626;
+    font-size: 0.9rem;
+    padding: 8px 0;
+}
+.views-ai-topic-btn {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    width: 100%;
+    background: none;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s, border-color 0.15s;
+}
+.views-ai-topic-btn:hover {
+    background: #f0f9ff;
+    border-color: #3b82f6;
+}
+.views-ai-topic-num {
+    font-size: 0.78rem;
+    color: #9ca3af;
+    flex-shrink: 0;
+    min-width: 20px;
+}
+.views-ai-topic-text {
+    font-size: 0.92rem;
+    color: #1f2937;
+}
+.view-ask-ai-btn {
+    margin-top: 6px;
+    font-size: 0.85rem;
+}
+
 /* ── Historical viewpoint page ── */
 .view-history-page-header {
     display: flex;

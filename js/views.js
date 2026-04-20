@@ -30,11 +30,12 @@ function seedViewCategories() {
 }
 
 // ─────── Module State ───────
-var _viewId        = null;   // Firestore ID of the current view (null = new)
-var _viewData      = null;   // current view document data
-var _viewCatsData  = [];     // [{id, name, order, subs:[{id,name,isDefault,order}]}]
-var _viewUrls      = [];     // [{label, url}] — links on the current view
-var _viewLongLast  = '';     // last-saved long version (for auto-save change detection)
+var _viewId               = null;   // Firestore ID of the current view (null = new)
+var _viewData             = null;   // current view document data
+var _viewCatsData         = [];     // [{id, name, order, subs:[{id,name,isDefault,order}]}]
+var _viewUrls             = [];     // [{label, url}] — links on the current view
+var _viewLongLast         = '';     // last-saved long version (for auto-save change detection)
+var _viewAiPrevSuggestions = [];    // cumulative list of AI suggestions to exclude on retry
 
 // ─────── Helpers ───────
 function _viewEsc(str) {
@@ -399,15 +400,12 @@ function _viewRenderNewPage() {
         '<a href="#views">My Views</a><span class="separator">&rsaquo;</span>' +
         '<span>New View</span>';
 
+    _viewAiPrevSuggestions = []; // reset on each new-view page load
+
     var container = document.getElementById('viewDetailContent');
     container.innerHTML =
         '<div class="view-detail-container">' +
             '<h2 class="view-new-heading">New View</h2>' +
-
-            '<div class="view-field-group">' +
-                '<label class="view-field-label">Title <span class="view-required">*</span></label>' +
-                '<input type="text" id="viewTitleInput" class="form-control" placeholder="What is this view about?">' +
-            '</div>' +
 
             '<div class="view-category-row">' +
                 '<div class="view-field-group">' +
@@ -425,6 +423,13 @@ function _viewRenderNewPage() {
                 '</div>' +
             '</div>' +
 
+            '<div class="view-field-group">' +
+                '<label class="view-field-label">Title <span class="view-required">*</span></label>' +
+                '<input type="text" id="viewTitleInput" class="form-control" placeholder="What is this view about?">' +
+                '<button id="viewAskAiBtn" class="btn btn-secondary btn-small view-ask-ai-btn hidden" ' +
+                    'onclick="_viewAskAiForTopic(false)">✨ Ask AI For a Topic</button>' +
+            '</div>' +
+
             '<div class="view-create-actions">' +
                 '<button id="viewCreateBtn" class="btn btn-primary" onclick="_viewCreateNew()" disabled>Create View</button>' +
                 '<a href="#views" class="btn btn-secondary">Cancel</a>' +
@@ -434,8 +439,19 @@ function _viewRenderNewPage() {
     // Wire handlers
     var titleEl = document.getElementById('viewTitleInput');
     var majorEl = document.getElementById('viewMajorCatSelect');
-    if (titleEl) { titleEl.oninput = _viewCheckNewPageUnlock; titleEl.focus(); }
-    if (majorEl) majorEl.onchange = function() { _viewOnMajorCatChange(this.value, false); _viewCheckNewPageUnlock(); };
+    if (titleEl) { titleEl.oninput = _viewCheckNewPageUnlock; }
+    if (majorEl) {
+        majorEl.onchange = function() { _viewOnMajorCatChange(this.value, false); _viewCheckNewPageUnlock(); };
+        majorEl.focus();
+    }
+
+    // Show AI button if LLM is configured
+    userCol('settings').doc('llm').get().then(function(doc) {
+        if (doc.exists && doc.data().provider && doc.data().apiKey) {
+            var btn = document.getElementById('viewAskAiBtn');
+            if (btn) btn.classList.remove('hidden');
+        }
+    });
 }
 
 function _viewCreateNew() {
@@ -471,6 +487,131 @@ function _viewCreateNew() {
         if (btn) { btn.disabled = false; btn.textContent = 'Create View'; }
         alert('Error creating view. Please try again.');
     });
+}
+
+// ══════════════════════════════════════════════════════════════
+// AI TOPIC SUGGESTIONS
+// ══════════════════════════════════════════════════════════════
+
+/**
+ * Ask the LLM for 10 topic suggestions for the selected category.
+ * @param {boolean} isRetry - true when "Get 10 Different Ones" is clicked
+ */
+async function _viewAskAiForTopic(isRetry) {
+    var majorEl = document.getElementById('viewMajorCatSelect');
+    var subEl   = document.getElementById('viewSubCatSelect');
+    var catId   = majorEl ? majorEl.value : '';
+    var subId   = subEl   ? subEl.value   : '';
+
+    if (!catId) { alert('Please select a major category first.'); return; }
+
+    // Resolve display names
+    var cat    = _viewCatsData.find(function(c) { return c.id === catId; });
+    var catName = cat ? cat.name : 'Unknown';
+    var subName = '';
+    if (subId && cat) {
+        var sub = cat.subs.find(function(s) { return s.id === subId; });
+        subName = sub ? sub.name : '';
+    }
+
+    // Load LLM config
+    var cfgDoc = await userCol('settings').doc('llm').get().catch(function() { return null; });
+    if (!cfgDoc || !cfgDoc.exists) { alert('LLM not configured. Go to Settings > AI.'); return; }
+    var cfg = cfgDoc.data();
+    var llm = (typeof LLM_PROVIDERS !== 'undefined') ? LLM_PROVIDERS[cfg.provider] : null;
+    if (!llm) { alert('Unknown LLM provider. Check Settings > AI.'); return; }
+
+    // Fetch existing view titles for this category
+    var snap = await userCol('views').where('categoryId', '==', catId).get();
+    var existingTitles = [];
+    snap.forEach(function(doc) {
+        var t = doc.data().title;
+        if (t) existingTitles.push(t);
+    });
+
+    // Build prompt
+    var categoryDesc = subName && subName !== 'General'
+        ? '"' + catName + '" › "' + subName + '"'
+        : '"' + catName + '"';
+
+    var prompt = 'This user is logging their personal views on various subjects. ' +
+        'They are building a record of their opinions in the category ' + categoryDesc + '.\n\n' +
+        'Suggest 10 specific, thought-provoking topics they have not covered yet. ' +
+        'These should be topics where a person would have a clear personal stance or opinion.\n\n';
+
+    if (existingTitles.length > 0) {
+        prompt += 'Topics already logged (do not suggest these or close variants):\n';
+        existingTitles.forEach(function(t) { prompt += '- ' + t + '\n'; });
+        prompt += '\n';
+    }
+
+    if (isRetry && _viewAiPrevSuggestions.length > 0) {
+        prompt += 'Previously suggested topics (do not suggest any of these either):\n';
+        _viewAiPrevSuggestions.forEach(function(t) { prompt += '- ' + t + '\n'; });
+        prompt += '\n';
+    }
+
+    prompt += 'Return ONLY a JSON array of exactly 10 topic strings and nothing else. ' +
+        'Example format: ["Topic 1", "Topic 2", "Topic 3", "Topic 4", "Topic 5", ' +
+        '"Topic 6", "Topic 7", "Topic 8", "Topic 9", "Topic 10"]';
+
+    // Show modal in loading state
+    _viewShowAiTopicsModal(null);
+
+    try {
+        var activeModel = cfg.model || llm.model;
+        var raw = await chatCallOpenAICompat(llm, cfg.apiKey, prompt, activeModel);
+
+        // Extract JSON array from response (strip any markdown fences)
+        var jsonMatch = raw.match(/\[[\s\S]*\]/);
+        if (!jsonMatch) throw new Error('Could not parse AI response.');
+        var topics = JSON.parse(jsonMatch[0]);
+        if (!Array.isArray(topics) || topics.length === 0) throw new Error('Empty suggestion list.');
+
+        // Accumulate for future retries
+        _viewAiPrevSuggestions = _viewAiPrevSuggestions.concat(topics);
+
+        _viewShowAiTopicsModal(topics);
+    } catch (err) {
+        console.error('AI topic error:', err);
+        var bodyEl = document.getElementById('viewAiTopicsBody');
+        if (bodyEl) bodyEl.innerHTML = '<p class="views-ai-error">Error: ' + _viewEsc(err.message) + '</p>';
+    }
+}
+
+/** Render the AI topics modal. Pass null to show loading state. */
+function _viewShowAiTopicsModal(topics) {
+    var bodyEl = document.getElementById('viewAiTopicsBody');
+    var retryBtn = document.getElementById('viewAiRetryBtn');
+    if (!bodyEl) return;
+
+    openModal('viewAiTopicsModal');
+
+    if (!topics) {
+        bodyEl.innerHTML = '<p class="views-ai-loading">✨ Asking AI for suggestions…</p>';
+        if (retryBtn) retryBtn.disabled = true;
+        return;
+    }
+
+    bodyEl.innerHTML = topics.map(function(topic, i) {
+        return '<button class="views-ai-topic-btn" onclick="_viewSelectAiTopic(' + JSON.stringify(topic) + ')">' +
+            '<span class="views-ai-topic-num">' + (i + 1) + '</span>' +
+            '<span class="views-ai-topic-text">' + _viewEsc(topic) + '</span>' +
+            '</button>';
+    }).join('');
+
+    if (retryBtn) retryBtn.disabled = false;
+}
+
+/** Populate the title input with the selected AI topic and close modal. */
+function _viewSelectAiTopic(topic) {
+    var titleEl = document.getElementById('viewTitleInput');
+    if (titleEl) {
+        titleEl.value = topic;
+        titleEl.dispatchEvent(new Event('input'));
+        _viewCheckNewPageUnlock();
+    }
+    closeModal('viewAiTopicsModal');
 }
 
 // ── Existing View Detail Page ──

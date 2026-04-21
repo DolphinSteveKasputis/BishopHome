@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=516">
+    <link rel="stylesheet" href="css/styles.css?v=517">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -8165,6 +8165,9 @@
                         <div class="checkin-locked-badge">📍 Check-In</div>
                         <div id="journalCheckinPlaceName" class="checkin-locked-name"></div>
                         <div id="journalCheckinPlaceSub" class="checkin-locked-sub"></div>
+                        <button class="btn btn-secondary btn-small" type="button"
+                                onclick="_openCheckInFromEntry()"
+                                style="margin-top:6px;">Change Location</button>
                     </div>
                 </div>
                 <!-- Links section -->
@@ -8197,7 +8200,10 @@
 
                 <!-- Places section — search + nearby GPS + selected place pills -->
                 <div class="form-group" id="journalPlacesGroup">
-                    <label>Places</label>
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+                        <label style="margin:0;">Places</label>
+                        <button class="btn btn-secondary btn-small" type="button" onclick="_openCheckInFromEntry()">📍 Check In</button>
+                    </div>
                     <div class="journal-places-search-row">
                         <input type="text" id="journalPlaceSearch" placeholder="Search by name..." autocomplete="off">
                         <button class="btn btn-secondary btn-small" id="journalUseLocationBtn">📍 Nearby</button>
@@ -9359,9 +9365,9 @@ export default {
     <script src="js/house.js?v=409"></script>
     <script src="js/floorplan.js?v=398"></script>
     <script src="js/floorplanitem.js?v=393"></script>
-    <script src="js/search.js?v=516"></script>
+    <script src="js/search.js?v=517"></script>
     <script src="js/activityreport.js?v=350"></script>
-    <script src="js/checklists.js?v=516"></script>
+    <script src="js/checklists.js?v=517"></script>
     <script src="js/bulkactivity.js?v=350"></script>
     <script src="js/vehicles.js?v=357"></script>
     <script src="js/garage.js?v=357"></script>
@@ -9384,7 +9390,7 @@ export default {
     <script src="js/memories.js?v=473"></script>
     <script src="js/firebasesetup.js?v=510"></script>
     <script src="js/views.js?v=505"></script>
-    <script src="js/app.js?v=516"></script>
+    <script src="js/app.js?v=517"></script>
 
 </body>
 </html>

@@ -62,6 +62,13 @@ var _checkinPickerLat = null;
 var _checkinPickerLng = null;
 
 /**
+ * When non-null, the check-in picker calls this function (venue) instead of
+ * opening a new journal entry form. Used when "📍 Check In" is clicked from
+ * within an already-open journal entry.
+ */
+var _checkinPickerCallback = null;
+
+/**
  * Whether to show mini log entries from life events in the journal feed.
  * Persisted in localStorage so the choice survives page reloads.
  */
@@ -2602,11 +2609,34 @@ function _updateJournalPlaceChips() {
 // ============================================================
 
 /**
+ * Open the check-in picker from within the journal entry form.
+ * Same picker as the main-screen Check In button, but instead of creating a new
+ * entry, the selected venue is applied to the current open entry.
+ */
+function _openCheckInFromEntry() {
+    _checkinPickerCallback = _checkinApplyVenueToEntry;
+    openCheckIn();
+}
+
+/**
+ * Callback used when the check-in picker was opened from within an existing
+ * journal entry. Applies the venue to the current form without navigating away.
+ * @param {Object|null} venue — Selected venue, or null for a manual check-in.
+ */
+function _checkinApplyVenueToEntry(venue) {
+    _journalCheckinMode  = true;
+    _journalCheckinVenue = venue || null;
+    _journalUpdateCheckinModeUI();
+}
+
+/**
  * Open the check-in picker modal.
  * Fires GPS immediately; user can also search by name.
  * Called from the "📍 Check In" button on the home/landing page.
  */
 function openCheckIn() {
+    // Reset any entry-form callback from a previous session
+    _checkinPickerCallback = null;
     openModal('checkInPickerModal');
 
     var statusEl  = document.getElementById('checkInPickerStatus');
@@ -2625,15 +2655,24 @@ function openCheckIn() {
     // Wire Cancel button
     var cancelBtn = document.getElementById('checkInPickerCancelBtn');
     if (cancelBtn) {
-        cancelBtn.onclick = function() { closeModal('checkInPickerModal'); };
+        cancelBtn.onclick = function() {
+            _checkinPickerCallback = null;
+            closeModal('checkInPickerModal');
+        };
     }
 
-    // Wire "Enter Manually" button → skip picker, open blank check-in form
+    // Wire "Enter Manually" button → skip picker, apply venue (null) via callback or open new form
     var manualBtn = document.getElementById('checkInManualBtn');
     if (manualBtn) {
         manualBtn.onclick = function() {
             closeModal('checkInPickerModal');
-            openCheckInForm(null, true);
+            if (_checkinPickerCallback) {
+                var cb = _checkinPickerCallback;
+                _checkinPickerCallback = null;
+                cb(null);
+            } else {
+                openCheckInForm(null, true);
+            }
         };
     }
 
@@ -2799,7 +2838,13 @@ function _checkinSelectPlace(idx) {
     if (history.state && history.state.modal === 'checkInPickerModal') {
         history.replaceState(null, '');
     }
-    openCheckInForm(venue, false);
+    if (_checkinPickerCallback) {
+        var cb = _checkinPickerCallback;
+        _checkinPickerCallback = null;
+        cb(venue);
+    } else {
+        openCheckInForm(venue, false);
+    }
 }
 
 /**

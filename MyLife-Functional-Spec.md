@@ -735,7 +735,7 @@ Daily entry logging with optional tracking metrics.
 
 **Place linking**: Journal entries can be linked to one or more places (`placeIds[]`). When an entry was created via the Check-In flow (`isCheckin: true`), a check-in badge (📍 checked-in) is shown in the journal feed. The entry form shows a "Place" search field to attach a place; if none exists it auto-creates one via `placesSaveNew()`.
 
-**Check-in flow**: The "📍 Check In" button (on the QuickLog screen and SecondBrain) opens the check-in form pre-filled with a venue. On save, it creates a journal entry with `isCheckin: true` and `placeIds: [placeId]`.
+**Check-in flow**: The "📍 Check In" button (on the QuickLog screen and SecondBrain) opens the check-in picker modal. User selects a venue (GPS-based nearby list or name search) → navigates to a new journal entry pre-filled with that venue (`isCheckin: true`, place locked in). The **journal entry form also has a "📍 Check In" button** in the Places section header — it opens the same picker modal but applies the selected venue to the *current* entry instead of creating a new one (`_checkinPickerCallback` pattern). A "Change Location" button appears after check-in to re-open the picker. "Enter Manually" in the picker works in both flows.
 
 **Tab key**: In the journal entry textarea, if the @mention dropdown is open, Tab selects the first name in the list (same as clicking it) and keeps focus in the textarea. If the dropdown is not open, Tab inserts 4 spaces (handled by `_initTabIndentTextareas` in `app.js`).
 

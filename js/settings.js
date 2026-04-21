@@ -414,6 +414,135 @@ function loadBackupPage() {
 }
 
 // ============================================================
+// Storage Usage
+// ============================================================
+
+var STORAGE_QUOTA_BYTES = 1 * 1024 * 1024 * 1024;  // 1 GB (Firestore Spark limit)
+var STORAGE_OVERHEAD_BYTES = 5 * 1024 * 1024;       // 5 MB fixed overhead estimate
+
+// Logical groupings for the breakdown display
+var STORAGE_GROUPS = [
+    { label: 'Yard / Garden',      cols: ['activities','calendarEvents','chemicals','facts','plants','problems','projects','savedActions','weeds','zones'] },
+    { label: 'House',              cols: ['breakerPanels','floorPlans','floors','gpsShapes','rooms','structures','structureSubThings','structureThings'] },
+    { label: 'Garage',             cols: ['garageRooms','garageSubThings','garageThings'] },
+    { label: 'Collections / Things', cols: ['collections','collectionItems','subThings','subThingItems','tags','things'] },
+    { label: 'Vehicles',           cols: ['mileageLogs','vehicles'] },
+    { label: 'Journal / Notes / Places', cols: ['journalCategories','journalEntries','journalTrackingItems','notebooks','notes','places'] },
+    { label: 'People / Contacts',  cols: ['people','peopleCategories','peopleImportantDates','peopleInteractions'] },
+    { label: 'Health',             cols: ['allergies','appointments','bloodWorkRecords','checklistRuns','checklistTemplates','concernUpdates','concerns','conditions','distances','emergencyInfo','eyePrescriptions','healthAppointments','healthCareTeam','healthConditionLogs','healthVisits','insurancePolicies','medications','supplements','vaccinations','vitals'] },
+    { label: 'Life / Calendar',    cols: ['lifeCategories','lifeEventLogs','lifeEvents','lifeProjects','locations','lookups'] },
+    { label: 'Thoughts',           cols: ['top10categories','top10lists','memories','memoryLinks','memoryTags','views','viewCategories'] },
+    { label: 'Misc / Settings',    cols: ['sbIssues','settings'] }
+];
+
+/**
+ * Estimate Firestore document data size by serializing all documents to JSON
+ * and summing their byte lengths. Adds a fixed overhead, then shows % of 1 GB quota.
+ * NOTE: This measures document field data only — Firestore also charges for
+ * indexes and document metadata which are not visible client-side.
+ */
+async function checkStorageUsage() {
+    var btn       = document.getElementById('storageCheckBtn');
+    var resultsEl = document.getElementById('storageResults');
+    if (!btn || !resultsEl) return;
+
+    btn.disabled    = true;
+    btn.textContent = 'Calculating…';
+    resultsEl.innerHTML = '<p style="color:#666;font-size:0.9em;">Fetching all documents… this may take a moment.</p>';
+
+    var enc = new TextEncoder();
+
+    // Count bytes for one collection; returns 0 on error
+    async function countCol(colName) {
+        try {
+            var snap = await userCol(colName).get();
+            var bytes = 0;
+            snap.forEach(function(doc) {
+                bytes += enc.encode(JSON.stringify(doc.data())).length;
+            });
+            // lifeProjects: also count subcollections
+            if (colName === 'lifeProjects') {
+                for (var i = 0; i < snap.docs.length; i++) {
+                    for (var s = 0; s < LP_SUBCOLLECTIONS.length; s++) {
+                        var sub = await userCol('lifeProjects').doc(snap.docs[i].id).collection(LP_SUBCOLLECTIONS[s]).get();
+                        sub.forEach(function(d) { bytes += enc.encode(JSON.stringify(d.data())).length; });
+                    }
+                }
+            }
+            // viewCategories: subcategories subcollection
+            if (colName === 'viewCategories') {
+                for (var i = 0; i < snap.docs.length; i++) {
+                    var sub = await userCol('viewCategories').doc(snap.docs[i].id).collection('subcategories').get();
+                    sub.forEach(function(d) { bytes += enc.encode(JSON.stringify(d.data())).length; });
+                }
+            }
+            // views: history subcollection
+            if (colName === 'views') {
+                for (var i = 0; i < snap.docs.length; i++) {
+                    var sub = await userCol('views').doc(snap.docs[i].id).collection('history').get();
+                    sub.forEach(function(d) { bytes += enc.encode(JSON.stringify(d.data())).length; });
+                }
+            }
+            return bytes;
+        } catch (err) {
+            return 0;
+        }
+    }
+
+    // Tally every group
+    var groupTotals = [];
+    var grandTotal  = 0;
+
+    for (var g = 0; g < STORAGE_GROUPS.length; g++) {
+        var group = STORAGE_GROUPS[g];
+        var groupBytes = 0;
+        for (var c = 0; c < group.cols.length; c++) {
+            groupBytes += await countCol(group.cols[c]);
+        }
+        groupTotals.push({ label: group.label, bytes: groupBytes });
+        grandTotal += groupBytes;
+    }
+
+    var totalWithOverhead = grandTotal + STORAGE_OVERHEAD_BYTES;
+    var pct = totalWithOverhead / STORAGE_QUOTA_BYTES * 100;
+    var pctDisplay = pct < 0.01 ? '<0.01' : pct.toFixed(2);
+    var barWidth = Math.min(pct, 100).toFixed(2);
+    var barColor = pct > 80 ? '#c62828' : pct > 60 ? '#e65100' : '#2e7d32';
+
+    // Sort groups by size desc for the breakdown
+    groupTotals.sort(function(a, b) { return b.bytes - a.bytes; });
+
+    var html = '<div class="storage-summary">' +
+        '<div class="storage-total-label">Estimated usage</div>' +
+        '<div class="storage-total-value">' + _storageFmtBytes(totalWithOverhead) + ' <span class="storage-quota-of">of 1 GB</span></div>' +
+        '<div class="storage-bar-wrap">' +
+            '<div class="storage-bar-fill" style="width:' + barWidth + '%;background:' + barColor + ';"></div>' +
+        '</div>' +
+        '<div class="storage-pct">' + pctDisplay + '% of free-tier quota used</div>' +
+        '<div class="storage-note">Includes 5 MB fixed overhead. Document data only — indexes not counted. Actual Firestore usage may be slightly higher.</div>' +
+    '</div>' +
+    '<table class="storage-breakdown-table">' +
+        '<thead><tr><th>Category</th><th>Size</th></tr></thead><tbody>';
+
+    groupTotals.forEach(function(g) {
+        if (g.bytes > 0) {
+            html += '<tr><td>' + g.label + '</td><td class="storage-breakdown-size">' + _storageFmtBytes(g.bytes) + '</td></tr>';
+        }
+    });
+    html += '</tbody></table>';
+
+    resultsEl.innerHTML = html;
+    btn.disabled    = false;
+    btn.textContent = 'Refresh';
+}
+
+function _storageFmtBytes(bytes) {
+    if (bytes < 1024)             return bytes + ' B';
+    if (bytes < 1024 * 1024)      return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+}
+
+// ============================================================
 // Backup
 // ============================================================
 

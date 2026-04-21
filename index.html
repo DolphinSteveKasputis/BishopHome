@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=517">
+    <link rel="stylesheet" href="css/styles.css?v=518">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -880,6 +880,20 @@
                     <div class="settings-save-row">
                         <a href="#backup" class="btn btn-secondary">&#8681; Backup &amp; Restore</a>
                     </div>
+                </div>
+            </div>
+
+            <!-- Storage Usage -->
+            <div class="settings-card accordion-card">
+                <button class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>Storage Usage</span><span class="accordion-chevron">&#9658;</span>
+                </button>
+                <div class="accordion-body">
+                    <p class="accordion-desc">Estimate how much Firestore space your data is using against the 1 GB free-tier limit.</p>
+                    <div class="settings-save-row">
+                        <button class="btn btn-secondary" id="storageCheckBtn" onclick="checkStorageUsage()">&#128190; Check Storage Usage</button>
+                    </div>
+                    <div id="storageResults" style="margin-top:14px;"></div>
                 </div>
             </div>
 
@@ -9365,9 +9379,9 @@ export default {
     <script src="js/house.js?v=409"></script>
     <script src="js/floorplan.js?v=398"></script>
     <script src="js/floorplanitem.js?v=393"></script>
-    <script src="js/search.js?v=517"></script>
+    <script src="js/search.js?v=518"></script>
     <script src="js/activityreport.js?v=350"></script>
-    <script src="js/checklists.js?v=517"></script>
+    <script src="js/checklists.js?v=518"></script>
     <script src="js/bulkactivity.js?v=350"></script>
     <script src="js/vehicles.js?v=357"></script>
     <script src="js/garage.js?v=357"></script>
@@ -9390,7 +9404,7 @@ export default {
     <script src="js/memories.js?v=473"></script>
     <script src="js/firebasesetup.js?v=510"></script>
     <script src="js/views.js?v=505"></script>
-    <script src="js/app.js?v=517"></script>
+    <script src="js/app.js?v=518"></script>
 
 </body>
 </html>

@@ -709,7 +709,7 @@ The Life section covers personal tracking — journal, people, health, notes, an
 Daily entry logging with optional tracking metrics.
 
 **Firestore**:
-- `journalEntries` — `date`, `entryTime` (HH:MM), `entryText`, `mentionedPersonIds[]`, `placeIds[]`, `isCheckin` (bool), `sourceEventId?`, `sourceVisitId?`, `createdAt`, `updatedAt`
+- `journalEntries` — `date`, `entryTime` (HH:MM), `entryText`, `mentionedPersonIds[]`, `placeIds[]`, `photos[]` (each: `{imageData, caption}`), `isCheckin` (bool), `sourceEventId?`, `sourceVisitId?`, `createdAt`, `updatedAt`
 - `journalTrackingItems` — `date`, `category`, `value`, `createdAt`
 - `journalCategories` — `name`, `createdAt`
 - `lifeEventLogs` — `logDate`, `logTime`, `body`, `eventId`, `mentionedPersonIds[]`, `createdAt` (mini logs from Life Calendar)
@@ -730,6 +730,8 @@ Daily entry logging with optional tracking metrics.
 - **🌐 All Activity** toggle — see below.
 
 **All Activity toggle** (`🌐 All Activity` checkbox in the filter panel): Replaces the normal journal feed with a unified timeline of everything logged across the entire app. Fires 21 parallel Firestore reads (9 entity-name map reads + 12 collection range queries) filtered to the same date range as the journal, capped at today (past-only). Collections covered: `journalEntries`, `journalTrackingItems`, `lifeEventLogs`, `activities`, `calendarEvents`, `healthVisits`, `healthAppointments`, `concernUpdates`, `healthConditionLogs`, `bloodWorkRecords`, `vitals`, `peopleInteractions`. Each result is normalized into `{ sortDate, sortTime, type, icon, typeLabel, typeBg, typeColor, title, subtitle, route }`, merged, and sorted date-desc → time-desc → createdAt-desc. Pagination: first 50 items render; a "Show 50 more (N remaining)" button appends the next page while preserving scroll position. Each card shows a colored type badge, title (clamped to 2 lines), optional subtitle (entity name), and a `›` arrow when tappable. Journal entries open their edit modal; all other types navigate to the relevant detail or list page. Toggle state persists in `localStorage`. The "Show Event Notes" toggle is dimmed while All Activity is active.
+
+**Photos on journal entries**: The entry form has a Photos section with a **📷 Camera** button (opens camera on mobile), a **🖼️ Gallery** button (file picker, camera capture attribute removed so gallery opens), and **paste** support (pasting an image into the textarea captures it). Photos are compressed client-side via `compressImage()` (same as photos.js). Thumbnails appear in an 80×80px strip below the buttons; each has a ✕ remove button. Photos are stored as `photos: [{imageData, caption}]` on the `journalEntries` Firestore document. In the journal feed, photos render as 90×90px clickable thumbnails; tapping opens a full-screen lightbox overlay (click or Escape to close). Caption field is saved but not yet displayed.
 
 **Place linking**: Journal entries can be linked to one or more places (`placeIds[]`). When an entry was created via the Check-In flow (`isCheckin: true`), a check-in badge (📍 checked-in) is shown in the journal feed. The entry form shows a "Place" search field to attach a place; if none exists it auto-creates one via `placesSaveNew()`.
 
@@ -1752,7 +1754,7 @@ All collections live under `/users/{uid}/`. Every module uses `userCol('collecti
 | `peopleImportantDates` | personId, label, month, day, year?, notes, createdAt |
 | `peopleInteractions` | personId, date, notes, createdAt |
 | `peopleCategories` | name, createdAt |
-| `journalEntries` | date, entryTime, entryText, mentionedPersonIds[], placeIds[], isCheckin, sourceEventId?, sourceVisitId?, createdAt, updatedAt |
+| `journalEntries` | date, entryTime, entryText, mentionedPersonIds[], placeIds[], photos[]{imageData,caption}, isCheckin, sourceEventId?, sourceVisitId?, createdAt, updatedAt |
 | `journalTrackingItems` | date, category, value, createdAt |
 | `journalCategories` | name, createdAt |
 | `lifeEvents` | title, description, startDate, endDate?, startTime?, endTime?, location? (manual text), locationContactId? (people doc ID), categoryId?, status, peopleIds[], notes?, miniLogEnabled, createdAt |

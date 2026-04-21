@@ -9631,6 +9631,77 @@ a.health-chip--link:hover { filter: brightness(0.93); }
 }
 .journal-place-link:hover { text-decoration: underline; }
 
+/* ── Journal Entry Photos ─────────────────────────────── */
+
+/* Thumbnail strip in the entry form */
+.journal-photo-thumb {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    border-radius: 6px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+.journal-photo-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.journal-photo-remove {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: rgba(0,0,0,0.55);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 0.7rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+.journal-photo-remove:hover { background: rgba(180,0,0,0.8); }
+
+/* Thumbnail strip in the journal feed card */
+.journal-feed-photos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 8px 0 4px;
+}
+.journal-feed-photo {
+    width: 90px;
+    height: 90px;
+    object-fit: cover;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+.journal-feed-photo:hover { opacity: 0.85; }
+
+/* Full-screen lightbox overlay */
+.journal-photo-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.88);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    cursor: pointer;
+}
+.journal-photo-overlay img {
+    max-width: 95vw;
+    max-height: 92vh;
+    object-fit: contain;
+    border-radius: 4px;
+}
+
 /* Links block at the bottom of a journal entry card */
 .journal-entry-links {
     display: flex;

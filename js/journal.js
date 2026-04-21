@@ -47,6 +47,11 @@ var _journalCategoryFilter = localStorage.getItem('bishop_journal_categoryFilter
 /** True when the entry form is opened in check-in mode (from the Check In button). */
 var _journalCheckinMode = false;
 
+/** Photos attached to the current journal entry being edited.
+ *  Each element: { imageData: '<base64 data URL>', caption: '' }
+ *  Cleared when a new entry is opened; restored from Firestore when editing. */
+var _journalPhotos = [];
+
 /** The venue selected in the check-in picker (not yet saved to Firestore until Save). */
 var _journalCheckinVenue = null;
 
@@ -747,6 +752,16 @@ function _renderEntryCard(id, data) {
         }
     }
 
+    // Photos strip
+    var photosHtml = '';
+    if (data.photos && data.photos.length) {
+        var thumbs = data.photos.map(function(p) {
+            return '<img class="journal-feed-photo" src="' + p.imageData + '" ' +
+                   'onclick="journalOpenPhotoViewer(this)" alt="photo">';
+        }).join('');
+        photosHtml = '<div class="journal-feed-photos">' + thumbs + '</div>';
+    }
+
     return '<div class="journal-item journal-item--entry' + (isCheckin ? ' journal-item--checkin' : '') + '">' +
                checkinBadge +
                '<div class="journal-item-row">' +
@@ -759,6 +774,7 @@ function _renderEntryCard(id, data) {
                                'onclick="openEditJournalEntry(\'' + id + '\')">Edit</button>' +
                    '</div>' +
                '</div>' +
+               photosHtml +
                placeHtml +
                linksHtml +
                goToEvent +
@@ -890,6 +906,9 @@ function openAddJournalEntry() {
     var linksContainer = document.getElementById('journalLinksContainer');
     if (linksContainer) linksContainer.innerHTML = '';
 
+    // Clear photos
+    _journalClearPhotos();
+
     // Reset save button in case it was left in "Saving..." state from a previous save
     var saveBtn = document.getElementById('journalEntrySaveBtn');
     if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save'; }
@@ -941,6 +960,9 @@ function openVisitJournalEntryPreFilled(visitDate, visitTime, preText, visitId) 
 
     var linksContainer = document.getElementById('journalLinksContainer');
     if (linksContainer) linksContainer.innerHTML = '';
+
+    // Clear photos
+    _journalClearPhotos();
 
     var saveBtn = document.getElementById('journalEntrySaveBtn');
     if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save'; }
@@ -1021,6 +1043,10 @@ async function openEditJournalEntry(id) {
             (data.links || []).forEach(function(l) { _journalAddLinkRow(l.label, l.url); });
         }
 
+        // Restore photos
+        _journalPhotos = (data.photos || []).slice();
+        _journalRenderPhotoStrip();
+
         // Reset save button in case it was left in "Saving..." state
         var saveBtn = document.getElementById('journalEntrySaveBtn');
         if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save'; }
@@ -1095,6 +1121,21 @@ function _journalAddLinkRow(label, url) {
 /**
  * Copy a link URL to the clipboard. Briefly changes the button to a checkmark to confirm.
  */
+/**
+ * Opens a full-screen lightbox overlay to view a journal photo.
+ * Tap the overlay or press Escape to dismiss.
+ */
+function journalOpenPhotoViewer(imgEl) {
+    var overlay = document.createElement('div');
+    overlay.className = 'journal-photo-overlay';
+    overlay.innerHTML = '<img src="' + imgEl.src + '" alt="photo">';
+    overlay.addEventListener('click', function() { overlay.remove(); });
+    document.addEventListener('keydown', function esc(e) {
+        if (e.key === 'Escape') { overlay.remove(); document.removeEventListener('keydown', esc); }
+    });
+    document.body.appendChild(overlay);
+}
+
 function _journalCopyLink(url, btn) {
     navigator.clipboard.writeText(url).then(function() {
         var orig = btn.textContent;
@@ -1103,6 +1144,65 @@ function _journalCopyLink(url, btn) {
     }).catch(function() {
         alert('Could not copy to clipboard.');
     });
+}
+
+// ── Journal Entry Photos ─────────────────────────────────────
+
+/** Clears the in-memory photo array and re-renders the strip. */
+function _journalClearPhotos() {
+    _journalPhotos = [];
+    _journalRenderPhotoStrip();
+}
+
+/** Renders the photo thumbnail strip from _journalPhotos. */
+function _journalRenderPhotoStrip() {
+    var strip = document.getElementById('journalPhotoStrip');
+    if (!strip) return;
+    strip.innerHTML = '';
+    _journalPhotos.forEach(function(p, i) {
+        var thumb = document.createElement('div');
+        thumb.className = 'journal-photo-thumb';
+        thumb.innerHTML =
+            '<img src="' + p.imageData + '" alt="photo ' + (i + 1) + '">' +
+            '<button class="journal-photo-remove" title="Remove photo" onclick="_journalRemovePhoto(' + i + ')">✕</button>';
+        strip.appendChild(thumb);
+    });
+    strip.style.display = _journalPhotos.length ? 'flex' : 'none';
+}
+
+/** Remove a photo by index and re-render. */
+function _journalRemovePhoto(idx) {
+    _journalPhotos.splice(idx, 1);
+    _journalRenderPhotoStrip();
+}
+
+/**
+ * Compress a File/Blob and add it to _journalPhotos.
+ * Reuses the global compressImage() from photos.js.
+ */
+async function _journalAddPhotoFile(file) {
+    if (!file || !file.type.startsWith('image/')) return;
+    try {
+        var dataUrl = await compressImage(file);
+        _journalPhotos.push({ imageData: dataUrl, caption: '' });
+        _journalRenderPhotoStrip();
+    } catch (err) {
+        console.error('Error compressing photo:', err);
+        alert('Could not process that image. Please try another.');
+    }
+}
+
+/** Handle paste events on the entry textarea — pick up any pasted image. */
+function _journalHandlePaste(e) {
+    var items = (e.clipboardData || window.clipboardData || {}).items;
+    if (!items) return;
+    for (var i = 0; i < items.length; i++) {
+        if (items[i].type.startsWith('image/')) {
+            e.preventDefault();
+            _journalAddPhotoFile(items[i].getAsFile());
+            return;
+        }
+    }
 }
 
 function _journalWireEntryPage() {
@@ -1136,6 +1236,23 @@ function _journalWireEntryPage() {
 
     // Show/hide check-in vs regular places UI based on mode
     _journalUpdateCheckinModeUI();
+
+    // Photo paste on the textarea
+    var textEl = document.getElementById('journalEntryText');
+    if (textEl) {
+        textEl.removeEventListener('paste', _journalHandlePaste);
+        textEl.addEventListener('paste', _journalHandlePaste);
+    }
+
+    // Camera / Gallery file input
+    var photoInput = document.getElementById('journalPhotoInput');
+    if (photoInput && !photoInput.dataset.wired) {
+        photoInput.dataset.wired = 'true';
+        photoInput.addEventListener('change', function() {
+            Array.from(photoInput.files).forEach(function(f) { _journalAddPhotoFile(f); });
+            photoInput.value = '';
+        });
+    }
 }
 
 /**
@@ -1193,6 +1310,7 @@ async function saveJournalEntry() {
                 mentionedPersonIds: mentionedIds,
                 placeIds:           placeIds,
                 links:              links,
+                photos:             _journalPhotos.slice(),
                 updatedAt:          firebase.firestore.FieldValue.serverTimestamp()
             });
             // Re-sync interactions (deletes old records, creates fresh ones)
@@ -1206,6 +1324,7 @@ async function saveJournalEntry() {
                 mentionedPersonIds: mentionedIds,
                 placeIds:           placeIds,
                 links:              links,
+                photos:             _journalPhotos.slice(),
                 isCheckin:          isCheckinEntry,
                 createdAt:          firebase.firestore.FieldValue.serverTimestamp()
             };

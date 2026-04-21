@@ -1588,14 +1588,16 @@ Formerly named "Future Projects" — renamed to "Quick Task List" to distinguish
 - **Location badge**: shown on template/run cards in roll-up views (e.g., "📍 Front Yard")
 - **Context subtitle**: shown on the page header ("Showing: Front Yard (Zone)")
 - **Breadcrumb bar**: set on page load based on context — yard/zone context shows `Yard › Checklists` (linking to `#zones`); house/floor/room context shows `House › Checklists` (linking to `#house`); life context shows `Life › Checklists` (linking to `#life`); other contexts clear the bar
-- **Search** (global `#search`): Templates searched by name/tags/items → context page. Active runs same (archived excluded) → `#checklist-focus/{runId}/…` auto-expands that card. Notes body searched → parent notebook (`#notebook/{id}`); hint shows notebook name.
+- **Search** (global `#search`): Templates searched by name/tags/items → context page. Active runs same (archived excluded) → `#checklist-focus/{runId}/…` scrolls to and briefly highlights that card. Notes body searched → parent notebook (`#notebook/{id}`); hint shows notebook name.
 - **Filter bar**: text input above Active runs. Filters by name, tags, or item labels. 250ms debounce. Applies to completed/archived when those sections are open.
-- **Active run cards (accordion)**:
-  - Collapsed by default. Header (always visible): chevron ▶/▼, title, location badge, started date, progress bar, tags chips
-  - Body (expandable): item list, add-item row, action buttons. Edit mode auto-expands body.
-  - **Archive button**: sets `archived: true`, hides from Active section
-  - **Abandon / Mark Complete / Clear All** in the expanded body
-  - Drag-and-drop reorder of undone items in edit mode (SortableJS, done items filtered)
+- **Active run cards (Google Keep-style inline cards)**:
+  - **Multi-column layout**: CSS `columns` — up to 4 columns on desktop, 2 columns on phone by default. Phone has a grid/list toggle button (⊞/⊟) that switches to 1 column; preference saved in `localStorage.clColumnLayout`.
+  - Items displayed directly on card — no accordion. Title, optional location badge, started date at top.
+  - **Completed items**: collapse into a "▶ X completed" toggle row (click to expand/collapse inline). No progress bar.
+  - **Footer**: tags chips on the left; action icon buttons on the right (✓ Mark Complete, ✏️ Edit, 📦 Archive, 🗑️ Abandon).
+  - **Hover-reveal actions**: action buttons have `opacity: 0`, revealed on card hover. Always visible on touch devices (`@media (hover: none)`) and in edit mode.
+  - **Edit mode** (`cl-run-card--editing`): shows add-item row, drag handles, and remove buttons. Actions always visible in edit mode.
+  - Drag-and-drop reorder of undone items in edit mode (SortableJS on `.cl-undone-list`)
   - Adding items in edit mode prompts "Add to template too?" for template-derived runs
 - **URL items**: labels starting with `http://` or `https://` render as clickable links (new tab) in run cards and completed accordions
 - **Sub-item indentation**: `indent: 1` → ~28px padding in run cards, completed, and archived cards

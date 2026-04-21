@@ -4107,53 +4107,66 @@ button {
 
 /* ---------- Checklists (NF-5) ---------- */
 
-/* ── Active Run Card (accordion) ─────────────────── */
+/* ── Active Run Cards — Keep-style multi-column layout ─── */
+
+/* Container uses CSS columns for masonry-like layout */
+#clActiveRunsContainer {
+    columns: 4 200px;
+    column-gap: 12px;
+}
+
+/* On phone, default to 2 columns; cl-cols-1 switches to 1 */
+@media (max-width: 600px) {
+    #clActiveRunsContainer { columns: 2 140px; }
+    #clActiveRunsContainer.cl-cols-1 { columns: 1; }
+}
+
 .cl-run-card {
+    break-inside: avoid;
+    display: inline-block;
+    width: 100%;
     background: #fff;
     border: 1px solid #e0e0e0;
-    border-radius: 10px;
-    margin-bottom: 14px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    overflow: hidden;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    box-shadow: none;
+    transition: box-shadow 0.15s;
+    box-sizing: border-box;
+    position: relative;
 }
+.cl-run-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+.cl-run-card--focused { outline: 2px solid #1976d2; }
 
-/* Clickable accordion header */
-.cl-run-header {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 14px 16px;
+/* Column toggle button (phone only by default; visible always) */
+.cl-col-toggle-btn {
+    background: none;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 1.1rem;
+    padding: 2px 8px;
     cursor: pointer;
-    user-select: none;
+    color: #555;
+    line-height: 1.4;
 }
-.cl-run-header:hover { background: #f9f9f9; }
-.cl-run-header--open { background: #f5f5f5; }
+.cl-col-toggle-btn:hover { background: #f0f0f0; }
 
-.cl-run-chevron {
-    font-size: 0.75rem;
-    color: #999;
-    margin-top: 4px;
-    flex-shrink: 0;
-}
-
-.cl-run-header-info { flex: 1; min-width: 0; }
-
-/* Accordion body — hidden by default */
-.cl-run-body {
-    padding: 0 16px 14px;
-    border-top: 1px solid #f0f0f0;
+/* On desktop, hide the column toggle (columns always 4) */
+@media (min-width: 601px) {
+    .cl-col-toggle-btn { display: none; }
 }
 
 .cl-run-title {
-    font-size: 1.05rem;
+    font-size: 1rem;
     font-weight: 700;
     color: #222;
     margin-bottom: 2px;
+    word-break: break-word;
 }
 
 .cl-run-date {
-    font-size: 0.8rem;
-    color: #888;
+    font-size: 0.75rem;
+    color: #999;
     margin-bottom: 8px;
 }
 
@@ -4183,6 +4196,62 @@ button {
     word-break: break-all;
 }
 .cl-item-label--url:hover { color: #0d47a1; }
+
+/* ── Items wrapper (undone list + done toggle + done list) ── */
+.cl-items-wrapper { margin: 4px 0 8px; }
+
+.cl-undone-list,
+.cl-done-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.cl-done-toggle {
+    font-size: 0.8rem;
+    color: #888;
+    cursor: pointer;
+    padding: 5px 0 3px;
+    user-select: none;
+}
+.cl-done-toggle:hover { color: #333; }
+
+/* ── Card footer: tags left, actions right ─────────────── */
+.cl-run-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 6px;
+    min-height: 28px;
+    gap: 6px;
+}
+.cl-run-footer-tags { flex: 1; min-width: 0; }
+
+/* Action icon buttons — hover-reveal on desktop, always visible on touch */
+.cl-run-actions {
+    display: flex;
+    gap: 2px;
+    opacity: 0;
+    transition: opacity 0.15s;
+    flex-shrink: 0;
+}
+.cl-run-card:hover .cl-run-actions,
+.cl-run-card.cl-run-card--editing .cl-run-actions { opacity: 1; }
+@media (hover: none) { .cl-run-actions { opacity: 1; } }
+
+.cl-run-action-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.95rem;
+    padding: 3px 5px;
+    border-radius: 4px;
+    color: #666;
+    line-height: 1;
+    transition: background 0.1s, color 0.1s;
+}
+.cl-run-action-btn:hover { background: #f0f0f0; color: #222; }
+.cl-run-action-btn--danger:hover { background: #ffebee; color: #c62828; }
 
 /* Filter row above active runs */
 .cl-filter-row {
@@ -4362,13 +4431,6 @@ button {
     border: 1px solid #ccc;
     border-radius: 6px;
     font-size: 0.9rem;
-}
-
-/* Action buttons row at the bottom of a run card */
-.cl-run-actions {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
 }
 
 /* ── Template Card ───────────────────────────────── */

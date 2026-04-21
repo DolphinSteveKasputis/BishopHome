@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=513">
+    <link rel="stylesheet" href="css/styles.css?v=514">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -2606,7 +2606,10 @@
             <!-- Active runs — checklists currently in progress -->
             <div class="section-header">
                 <h3 class="section-heading">Active</h3>
-                <button class="btn btn-secondary btn-small" id="addBlankChecklistBtn">+ New Blank List</button>
+                <div style="display:flex;gap:6px;align-items:center;">
+                    <button class="cl-col-toggle-btn" id="clColumnToggleBtn" title="Switch to 1-column view">⊞</button>
+                    <button class="btn btn-secondary btn-small" id="addBlankChecklistBtn">+ New Blank List</button>
+                </div>
             </div>
             <div class="cl-filter-row">
                 <input type="text" id="clFilterInput" class="cl-filter-input" placeholder="Filter lists by name or tag…">
@@ -9337,9 +9340,9 @@ export default {
     <script src="js/house.js?v=409"></script>
     <script src="js/floorplan.js?v=398"></script>
     <script src="js/floorplanitem.js?v=393"></script>
-    <script src="js/search.js?v=513"></script>
+    <script src="js/search.js?v=514"></script>
     <script src="js/activityreport.js?v=350"></script>
-    <script src="js/checklists.js?v=513"></script>
+    <script src="js/checklists.js?v=514"></script>
     <script src="js/bulkactivity.js?v=350"></script>
     <script src="js/vehicles.js?v=357"></script>
     <script src="js/garage.js?v=357"></script>
@@ -9362,7 +9365,7 @@ export default {
     <script src="js/memories.js?v=473"></script>
     <script src="js/firebasesetup.js?v=510"></script>
     <script src="js/views.js?v=505"></script>
-    <script src="js/app.js?v=513"></script>
+    <script src="js/app.js?v=514"></script>
 
 </body>
 </html>

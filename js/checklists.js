@@ -111,7 +111,21 @@ async function loadChecklistsPage() {
                 if (archiveToggle.checked) clLoadArchivedRuns();
             }, 250);
         });
+
+        // Phone column toggle: switches #clActiveRunsContainer between 1- and 2-column layout
+        var colToggleBtn = document.getElementById('clColumnToggleBtn');
+        if (colToggleBtn) {
+            colToggleBtn.addEventListener('click', function() {
+                var current = localStorage.getItem('clColumnLayout') || '2';
+                var next = current === '1' ? '2' : '1';
+                localStorage.setItem('clColumnLayout', next);
+                clApplyColumnLayout();
+            });
+        }
     }
+
+    // Apply saved column layout preference on every page load
+    clApplyColumnLayout();
 
     // Reset sections when page is re-entered
     toggle.checked = false;
@@ -127,6 +141,24 @@ async function loadChecklistsPage() {
         clLoadActiveRuns(),
         clLoadTemplates(),
     ]);
+}
+
+/**
+ * Reads the stored column layout preference (1 or 2) and applies
+ * the appropriate CSS class to #clActiveRunsContainer.
+ * The toggle button icon also updates to match.
+ */
+function clApplyColumnLayout() {
+    var layout = localStorage.getItem('clColumnLayout') || '2';
+    var container = document.getElementById('clActiveRunsContainer');
+    var btn = document.getElementById('clColumnToggleBtn');
+    if (container) {
+        container.classList.toggle('cl-cols-1', layout === '1');
+    }
+    if (btn) {
+        btn.title = layout === '1' ? 'Switch to 2-column view' : 'Switch to 1-column view';
+        btn.textContent = layout === '1' ? '⊟' : '⊞';
+    }
 }
 
 // ============================================================
@@ -309,18 +341,18 @@ async function clLoadActiveRuns() {
             container.appendChild(clBuildRunCard(run));
         });
 
-        // Auto-expand the run highlighted from search (set by #checklist-focus route)
+        // Scroll to and highlight the run from search (set by #checklist-focus route)
         if (_clFocusRunId) {
             var focusCard = container.querySelector('[data-id="' + _clFocusRunId + '"]');
             _clFocusRunId = null;
             if (focusCard) {
-                var body = focusCard.querySelector('.cl-run-body');
-                var hdr  = focusCard.querySelector('.cl-run-header');
-                if (body) body.classList.remove('hidden');
-                if (hdr)  hdr.classList.add('cl-run-header--open');
+                focusCard.classList.add('cl-run-card--focused');
                 setTimeout(function() {
                     focusCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }, 150);
+                setTimeout(function() {
+                    focusCard.classList.remove('cl-run-card--focused');
+                }, 2500);
             }
         }
 
@@ -331,9 +363,10 @@ async function clLoadActiveRuns() {
 }
 
 /**
- * Builds an accordion card for one active run.
- * Header (always visible): title, location badge, started date, progress bar, tags.
- * Body (collapsed by default): item list, add-item row, action buttons.
+ * Builds a Google Keep-style inline card for one active run.
+ * Items are shown directly on the card — no accordion.
+ * Completed items collapse into a "▶ X completed" toggle row.
+ * Footer: tags on left, hover-reveal icon action buttons on right.
  * @param {Object} run — Run document data including id.
  * @returns {HTMLElement}
  */
@@ -342,146 +375,104 @@ function clBuildRunCard(run) {
     card.className  = 'cl-run-card';
     card.dataset.id = run.id;
 
-    var items     = run.items || [];
-    var doneCount = items.filter(function(i) { return i.done; }).length;
-    var total     = items.length;
+    var items = run.items || [];
 
-    // ── Accordion header (always visible, click to expand/collapse) ──
-    var header = document.createElement('div');
-    header.className = 'cl-run-header';
-
-    var chevron = document.createElement('span');
-    chevron.className   = 'cl-run-chevron';
-    chevron.textContent = '▶';
-    header.appendChild(chevron);
-
-    var headerInfo = document.createElement('div');
-    headerInfo.className = 'cl-run-header-info';
-
+    // ── Title ──────────────────────────────────────────────────
     var title = document.createElement('div');
     title.className   = 'cl-run-title';
     title.textContent = run.templateName || 'Checklist';
-    headerInfo.appendChild(title);
+    card.appendChild(title);
 
+    // ── Location badge (optional) ──────────────────────────────
     if (run.targetName) {
         var badge = document.createElement('div');
         badge.className   = 'cl-target-badge';
         badge.textContent = '📍 ' + run.targetName;
-        headerInfo.appendChild(badge);
+        card.appendChild(badge);
     }
 
+    // ── Started date ───────────────────────────────────────────
     var dateEl = document.createElement('div');
     dateEl.className   = 'cl-run-date';
     dateEl.textContent = 'Started ' + clFormatDate(run.startedAt);
-    headerInfo.appendChild(dateEl);
+    card.appendChild(dateEl);
 
-    // Progress bar inside header
-    var progressRow = document.createElement('div');
-    progressRow.className = 'cl-progress-row';
-    var bar  = document.createElement('div');
-    bar.className = 'cl-progress-bar';
-    var fill = document.createElement('div');
-    fill.className = 'cl-progress-fill';
-    fill.style.width = total > 0 ? Math.round(doneCount / total * 100) + '%' : '0%';
-    bar.appendChild(fill);
-    var progressText = document.createElement('span');
-    progressText.className   = 'cl-progress-text';
-    progressText.textContent = doneCount + ' / ' + total + ' done';
-    progressRow.appendChild(bar);
-    progressRow.appendChild(progressText);
-    headerInfo.appendChild(progressRow);
+    // ── Items wrapper (undone + done toggle) ───────────────────
+    card.appendChild(clBuildItemsWrapper(run.id, items, card));
 
-    // Tags chips in header
+    // ── Add-item row (CSS-hidden; revealed in edit mode) ───────
+    card.appendChild(clBuildAddItemRow(run.id, run.templateId || null, card));
+
+    // ── Footer: tags (left) + icon actions (right) ─────────────
+    var footer = document.createElement('div');
+    footer.className = 'cl-run-footer';
+
+    var tagsDiv = document.createElement('div');
+    tagsDiv.className = 'cl-run-footer-tags';
     if (run.tags && run.tags.length) {
-        headerInfo.appendChild(clBuildTagChips(run.tags));
+        tagsDiv.appendChild(clBuildTagChips(run.tags));
     }
+    footer.appendChild(tagsDiv);
 
-    header.appendChild(headerInfo);
-    card.appendChild(header);
-
-    // ── Accordion body (collapsed by default) ─────────────────
-    var body = document.createElement('div');
-    body.className = 'cl-run-body hidden';
-
-    body.appendChild(clBuildItemsListEl(run.id, items, card));
-    body.appendChild(clBuildAddItemRow(run.id, run.templateId || null, card));
-
-    // Action buttons
     var actions = document.createElement('div');
     actions.className = 'cl-run-actions';
 
     var completeBtn = document.createElement('button');
-    completeBtn.className   = 'btn btn-primary btn-small';
-    completeBtn.textContent = 'Mark Complete';
+    completeBtn.type      = 'button';
+    completeBtn.className = 'cl-run-action-btn';
+    completeBtn.title     = 'Mark Complete';
+    completeBtn.innerHTML = '&#10003;';
     completeBtn.addEventListener('click', function() { clMarkRunComplete(run.id); });
 
-    var clearBtn = document.createElement('button');
-    clearBtn.className   = 'btn btn-secondary btn-small';
-    clearBtn.textContent = 'Clear All';
-    clearBtn.addEventListener('click', function() { clClearAllItems(run.id, card); });
-
     var editBtn = document.createElement('button');
-    editBtn.className   = 'btn btn-secondary btn-small';
-    editBtn.textContent = 'Edit';
+    editBtn.type      = 'button';
+    editBtn.className = 'cl-run-action-btn';
+    editBtn.title     = 'Edit';
+    editBtn.textContent = '✏️';
     editBtn.addEventListener('click', function() {
         var editing = card.classList.toggle('cl-run-card--editing');
-        editBtn.textContent = editing ? 'Done' : 'Edit';
-        if (editing) {
-            // Ensure body is visible when entering edit mode
-            body.classList.remove('hidden');
-            header.classList.add('cl-run-header--open');
-            chevron.textContent = '▼';
-        }
+        editBtn.title = editing ? 'Done Editing' : 'Edit';
+        editBtn.textContent = editing ? '✔️' : '✏️';
     });
 
     var archiveBtn = document.createElement('button');
-    archiveBtn.className   = 'btn btn-secondary btn-small';
-    archiveBtn.textContent = 'Archive';
+    archiveBtn.type      = 'button';
+    archiveBtn.className = 'cl-run-action-btn';
+    archiveBtn.title     = 'Archive';
+    archiveBtn.textContent = '📦';
     archiveBtn.addEventListener('click', function() { clArchiveRun(run.id, true); });
 
     var deleteBtn = document.createElement('button');
-    deleteBtn.className   = 'btn btn-danger btn-small';
-    deleteBtn.textContent = 'Abandon';
+    deleteBtn.type      = 'button';
+    deleteBtn.className = 'cl-run-action-btn cl-run-action-btn--danger';
+    deleteBtn.title     = 'Abandon';
+    deleteBtn.textContent = '🗑️';
     deleteBtn.addEventListener('click', function() { clDeleteRun(run.id, 'active'); });
 
     actions.appendChild(completeBtn);
-    actions.appendChild(clearBtn);
     actions.appendChild(editBtn);
     actions.appendChild(archiveBtn);
     actions.appendChild(deleteBtn);
-    body.appendChild(actions);
+    footer.appendChild(actions);
 
-    card.appendChild(body);
-
-    // Toggle accordion on header click (ignore clicks on buttons)
-    header.addEventListener('click', function(e) {
-        if (e.target.tagName === 'BUTTON') return;
-        var isOpen = !body.classList.contains('hidden');
-        body.classList.toggle('hidden', isOpen);
-        header.classList.toggle('cl-run-header--open', !isOpen);
-        chevron.textContent = isOpen ? '▶' : '▼';
-    });
+    card.appendChild(footer);
 
     return card;
 }
 
 /**
- * Builds the <ul> item list for a run card.
- * Extracted so it can be rebuilt in-place after add/remove operations
- * without re-rendering the whole card.
+ * Builds the items wrapper for a run card.
+ * Contains: undone <ul>, a collapsible "▶ X completed" toggle, and done <ul>.
+ * SortableJS is applied to the undone list only.
  * @param {string}      runId
  * @param {Array}       items
  * @param {HTMLElement} card  — Parent card (used by item event handlers).
  * @returns {HTMLElement}
  */
-function clBuildItemsListEl(runId, items, card) {
-    var list = document.createElement('ul');
-    list.className = 'cl-item-list';
+function clBuildItemsWrapper(runId, items, card) {
+    var wrapper = document.createElement('div');
+    wrapper.className = 'cl-items-wrapper';
 
-    // Display order: undone items first (preserving their storage order),
-    // then done items sorted by completion time (earliest first).
-    // We track the original storage index (idx) so all Firestore operations
-    // remain index-stable regardless of display order.
     var indexed = items.map(function(item, i) { return { item: item, idx: i }; });
     var undone  = indexed.filter(function(x) { return !x.item.done; });
     var done    = indexed.filter(function(x) { return  x.item.done; })
@@ -489,47 +480,71 @@ function clBuildItemsListEl(runId, items, card) {
                              return (a.item.doneAt || '').localeCompare(b.item.doneAt || '');
                          });
 
-    undone.concat(done).forEach(function(x) {
-        list.appendChild(clBuildItemEl(runId, x.item, x.idx, card));
+    // Undone items list
+    var undoneList = document.createElement('ul');
+    undoneList.className = 'cl-undone-list';
+    undone.forEach(function(x) {
+        undoneList.appendChild(clBuildItemEl(runId, x.item, x.idx, card));
     });
+    wrapper.appendChild(undoneList);
 
-    // Drag-and-drop reordering for undone items (done items are filtered out)
+    // Done section: toggle row + hidden list
+    if (done.length > 0) {
+        var doneToggle = document.createElement('div');
+        doneToggle.className   = 'cl-done-toggle';
+        doneToggle.textContent = '▶ ' + done.length + ' completed';
+
+        var doneList = document.createElement('ul');
+        doneList.className = 'cl-done-list hidden';
+        done.forEach(function(x) {
+            doneList.appendChild(clBuildItemEl(runId, x.item, x.idx, card));
+        });
+
+        doneToggle.addEventListener('click', function() {
+            var isOpen = !doneList.classList.contains('hidden');
+            doneList.classList.toggle('hidden', isOpen);
+            doneToggle.textContent = (isOpen ? '▶ ' : '▼ ') + done.length + ' completed';
+        });
+
+        wrapper.appendChild(doneToggle);
+        wrapper.appendChild(doneList);
+    }
+
+    // SortableJS on undone list only (done items are not reorderable)
     if (typeof Sortable !== 'undefined') {
-        Sortable.create(list, {
+        Sortable.create(undoneList, {
             handle: '.run-drag-handle',
-            filter: '.cl-item--done',
-            preventOnFilter: false,
             animation: 150,
             onEnd: function() {
-                clSaveRunItemOrder(runId, list, items, card);
+                clSaveRunItemOrder(runId, wrapper, items, card);
             }
         });
     }
 
-    return list;
+    return wrapper;
 }
 
 /**
  * Reads the current DOM order of undone + done items and saves the reordered
  * array to Firestore, then re-renders the card's item list.
  * @param {string}      runId
- * @param {HTMLElement} listEl         — The <ul> after a drag-end event.
+ * @param {HTMLElement} wrapper        — The .cl-items-wrapper after a drag-end event.
  * @param {Array}       originalItems  — Items array from the last render (used as source of truth).
  * @param {HTMLElement} card
  */
-async function clSaveRunItemOrder(runId, listEl, originalItems, card) {
+async function clSaveRunItemOrder(runId, wrapper, originalItems, card) {
     // Build a lookup from storage index → item object
     var itemsByIdx = {};
     originalItems.forEach(function(item, i) { itemsByIdx[i] = item; });
 
     var newItems = [];
     // Undone first in their new drag order
-    Array.from(listEl.querySelectorAll('.cl-item:not(.cl-item--done)')).forEach(function(li) {
+    Array.from(wrapper.querySelectorAll('.cl-undone-list .cl-item')).forEach(function(li) {
         var idx = parseInt(li.dataset.storageIdx);
         if (itemsByIdx[idx] !== undefined) newItems.push(itemsByIdx[idx]);
     });
     // Done items follow in their existing completion-time order
-    Array.from(listEl.querySelectorAll('.cl-item--done')).forEach(function(li) {
+    Array.from(wrapper.querySelectorAll('.cl-done-list .cl-item')).forEach(function(li) {
         var idx = parseInt(li.dataset.storageIdx);
         if (itemsByIdx[idx] !== undefined) newItems.push(itemsByIdx[idx]);
     });
@@ -710,30 +725,18 @@ function clBuildAddItemRow(runId, templateId, card) {
 }
 
 /**
- * Re-renders just the item list within a card after an add or remove.
+ * Re-renders just the items wrapper within a card after an add, remove, or toggle.
  * Preserves edit mode (card class is unchanged).
- * Also refreshes the progress bar.
  */
 function clRerenderRunItems(runId, items, templateId, card) {
-    // Items live inside .cl-run-body (accordion), fall back to card directly
-    var body = card.querySelector('.cl-run-body') || card;
-
-    var oldList = body.querySelector('.cl-item-list');
-    var newList = clBuildItemsListEl(runId, items, card);
-    body.replaceChild(newList, oldList);
+    var oldWrapper = card.querySelector('.cl-items-wrapper');
+    var newWrapper = clBuildItemsWrapper(runId, items, card);
+    if (oldWrapper) card.replaceChild(newWrapper, oldWrapper);
 
     // Rebuild the add-item row with the correct templateId in scope
-    var oldAddRow = body.querySelector('.cl-add-item-row');
+    var oldAddRow = card.querySelector('.cl-add-item-row');
     var newAddRow = clBuildAddItemRow(runId, templateId, card);
-    body.replaceChild(newAddRow, oldAddRow);
-
-    // Refresh progress bar
-    var doneCount = items.filter(function(i) { return i.done; }).length;
-    var total     = items.length;
-    var fill = card.querySelector('.cl-progress-fill');
-    var text = card.querySelector('.cl-progress-text');
-    if (fill) fill.style.width = total > 0 ? Math.round(doneCount / total * 100) + '%' : '0%';
-    if (text) text.textContent = doneCount + ' / ' + total + ' done';
+    if (oldAddRow) card.replaceChild(newAddRow, oldAddRow);
 }
 
 /**

@@ -245,7 +245,7 @@ function helpToggleAskAi() {
 
 /**
  * Sends the typed question to the LLM and appends the answer.
- * Called by the Send button and Ctrl+Enter.
+ * Called by the Send button and Enter (Shift+Enter inserts a newline instead).
  */
 async function helpSendQuestion() {
     var inputEl = document.getElementById('helpAiInput');
@@ -346,7 +346,8 @@ function _helpEscape(str) {
 
 /**
  * Sends the question to the configured LLM with the full AppHelp.md as context.
- * Each call is independent (stateless) — no conversation history is passed.
+ * Prior answered Q&A pairs are included as conversation history so follow-up
+ * questions (e.g., "where exactly is that?") have the context they need.
  */
 async function _helpCallLLM(question) {
     var fullHelp = await _helpFetch();
@@ -373,6 +374,17 @@ async function _helpCallLLM(question) {
         'Be concise, friendly, and direct. If the answer is not covered in the documentation, say so clearly.\n\n' +
         '--- BEGIN HELP DOCUMENTATION ---\n' + fullHelp + '\n--- END HELP DOCUMENTATION ---';
 
+    // Build messages: system prompt, then all prior answered Q&A as conversation turns,
+    // then the new question. This gives the LLM context for follow-up questions.
+    var messages = [{ role: 'system', content: systemPrompt }];
+    _helpQA.forEach(function(pair) {
+        if (pair.answer !== null && !pair.answer.startsWith('_Sorry')) {
+            messages.push({ role: 'user',      content: pair.question });
+            messages.push({ role: 'assistant', content: pair.answer   });
+        }
+    });
+    messages.push({ role: 'user', content: question });
+
     var res = await fetch(ep.url, {
         method : 'POST',
         headers: {
@@ -381,10 +393,7 @@ async function _helpCallLLM(question) {
         },
         body: JSON.stringify({
             model   : model || ep.model,
-            messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user',   content: question     }
-            ]
+            messages: messages
         })
     });
 

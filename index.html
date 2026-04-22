@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=518">
+    <link rel="stylesheet" href="css/styles.css?v=519">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -8212,30 +8212,12 @@
                     <div id="journalPhotoStrip" style="display:none; flex-wrap:wrap; gap:8px;"></div>
                 </div>
 
-                <!-- Places section — search + nearby GPS + selected place pills -->
+                <!-- Places section — Check In button + selected place chips -->
                 <div class="form-group" id="journalPlacesGroup">
                     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
                         <label style="margin:0;">Places</label>
                         <button class="btn btn-secondary btn-small" type="button" onclick="_openCheckInFromEntry()">📍 Check In</button>
                     </div>
-                    <div class="journal-places-search-row">
-                        <input type="text" id="journalPlaceSearch" placeholder="Search by name..." autocomplete="off">
-                        <button class="btn btn-secondary btn-small" id="journalUseLocationBtn">📍 Nearby</button>
-                    </div>
-                    <!-- Bias row: where to search near + radius -->
-                    <div class="journal-places-bias-row">
-                        <span class="bias-label">Search near:</span>
-                        <input type="text" id="journalPlaceBias" placeholder="Current location" autocomplete="off" class="bias-input">
-                        <select id="journalPlaceRadius" class="bias-radius">
-                            <option value="0.5">500 m</option>
-                            <option value="1.609">1 mi</option>
-                            <option value="8.047">5 mi</option>
-                            <option value="16.093">10 mi</option>
-                            <option value="40.234">25 mi</option>
-                            <option value="80.467">50 mi</option>
-                        </select>
-                    </div>
-                    <div id="journalPlaceDropdown" class="journal-place-dropdown" style="display:none;"></div>
                     <div id="journalPlaceChips" class="journal-place-chips-row" style="display:none;"></div>
                 </div>
             </div>
@@ -9379,9 +9361,9 @@ export default {
     <script src="js/house.js?v=409"></script>
     <script src="js/floorplan.js?v=398"></script>
     <script src="js/floorplanitem.js?v=393"></script>
-    <script src="js/search.js?v=518"></script>
+    <script src="js/search.js?v=519"></script>
     <script src="js/activityreport.js?v=350"></script>
-    <script src="js/checklists.js?v=518"></script>
+    <script src="js/checklists.js?v=519"></script>
     <script src="js/bulkactivity.js?v=350"></script>
     <script src="js/vehicles.js?v=357"></script>
     <script src="js/garage.js?v=357"></script>
@@ -9404,7 +9386,7 @@ export default {
     <script src="js/memories.js?v=473"></script>
     <script src="js/firebasesetup.js?v=510"></script>
     <script src="js/views.js?v=505"></script>
-    <script src="js/app.js?v=518"></script>
+    <script src="js/app.js?v=519"></script>
 
 </body>
 </html>

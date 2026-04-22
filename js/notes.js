@@ -462,7 +462,8 @@ async function _notesRenderNotebookGrid() {
 
     grid.innerHTML = '';
 
-    var notebooks = await notesLoadNotebooks();
+    var notebooks      = await notesLoadNotebooks();
+    var defaultNbId    = await _notesGetDefaultNotebookId();
 
     if (notebooks.length === 0) {
         if (empty) empty.classList.remove('hidden');
@@ -477,10 +478,10 @@ async function _notesRenderNotebookGrid() {
 
         var count    = nb.noteCount || 0;
         var countStr = count + (count === 1 ? ' note' : ' notes');
-        var metaStr  = nb.updatedAt ? notesFormatTimestamp(nb.updatedAt) : countStr;
+        var starHtml = (nb.id === defaultNbId) ? '<span class="notebook-tile-star">⭐</span>' : '';
 
         tile.innerHTML =
-            '<span class="notebook-tile-name">' + escapeHtml(nb.name) + '</span>' +
+            '<span class="notebook-tile-name">' + starHtml + escapeHtml(nb.name) + '</span>' +
             '<span class="notebook-tile-meta">' + escapeHtml(countStr) + '</span>';
 
         tile.onclick = function() { window.location.hash = '#notebook/' + nb.id; };

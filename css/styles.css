@@ -9300,6 +9300,14 @@ a.health-chip--link:hover { filter: brightness(0.93); }
     margin-top: 5px;
 }
 
+/* ── Notebook tile default star ── */
+.notebook-tile-star {
+    margin-right: 4px;
+    font-size: 0.85em;
+    vertical-align: middle;
+    opacity: 0.9;
+}
+
 /* ── Default notebook toggle ── */
 .notebook-default-toggle {
     display: inline-flex;

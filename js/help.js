@@ -457,12 +457,15 @@ function _helpRenderSectionTopics(routeKey) {
     });
     html += '</div>';
 
-    // Cross-section links at bottom
-    html += '<div class="help-cross-sections"><p>Didn\'t find it here? Browse other sections:</p><div class="help-cross-section-links">';
+    // Cross-section cards at bottom — same style as #help/main section launcher
+    html += '<div class="help-cross-sections"><p>Didn\'t find it here? Browse other sections:</p>' +
+            '<div class="help-main-sections">';
     HELP_MAIN_SECTIONS.forEach(function(s) {
         if (s.route === routeKey) return; // skip current section
-        html += '<a class="help-cross-section-link" href="#help/' + s.route + '">' +
-                s.icon + ' ' + _helpEscape(s.label) + '</a>';
+        html += '<a class="help-main-section-card" href="#help/' + s.route + '">' +
+                '<span class="help-main-section-icon">' + s.icon + '</span>' +
+                '<span class="help-main-section-label">' + _helpEscape(s.label) + '</span>' +
+                '</a>';
     });
     html += '</div></div>';
 

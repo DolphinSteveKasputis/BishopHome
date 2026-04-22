@@ -3779,10 +3779,10 @@ button {
    Main / Landing page — minimal nav (Settings + Sign Out only)
    ============================================================ */
 
-/* Hide all nav links on the landing page except Settings */
-.main-page .header-nav .nav-link:not([data-page="settings"]),
-.main-page #mobileNavYard .nav-link:not([data-page="settings"]),
-.main-page #mobileNavHouse .nav-link:not([data-page="settings"]) {
+/* Hide all nav links on the landing page except Settings and Help */
+.main-page .header-nav .nav-link:not([data-page="settings"]):not(.nav-help-link),
+.main-page #mobileNavYard .nav-link:not([data-page="settings"]):not(.nav-help-link),
+.main-page #mobileNavHouse .nav-link:not([data-page="settings"]):not(.nav-help-link) {
     display: none;
 }
 

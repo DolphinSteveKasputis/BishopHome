@@ -103,12 +103,11 @@ async function loadHelpPage(screenName) {
         // Fall back to main if no content found for this screen
         if (!sectionText) {
             sectionText = _helpParseSection(fullText, 'main');
-            // Update title to reflect the fallback
             if (sectionText && titleEl) titleEl.textContent = 'Help: Getting Started';
         }
         if (!sectionText) sectionText = '_No help content is available for this screen yet._';
 
-        if (contentEl) contentEl.innerHTML = marked.parse(sectionText);
+        if (contentEl) contentEl.innerHTML = _helpRenderContent(sectionText);
     } catch (e) {
         if (contentEl) {
             contentEl.innerHTML =
@@ -119,6 +118,40 @@ async function loadHelpPage(screenName) {
 
 function _helpTitleCase(str) {
     return str.replace(/-/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+}
+
+/**
+ * Renders section text as HTML.
+ * If the text contains "### Quick Help" and "### Details" sub-headings,
+ * renders Quick Help immediately and Details behind a "Show more" toggle.
+ * Otherwise renders the full text as-is.
+ */
+function _helpRenderContent(sectionText) {
+    var quickMatch   = sectionText.match(/###\s+Quick Help\s*\n([\s\S]*?)(?=###\s+Details|$)/i);
+    var detailsMatch = sectionText.match(/###\s+Details\s*\n([\s\S]*?)$/i);
+
+    if (quickMatch && detailsMatch) {
+        var quickHtml   = marked.parse(quickMatch[1].trim());
+        var detailsHtml = marked.parse(detailsMatch[1].trim());
+        return '<div class="help-quick">' + quickHtml + '</div>' +
+               '<div class="help-details-toggle">' +
+               '<button class="help-show-more-btn" onclick="helpToggleDetails(this)" aria-expanded="false">' +
+               'Show more ▾</button>' +
+               '</div>' +
+               '<div class="help-details hidden">' + detailsHtml + '</div>';
+    }
+
+    return marked.parse(sectionText);
+}
+
+/**
+ * Toggles the Details section open/closed.
+ */
+function helpToggleDetails(btn) {
+    var detailsEl  = btn.closest('.help-static-content').querySelector('.help-details');
+    var isNowOpen  = detailsEl.classList.toggle('hidden') === false;
+    btn.textContent    = isNowOpen ? 'Show less ▴' : 'Show more ▾';
+    btn.setAttribute('aria-expanded', isNowOpen ? 'true' : 'false');
 }
 
 // ── Ask AI panel ─────────────────────────────────────────────

@@ -11900,6 +11900,35 @@ a.health-chip--link:hover { filter: brightness(0.93); }
     margin: 16px 0;
 }
 
+/* Quick Help / Show More split */
+.help-quick {
+    margin-bottom: 4px;
+}
+.help-quick ul { margin: 4px 0 6px 20px; padding: 0; }
+.help-quick li { margin-bottom: 5px; font-size: 0.95rem; line-height: 1.55; }
+.help-quick strong { color: #111827; }
+
+.help-details-toggle {
+    margin: 8px 0 4px;
+}
+.help-show-more-btn {
+    background: none;
+    border: none;
+    color: #3b82f6;
+    font-size: 0.88rem;
+    cursor: pointer;
+    padding: 2px 0;
+    text-decoration: underline;
+    font-family: inherit;
+}
+.help-show-more-btn:hover { color: #1d4ed8; }
+
+.help-details {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed #d1d5db;
+}
+
 /* Loading / error states */
 .help-loading {
     color: #6b7280;

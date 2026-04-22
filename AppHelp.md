@@ -28,9 +28,15 @@ It is used by the in-app AI assistant to answer your questions.
 
 ## screen:zones
 
-**What this screen is for:** The Yard home page. Shows your top-level zones (areas of your yard).
+### Quick Help
+- The Yard home page — shows all your top-level yard zones (Front Yard, Back Yard, etc.)
+- Tap any zone card to drill in and see its plants and sub-zones (up to 3 levels deep)
+- Add zones with **+ Add Zone**; edit or delete with the pencil icon on a card
+- **Shortcut:** Use **⚡ QuickLog** on the main screen to log activities without navigating here — just say "I sprayed the front yard"
 
-**What is a zone?** A zone is a named area of your yard. Zones can be nested up to 3 levels deep:
+### Details
+
+**What is a zone?** A zone is a named area of your yard, organized in up to 3 levels:
 - Level 1: Major zone (e.g., Front Yard, Back Yard, Creek, Woods)
 - Level 2: Sub-zone (e.g., By Mailbox, Behind Garage)
 - Level 3: Detail zone (e.g., Left Flower Bed)
@@ -41,8 +47,6 @@ It is used by the in-app AI assistant to answer your questions.
 - **Edit or delete a zone:** Tap the pencil icon on a zone card
 - **Navigate back:** Use the breadcrumb bar at the top to jump to any ancestor level
 
-**Faster alternative — QuickLog:** You don't have to navigate here to log an activity. Tap the **⚡ QuickLog** button on the main screen and say "I sprayed the front yard" — the AI finds the right zone and logs it for you without any navigation.
-
 **Tips:**
 - You cannot delete a zone that has sub-zones or plants still inside it. Move or remove those first.
 - Plants can be assigned to any zone level — you don't need to go three levels deep if two is enough.
@@ -51,80 +55,94 @@ It is used by the in-app AI assistant to answer your questions.
 
 ## screen:zone
 
-**What this screen is for:** Detail view for a single zone. Shows the plants and sub-zones inside it, plus all zone-level tracking organized in collapsible sections: Photos, Facts, Problems, Quick Tasks, Calendar Events, and Activities.
+### Quick Help
+- Detail page for one zone — shows its plants, sub-zones, and all tracking data in collapsible accordions
+- Tap any section header (Photos, Facts, Problems, Tasks, Activities) to expand or collapse it
+- **Add here** for zone-wide events (sprayed the whole yard); **drill into a sub-zone or plant** for targeted tracking
+- Problems and Quick Tasks show data **rolled up from all sub-zones and plants below** — each item labeled "from: [source]"
+- **Shortcut:** Tap **⚡ QuickLog** on the main screen instead of navigating here — say "I watered the back yard"
 
-**Accordion sections:** Each tracking section (Photos, Facts, Problems, etc.) is a collapsible accordion. Tap any section header to expand or collapse it. They stay collapsed by default to keep the page clean — expand what you need.
+### Details
+
+**Accordion sections:** Each tracking section is collapsible — tap the header to expand or collapse. They start collapsed to keep the page clean. Expand only what you need.
 
 **Where to add things — zone level vs. going deeper:**
-- **Log here** when something applies to the whole zone — e.g., you sprayed the entire front yard for weeds, or you're adding a photo of the zone as a whole.
-- **Go into a sub-zone or plant** when you want to track something specific — e.g., one particular azalea is struggling, or you watered just the flower bed on the left.
-- There's no wrong answer. You can log at whatever level makes sense for how you think about your yard.
+- **Log at zone level** when something applies to the whole zone — e.g., you sprayed the entire front yard, or you want a photo of the zone overview.
+- **Navigate into a sub-zone or plant** when you want to track something specific — e.g., one particular azalea is struggling, or you only watered the left flower bed.
+- Either approach is valid. Log at whatever level matches how you think about your yard.
 
-**Rollup from children:** The Problems and Quick Tasks sections show data from THIS zone AND rolled up from all sub-zones and plants beneath it. Each rolled-up item is labeled "from: [source name]" so you know where it came from. This means you can see all open issues across an entire zone hierarchy without drilling into each child one by one.
+**Rollup from children:** The Problems and Quick Tasks sections aggregate data from THIS zone AND everything beneath it — all sub-zones and all plants inside them. Each rolled-up item is labeled "from: [source name]" so you always know where it came from. This lets you see all open issues across an entire zone hierarchy at a glance, without drilling into each child.
+
+**Note:** The Activities section shows only activities logged directly at this zone level. It does not pull in activities from sub-zones or plants. For a cross-zone view of all activity, use the Activity Report (History in the nav bar).
 
 **Common tasks:**
 - **Add a plant:** Tap **+ Add Plant** to create a new plant record in this zone
 - **View a plant:** Tap any plant card to open its detail page
-- **View All Plants:** Shows every plant in this zone AND all sub-zones below it in a flat list — tap any plant to go straight to its detail page
-- **Log an activity for the whole zone:** Tap **Log Activity** and fill in what was done, when, any chemicals used, and notes
+- **View All Plants:** Shows every plant in this zone AND all sub-zones below it in a flat list — tap any to go straight to its detail page
+- **Log a zone-wide activity:** Tap **Log Activity** and fill in what was done, when, chemicals used, and notes
 - **Add a sub-zone:** Tap **+ Add Sub-Zone** to nest another level (max 3 levels deep)
 
-**Accordion sections — what each one holds:**
-- **Photos** — Reference photos of this zone (e.g., before/after, seasonal shots)
-- **Facts** — Key-value notes attached to this zone (e.g., "Square Footage = 200 sq ft", "Soil Type = Clay")
-- **Problems** — Open issues for this zone plus rolled-up problems from all children; each item shows its source
+**What each accordion holds:**
+- **Photos** — Reference photos of this zone (before/after, seasonal shots, overview)
+- **Facts** — Key-value notes (e.g., "Square Footage = 200 sq ft", "Soil Type = Clay", "Irrigation = Drip")
+- **Problems** — Open issues for this zone plus all rolled-up problems from sub-zones and plants beneath it
 - **Quick Tasks** — To-do items and checklists for this zone plus rolled-up tasks from all children
 - **Calendar Events** — Scheduled events linked to this zone
-- **Activities** — History of everything logged at this zone level (does not include children's activities)
-
-**Faster alternative — QuickLog:** Instead of navigating here, tap **⚡ QuickLog** on the main screen and say something like "I watered the back yard" or "I fertilized the roses in the front yard by the mailbox" — the AI figures out the right zone or plant and logs it directly.
+- **Activities** — Only activities logged directly at this zone level
 
 **Tips:**
-- The breadcrumb bar (e.g., Front Yard > By Mailbox) shows your position in the zone hierarchy. Tap any crumb to jump back up.
-- Activities in the Activities section are only those logged directly at this zone — not activities from plants or sub-zones inside it. Use the Activity Report (History) for a full cross-zone view.
-- Problems and Quick Tasks ARE rolled up from children — so that section gives you the full picture for the zone hierarchy.
+- The breadcrumb bar (e.g., Front Yard > By Mailbox) shows your position in the hierarchy. Tap any crumb to jump back.
+- Resolving a problem auto-creates an activity: "Resolved: [description]" — keeps the history clean.
+- You can also reach this zone from a plant's Edit screen — the zone picker links back up the hierarchy.
 
 ---
 
 ## screen:plant
 
-**What this screen is for:** Full detail view for a single plant — its health status, care metadata, and complete history. Everything about this specific plant lives here.
+### Quick Help
+- Detail page for one specific plant — health status, care metadata, and full history
+- Set health status (🟢 Healthy / 🟡 Struggling / 🔵 Dormant / 🔴 Dead) from the dropdown — saves instantly, no button needed
+- Tap **Log Activity** to record what you did; all sections (Photos, Facts, Problems, Tasks, Activities) are collapsible accordions
+- **Shortcut:** Tap **⚡ QuickLog** on the main screen and say "I pruned the big azalea" — no navigation needed
 
-**Key concept — plants are individual instances:** Each physical plant is its own record. Three azalea bushes = three plant records, each with separate photos, activities, and history. This lets you track which specific plant is struggling, when each one was last watered, and so on.
+### Details
 
-**Accordion sections:** Each tracking section (Photos, Facts, Problems, Quick Tasks, Calendar Events, Activities) is a collapsible accordion. Tap any section header to expand or collapse it.
+**Key concept — plants are individual instances:** Each physical plant is its own separate record. Three azalea bushes = three plant records, each with its own photos, activities, and history. This lets you track which specific plant is struggling, when each one was last treated, and so on.
 
-**Health status:** Tap the dropdown at the top of the page. Changes save instantly — no Save button needed.
-- 🟢 Healthy — thriving
+**Accordion sections:** Each tracking section is collapsible — tap the header to expand or collapse. Sections start collapsed. Expand only what you need.
+
+**Health status:** The colored dropdown at the top of the page. Tap and pick a status — it saves the moment you select, no Save button.
+- 🟢 Healthy — thriving normally
 - 🟡 Struggling — needs attention
-- 🔵 Dormant — seasonally inactive
-- 🔴 Dead — deceased
+- 🔵 Dormant — seasonally inactive (not dead)
+- 🔴 Dead — no longer alive
+
+The health indicator also appears on the plant card in the zone view, so you can spot struggling plants at a glance without opening each one.
 
 **Metadata tab:** Tap **Edit** to record care preferences:
 - Heat/cold tolerance, watering needs, sun/shade preference
 - Bloom months, dormancy months
-- Free-form notes
+- Free-form notes about this plant
 
 **Common tasks:**
-- **Log an activity:** Tap **Log Activity** — record watering, fertilizing, pruning, spraying, etc. Optionally select chemicals used and add notes.
+- **Log an activity:** Tap **Log Activity** — record watering, fertilizing, pruning, spraying, etc. Optionally pick chemicals used and add notes. Pick a Saved Action to pre-fill the form.
 - **Add a photo:** Expand the Photos section → **+ Add Photo** (camera, gallery, or clipboard paste)
-- **Move to a different zone:** Tap **Edit** → change the zone picker
-- **Clone this plant:** Tap **Clone** — copies the name, zone, and metadata to a new record. Photos and activities are not copied.
-- **AI Plant ID:** On the zone page (not here), tap **+ Photo** to photograph an unknown plant and have the AI identify it and create the record for you.
+- **Move to a different zone:** Tap **Edit** → change the zone picker — the plant and all its history moves with it
+- **Clone this plant:** Tap **Clone** — copies the name, zone, and metadata to a new record. Photos and activities are NOT copied.
+- **AI Plant ID:** On the zone page (not this page), tap **+ Photo** to photograph an unknown plant and have the AI identify it and create the record automatically.
 
-**Accordion sections — what each one holds:**
-- **Photos** — Plant photos; the first one uploaded auto-becomes the card thumbnail
-- **Facts** — Key-value notes (e.g., "Planted = April 2022", "Source = Home Depot", "Tag Color = Pink")
-- **Problems** — Issues specific to this plant (pest damage, disease, etc.) with open/resolved tracking
-- **Quick Tasks** — To-do items just for this plant (e.g., "Replace with new specimen next spring")
+**What each accordion holds:**
+- **Photos** — Plant photos; the first one uploaded auto-becomes the card thumbnail visible on the zone page
+- **Facts** — Key-value notes (e.g., "Planted = April 2022", "Source = Home Depot", "Bloom Color = Pink")
+- **Problems** — Issues for this plant only (pest damage, disease, etc.) with open/resolved tracking. Resolving auto-creates an activity.
+- **Quick Tasks** — To-do items just for this plant with optional checklists
 - **Calendar Events** — Scheduled care events tied to this specific plant
-- **Activities** — Full chronological history of everything logged for this plant
-
-**Faster alternative — QuickLog:** You can log a plant activity without navigating here. Tap **⚡ QuickLog** on the main screen and say "I pruned the big azalea by the mailbox" — the AI identifies the right plant and logs it.
+- **Activities** — Full chronological history of everything logged for this plant, newest first
 
 **Tips:**
-- Plants are leaf nodes — their Problems and Tasks sections show only this plant's own data (no rollup from children, since plants have no children).
-- Health status is the fastest way to flag a plant that needs attention — you'll see the color indicator on the plant card in the zone view without opening the detail page.
+- Plants are leaf nodes — Problems and Tasks here show only this plant's own data. There is no rollup from children (plants have no children).
+- The Activities section on the plant only shows what was logged directly to this plant. Zone-level activities are separate.
+- Use **Clone** when you're adding a new plant of the same type — it saves re-entering all the metadata.
 
 ---
 

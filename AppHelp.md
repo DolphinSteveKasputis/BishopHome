@@ -518,7 +518,7 @@ Sync your Yard and Life Calendar events to Google Calendar so you get reminders 
 - **Client ID configured + connected:** Events sync automatically to a dedicated calendar in Google Calendar whenever you create, edit, or delete them. No manual steps needed.
 
 **Setting up full sync (one-time):**
-1. Tap **Help** in the Google Calendar section for a step-by-step walkthrough of creating a free Google Cloud project and OAuth Client ID.
+1. Tap **Help** in the Google Calendar section for the step-by-step walkthrough. **Important:** You already have a Google Cloud project — it's the same one Bishop uses for Firestore (project ID: `bishop-62d43`). When you go to console.cloud.google.com you'll land right in it. Skip the "create a new project" step.
 2. Paste your **Client ID** into the field and tap **Save**.
 3. Enter a **Calendar Name** (default: "Bishop") — Bishop will create a dedicated calendar in Google with this name.
 4. Set a **Default Reminder** (default: 1 day before).

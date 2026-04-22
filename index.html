@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=538">
+    <link rel="stylesheet" href="css/styles.css?v=539">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -9115,23 +9115,62 @@ export default {
     <div class="modal-overlay" id="gcalHelpModal">
         <div class="modal modal-wide">
             <h3>Set Up Google Calendar Sync</h3>
-            <div class="fsq-help-body">
-                <p>Follow these steps to connect Bishop to your Google Calendar. Events you create in the Yard and Life calendars will automatically appear in Google Calendar, where you can set reminders that push to your phone.</p>
-                <ol style="padding-left:20px;line-height:1.9;">
-                    <li>Go to <strong><a href="https://console.cloud.google.com" target="_blank" rel="noopener">console.cloud.google.com</a></strong> and sign in with your Google account.</li>
-                    <li>Click the project dropdown at the top → <strong>New Project</strong>. Give it any name (e.g., "Bishop App") and click <strong>Create</strong>.</li>
-                    <li>In the left menu go to <strong>APIs &amp; Services → Library</strong>. Search for <strong>Google Calendar API</strong> and click <strong>Enable</strong>.</li>
-                    <li>Go to <strong>APIs &amp; Services → OAuth consent screen</strong>. Choose <strong>External</strong>, fill in an app name (e.g., "Bishop"), add your email as a test user, and save.</li>
-                    <li>Go to <strong>APIs &amp; Services → Credentials</strong> → <strong>Create Credentials → OAuth client ID</strong>.</li>
-                    <li>Set Application type to <strong>Web application</strong>. Under <strong>Authorized JavaScript origins</strong> add your Bishop URL:<br>
-                        <code style="background:#f5f5f5;padding:2px 6px;border-radius:3px;">https://dolphinstevekasputis.github.io</code>
+            <div class="fsq-help-body" style="max-height:70vh;overflow-y:auto;">
+                <p>This walks you through every step needed to connect Bishop to Google Calendar. Once done, events you create in Bishop automatically appear in Google Calendar with reminders on your phone.</p>
+
+                <div style="background:#dbeafe;border-left:3px solid #2563eb;padding:10px 14px;border-radius:4px;margin-bottom:14px;">
+                    <strong>You already have the right project.</strong> Bishop uses Firebase, which runs on Google Cloud. Your existing Google Cloud project is <strong>bishop-62d43</strong>. When you open <a href="https://console.cloud.google.com" target="_blank" rel="noopener">console.cloud.google.com</a> you'll already be in it — skip straight to Step 2.
+                </div>
+
+                <p style="font-weight:600;margin-bottom:4px;">Step 1 — Open Google Cloud Console</p>
+                <p style="margin-top:0;">Go to <strong><a href="https://console.cloud.google.com" target="_blank" rel="noopener">console.cloud.google.com</a></strong>. Confirm the project name at the top says <strong>Bishop</strong>. If it says something else, click the project dropdown and switch to <strong>bishop-62d43</strong>.</p>
+
+                <p style="font-weight:600;margin-bottom:4px;">Step 2 — Enable the Google Calendar API</p>
+                <p style="margin-top:0;">In the left sidebar click <strong>APIs &amp; Services → Library</strong>. Search for <strong>Google Calendar API</strong>. Click it, then click <strong>Enable</strong>. (If you see "Manage" instead of "Enable", it's already on — move to Step 3.)</p>
+
+                <p style="font-weight:600;margin-bottom:4px;">Step 3 — Configure the OAuth Consent Screen</p>
+                <p style="margin-top:0;">Go to <strong>APIs &amp; Services → OAuth consent screen</strong>.</p>
+                <ul style="margin-top:4px;padding-left:20px;line-height:1.8;">
+                    <li>If you see a setup form: choose <strong>External</strong>, click <strong>Create</strong>.</li>
+                    <li>Fill in <strong>App name</strong> (e.g., "Bishop"), your <strong>email</strong> for support, and your <strong>email</strong> as developer contact. Click <strong>Save and Continue</strong>.</li>
+                    <li>On the Scopes page — click <strong>Save and Continue</strong> (no changes needed).</li>
+                    <li>On the Test Users page — click <strong>Add Users</strong>, add your own Google email address, then <strong>Save and Continue</strong>.</li>
+                    <li>If you already see an existing consent screen — verify your email is listed under Test Users. If so, skip to Step 4.</li>
+                </ul>
+                <p style="margin-top:4px;background:#fef9c3;border-left:3px solid #ca8a04;padding:8px 12px;border-radius:4px;">
+                    <strong>Publishing note:</strong> Leaving the app in <em>Testing</em> mode is fine for personal use. Tokens last 7 days in test mode — after that Bishop will silently re-authorize in the background. If you prefer not to deal with this, click <strong>Publish App</strong> on the consent screen. Google will show an "unverified app" warning when you connect, but you can click <strong>Advanced → Go to Bishop (unsafe)</strong> to proceed — it's your own app, this is expected.
+                </p>
+
+                <p style="font-weight:600;margin-bottom:4px;">Step 4 — Create an OAuth Client ID</p>
+                <p style="margin-top:0;">Go to <strong>APIs &amp; Services → Credentials</strong>. Click <strong>+ Create Credentials → OAuth client ID</strong>.</p>
+                <ul style="margin-top:4px;padding-left:20px;line-height:1.8;">
+                    <li>Application type: <strong>Web application</strong></li>
+                    <li>Name: anything (e.g., "Bishop Web")</li>
+                    <li>Under <strong>Authorized JavaScript origins</strong> — click <strong>Add URI</strong> and enter exactly:<br>
+                        <code style="background:#f5f5f5;padding:2px 8px;border-radius:3px;font-size:0.9em;">https://dolphinstevekasputis.github.io</code>
                     </li>
-                    <li>Click <strong>Create</strong>. Copy the <strong>Client ID</strong> shown in the dialog.</li>
-                    <li>Paste it into <strong>Settings → Google Calendar → Client ID</strong> and click <strong>Save</strong>.</li>
-                    <li>Click <strong>Connect to Google</strong> and approve the consent screen.</li>
+                    <li>Leave <strong>Authorized redirect URIs</strong> blank.</li>
+                    <li>Click <strong>Create</strong>.</li>
+                </ul>
+                <p style="margin-top:4px;">A dialog appears with your <strong>Client ID</strong> — it looks like <code style="font-size:0.85em;">1234567890-abc123.apps.googleusercontent.com</code>. Copy the whole thing.</p>
+
+                <p style="font-weight:600;margin-bottom:4px;">Step 5 — Connect in Bishop</p>
+                <ol style="margin-top:4px;padding-left:20px;line-height:1.8;">
+                    <li>Close this dialog and paste the Client ID into the <strong>Client ID</strong> field.</li>
+                    <li>Set your preferred <strong>Calendar Name</strong> and <strong>Default Reminder</strong>.</li>
+                    <li>Click <strong>Save</strong>.</li>
+                    <li>Click <strong>Connect to Google</strong> and approve the Google account consent screen.</li>
+                    <li>If prompted about unsynced events, choose whether to sync them now (say No if you already added them via the "+ GCal" links to avoid duplicates).</li>
                 </ol>
-                <p style="margin-top:12px;"><strong>Note:</strong> If you previously used the "Add to Google Calendar" links to add events manually, running Sync All after connecting may create duplicates in Google Calendar. You can delete the duplicates directly in Google Calendar.</p>
-                <p><strong>That's it!</strong> Bishop will now automatically sync events to a dedicated calendar in Google Calendar.</p>
+
+                <p style="margin-top:12px;font-weight:600;">Troubleshooting</p>
+                <ul style="padding-left:20px;line-height:1.8;margin-top:4px;">
+                    <li><strong>"Access blocked" error:</strong> Your email isn't listed as a Test User — go back to the OAuth consent screen and add it.</li>
+                    <li><strong>"redirect_uri_mismatch" error:</strong> The Authorized JavaScript origin doesn't match. Double-check it's exactly <code style="font-size:0.85em;">https://dolphinstevekasputis.github.io</code> (no trailing slash, no path).</li>
+                    <li><strong>Token expired after 7 days:</strong> Only happens in Testing mode. Bishop will try to silently re-authorize; if it can't, you'll see a toast and can reconnect in Settings.</li>
+                    <li><strong>Events not appearing in Google Calendar:</strong> Use <strong>Sync All Events</strong> in Settings to re-push everything.</li>
+                    <li><strong>Accidentally deleted the Bishop calendar in Google:</strong> Use <strong>Recreate Calendar</strong> in Settings.</li>
+                </ul>
             </div>
             <div class="modal-buttons">
                 <button class="btn btn-primary" onclick="closeModal('gcalHelpModal')">Got It</button>

@@ -624,6 +624,161 @@ async function gcalDeleteYardEvent(eventDoc) {
 }
 
 // ============================================================
+// Life Calendar Sync (Mode 2 — GC-4)
+// ============================================================
+
+/**
+ * Build the Google Calendar API request body for a life event.
+ * Timed if startTime is set; all-day if not. Multi-day if endDate set.
+ * @param {Object} event         - lifeEvents Firestore doc data
+ * @param {string} categoryName  - Resolved category name ('' if none)
+ * @param {string} locationText  - Resolved location string ('' if none)
+ * @returns {Object} GCal API event resource body
+ */
+function gcalBuildLifeEventBody(event, categoryName, locationText) {
+    var prefix = '';
+    if (event.status === 'attended') prefix = '\u2713 ';
+    else if (event.status === 'didntgo') prefix = '\u2717 ';
+    var summary = prefix + (event.title || '');
+
+    var startDate = event.startDate || '';
+    var endDate   = event.endDate   || startDate;
+    var startTime = event.startTime || '';
+    var endTime   = event.endTime   || '';
+    var tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    var start, end;
+    if (startTime) {
+        start = { dateTime: startDate + 'T' + startTime + ':00', timeZone: tz };
+        end   = endTime
+            ? { dateTime: endDate + 'T' + endTime + ':00', timeZone: tz }
+            : { dateTime: endDate + 'T23:59:00', timeZone: tz };
+    } else {
+        // All-day — GCal end is exclusive, so add one day
+        start = { date: startDate };
+        end   = { date: _gcalNextDay(endDate) };
+    }
+
+    var desc = event.description || '';
+    if (categoryName) desc = desc ? desc + '\nCategory: ' + categoryName : 'Category: ' + categoryName;
+
+    var body = {
+        summary: summary,
+        start:   start,
+        end:     end,
+        reminders: { useDefault: false, overrides: [] }
+    };
+
+    var mins = _gcalSettings && Number(_gcalSettings.defaultReminderMinutes);
+    if (mins > 0) body.reminders.overrides.push({ method: 'popup', minutes: mins });
+    if (locationText) body.location = locationText;
+    if (desc) body.description = desc;
+    return body;
+}
+
+/**
+ * Look up a life event's category name from Firestore.
+ * @param {string} categoryId
+ * @returns {Promise<string>}
+ */
+async function _gcalResolveCategoryName(categoryId) {
+    if (!categoryId) return '';
+    try {
+        var snap = await userCol('lifeCategories').doc(categoryId).get();
+        return snap.exists ? (snap.data().name || '') : '';
+    } catch (e) { return ''; }
+}
+
+/**
+ * Resolve a life event's location string.
+ * Uses contact name if locationContactId is set, otherwise event.location.
+ * @param {Object} event
+ * @returns {Promise<string>}
+ */
+async function _gcalResolveLifeLocation(event) {
+    if (event.locationContactId) {
+        try {
+            var snap = await userCol('people').doc(event.locationContactId).get();
+            return snap.exists ? (snap.data().name || event.location || '') : (event.location || '');
+        } catch (e) { return event.location || ''; }
+    }
+    return event.location || '';
+}
+
+/**
+ * Sync one lifeEvents document to Google Calendar.
+ * Safe to call fire-and-forget; logs errors to console.
+ * @param {Object} eventDoc - { id, ...firestoreData }
+ */
+async function gcalSyncLifeEvent(eventDoc) {
+    if (!gcalIsConnected()) return;
+
+    var calId;
+    try {
+        calId = await gcalEnsureCalendar();
+    } catch (err) {
+        if (err.status === 404) await gcalHandleCalendarNotFound();
+        else console.error('gcalSyncLifeEvent — calendar error:', err);
+        return;
+    }
+
+    var evBase = 'https://www.googleapis.com/calendar/v3/calendars/' +
+        encodeURIComponent(calId) + '/events';
+
+    var categoryName = await _gcalResolveCategoryName(eventDoc.categoryId);
+    var locationText = await _gcalResolveLifeLocation(eventDoc);
+    var body = gcalBuildLifeEventBody(eventDoc, categoryName, locationText);
+    var existingId = eventDoc.gcalEventId || '';
+
+    try {
+        var result;
+        if (existingId) {
+            try {
+                result = await gcalApiCall('PATCH', evBase + '/' + encodeURIComponent(existingId), body);
+            } catch (e) {
+                if (e.status !== 404) throw e;
+                result = await gcalApiCall('POST', evBase, body);
+                existingId = result.id;
+            }
+        } else {
+            result = await gcalApiCall('POST', evBase, body);
+            existingId = result.id;
+        }
+        await userCol('lifeEvents').doc(eventDoc.id).update({ gcalEventId: existingId });
+    } catch (err) {
+        if (err.status === 404) await gcalHandleCalendarNotFound();
+        else console.error('gcalSyncLifeEvent error:', err);
+    }
+}
+
+/**
+ * Delete the Google Calendar event for a life event being removed from Firestore.
+ * Must be called BEFORE the Firestore delete (we need the gcalEventId).
+ * @param {Object} eventDoc - { id, ...firestoreData }
+ */
+async function gcalDeleteLifeEvent(eventDoc) {
+    if (!gcalIsConnected()) return;
+    if (!eventDoc.gcalEventId) return;
+
+    var calId;
+    try {
+        calId = await gcalEnsureCalendar();
+    } catch (err) {
+        return; // Calendar gone — nothing to delete
+    }
+
+    var evBase = 'https://www.googleapis.com/calendar/v3/calendars/' +
+        encodeURIComponent(calId) + '/events';
+
+    try {
+        await gcalApiCall('DELETE', evBase + '/' + encodeURIComponent(eventDoc.gcalEventId));
+    } catch (err) {
+        if (err.status !== 404) console.error('gcalDeleteLifeEvent error:', err);
+        // 404 = already gone, skip
+    }
+}
+
+// ============================================================
 // Toast notification
 // ============================================================
 

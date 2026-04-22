@@ -1810,6 +1810,8 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 
 **Adding to Google Calendar:** Each event card in the list view shows a **+ Add to Google Calendar** link. Tapping it opens a pre-filled Google Calendar "new event" page in a new tab — no sign-in to the app required. The link is only shown when Google Calendar sync is not connected (once connected, syncing is automatic). Health appointment cards do not show this link.
 
+**Auto-sync (when connected):** If Google Calendar is connected in Settings, life events are pushed to your Google Calendar automatically when you create, edit (including status changes), or delete them. Timed events (with a start time) sync as timed GCal events; events without a time sync as all-day events. Status is reflected in the GCal event title — attended events show ✓, "didn't go" shows ✗.
+
 **Tips:**
 - The location-contact link is most useful when the venue has a contact record with an address -- then the address auto-appears as a Maps link on today's events on the Life home page and the calendar card.
 - Tag people on events to build a history of shared experiences. A person's contact detail page shows all life events they were tagged in.

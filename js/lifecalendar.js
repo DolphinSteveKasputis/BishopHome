@@ -2701,12 +2701,26 @@ async function _lcSaveEvent(isNew) {
 
     try {
         if (isNew) {
-            await lcAddEvent(data);
+            var newEventId = await lcAddEvent(data);
             _lcEventDirty = false;
+            // GCal sync (fire-and-forget)
+            if (typeof gcalIsConnected === 'function' && gcalIsConnected()) {
+                userCol('lifeEvents').doc(newEventId).get().then(function(snap) {
+                    if (snap.exists) gcalSyncLifeEvent({ id: snap.id, ...snap.data() });
+                }).catch(function(e) { console.warn('gcalSyncLifeEvent error:', e); });
+            }
             window.location.hash = '#life-calendar';
         } else {
             await lcUpdateEvent(_lcEditingEventId, data);
             _lcEventDirty = false;
+            // GCal sync (fire-and-forget)
+            if (typeof gcalIsConnected === 'function' && gcalIsConnected()) {
+                (function(eid) {
+                    userCol('lifeEvents').doc(eid).get().then(function(snap) {
+                        if (snap.exists) gcalSyncLifeEvent({ id: snap.id, ...snap.data() });
+                    }).catch(function(e) { console.warn('gcalSyncLifeEvent error:', e); });
+                })(_lcEditingEventId);
+            }
             window.location.hash = '#life-calendar';
         }
     } catch (err) {
@@ -2724,8 +2738,23 @@ async function _lcSaveEvent(isNew) {
 async function _lcConfirmDeleteEvent(id) {
     if (!confirm('Delete this event? Mini logs and photos will also be deleted. Journal entries will be kept.')) return;
     try {
+        // Read before delete so we can clean up GCal
+        var gcalDocData = null;
+        if (typeof gcalIsConnected === 'function' && gcalIsConnected()) {
+            try {
+                var gcalSnap = await userCol('lifeEvents').doc(id).get();
+                if (gcalSnap.exists) gcalDocData = { id: gcalSnap.id, ...gcalSnap.data() };
+            } catch (e) { /* skip — not worth blocking the delete */ }
+        }
+
         await lcDeleteEvent(id);
         _lcEventDirty = false;
+
+        // GCal cleanup (fire-and-forget)
+        if (gcalDocData) {
+            gcalDeleteLifeEvent(gcalDocData).catch(function(e) { console.warn('gcalDeleteLifeEvent error:', e); });
+        }
+
         window.location.hash = '#life-calendar';
     } catch (err) {
         console.error('_lcConfirmDeleteEvent error:', err);

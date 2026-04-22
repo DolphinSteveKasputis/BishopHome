@@ -1346,7 +1346,7 @@ Syncs Yard Calendar (`calendarEvents`) and Life Calendar (`lifeEvents`) events t
 
 **Sync behavior (Mode 2):**
 - **Yard Calendar** (implemented): all-day GCal events. One-time events use `gcalEventId`; recurring events use `gcalEventIds` map (`{ "YYYY-MM-DD": "gcalEventId" }`) — each occurrence synced as a separate GCal event. Sync window: 12 months (10 years for yearly events). Hooks: create, edit, delete, complete, cancel occurrence, reschedule. Completed occurrences get "✓ " title prefix. Cancelled occurrences are deleted from GCal.
-- **Life Calendar** (planned GC-4): timed GCal events if `startTime` set; all-day if not. Multi-day if `endDate` set. Uses `gcalEventId` (no recurring events). Status changes: `attended` → "✓ Title", `didntgo` → "✗ Title", `upcoming` → plain title. Description field + "Category: X" if category set.
+- **Life Calendar** (implemented): timed GCal events if `startTime` set; all-day if not. Multi-day if `endDate` set. Uses `gcalEventId` (no recurring events). Hooks: create, edit (including status changes), delete. Status prefix: `attended` → "✓ Title", `didntgo` → "✗ Title", `upcoming` → plain title. Description + "Category: X" if category set. Location resolved from `locationContactId` (contact name) or `location` text field.
 
 **Recovery:** "Sync All" button re-pushes all future events from both calendars. "Recreate Calendar" button handles the case where the Bishop GCal calendar was manually deleted. First-connect prompt offers bulk sync of existing events.
 

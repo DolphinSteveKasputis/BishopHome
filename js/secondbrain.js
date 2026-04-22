@@ -1965,24 +1965,30 @@ async function _sbWrite(action, payload) {
             var noteText     = (payload.note || '').trim();
             var notebookId   = payload.notebookId || null;
 
-            // Resolve notebook: use the ID from the dropdown if provided, otherwise fall back
+            // Resolve notebook:
+            // 1. Use ID from dropdown if the user changed it in the confirm UI
+            // 2. If the user specified a notebook name (notebookRequested != null), match by name
+            // 3. Otherwise use the user's configured default notebook
+            // 4. Last resort: the built-in "Default" notebook
             if (!notebookId) {
-                // Try matching by name from context
                 var allNbs = (_sbContext && _sbContext.notebooks) ? _sbContext.notebooks : [];
-                var nbName = payload.notebook || 'Default';
-                var matched = allNbs.find(function(nb) {
-                    return nb.name.toLowerCase() === nbName.toLowerCase();
-                });
-                notebookId = matched ? matched.id : null;
+                if (payload.notebookRequested) {
+                    // User named a notebook — match by name
+                    var nbName = payload.notebook || payload.notebookRequested;
+                    var matched = allNbs.find(function(nb) {
+                        return nb.name.toLowerCase() === nbName.toLowerCase();
+                    });
+                    notebookId = matched ? matched.id : null;
+                }
             }
 
             if (!notebookId) {
-                // Check user's configured default notebook first
+                // No notebook specified (or name didn't match) — use user's configured default
                 var userDefault = await _notesGetDefaultNotebookId();
                 if (userDefault) {
                     notebookId = userDefault;
                 } else {
-                    // Absolute fallback: ensure Default notebook exists and use it
+                    // Absolute fallback: ensure built-in Default notebook exists
                     var def = await notesEnsureDefaultNotebook();
                     notebookId = def.id;
                 }

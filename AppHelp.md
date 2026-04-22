@@ -279,7 +279,8 @@ The health indicator also appears on the plant card in the zone view, so you can
 - **Complete an event:** Tap **✓ Complete** on any event card — this automatically creates an activity record for any linked zones
 - **Edit an event:** Tap **Edit** on the card
 - **Copy an event:** Tap **Copy** — creates a new one-time event pre-filled with the same title and description (date is cleared for you to set a new one)
-- **Add to Google Calendar:** Tap **+ GCal** on any event card to open a pre-filled Google Calendar "new event" page in a new tab. No sign-in to the app required — this is a direct deep link. The button only appears when Google Calendar sync is not connected (once connected, syncing is automatic).
+- **Add to Google Calendar:** Tap **+ GCal** on any event card to open a pre-filled Google Calendar "new event" page in a new tab. No sign-in to the app required — this is a direct deep link. The button only appears when Google Calendar sync is not connected.
+- **Auto-sync (when connected):** If Google Calendar is connected in Settings, events are pushed to your Google Calendar automatically when you create, edit, complete, cancel, reschedule, or delete them — no button tap required. Recurring events sync as individual all-day events within a 12-month window (10 years for yearly events). Completed occurrences show a ✓ prefix in Google Calendar; cancelled occurrences are removed from Google Calendar.
 - **Delete a recurring event:** You'll be asked whether to delete just this occurrence or all future occurrences
 
 **Display range:** Use the dropdown at the top to show 1, 3 (default), 6, or 12 months ahead.

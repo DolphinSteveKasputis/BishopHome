@@ -433,6 +433,197 @@ function gcalLifeDeepLink(ev, opts) {
 }
 
 // ============================================================
+// Yard Calendar Sync (Mode 2 — GC-3)
+// ============================================================
+
+/**
+ * Build the Google Calendar API request body for a single yard event occurrence.
+ * All yard events are all-day (no time fields).
+ * @param {Object} event           - Firestore event doc data
+ * @param {string} occurrenceDate  - YYYY-MM-DD
+ * @returns {Object} GCal API event resource body
+ */
+function gcalBuildYardEventBody(event, occurrenceDate) {
+    var isCompleted = event.completed ||
+        (event.completedDates && event.completedDates.indexOf(occurrenceDate) >= 0);
+    var summary = (isCompleted ? '\u2713 ' : '') + (event.title || '');
+
+    var body = {
+        summary: summary,
+        start: { date: occurrenceDate },
+        end:   { date: _gcalNextDay(occurrenceDate) },
+        reminders: { useDefault: false, overrides: [] }
+    };
+
+    var mins = _gcalSettings && Number(_gcalSettings.defaultReminderMinutes);
+    if (mins > 0) body.reminders.overrides.push({ method: 'popup', minutes: mins });
+    if (event.description) body.description = event.description;
+    return body;
+}
+
+/**
+ * Generate all occurrence dates (YYYY-MM-DD[]) for a recurring event in a window,
+ * ignoring cancelledDates so we can handle GCal deletion of cancelled dates.
+ * @param {Object} event
+ * @param {string} windowStart - YYYY-MM-DD inclusive
+ * @param {string} windowEnd   - YYYY-MM-DD inclusive
+ * @returns {string[]}
+ */
+function _gcalAllOccurrenceDates(event, windowStart, windowEnd) {
+    // Pass with empty cancelledDates so generateOccurrences doesn't filter them out
+    var ghost = Object.assign({}, event, { cancelledDates: [], completedDates: [] });
+    var occs = generateOccurrences(ghost, windowStart, windowEnd);
+    return occs.map(function(o) { return o.occurrenceDate; });
+}
+
+/**
+ * Sync one yard calendarEvent document to Google Calendar.
+ * Safe to call fire-and-forget; logs errors to console.
+ * @param {Object} eventDoc - { id, ...firestoreData }
+ */
+async function gcalSyncYardEvent(eventDoc) {
+    if (!gcalIsConnected()) return;
+
+    var calId;
+    try {
+        calId = await gcalEnsureCalendar();
+    } catch (err) {
+        if (err.status === 404) await gcalHandleCalendarNotFound();
+        else console.error('gcalSyncYardEvent — calendar error:', err);
+        return;
+    }
+
+    var evBase = 'https://www.googleapis.com/calendar/v3/calendars/' +
+        encodeURIComponent(calId) + '/events';
+
+    // ── One-time event ──────────────────────────────────────────
+    if (!eventDoc.recurring) {
+        var body = gcalBuildYardEventBody(eventDoc, eventDoc.date);
+        var existingId = eventDoc.gcalEventId || '';
+        try {
+            var result;
+            if (existingId) {
+                try {
+                    result = await gcalApiCall('PATCH', evBase + '/' + encodeURIComponent(existingId), body);
+                } catch (e) {
+                    if (e.status !== 404) throw e;
+                    result = await gcalApiCall('POST', evBase, body);
+                    existingId = result.id;
+                }
+            } else {
+                result = await gcalApiCall('POST', evBase, body);
+                existingId = result.id;
+            }
+            await userCol('calendarEvents').doc(eventDoc.id).update({ gcalEventId: existingId });
+        } catch (err) {
+            if (err.status === 404) await gcalHandleCalendarNotFound();
+            else console.error('gcalSyncYardEvent (one-time) error:', err);
+        }
+        return;
+    }
+
+    // ── Recurring event ─────────────────────────────────────────
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+    var winStart = formatDateISO(today);
+    // 10-year window for yearly events, 12-month window otherwise
+    var interval = (eventDoc.recurring && eventDoc.recurring.intervalDays) || 0;
+    var winMonths = interval >= 365 ? 120 : 12;
+    var winEndDate = new Date(today);
+    winEndDate.setMonth(winEndDate.getMonth() + winMonths);
+    var winEnd = formatDateISO(winEndDate);
+
+    var allDates     = _gcalAllOccurrenceDates(eventDoc, winStart, winEnd);
+    var cancelled    = eventDoc.cancelledDates   || [];
+    var completed    = eventDoc.completedDates   || [];
+    var idMap        = Object.assign({}, eventDoc.gcalEventIds || {});
+    var updatedMap   = {};
+
+    try {
+        for (var i = 0; i < allDates.length; i++) {
+            var dateStr  = allDates[i];
+            var isCancelled  = cancelled.indexOf(dateStr) >= 0;
+            var existingGcalId = idMap[dateStr] || '';
+
+            if (isCancelled) {
+                if (existingGcalId) {
+                    try {
+                        await gcalApiCall('DELETE', evBase + '/' + encodeURIComponent(existingGcalId));
+                    } catch (e) {
+                        if (e.status !== 404) throw e;
+                    }
+                }
+                // Not added to updatedMap — effectively removed
+            } else {
+                var occBody = gcalBuildYardEventBody(
+                    Object.assign({}, eventDoc, { completedDates: completed }),
+                    dateStr
+                );
+                var newId;
+                if (existingGcalId) {
+                    try {
+                        await gcalApiCall('PATCH', evBase + '/' + encodeURIComponent(existingGcalId), occBody);
+                        newId = existingGcalId;
+                    } catch (e) {
+                        if (e.status !== 404) throw e;
+                        var r = await gcalApiCall('POST', evBase, occBody);
+                        newId = r.id;
+                    }
+                } else {
+                    var r2 = await gcalApiCall('POST', evBase, occBody);
+                    newId = r2.id;
+                }
+                updatedMap[dateStr] = newId;
+            }
+        }
+        await userCol('calendarEvents').doc(eventDoc.id).update({ gcalEventIds: updatedMap });
+    } catch (err) {
+        if (err.status === 404) await gcalHandleCalendarNotFound();
+        else console.error('gcalSyncYardEvent (recurring) error:', err);
+    }
+}
+
+/**
+ * Delete GCal event(s) for a yard event being removed from Firestore.
+ * Must be called BEFORE deleting the Firestore document (we need the IDs).
+ * @param {Object} eventDoc - { id, ...firestoreData }
+ */
+async function gcalDeleteYardEvent(eventDoc) {
+    if (!gcalIsConnected()) return;
+    if (!eventDoc.gcalEventId && !eventDoc.gcalEventIds) return;
+
+    var calId;
+    try {
+        calId = await gcalEnsureCalendar();
+    } catch (err) {
+        // If calendar is gone, there's nothing to delete anyway
+        return;
+    }
+
+    var evBase = 'https://www.googleapis.com/calendar/v3/calendars/' +
+        encodeURIComponent(calId) + '/events';
+
+    var idsToDelete = [];
+    if (!eventDoc.recurring && eventDoc.gcalEventId) {
+        idsToDelete.push(eventDoc.gcalEventId);
+    } else if (eventDoc.gcalEventIds) {
+        var keys = Object.keys(eventDoc.gcalEventIds);
+        for (var k = 0; k < keys.length; k++) {
+            idsToDelete.push(eventDoc.gcalEventIds[keys[k]]);
+        }
+    }
+
+    for (var i = 0; i < idsToDelete.length; i++) {
+        try {
+            await gcalApiCall('DELETE', evBase + '/' + encodeURIComponent(idsToDelete[i]));
+        } catch (err) {
+            if (err.status !== 404) console.error('gcalDeleteYardEvent error:', err);
+            // 404 = already gone, skip
+        }
+    }
+}
+
+// ============================================================
 // Toast notification
 // ============================================================
 

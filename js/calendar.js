@@ -784,6 +784,15 @@ async function calHandleReschedule(occ, newDate, reloadFn) {
             });
         }
 
+        // GCal sync — date changed, re-sync the event (fire-and-forget)
+        if (typeof gcalIsConnected === 'function' && gcalIsConnected()) {
+            (function(eid) {
+                userCol('calendarEvents').doc(eid).get().then(function(snap) {
+                    if (snap.exists) gcalSyncYardEvent({ id: snap.id, ...snap.data() });
+                }).catch(function(e) { console.warn('gcalSyncYardEvent error:', e); });
+            })(occ.eventId);
+        }
+
         if (typeof reloadFn === 'function') reloadFn();
 
     } catch (err) {
@@ -912,6 +921,15 @@ async function handleCompleteEvent() {
         }
 
         console.log('Event completed:', occ.title, occ.occurrenceDate, '— activities created:', occ.targetType === 'plant' ? 1 : zoneIds.length);
+
+        // GCal sync — re-read updated doc so ✓ prefix is applied (fire-and-forget)
+        if (typeof gcalIsConnected === 'function' && gcalIsConnected()) {
+            (function(eid) {
+                userCol('calendarEvents').doc(eid).get().then(function(snap) {
+                    if (snap.exists) gcalSyncYardEvent({ id: snap.id, ...snap.data() });
+                }).catch(function(e) { console.warn('gcalSyncYardEvent error:', e); });
+            })(occ.eventId);
+        }
 
         // Reload the activity history if we're on a zone/plant detail page
         if (occ.targetType === 'plant' && occ.targetId) {
@@ -1219,7 +1237,7 @@ async function handleCalendarEventModalSave() {
 
     try {
         if (mode === 'add') {
-            await userCol('calendarEvents').add({
+            var newRef = await userCol('calendarEvents').add({
                 title: title,
                 description: description,
                 date: date,
@@ -1234,6 +1252,14 @@ async function handleCalendarEventModalSave() {
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
             console.log('Calendar event added:', title);
+            // GCal sync (fire-and-forget)
+            if (typeof gcalIsConnected === 'function' && gcalIsConnected()) {
+                (function(ref) {
+                    ref.get().then(function(snap) {
+                        if (snap.exists) gcalSyncYardEvent({ id: snap.id, ...snap.data() });
+                    }).catch(function(e) { console.warn('gcalSyncYardEvent error:', e); });
+                })(newRef);
+            }
 
         } else if (mode === 'edit') {
             var eventId = modal.dataset.editId;
@@ -1249,6 +1275,14 @@ async function handleCalendarEventModalSave() {
                 trackingCategory: trackingCategory
             });
             console.log('Calendar event updated:', title);
+            // GCal sync (fire-and-forget)
+            if (typeof gcalIsConnected === 'function' && gcalIsConnected()) {
+                (function(eid) {
+                    userCol('calendarEvents').doc(eid).get().then(function(snap) {
+                        if (snap.exists) gcalSyncYardEvent({ id: snap.id, ...snap.data() });
+                    }).catch(function(e) { console.warn('gcalSyncYardEvent error:', e); });
+                })(eventId);
+            }
         }
 
         closeModal('calendarEventModal');
@@ -1276,8 +1310,22 @@ async function handleCalendarEventModalSave() {
  */
 async function handleDeleteCalendarEvent(eventId, reloadFn) {
     try {
+        // Read before delete so we can clean up GCal
+        var gcalDocData = null;
+        if (typeof gcalIsConnected === 'function' && gcalIsConnected()) {
+            try {
+                var gcalSnap = await userCol('calendarEvents').doc(eventId).get();
+                if (gcalSnap.exists) gcalDocData = { id: gcalSnap.id, ...gcalSnap.data() };
+            } catch (e) { /* skip — not worth blocking the delete */ }
+        }
+
         await userCol('calendarEvents').doc(eventId).delete();
         console.log('Calendar event deleted:', eventId);
+
+        // GCal cleanup (fire-and-forget)
+        if (gcalDocData) {
+            gcalDeleteYardEvent(gcalDocData).catch(function(e) { console.warn('gcalDeleteYardEvent error:', e); });
+        }
 
         if (typeof reloadFn === 'function') {
             reloadFn();
@@ -1545,6 +1593,14 @@ async function handleDeleteThisOccurrence() {
             cancelledDates: firebase.firestore.FieldValue.arrayUnion(occurrenceDate)
         });
         console.log('Cancelled occurrence:', occurrenceDate, 'for event:', eventId);
+        // GCal sync — will delete the cancelled occurrence's GCal event (fire-and-forget)
+        if (typeof gcalIsConnected === 'function' && gcalIsConnected()) {
+            (function(eid) {
+                userCol('calendarEvents').doc(eid).get().then(function(snap) {
+                    if (snap.exists) gcalSyncYardEvent({ id: snap.id, ...snap.data() });
+                }).catch(function(e) { console.warn('gcalSyncYardEvent error:', e); });
+            })(eventId);
+        }
         if (typeof reloadFn === 'function') reloadFn();
         else loadCalendar();
     } catch (error) {

@@ -9300,6 +9300,24 @@ a.health-chip--link:hover { filter: brightness(0.93); }
     margin-top: 5px;
 }
 
+/* ── Default notebook toggle ── */
+.notebook-default-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    user-select: none;
+}
+.notebook-default-toggle input[type="checkbox"] {
+    display: none;
+}
+.notebook-default-toggle:has(input:checked) {
+    color: var(--accent);
+    font-weight: 600;
+}
+
 /* ── Search bar (shared by #page-notes and #page-notebook) ──── */
 .notes-search-bar {
     margin-bottom: 14px;

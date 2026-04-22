@@ -490,7 +490,7 @@ ctxJson,
 '{"action":"FIND_THING","payload":{"query":"user search term","found":true,"targetType":"floor|room|thing|subthing|item|garageroom|garagething|garagesubthing|structure|structurething|structuresubthing|zone|plant|vehicle|weed","targetId":"id","name":"exact matched name","path":"full path","ambiguous":false}}',
 '',
 'ADD_NOTE — add a note to a notebook. Use notebookNames from context to resolve the target notebook.',
-'- If no notebook is implied: set notebook="Default", notebookRequested=null.',
+'- If no notebook is implied: set notebook="Default", notebookRequested=null (app will use the user\'s configured default notebook).',
 '- If a notebook is implied and matches a name in notebookNames (case-insensitive): set notebook=<matched name>, notebookRequested=<user term>.',
 '- If a notebook is implied but no match found: set notebook="Default", notebookRequested=<user term> (fallback — the app will warn the user).',
 '{"action":"ADD_NOTE","payload":{"notebook":"Default","notebookRequested":null,"note":"the note text"}}',
@@ -1977,9 +1977,15 @@ async function _sbWrite(action, payload) {
             }
 
             if (!notebookId) {
-                // Absolute fallback: ensure Default exists and use it
-                var def = await notesEnsureDefaultNotebook();
-                notebookId = def.id;
+                // Check user's configured default notebook first
+                var userDefault = await _notesGetDefaultNotebookId();
+                if (userDefault) {
+                    notebookId = userDefault;
+                } else {
+                    // Absolute fallback: ensure Default notebook exists and use it
+                    var def = await notesEnsureDefaultNotebook();
+                    notebookId = def.id;
+                }
             }
 
             ref   = await userCol('notes').add({

@@ -2635,8 +2635,9 @@ function _checkinApplyVenueToEntry(venue) {
  * Called from the "📍 Check In" button on the home/landing page.
  */
 function openCheckIn() {
-    // Reset any entry-form callback from a previous session
-    _checkinPickerCallback = null;
+    // _checkinPickerCallback is intentionally NOT reset here — callers like
+    // _openCheckInFromEntry() set it immediately before calling this function.
+    // The callback is cleared by the cancel, manual, and venue-select handlers.
     openModal('checkInPickerModal');
 
     var statusEl  = document.getElementById('checkInPickerStatus');

@@ -560,19 +560,66 @@ function _notesWireNotebookDetailPage(notebook) {
     var editBtn = document.getElementById('editNotebookBtn');
     if (editBtn) editBtn.onclick = function() { _notesOpenNotebookModal(notebook); };
 
-    // Delete Notebook is now inside the Edit modal — no standalone button here.
-
     var addNoteBtn = document.getElementById('addNoteBtn');
     if (addNoteBtn) {
         addNoteBtn.onclick = function() {
-            // N-5 will use window.currentNotebook to know where to save
             window.location.hash = '#note/new';
         };
     }
 
-    // Search input — filtering wired in N-7
+    // Search input
     var searchInput = document.getElementById('notebookSearchInput');
     if (searchInput) searchInput.oninput = _notesHandleNotebookSearch;
+
+    // Default notebook toggle
+    _notesWireDefaultToggle(notebook.id);
+}
+
+/**
+ * Reads the current default notebook ID from settings, sets the checkbox state,
+ * and wires the toggle to save/clear the default.
+ */
+async function _notesWireDefaultToggle(notebookId) {
+    var chk  = document.getElementById('notebookDefaultChk');
+    var star = document.getElementById('notebookDefaultStar');
+    if (!chk) return;
+
+    // Read current default
+    var currentDefault = await _notesGetDefaultNotebookId();
+    var isDefault = currentDefault === notebookId;
+    chk.checked = isDefault;
+    if (star) star.textContent = isDefault ? '⭐ ' : '';
+
+    chk.onchange = async function() {
+        if (chk.checked) {
+            await userCol('settings').doc('main').set(
+                { defaultNotebookId: notebookId },
+                { merge: true }
+            );
+            if (star) star.textContent = '⭐ ';
+        } else {
+            // Only clear if this notebook IS currently the default
+            var cur = await _notesGetDefaultNotebookId();
+            if (cur === notebookId) {
+                await userCol('settings').doc('main').update(
+                    { defaultNotebookId: firebase.firestore.FieldValue.delete() }
+                );
+            }
+            if (star) star.textContent = '';
+        }
+    };
+}
+
+/**
+ * Returns the user's configured default notebook ID, or null if not set.
+ */
+async function _notesGetDefaultNotebookId() {
+    try {
+        var doc = await userCol('settings').doc('main').get();
+        return (doc.exists && doc.data().defaultNotebookId) || null;
+    } catch (err) {
+        return null;
+    }
 }
 
 // ============================================================

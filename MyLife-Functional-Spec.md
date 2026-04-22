@@ -855,7 +855,9 @@ A notebook-organized note-taking system.
 
 **Color swatches**: 8 preset gradient colors for notebooks. Rendered as colored cards.
 
-**Default notebook**: Auto-created "Default" gray notebook on first visit; cannot be deleted.
+**Default notebook (built-in)**: Auto-created "Default" gray notebook on first visit; cannot be deleted.
+
+**Default notebook (user-configured)**: Any notebook can be designated as the user's default via a toggle on the notebook detail page header (star icon + "Default" label). Only one notebook can be the default at a time; toggling another notebook sets the new one and clears the old. Stored in `userCol('settings').doc('main').defaultNotebookId`. The SecondBrain `ADD_NOTE` action uses this setting as a fallback when no notebook name is specified, before falling back to the built-in "Default" notebook.
 
 **Search**: Global search across all note body text.
 

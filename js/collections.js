@@ -167,6 +167,8 @@ function openAddCollectionModal() {
     // Hide delete button in add mode
     document.getElementById('collectionDeleteBtn').classList.add('hidden');
 
+    buildContactPicker('collBenePicker', { placeholder: 'Search contacts\u2026' });
+
     // Toggle generic labels section
     toggleGenericLabels();
 
@@ -196,6 +198,12 @@ function openEditCollectionModal(id) {
 
             // Show delete button in edit mode
             document.getElementById('collectionDeleteBtn').classList.remove('hidden');
+
+            buildContactPicker('collBenePicker', {
+                placeholder: 'Search contacts\u2026',
+                initialId:   data.beneficiaryContactId || undefined,
+                initialName: data.beneficiaryName      || undefined
+            });
 
             toggleGenericLabels();
             openModal('collectionModal');
@@ -242,11 +250,12 @@ function handleCollectionModalSave() {
     }
 
     var payload = {
-        name:   name,
-        type:   type,
-        label1: label1,
-        label2: label2,
-        label3: label3
+        name:                 name,
+        type:                 type,
+        label1:               label1,
+        label2:               label2,
+        label3:               label3,
+        beneficiaryContactId: document.getElementById('collBenePicker_id').value || null
     };
 
     var mode   = modal.dataset.mode;
@@ -337,6 +346,7 @@ function loadCollectionPage(id) {
             window.currentCollection = { id: id, ...data };
 
             nameEl.textContent = data.name || 'Collection';
+            _renderBeneficiaryRow('collGoesToRow', { id: id, ...data }, []);
 
             // Update breadcrumb with collection name
             if (crumbEl) {
@@ -735,6 +745,7 @@ function openAddCollectionItemModal(collectionId) {
             document.getElementById('ciNotes').value         = '';
 
             renderCollectionItemTypeFields(colData.type, null, colData);
+            buildContactPicker('ciBenePicker', { placeholder: 'Search contacts\u2026' });
             openModal('collectionItemModal');
         })
         .catch(function(err) {
@@ -770,6 +781,11 @@ function openEditCollectionItemModal(itemId) {
                     document.getElementById('ciNotes').value         = itemData.notes         || '';
 
                     renderCollectionItemTypeFields(colData.type, itemData.typeData || {}, colData);
+                    buildContactPicker('ciBenePicker', {
+                        placeholder: 'Search contacts\u2026',
+                        initialId:   itemData.beneficiaryContactId || undefined,
+                        initialName: itemData.beneficiaryName      || undefined
+                    });
                     openModal('collectionItemModal');
                 });
         })
@@ -833,13 +849,14 @@ function handleCollectionItemModalSave() {
     var estimatedValue = document.getElementById('ciEstValue').value;
 
     var payload = {
-        collectionId:   collectionId,
-        name:           name,
-        typeData:        typeData,
-        acquiredDate:   document.getElementById('ciAcquiredDate').value || '',
-        pricePaid:      pricePaid      !== '' ? parseFloat(pricePaid)      : null,
-        estimatedValue: estimatedValue !== '' ? parseFloat(estimatedValue) : null,
-        notes:          (document.getElementById('ciNotes').value || '').trim()
+        collectionId:         collectionId,
+        name:                 name,
+        typeData:             typeData,
+        acquiredDate:         document.getElementById('ciAcquiredDate').value || '',
+        pricePaid:            pricePaid      !== '' ? parseFloat(pricePaid)      : null,
+        estimatedValue:       estimatedValue !== '' ? parseFloat(estimatedValue) : null,
+        notes:                (document.getElementById('ciNotes').value || '').trim(),
+        beneficiaryContactId: document.getElementById('ciBenePicker_id').value || null
     };
 
     if (mode === 'edit' && editId) {
@@ -919,6 +936,9 @@ function loadCollectionItemPage(id) {
 
                     // Info card
                     renderCollectionItemInfoCard(infoCard, itemData, colData);
+                    _renderBeneficiaryRow('ciGoesToRow', itemData, [
+                        { entity: { id: itemData.collectionId, ...colData }, label: colData.name || 'Collection' }
+                    ]);
 
                     // Location section
                     renderCollectionItemLocation(locationEl, itemData, id);

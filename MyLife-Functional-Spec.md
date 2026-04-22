@@ -255,7 +255,7 @@ Each room belongs to one floor.
 ### Things (`house.js`)
 Items of significance in a room — furniture, appliances, fixtures.
 
-**Firestore**: `things` — `name`, `category`, `roomId`, `description`, `worth`, `notes`, `profilePhotoData?`, `createdAt`
+**Firestore**: `things` — `name`, `category`, `roomId`, `description`, `worth`, `notes`, `beneficiaryContactId?`, `profilePhotoData?`, `createdAt`
 
 **Routes**: `#thing/{id}` (detail)
 
@@ -270,7 +270,7 @@ Items of significance in a room — furniture, appliances, fixtures.
 ### Sub-Things (`house.js`)
 Sub-items within a Thing — drawers in a dresser, shelves in a bookcase, compartments in a cabinet.
 
-**Firestore**: `subThings` — `name`, `thingId`, `description`, `worth`, `notes`, `tags[]`, `profilePhotoData?`, `createdAt`
+**Firestore**: `subThings` — `name`, `thingId`, `description`, `worth`, `notes`, `tags[]`, `beneficiaryContactId?`, `profilePhotoData?`, `createdAt`
 
 **Routes**: `#subthing/{id}` (detail)
 
@@ -285,7 +285,7 @@ Sub-items within a Thing — drawers in a dresser, shelves in a bookcase, compar
 ### Items (`house.js`, `SubThingItems.md`)
 The deepest level — individual items inside a Sub-Thing.
 
-**Firestore**: `subThingItems` — `name`, `subThingId`, `description`, `worth`, `notes`, `tags[]`, `profilePhotoData?`, `createdAt`
+**Firestore**: `subThingItems` — `name`, `subThingId`, `description`, `worth`, `notes`, `tags[]`, `beneficiaryContactId?`, `profilePhotoData?`, `createdAt`
 
 **Routes**: `#item/{id}` (detail)
 
@@ -294,6 +294,19 @@ The deepest level — individual items inside a Sub-Thing.
 **Detail page layout**: All sections are collapsible accordions (`.detail-acc`), all collapsed by default. Item count badge shown in each header. Sections: Problems/Concerns, Facts, Quick Task List, Calendar Events, Activity History, Photos.
 
 **[Shared]**: Facts, Problems, Quick Task List, Activities, Photos, Calendar Events
+
+### Who Gets What (`beneficiaries.js`)
+Tracks beneficiary assignments across Things, Sub-Things, Items, Garage Things/Sub-Things, Structure Things/Sub-Things, Collections, and Collection Items.
+
+**Field**: `beneficiaryContactId?` — optional reference to a `people` doc (Contacts). Stored directly on each entity document.
+
+**Inheritance**: If an entity has no `beneficiaryContactId`, it inherits from its nearest ancestor that does. For example, a SubThing with no beneficiary set will display the Thing's beneficiary. A CollectionItem inherits from its Collection. Inheritance is computed in-memory during render — no extra Firestore reads.
+
+**Display on detail pages**: A yellow "Goes to" row appears below the entity header. Shows the contact name as a link to their detail page. If inherited, shows "(inherited from [Parent Name])". If no beneficiary is set anywhere in the chain, the row is hidden.
+
+**Editing**: The "Goes to (if I die)" contact picker appears in each entity's add/edit modal. Uses `buildContactPicker` from `contacts.js`. Supports search by name. Clear the field to remove the direct assignment (inheritance from parent still applies).
+
+**Summary page** (`#beneficiaries`): Accessible from the House "More" section as "Who Gets What". Pick a contact to see everything assigned to them (direct assignments or inherited). Results are grouped by section (House, Garage, Structures, Collections), each showing the item name, path, and a badge indicating direct vs. inherited.
 
 ### LLM Photo Identification (House)
 Things, Sub-Things, and Items can all be added via `+Photo` button:
@@ -649,8 +662,8 @@ Tracks vehicles with maintenance history, mileage, and documentation.
 Tracks physical collectible inventories. Each collection is a named list with a type; each item within it has type-specific fields.
 
 **Firestore**:
-- `collections` — `name`, `type`, `label1/2/3` (generic custom labels), `createdAt`
-- `collectionItems` — `collectionId`, `name`, `typeData{}`, `acquiredDate`, `pricePaid`, `estimatedValue`, `notes`, `locationRef{}`, `profilePhotoData?`, `createdAt`
+- `collections` — `name`, `type`, `label1/2/3` (generic custom labels), `beneficiaryContactId?`, `createdAt`
+- `collectionItems` — `collectionId`, `name`, `typeData{}`, `acquiredDate`, `pricePaid`, `estimatedValue`, `notes`, `locationRef{}`, `profilePhotoData?`, `beneficiaryContactId?`, `createdAt`
 
 **Routes**: `#collections` (list), `#collection/{id}` (collection detail), `#collectionitem/{id}` (item detail)
 
@@ -1769,16 +1782,16 @@ All collections live under `/users/{uid}/`. Every module uses `userCol('collecti
 | Collection | Key Fields |
 |------------|------------|
 | `garageRooms` | name, order, createdAt |
-| `garageThings` | name, roomId, category, description, worth, notes, createdAt |
-| `garageSubThings` | name, thingId, tags[], createdAt |
+| `garageThings` | name, roomId, category, description, worth, notes, beneficiaryContactId?, createdAt |
+| `garageSubThings` | name, thingId, tags[], beneficiaryContactId?, createdAt |
 
 ### Structures
 
 | Collection | Key Fields |
 |------------|------------|
 | `structures` | name, type, notes, createdAt |
-| `structureThings` | name, structureId, category, description, worth, notes, createdAt |
-| `structureSubThings` | name, thingId, tags[], createdAt |
+| `structureThings` | name, structureId, category, description, worth, notes, beneficiaryContactId?, createdAt |
+| `structureSubThings` | name, thingId, tags[], beneficiaryContactId?, createdAt |
 
 ### Vehicles
 
@@ -1791,8 +1804,8 @@ All collections live under `/users/{uid}/`. Every module uses `userCol('collecti
 
 | Collection | Key Fields |
 |------------|------------|
-| `collections` | name, type, label1, label2, label3, createdAt |
-| `collectionItems` | collectionId, name, typeData{}, acquiredDate, pricePaid, estimatedValue, notes, locationRef{}, profilePhotoData?, createdAt |
+| `collections` | name, type, label1, label2, label3, beneficiaryContactId?, createdAt |
+| `collectionItems` | collectionId, name, typeData{}, acquiredDate, pricePaid, estimatedValue, notes, locationRef{}, profilePhotoData?, beneficiaryContactId?, createdAt |
 
 ### Life
 

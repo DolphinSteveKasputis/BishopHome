@@ -310,6 +310,8 @@ function openAddGarageThingModal(roomId) {
     modal.dataset.editId = '';
     modal.dataset.roomId = roomId;
 
+    buildContactPicker('gtBenePicker', { placeholder: 'Search contacts\u2026' });
+
     openModal('garageThingModal');
     document.getElementById('garageThingNameInput').focus();
 }
@@ -346,6 +348,12 @@ function openEditGarageThingModal(thingId) {
     modal.dataset.editId = thingId;
     modal.dataset.roomId = thing.roomId || '';
 
+    buildContactPicker('gtBenePicker', {
+        placeholder: 'Search contacts\u2026',
+        initialId:   thing.beneficiaryContactId || undefined,
+        initialName: thing.beneficiaryName      || undefined
+    });
+
     openModal('garageThingModal');
     document.getElementById('garageThingNameInput').focus();
 }
@@ -365,12 +373,13 @@ function handleGarageThingModalSave() {
     var roomId = modal.dataset.roomId;
 
     var thingData = {
-        name:         nameVal,
-        category:     document.getElementById('garageThingCategorySelect').value   || 'other',
-        description:  document.getElementById('garageThingDescriptionInput').value.trim(),
-        purchaseDate: document.getElementById('garageThingPurchaseDateInput').value || null,
-        worth:        document.getElementById('garageThingWorthInput').value.trim() || null,
-        notes:        document.getElementById('garageThingNotesInput').value.trim()
+        name:                 nameVal,
+        category:             document.getElementById('garageThingCategorySelect').value   || 'other',
+        description:          document.getElementById('garageThingDescriptionInput').value.trim(),
+        purchaseDate:         document.getElementById('garageThingPurchaseDateInput').value || null,
+        worth:                document.getElementById('garageThingWorthInput').value.trim() || null,
+        notes:                document.getElementById('garageThingNotesInput').value.trim(),
+        beneficiaryContactId: document.getElementById('gtBenePicker_id').value || null
     };
 
     if (mode === 'edit' && editId) {
@@ -447,6 +456,7 @@ function renderGarageThingPage(thing, room) {
 
     // Render inventory details card (description, purchaseDate, worth, notes)
     renderGarageInventoryDetails(thing, 'garageThingDetailsSection');
+    _renderBeneficiaryRow('gtGoesToRow', thing, []);
 
     // ---- Load all cross-entity feature sections ----
     loadPhotos(    'garagething', thing.id, 'garageThingPhotosSection',           'garageThingPhotosEmpty')
@@ -558,6 +568,8 @@ function openAddGarageSubThingModal(thingId) {
     modal.dataset.editId  = '';
     modal.dataset.thingId = thingId;
 
+    buildContactPicker('gstBenePicker', { placeholder: 'Search contacts\u2026' });
+
     openModal('garageSubThingModal');
     document.getElementById('garageSubThingNameInput').focus();
 }
@@ -593,6 +605,12 @@ function openEditGarageSubThingModal(subThingId) {
     modal.dataset.editId  = subThingId;
     modal.dataset.thingId = subThing.thingId || '';
 
+    buildContactPicker('gstBenePicker', {
+        placeholder: 'Search contacts\u2026',
+        initialId:   subThing.beneficiaryContactId || undefined,
+        initialName: subThing.beneficiaryName      || undefined
+    });
+
     openModal('garageSubThingModal');
     document.getElementById('garageSubThingNameInput').focus();
 }
@@ -612,11 +630,12 @@ function handleGarageSubThingModalSave() {
     var thingId = modal.dataset.thingId;
 
     var itemData = {
-        name:         nameVal,
-        description:  document.getElementById('garageSubThingDescriptionInput').value.trim(),
-        purchaseDate: document.getElementById('garageSubThingPurchaseDateInput').value || null,
-        worth:        document.getElementById('garageSubThingWorthInput').value.trim() || null,
-        notes:        document.getElementById('garageSubThingNotesInput').value.trim()
+        name:                 nameVal,
+        description:          document.getElementById('garageSubThingDescriptionInput').value.trim(),
+        purchaseDate:         document.getElementById('garageSubThingPurchaseDateInput').value || null,
+        worth:                document.getElementById('garageSubThingWorthInput').value.trim() || null,
+        notes:                document.getElementById('garageSubThingNotesInput').value.trim(),
+        beneficiaryContactId: document.getElementById('gstBenePicker_id').value || null
     };
 
     if (mode === 'edit' && editId) {
@@ -714,6 +733,9 @@ function renderGarageSubThingPage(subThing, thing, room) {
 
     // Render inventory details card
     renderGarageInventoryDetails(subThing, 'garageSubThingDetailsSection');
+    _renderBeneficiaryRow('gstGoesToRow', subThing, [
+        { entity: thing, label: thing.name || 'Thing' }
+    ]);
 
     // ---- Load all cross-entity feature sections ----
     loadPhotos(    'garagesubthing', subThing.id, 'garageSubThingPhotosSection',       'garageSubThingPhotosEmpty')

@@ -2087,6 +2087,7 @@ function renderThingDetail(thing, room, floor) {
 
     // Inventory details card
     renderInventoryDetails(thing, 'thingDetailsSection');
+    _renderBeneficiaryRow('thingGoesToRow', thing, []);
 
     // Breadcrumb: House > Floor > Room > Thing
     buildHouseBreadcrumb([
@@ -2156,6 +2157,11 @@ function openThingModal(editId, data) {
         modal.dataset.mode      = 'add';
         modal.dataset.editId    = '';
     }
+    buildContactPicker('thingBenePicker', {
+        placeholder: 'Search contacts\u2026',
+        initialId:   editId ? (data.beneficiaryContactId || undefined) : undefined,
+        initialName: editId ? (data.beneficiaryName      || undefined) : undefined
+    });
 
     // Show/hide From Picture only in add mode
     var picSection = document.getElementById('thingFromPictureSection');
@@ -2185,12 +2191,13 @@ document.getElementById('thingModalSaveBtn').addEventListener('click', function(
     var editId = modal.dataset.editId;
 
     var extraFields = {
-        pricePaid:    document.getElementById('thingPricePaidInput').value.trim()    || null,
-        worth:        document.getElementById('thingWorthInput').value.trim()        || null,
-        yearBought:   document.getElementById('thingYearBoughtInput').value.trim()   || null,
-        purchaseDate: document.getElementById('thingPurchaseDateInput').value.trim() || null,
-        description:  document.getElementById('thingDescriptionInput').value.trim(),
-        comment:      document.getElementById('thingCommentInput').value.trim()
+        pricePaid:            document.getElementById('thingPricePaidInput').value.trim()    || null,
+        worth:                document.getElementById('thingWorthInput').value.trim()        || null,
+        yearBought:           document.getElementById('thingYearBoughtInput').value.trim()   || null,
+        purchaseDate:         document.getElementById('thingPurchaseDateInput').value.trim() || null,
+        description:          document.getElementById('thingDescriptionInput').value.trim(),
+        comment:              document.getElementById('thingCommentInput').value.trim(),
+        beneficiaryContactId: document.getElementById('thingBenePicker_id').value           || null
     };
 
     if (mode === 'edit' && editId) {
@@ -3439,6 +3446,9 @@ function renderSubThingDetail(subThing, thing, room, floor) {
 
     // Details card
     renderInventoryDetails(subThing, 'stDetailsSection');
+    _renderBeneficiaryRow('stGoesToRow', subThing, [
+        { entity: thing, label: thing.name || 'Thing' }
+    ]);
 
     // Items list (fourth level)
     loadItemsList(subThing.id);
@@ -3523,6 +3533,12 @@ function openSubThingModal(editId, data) {
         houseCheckLlmForModal('stFromPictureSection');
     }
 
+    buildContactPicker('stBenePicker', {
+        placeholder: 'Search contacts\u2026',
+        initialId:   editId ? (data.beneficiaryContactId || undefined) : undefined,
+        initialName: editId ? (data.beneficiaryName      || undefined) : undefined
+    });
+
     openModal('subThingModal');
     nameInput.focus();
 }
@@ -3534,13 +3550,14 @@ document.getElementById('stModalSaveBtn').addEventListener('click', function() {
     if (!nameVal) { alert('Please enter a name.'); return; }
 
     var itemData = {
-        name:        nameVal,
-        pricePaid:   document.getElementById('stPricePaidInput').value.trim()   || null,
-        worth:       document.getElementById('stWorthInput').value.trim()       || null,
-        yearBought:  document.getElementById('stYearBoughtInput').value.trim()  || null,
-        description: document.getElementById('stDescriptionInput').value.trim(),
-        comment:     document.getElementById('stCommentInput').value.trim(),
-        tags:        stSelectedTags.slice()
+        name:                 nameVal,
+        pricePaid:            document.getElementById('stPricePaidInput').value.trim()   || null,
+        worth:                document.getElementById('stWorthInput').value.trim()       || null,
+        yearBought:           document.getElementById('stYearBoughtInput').value.trim()  || null,
+        description:          document.getElementById('stDescriptionInput').value.trim(),
+        comment:              document.getElementById('stCommentInput').value.trim(),
+        tags:                 stSelectedTags.slice(),
+        beneficiaryContactId: document.getElementById('stBenePicker_id').value || null
     };
 
     var mode   = modal.dataset.mode;
@@ -5072,6 +5089,10 @@ function renderItemDetail(item, subThing, thing, room, floor) {
 
     // Inventory details card
     renderInventoryDetails(item, 'siDetailsSection');
+    _renderBeneficiaryRow('siGoesToRow', item, [
+        { entity: subThing, label: subThing.name || 'Sub-item' },
+        { entity: thing,    label: thing.name    || 'Thing' }
+    ]);
 
     // All cross-entity feature sections
     loadProblems(  'item', item.id, 'siProblemsContainer', 'siProblemsEmptyState')
@@ -5138,6 +5159,12 @@ function openItemModal(editId, data) {
     document.getElementById('siTagSuggestions').classList.add('hidden');
     siLoadTags();
 
+    buildContactPicker('siBenePicker', {
+        placeholder: 'Search contacts\u2026',
+        initialId:   editId ? (data.beneficiaryContactId || undefined) : undefined,
+        initialName: editId ? (data.beneficiaryName      || undefined) : undefined
+    });
+
     openModal('subThingItemModal');
     nameInput.focus();
 }
@@ -5150,13 +5177,14 @@ document.getElementById('siModalSaveBtn').addEventListener('click', function() {
     if (!nameVal) { alert('Please enter a name.'); return; }
 
     var itemData = {
-        name:        nameVal,
-        pricePaid:   document.getElementById('siPricePaidInput').value.trim()   || null,
-        worth:       document.getElementById('siWorthInput').value.trim()       || null,
-        yearBought:  document.getElementById('siYearBoughtInput').value.trim()  || null,
-        description: document.getElementById('siDescriptionInput').value.trim(),
-        notes:       document.getElementById('siNotesInput').value.trim(),
-        tags:        siSelectedTags.slice()
+        name:                 nameVal,
+        pricePaid:            document.getElementById('siPricePaidInput').value.trim()   || null,
+        worth:                document.getElementById('siWorthInput').value.trim()       || null,
+        yearBought:           document.getElementById('siYearBoughtInput').value.trim()  || null,
+        description:          document.getElementById('siDescriptionInput').value.trim(),
+        notes:                document.getElementById('siNotesInput').value.trim(),
+        tags:                 siSelectedTags.slice(),
+        beneficiaryContactId: document.getElementById('siBenePicker_id').value || null
     };
 
     var mode   = modal.dataset.mode;

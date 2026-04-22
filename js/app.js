@@ -146,7 +146,7 @@ const ALL_PAGES = [
     'garageroom', 'garagething', 'garagesubthing',
     'structure', 'structurething', 'structuresubthing',
     'journal-entry', 'journal-tracking', 'journal-categories',
-    'collection', 'collectionitem',
+    'collection', 'collectionitem', 'beneficiaries',
     'place',
     'person', 'contact',
     'notebook', 'note',
@@ -166,7 +166,7 @@ const ALL_PAGES = [
  * Yard-context pages — switching to any of these shows the yard nav.
  * Shared pages (calendar, settings) keep whichever context was last active.
  */
-const HOUSE_PAGES = ['house', 'floor', 'room', 'thing', 'subthing', 'item', 'floorplan', 'panel', 'rooms', 'things', 'house-problems', 'house-projects', 'house-calendar-events', 'floorplanitem'];
+const HOUSE_PAGES = ['house', 'floor', 'room', 'thing', 'subthing', 'item', 'floorplan', 'panel', 'rooms', 'things', 'house-problems', 'house-projects', 'house-calendar-events', 'floorplanitem', 'beneficiaries'];
 const YARD_PAGES  = ['main', 'home', 'zones', 'zone', 'plant', 'weeds', 'weed', 'chemicals', 'chemical', 'actions', 'gpsmap', 'yardmap', 'activityreport',
                      'structures', 'structure', 'structurething', 'structuresubthing', 'yard-projects', 'yard-problems'];
 // NOTE: 'checklists' is intentionally NOT in any context list — it is a shared page
@@ -539,6 +539,9 @@ function handleRoute() {
     } else if (page === 'collectionitem' && id) {
         showPage('collectionitem');
         loadCollectionItemPage(id);
+    } else if (page === 'beneficiaries') {
+        showPage('beneficiaries');
+        loadBeneficiariesPage();
     // ---------- Life / Contacts routes ----------
     } else if (page === 'contacts') {
         showPage('contacts');

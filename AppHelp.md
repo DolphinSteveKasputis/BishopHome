@@ -537,6 +537,7 @@ The **Ask AI** button on every Help screen lets you ask questions about the app 
 - **Garage** -- navigates to the Garage section
 - **Vehicles** -- navigates to the Vehicles section
 - **Collections** -- navigates to the Collections section
+- **Who Gets What** -- opens the beneficiary summary page where you can pick a contact and see everything assigned to them across House, Garage, Structures, and Collections
 
 **Upcoming calendar events rollup:** Shows the next few scheduled events linked to any house entity, so you can see what is coming up without drilling into individual rooms.
 
@@ -1887,6 +1888,12 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 
 **Breadcrumbs:** Navigation crumbs at the top of thing and sub-thing pages show the full path (Garage → Attic → Power Tools → Drill) so you always know where you are and can navigate up.
 
+**Goes to (if I die):**
+- Each thing and sub-thing has a **Goes to** field in its add/edit form -- pick a contact from your Contacts list.
+- If you assign a beneficiary to a Thing, all its Sub-Things inherit that assignment automatically unless overridden.
+- The "Goes to" row appears on each detail page (yellow badge). If inherited, it shows "(inherited from [Parent Name])".
+- To see everything assigned to a specific person, use **Who Gets What** in the House More section.
+
 **Tips:**
 - Use Facts on a thing to record serial numbers, model numbers, and warranty expiration dates -- critical for appliances and electronics.
 - The + From Photo button is the fastest way to log items. Point your camera at a tool or appliance and the AI fills in the name, category, and description.
@@ -2014,6 +2021,12 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 - The assigned location appears as a tappable link on the item page, navigating directly to that room or thing.
 - Use **Clear Location** to remove an assigned location.
 
+**Goes to (if I die):**
+- Each collection and each item has a **Goes to** field in its add/edit form -- pick a contact from your Contacts list.
+- If you assign a beneficiary to a Collection, all items in it inherit that assignment automatically unless a specific item overrides it.
+- The "Goes to" row appears on the collection detail page and on each item detail page (yellow badge). If inherited, it shows "(inherited from [Collection Name])".
+- To see everything assigned to a specific person across all collections, use **Who Gets What** in the House More section.
+
 **Tips:**
 - For comics, the series + issue number combination makes the sort and filter extremely useful -- browse by series name instantly.
 - For records, the format filter lets you quickly see only your LPs or only your 45s.
@@ -2025,7 +2038,48 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 - [House](#help/house)
 - [Garage](#help/garage)
 
+---
 
+## screen:beneficiaries
+
+### Quick Help
+- See everything that goes to a specific person if you die -- across House Things, Garage, Structures, and Collections
+- Pick a contact from the picker to load their summary
+- Items show as direct assignments or inherited from a parent (e.g., a collection item inheriting from the collection)
+
+### Details
+
+**What "Who Gets What" is:** A summary page that answers the question "what does [Person] receive?" It reads beneficiary assignments from Things, Sub-Things, Items, Garage Things/Sub-Things, Structure Things/Sub-Things, Collections, and Collection Items, then groups and displays everything assigned to the selected contact.
+
+**How to use it:**
+1. Open the House section and tap **More → Who Gets What**.
+2. Use the contact picker to search for and select a person.
+3. Results appear grouped by section: **House**, **Garage**, **Structures**, **Collections**.
+4. Each row shows the item name and its path (e.g., "1st Floor > Bedroom > Dresser > Top Drawer").
+5. A badge indicates whether the assignment is **Direct** (set explicitly on that item) or **Inherited** (from a parent entity).
+
+**Setting beneficiaries:**
+- Open any Thing, Sub-Thing, Item, Garage Thing/Sub-Thing, Structure Thing/Sub-Thing, Collection, or Collection Item and tap **Edit**.
+- The **Goes to (if I die)** field has a contact picker -- search for and select the person.
+- Save the record. The yellow "Goes to" row now appears on the detail page.
+- To inherit from the parent, simply leave the field empty.
+- To clear a direct assignment (reverting to inherited), open Edit and clear the field.
+
+**Inheritance rules:**
+- House: SubThingItem → SubThing → Thing (nearest parent with a beneficiary wins)
+- Garage: GarageSubThing → GarageThing
+- Structures: StructureSubThing → StructureThing
+- Collections: CollectionItem → Collection
+- If no entity in the chain has a beneficiary, the "Goes to" row is hidden.
+
+**Tips:**
+- Assign at the collection/thing level to cover everything at once -- only override individual items when a specific item goes to someone different.
+- The summary page is useful for estate planning discussions -- quickly verify that every major item is covered.
+
+### See Also
+- [House](#help/house)
+- [Garage](#help/garage)
+- [Collections](#help/collections)
 
 ---
 

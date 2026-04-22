@@ -391,6 +391,8 @@ function openAddStructureThingModal(structureId) {
     modal.dataset.editId      = '';
     modal.dataset.structureId = structureId;
 
+    buildContactPicker('strThingBenePicker', { placeholder: 'Search contacts\u2026' });
+
     // Show From Picture section if LLM is configured
     structureCheckLlmForModal();
 
@@ -435,6 +437,12 @@ function openEditStructureThingModal(thingId) {
     modal.dataset.editId      = thingId;
     modal.dataset.structureId = thing.structureId || '';
 
+    buildContactPicker('strThingBenePicker', {
+        placeholder: 'Search contacts\u2026',
+        initialId:   thing.beneficiaryContactId || undefined,
+        initialName: thing.beneficiaryName      || undefined
+    });
+
     openModal('structureThingModal');
     document.getElementById('structureThingNameInput').focus();
 }
@@ -453,12 +461,13 @@ function handleStructureThingModalSave() {
     var structureId = modal.dataset.structureId;
 
     var thingData = {
-        name:         nameVal,
-        category:     document.getElementById('structureThingCategorySelect').value   || 'other',
-        description:  document.getElementById('structureThingDescriptionInput').value.trim(),
-        purchaseDate: document.getElementById('structureThingPurchaseDateInput').value || null,
-        worth:        document.getElementById('structureThingWorthInput').value.trim() || null,
-        notes:        document.getElementById('structureThingNotesInput').value.trim()
+        name:                 nameVal,
+        category:             document.getElementById('structureThingCategorySelect').value   || 'other',
+        description:          document.getElementById('structureThingDescriptionInput').value.trim(),
+        purchaseDate:         document.getElementById('structureThingPurchaseDateInput').value || null,
+        worth:                document.getElementById('structureThingWorthInput').value.trim() || null,
+        notes:                document.getElementById('structureThingNotesInput').value.trim(),
+        beneficiaryContactId: document.getElementById('strThingBenePicker_id').value || null
     };
 
     if (mode === 'edit' && editId) {
@@ -534,6 +543,7 @@ function renderStructureThingPage(thing, structure) {
 
     // Render inventory details card (description, purchaseDate, worth, notes)
     renderStructureInventoryDetails(thing, 'structureThingDetailsSection');
+    _renderBeneficiaryRow('strThingGoesToRow', thing, []);
 
     // ---- Load all cross-entity feature sections ----
     loadPhotos(    'structurething', thing.id, 'structureThingPhotosSection',          'structureThingPhotosEmpty')
@@ -667,6 +677,8 @@ function openAddStructureSubThingModal(thingId) {
     modal.dataset.editId  = '';
     modal.dataset.thingId = thingId;
 
+    buildContactPicker('strSubBenePicker', { placeholder: 'Search contacts\u2026' });
+
     openModal('structureSubThingModal');
     document.getElementById('structureSubThingNameInput').focus();
 }
@@ -701,6 +713,12 @@ function openEditStructureSubThingModal(subThingId) {
     modal.dataset.editId  = subThingId;
     modal.dataset.thingId = subThing.thingId || '';
 
+    buildContactPicker('strSubBenePicker', {
+        placeholder: 'Search contacts\u2026',
+        initialId:   subThing.beneficiaryContactId || undefined,
+        initialName: subThing.beneficiaryName      || undefined
+    });
+
     openModal('structureSubThingModal');
     document.getElementById('structureSubThingNameInput').focus();
 }
@@ -719,11 +737,12 @@ function handleStructureSubThingModalSave() {
     var thingId = modal.dataset.thingId;
 
     var itemData = {
-        name:         nameVal,
-        description:  document.getElementById('structureSubThingDescriptionInput').value.trim(),
-        purchaseDate: document.getElementById('structureSubThingPurchaseDateInput').value || null,
-        worth:        document.getElementById('structureSubThingWorthInput').value.trim() || null,
-        notes:        document.getElementById('structureSubThingNotesInput').value.trim()
+        name:                 nameVal,
+        description:          document.getElementById('structureSubThingDescriptionInput').value.trim(),
+        purchaseDate:         document.getElementById('structureSubThingPurchaseDateInput').value || null,
+        worth:                document.getElementById('structureSubThingWorthInput').value.trim() || null,
+        notes:                document.getElementById('structureSubThingNotesInput').value.trim(),
+        beneficiaryContactId: document.getElementById('strSubBenePicker_id').value || null
     };
 
     if (mode === 'edit' && editId) {
@@ -820,6 +839,9 @@ function renderStructureSubThingPage(subThing, thing, structure) {
 
     // Render inventory details card
     renderStructureInventoryDetails(subThing, 'structureSubThingDetailsSection');
+    _renderBeneficiaryRow('strSubGoesToRow', subThing, [
+        { entity: thing, label: thing.name || 'Thing' }
+    ]);
 
     // ---- Load all cross-entity feature sections ----
     loadPhotos(    'structuresubthing', subThing.id, 'structureSubThingPhotosSection',          'structureSubThingPhotosEmpty')

@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=536">
+    <link rel="stylesheet" href="css/styles.css?v=537">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -1196,6 +1196,11 @@
                     <div class="card-main"><span class="card-title">Collections</span></div>
                     <span class="card-arrow">›</span>
                 </a>
+                <a href="#beneficiaries" class="card card--clickable house-more-card">
+                    <span class="house-more-icon">🫂</span>
+                    <div class="card-main"><span class="card-title">Who Gets What</span></div>
+                    <span class="card-arrow">›</span>
+                </a>
             </div>
 
             <!-- Upcoming Calendar Events rollup (next 14 days) -->
@@ -1622,6 +1627,7 @@
 
             <!-- Inventory details (price, worth, year, description, comment) -->
             <div id="thingDetailsSection" class="thing-details-section" style="display:none"></div>
+            <div id="thingGoesToRow" class="beneficiary-row hidden"></div>
 
             <!-- Items (sub-things) -->
             <div class="detail-acc" id="thingItemsAcc">
@@ -1763,6 +1769,7 @@
             <p class="house-thing-meta" id="stMeta"></p>
             <!-- Inventory details -->
             <div id="stDetailsSection" class="thing-details-section" style="display:none"></div>
+            <div id="stGoesToRow" class="beneficiary-row hidden"></div>
 
             <!-- Items section -->
             <div class="detail-acc" id="stItemsAcc">
@@ -1903,6 +1910,7 @@
             <p class="house-thing-meta" id="siMeta"></p>
             <!-- Inventory details -->
             <div id="siDetailsSection" class="thing-details-section" style="display:none"></div>
+            <div id="siGoesToRow" class="beneficiary-row hidden"></div>
             <!-- Problems -->
             <div class="detail-acc" id="siProblemsAcc">
                 <div class="detail-acc-header" onclick="toggleDetailAcc('siProblemsAcc')">
@@ -3076,6 +3084,7 @@
 
             <!-- Inventory details (purchaseDate, worth, description, notes) -->
             <div id="garageThingDetailsSection" class="thing-details-section" style="display:none"></div>
+            <div id="gtGoesToRow" class="beneficiary-row hidden"></div>
 
             <!-- Photos -->
             <div class="detail-acc" id="garageThingPhotosAcc">
@@ -3218,6 +3227,7 @@
 
             <!-- Inventory details (purchaseDate, worth, description, notes) -->
             <div id="garageSubThingDetailsSection" class="thing-details-section" style="display:none"></div>
+            <div id="gstGoesToRow" class="beneficiary-row hidden"></div>
 
             <!-- Photos -->
             <div class="detail-acc" id="garageSubThingPhotosAcc">
@@ -3494,6 +3504,7 @@
 
             <!-- Inventory details (purchaseDate, worth, description, notes) -->
             <div id="structureThingDetailsSection" class="thing-details-section" style="display:none"></div>
+            <div id="strThingGoesToRow" class="beneficiary-row hidden"></div>
 
             <!-- Photos -->
             <div class="detail-acc" id="structureThingPhotosAcc">
@@ -3636,6 +3647,7 @@
 
             <!-- Inventory details (purchaseDate, worth, description, notes) -->
             <div id="structureSubThingDetailsSection" class="thing-details-section" style="display:none"></div>
+            <div id="strSubGoesToRow" class="beneficiary-row hidden"></div>
 
             <!-- Photos -->
             <div class="detail-acc" id="structureSubThingPhotosAcc">
@@ -3841,6 +3853,10 @@
                 <label for="garageThingNotesInput">Notes</label>
                 <textarea id="garageThingNotesInput" rows="2" placeholder="Any notes about this item…"></textarea>
             </div>
+            <div class="form-group">
+                <label>Goes to (if I die)</label>
+                <div id="gtBenePicker"></div>
+            </div>
             <div class="modal-buttons">
                 <button class="btn btn-secondary" id="garageThingModalCancelBtn">Cancel</button>
                 <button class="btn btn-primary"   id="garageThingModalSaveBtn">Save</button>
@@ -3873,6 +3889,10 @@
             <div class="form-group">
                 <label for="garageSubThingNotesInput">Notes</label>
                 <textarea id="garageSubThingNotesInput" rows="2" placeholder="Any notes about this item…"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Goes to (if I die)</label>
+                <div id="gstBenePicker"></div>
             </div>
             <div class="modal-buttons">
                 <button class="btn btn-secondary" id="garageSubThingModalCancelBtn">Cancel</button>
@@ -4801,6 +4821,10 @@
                 <label for="thingCommentInput">Personal comment</label>
                 <textarea id="thingCommentInput" rows="2" placeholder="Something personal about this item…"></textarea>
             </div>
+            <div class="form-group">
+                <label>Goes to (if I die)</label>
+                <div id="thingBenePicker"></div>
+            </div>
             <!-- From Picture section — only shown in add mode when LLM is configured -->
             <div id="thingFromPictureSection" class="plant-from-pic-section hidden">
                 <div class="plant-from-pic-divider">— or identify from a photo —</div>
@@ -4863,6 +4887,10 @@
                     <input type="text" id="stTagInput" placeholder="Type a tag…" autocomplete="off">
                 </div>
                 <div class="tag-suggestions hidden" id="stTagSuggestions"></div>
+            </div>
+            <div class="form-group">
+                <label>Goes to (if I die)</label>
+                <div id="stBenePicker"></div>
             </div>
             <!-- From Picture section — only shown in add mode when LLM is configured -->
             <div id="stFromPictureSection" class="plant-from-pic-section hidden">
@@ -4930,6 +4958,10 @@
                     <input type="text" id="siTagInput" placeholder="Type a tag…" autocomplete="off">
                 </div>
                 <div class="tag-suggestions hidden" id="siTagSuggestions"></div>
+            </div>
+            <div class="form-group">
+                <label>Goes to (if I die)</label>
+                <div id="siBenePicker"></div>
             </div>
             <div class="modal-buttons">
                 <button class="btn btn-danger" id="siModalDeleteBtn" style="display:none">Delete</button>
@@ -5931,6 +5963,10 @@
                 </label>
                 <div id="structureThingPicStatus" class="plant-pic-status hidden"></div>
             </div>
+            <div class="form-group">
+                <label>Goes to (if I die)</label>
+                <div id="strThingBenePicker"></div>
+            </div>
             <div class="modal-buttons">
                 <button class="btn btn-secondary" id="structureThingModalCancelBtn">Cancel</button>
                 <button class="btn btn-primary"   id="structureThingModalSaveBtn">Save</button>
@@ -5963,6 +5999,10 @@
             <div class="form-group">
                 <label for="structureSubThingNotesInput">Notes</label>
                 <textarea id="structureSubThingNotesInput" rows="2" placeholder="Any notes about this item…"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Goes to (if I die)</label>
+                <div id="strSubBenePicker"></div>
             </div>
             <div class="modal-buttons">
                 <button class="btn btn-secondary" id="structureSubThingModalCancelBtn">Cancel</button>
@@ -8399,6 +8439,7 @@
                 <h2 id="collectionDetailName"></h2>
                 <div id="collectionDetailStats" class="collection-card-stats" style="margin-top:4px;"></div>
             </div>
+            <div id="collGoesToRow" class="beneficiary-row hidden"></div>
             <div class="section-header">
                 <input type="text" id="collectionFilterInput" placeholder="Filter…" class="filter-input">
                 <button class="btn btn-primary btn-small" id="addCollectionItemBtn">+ Add Item</button>
@@ -8416,6 +8457,7 @@
 
             <!-- Info card -->
             <div class="detail-card" id="collectionItemInfoCard"></div>
+            <div id="ciGoesToRow" class="beneficiary-row hidden"></div>
 
             <!-- Location section -->
             <div class="section-header">
@@ -8439,6 +8481,20 @@
                 <button class="btn btn-primary" id="editCollectionItemBtn">Edit Item</button>
                 <button class="btn btn-danger"  id="deleteCollectionItemBtn">Delete Item</button>
             </div>
+        </section>
+
+        <!-- Page: Beneficiaries / Who Gets What (#beneficiaries) -->
+        <section class="page hidden" id="page-beneficiaries">
+            <div class="page-header">
+                <h2>Who Gets What</h2>
+            </div>
+            <p class="house-thing-meta">Choose a person to see everything assigned to them, including items inherited from parent categories.</p>
+            <div class="form-group" style="max-width:360px; margin-bottom:16px;">
+                <label>Select person</label>
+                <div id="beneContactPicker"></div>
+            </div>
+            <p class="empty-state" id="beneNoSelection">Select a person above to see their inheritance.</p>
+            <div id="beneResults"></div>
         </section>
 
     </div><!-- end #appWrapper -->
@@ -8480,6 +8536,10 @@
                     <input type="text" id="collectionLabel3Input" placeholder="Label 3">
                 </div>
             </div>
+            <div class="form-group">
+                <label>Goes to (if I die)</label>
+                <div id="collBenePicker"></div>
+            </div>
             <div class="modal-buttons">
                 <button class="btn btn-danger hidden" id="collectionDeleteBtn">Delete Collection</button>
                 <button class="btn btn-secondary" id="collectionModalCancelBtn">Cancel</button>
@@ -8516,6 +8576,10 @@
             <div class="form-group">
                 <label for="ciNotes">Notes</label>
                 <textarea id="ciNotes" rows="2" placeholder="Any additional notes…"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Goes to (if I die)</label>
+                <div id="ciBenePicker"></div>
             </div>
             <div class="modal-buttons">
                 <button class="btn btn-secondary" id="collectionItemModalCancelBtn">Cancel</button>
@@ -9392,7 +9456,7 @@ export default {
     <script src="js/gps.js?v=350"></script>
     <script src="js/settings.js?v=494"></script>
     <script src="js/devnotes.js?v=376"></script>
-    <script src="js/house.js?v=409"></script>
+    <script src="js/house.js?v=537"></script>
     <script src="js/floorplan.js?v=398"></script>
     <script src="js/floorplanitem.js?v=393"></script>
     <script src="js/search.js?v=519"></script>
@@ -9400,12 +9464,13 @@ export default {
     <script src="js/checklists.js?v=519"></script>
     <script src="js/bulkactivity.js?v=350"></script>
     <script src="js/vehicles.js?v=357"></script>
-    <script src="js/garage.js?v=357"></script>
-    <script src="js/structures.js?v=351"></script>
+    <script src="js/garage.js?v=537"></script>
+    <script src="js/structures.js?v=537"></script>
     <script src="js/moveThings.js?v=350"></script>
     <script src="js/journal.js?v=488"></script>
     <script src="js/contacts.js?v=379"></script>
-    <script src="js/collections.js?v=356"></script>
+    <script src="js/beneficiaries.js?v=537"></script>
+    <script src="js/collections.js?v=537"></script>
     <script src="js/health.js?v=380"></script>
     <script src="js/notes.js?v=521"></script>
     <script src="js/lifecalendar.js?v=409"></script>
@@ -9421,7 +9486,7 @@ export default {
     <script src="js/firebasesetup.js?v=510"></script>
     <script src="js/views.js?v=505"></script>
     <script src="js/help.js?v=536"></script>
-    <script src="js/app.js?v=536"></script>
+    <script src="js/app.js?v=537"></script>
 
 </body>
 </html>

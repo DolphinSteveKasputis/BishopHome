@@ -2,7 +2,7 @@
 // Caches all local static assets so the app loads offline.
 // IMPORTANT: Bump CACHE_NAME on every deploy so users get fresh files.
 
-var CACHE_NAME = 'bishop-v32';
+var CACHE_NAME = 'bishop-v33';
 
 var STATIC_ASSETS = [
     '/BishopHome/',
@@ -39,6 +39,7 @@ var STATIC_ASSETS = [
     '/BishopHome/js/contacts.js',
     '/BishopHome/js/people.js',
     '/BishopHome/js/collections.js',
+    '/BishopHome/js/beneficiaries.js',
     '/BishopHome/js/health.js',
     '/BishopHome/js/notes.js',
     '/BishopHome/js/lifecalendar.js',

@@ -295,8 +295,11 @@ reflected. The spec and the help file are updated together.
 - Add House screens to `HELP_TOPIC_MAP`
 - Test end-to-end with House nav
 
-**Phase 3 — Health** (after Phase 2 approved)
-- Author all Health screen sections (many sub-screens)
+**Phase 3 — Health ✅ COMPLETE**
+- health, health-appointments, health-visits, health-concerns, health-concern,
+  health-conditions, health-condition, health-medications, health-supplements,
+  health-bloodwork, health-vitals, health-insurance, health-emergency,
+  health-allergies, health-vaccinations, health-eye, health-care-team
 
 **Phase 4 — Life, Notes, Contacts** (after Phase 3 approved)
 

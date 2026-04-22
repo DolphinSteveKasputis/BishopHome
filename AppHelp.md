@@ -952,3 +952,595 @@ Switching modes clears any selection and resets to Select tool.
 ### See Also
 - [Floor Plan](#help/floorplan)
 - [Room Detail](#help/room)
+
+
+---
+
+## screen:health
+
+### Quick Help
+- The Health home page -- a tile grid linking to every health tracking area
+- Tap any tile to open that section
+- Covers: Conditions, Concerns, Appointments, Health Visits, Medications, Supplements, Blood Work, Vitals, Insurance, Emergency Info, Vaccinations, Allergies, Eye/Glasses, and My Care Team
+
+### Details
+
+**What the Health section tracks:** A comprehensive personal health record -- medical history, active conditions and concerns, medications, doctor visits, appointments, blood work, vitals, insurance, and more. Everything in one place, private and offline-first.
+
+**Tile grid layout (top to bottom):**
+- **Conditions** -- chronic or ongoing medical conditions with a journal, medication links, and visit history
+- **Concerns** -- active health worries or symptoms being tracked (can be promoted to a Condition)
+- **Appointments** -- upcoming and past medical appointments with overdue alerts
+- **Health Visits** -- completed doctor/specialist/urgent care visits with notes, medications, and outcomes
+- **Medications** -- current and past medications with dosage, schedule, concern/condition links, and Rx label scanning
+- **Supplements** -- vitamins, herbs, and other supplements tracked separately from medications
+- **Blood Work** -- lab results with LLM-assisted import from pasted lab text
+- **Vitals** -- blood pressure, weight, heart rate, and other measurements over time
+- **Insurance** -- health insurance plan details and coverage records
+- **Emergency Info** -- critical info card for emergency situations (blood type, allergies, emergency contacts)
+- **Vaccinations** -- vaccination history with dates and providers
+- **Allergies** -- allergy list with reactions and severity
+- **Eye / Glasses** -- prescription history and eye exam records
+- **My Care Team** -- your roster of doctors, specialists, dentists, and other providers
+
+**Tips:**
+- Start with Conditions and Concerns to establish your health baseline, then add Medications and link them to the right conditions.
+- The Appointments flow is the fastest way to log a visit -- mark an appointment Done and it walks you through creating the visit record and adding notes per concern/condition.
+- Blood Work import supports pasting raw lab text (from a patient portal PDF) and the AI extracts all markers automatically.
+
+### See Also
+- [Health Visits](#help/health-visits)
+- [Appointments](#help/health-appointments)
+- [Conditions](#help/health-conditions)
+- [Concerns](#help/health-concerns)
+- [Medications](#help/health-medications)
+
+---
+
+## screen:health-appointments
+
+### Quick Help
+- Upcoming, overdue, and past medical appointments -- doctor visits, specialists, follow-ups, labs, procedures
+- Tap **Mark Done** to convert an appointment into a Health Visit record (captures notes per concern/condition)
+- Overdue appointments appear at the top as a reminder
+- Cancelled and converted appointments are hidden from the default view
+
+### Details
+
+**What an appointment is:** A scheduled medical event -- a future visit. Once the visit happens, you mark it Done, which converts it into a Health Visit record and walks you through adding notes.
+
+**Appointment types:** Dr. Visit, Specialist, Follow-up, Physical or Annual, Urgent Care, Emergency, Dental, Eye Exam, Lab or Test, Procedure.
+
+**List sections:**
+- **Overdue** -- scheduled appointments with a past date that have not been marked Done or cancelled. These appear at the top as urgent reminders.
+- **Upcoming** -- scheduled appointments in the future, sorted by date
+- **Past** -- completed, converted, or cancelled appointments
+
+**Each appointment card shows:**
+- Type badge (color-coded)
+- Date and time (tappable -- opens the edit modal, same as the Edit button)
+- Facility (tappable link to the contact record if a contact is set)
+- Provider name
+- Linked concern and condition chips
+- Notes
+- **Edit**, **Mark Done**, **View Visit** (if already converted) buttons
+
+**Adding an appointment:**
+- Tap **+ Add Appointment**
+- Fill in: date, time, type, facility (from your Contacts -- Medical Facility), provider (from Contacts -- Medical Professional), concerns and conditions this appointment is for, notes
+- Both facility and provider have an "allow create" option -- you can add a new contact inline without leaving the form
+
+**Mark Done -- converting an appointment to a visit (2-step flow):**
+- Step 1: A conversion modal opens pre-filled with the appointment data (date, time, type, facility, provider). Confirm or adjust, then Save to create the Health Visit record.
+- Step 2: You are taken to the Visit Notes page. For each concern and condition linked to the appointment, you can add notes about what was discussed or decided. A microphone button supports voice-to-text entry. You can also add or link medications from this screen.
+- When done, tap "Done -- Visit" to save all notes and go to the visit detail page.
+- The appointment is marked "converted" and a "View Visit" link appears on the appointment card.
+
+**Cancelling an appointment:** Open the Edit modal -- a "Cancel Appt" button appears at the bottom left (for active appointments only). This sets the status to cancelled and saves any notes. Delete is also available in the edit modal.
+
+**Tips:**
+- Link appointments to concerns and conditions when scheduling -- the links carry forward to the visit automatically when you mark Done.
+- Use the Notes field on an appointment for pre-visit questions you want to ask the doctor. Those notes also carry forward to the visit.
+- Converted appointments keep a "View Visit" link so you can always navigate from the appointment to the visit record.
+
+### See Also
+- [Health Visits](#help/health-visits)
+- [Conditions](#help/health-conditions)
+- [Concerns](#help/health-concerns)
+- [My Care Team](#help/health-care-team)
+
+---
+
+## screen:health-visits
+
+### Quick Help
+- Chronological log of completed medical visits -- doctor, specialist, urgent care, dental, eye, lab, procedures
+- Visits are grouped by year, newest first
+- Tap any visit card to open its full detail page with notes, medications, and linked concerns/conditions
+
+### Details
+
+**What a health visit is:** A completed medical event with a record of what happened -- provider, reason, outcome, medications prescribed, and notes per concern or condition addressed.
+
+**Visit list:** Reverse-chronological order, grouped by year. Each card shows: date, provider name, type badge.
+
+**Adding a visit manually:**
+- Tap **+ Add Visit**
+- Fill in: date, time, type (Dr. Visit / Specialist / Follow-up / Physical or Annual / Urgent Care / Emergency / Dental / Eye Exam / Lab or Test / Procedure), facility, provider, reason for visit, what was done, outcome/next steps, cost, notes
+- Link concerns and conditions addressed during this visit
+
+**Visit detail page sections:**
+- **Header:** Visit type and formatted date. Buttons: Edit, Create Journal / View Journal.
+- **Facility:** Tappable link to the contact record if a facility contact is set.
+- **Provider:** Tappable link or plain text. Provider type auto-pulled from contact's specialty field.
+- **Reason for Visit, What Was Done, Outcome/Next Steps, Cost, Notes:** Free-form text fields.
+- **"This visit covered":** Tappable concern chips and condition chips showing which issues were addressed. Hidden if none linked.
+- **"Notes & Meds" button:** Opens the Step 2 notes page where you can view and edit per-concern/condition notes from this visit, and manage medications linked to this visit.
+- **Visit Notes section:** Displays notes that were entered per concern or condition during the Step 2 flow, shown read-only on the visit detail page.
+
+**Create Journal / View Journal button:**
+- **Create Journal:** Automatically assembles the visit data into a journal entry. If an LLM is configured, you are offered an AI-generated personal journal entry (written in your voice, not clinical notes). Otherwise a structured text summary is pre-filled. The journal entry is linked to the visit so you can navigate between them.
+- **View Journal:** Navigates to the linked journal entry if one already exists.
+
+**Tips:**
+- The fastest way to log a visit is via Appointments: schedule it, then mark it Done. This pre-fills all the visit fields and walks you through the per-concern/condition notes in one flow.
+- "Create Journal" is most powerful with an LLM configured -- it reads your full concern and condition history and writes a reflective journal entry, not just a dry summary.
+- Cost field is useful for insurance tracking and tax records (medical expense deductions).
+
+### See Also
+- [Appointments](#help/health-appointments)
+- [Conditions](#help/health-conditions)
+- [Concerns](#help/health-concerns)
+- [Medications](#help/health-medications)
+
+---
+
+## screen:health-concerns
+
+### Quick Help
+- Active health worries or symptoms you are tracking -- things you are watching but that may not yet be a diagnosed condition
+- Each concern has a journal of updates, linked medications, and a history of visits that addressed it
+- Concerns can be promoted to a full Condition when appropriate
+
+### Details
+
+**What a concern is:** A symptom, worry, or health issue you are monitoring. Examples: recurring headaches, knee pain that comes and goes, elevated blood pressure readings, a suspicious mole. Concerns are informal -- they do not require a diagnosis. When a concern becomes a confirmed condition, you promote it.
+
+**Concern list page:** Shows all open concerns. Each card shows the title, body area, status badge (Open / Resolved / Promoted), and since date.
+
+**Adding a concern:**
+- Tap **+ Add Concern**
+- Enter: title, body area (where in the body), since date, summary, notes
+
+**Concern detail page sections:**
+
+**Summary card:** Title, status badge, body area, since date, summary text. Resolved concerns show the resolved date. Buttons: Edit, Mark Resolved / Reopen.
+
+**Journal Updates (starts expanded):** Chronological log entries -- date, pain scale (0-10), note. Entries added from a visit show a tappable "Visit" chip linking to that visit. Tap **+ Add Entry** to log a new update manually (date, note, pain scale).
+
+**Linked Medications:** Medications whose records include this concern in their concern list. Shows name and dosage. Unlink button removes the link. "Link Medications" opens a picker to add existing medications.
+
+**Appointments and Visits:** All appointments and visits that included this concern in their linked concerns list. Each row shows date (tappable) and provider/type info.
+
+**Photos:** Reference photos (e.g., a rash, a swollen area, a mole over time for comparison).
+
+**Facts:** Key-value notes (e.g., "Triggers = stress, poor sleep", "First noticed = March 2024", "Doctor's initial impression = likely tension headaches").
+
+**Resolving a concern:** Tap **Mark Resolved** -- enters a resolved date and closes the concern. It remains visible with a Resolved badge. Tap **Reopen** to reactivate if the issue returns.
+
+**Promoting a concern to a Condition:**
+- Tap **Promote to Condition** at the bottom of the concern page.
+- A modal pre-fills the condition name (from concern title) and category (from body area).
+- If a condition with the same name already exists, you can choose to create a new condition or merge into the existing one.
+- On promotion: all journal updates are copied to the condition's log, photos are re-pointed to the condition, medications and visits are re-linked. The concern is marked "Promoted" and becomes read-only with a link to the new condition.
+
+**Tips:**
+- Use concerns for anything you are watching but not yet ready to call a condition. The journal update history lets you show a doctor a chronological record of how a symptom has progressed.
+- Pain scale entries (0-10) are optional but useful for tracking whether a symptom is improving or worsening over time.
+- Photo-documenting a skin concern (mole, rash, bruise) over time creates a visual timeline that is far more useful to a dermatologist than a verbal description.
+
+### See Also
+- [Conditions](#help/health-conditions)
+- [Health Visits](#help/health-visits)
+- [Medications](#help/health-medications)
+
+---
+
+## screen:health-concern
+
+### Quick Help
+- Detail page for a single health concern -- journal log, linked medications, visits, photos, and facts
+- Add journal updates to track how the concern progresses over time (with optional pain scale)
+- Promote to a Condition when the issue is formally diagnosed
+
+### Details
+
+See the Concerns list page help for full detail on the concern lifecycle and all sections.
+
+**Key actions on this page:**
+- **Edit** -- update title, body area, since date, summary, notes
+- **Mark Resolved / Reopen** -- close or reactivate the concern
+- **+ Add Entry** (in Journal Updates) -- log a new update with date, note, and pain scale
+- **Link Medications** -- connect existing medications to this concern
+- **Promote to Condition** -- migrate this concern to a full condition record (irreversible; concern becomes read-only)
+
+**Archived / Promoted state:** Once promoted, a purple banner appears at the top with the promotion date and a "View Condition" link. All edit controls are hidden -- the concern is read-only.
+
+### See Also
+- [Concerns](#help/health-concerns)
+- [Conditions](#help/health-conditions)
+- [Health Visits](#help/health-visits)
+
+---
+
+## screen:health-conditions
+
+### Quick Help
+- Chronic or ongoing medical conditions with a full journal, medication links, visit history, and status tracking
+- Status cycles: Active, Managed, Resolved -- tap the status button on a condition to advance it
+- Tap any condition card to open its full detail page
+
+### Details
+
+**What a condition is:** A diagnosed or formally acknowledged medical condition. Examples: Type 2 Diabetes, Hypertension, Asthma, GERD, Depression, Arthritis. Conditions are the highest-level health tracking entity -- medications, visits, concerns, and blood work all link to conditions.
+
+**Condition status:**
+- **Active** -- currently affecting you, being actively managed
+- **Managed** -- stable and controlled (still present, but not acutely problematic)
+- **Resolved** -- no longer active (e.g., a past infection, a resolved injury)
+
+The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge on the condition detail page to advance it.
+
+**Condition list page:** All conditions with name, status badge, category, and diagnosed date. Tapping a card opens the detail page.
+
+**Adding a condition:**
+- Tap **+ Add Condition**
+- Enter: name, category (body system or area), diagnosed date, management notes, initial status
+
+### See Also
+- [Condition Detail](#help/health-condition)
+- [Concerns](#help/health-concerns)
+- [Medications](#help/health-medications)
+
+---
+
+## screen:health-condition
+
+### Quick Help
+- Detail page for a single condition -- journal log, linked medications, visits, photos, facts, and quick tasks
+- Add journal notes to track how the condition evolves over time (with optional pain scale)
+- Link medications that treat this condition; link visits that addressed it
+
+### Details
+
+**Summary card:** Condition name, status badge (Active / Managed / Resolved), category, diagnosed date, management notes. Status cycle button advances through Active -> Managed -> Resolved -> Active. Edit and Delete buttons.
+
+**Accordion sections (Journal starts expanded; all others collapsed):**
+
+**Journal:** Chronological log entries from `healthConditionLogs`. Each entry shows date, pain scale (if recorded), note, and type (manual entry, visit note, or imported from concern). Visit-sourced entries show a tappable "Visit" chip. Tap **+ Add Note** to log manually (date, pain scale, free-form note).
+
+**Medications:** All medications linked to this condition. Shows name and dosage. Unlink button. "+ Add Med" opens the Add Medication modal with this condition pre-linked. "+ Link Existing" opens a picker to link an already-recorded medication.
+
+**Appointments and Visits:** All appointments and visits where this condition was listed as a linked concern/condition. Date (tappable link), type, provider.
+
+**Photos:** Photos related to this condition (e.g., imaging results, rash progression, wound healing).
+
+**Facts:** Key-value notes (e.g., "Diagnosed by = Dr. Smith", "First HbA1c = 7.2", "Target HbA1c = below 6.5", "Diet changes = low carb since March 2024").
+
+**Projects:** Quick tasks related to managing this condition (e.g., "Schedule follow-up appointment", "Research specialist referrals", "Fill CPAP prescription").
+
+**Tips:**
+- The journal is the most important section -- regular entries with pain scale create a data record you can show your doctor to demonstrate trends.
+- Linking medications to conditions lets you see at a glance what is treating what. When a medication is discontinued, it stays linked to the condition in history.
+- Facts are great for tracking lab targets, diet changes, lifestyle modifications, and doctor-recommended goals.
+- Visit-sourced journal entries (tagged with "Visit") appear automatically when you use the Step 2 notes flow after marking an appointment Done.
+
+### See Also
+- [Conditions](#help/health-conditions)
+- [Concerns](#help/health-concerns)
+- [Medications](#help/health-medications)
+- [Health Visits](#help/health-visits)
+
+---
+
+## screen:health-medications
+
+### Quick Help
+- Your full medication list -- current prescriptions, past medications, and as-needed drugs
+- Link medications to conditions and concerns so you always know what is treating what
+- **Scan Rx Label** in the Add/Edit modal lets the AI read a prescription receipt photo and fill in the details automatically
+
+### Details
+
+**What medications track:** Every prescription or regular medication -- name, dosage, type (Ongoing / Short-term / As-needed), prescribing provider, start date, end date (if discontinued), and links to the conditions and concerns it treats.
+
+**Medication list:** All medications shown as cards. Each card shows name, dosage, type badge, and whether it is active or discontinued.
+
+**Adding a medication:**
+- Tap **+ Add Medication**
+- Fill in: name, dosage, type (Ongoing / Short-term / As-needed), prescribed by, start date, end date (if applicable), notes, linked conditions and concerns
+- **Scan Rx Label:** Tap this button to photograph a prescription receipt. The AI reads the label and fills in: name, dosage, prescribed by, start date, type, and notes (Rx number, NDC, quantity, refills, insurance savings). You review and edit before saving. The scanned photo is automatically attached to the medication.
+
+**Medication types:**
+- **Ongoing** -- taken indefinitely (e.g., blood pressure medication, diabetes medication)
+- **Short-term** -- taken for a defined period (e.g., antibiotic course, steroid taper)
+- **As-needed** -- taken only when symptoms arise (e.g., rescue inhaler, antihistamine)
+
+**Photos:** Each medication card has a "Photos" button. Photograph the pill bottle, prescription label, or packaging for reference. Useful for identifying pills by appearance or documenting a label before it fades.
+
+**Linking to conditions and concerns:**
+- When adding or editing a medication, a multi-select list shows all your active conditions and open concerns. Check the ones this medication treats.
+- Linked medications appear on the condition and concern detail pages, making it easy to see the full treatment picture.
+
+**Discontinued medications:** Setting an end date marks a medication as discontinued. It stays in the list but appears grayed out. The history is preserved -- you can always see what you took and when.
+
+**Tips:**
+- The Rx label scan is the fastest way to add a new prescription -- just photograph the bag or receipt from the pharmacy.
+- Always link medications to their conditions. This makes the Condition detail page much more useful (you can see what is treating what) and helps when talking to a new doctor.
+- Notes field is great for: dosage instructions ("take with food"), side effects you have noticed, pharmacy name and phone, insurance copay, and reminder to ask for generic.
+
+### See Also
+- [Conditions](#help/health-conditions)
+- [Concerns](#help/health-concerns)
+- [Health Visits](#help/health-visits)
+
+---
+
+## screen:health-supplements
+
+### Quick Help
+- Vitamins, minerals, herbs, and other supplements tracked separately from prescription medications
+- Same fields as medications: name, dosage, type, start date, notes, and condition/concern links
+
+### Details
+
+**Why supplements are separate:** Supplements are tracked in their own section so they do not clutter the medication list. They use the same data model but appear in a distinct area.
+
+**Common supplements to track:** Vitamin D, Fish Oil, Magnesium, Zinc, Probiotics, Melatonin, B12, Turmeric, Elderberry, Collagen, Protein powder, Herbal teas taken medicinally.
+
+**Adding a supplement:** Same flow as medications -- name, dosage, type (Ongoing / As-needed / Short-term), start date, notes, and optional condition/concern links.
+
+**Tips:**
+- Linking supplements to conditions helps you remember why you started taking something (e.g., Magnesium linked to "Chronic Migraines").
+- Notes field is good for: brand preference, form (capsule, powder, gummy), whether it is helping, and when you ran out vs. refilled.
+
+### See Also
+- [Medications](#help/health-medications)
+- [Conditions](#help/health-conditions)
+
+---
+
+## screen:health-bloodwork
+
+### Quick Help
+- Blood work and lab results -- import from pasted lab text using AI, or enter markers manually
+- Each record is a lab panel with individual markers (value, unit, reference range, flagged status)
+- View trends for individual markers over time across multiple panels
+
+### Details
+
+**What blood work tracks:** Lab results from blood tests, urine tests, and other panels. Each record is a single lab report (e.g., "Annual labs -- April 2026") containing multiple markers (e.g., HbA1c, LDL Cholesterol, TSH, Creatinine).
+
+**Adding blood work -- LLM import (fastest):**
+- Tap **+ Add Blood Work**
+- Select "Paste Lab Text" and paste the raw text from your patient portal (copy/paste from a PDF or web page)
+- The AI reads the text and extracts all markers: name, value, unit, reference range, and whether it was flagged as out of range
+- You see an editable preview before saving -- you can correct any misread values
+- On save, all markers are stored as structured data
+
+**Adding blood work -- manual entry:**
+- Tap **+ Add Blood Work** and enter the panel date and name
+- Add markers individually: name, value, unit, reference range, flagged status
+
+**Viewing results:**
+- Each blood work record expands to show all markers in a table
+- Flagged markers (out of reference range) are highlighted
+- Tap a marker name to see a trend chart of that marker's values across all your lab records over time
+
+**Tips:**
+- The LLM import is dramatically faster than manual entry for a full lab panel. Even a 20-marker panel takes seconds to import.
+- After importing, always review the editable preview -- AI occasionally misreads a value or unit. The reference range is especially important to verify.
+- Trend tracking is the most valuable feature here -- seeing your HbA1c or cholesterol over 3 years of annual labs is far more informative than any single reading.
+
+### See Also
+- [Conditions](#help/health-conditions)
+- [Health Visits](#help/health-visits)
+
+---
+
+## screen:health-vitals
+
+### Quick Help
+- Recurring health measurements over time -- blood pressure, weight, heart rate, blood glucose, oxygen saturation, temperature, and more
+- Select a vital type and see all readings in a table with date, value, and notes
+- Add readings manually with a date, value, and optional notes
+
+### Details
+
+**What vitals track:** Quantitative measurements taken over time. Unlike blood work (lab panels), vitals are things you can measure at home or at the doctor -- blood pressure, weight, resting heart rate, blood glucose, SpO2, body temperature.
+
+**Adding a vital reading:**
+- Tap **+ Add Reading**
+- Select the vital type, enter date, value, unit, and optional notes (e.g., "Taken after 5 min rest", "Post-meal reading")
+
+**Viewing a vital type:**
+- Select the type from the dropdown to filter to that measurement
+- All readings appear in a table, newest first
+- Useful for spotting trends: is blood pressure creeping up? Is weight trending down since a diet change?
+
+**Common vital types:** Systolic Blood Pressure, Diastolic Blood Pressure, Heart Rate (BPM), Weight (lbs or kg), Blood Glucose (mg/dL or mmol/L), Oxygen Saturation (SpO2 %), Body Temperature (F or C).
+
+**Tips:**
+- Log blood pressure readings at the same time of day (ideally morning, after sitting for 5 minutes) for meaningful trends.
+- The notes field is important for vitals -- context matters. "158/92 -- taken at doctor, felt anxious" is more useful than just "158/92".
+- If you are managing a condition like diabetes or hypertension, regular vitals logging gives you data to share with your doctor that is far more detailed than what they see in a single office visit.
+
+### See Also
+- [Blood Work](#help/health-bloodwork)
+- [Conditions](#help/health-conditions)
+
+---
+
+## screen:health-insurance
+
+### Quick Help
+- Health insurance plan details -- carrier, plan name, policy number, group number, coverage details, and contacts
+- Multiple plans supported (primary, secondary, dental, vision, etc.)
+- Tap any plan card to open its full detail page
+
+### Details
+
+**What insurance tracks:** Your health insurance plan information in one accessible place. Useful when you need your policy number at a doctor's office, want to verify coverage before a procedure, or need the insurance company's phone number.
+
+**Fields per plan:** Carrier name, plan name, plan type (HMO / PPO / EPO / HDHP / Medicare / Medicaid / Other), policy number, group number, member ID, coverage start date, coverage end date, premium amount, deductible, out-of-pocket maximum, copay amounts (PCP / Specialist / Urgent Care / Emergency), prescription coverage notes, insured name, employer (if employer-sponsored), customer service phone, notes.
+
+**Multiple plans:** Add separate records for primary medical, secondary medical, dental, vision, FSA/HSA, and supplemental coverage.
+
+**Tips:**
+- Photograph your insurance card and attach it as a photo to the plan record. If you ever lose your card, the info is here.
+- The notes field is great for documenting: prior authorization requirements, covered specialist networks, preferred pharmacy, and any quirks of your plan you have learned over time.
+
+### See Also
+- [Emergency Info](#help/health-emergency)
+- [My Care Team](#help/health-care-team)
+
+---
+
+## screen:health-emergency
+
+### Quick Help
+- Your critical health information card for emergency situations
+- Includes: blood type, organ donor status, emergency contacts, primary conditions, current medications, allergies, and special instructions
+- Single page that any first responder or ER staff could read quickly
+
+### Details
+
+**What emergency info is:** A concise summary of the most critical health facts about you -- the information that matters most if you are incapacitated and someone else needs to make medical decisions or understand your health status quickly.
+
+**Fields:**
+- Blood type (A+, A-, B+, B-, AB+, AB-, O+, O-)
+- Organ donor status
+- Do Not Resuscitate (DNR) status and location of documents
+- Emergency contacts (name, relationship, phone)
+- Primary physician name and phone
+- Active conditions summary
+- Current medications summary
+- Known allergies and reactions
+- Special medical instructions (e.g., "Diabetic -- check blood sugar if unconscious", "Carries EpiPen -- right jacket pocket")
+
+**Tips:**
+- Keep this page updated whenever you start a new medication or are diagnosed with something new. An ER doctor should be able to read this and immediately understand your situation.
+- The special instructions field is the most important field for unusual situations -- pacemaker, insulin pump, severe allergy with specific treatment protocol.
+- Consider sharing a screenshot of this page with a family member or putting a medical ID bracelet that references your conditions.
+
+### See Also
+- [Allergies](#help/health-allergies)
+- [Medications](#help/health-medications)
+- [My Care Team](#help/health-care-team)
+
+---
+
+## screen:health-allergies
+
+### Quick Help
+- Your full allergy list -- medications, foods, environmental, and contact allergens
+- Each entry records the allergen, reaction type, severity, and notes
+- Linked to Emergency Info so your allergy list is always accessible in a crisis
+
+### Details
+
+**Allergy fields:** Allergen name, category (Medication / Food / Environmental / Contact / Other), reaction description (what happens), severity (Mild / Moderate / Severe / Anaphylactic), first noticed date, notes (e.g., "Carry EpiPen", "Safe alternative = Penicillin family does not trigger this").
+
+**Common allergy categories:**
+- **Medication** -- penicillin, sulfa drugs, NSAIDs, contrast dye
+- **Food** -- peanuts, tree nuts, shellfish, dairy, gluten, eggs
+- **Environmental** -- pollen, pet dander, dust mites, mold
+- **Contact** -- latex, nickel, certain soaps or lotions
+
+**Tips:**
+- Note both the reaction AND the severity. "Hives" (mild) needs different handling than "throat swelling" (anaphylactic).
+- For medication allergies, note the full drug class if known (e.g., "Penicillin allergy -- entire beta-lactam class avoided"). This helps prescribers avoid related drugs.
+- Update allergies immediately when you discover a new one, especially medication allergies.
+
+### See Also
+- [Emergency Info](#help/health-emergency)
+- [Medications](#help/health-medications)
+
+---
+
+## screen:health-vaccinations
+
+### Quick Help
+- Vaccination history -- dates, doses, providers, and lot numbers for every vaccine you have received
+- Add records for childhood vaccines, flu shots, COVID vaccines, travel vaccines, and boosters
+
+### Details
+
+**Vaccination fields:** Vaccine name, date received, dose number (for multi-dose vaccines), provider / clinic, facility, lot number, notes, next dose due date (for boosters or series).
+
+**Common vaccines to track:** Influenza (annual), COVID-19 (primary series + boosters), Tdap (tetanus/diphtheria/pertussis), Shingles (Shingrix -- 2 doses), Pneumonia (Prevnar/Pneumovax), HPV, Hepatitis A, Hepatitis B, Meningococcal, travel vaccines (Typhoid, Yellow Fever, Japanese Encephalitis, etc.).
+
+**Tips:**
+- Track lot numbers -- useful if there is ever a vaccine recall or adverse event investigation.
+- Set the next dose due date for annual vaccines (flu) and boosters so you get a reminder in the Health calendar.
+- For childhood vaccines, record the vaccine series (e.g., "DTaP -- Dose 3 of 5") so you know what is complete.
+
+### See Also
+- [Health Home](#help/health)
+
+---
+
+## screen:health-eye
+
+### Quick Help
+- Eye exam history and current glasses/contact prescription
+- Track prescription changes over time -- sphere, cylinder, axis, add power, and PD
+
+### Details
+
+**What eye tracking covers:** Your optometry records -- prescription history, exam dates, providers, and current glasses or contact prescription.
+
+**Exam record fields:** Exam date, provider, facility, visual acuity (uncorrected and corrected), prescription (OD and OS: sphere, cylinder, axis, add power), PD (pupillary distance), notes, next exam due date.
+
+**Prescription fields explained:**
+- **Sphere (SPH)** -- lens power for nearsightedness (negative) or farsightedness (positive). E.g., -2.50
+- **Cylinder (CYL)** -- astigmatism correction amount. E.g., -0.75
+- **Axis** -- orientation of the astigmatism correction in degrees (1-180)
+- **Add** -- bifocal or progressive addition power for reading (usually for 40+ years old)
+- **PD** -- pupillary distance in mm; needed to order glasses online
+
+**Tips:**
+- PD is often not printed on prescriptions -- ask your optometrist to include it, or have it measured at an optical shop. Needed for online glasses ordering.
+- Track prescription changes over time to see if your vision is stable or shifting year to year.
+- Notes field is good for: which frames you bought, where you ordered from, contact lens brand preference, dry eye notes.
+
+### See Also
+- [Health Home](#help/health)
+
+---
+
+## screen:health-care-team
+
+### Quick Help
+- Your roster of doctors, specialists, dentists, therapists, and other healthcare providers
+- Each team member links to a Contact record -- tap to see their full contact info
+- Used in Appointments and Visits to pre-fill provider information
+
+### Details
+
+**What My Care Team is:** A curated list of the providers you see regularly. Team members are drawn from your Contacts -- any contact with a category of "Medical Professional" or "Medical Facility" can be added here.
+
+**Adding team members:** Tap **+ Add Member** -- select from your existing contacts or create a new contact inline. Set their role on your care team (Primary Care, Cardiologist, Dentist, Therapist, Physical Therapist, etc.).
+
+**How care team links to the rest of Health:**
+- When scheduling an appointment, the facility and provider pickers show your contacts -- your care team members appear here.
+- When logging a visit, the provider field is filled from your contacts.
+- Tapping a provider name on an appointment or visit card navigates to their contact record.
+
+**Tips:**
+- Keep care team members current -- when you switch doctors or get a new specialist referral, add them here so they are available in the Appointments flow.
+- Add the facility (hospital system, medical group) as a separate contact and link staff under it. Then when you pick a facility first in the appointment form, the provider dropdown automatically filters to staff at that facility.
+
+### See Also
+- [Appointments](#help/health-appointments)
+- [Health Visits](#help/health-visits)

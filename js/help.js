@@ -14,11 +14,13 @@ var HELP_COMPACT_AT    = 3;     // collapse older Q&A after this many visible pa
 var HELP_SECTION_MAP = {
     'zones'             : 'zones',
     'home'              : 'zones',   // legacy alias
-    'concept-activities': 'concept:activities',
-    'concept-photos'    : 'concept:photos',
-    'concept-facts'     : 'concept:facts',
-    'concept-problems'  : 'concept:problems',
-    'concept-quicktasks': 'concept:quicktasks'
+    'concept-activities'  : 'concept:activities',
+    'concept-photos'      : 'concept:photos',
+    'concept-facts'       : 'concept:facts',
+    'concept-problems'    : 'concept:problems',
+    'concept-quicktasks'  : 'concept:quicktasks',
+    'health-concern'      : 'health-concern',
+    'health-condition'    : 'health-condition'
 };
 
 // Topic index — shown on #help/main as a clickable hub
@@ -65,6 +67,26 @@ var HELP_TOPIC_MAP = [
         ]
     },
     {
+        section: 'Health',
+        topics: [
+            { label: 'Health Home',       key: 'health'                },
+            { label: 'Appointments',      key: 'health-appointments'   },
+            { label: 'Health Visits',     key: 'health-visits'         },
+            { label: 'Concerns',          key: 'health-concerns'       },
+            { label: 'Conditions',        key: 'health-conditions'     },
+            { label: 'Medications',       key: 'health-medications'    },
+            { label: 'Supplements',       key: 'health-supplements'    },
+            { label: 'Blood Work',        key: 'health-bloodwork'      },
+            { label: 'Vitals',            key: 'health-vitals'         },
+            { label: 'Insurance',         key: 'health-insurance'      },
+            { label: 'Emergency Info',    key: 'health-emergency'      },
+            { label: 'Allergies',         key: 'health-allergies'      },
+            { label: 'Vaccinations',      key: 'health-vaccinations'   },
+            { label: 'Eye / Glasses',     key: 'health-eye'            },
+            { label: 'My Care Team',      key: 'health-care-team'      }
+        ]
+    },
+    {
         section: 'App Setup',
         topics: [
             { label: 'Settings & AI Setup', key: 'settings' }
@@ -98,9 +120,25 @@ var HELP_SCREEN_LABELS = {
     'floorplanitem'  : 'Floor Plan Item',
     'house-problems' : 'House Problems',
     'house-projects' : 'House Quick Tasks',
-    'health'         : 'Health',
-    'life'           : 'Life',
-    'settings'       : 'Settings & AI Setup'
+    'health'               : 'Health',
+    'health-appointments'  : 'Appointments',
+    'health-visits'        : 'Health Visits',
+    'health-concerns'      : 'Concerns',
+    'health-concern'       : 'Concern Detail',
+    'health-conditions'    : 'Conditions',
+    'health-condition'     : 'Condition Detail',
+    'health-medications'   : 'Medications',
+    'health-supplements'   : 'Supplements',
+    'health-bloodwork'     : 'Blood Work',
+    'health-vitals'        : 'Vitals',
+    'health-insurance'     : 'Insurance',
+    'health-emergency'     : 'Emergency Info',
+    'health-allergies'     : 'Allergies',
+    'health-vaccinations'  : 'Vaccinations',
+    'health-eye'           : 'Eye / Glasses',
+    'health-care-team'     : 'My Care Team',
+    'life'                 : 'Life',
+    'settings'             : 'Settings & AI Setup'
 };
 
 // ── Fetch & Parse ────────────────────────────────────────────

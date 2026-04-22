@@ -53,6 +53,7 @@ var SB_ICONS = {
     ADD_CHEMICAL:       '🧪', ADD_PERSONAL_EVENT: '🗓️',
     CHECK_IN:           '📍',
     ASK_HELP:           '💡',
+    ADD_REMINDER:       '⏰',
     UNKNOWN_ACTION:     '❓'
 };
 var SB_LABELS = {
@@ -68,6 +69,7 @@ var SB_LABELS = {
     ADD_CHEMICAL:       'Add Product',         ADD_PERSONAL_EVENT: 'Add Personal Event',
     CHECK_IN:           'Check In',
     ASK_HELP:           'Help Question',
+    ADD_REMINDER:       'Add Reminder',
     UNKNOWN_ACTION:     'Unknown Action'
 };
 
@@ -435,7 +437,7 @@ ctxJson,
 'ADD_JOURNAL_ENTRY — journal/diary entry or personal thought.',
 '{"action":"ADD_JOURNAL_ENTRY","payload":{"date":"YYYY-MM-DD","entryTime":"HH:MM","entryText":"full text","mentionedPersonIds":[],"mentionedPersonNames":[]}}',
 '',
-'ADD_CALENDAR_EVENT — schedule/reminder/future task. Use for yard/house reminders, chores, maintenance tasks, and recurring task scheduling.',
+'ADD_CALENDAR_EVENT — schedule a recurring or one-time yard/house task or chore. Use for maintenance schedules, seasonal treatments, and upcoming tasks. Do NOT use when the user says "remind me" — use ADD_REMINDER for that.',
 '{"action":"ADD_CALENDAR_EVENT","payload":{"title":"short title","date":"YYYY-MM-DD","description":"","recurring":null}}',
 'recurring: null | {"type":"weekly"} | {"type":"monthly"} | {"type":"intervalDays","intervalDays":N}',
 '',
@@ -509,6 +511,11 @@ ctxJson,
 '',
 'ASK_HELP — the user is asking how to use the app, looking for a feature, expressing confusion, or asking a "how do I" / "where is" / "what does X do" question. Use this broadly — implicit confusion ("I can\'t find", "this isn\'t working") counts.',
 '{"action":"ASK_HELP","payload":{"originalPrompt":"exact user question"}}',
+'',
+'ADD_REMINDER — user explicitly says "remind me" or wants a time-based alert. Match the subject to a zone, plant, room, thing, garage item, or structure entity from context. If no entity found or entity is a person → targetType=null, calendarType="life".',
+'Time rules: "in N hours" → today + N hours, isTimeExplicit=true; "at Xpm/Xam tomorrow" → isTimeExplicit=true; all others ("tomorrow", "in N days/weeks/months", "next Mon") → time="09:00", isTimeExplicit=false.',
+'calendarType: "yard" for zones/plants/weeds; "house" for floors/rooms/things; "garage" for garage items; "structure" for structures; "life" if no entity matched.',
+'{"action":"ADD_REMINDER","payload":{"title":"short task title","date":"YYYY-MM-DD","time":"HH:MM","isTimeExplicit":false,"targetType":"zone|plant|room|thing|subthing|garageroom|garagething|structure|structurething|null","targetId":"id or null","targetLabel":"matched name or null","targetFound":false,"calendarType":"yard|house|garage|structure|life","dateNote":"how you computed the date/time"}}',
 '',
 'UNKNOWN_ACTION — nothing above fits.',
 '{"action":"UNKNOWN_ACTION","payload":{"raw":"user text","llmNote":"reason"}}',
@@ -1113,6 +1120,26 @@ function _sbRenderConfirmFields(action, payload) {
             }
             break;
 
+        case 'ADD_REMINDER':
+            html += _sbFieldRow('Remind me to',
+                '<input type="text" class="sb-field" data-field="title" value="' + _sbEsc(p.title || '') + '">');
+            html += _sbFieldRow('Date',
+                '<input type="date" class="sb-field" data-field="date" value="' + _sbEsc(p.date || _sbToday()) + '">');
+            html += _sbFieldRow('Time',
+                '<input type="time" class="sb-field" data-field="time" value="' + _sbEsc(p.time || '09:00') + '">');
+            html += _sbFieldRow('Linked to',
+                p.targetLabel
+                    ? '<span class="sb-tag">' + _sbEsc(p.targetLabel) + '</span>'
+                    : '<span class="sb-tag sb-tag--muted">None — Life Calendar</span>');
+            html += _sbFieldRow('GCal reminders',
+                p.isTimeExplicit
+                    ? '<span class="sb-tag">5 min before</span>'
+                    : '<span class="sb-tag">Day before</span> <span class="sb-tag">5 min before</span>');
+            if (p.dateNote) {
+                html += _sbFieldRow('', '<span style="font-size:0.82em;color:#6b7280;">' + _sbEsc(p.dateNote) + '</span>');
+            }
+            break;
+
         case 'LOG_ACTIVITY':
             html += _sbFieldRow('Target',      _sbTargetDropdown(SB_TARGET_TYPES.LOG_ACTIVITY, p));
             html += _sbFieldRow('Description',
@@ -1665,6 +1692,69 @@ async function _sbWrite(action, payload) {
             break;
         }
 
+        // ---- Add Reminder -----------------------------------
+        case 'ADD_REMINDER': {
+            // Build GCal reminders array based on whether user specified a time
+            var isTimeExplicit = !!payload.isTimeExplicit;
+            var reminderArr = isTimeExplicit
+                ? [{ method: 'popup', minutes: 5 }]
+                : [{ method: 'popup', minutes: 1440 }, { method: 'popup', minutes: 5 }];
+
+            var routeToLife = !payload.targetType || payload.calendarType === 'life';
+
+            if (routeToLife) {
+                // Life Calendar — lifeEvents collection
+                var lifeReminderDoc = {
+                    title:       payload.title     || '',
+                    description: '',
+                    startDate:   payload.date      || _sbToday(),
+                    endDate:     null,
+                    status:      'upcoming',
+                    reminders:   reminderArr,
+                    createdAt:   ts
+                };
+                if (payload.time) lifeReminderDoc.startTime = payload.time;
+                ref = await userCol('lifeEvents').add(lifeReminderDoc);
+                newId = ref.id;
+                // GCal sync (fire-and-forget)
+                if (typeof gcalIsConnected === 'function' && gcalIsConnected()) {
+                    (function(eid) {
+                        userCol('lifeEvents').doc(eid).get().then(function(snap) {
+                            if (snap.exists) gcalSyncLifeEvent({ id: snap.id, ...snap.data() });
+                        }).catch(function(e) { console.warn('gcalSyncLifeEvent error:', e); });
+                    })(ref.id);
+                }
+            } else {
+                // Yard / House / Garage / Structure → calendarEvents collection
+                var calReminderDoc = {
+                    title:          payload.title    || '',
+                    description:    '',
+                    date:           payload.date     || _sbToday(),
+                    recurring:      null,
+                    targetType:     payload.targetType || null,
+                    targetId:       payload.targetId   || null,
+                    zoneIds:        payload.targetType === 'zone' ? [payload.targetId] : [],
+                    reminders:      reminderArr,
+                    completed:      false,
+                    completedDates: [],
+                    cancelledDates: [],
+                    createdAt:      ts
+                };
+                if (payload.time) calReminderDoc.startTime = payload.time;
+                ref = await userCol('calendarEvents').add(calReminderDoc);
+                newId = ref.id;
+                // GCal sync (fire-and-forget)
+                if (typeof gcalIsConnected === 'function' && gcalIsConnected()) {
+                    (function(eid) {
+                        userCol('calendarEvents').doc(eid).get().then(function(snap) {
+                            if (snap.exists) gcalSyncYardEvent({ id: snap.id, ...snap.data() });
+                        }).catch(function(e) { console.warn('gcalSyncYardEvent error:', e); });
+                    })(ref.id);
+                }
+            }
+            break;
+        }
+
         // ---- Log Activity ------------------------------------
         case 'LOG_ACTIVITY': {
             // Auto-create any chemicals the LLM named but couldn't find
@@ -2138,6 +2228,11 @@ function _sbNavigateTo(action, payload, newId) {
     switch (action) {
         case 'ADD_JOURNAL_ENTRY':   hash = '#journal';           break;
         case 'ADD_CALENDAR_EVENT':  hash = '#calendar';          break;
+        case 'ADD_REMINDER':
+            hash = (!payload.targetType || payload.calendarType === 'life')
+                ? '#life-calendar'
+                : '#calendar';
+            break;
         case 'ADD_PERSONAL_EVENT':
             hash = id ? '#life-event/' + id : '#life-calendar';
             break;
@@ -2426,6 +2521,17 @@ var SB_HELP_ACTIONS = [
             'Find the stapler',
             'Where did I put the router manual?',
             'Locate the chainsaw'
+        ]
+    },
+    {
+        action: 'ADD_REMINDER',
+        icon: '⏰', label: 'Add Reminder',
+        desc: 'Set a time-based reminder for any future task. Links to an entity (zone, room, thing, plant, etc.) if one is mentioned. Syncs to Google Calendar with 5-min alert (plus day-before alert for date-only reminders).',
+        examples: [
+            'Remind me in 30 days to change the hot tub filter',
+            'Remind me tomorrow to call the groomer',
+            'Remind me in 2 hours to check the oven',
+            'Remind me next Monday to pay the lawn service'
         ]
     },
     {

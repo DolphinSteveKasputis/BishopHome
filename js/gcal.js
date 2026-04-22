@@ -527,6 +527,22 @@ function _gcalFmtTime(timeStr) {
 }
 
 /**
+ * Add N minutes to a HH:MM time string, clamping to 23:59.
+ * @param {string} timeStr
+ * @param {number} mins
+ * @returns {string} HH:MM
+ */
+function _gcalAddMinutes(timeStr, mins) {
+    var parts = (timeStr || '00:00').split(':');
+    var h = parseInt(parts[0], 10) || 0;
+    var m = (parseInt(parts[1], 10) || 0) + mins;
+    h += Math.floor(m / 60);
+    m  = m % 60;
+    if (h >= 24) { h = 23; m = 59; }
+    return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+}
+
+/**
  * Build a "Add to Google Calendar" deep link for a yard calendar occurrence.
  * Produces an all-day event (yard events have no time fields).
  * @param {Object} occ - Occurrence object: { title, description, occurrenceDate }
@@ -608,15 +624,33 @@ function gcalBuildYardEventBody(event, occurrenceDate) {
         (event.completedDates && event.completedDates.indexOf(occurrenceDate) >= 0);
     var summary = (isCompleted ? '\u2713 ' : '') + (event.title || '');
 
+    // Timed event if startTime is set (ADD_REMINDER with explicit time)
+    var start, end;
+    if (event.startTime) {
+        var tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        start = { dateTime: occurrenceDate + 'T' + event.startTime + ':00', timeZone: tz };
+        end   = { dateTime: occurrenceDate + 'T' + _gcalAddMinutes(event.startTime, 30) + ':00', timeZone: tz };
+    } else {
+        start = { date: occurrenceDate };
+        end   = { date: _gcalNextDay(occurrenceDate) };
+    }
+
+    // Reminder overrides: use event.reminders array if set, else fall back to default setting
+    var overrides;
+    if (Array.isArray(event.reminders) && event.reminders.length > 0) {
+        overrides = event.reminders;
+    } else {
+        var mins = _gcalSettings && Number(_gcalSettings.defaultReminderMinutes);
+        overrides = mins > 0 ? [{ method: 'popup', minutes: mins }] : [];
+    }
+
     var body = {
         summary: summary,
-        start: { date: occurrenceDate },
-        end:   { date: _gcalNextDay(occurrenceDate) },
-        reminders: { useDefault: false, overrides: [] }
+        start:   start,
+        end:     end,
+        reminders: { useDefault: false, overrides: overrides }
     };
 
-    var mins = _gcalSettings && Number(_gcalSettings.defaultReminderMinutes);
-    if (mins > 0) body.reminders.overrides.push({ method: 'popup', minutes: mins });
     if (event.description) body.description = event.description;
     return body;
 }
@@ -822,15 +856,22 @@ function gcalBuildLifeEventBody(event, categoryName, locationText) {
     var desc = event.description || '';
     if (categoryName) desc = desc ? desc + '\nCategory: ' + categoryName : 'Category: ' + categoryName;
 
+    // Reminder overrides: use event.reminders array if set, else fall back to default setting
+    var overrides;
+    if (Array.isArray(event.reminders) && event.reminders.length > 0) {
+        overrides = event.reminders;
+    } else {
+        var mins = _gcalSettings && Number(_gcalSettings.defaultReminderMinutes);
+        overrides = mins > 0 ? [{ method: 'popup', minutes: mins }] : [];
+    }
+
     var body = {
         summary: summary,
         start:   start,
         end:     end,
-        reminders: { useDefault: false, overrides: [] }
+        reminders: { useDefault: false, overrides: overrides }
     };
 
-    var mins = _gcalSettings && Number(_gcalSettings.defaultReminderMinutes);
-    if (mins > 0) body.reminders.overrides.push({ method: 'popup', minutes: mins });
     if (locationText) body.location = locationText;
     if (desc) body.description = desc;
     return body;

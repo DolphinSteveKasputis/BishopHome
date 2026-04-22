@@ -1345,7 +1345,7 @@ Syncs Yard Calendar (`calendarEvents`) and Life Calendar (`lifeEvents`) events t
 **OAuth flow:** Uses Google Identity Services (GIS) library. Silent re-auth (no popup) attempted on token expiry; full consent screen only shown on first connect or after access revocation. Soft disconnect — clears token locally, GCal events and stored event IDs preserved for seamless reconnect.
 
 **Sync behavior (Mode 2):**
-- **Yard Calendar** (implemented): all-day GCal events. One-time events use `gcalEventId`; recurring events use `gcalEventIds` map (`{ "YYYY-MM-DD": "gcalEventId" }`) — each occurrence synced as a separate GCal event. Sync window: 12 months (10 years for yearly events). Hooks: create, edit, delete, complete, cancel occurrence, reschedule. Completed occurrences get "✓ " title prefix. Cancelled occurrences are deleted from GCal.
+- **Yard Calendar** (implemented): all-day GCal events by default. One-time events use `gcalEventId`; recurring events use `gcalEventIds` map (`{ "YYYY-MM-DD": "gcalEventId" }`) — each occurrence synced as a separate GCal event. Sync window: 12 months (10 years for yearly events). Hooks: create, edit, delete, complete, cancel occurrence, reschedule. Completed occurrences get "✓ " title prefix. Cancelled occurrences are deleted from GCal. If event has `startTime` field (ADD_REMINDER with explicit time), creates a timed GCal event instead of all-day (30-min duration). If event has `reminders` array field, that overrides `defaultReminderMinutes` for that event.
 - **Life Calendar** (implemented): timed GCal events if `startTime` set; all-day if not. Multi-day if `endDate` set. Uses `gcalEventId` (no recurring events). Hooks: create, edit (including status changes), delete. Status prefix: `attended` → "✓ Title", `didntgo` → "✗ Title", `upcoming` → plain title. Description + "Category: X" if category set. Location resolved from `locationContactId` (contact name) or `location` text field.
 
 **Recovery / Sync All (implemented):** `gcalSyncAll()` queries all upcoming one-time yard events (`date >= today`), all recurring yard events, and all upcoming life events (`startDate >= today`), then calls `gcalSyncYardEvent` / `gcalSyncLifeEvent` on each. Shows a progress toast and a final "Synced N events" summary toast. Disables the Sync All button during the run. On calendar-level 404 during the loop, calls `gcalHandleCalendarNotFound()` (which recreates the calendar and re-runs Sync All). **Recreate Calendar** button wipes all `gcalEventId`/`gcalEventIds` fields, creates a new GCal calendar, and calls Sync All. **First-Connect Prompt:** after OAuth success, counts upcoming events without a `gcalEventId`; if > 0, shows a confirm dialog warning about potential duplicates; Yes → Sync All, No → user can trigger manually later.
@@ -1397,7 +1397,8 @@ Natural language command interface for logging anything hands-free.
 |--------|-------------|
 | `LOG_ACTIVITY` | Logs an activity to a zone, plant, weed, vehicle, house entity |
 | `ADD_JOURNAL_ENTRY` | Creates a journal entry |
-| `ADD_CALENDAR_EVENT` | Creates a calendar event |
+| `ADD_CALENDAR_EVENT` | Creates a calendar event (recurring/one-time chore; not for "remind me") |
+| `ADD_REMINDER` | Sets a time-based reminder. Routes to `calendarEvents` (yard/house) or `lifeEvents` (no entity / person). Stores `startTime` (HH:MM) and `reminders` array ([{method,minutes}]) on the doc. Date-only → dual GCal reminders (1440 min + 5 min at 9am); timed → 5 min only. Triggers GCal sync immediately via `gcalSyncYardEvent` or `gcalSyncLifeEvent`. |
 | `ADD_PROBLEM` | Logs a problem/concern to an entity |
 | `ADD_IMPORTANT_DATE` | Adds a birthday/anniversary to a person |
 | `LOG_MILEAGE` | Adds a mileage log entry to a vehicle |

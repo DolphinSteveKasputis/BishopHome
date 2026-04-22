@@ -51,6 +51,20 @@ var HELP_TOPIC_MAP = [
         ]
     },
     {
+        section: 'House',
+        topics: [
+            { label: 'House Home',          key: 'house'           },
+            { label: 'Floor Detail',        key: 'floor'           },
+            { label: 'Room Detail',         key: 'room'            },
+            { label: 'Thing Detail',        key: 'thing'           },
+            { label: 'Sub-Thing Detail',    key: 'subthing'        },
+            { label: 'Floor Plan',          key: 'floorplan'       },
+            { label: 'Floor Plan Item',     key: 'floorplanitem'   },
+            { label: 'House Problems',      key: 'house-problems'  },
+            { label: 'House Quick Tasks',   key: 'house-projects'  }
+        ]
+    },
+    {
         section: 'App Setup',
         topics: [
             { label: 'Settings & AI Setup', key: 'settings' }
@@ -75,13 +89,18 @@ var HELP_SCREEN_LABELS = {
     'yardmap'       : 'Yard Map',
     'yard-problems' : 'Yard Problems',
     'yard-projects' : 'Yard Quick Tasks',
-    'house'         : 'House',
-    'floor'         : 'Floor Detail',
-    'room'          : 'Room Detail',
-    'thing'         : 'Thing Detail',
-    'health'        : 'Health',
-    'life'          : 'Life',
-    'settings'      : 'Settings & AI Setup'
+    'house'          : 'House',
+    'floor'          : 'Floor Detail',
+    'room'           : 'Room Detail',
+    'thing'          : 'Thing Detail',
+    'subthing'       : 'Sub-Thing Detail',
+    'floorplan'      : 'Floor Plan',
+    'floorplanitem'  : 'Floor Plan Item',
+    'house-problems' : 'House Problems',
+    'house-projects' : 'House Quick Tasks',
+    'health'         : 'Health',
+    'life'           : 'Life',
+    'settings'       : 'Settings & AI Setup'
 };
 
 // ── Fetch & Parse ────────────────────────────────────────────

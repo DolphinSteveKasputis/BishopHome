@@ -969,6 +969,54 @@
                 </div>
             </div>
 
+            <!-- Google Calendar -->
+            <div class="settings-card accordion-card">
+                <button class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>Google Calendar</span><span class="accordion-chevron">&#9658;</span>
+                </button>
+                <div class="accordion-body">
+                    <p class="accordion-desc">Sync Yard and Life Calendar events directly to your Google Calendar so you get reminders on your phone. Tap <strong>Help</strong> for setup instructions. No setup needed to use the <strong>Add to Google Calendar</strong> links on event cards.</p>
+                    <div class="form-group">
+                        <label for="gcalClientIdInput">Google Client ID</label>
+                        <input type="text" id="gcalClientIdInput" placeholder="Paste your OAuth 2.0 Client ID here" class="api-key-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="gcalCalendarNameInput">Calendar Name</label>
+                        <input type="text" id="gcalCalendarNameInput" placeholder="Bishop" class="api-key-input">
+                        <small class="form-hint">Name of the dedicated calendar Bishop will create inside Google Calendar.</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="gcalReminderSelect">Default Reminder</label>
+                        <select id="gcalReminderSelect" class="settings-select">
+                            <option value="15">15 minutes before</option>
+                            <option value="30">30 minutes before</option>
+                            <option value="60">1 hour before</option>
+                            <option value="120">2 hours before</option>
+                            <option value="1440" selected>1 day before</option>
+                            <option value="2880">2 days before</option>
+                            <option value="10080">1 week before</option>
+                        </select>
+                    </div>
+                    <div class="settings-save-row">
+                        <button class="btn btn-primary" id="gcalSaveBtn">Save</button>
+                        <button class="btn btn-secondary btn-sm" id="gcalHelpBtn">Help</button>
+                        <span class="settings-saved-msg hidden" id="gcalSavedMsg">&#10003; Saved</span>
+                    </div>
+                    <!-- Connect section: shown once a Client ID has been saved -->
+                    <div id="gcalConnectSection" class="hidden" style="margin-top:14px;border-top:1px solid #e0e0e0;padding-top:12px;">
+                        <div id="gcalStatusBadge" style="font-size:13px;margin-bottom:10px;"></div>
+                        <div class="settings-save-row">
+                            <button class="btn btn-primary" id="gcalConnectBtn">Connect to Google</button>
+                            <button class="btn btn-secondary hidden" id="gcalDisconnectBtn">Disconnect</button>
+                        </div>
+                        <div class="settings-save-row hidden" id="gcalActionBtns" style="margin-top:8px;">
+                            <button class="btn btn-secondary" id="gcalSyncAllBtn">Sync All Events</button>
+                            <button class="btn btn-secondary" id="gcalRecreateCalBtn">Recreate Calendar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Account -->
             <div class="settings-card accordion-card">
                 <button class="accordion-header" onclick="toggleAccordion(this)">
@@ -9063,6 +9111,34 @@ export default {
         </div>
     </div>
 
+    <!-- ===== Google Calendar Setup Help Modal ===== -->
+    <div class="modal-overlay" id="gcalHelpModal">
+        <div class="modal modal-wide">
+            <h3>Set Up Google Calendar Sync</h3>
+            <div class="fsq-help-body">
+                <p>Follow these steps to connect Bishop to your Google Calendar. Events you create in the Yard and Life calendars will automatically appear in Google Calendar, where you can set reminders that push to your phone.</p>
+                <ol style="padding-left:20px;line-height:1.9;">
+                    <li>Go to <strong><a href="https://console.cloud.google.com" target="_blank" rel="noopener">console.cloud.google.com</a></strong> and sign in with your Google account.</li>
+                    <li>Click the project dropdown at the top → <strong>New Project</strong>. Give it any name (e.g., "Bishop App") and click <strong>Create</strong>.</li>
+                    <li>In the left menu go to <strong>APIs &amp; Services → Library</strong>. Search for <strong>Google Calendar API</strong> and click <strong>Enable</strong>.</li>
+                    <li>Go to <strong>APIs &amp; Services → OAuth consent screen</strong>. Choose <strong>External</strong>, fill in an app name (e.g., "Bishop"), add your email as a test user, and save.</li>
+                    <li>Go to <strong>APIs &amp; Services → Credentials</strong> → <strong>Create Credentials → OAuth client ID</strong>.</li>
+                    <li>Set Application type to <strong>Web application</strong>. Under <strong>Authorized JavaScript origins</strong> add your Bishop URL:<br>
+                        <code style="background:#f5f5f5;padding:2px 6px;border-radius:3px;">https://dolphinstevekasputis.github.io</code>
+                    </li>
+                    <li>Click <strong>Create</strong>. Copy the <strong>Client ID</strong> shown in the dialog.</li>
+                    <li>Paste it into <strong>Settings → Google Calendar → Client ID</strong> and click <strong>Save</strong>.</li>
+                    <li>Click <strong>Connect to Google</strong> and approve the consent screen.</li>
+                </ol>
+                <p style="margin-top:12px;"><strong>Note:</strong> If you previously used the "Add to Google Calendar" links to add events manually, running Sync All after connecting may create duplicates in Google Calendar. You can delete the duplicates directly in Google Calendar.</p>
+                <p><strong>That's it!</strong> Bishop will now automatically sync events to a dedicated calendar in Google Calendar.</p>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-primary" onclick="closeModal('gcalHelpModal')">Got It</button>
+            </div>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="osmHelpModal">
         <div class="modal modal-wide">
             <h3>About Places (OpenStreetMap)</h3>
@@ -9454,7 +9530,9 @@ export default {
     <script src="js/weeds.js?v=351"></script>
     <script src="js/calendar.js?v=353"></script>
     <script src="js/gps.js?v=350"></script>
-    <script src="js/settings.js?v=494"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="js/gcal.js?v=1"></script>
+    <script src="js/settings.js?v=495"></script>
     <script src="js/devnotes.js?v=376"></script>
     <script src="js/house.js?v=537"></script>
     <script src="js/floorplan.js?v=398"></script>

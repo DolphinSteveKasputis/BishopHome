@@ -1,0 +1,362 @@
+// ============================================================
+// gcal.js — Google Calendar Integration
+// Handles OAuth (Google Identity Services), token management,
+// calendar create/find, and the authenticated API call wrapper
+// used by calendar.js and lifecalendar.js in later phases.
+// ============================================================
+
+/** Cached settings from Firestore settings/googleCalendar. */
+var _gcalSettings = null;
+
+/** GIS token client (initialized once per session per clientId). */
+var _gcalTokenClient = null;
+
+// ============================================================
+// Settings persistence
+// ============================================================
+
+/**
+ * Load Google Calendar settings from Firestore and cache them locally.
+ * Safe to call multiple times — subsequent calls replace the cache.
+ * @returns {Object} Settings data (may be empty {} if never configured).
+ */
+async function gcalLoadSettings() {
+    try {
+        var doc = await userCol('settings').doc('googleCalendar').get();
+        _gcalSettings = doc.exists ? doc.data() : {};
+    } catch (err) {
+        console.error('gcalLoadSettings error:', err);
+        _gcalSettings = {};
+    }
+    return _gcalSettings;
+}
+
+/**
+ * Merge-update Google Calendar settings in Firestore and in the local cache.
+ * @param {Object} fields - Plain key/value pairs to merge in.
+ */
+async function gcalSaveSettings(fields) {
+    if (!_gcalSettings) _gcalSettings = {};
+    Object.assign(_gcalSettings, fields);
+    try {
+        var toWrite = Object.assign({}, fields, {
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        await userCol('settings').doc('googleCalendar').set(toWrite, { merge: true });
+    } catch (err) {
+        console.error('gcalSaveSettings error:', err);
+    }
+}
+
+/**
+ * Returns true if the user has a Client ID saved and is currently connected.
+ */
+function gcalIsConnected() {
+    return !!(
+        _gcalSettings &&
+        _gcalSettings.clientId &&
+        _gcalSettings.connected === true
+    );
+}
+
+// ============================================================
+// OAuth token management (Google Identity Services)
+// ============================================================
+
+/**
+ * Initialize (or re-initialize) the GIS token client for the given Client ID.
+ * Returns null if the GIS library hasn't loaded yet.
+ * @param {string} clientId
+ * @returns {Object|null}
+ */
+function _gcalInitTokenClient(clientId) {
+    if (!window.google || !window.google.accounts) return null;
+    return window.google.accounts.oauth2.initTokenClient({
+        client_id: clientId,
+        scope: 'https://www.googleapis.com/auth/calendar',
+        callback: function() {} // overridden per call
+    });
+}
+
+/**
+ * Ensure a valid access token is available.
+ * First checks the cached token's expiry. If expired, attempts a silent
+ * re-authorization (no popup if the user has already approved the app).
+ * Only shows UI (toast) if silent re-auth fails and the user must reconnect.
+ * @returns {Promise<boolean>} true if a valid token is now available.
+ */
+async function gcalEnsureToken() {
+    if (!_gcalSettings) await gcalLoadSettings();
+    var s = _gcalSettings;
+
+    // Token still valid (60-second buffer so we don't use an about-to-expire token)
+    if (s.accessToken && s.tokenExpiry && Date.now() < s.tokenExpiry - 60000) {
+        return true;
+    }
+
+    if (!s.clientId) return false;
+
+    // Initialize token client if needed
+    if (!_gcalTokenClient) {
+        _gcalTokenClient = _gcalInitTokenClient(s.clientId);
+    }
+    if (!_gcalTokenClient) {
+        _gcalToast('Google Identity Services not ready — reload the page and try again');
+        return false;
+    }
+
+    // Attempt silent re-auth (prompt: '' = no popup if already approved)
+    return new Promise(function(resolve) {
+        _gcalTokenClient.callback = async function(response) {
+            if (response.error || !response.access_token) {
+                await gcalSaveSettings({ connected: false, accessToken: '', tokenExpiry: 0 });
+                if (typeof gcalRefreshSettingsUI === 'function') gcalRefreshSettingsUI();
+                _gcalToast('Google Calendar disconnected — reconnect in Settings');
+                resolve(false);
+                return;
+            }
+            var expiry = Date.now() + (response.expires_in - 60) * 1000;
+            await gcalSaveSettings({
+                accessToken: response.access_token,
+                tokenExpiry: expiry,
+                connected: true
+            });
+            resolve(true);
+        };
+        _gcalTokenClient.requestAccessToken({ prompt: '' });
+    });
+}
+
+// ============================================================
+// Core API call wrapper
+// ============================================================
+
+/**
+ * Make an authenticated Google Calendar API call.
+ * Handles token refresh and retries once on 401.
+ * Throws an Error with a .status property on non-OK responses.
+ * @param {string} method  - 'GET' | 'POST' | 'PATCH' | 'DELETE'
+ * @param {string} url     - Full Google Calendar API URL
+ * @param {Object} [body]  - Request body (JSON-serialized automatically)
+ * @returns {Promise<Object|null>} Parsed response JSON, or null for 204 No Content.
+ */
+async function gcalApiCall(method, url, body) {
+    var ok = await gcalEnsureToken();
+    if (!ok) throw new Error('GCal not authenticated');
+
+    function buildOpts() {
+        var opts = {
+            method: method,
+            headers: {
+                'Authorization': 'Bearer ' + _gcalSettings.accessToken,
+                'Content-Type': 'application/json'
+            }
+        };
+        if (body) opts.body = JSON.stringify(body);
+        return opts;
+    }
+
+    var resp = await fetch(url, buildOpts());
+
+    // 401: token expired without being caught by our expiry check — retry once
+    if (resp.status === 401) {
+        await gcalSaveSettings({ accessToken: '', tokenExpiry: 0 });
+        ok = await gcalEnsureToken();
+        if (!ok) throw new Error('GCal re-auth failed');
+        resp = await fetch(url, buildOpts());
+    }
+
+    if (resp.status === 204) return null; // DELETE returns No Content
+
+    if (!resp.ok) {
+        var errBody = '';
+        try { errBody = await resp.text(); } catch (e) {}
+        var err = new Error('GCal API error ' + resp.status);
+        err.status  = resp.status;
+        err.body    = errBody;
+        throw err;
+    }
+
+    return resp.json();
+}
+
+// ============================================================
+// Calendar management
+// ============================================================
+
+/**
+ * Ensure the dedicated Bishop calendar exists in Google Calendar.
+ * If gcalCalendarId is already stored in settings, returns it immediately.
+ * Otherwise creates a new calendar and stores the returned ID.
+ * @returns {Promise<string>} The Google Calendar ID.
+ */
+async function gcalEnsureCalendar() {
+    if (!_gcalSettings) await gcalLoadSettings();
+
+    if (_gcalSettings.gcalCalendarId) {
+        return _gcalSettings.gcalCalendarId;
+    }
+
+    var calName = (_gcalSettings.calendarName || '').trim() || 'Bishop';
+    var data = await gcalApiCall('POST', 'https://www.googleapis.com/calendar/v3/calendars', {
+        summary: calName
+    });
+    await gcalSaveSettings({ gcalCalendarId: data.id });
+    return data.id;
+}
+
+/**
+ * Called when an API response indicates the Bishop calendar no longer exists.
+ * Wipes stale IDs and re-creates the calendar.
+ */
+async function gcalHandleCalendarNotFound() {
+    _gcalToast('Bishop calendar not found in Google — re-creating…');
+    await gcalRecreateCalendar();
+}
+
+/**
+ * Re-create the Bishop calendar from scratch.
+ * Clears all gcalEventId / gcalEventIds from both event collections,
+ * creates a new calendar in GCal, then triggers Sync All to re-populate.
+ */
+async function gcalRecreateCalendar() {
+    // Wipe stale calendar ID so gcalEnsureCalendar() creates a fresh one
+    await gcalSaveSettings({ gcalCalendarId: '' });
+
+    // Clear event-level GCal IDs from both collections in a batch
+    try {
+        var calSnap  = await userCol('calendarEvents').get();
+        var lifeSnap = await userCol('lifeEvents').get();
+        var batch = firebase.firestore().batch();
+        calSnap.forEach(function(d) {
+            batch.update(d.ref, {
+                gcalEventId:  firebase.firestore.FieldValue.delete(),
+                gcalEventIds: firebase.firestore.FieldValue.delete()
+            });
+        });
+        lifeSnap.forEach(function(d) {
+            batch.update(d.ref, {
+                gcalEventId: firebase.firestore.FieldValue.delete()
+            });
+        });
+        await batch.commit();
+    } catch (err) {
+        console.error('gcalRecreateCalendar — error clearing event IDs:', err);
+    }
+
+    // Create the new calendar
+    try {
+        await gcalEnsureCalendar();
+    } catch (err) {
+        _gcalToast('Error re-creating calendar — check your connection');
+        console.error('gcalRecreateCalendar — calendar create error:', err);
+        return;
+    }
+
+    _gcalToast('Bishop calendar re-created — syncing events…');
+
+    // Sync All is implemented in GC-5; call it if available
+    if (typeof gcalSyncAll === 'function') gcalSyncAll();
+}
+
+// ============================================================
+// Connect / Disconnect
+// ============================================================
+
+/**
+ * Initiate a full OAuth consent flow (shows the Google account picker).
+ * On success: stores the token, ensures the Bishop calendar exists,
+ * refreshes the Settings UI, and fires the first-connect prompt (GC-5).
+ */
+async function gcalConnect() {
+    if (!_gcalSettings) await gcalLoadSettings();
+
+    var clientId = (_gcalSettings.clientId || '').trim();
+    if (!clientId) {
+        alert('Please enter and save your Client ID first.');
+        return;
+    }
+
+    _gcalTokenClient = _gcalInitTokenClient(clientId);
+    if (!_gcalTokenClient) {
+        alert('Google Identity Services is still loading — wait a moment and try again.');
+        return;
+    }
+
+    return new Promise(function(resolve) {
+        _gcalTokenClient.callback = async function(response) {
+            if (response.error || !response.access_token) {
+                _gcalToast('Connection cancelled or failed — try again.');
+                resolve(false);
+                return;
+            }
+
+            var expiry = Date.now() + (response.expires_in - 60) * 1000;
+            await gcalSaveSettings({
+                accessToken: response.access_token,
+                tokenExpiry: expiry,
+                connected: true
+            });
+
+            // Ensure the Bishop calendar exists
+            try {
+                await gcalEnsureCalendar();
+            } catch (err) {
+                console.error('gcalConnect — calendar create error:', err);
+                _gcalToast('Connected, but could not create calendar — try Recreate Calendar in Settings');
+            }
+
+            // Refresh Settings UI
+            if (typeof gcalRefreshSettingsUI === 'function') gcalRefreshSettingsUI();
+
+            // Fire first-connect bulk-sync prompt (GC-5)
+            if (typeof gcalFirstConnectPrompt === 'function') gcalFirstConnectPrompt();
+
+            resolve(true);
+        };
+
+        // 'consent' forces Google to show the account/scope screen on first connect
+        _gcalTokenClient.requestAccessToken({ prompt: 'consent' });
+    });
+}
+
+/**
+ * Soft-disconnect: clears the local token and pauses auto-sync.
+ * GCal events and stored event IDs are left intact so reconnecting
+ * resumes without duplicates.
+ */
+async function gcalDisconnect() {
+    await gcalSaveSettings({ accessToken: '', tokenExpiry: 0, connected: false });
+    _gcalTokenClient = null;
+    if (typeof gcalRefreshSettingsUI === 'function') gcalRefreshSettingsUI();
+    _gcalToast('Google Calendar disconnected');
+}
+
+// ============================================================
+// Toast notification
+// ============================================================
+
+/**
+ * Show a brief toast message at the bottom of the screen.
+ * Creates the element on first call; reuses it on subsequent calls.
+ * @param {string} msg
+ */
+function _gcalToast(msg) {
+    var t = document.getElementById('gcalToast');
+    if (!t) {
+        t = document.createElement('div');
+        t.id = 'gcalToast';
+        t.style.cssText = [
+            'position:fixed', 'bottom:24px', 'left:50%',
+            'transform:translateX(-50%)', 'background:#323232', 'color:#fff',
+            'padding:10px 20px', 'border-radius:6px', 'z-index:9999',
+            'font-size:14px', 'max-width:340px', 'text-align:center',
+            'box-shadow:0 2px 8px rgba(0,0,0,.3)', 'display:none'
+        ].join(';');
+        document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.display = 'block';
+    clearTimeout(t._hideTimer);
+    t._hideTimer = setTimeout(function() { t.style.display = 'none'; }, 3500);
+}

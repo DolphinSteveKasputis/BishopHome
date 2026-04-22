@@ -261,6 +261,7 @@ async function loadSettingsGeneralPage() {
 
     loadLlmSettings();
     loadFoursquareSettings();
+    loadGcalSettings();
 }
 
 /**
@@ -1279,6 +1280,97 @@ async function testOsmApi() {
     btn.textContent = 'Test Connection';
 }
 
+// ============================================================
+// Google Calendar Settings
+// ============================================================
+
+/**
+ * Load Google Calendar settings from Firestore, populate form fields,
+ * and refresh the connect/disconnect UI.
+ */
+async function loadGcalSettings() {
+    await gcalLoadSettings();
+    var s = _gcalSettings || {};
+
+    var clientIdEl  = document.getElementById('gcalClientIdInput');
+    var calNameEl   = document.getElementById('gcalCalendarNameInput');
+    var reminderEl  = document.getElementById('gcalReminderSelect');
+
+    if (clientIdEl)  clientIdEl.value  = s.clientId      || '';
+    if (calNameEl)   calNameEl.value   = s.calendarName  || '';
+    if (reminderEl && s.defaultReminderMinutes != null) {
+        reminderEl.value = String(s.defaultReminderMinutes);
+    }
+
+    gcalRefreshSettingsUI();
+}
+
+/**
+ * Save Client ID, calendar name, and default reminder to Firestore.
+ * Shows/hides the connect section based on whether a Client ID is present.
+ */
+async function saveGcalBasicSettings() {
+    var saveBtn    = document.getElementById('gcalSaveBtn');
+    var savedMsg   = document.getElementById('gcalSavedMsg');
+    var clientId   = (document.getElementById('gcalClientIdInput').value || '').trim();
+    var calName    = (document.getElementById('gcalCalendarNameInput').value || '').trim() || 'Bishop';
+    var reminder   = parseInt(document.getElementById('gcalReminderSelect').value, 10) || 1440;
+
+    saveBtn.disabled    = true;
+    saveBtn.textContent = 'Saving…';
+    savedMsg.classList.add('hidden');
+
+    try {
+        await gcalSaveSettings({ clientId: clientId, calendarName: calName, defaultReminderMinutes: reminder });
+        savedMsg.classList.remove('hidden');
+        setTimeout(function() { savedMsg.classList.add('hidden'); }, 3000);
+        gcalRefreshSettingsUI();
+    } catch (err) {
+        console.error('saveGcalBasicSettings error:', err);
+        alert('Error saving — please try again.');
+    }
+
+    saveBtn.disabled    = false;
+    saveBtn.textContent = 'Save';
+}
+
+/**
+ * Update the Google Calendar section UI based on current connection state.
+ * Shows/hides the connect section, connect button, disconnect button,
+ * action buttons, and status badge.
+ */
+function gcalRefreshSettingsUI() {
+    var s = _gcalSettings || {};
+
+    var connectSection = document.getElementById('gcalConnectSection');
+    var statusBadge    = document.getElementById('gcalStatusBadge');
+    var connectBtn     = document.getElementById('gcalConnectBtn');
+    var disconnectBtn  = document.getElementById('gcalDisconnectBtn');
+    var actionBtns     = document.getElementById('gcalActionBtns');
+
+    if (!connectSection) return; // not on settings page
+
+    var hasClientId = !!(s.clientId && s.clientId.trim());
+    var connected   = gcalIsConnected();
+
+    // Show/hide the whole connect section
+    connectSection.classList.toggle('hidden', !hasClientId);
+
+    if (hasClientId) {
+        if (connected) {
+            statusBadge.innerHTML   = '<span style="color:#2e7d32;">&#10003; Connected to Google Calendar</span>';
+            connectBtn.classList.add('hidden');
+            disconnectBtn.classList.remove('hidden');
+            actionBtns.classList.remove('hidden');
+        } else {
+            statusBadge.innerHTML   = '<span style="color:#888;">Not connected</span>';
+            connectBtn.classList.remove('hidden');
+            disconnectBtn.classList.add('hidden');
+            actionBtns.classList.add('hidden');
+        }
+    }
+}
+
 // ---------- Button Wire-Up ----------
 
 document.getElementById('settingsSaveBtn').addEventListener('click', saveSettings);
@@ -1292,6 +1384,28 @@ document.getElementById('foursquareHelpBtn').addEventListener('click', function(
 });
 document.getElementById('llmHelpBtn').addEventListener('click', openLlmHelp);
 document.getElementById('llmTestBtn').addEventListener('click', testLlmKey);
+
+document.getElementById('gcalSaveBtn').addEventListener('click', saveGcalBasicSettings);
+document.getElementById('gcalHelpBtn').addEventListener('click', function() { openModal('gcalHelpModal'); });
+document.getElementById('gcalConnectBtn').addEventListener('click', gcalConnect);
+document.getElementById('gcalDisconnectBtn').addEventListener('click', function() {
+    if (confirm('Disconnect from Google Calendar? Auto-sync will pause but your existing Google Calendar events will remain.')) {
+        gcalDisconnect();
+    }
+});
+document.getElementById('gcalSyncAllBtn').addEventListener('click', function() {
+    // gcalSyncAll() is implemented in GC-5; stub message until then
+    if (typeof gcalSyncAll === 'function') {
+        gcalSyncAll();
+    } else {
+        _gcalToast('Sync All not yet implemented — coming soon');
+    }
+});
+document.getElementById('gcalRecreateCalBtn').addEventListener('click', function() {
+    if (confirm('Re-create the Bishop calendar in Google? This will clear all synced event links and re-sync everything.')) {
+        gcalRecreateCalendar();
+    }
+});
 
 // Show/hide toggle for the LLM API key field
 document.getElementById('llmApiKeyToggle').addEventListener('click', function() {

@@ -1325,6 +1325,36 @@ Foursquare Places API key stored in `userCol('settings').doc('places')`:
 - `foursquareApiKey`: API key entered by user in Settings → General → Places (Foursquare) card
 - Saved/loaded with the same pattern as the LLM key; a Test button verifies the key with a live NYC coffee search
 
+#### Google Calendar Integration
+
+Syncs Yard Calendar (`calendarEvents`) and Life Calendar (`lifeEvents`) events to Google Calendar for native phone reminders. Configured in **Settings → General → Google Calendar**.
+
+**Dual-mode architecture:**
+- **Mode 1 (no Client ID):** An "Add to Google Calendar" deep link button appears on every Yard and Life Calendar event card. Clicking opens Google Calendar pre-filled with the event. User saves manually; GCal handles reminders.
+- **Mode 2 (Client ID configured + connected):** Full auto-sync — events are created, updated, and deleted in GCal automatically whenever changed in Bishop. A dedicated named calendar ("Bishop" by default, user-configurable) is created in Google Calendar.
+
+**Settings fields** (`userCol('settings').doc('googleCalendar')`):
+- `clientId`: Google OAuth 2.0 Client ID
+- `calendarName`: Name of the dedicated GCal calendar (default: "Bishop")
+- `defaultReminderMinutes`: Lead time for reminders (default: 1440 = 1 day)
+- `accessToken`: Short-lived OAuth access token
+- `tokenExpiry`: Unix timestamp when access token expires
+- `gcalCalendarId`: Google Calendar ID of the Bishop calendar
+- `connected`: Boolean — whether OAuth has been approved
+
+**OAuth flow:** Uses Google Identity Services (GIS) library. Silent re-auth (no popup) attempted on token expiry; full consent screen only shown on first connect or after access revocation. Soft disconnect — clears token locally, GCal events and stored event IDs preserved for seamless reconnect.
+
+**Sync behavior (Mode 2):**
+- Yard Calendar: all-day GCal events. One-time events use `gcalEventId`; recurring events use `gcalEventIds` map (`{ "YYYY-MM-DD": "gcalEventId" }`) — each occurrence synced as a separate GCal event.
+- Life Calendar: timed GCal events if `startTime` set; all-day if not. Multi-day if `endDate` set. Uses `gcalEventId` (no recurring events).
+- Delete in Bishop → delete in GCal. Complete → prepend "✓ " to GCal title. Cancelled recurring occurrence → delete from GCal.
+- Life Calendar status changes: `attended` → "✓ Title", `didntgo` → "✗ Title", `upcoming` → plain title.
+- GCal description for Life events: `description` field + "Category: X" if category set.
+
+**Recovery:** "Sync All" button re-pushes all future events from both calendars. "Recreate Calendar" button handles the case where the Bishop GCal calendar was manually deleted. First-connect prompt offers bulk sync of existing events.
+
+**Firestore additions:** `gcalEventId` (string|null) and `gcalEventIds` (map|null) on `calendarEvents` docs; `gcalEventId` (string|null) on `lifeEvents` docs.
+
 #### Backup & Restore
 Two separate backup files — **data** (all Firestore collections) and **photos** (Base64 image data from the `photos` collection).
 

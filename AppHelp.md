@@ -507,6 +507,29 @@ The **Ask AI** button on every Help screen lets you ask questions about the app 
 - If you see an error like "LLM not configured", come back to Settings and verify your key is saved correctly.
 - You can switch providers or update your key at any time.
 
+### Google Calendar Sync
+
+Sync your Yard and Life Calendar events to Google Calendar so you get reminders on your phone.
+
+**Two modes — no setup required for the basic one:**
+- **No Client ID configured:** An "Add to Google Calendar" button appears on every Yard and Life Calendar event card. Clicking it opens Google Calendar pre-filled with that event. You save it manually and Google handles reminders from there.
+- **Client ID configured + connected:** Events sync automatically to a dedicated calendar in Google Calendar whenever you create, edit, or delete them. No manual steps needed.
+
+**Setting up full sync (one-time):**
+1. Tap **Help** in the Google Calendar section for a step-by-step walkthrough of creating a free Google Cloud project and OAuth Client ID.
+2. Paste your **Client ID** into the field and tap **Save**.
+3. Enter a **Calendar Name** (default: "Bishop") — Bishop will create a dedicated calendar in Google with this name.
+4. Set a **Default Reminder** (default: 1 day before).
+5. Tap **Connect to Google** and approve the Google consent screen.
+
+**Once connected:**
+- Events you create or edit in the Yard or Life Calendar automatically appear in your Google Calendar with a reminder.
+- Deleting an event in Bishop also removes it from Google Calendar.
+- **Sync All Events** — re-pushes all upcoming events if anything gets out of sync.
+- **Recreate Calendar** — use this if you accidentally deleted the Bishop calendar from Google. It re-creates it and re-syncs everything.
+- **Disconnect** — pauses auto-sync without removing anything from Google Calendar. Reconnecting resumes where you left off.
+
+**Note:** If you previously used the "Add to Google Calendar" links to add events manually and then connect the full sync, running Sync All may create duplicates. Delete the duplicates directly in Google Calendar.
 
 ---
 

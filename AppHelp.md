@@ -51,6 +51,11 @@ It is used by the in-app AI assistant to answer your questions.
 - You cannot delete a zone that has sub-zones or plants still inside it. Move or remove those first.
 - Plants can be assigned to any zone level — you don't need to go three levels deep if two is enough.
 
+### See Also
+- [Zone Detail](#help/zone)
+- [Plant Detail](#help/plant)
+- [Calendar Events](#help/calendar)
+
 ---
 
 ## screen:zone
@@ -94,6 +99,12 @@ It is used by the in-app AI assistant to answer your questions.
 - The breadcrumb bar (e.g., Front Yard > By Mailbox) shows your position in the hierarchy. Tap any crumb to jump back.
 - Resolving a problem auto-creates an activity: "Resolved: [description]" — keeps the history clean.
 - You can also reach this zone from a plant's Edit screen — the zone picker links back up the hierarchy.
+
+### See Also
+- [Zones — Yard Home](#help/zones)
+- [Plant Detail](#help/plant)
+- [Yard Problems](#help/yard-problems)
+- [Yard Quick Tasks](#help/yard-projects)
 
 ---
 
@@ -144,6 +155,11 @@ The health indicator also appears on the plant card in the zone view, so you can
 - The Activities section on the plant only shows what was logged directly to this plant. Zone-level activities are separate.
 - Use **Clone** when you're adding a new plant of the same type — it saves re-entering all the metadata.
 
+### See Also
+- [Zone Detail](#help/zone)
+- [Saved Actions](#help/actions)
+- [Activity Report](#help/activityreport)
+
 ---
 
 ## screen:weeds
@@ -160,6 +176,11 @@ The health indicator also appears on the plant card in the zone view, so you can
 **Tips:**
 - The "Application Timing" field feeds into the calendar view — use it to set seasonal reminders (e.g., "Pre-spring", "Fall", "As needed").
 - You can link a weed to multiple zones to track which parts of the yard are affected.
+
+### See Also
+- [Weed Detail](#help/weed)
+- [Chemicals & Products](#help/chemicals)
+- [Calendar Events](#help/calendar)
 
 ---
 
@@ -178,6 +199,10 @@ The health indicator also appears on the plant card in the zone view, so you can
 - **Update zones:** Tap **Edit** and check/uncheck zones as the weed spreads or is eliminated
 - **Add photos:** Attach reference photos for identification
 
+### See Also
+- [Weeds](#help/weeds)
+- [Chemicals & Products](#help/chemicals)
+
 ---
 
 ## screen:chemicals
@@ -191,6 +216,11 @@ The health indicator also appears on the plant card in the zone view, so you can
 - **Scan a barcode:** Tap **Scan Barcode** on a chemical — scans the bottle's barcode and looks up product info automatically
 - **AI label scan:** Open a chemical → tap **Scan Label** (in edit mode) → photograph the bottle label. The AI extracts mixing ratios, application methods, active ingredients, and safety info and saves them as facts.
 - **View usage history:** Open a chemical to see every activity that used it, across all plants, zones, and weeds
+
+### See Also
+- [Chemical Detail](#help/chemical)
+- [Saved Actions](#help/actions)
+- [Activity Report](#help/activityreport)
 
 ---
 
@@ -208,6 +238,10 @@ The health indicator also appears on the plant card in the zone view, so you can
 - Facts extracted by AI scan include: active ingredients, mixing ratio, reentry interval, application method, safety info.
 - The barcode URL is saved as a fact for reference.
 
+### See Also
+- [Chemicals & Products](#help/chemicals)
+- [Saved Actions](#help/actions)
+
 ---
 
 ## screen:actions
@@ -224,6 +258,11 @@ The health indicator also appears on the plant card in the zone view, so you can
 **Tips:**
 - You can also create a saved action directly from an activity you just logged: open the activity → tap **Save as Action**.
 - Saved actions can include multiple chemicals (useful for combination treatments).
+
+### See Also
+- [Chemicals & Products](#help/chemicals)
+- [Plant Detail](#help/plant)
+- [Zone Detail](#help/zone)
 
 ---
 
@@ -252,6 +291,11 @@ The health indicator also appears on the plant card in the zone view, so you can
 - Recurring events use the original date as the anchor — completions and cancellations are tracked per-occurrence without changing the series.
 - Delete "this occurrence only" adds the date to a cancelled list — the series continues.
 
+### See Also
+- [Zone Detail](#help/zone)
+- [Activity Report](#help/activityreport)
+- [Saved Actions](#help/actions)
+
 ---
 
 ## screen:activityreport
@@ -269,6 +313,11 @@ The health indicator also appears on the plant card in the zone view, so you can
 - What it was done to (plant name, zone name, or weed name)
 - Chemicals used (if any)
 - Notes
+
+### See Also
+- [Zone Detail](#help/zone)
+- [Plant Detail](#help/plant)
+- [Saved Actions](#help/actions)
 
 ---
 
@@ -301,6 +350,10 @@ The health indicator also appears on the plant card in the zone view, so you can
 - To add a new problem, go to the specific zone or plant and use its Problems section.
 - Resolving a problem on a plant or zone auto-creates an activity: "Resolved: {description}".
 
+### See Also
+- [Zone Detail](#help/zone)
+- [Plant Detail](#help/plant)
+
 ---
 
 ## screen:yard-projects
@@ -315,6 +368,10 @@ The health indicator also appears on the plant card in the zone view, so you can
 **Tips:**
 - To add a new task, go to the specific zone or plant and use its Quick Tasks section.
 - Completed tasks are hidden by default. Show them with the "Show Completed" toggle.
+
+### See Also
+- [Zone Detail](#help/zone)
+- [Plant Detail](#help/plant)
 
 ---
 

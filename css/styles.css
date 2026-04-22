@@ -11943,3 +11943,62 @@ a.health-chip--link:hover { filter: brightness(0.93); }
     border: 1px solid #fecaca;
 }
 
+
+/* Help: header button group (Topics + Ask AI) */
+.help-header-btns {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+/* Help: See Also link list */
+.help-see-also {
+    margin-top: 20px;
+    padding: 10px 14px;
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+.help-see-also strong { color: #0369a1; }
+.help-see-also ul { margin: 4px 0 0 16px; padding: 0; }
+.help-see-also li { margin-bottom: 3px; }
+.help-see-also a { color: #2563eb; text-decoration: none; }
+.help-see-also a:hover { text-decoration: underline; }
+
+/* Help: topic index (shown on #help/main) */
+.help-index {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+.help-index-section h3 {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6b7280;
+    margin: 0 0 6px;
+}
+.help-index-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.help-index-list li { margin-bottom: 4px; }
+.help-index-link {
+    display: block;
+    padding: 5px 10px;
+    background: #f3f4f6;
+    border-radius: 6px;
+    color: #1d4ed8;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: background 0.15s;
+}
+.help-index-link:hover {
+    background: #dbeafe;
+    color: #1e40af;
+}

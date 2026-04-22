@@ -1632,6 +1632,36 @@ The app has three navigation contexts, each with its own nav bar:
 
 **Context switching**: Tapping "My House" logo navigates to `#home` and sets yard context. Separate nav items switch between House and Life contexts.
 
+**Help button (`?`)**: Every desktop nav bar and mobile nav overlay includes a `?` link that calls `openHelpForCurrentScreen(event)`. It reads the current URL hash and navigates to `#help/{screenName}`, e.g., `#help/zone` or `#help/calendar`. Clicking `?` while already on a help page is a no-op.
+
+---
+
+## Part 12a: In-App Help System
+
+**Route:** `#help/{screenName}` — handled by `app.js` router, calls `loadHelpPage(screenName)` from `js/help.js`.
+
+**Source of truth:** `AppHelp.md` — fetched once, cached in `_helpCache`. Sections keyed as `## screen:key` or `## concept:key`. A single file feeds both the static display and the AI Q&A context.
+
+**Page header:**
+- Title: "Help: {Screen Label}"
+- **☰ Topics** button — always navigates to `#help/main` (the topic index)
+- **? Ask AI** button — toggles the AI Q&A input panel
+
+**Topic index (`#help/main`):** The `_helpRenderIndex()` function renders a grid of clickable links organized by section (Yard & Garden, Concepts). Clicking any topic navigates to that screen's help. The index is prepended above the Getting Started content on the main page.
+
+**Per-screen content layout (sub-sections in AppHelp.md):**
+- `### Quick Help` — always shown immediately (scannable bullet summary)
+- `### Details` — hidden behind "Show more ▾" toggle button; expands in-place
+- `### See Also` — rendered as a styled blue-tinted link box at the bottom of the page; links navigate within the help system
+
+**Ask AI panel:** When opened, shows a textarea + Send button. Sends the typed question to the configured LLM (OpenAI or Grok) with the full `AppHelp.md` injected as system context. Each call is stateless — no conversation history is passed.
+
+**Q&A thread:** Appends newest-first below the input. The 3 most recent Q&A pairs are always visible; older ones collapse into a "Show N earlier questions ▾" toggle.
+
+**Config:** LLM provider, model, and API key read from `userCol('settings').doc('llm')`. Supports `openai` (`gpt-4o`) and `grok` (`grok-3`). Always uses `max_completion_tokens` (never `max_tokens`).
+
+**Concept aliases:** `HELP_SECTION_MAP` maps URL-safe keys (e.g., `concept-activities`) to AppHelp.md section keys (e.g., `concept:activities`).
+
 ---
 
 ## Part 13: Testing

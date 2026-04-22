@@ -11,9 +11,45 @@ var HELP_COMPACT_AT = 3;     // collapse older Q&A after this many visible pairs
 
 // Maps URL route names to AppHelp.md section keys where they differ
 var HELP_SECTION_MAP = {
-    'zones': 'zones',
-    'home' : 'zones'   // legacy alias
+    'zones'             : 'zones',
+    'home'              : 'zones',   // legacy alias
+    'concept-activities': 'concept:activities',
+    'concept-photos'    : 'concept:photos',
+    'concept-facts'     : 'concept:facts',
+    'concept-problems'  : 'concept:problems',
+    'concept-quicktasks': 'concept:quicktasks'
 };
+
+// Topic index — shown on #help/main as a clickable hub
+var HELP_TOPIC_MAP = [
+    {
+        section: 'Yard & Garden',
+        topics: [
+            { label: 'Yard Home (Zones)',     key: 'zones'        },
+            { label: 'Zone Detail',           key: 'zone'         },
+            { label: 'Plant Detail',          key: 'plant'        },
+            { label: 'Weeds',                 key: 'weeds'        },
+            { label: 'Weed Detail',           key: 'weed'         },
+            { label: 'Chemicals & Products',  key: 'chemicals'    },
+            { label: 'Chemical Detail',       key: 'chemical'     },
+            { label: 'Saved Actions',         key: 'actions'      },
+            { label: 'Calendar Events',       key: 'calendar'     },
+            { label: 'Activity Report',       key: 'activityreport'},
+            { label: 'Yard Problems',         key: 'yard-problems'},
+            { label: 'Yard Quick Tasks',      key: 'yard-projects'}
+        ]
+    },
+    {
+        section: 'Concepts',
+        topics: [
+            { label: 'Activities',  key: 'concept-activities' },
+            { label: 'Photos',      key: 'concept-photos'     },
+            { label: 'Facts',       key: 'concept-facts'      },
+            { label: 'Problems',    key: 'concept-problems'   },
+            { label: 'Quick Tasks', key: 'concept-quicktasks' }
+        ]
+    }
+];
 
 // Human-readable labels for screen names used in the page title
 var HELP_SCREEN_LABELS = {
@@ -107,7 +143,12 @@ async function loadHelpPage(screenName) {
         }
         if (!sectionText) sectionText = '_No help content is available for this screen yet._';
 
-        if (contentEl) contentEl.innerHTML = _helpRenderContent(sectionText);
+        var renderedContent = _helpRenderContent(sectionText);
+        // On the main/index page, prepend the clickable topic index
+        if (sectionKey === 'main') {
+            renderedContent = _helpRenderIndex() + renderedContent;
+        }
+        if (contentEl) contentEl.innerHTML = renderedContent;
     } catch (e) {
         if (contentEl) {
             contentEl.innerHTML =
@@ -122,26 +163,53 @@ function _helpTitleCase(str) {
 
 /**
  * Renders section text as HTML.
- * If the text contains "### Quick Help" and "### Details" sub-headings,
- * renders Quick Help immediately and Details behind a "Show more" toggle.
- * Otherwise renders the full text as-is.
+ * Parses optional sub-sections: ### Quick Help, ### Details, ### See Also.
+ * Quick Help is always shown; Details is behind "Show more ▾"; See Also is a styled link list.
  */
 function _helpRenderContent(sectionText) {
-    var quickMatch   = sectionText.match(/###\s+Quick Help\s*\n([\s\S]*?)(?=###\s+Details|$)/i);
-    var detailsMatch = sectionText.match(/###\s+Details\s*\n([\s\S]*?)$/i);
+    // Strip See Also block before further parsing so it doesn't bleed into Details
+    var seeAlsoHtml  = '';
+    var seeAlsoMatch = sectionText.match(/###\s+See Also\s*\n([\s\S]*?)(?=###\s|$)/i);
+    if (seeAlsoMatch) {
+        seeAlsoHtml  = '<div class="help-see-also"><strong>See Also:</strong>' +
+                       marked.parse(seeAlsoMatch[1].trim()) + '</div>';
+        sectionText  = sectionText.replace(seeAlsoMatch[0], '');
+    }
 
+    var quickMatch   = sectionText.match(/###\s+Quick Help\s*\n([\s\S]*?)(?=###\s+Details|$)/i);
+    var detailsMatch = sectionText.match(/###\s+Details\s*\n([\s\S]*?)(?=###\s|$)/i);
+
+    var mainHtml;
     if (quickMatch && detailsMatch) {
         var quickHtml   = marked.parse(quickMatch[1].trim());
         var detailsHtml = marked.parse(detailsMatch[1].trim());
-        return '<div class="help-quick">' + quickHtml + '</div>' +
-               '<div class="help-details-toggle">' +
-               '<button class="help-show-more-btn" onclick="helpToggleDetails(this)" aria-expanded="false">' +
-               'Show more ▾</button>' +
-               '</div>' +
-               '<div class="help-details hidden">' + detailsHtml + '</div>';
+        mainHtml = '<div class="help-quick">' + quickHtml + '</div>' +
+                   '<div class="help-details-toggle">' +
+                   '<button class="help-show-more-btn" onclick="helpToggleDetails(this)" aria-expanded="false">' +
+                   'Show more ▾</button>' +
+                   '</div>' +
+                   '<div class="help-details hidden">' + detailsHtml + '</div>';
+    } else {
+        mainHtml = marked.parse(sectionText);
     }
 
-    return marked.parse(sectionText);
+    return mainHtml + seeAlsoHtml;
+}
+
+/**
+ * Renders the clickable topic index for #help/main.
+ */
+function _helpRenderIndex() {
+    var html = '<div class="help-index">';
+    HELP_TOPIC_MAP.forEach(function(group) {
+        html += '<div class="help-index-section"><h3>' + _helpEscape(group.section) + '</h3><ul class="help-index-list">';
+        group.topics.forEach(function(t) {
+            html += '<li><a class="help-index-link" href="#help/' + t.key + '">' + _helpEscape(t.label) + '</a></li>';
+        });
+        html += '</ul></div>';
+    });
+    html += '</div>';
+    return html;
 }
 
 /**

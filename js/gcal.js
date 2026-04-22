@@ -333,6 +333,106 @@ async function gcalDisconnect() {
 }
 
 // ============================================================
+// Deep link helpers (Mode 1 — no API configured)
+// ============================================================
+
+/**
+ * Convert YYYY-MM-DD to YYYYMMDD (GCal date format).
+ * @param {string} dateStr
+ * @returns {string}
+ */
+function _gcalFmtDate(dateStr) {
+    return (dateStr || '').replace(/-/g, '');
+}
+
+/**
+ * Return the next calendar day for a YYYY-MM-DD string.
+ * Used because Google Calendar all-day end dates are exclusive.
+ * @param {string} dateStr
+ * @returns {string} YYYY-MM-DD
+ */
+function _gcalNextDay(dateStr) {
+    var d = new Date(dateStr + 'T00:00:00');
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Convert HH:MM to HHMMSS (GCal time format, no separators).
+ * @param {string} timeStr
+ * @returns {string}
+ */
+function _gcalFmtTime(timeStr) {
+    return (timeStr || '').replace(':', '') + '00';
+}
+
+/**
+ * Build a "Add to Google Calendar" deep link for a yard calendar occurrence.
+ * Produces an all-day event (yard events have no time fields).
+ * @param {Object} occ - Occurrence object: { title, description, occurrenceDate }
+ * @returns {string} URL
+ */
+function gcalYardDeepLink(occ) {
+    var d = occ.occurrenceDate || '';
+    var params = new URLSearchParams();
+    params.set('action', 'TEMPLATE');
+    params.set('text', occ.title || '');
+    params.set('dates', _gcalFmtDate(d) + '/' + _gcalFmtDate(_gcalNextDay(d)));
+    if (occ.description) params.set('details', occ.description);
+    return 'https://calendar.google.com/calendar/render?' + params.toString();
+}
+
+/**
+ * Build a "Add to Google Calendar" deep link for a life calendar event.
+ * Produces a timed event if startTime is set, otherwise all-day.
+ * @param {Object} ev   - Life event: { title, startDate, endDate, startTime, endTime,
+ *                        location, description, status }
+ * @param {Object} opts - Optional overrides: { categoryName, locationText }
+ * @returns {string} URL
+ */
+function gcalLifeDeepLink(ev, opts) {
+    opts = opts || {};
+    var params = new URLSearchParams();
+    params.set('action', 'TEMPLATE');
+
+    // Title — prepend status prefix to match what GC-4 will do for API-synced events
+    var title = ev.title || '';
+    if (ev.status === 'attended') title = '\u2713 ' + title;
+    else if (ev.status === 'didntgo') title = '\u2717 ' + title;
+    params.set('text', title);
+
+    // Dates
+    var startDate = ev.startDate || '';
+    var endDate   = ev.endDate   || startDate;
+    var startTime = ev.startTime || '';
+    var endTime   = ev.endTime   || '';
+
+    if (startTime) {
+        var startDT = _gcalFmtDate(startDate) + 'T' + _gcalFmtTime(startTime);
+        var endDT   = endTime
+            ? _gcalFmtDate(endDate) + 'T' + _gcalFmtTime(endTime)
+            : _gcalFmtDate(endDate) + 'T235900'; // end of day if no end time
+        params.set('dates', startDT + '/' + endDT);
+    } else {
+        // All-day — GCal end date is exclusive so add one day
+        params.set('dates', _gcalFmtDate(startDate) + '/' + _gcalFmtDate(_gcalNextDay(endDate)));
+    }
+
+    // Location — prefer resolved text from opts, then fall back to ev.location
+    var locationText = opts.locationText || ev.location || '';
+    if (locationText) params.set('location', locationText);
+
+    // Description + optional category name
+    var desc = ev.description || '';
+    if (opts.categoryName) {
+        desc = desc ? desc + '\nCategory: ' + opts.categoryName : 'Category: ' + opts.categoryName;
+    }
+    if (desc) params.set('details', desc);
+
+    return 'https://calendar.google.com/calendar/render?' + params.toString();
+}
+
+// ============================================================
 // Toast notification
 // ============================================================
 

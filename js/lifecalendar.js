@@ -751,9 +751,13 @@ function _lcRenderEventList(events, categories) {
         return;
     }
 
-    // Build category color map for quick lookup
+    // Build category color + name maps for quick lookup
     var colorMap = {};
-    categories.forEach(function(c) { colorMap[c.id] = c.color || ''; });
+    var nameMap  = {};
+    categories.forEach(function(c) {
+        colorMap[c.id] = c.color || '';
+        nameMap[c.id]  = c.name  || '';
+    });
 
     list.innerHTML = events.map(function(ev) {
         var isAppt = ev._kind === 'appt';
@@ -828,6 +832,16 @@ function _lcRenderEventList(events, categories) {
         // data- attribute drives click navigation: appointments go to health-appointments page
         var dataAttr = isAppt ? 'data-appt="true"' : ('data-id="' + escapeHtml(ev.id) + '"');
 
+        // "Add to Google Calendar" deep link — shown on non-appointment cards when not API-connected
+        var gcalBtn = '';
+        if (!isAppt && typeof gcalIsConnected === 'function' && !gcalIsConnected()) {
+            var gcalUrl = gcalLifeDeepLink(ev, {
+                categoryName: nameMap[ev.categoryId] || '',
+                locationText: locationText
+            });
+            gcalBtn = '<a class="lc-gcal-link" href="' + escapeHtml(gcalUrl) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">+ Add to Google Calendar</a>';
+        }
+
         return `
             <div class="lc-event-card" ${dataAttr} role="button" tabindex="0">
                 <div class="lc-event-card-bar" style="background:${color}"></div>
@@ -839,6 +853,7 @@ function _lcRenderEventList(events, categories) {
                         <span class="lc-status-badge ${statusCls}">${escapeHtml(statusLbl)}</span>
                     </div>
                     ${apptTodayHtml}
+                    ${gcalBtn}
                 </div>
             </div>
         `;

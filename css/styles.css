@@ -8902,6 +8902,17 @@ a.health-chip--link:hover { filter: brightness(0.93); }
     font-size: 0.78rem;
 }
 
+/* "Add to Google Calendar" deep link inside life event cards */
+.lc-gcal-link {
+    display: inline-block;
+    margin-top: 6px;
+    font-size: 0.78rem;
+    color: var(--primary, #2563eb);
+    text-decoration: none;
+    opacity: 0.8;
+}
+.lc-gcal-link:hover { opacity: 1; text-decoration: underline; }
+
 /* Location mode radio row (Contacts / Manual) on the event form */
 .lc-loc-mode-row {
     display: flex;

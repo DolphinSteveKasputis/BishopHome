@@ -279,6 +279,7 @@ The health indicator also appears on the plant card in the zone view, so you can
 - **Complete an event:** Tap **✓ Complete** on any event card — this automatically creates an activity record for any linked zones
 - **Edit an event:** Tap **Edit** on the card
 - **Copy an event:** Tap **Copy** — creates a new one-time event pre-filled with the same title and description (date is cleared for you to set a new one)
+- **Add to Google Calendar:** Tap **+ GCal** on any event card to open a pre-filled Google Calendar "new event" page in a new tab. No sign-in to the app required — this is a direct deep link. The button only appears when Google Calendar sync is not connected (once connected, syncing is automatic).
 - **Delete a recurring event:** You'll be asked whether to delete just this occurrence or all future occurrences
 
 **Display range:** Use the dropdown at the top to show 1, 3 (default), 6, or 12 months ahead.
@@ -1805,6 +1806,8 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 **Event detail page:** Tap any event card in the list to open its edit form. All fields editable. The mini log entries appear below the form.
 
 **Mini logs:** You can add timestamped notes to a life event over its duration (e.g., daily travel diary entries). These flow into the journal's All Activity timeline and appear in the feed with "Show Event Notes" enabled.
+
+**Adding to Google Calendar:** Each event card in the list view shows a **+ Add to Google Calendar** link. Tapping it opens a pre-filled Google Calendar "new event" page in a new tab — no sign-in to the app required. The link is only shown when Google Calendar sync is not connected (once connected, syncing is automatic). Health appointment cards do not show this link.
 
 **Tips:**
 - The location-contact link is most useful when the venue has a contact record with an address -- then the address auto-appears as a Maps link on today's events on the Life home page and the calendar card.

@@ -732,6 +732,18 @@ function createCalendarEventCard(occ, reloadFn) {
     });
     actions.appendChild(copyBtn);
 
+    // Add to Google Calendar link — shown only when GCal API is not connected (Mode 1)
+    if (typeof gcalIsConnected === 'function' && !gcalIsConnected()) {
+        var gcalLink = document.createElement('a');
+        gcalLink.className = 'btn btn-small btn-secondary';
+        gcalLink.textContent = '+ GCal';
+        gcalLink.title = 'Add to Google Calendar';
+        gcalLink.href = gcalYardDeepLink(occ);
+        gcalLink.target = '_blank';
+        gcalLink.rel = 'noopener';
+        actions.appendChild(gcalLink);
+    }
+
     card.appendChild(actions);
 
     // Append the reschedule row below the action buttons (only for overdue cards)

@@ -157,7 +157,8 @@ const ALL_PAGES = [
     'life-projects', 'life-project',
     'top10list-create', 'top10list-edit',
     'memory-create', 'memory-edit',
-    'view', 'view-history', 'views-categories'
+    'view', 'view-history', 'views-categories',
+    'help'
 ];
 
 /**
@@ -720,6 +721,10 @@ function handleRoute() {
     } else if (page === 'place' && id) {
         showPage('place');
         loadPlaceDetailPage(id);
+    // ---------- Help route ----------
+    } else if (page === 'help') {
+        showPage('help');
+        loadHelpPage(id || 'main');
     } else if (TOP_LEVEL_PAGES.includes(page)) {
         showPage(page);
     } else {

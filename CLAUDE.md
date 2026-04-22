@@ -224,6 +224,14 @@ Bishop/
 - **Always tell the user** when you update the functional spec — state which section(s) were changed and what was updated. This lets the user notice if a spec update was skipped when it should have happened.
 - **Before every `git commit` that touches JS, HTML, or CSS: ask yourself "did any user-visible behavior change?" If yes → update the spec first.**
 
+## AppHelp.md — REQUIRED BEHAVIOR
+**IMPORTANT: `AppHelp.md` is the single source of truth for in-app help content. Keep it in sync with the app at all times.**
+- Any time a feature is added, changed, or removed that affects a screen with help content, update the relevant `## screen:X` section in `AppHelp.md` in the **same commit**.
+- This applies to ALL changes — new buttons, renamed fields, changed flows, removed features.
+- `AppHelp.md` feeds BOTH the per-screen Help Page display AND the LLM Q&A — there is only one file, so one update keeps both in sync automatically.
+- Shared concept sections (`## concept:activities`, etc.) must also be updated if the shared behavior changes.
+- **Always tell the user** when you update AppHelp.md — state which section(s) changed. This is the same discipline as the functional spec.
+
 ## Development Notes
 - Claude is writing the entire app under user direction
 - Keep code clear and well-commented for a developer whose primary background is C#/VB.NET

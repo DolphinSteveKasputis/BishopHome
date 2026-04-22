@@ -11763,3 +11763,154 @@ a.health-chip--link:hover { filter: brightness(0.93); }
     padding-top: 8px;
     flex-wrap: wrap;
 }
+
+/* ============================================================
+   Help Page
+   ============================================================ */
+
+/* Nav bar ? help link — slightly distinct so it's recognizable */
+.nav-help-link {
+    font-weight: 700;
+    opacity: 0.8;
+}
+.nav-help-link:hover {
+    opacity: 1;
+}
+
+/* Help page header row — title left, Ask AI button right */
+.help-page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+.help-page-header h2 {
+    margin: 0;
+    flex: 1;
+}
+
+/* Ask AI input area */
+.help-ai-input-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+    margin-bottom: 12px;
+}
+.help-ai-textarea {
+    flex: 1;
+    padding: 8px 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    resize: none;
+    line-height: 1.4;
+}
+.help-ai-textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
+}
+
+/* Q&A thread container */
+.help-qa-thread {
+    margin-bottom: 16px;
+}
+
+/* Individual Q&A pair card */
+.help-qa-pair {
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+}
+.help-qa-question {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #0369a1;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #bae6fd;
+}
+.help-qa-question::before {
+    content: 'Q: ';
+    opacity: 0.7;
+}
+.help-qa-answer {
+    font-size: 0.92rem;
+    color: #1e3a5f;
+    line-height: 1.6;
+}
+.help-qa-answer p { margin: 0 0 6px; }
+.help-qa-answer p:last-child { margin-bottom: 0; }
+.help-qa-answer ul, .help-qa-answer ol { margin: 4px 0 6px 18px; padding: 0; }
+.help-qa-answer li { margin-bottom: 3px; }
+.help-qa-pending {
+    color: #64748b;
+    font-style: italic;
+}
+
+/* Collapsed older Q&A section */
+.help-qa-collapse {
+    margin-bottom: 10px;
+}
+.help-qa-collapse-btn {
+    background: none;
+    border: none;
+    color: #3b82f6;
+    font-size: 0.85rem;
+    cursor: pointer;
+    padding: 4px 0;
+    text-decoration: underline;
+}
+.help-qa-collapse-btn:hover {
+    color: #1d4ed8;
+}
+.help-qa-older {
+    margin-top: 8px;
+}
+
+/* Static markdown content rendered from AppHelp.md */
+.help-static-content {
+    border-top: 1px solid #e5e7eb;
+    padding-top: 16px;
+    font-size: 0.95rem;
+    line-height: 1.65;
+    color: #1f2937;
+}
+.help-static-content h1,
+.help-static-content h2 { font-size: 1.15rem; margin: 18px 0 8px; color: #111827; }
+.help-static-content h3 { font-size: 1rem; margin: 14px 0 6px; color: #374151; }
+.help-static-content p  { margin: 0 0 10px; }
+.help-static-content ul,
+.help-static-content ol { margin: 4px 0 10px 20px; padding: 0; }
+.help-static-content li { margin-bottom: 4px; }
+.help-static-content strong { color: #111827; }
+.help-static-content code {
+    background: #f3f4f6;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.88rem;
+}
+.help-static-content hr {
+    border: none;
+    border-top: 1px solid #e5e7eb;
+    margin: 16px 0;
+}
+
+/* Loading / error states */
+.help-loading {
+    color: #6b7280;
+    font-style: italic;
+    padding: 20px 0;
+}
+.help-error {
+    color: #dc2626;
+    padding: 12px;
+    background: #fef2f2;
+    border-radius: 8px;
+    border: 1px solid #fecaca;
+}
+

@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=521">
+    <link rel="stylesheet" href="css/styles.css?v=523">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -117,6 +117,7 @@
             <a href="#search" class="nav-link" data-page="search">🔍 Search</a>
             <a href="#chat" class="nav-link" data-page="chat">Chat</a>
             <a href="#settings" class="nav-link" data-page="settings">⚙️</a>
+            <a href="#" class="nav-link nav-help-link" onclick="openHelpForCurrentScreen(event)" title="Help">?</a>
             <button class="nav-signout-btn" id="signOutBtn" title="Sign out">Sign Out</button>
         </nav>
         <!-- House nav (shown when on house-context pages) -->
@@ -131,6 +132,7 @@
             <a href="#search" class="nav-link" data-page="search">🔍 Search</a>
             <a href="#chat" class="nav-link" data-page="chat">Chat</a>
             <a href="#settings" class="nav-link" data-page="settings">⚙️</a>
+            <a href="#" class="nav-link nav-help-link" onclick="openHelpForCurrentScreen(event)" title="Help">?</a>
             <button class="nav-signout-btn" id="signOutBtnHouse" title="Sign out">Sign Out</button>
         </nav>
         <!-- Life nav (shown when on life-context pages) -->
@@ -142,6 +144,7 @@
             <a href="#search" class="nav-link" data-page="search">🔍 Search</a>
             <a href="#chat" class="nav-link" data-page="chat">Chat</a>
             <a href="#settings" class="nav-link" data-page="settings">⚙️</a>
+            <a href="#" class="nav-link nav-help-link" onclick="openHelpForCurrentScreen(event)" title="Help">?</a>
             <button class="nav-signout-btn" id="signOutBtnLife" title="Sign out">Sign Out</button>
         </nav>
         <!-- Thoughts nav (shown when on thoughts-context pages) -->
@@ -152,6 +155,7 @@
             <a href="#search" class="nav-link" data-page="search">🔍 Search</a>
             <a href="#chat" class="nav-link" data-page="chat">Chat</a>
             <a href="#settings" class="nav-link" data-page="settings">⚙️</a>
+            <a href="#" class="nav-link nav-help-link" onclick="openHelpForCurrentScreen(event)" title="Help">?</a>
             <button class="nav-signout-btn" id="signOutBtnThoughts" title="Sign out">Sign Out</button>
         </nav>
         <!-- Hamburger menu for mobile -->
@@ -178,6 +182,7 @@
             <a href="#search" class="nav-link" data-page="search">🔍 Search</a>
             <a href="#chat" class="nav-link" data-page="chat">Chat</a>
             <a href="#settings" class="nav-link" data-page="settings">⚙️ Settings</a>
+            <a href="#" class="nav-link nav-help-link" onclick="openHelpForCurrentScreen(event)">? Help</a>
             <button class="nav-signout-btn" id="signOutBtnMobile">Sign Out</button>
         </div>
         <!-- Life context links -->
@@ -189,6 +194,7 @@
             <a href="#search" class="nav-link" data-page="search">🔍 Search</a>
             <a href="#chat" class="nav-link" data-page="chat">Chat</a>
             <a href="#settings" class="nav-link" data-page="settings">⚙️ Settings</a>
+            <a href="#" class="nav-link nav-help-link" onclick="openHelpForCurrentScreen(event)">? Help</a>
             <button class="nav-signout-btn" id="signOutBtnMobileLife">Sign Out</button>
         </div>
         <!-- Thoughts context links -->
@@ -199,6 +205,7 @@
             <a href="#search" class="nav-link" data-page="search">🔍 Search</a>
             <a href="#chat" class="nav-link" data-page="chat">Chat</a>
             <a href="#settings" class="nav-link" data-page="settings">⚙️ Settings</a>
+            <a href="#" class="nav-link nav-help-link" onclick="openHelpForCurrentScreen(event)">? Help</a>
             <button class="nav-signout-btn" id="signOutBtnMobileThoughts">Sign Out</button>
         </div>
         <!-- House context links -->
@@ -213,6 +220,7 @@
             <a href="#search" class="nav-link" data-page="search">🔍 Search</a>
             <a href="#chat" class="nav-link" data-page="chat">Chat</a>
             <a href="#settings" class="nav-link" data-page="settings">⚙️ Settings</a>
+            <a href="#" class="nav-link nav-help-link" onclick="openHelpForCurrentScreen(event)">? Help</a>
             <button class="nav-signout-btn" id="signOutBtnMobileHouse">Sign Out</button>
         </div>
     </nav>
@@ -9342,6 +9350,25 @@ export default {
             </div>
         </div>
 
+        <!-- Page: Help -->
+        <section class="page hidden" id="page-help">
+            <div class="help-page-header">
+                <h2 id="helpPageTitle">Help</h2>
+                <button class="btn btn-sm btn-secondary" id="helpAskAiBtn" onclick="helpToggleAskAi()">? Ask AI</button>
+            </div>
+            <div id="helpAskAiSection" class="hidden">
+                <div class="help-ai-input-row">
+                    <textarea id="helpAiInput" class="help-ai-textarea"
+                        placeholder="Ask a question about the app…"
+                        onkeydown="if(event.ctrlKey && event.key==='Enter') helpSendQuestion()"
+                        rows="2"></textarea>
+                    <button id="helpAiSendBtn" class="btn btn-primary" onclick="helpSendQuestion()">Send</button>
+                </div>
+            </div>
+            <div id="helpQaThread" class="help-qa-thread"></div>
+            <div id="helpStaticContent" class="help-static-content"></div>
+        </section>
+
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="js/firebase-config.js?v=509"></script>
@@ -9391,7 +9418,8 @@ export default {
     <script src="js/memories.js?v=473"></script>
     <script src="js/firebasesetup.js?v=510"></script>
     <script src="js/views.js?v=505"></script>
-    <script src="js/app.js?v=519"></script>
+    <script src="js/help.js?v=523"></script>
+    <script src="js/app.js?v=523"></script>
 
 </body>
 </html>

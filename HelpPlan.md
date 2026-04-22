@@ -293,13 +293,14 @@ reflected. The spec and the help file are updated together.
 - [x] `MyLife-Functional-Spec.md` updated with Part 12a (In-App Help System)
 - [x] `CLAUDE.md` updated with AppHelp.md maintenance rule
 
-**Phase 1b — Context-Aware Topics Index (PLANNED — next to build)**
-- [ ] Add `_helpMajorSection(screenName)` mapping helper
-- [ ] Add section-specific topic routes (`topics-yard`, `topics-house`, etc.)
-- [ ] Update `☰ Topics` button to navigate to the correct section topics page
-- [ ] Add cross-section breadcrumb links to each topics page (other major sections)
-- [ ] Decide: top bar vs. bottom links for cross-section nav (decide at build time)
-- [ ] Update `HELP_TOPIC_MAP` to organize by section for per-section rendering
+**Phase 1b — Context-Aware Topics Index ✅ COMPLETE**
+- [x] Added `_helpMajorSection(screenName)` mapping helper in help.js
+- [x] Added section-specific topic routes (`topics-yard`, `topics-house`, `topics-health`, `topics-life`, `topics-vehicles`)
+- [x] Updated `☰ Topics` button to call `helpOpenTopics()` — navigates to the correct section page
+- [x] Cross-section links at the **bottom** of each topics page ("Didn't find it here? Browse other sections:")
+- [x] `#help/main` redesigned as a section launcher — shows 5 section cards (Yard, House, Health, Life, Vehicles & Storage) that navigate to their topics pages; Getting Started content remains below
+- [x] Added `HELP_TOPICS_SECTIONS` and `HELP_MAIN_SECTIONS` config objects in help.js
+- [x] Added CSS for section cards (`.help-main-sections`, `.help-main-section-card`) and cross-section links (`.help-cross-sections`, `.help-cross-section-link`)
 
 **Phase 2 — House** (after Phase 1b approved)
 - Author `## screen:` sections for all House screens

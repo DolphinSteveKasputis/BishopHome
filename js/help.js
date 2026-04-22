@@ -177,6 +177,24 @@ var HELP_SCREEN_LABELS = {
     'settings'             : 'Settings & AI Setup'
 };
 
+// Maps topics-* route keys to the HELP_TOPIC_MAP section names they show
+var HELP_TOPICS_SECTIONS = {
+    'topics-yard'     : { label: 'Yard & Garden',      sections: ['Yard & Garden', 'Concepts'] },
+    'topics-house'    : { label: 'House',               sections: ['House'] },
+    'topics-health'   : { label: 'Health',              sections: ['Health'] },
+    'topics-life'     : { label: 'Life',                sections: ['Life'] },
+    'topics-vehicles' : { label: 'Vehicles & Storage',  sections: ['Vehicles & Storage'] }
+};
+
+// Major-section cards shown on #help/main
+var HELP_MAIN_SECTIONS = [
+    { label: 'Yard & Garden',     route: 'topics-yard',      icon: '🌿' },
+    { label: 'House',             route: 'topics-house',     icon: '🏠' },
+    { label: 'Health',            route: 'topics-health',    icon: '❤️' },
+    { label: 'Life',              route: 'topics-life',      icon: '📓' },
+    { label: 'Vehicles & Storage',route: 'topics-vehicles',  icon: '🚗' }
+];
+
 // ── Fetch & Parse ────────────────────────────────────────────
 
 /**
@@ -213,12 +231,18 @@ async function loadHelpPage(screenName) {
     _helpLlmConfigured = null;  // re-check config each time (user may have just saved it)
 
     var sectionKey = HELP_SECTION_MAP[screenName] || screenName || 'main';
-    var label      = HELP_SCREEN_LABELS[screenName]
-                     || _helpTitleCase(screenName || 'help');
+
+    // Determine page title
+    var label;
+    if (HELP_TOPICS_SECTIONS[screenName]) {
+        label = 'Topics: ' + HELP_TOPICS_SECTIONS[screenName].label;
+    } else {
+        label = HELP_SCREEN_LABELS[screenName] || _helpTitleCase(screenName || 'help');
+    }
 
     // Set page title
     var titleEl = document.getElementById('helpPageTitle');
-    if (titleEl) titleEl.textContent = 'Help: ' + label;
+    if (titleEl) titleEl.textContent = HELP_TOPICS_SECTIONS[screenName] ? label : ('Help: ' + label);
 
     // Reset Ask AI panel to closed state
     var aiSection = document.getElementById('helpAskAiSection');
@@ -245,10 +269,15 @@ async function loadHelpPage(screenName) {
         }
         if (!sectionText) sectionText = '_No help content is available for this screen yet._';
 
-        var renderedContent = _helpRenderContent(sectionText);
-        // On the main/index page, prepend the clickable topic index
-        if (sectionKey === 'main') {
-            renderedContent = _helpRenderIndex() + renderedContent;
+        var renderedContent;
+        if (HELP_TOPICS_SECTIONS[screenName]) {
+            // Section-specific topics page: filtered index + cross-section links
+            renderedContent = _helpRenderSectionTopics(screenName);
+        } else if (sectionKey === 'main') {
+            // Main page: section cards + Getting Started content
+            renderedContent = _helpRenderMainSections() + _helpRenderContent(sectionText);
+        } else {
+            renderedContent = _helpRenderContent(sectionText);
         }
         if (contentEl) contentEl.innerHTML = renderedContent;
     } catch (e) {
@@ -261,6 +290,47 @@ async function loadHelpPage(screenName) {
 
 function _helpTitleCase(str) {
     return str.replace(/-/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+}
+
+/**
+ * Maps a screen name to its major section key ('yard','house','health','life','vehicles').
+ * Returns null for settings, main, topics pages, and anything else without a clear section.
+ */
+function _helpMajorSection(screenName) {
+    var yardScreens = ['zones','zone','home','plant','weeds','weed','chemicals','chemical',
+                       'actions','calendar','activityreport','gpsmap','yardmap',
+                       'yard-problems','yard-projects',
+                       'concept-activities','concept-photos','concept-facts',
+                       'concept-problems','concept-quicktasks'];
+    var houseScreens = ['house','floor','room','thing','subthing','floorplan','floorplanitem',
+                        'house-problems','house-projects'];
+    var healthScreens = ['health','health-appointments','health-visits','health-concerns',
+                         'health-concern','health-conditions','health-condition',
+                         'health-medications','health-supplements','health-bloodwork',
+                         'health-vitals','health-insurance','health-emergency',
+                         'health-allergies','health-vaccinations','health-eye','health-care-team'];
+    var lifeScreens = ['life','journal','contacts','notes','lifecalendar'];
+    var vehicleScreens = ['vehicles','vehicle','garage','garageroom','garagething','garagesubthing',
+                          'structures','structure','structurething','structuresubthing',
+                          'collections','collection','collectionitem'];
+
+    if (yardScreens.indexOf(screenName) !== -1)    return 'yard';
+    if (houseScreens.indexOf(screenName) !== -1)   return 'house';
+    if (healthScreens.indexOf(screenName) !== -1)  return 'health';
+    if (lifeScreens.indexOf(screenName) !== -1)    return 'life';
+    if (vehicleScreens.indexOf(screenName) !== -1) return 'vehicles';
+    return null;
+}
+
+/**
+ * Called by the ☰ Topics button on the help page.
+ * Navigates to the section-specific topics page based on the current help screen.
+ */
+function helpOpenTopics() {
+    var hash = window.location.hash;          // e.g. '#help/journal'
+    var screenName = hash.replace(/^#help\//, '').split('/')[0];
+    var section = _helpMajorSection(screenName);
+    window.location.hash = section ? ('help/topics-' + section) : 'help/main';
 }
 
 /**
@@ -311,6 +381,53 @@ function _helpRenderIndex() {
         html += '</ul></div>';
     });
     html += '</div>';
+    return html;
+}
+
+/**
+ * Renders the main help landing page — section cards linking to each topics page,
+ * followed by Getting Started content.
+ */
+function _helpRenderMainSections() {
+    var html = '<div class="help-main-sections">';
+    HELP_MAIN_SECTIONS.forEach(function(s) {
+        html += '<a class="help-main-section-card" href="#help/' + s.route + '">' +
+                '<span class="help-main-section-icon">' + s.icon + '</span>' +
+                '<span class="help-main-section-label">' + _helpEscape(s.label) + '</span>' +
+                '</a>';
+    });
+    html += '</div>';
+    return html;
+}
+
+/**
+ * Renders a section-specific topics page: filtered topic index + cross-section links at bottom.
+ */
+function _helpRenderSectionTopics(routeKey) {
+    var config = HELP_TOPICS_SECTIONS[routeKey];
+    if (!config) return '';
+
+    // Filtered topic index
+    var html = '<div class="help-index">';
+    HELP_TOPIC_MAP.forEach(function(group) {
+        if (config.sections.indexOf(group.section) === -1) return;
+        html += '<div class="help-index-section"><h3>' + _helpEscape(group.section) + '</h3><ul class="help-index-list">';
+        group.topics.forEach(function(t) {
+            html += '<li><a class="help-index-link" href="#help/' + t.key + '">' + _helpEscape(t.label) + '</a></li>';
+        });
+        html += '</ul></div>';
+    });
+    html += '</div>';
+
+    // Cross-section links at bottom
+    html += '<div class="help-cross-sections"><p>Didn\'t find it here? Browse other sections:</p><div class="help-cross-section-links">';
+    HELP_MAIN_SECTIONS.forEach(function(s) {
+        if (s.route === routeKey) return; // skip current section
+        html += '<a class="help-cross-section-link" href="#help/' + s.route + '">' +
+                s.icon + ' ' + _helpEscape(s.label) + '</a>';
+    });
+    html += '</div></div>';
+
     return html;
 }
 

@@ -10260,6 +10260,16 @@ a.health-chip--link:hover { filter: brightness(0.93); }
     box-shadow: 0 8px 24px rgba(217, 119, 6, 0.35);
 }
 
+/* ── Main landing tile — Help (slate/gray) ── */
+.landing-tile--help {
+    background: linear-gradient(135deg, #475569, #94a3b8);
+    color: #fff;
+}
+.landing-tile--help:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(71, 85, 105, 0.35);
+}
+
 /* ── Thoughts landing: Top 10 Lists tile (indigo gradient) ── */
 .landing-tile--top10lists {
     background: linear-gradient(135deg, #6366f1, #a5b4fc);

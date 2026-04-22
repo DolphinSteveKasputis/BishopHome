@@ -4,11 +4,12 @@
 // the Help Page, and handles the "Ask AI" Q&A flow.
 // ============================================================
 
-var _helpCache         = null;  // full AppHelp.md text, cached after first fetch
-var _helpQA            = [];    // Q&A pairs for the current help page session
-var _helpAiOpen        = false; // whether the Ask AI panel is expanded
-var _helpLlmConfigured = null;  // null = unchecked, true/false after first check
-var HELP_COMPACT_AT    = 3;     // collapse older Q&A after this many visible pairs
+var _helpCache          = null;  // full AppHelp.md text, cached after first fetch
+var _helpQA             = [];    // Q&A pairs for the current help page session
+var _helpAiOpen         = false; // whether the Ask AI panel is expanded
+var _helpLlmConfigured  = null;  // null = unchecked, true/false after first check
+var _helpCurrentScreen  = null;  // screenName last loaded -- used by Topics button
+var HELP_COMPACT_AT     = 3;     // collapse older Q&A after this many visible pairs
 
 // Maps URL route names to AppHelp.md section keys where they differ
 var HELP_SECTION_MAP = {
@@ -106,6 +107,15 @@ var HELP_TOPIC_MAP = [
         ]
     },
     {
+        section: 'Thoughts',
+        topics: [
+            { label: 'Thoughts Home',  key: 'thoughts'   },
+            { label: 'Top 10 Lists',   key: 'top10lists' },
+            { label: 'Memories',       key: 'memories'   },
+            { label: 'My Views',       key: 'views'      }
+        ]
+    },
+    {
         section: 'App Setup',
         topics: [
             { label: 'Settings & AI Setup', key: 'settings' }
@@ -174,6 +184,10 @@ var HELP_SCREEN_LABELS = {
     'contacts'             : 'Contacts',
     'notes'                : 'Notes',
     'lifecalendar'         : 'Life Calendar',
+    'thoughts'             : 'Thoughts',
+    'top10lists'           : 'Top 10 Lists',
+    'memories'             : 'Memories',
+    'views'                : 'My Views',
     'settings'             : 'Settings & AI Setup'
 };
 
@@ -183,7 +197,8 @@ var HELP_TOPICS_SECTIONS = {
     'topics-house'    : { label: 'House',               sections: ['House'] },
     'topics-health'   : { label: 'Health',              sections: ['Health'] },
     'topics-life'     : { label: 'Life',                sections: ['Life'] },
-    'topics-vehicles' : { label: 'Vehicles & Storage',  sections: ['Vehicles & Storage'] }
+    'topics-vehicles' : { label: 'Vehicles & Storage',  sections: ['Vehicles & Storage'] },
+    'topics-thoughts' : { label: 'Thoughts',             sections: ['Thoughts'] }
 };
 
 // Major-section cards shown on #help/main
@@ -192,7 +207,8 @@ var HELP_MAIN_SECTIONS = [
     { label: 'House',             route: 'topics-house',     icon: '🏠' },
     { label: 'Health',            route: 'topics-health',    icon: '❤️' },
     { label: 'Life',              route: 'topics-life',      icon: '📓' },
-    { label: 'Vehicles & Storage',route: 'topics-vehicles',  icon: '🚗' }
+    { label: 'Vehicles & Storage',route: 'topics-vehicles',  icon: '🚗' },
+    { label: 'Thoughts',          route: 'topics-thoughts',  icon: '💡' }
 ];
 
 // ── Fetch & Parse ────────────────────────────────────────────
@@ -225,6 +241,9 @@ function _helpParseSection(fullText, key) {
  * Called by the router when navigating to #help/{screenName}.
  */
 async function loadHelpPage(screenName) {
+    // Track current screen so the Topics button can resolve the right section
+    _helpCurrentScreen = screenName;
+
     // Reset session state for this help page
     _helpQA            = [];
     _helpAiOpen        = false;
@@ -338,6 +357,8 @@ function _helpMajorSection(screenName) {
     if (healthScreens.indexOf(screenName) !== -1)  return 'health';
     if (lifeScreens.indexOf(screenName) !== -1)    return 'life';
     if (vehicleScreens.indexOf(screenName) !== -1) return 'vehicles';
+    var thoughtsScreens = ['thoughts','top10lists','top10list','memories','memory','views','view'];
+    if (thoughtsScreens.indexOf(screenName) !== -1) return 'thoughts';
     return null;
 }
 
@@ -346,9 +367,7 @@ function _helpMajorSection(screenName) {
  * Navigates to the section-specific topics page based on the current help screen.
  */
 function helpOpenTopics() {
-    var hash = window.location.hash;          // e.g. '#help/journal'
-    var screenName = hash.replace(/^#help\//, '').split('/')[0];
-    var section = _helpMajorSection(screenName);
+    var section = _helpMajorSection(_helpCurrentScreen || '');
     window.location.hash = section ? ('help/topics-' + section) : 'help/main';
 }
 

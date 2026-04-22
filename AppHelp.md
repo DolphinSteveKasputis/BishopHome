@@ -2025,3 +2025,163 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 - [House](#help/house)
 - [Garage](#help/garage)
 
+
+
+---
+
+## screen:thoughts
+
+### Quick Help
+- Thoughts is your personal reflection hub -- three sub-sections: Top 10 Lists, Memories, and My Views
+- Tap any tile to jump directly to that sub-section
+- thoughtsNav bar at the top links to all three sub-sections from anywhere in Thoughts
+
+### Details
+
+**What Thoughts is:** A section for the more reflective, personal side of your inner life -- ranked lists, recorded memories, and your evolving opinions and viewpoints. Separate from the Journal (which is day-to-day logging) -- Thoughts is for content you want to capture and revisit over time.
+
+**Three sub-sections:**
+- **Top 10 Lists** -- ranked lists of anything: favorite movies, best restaurants, top albums, greatest players. Each list is its own document with up to 10 (or more) ranked entries.
+- **Memories** -- long-form personal memory records. Richer than a journal entry -- memories have a title, when/where, tags, @mentions of people, linked URLs, linked other memories, and a full body textarea.
+- **My Views** -- your personal opinions and positions on topics, organized in a two-level category hierarchy. Each view has a versioned history so you can see how your thinking has evolved over time.
+
+**Thoughts landing page:** Shows three tiles with live counts (e.g., "Top 10 Lists (12)"). Tap any tile to enter that sub-section. The thoughtsNav bar at the top always shows Top 10 Lists / Memories / My Views links so you can jump between sub-sections without returning here.
+
+### See Also
+- [Top 10 Lists](#help/top10lists)
+- [Memories](#help/memories)
+- [My Views](#help/views)
+
+---
+
+## screen:top10lists
+
+### Quick Help
+- Create and maintain ranked Top 10 Lists for any topic -- movies, books, restaurants, albums, and more
+- Sort by Newest, Oldest, A-Z, or By Category -- preference is saved across sessions
+- Categories (Books, Movies, Music pre-seeded) keep your lists organized; add your own in Manage Categories
+
+### Details
+
+**What Top 10 Lists are:** A structured way to capture your ranked opinions. Each list has a title, a category, and a set of ranked items (any number -- the name says "Top 10" but you can have more or fewer).
+
+**List page:**
+- Lists display in an accordion. Tap a list header to expand it and see its ranked items. Tap again to collapse.
+- **Sort control:** Dropdown (Newest First / Oldest First / A–Z / By Category) + Sort button. Your selection is saved and persists across sessions.
+- **By Category sort:** Changes to a two-level accordion -- outer groups are categories (None first, then alphabetical), each showing its list count. Inner items are the lists in that category.
+- **+ New Top 10 List:** Opens the create page.
+
+**Create / Edit page:**
+- **Title** -- name of the list (required).
+- **Category** -- pick from your saved categories. Leave blank to leave it uncategorized.
+- **Items:** One row per ranked item, numbered automatically. Add items with the + button. Drag to reorder (drag handle on left). Delete individual items with the × button.
+- Save returns to the list page with the saved list auto-expanded.
+- Cancel returns without saving.
+
+**Categories:**
+- Three categories are pre-seeded on first use: Books, Movies, Music. You can add your own.
+- Tap **Manage Categories** (link at the top of the list page) to add, rename, or delete categories.
+
+**Tips:**
+- Use the "By Category" sort if you have many lists -- grouping by category makes it easy to find a specific list without scrolling through everything.
+- Lists can have any number of items -- "Top 5", "Top 20", or however many you want.
+
+### See Also
+- [Thoughts Home](#help/thoughts)
+- [Memories](#help/memories)
+- [My Views](#help/views)
+
+---
+
+## screen:memories
+
+### Quick Help
+- Long-form personal memory records -- richer than a journal entry
+- Fields: title, when, location, tags, body text, @mentions, people chips (++ trigger), linked URLs, linked memories
+- "In Progress" flag marks memories you are still writing or that have unfinished details
+- Voice-to-text button in the body area -- tap to speak, transcription appends automatically
+
+### Details
+
+**What Memories are:** A dedicated record for a specific memory, event, or story you want to preserve in detail. More structured than a journal entry -- you record when and where it happened, who was involved, tag it for later retrieval, and can link related memories or reference URLs.
+
+**Memories list page:**
+- Each row shows a drag handle, an "In Progress" badge (if applicable), the title, and a subdued date.
+- **Drag to reorder:** Grab the handle on the left side of any row and drag it to a new position. Order is saved immediately without affecting any other records.
+- **In Progress only toggle:** When checked, hides all completed memories and shows only those marked In Progress. Useful for drafts and memories you are still fleshing out.
+- **+ New Memory:** Opens the create/edit page for a new memory.
+
+**Memory edit page -- fields:**
+- **Title** -- the name of this memory (required).
+- **In Progress checkbox** -- marks the memory as still being worked on.
+- **When** -- free-text date field. Enter anything: "Summer 2019", "July 4th, 2022", "Around age 12". No strict format required.
+- **Location** -- free-text location: "Grandma's house", "Wrigley Field", "Lake Michigan shore".
+- **Tags** -- pill checkboxes shown alphabetically. Tap to toggle a tag on or off. Type in the "Add tag..." input and press Enter to create a new tag instantly. Tags save immediately when toggled.
+- **Body** -- main textarea for the full memory text. Supports all mention triggers below.
+- **Voice-to-text** -- tap the microphone button above the body to start speaking. Transcription appends to the body continuously. Tap again to stop.
+- **@Mentions** -- type @ in the body to see contacts flagged "Include in quick mentions." Type @@ to search all contacts. Tab or Enter selects the first match; tapping an item in the dropdown selects it. Selected contacts appear as teal chip links below the People header.
+- **++ Free-form names** -- type ++Name or ++"Full Name" in the body to add a person who is not in your contacts. On space or punctuation, the ++ prefix is stripped from the text and an amber chip appears below.
+- **URLs** -- add reference links related to the memory (articles, photos hosted elsewhere, etc.).
+- **Linked Memories** -- link to other related memory records. Creates a web of related events.
+
+**In-page help button:** Tap the `?` button (top-right of the edit page) for a quick-reference modal explaining the When field, @mention, and ++ trigger shortcuts.
+
+**Tips:**
+- Use tags consistently -- they are your main retrieval tool. Pick a small set of broad tags ("Family", "Travel", "Childhood", "Friends") and apply them reliably.
+- The ++ trigger is for people who are not in your contacts list -- family members from the past, characters in a story, anyone you want to name without creating a full contact record.
+- Link related memories together using the Linked Memories section. Over time this builds a connected web you can navigate.
+
+### See Also
+- [Thoughts Home](#help/thoughts)
+- [Top 10 Lists](#help/top10lists)
+- [My Views](#help/views)
+
+---
+
+## screen:views
+
+### Quick Help
+- My Views -- your personal opinions and positions on topics, organized by category
+- Two-level accordion: major categories > subcategories > individual views
+- Each view has a versioned history so you can track how your thinking changes over time
+- Live search filters by title and short version -- matching accordions expand automatically
+
+### Details
+
+**What My Views are:** A place to record your considered opinions, stances, or positions on topics -- anything from "My view on remote work" to "What I believe about diet and health" to "My political philosophy." Unlike a journal entry (which captures what happened today), a View is a living document you update over time, with history preserved.
+
+**Views list page:**
+- **Two-level accordion** -- major categories are the outer accordion; subcategories are inner accordions within each major category. Individual views are cards inside subcategories.
+- Each view card shows: title, date of the current version, a short preview of the current short version, and a history badge if previous versions exist.
+- **Search bar** -- live filter by title and short version text. Matching accordions auto-expand; non-matching views are hidden. Clear the search to collapse back to the default state.
+- **+ New View** -- opens the create/edit page.
+- **Manage Categories** -- link at the bottom of the page. Opens the category management screen where you add, rename, or delete major and subcategories.
+
+**View detail / edit page:**
+- **Title** -- the topic or question this view addresses (required).
+- **Category** -- pick a subcategory from the two-level category tree (major > sub).
+- **Short version** -- a 1-3 sentence summary of your current position. This is what appears in the list preview.
+- **Full version** -- the complete, detailed articulation of your view. As long as you want.
+- **Save** -- saves the current text. If the content changed since the last save, a new history entry is created automatically with a timestamp.
+
+**Version history:**
+- Every time you save a changed view, the previous version is stored.
+- A history badge on the view card shows how many prior versions exist.
+- Tap the history badge (or navigate to the view history page) to browse past versions and see how your thinking has evolved.
+- History is read-only -- you view past versions but cannot revert (your current version is always the live one).
+
+**Categories:**
+- Major categories are the top-level groupings (e.g., "Health & Fitness", "Work & Career", "Politics & Society").
+- Subcategories sit inside a major category (e.g., "Diet", "Exercise" inside "Health & Fitness").
+- Manage both levels in the Manage Categories page. Views must be assigned to a subcategory.
+
+**Tips:**
+- The two-level structure works best with 4-8 major categories and 2-5 subcategories each. Too many categories makes navigation hard; too few makes everything pile into one bucket.
+- Use the Short Version as a quick summary -- this is what you see in the list without opening the view. Keep it to your current one-line stance.
+- Version history is most valuable when you update views occasionally (yearly, after a major life event). The comparison over time is the whole point.
+
+### See Also
+- [Thoughts Home](#help/thoughts)
+- [Top 10 Lists](#help/top10lists)
+- [Memories](#help/memories)
+

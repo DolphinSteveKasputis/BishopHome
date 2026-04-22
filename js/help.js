@@ -4,10 +4,11 @@
 // the Help Page, and handles the "Ask AI" Q&A flow.
 // ============================================================
 
-var _helpCache      = null;  // full AppHelp.md text, cached after first fetch
-var _helpQA         = [];    // Q&A pairs for the current help page session
-var _helpAiOpen     = false; // whether the Ask AI panel is expanded
-var HELP_COMPACT_AT = 3;     // collapse older Q&A after this many visible pairs
+var _helpCache         = null;  // full AppHelp.md text, cached after first fetch
+var _helpQA            = [];    // Q&A pairs for the current help page session
+var _helpAiOpen        = false; // whether the Ask AI panel is expanded
+var _helpLlmConfigured = null;  // null = unchecked, true/false after first check
+var HELP_COMPACT_AT    = 3;     // collapse older Q&A after this many visible pairs
 
 // Maps URL route names to AppHelp.md section keys where they differ
 var HELP_SECTION_MAP = {
@@ -48,6 +49,12 @@ var HELP_TOPIC_MAP = [
             { label: 'Problems',    key: 'concept-problems'   },
             { label: 'Quick Tasks', key: 'concept-quicktasks' }
         ]
+    },
+    {
+        section: 'App Setup',
+        topics: [
+            { label: 'Settings & AI Setup', key: 'settings' }
+        ]
     }
 ];
 
@@ -73,7 +80,8 @@ var HELP_SCREEN_LABELS = {
     'room'          : 'Room Detail',
     'thing'         : 'Thing Detail',
     'health'        : 'Health',
-    'life'          : 'Life'
+    'life'          : 'Life',
+    'settings'      : 'Settings & AI Setup'
 };
 
 // ── Fetch & Parse ────────────────────────────────────────────
@@ -107,8 +115,9 @@ function _helpParseSection(fullText, key) {
  */
 async function loadHelpPage(screenName) {
     // Reset session state for this help page
-    _helpQA    = [];
-    _helpAiOpen = false;
+    _helpQA            = [];
+    _helpAiOpen        = false;
+    _helpLlmConfigured = null;  // re-check config each time (user may have just saved it)
 
     var sectionKey = HELP_SECTION_MAP[screenName] || screenName || 'main';
     var label      = HELP_SCREEN_LABELS[screenName]
@@ -225,22 +234,47 @@ function helpToggleDetails(btn) {
 // ── Ask AI panel ─────────────────────────────────────────────
 
 /**
- * Toggles the Ask AI input panel open/closed.
- * Called by the "? Ask AI" button.
+ * Checks whether an LLM is configured. Caches the result in _helpLlmConfigured.
  */
-function helpToggleAskAi() {
-    _helpAiOpen = !_helpAiOpen;
+async function _helpCheckLlm() {
+    if (_helpLlmConfigured !== null) return _helpLlmConfigured;
+    try {
+        var doc = await userCol('settings').doc('llm').get();
+        _helpLlmConfigured = doc.exists && !!(doc.data().apiKey);
+    } catch (e) {
+        _helpLlmConfigured = false;
+    }
+    return _helpLlmConfigured;
+}
+
+/**
+ * Toggles the Ask AI input panel open/closed.
+ * If LLM is not configured, redirects to #help/settings instead of opening.
+ */
+async function helpToggleAskAi() {
+    // If closing, just close — no config check needed
+    if (_helpAiOpen) {
+        _helpAiOpen = false;
+        var aiSection = document.getElementById('helpAskAiSection');
+        var aiBtn     = document.getElementById('helpAskAiBtn');
+        if (aiSection) aiSection.classList.add('hidden');
+        if (aiBtn)     aiBtn.textContent = '? Ask AI';
+        return;
+    }
+
+    var configured = await _helpCheckLlm();
+    if (!configured) {
+        window.location.hash = '#help/settings';
+        return;
+    }
+
+    _helpAiOpen = true;
     var aiSection = document.getElementById('helpAskAiSection');
     var aiBtn     = document.getElementById('helpAskAiBtn');
-    if (_helpAiOpen) {
-        aiSection.classList.remove('hidden');
-        aiBtn.textContent = '✕ Close AI';
-        var inputEl = document.getElementById('helpAiInput');
-        if (inputEl) inputEl.focus();
-    } else {
-        aiSection.classList.add('hidden');
-        aiBtn.textContent = '? Ask AI';
-    }
+    if (aiSection) aiSection.classList.remove('hidden');
+    if (aiBtn)     aiBtn.textContent = '✕ Close AI';
+    var inputEl = document.getElementById('helpAiInput');
+    if (inputEl) inputEl.focus();
 }
 
 /**
@@ -252,6 +286,13 @@ async function helpSendQuestion() {
     var sendBtn = document.getElementById('helpAiSendBtn');
     var question = (inputEl ? inputEl.value : '').trim();
     if (!question) return;
+
+    // Safety net: if LLM somehow not configured, redirect instead of erroring
+    var configured = await _helpCheckLlm();
+    if (!configured) {
+        window.location.hash = '#help/settings';
+        return;
+    }
 
     // Clear input and disable while waiting
     inputEl.value    = '';

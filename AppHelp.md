@@ -477,3 +477,32 @@ The health indicator also appears on the plant card in the zone view, so you can
 - Active tasks appear first; completed tasks are hidden by default.
 - The Yard Projects page shows all tasks across all zones and plants in one list.
 - Sub-zone tasks appear on a parent zone's page with a "from: Sub-zone Name" label.
+
+---
+
+## screen:settings
+
+**What this screen is for:** App settings — including configuring the AI assistant (Ask AI) used in the Help screen and throughout the app.
+
+### AI Assistant (Ask AI) Setup
+
+The **Ask AI** button on every Help screen lets you ask questions about the app in plain language. To use it, you need to connect an AI provider in Settings.
+
+**How to configure:**
+1. Open **Settings** from the main screen (gear icon or nav bar)
+2. Scroll to the **AI / LLM** section
+3. Choose a provider: **OpenAI** or **Grok (xAI)**
+4. Paste your API key
+5. Optionally set a specific model (or leave blank to use the default)
+6. Tap **Save**
+
+**Supported providers:**
+- **OpenAI** — uses `gpt-4o` by default. Get a key at [platform.openai.com](https://platform.openai.com)
+- **Grok (xAI)** — uses `grok-3` by default. Get a key at [console.x.ai](https://console.x.ai)
+
+**Your API key is stored securely** in your personal Firestore data — it is never shared or sent anywhere except directly to the provider you choose.
+
+**Tips:**
+- Once configured, Ask AI works across Help screens AND the SecondBrain / QuickLog AI features.
+- If you see an error like "LLM not configured", come back to Settings and verify your key is saved correctly.
+- You can switch providers or update your key at any time.

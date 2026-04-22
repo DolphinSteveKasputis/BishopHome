@@ -226,11 +226,13 @@ Bishop/
 
 ## AppHelp.md — REQUIRED BEHAVIOR
 **IMPORTANT: `AppHelp.md` is the single source of truth for in-app help content. Keep it in sync with the app at all times.**
-- Any time a feature is added, changed, or removed that affects a screen with help content, update the relevant `## screen:X` section in `AppHelp.md` in the **same commit**.
-- This applies to ALL changes — new buttons, renamed fields, changed flows, removed features.
+- **Before every `git commit` that touches JS, HTML, or CSS: evaluate whether the change affects any screen that has a `## screen:X` section in `AppHelp.md`. If it does — update that section in the same commit.**
+- This is an active evaluation step, not just "update if you notice it changed." Read the diff and ask: "Would a user reading the help for this screen be confused or misled by what's there now?"
+- This applies to ALL changes — new buttons, renamed fields, changed flows, removed features, reworded labels.
 - `AppHelp.md` feeds BOTH the per-screen Help Page display AND the LLM Q&A — there is only one file, so one update keeps both in sync automatically.
 - Shared concept sections (`## concept:activities`, etc.) must also be updated if the shared behavior changes.
-- **Always tell the user** when you update AppHelp.md — state which section(s) changed. This is the same discipline as the functional spec.
+- **Always tell the user** when you update AppHelp.md — state which section(s) changed and what was updated. If you evaluated and no update was needed, say that too.
+- **If a screen does not yet have a `## screen:X` section and you add significant new functionality to it, author the section in the same commit.**
 
 ## Development Notes
 - Claude is writing the entire app under user direction

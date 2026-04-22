@@ -1640,27 +1640,43 @@ The app has three navigation contexts, each with its own nav bar:
 
 **Route:** `#help/{screenName}` — handled by `app.js` router, calls `loadHelpPage(screenName)` from `js/help.js`.
 
-**Source of truth:** `AppHelp.md` — fetched once, cached in `_helpCache`. Sections keyed as `## screen:key` or `## concept:key`. A single file feeds both the static display and the AI Q&A context.
+**Source of truth:** `AppHelp.md` — fetched once, cached in `_helpCache`. Sections keyed as `## screen:key` or `## concept:key`. A single file feeds both the static help display and the LLM Q&A context. **Must be kept in sync with every code change — see Maintenance Rule below.**
+
+**Help content is authored for all major sections:**
+- Yard & Garden (zones, zone, plant, weeds, weed, chemicals, chemical, actions, calendar, activityreport, yard-problems, yard-projects, gpsmap, yardmap)
+- Shared Concepts (activities, photos, facts, problems, quicktasks)
+- House (house, floor, room, thing, subthing, floorplan, floorplanitem, house-problems, house-projects)
+- Health (health, health-appointments, health-visits, health-concerns, health-concern, health-conditions, health-condition, health-medications, health-supplements, health-bloodwork, health-vitals, health-insurance, health-emergency, health-allergies, health-vaccinations, health-eye, health-care-team)
+- Life (life, journal, contacts, notes, lifecalendar)
+- Vehicles & Storage (vehicles, garage, structures, collections)
+- Thoughts (thoughts, top10lists, memories, views)
+- App Setup (settings)
 
 **Page header:**
-- Title: "Help: {Screen Label}"
-- **☰ Topics** button — always navigates to `#help/main` (the topic index)
-- **? Ask AI** button — toggles the AI Q&A input panel
+- Title: "Help: {Screen Label}" (or "Topics: {Section}" on section topics pages)
+- **☰ Topics** button — calls `helpOpenTopics()`, which maps the current screen (`_helpCurrentScreen`) to its major section and navigates to `#help/topics-{section}` (e.g., `#help/topics-life`). Falls back to `#help/main` for unrecognized screens.
+- **? Ask AI** button — toggles the AI Q&A panel. If LLM is not configured, redirects to `#help/settings` instead.
 
-**Topic index (`#help/main`):** The `_helpRenderIndex()` function renders a grid of clickable links organized by section (Yard & Garden, Concepts). Clicking any topic navigates to that screen's help. The index is prepended above the Getting Started content on the main page.
+**`#help/main` (section launcher):** Shows clickable icon cards for each major section (Yard & Garden, House, Health, Life, Vehicles & Storage, Thoughts). Clicking a card navigates to that section's topics page. Getting Started content from `## screen:main` in AppHelp.md appears below the cards.
+
+**Section topics pages (`#help/topics-{section}`):** Shows only that section's topic links. At the bottom, styled section cards link to all other major sections ("Didn't find it here? Browse other sections:").
 
 **Per-screen content layout (sub-sections in AppHelp.md):**
 - `### Quick Help` — always shown immediately (scannable bullet summary)
-- `### Details` — hidden behind "Show more ▾" toggle button; expands in-place
-- `### See Also` — rendered as a styled blue-tinted link box at the bottom of the page; links navigate within the help system
+- `### Details` — hidden behind "Show more ▾" toggle; expands in-place
+- `### See Also` — rendered as a styled link box at the bottom; links navigate within the help system
 
-**Ask AI panel:** When opened, shows a textarea + Send button. Sends the typed question to the configured LLM (OpenAI or Grok) with the full `AppHelp.md` injected as system context. Each call is stateless — no conversation history is passed.
+**Ask AI panel:** Stateful conversation — each LLM call includes all prior answered Q&A pairs as user/assistant message turns, so follow-up questions ("where exactly is that?") work correctly. Error responses are excluded from history. Enter sends; Shift+Enter inserts a newline.
 
-**Q&A thread:** Appends newest-first below the input. The 3 most recent Q&A pairs are always visible; older ones collapse into a "Show N earlier questions ▾" toggle.
+**Q&A thread:** Appends newest-first below the input. The 3 most recent pairs are always visible; older ones collapse into "Show N earlier questions ▾".
 
-**Config:** LLM provider, model, and API key read from `userCol('settings').doc('llm')`. Supports `openai` (`gpt-4o`) and `grok` (`grok-3`). Always uses `max_completion_tokens` (never `max_tokens`).
+**Config:** LLM provider, model, and API key read from `userCol('settings').doc('llm')`. Supports `openai` (`gpt-4o`) and `grok` (`grok-3`). Always uses `max_completion_tokens`.
+
+**SecondBrain integration (`ASK_HELP`):** When SecondBrain classifies a question as `ASK_HELP`, it stores the question in `window._helpPendingQuestion` and navigates to `#help/main`. `loadHelpPage()` detects the pending question, opens the Ask AI panel, and auto-fires it — full follow-up conversation supported.
 
 **Concept aliases:** `HELP_SECTION_MAP` maps URL-safe keys (e.g., `concept-activities`) to AppHelp.md section keys (e.g., `concept:activities`).
+
+**Maintenance Rule:** Before every commit that touches JS, HTML, or CSS, evaluate whether the change affects a screen with help content. If it does, update the relevant `## screen:X` section in `AppHelp.md` in the same commit. This is not optional — stale help content produces wrong AI answers.
 
 ---
 

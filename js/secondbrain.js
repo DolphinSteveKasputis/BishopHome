@@ -284,6 +284,7 @@ async function _sbBuildContext() {
         notebooksSnap.forEach(function(d) {
             notebooks.push({ id: d.id, name: d.data().name || '' });
         });
+        var defaultNotebookId = await _notesGetDefaultNotebookId();
 
         // --- Life Categories ---
         var lifeCategories = [];
@@ -301,6 +302,7 @@ async function _sbBuildContext() {
             trackingCategories: trackingCategories,
             house: house, garage: garage, structures: structures,
             notebooks: notebooks,
+            defaultNotebookId: defaultNotebookId,
             lifeCategories: lifeCategories
         };
         _sbContextExp = now + SB_CACHE_MS;
@@ -1325,9 +1327,21 @@ function _sbRenderConfirmFields(action, payload) {
         case 'ADD_NOTE': {
             // Build notebook dropdown from cached context
             var notebooks = (_sbContext && _sbContext.notebooks) ? _sbContext.notebooks : [];
-            var resolvedName = p.notebook || 'Default';
+            // Pre-select: user's configured default if no notebook was requested,
+            // otherwise match by name from the LLM payload.
+            var preselectedId = null;
+            if (!p.notebookRequested) {
+                preselectedId = (_sbContext && _sbContext.defaultNotebookId) || null;
+            }
+            if (!preselectedId) {
+                var resolvedName = p.notebook || 'Default';
+                var preMatch = notebooks.find(function(nb) {
+                    return nb.name.toLowerCase() === resolvedName.toLowerCase();
+                });
+                preselectedId = preMatch ? preMatch.id : null;
+            }
             var nbOptions = notebooks.map(function(nb) {
-                var sel = (nb.name === resolvedName) ? ' selected' : '';
+                var sel = (nb.id === preselectedId) ? ' selected' : '';
                 return '<option value="' + _sbEsc(nb.id) + '"' + sel + '>' + _sbEsc(nb.name) + '</option>';
             }).join('');
             html += _sbFieldRow('Notebook',

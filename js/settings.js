@@ -1394,12 +1394,7 @@ document.getElementById('gcalDisconnectBtn').addEventListener('click', function(
     }
 });
 document.getElementById('gcalSyncAllBtn').addEventListener('click', function() {
-    // gcalSyncAll() is implemented in GC-5; stub message until then
-    if (typeof gcalSyncAll === 'function') {
-        gcalSyncAll();
-    } else {
-        _gcalToast('Sync All not yet implemented — coming soon');
-    }
+    gcalSyncAll();
 });
 document.getElementById('gcalRecreateCalBtn').addEventListener('click', function() {
     if (confirm('Re-create the Bishop calendar in Google? This will clear all synced event links and re-sync everything.')) {

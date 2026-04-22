@@ -523,11 +523,12 @@ Sync your Yard and Life Calendar events to Google Calendar so you get reminders 
 3. Enter a **Calendar Name** (default: "Bishop") — Bishop will create a dedicated calendar in Google with this name.
 4. Set a **Default Reminder** (default: 1 day before).
 5. Tap **Connect to Google** and approve the Google consent screen.
+6. If you have upcoming events not yet synced, you'll be asked whether to sync them now. If you previously added them manually via "Add to Google Calendar" links, say No to avoid duplicates — you can always run Sync All later.
 
 **Once connected:**
 - Events you create or edit in the Yard or Life Calendar automatically appear in your Google Calendar with a reminder.
 - Deleting an event in Bishop also removes it from Google Calendar.
-- **Sync All Events** — re-pushes all upcoming events if anything gets out of sync.
+- **Sync All Events** — re-pushes all upcoming events from both calendars if anything gets out of sync. Shows a count of events synced when done.
 - **Recreate Calendar** — use this if you accidentally deleted the Bishop calendar from Google. It re-creates it and re-syncs everything.
 - **Disconnect** — pauses auto-sync without removing anything from Google Calendar. Reconnecting resumes where you left off.
 

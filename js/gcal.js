@@ -260,6 +260,166 @@ async function gcalRecreateCalendar() {
 }
 
 // ============================================================
+// Sync All (GC-5)
+// ============================================================
+
+/**
+ * Sync all upcoming yard and life calendar events to Google Calendar.
+ * Processes each event sequentially to avoid rate-limit bursts.
+ * Shows a progress toast and a final summary toast.
+ * Called by: Sync All button, gcalRecreateCalendar(), gcalFirstConnectPrompt().
+ */
+async function gcalSyncAll() {
+    if (!gcalIsConnected()) return;
+
+    _gcalToast('Syncing events to Google Calendar…');
+
+    // Disable the Sync All button during the run
+    var syncBtn = document.getElementById('gcalSyncAllBtn');
+    if (syncBtn) { syncBtn.disabled = true; syncBtn.textContent = 'Syncing…'; }
+
+    try {
+        await gcalEnsureCalendar();
+    } catch (err) {
+        _gcalToast('Could not reach Google Calendar — check your connection');
+        if (syncBtn) { syncBtn.disabled = false; syncBtn.textContent = 'Sync All Events'; }
+        return;
+    }
+
+    var today = formatDateISO(new Date());
+    var succeeded = 0;
+    var failed    = 0;
+
+    // ── Yard Calendar: upcoming one-time + all recurring ──────
+    try {
+        // One-time events with date >= today
+        var oneTimeSnap = await userCol('calendarEvents')
+            .where('recurring', '==', null)
+            .where('date', '>=', today)
+            .get();
+
+        // Recurring events (no date filter — they generate future occurrences
+        // from their base date regardless of when that anchor date is)
+        var recurringSnap = await userCol('calendarEvents')
+            .where('recurring', '!=', null)
+            .get();
+
+        var yardDocs = [];
+        oneTimeSnap.forEach(function(d) { yardDocs.push({ id: d.id, ...d.data() }); });
+        recurringSnap.forEach(function(d) { yardDocs.push({ id: d.id, ...d.data() }); });
+
+        for (var i = 0; i < yardDocs.length; i++) {
+            try {
+                await gcalSyncYardEvent(yardDocs[i]);
+                succeeded++;
+            } catch (err) {
+                if (err.status === 404) {
+                    // Bishop calendar was deleted — recreate and abort; gcalRecreateCalendar
+                    // will call gcalSyncAll() again after rebuilding the calendar
+                    await gcalHandleCalendarNotFound();
+                    if (syncBtn) { syncBtn.disabled = false; syncBtn.textContent = 'Sync All Events'; }
+                    return;
+                }
+                console.error('gcalSyncAll — yard event error:', err);
+                failed++;
+            }
+        }
+    } catch (err) {
+        console.error('gcalSyncAll — yard query error:', err);
+    }
+
+    // ── Life Calendar: events with startDate >= today ─────────
+    try {
+        var lifeSnap = await userCol('lifeEvents')
+            .where('startDate', '>=', today)
+            .get();
+
+        var lifeDocs = [];
+        lifeSnap.forEach(function(d) { lifeDocs.push({ id: d.id, ...d.data() }); });
+
+        for (var j = 0; j < lifeDocs.length; j++) {
+            try {
+                await gcalSyncLifeEvent(lifeDocs[j]);
+                succeeded++;
+            } catch (err) {
+                if (err.status === 404) {
+                    await gcalHandleCalendarNotFound();
+                    if (syncBtn) { syncBtn.disabled = false; syncBtn.textContent = 'Sync All Events'; }
+                    return;
+                }
+                console.error('gcalSyncAll — life event error:', err);
+                failed++;
+            }
+        }
+    } catch (err) {
+        console.error('gcalSyncAll — life query error:', err);
+    }
+
+    // Re-enable button and show summary
+    if (syncBtn) { syncBtn.disabled = false; syncBtn.textContent = 'Sync All Events'; }
+
+    var msg = 'Synced ' + succeeded + ' event' + (succeeded !== 1 ? 's' : '') + ' to Google Calendar';
+    if (failed > 0) msg += ' (' + failed + ' failed — see console)';
+    _gcalToast(msg);
+}
+
+/**
+ * Called right after a successful first OAuth connect.
+ * Counts upcoming events not yet in GCal and offers a bulk sync.
+ * If total = 0 just shows a "connected" toast.
+ */
+async function gcalFirstConnectPrompt() {
+    var today = formatDateISO(new Date());
+    var total = 0;
+
+    try {
+        // Upcoming yard events with no gcalEventId yet
+        var yardSnap = await userCol('calendarEvents')
+            .where('date', '>=', today)
+            .get();
+        yardSnap.forEach(function(d) {
+            if (!d.data().gcalEventId) total++;
+        });
+
+        // Upcoming recurring yard events (no date filter — gcalSyncYardEvent handles window)
+        var recurSnap = await userCol('calendarEvents')
+            .where('recurring', '!=', null)
+            .get();
+        recurSnap.forEach(function(d) {
+            if (!d.data().gcalEventIds) total++;
+        });
+
+        // Upcoming life events with no gcalEventId yet
+        var lifeSnap = await userCol('lifeEvents')
+            .where('startDate', '>=', today)
+            .get();
+        lifeSnap.forEach(function(d) {
+            if (!d.data().gcalEventId) total++;
+        });
+    } catch (err) {
+        console.error('gcalFirstConnectPrompt — query error:', err);
+        _gcalToast('Google Calendar connected');
+        return;
+    }
+
+    if (total === 0) {
+        _gcalToast('Google Calendar connected');
+        return;
+    }
+
+    var msg = 'You have ' + total + ' upcoming event' + (total !== 1 ? 's' : '') +
+        ' not yet in Google Calendar.\n\n' +
+        'If you previously added events manually using the "Add to Google Calendar" links, ' +
+        'syncing now may create duplicates.\n\nSync anyway?';
+
+    if (confirm(msg)) {
+        gcalSyncAll();
+    } else {
+        _gcalToast('Google Calendar connected — use "Sync All Events" in Settings when ready');
+    }
+}
+
+// ============================================================
 // Connect / Disconnect
 // ============================================================
 

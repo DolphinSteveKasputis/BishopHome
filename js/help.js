@@ -87,6 +87,15 @@ var HELP_TOPIC_MAP = [
         ]
     },
     {
+        section: 'Vehicles & Storage',
+        topics: [
+            { label: 'Vehicles',          key: 'vehicles'   },
+            { label: 'Garage',            key: 'garage'     },
+            { label: 'Structures',        key: 'structures' },
+            { label: 'Collections',       key: 'collections'}
+        ]
+    },
+    {
         section: 'Life',
         topics: [
             { label: 'Life Home',       key: 'life'         },
@@ -147,6 +156,19 @@ var HELP_SCREEN_LABELS = {
     'health-vaccinations'  : 'Vaccinations',
     'health-eye'           : 'Eye / Glasses',
     'health-care-team'     : 'My Care Team',
+    'vehicles'             : 'Vehicles',
+    'vehicle'              : 'Vehicle Detail',
+    'garage'               : 'Garage',
+    'garageroom'           : 'Garage Room',
+    'garagething'          : 'Garage Thing',
+    'garagesubthing'       : 'Garage Sub-Thing',
+    'structures'           : 'Structures',
+    'structure'            : 'Structure Detail',
+    'structurething'       : 'Structure Thing',
+    'structuresubthing'    : 'Structure Sub-Thing',
+    'collections'          : 'Collections',
+    'collection'           : 'Collection Detail',
+    'collectionitem'       : 'Collection Item',
     'life'                 : 'Life',
     'journal'              : 'Journal',
     'contacts'             : 'Contacts',

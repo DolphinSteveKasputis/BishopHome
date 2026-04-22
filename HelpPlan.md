@@ -264,8 +264,13 @@ reflected. The spec and the help file are updated together.
 | Notes | `notes` | ✅ |
 | Life Calendar | `lifecalendar` | ✅ |
 
-### Vehicles / Garage / Structures / Collections (Phase 5 — not started)
-- `vehicles`, `vehicle`, `garage`, `structures`, `structure`, `collections`, `collection`
+### Vehicles / Garage / Structures / Collections (Phase 5 — complete)
+| Screen | Key | Status |
+|--------|-----|--------|
+| Vehicles | `vehicles` | ✅ |
+| Garage | `garage` | ✅ |
+| Structures | `structures` | ✅ |
+| Collections | `collections` | ✅ |
 
 ---
 
@@ -310,7 +315,8 @@ reflected. The spec and the help file are updated together.
 **Phase 4 — Life, Notes, Contacts ✅ COMPLETE**
 - life, journal, contacts, notes, lifecalendar
 
-**Phase 5 — Vehicles, Garage, Structures, Collections** (after Phase 4 approved)
+**Phase 5 — Vehicles, Garage, Structures, Collections ✅ COMPLETE**
+- vehicles, garage, structures, collections
 
 **Phase 6 — SecondBrain `ASK_HELP` action** (after all content is authored)
 - Add `ASK_HELP` to SecondBrain classification

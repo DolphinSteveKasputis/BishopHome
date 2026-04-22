@@ -1793,3 +1793,235 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 - [Journal](#help/journal)
 - [Contacts](#help/contacts)
 - [Appointments](#help/health-appointments)
+
+
+---
+
+## screen:vehicles
+
+### Quick Help
+- Track your vehicles with full maintenance history, mileage log, photos, and documents
+- Each vehicle has a detail page with collapsible sections: info, mileage, photos, activities, calendar, problems, facts, quick tasks
+- Archived (sold/gone) vehicles move to a collapsed section -- history is fully preserved
+- Log mileage readings over time to track odometer history
+
+### Details
+
+**What vehicles are:** A place to keep a complete record of every vehicle you own or have owned -- car, truck, motorcycle, boat, etc. Each vehicle is its own record with all its history attached.
+
+**Vehicle list page:**
+- Cards show year, make, and model as the title; color and license plate as the subtitle; and the profile photo thumbnail if one is set.
+- **+ Add Vehicle** opens the add form. Required fields: year, make, model. Optional: trim, color, VIN, license plate, purchase date, purchase price, notes.
+- Archived vehicles do not appear in the main list. A collapsed **Archived** section at the bottom of the page shows sold or gone vehicles -- click to expand it.
+
+**Vehicle detail page:**
+- All sections are collapsible accordions (tap the section header to expand/collapse).
+- **Vehicle Info** -- expanded by default. Shows all vehicle fields in an editable form. Tap **Save** to update. Fields: year, make, model, trim, color, VIN, license plate, purchase date, purchase price, notes.
+- **Mileage Log** -- odometer readings over time, newest first. Add an entry with date, odometer reading, and optional notes. Each entry shows a delete button. Useful for tracking oil change intervals or high-mileage milestones.
+- **Photos** -- photo gallery with profile photo support. The first photo uploaded auto-sets the thumbnail shown on the vehicle list card.
+- **Activity History** -- log maintenance events (oil change, tire rotation, inspection, repairs). Same activity logging used across the entire app.
+- **Calendar Events** -- upcoming maintenance reminders, registration renewals, or any vehicle-related calendar event.
+- **Problems / Concerns** -- open issues: warning lights, body damage, mechanical concerns. Open/resolved statuses.
+- **Facts** -- key facts: insurance policy number, lien holder, extended warranty expiration, garage location.
+- **Quick Task List** -- to-do items: "Get snow tires mounted", "Fix passenger window seal".
+
+**Archiving a vehicle:**
+- Use the **Archive** button on the vehicle detail page when you sell or dispose of a vehicle. Enter an optional reason ("Sold to John", "Trade-in").
+- Archived vehicles disappear from the main list but all history is kept. Expand the Archived section to view them.
+- Use **Unarchive** to restore a vehicle to the active list if needed.
+
+**SecondBrain integration:** You can log mileage via SecondBrain ("Add 35K miles to the truck") and it will create a mileage log entry on the matching vehicle.
+
+**Tips:**
+- Set a profile photo on each vehicle -- it makes the list much easier to scan than text-only cards.
+- Use Facts to store insurance and registration info -- everything in one place, accessible from your phone.
+- The Activity log doubles as a maintenance record -- log every oil change, inspection, and repair so you have a timestamped history if you ever sell the vehicle.
+
+### See Also
+- [Garage](#help/garage)
+- [Structures](#help/structures)
+
+---
+
+## screen:garage
+
+### Quick Help
+- Inventory what is stored in your garage and attic -- organized by room (space), things, and sub-things
+- Two default spaces are pre-created: Garage and Attic -- rename them or add more
+- Things support category badges, photos, activities, problems, facts, quick tasks, and calendar events
+- Use the **+ From Photo** AI identification button to identify and log items from photos
+
+### Details
+
+**What the Garage section is:** A structured inventory of your garage and attic (or any storage space). Mirrors the House section structure but is kept separate -- organized as rooms (spaces) → things → sub-things.
+
+**Garage room list page:**
+- Two rooms are auto-created on your first visit: **Garage** and **Attic**. You can rename them.
+- Tap any room card to open it and see its contents.
+- **Rename** a room via the pencil icon on the card.
+- Rooms cannot be deleted if they contain things -- remove things first.
+
+**Garage room detail page (collapsible accordions, all collapsed by default):**
+- **Photos** -- photos of the room/space itself.
+- **Things** -- list of items stored in this space. Each item card shows name, category badge, and a thumbnail. Tap to open the thing detail page.
+- **Activity History** -- maintenance activities tied to the room (cleaning, reorganizing, etc.).
+- **Calendar Events**, **Problems / Concerns**, **Facts**, **Quick Task List** -- same shared sections as all other entities.
+
+**Things:**
+- **+ Add Thing** -- fills in: name (required), category, description, purchase date, estimated worth, notes.
+- **Categories**: Furniture, Appliance, Ceiling Fan, Ceiling Light, Electronics, Other. Each renders a colored category badge on the card.
+- **+ From Photo** -- AI identification. Select up to 4 photos; the LLM identifies the item and pre-fills the form. Requires LLM to be configured in Settings.
+- **Edit** and **Delete** buttons on each card.
+- Tap a thing card (not a button) to open the thing detail page.
+- A thing can be **moved** to a different room via the Move button on its detail page.
+
+**Thing detail page (collapsible accordions):**
+- **Inventory Details** -- purchase date, worth, description, notes in a read-only display.
+- **Sub-Things** -- items within or associated with this thing (e.g., accessories, components, manuals).
+- **Photos**, **Activity History**, **Calendar Events**, **Problems / Concerns**, **Facts**, **Quick Task List** -- all shared cross-entity sections, same as everywhere else.
+
+**Sub-things:**
+- Added from the thing detail page. Fields: name (required), description, purchase date, worth, notes.
+- Sub-things have their own detail pages with the same cross-entity sections.
+- A sub-thing can be moved to a different parent thing via the Move button.
+
+**Breadcrumbs:** Navigation crumbs at the top of thing and sub-thing pages show the full path (Garage → Attic → Power Tools → Drill) so you always know where you are and can navigate up.
+
+**Tips:**
+- Use Facts on a thing to record serial numbers, model numbers, and warranty expiration dates -- critical for appliances and electronics.
+- The + From Photo button is the fastest way to log items. Point your camera at a tool or appliance and the AI fills in the name, category, and description.
+- Rename "Garage" and "Attic" to match how you actually think of your spaces (e.g., "Workshop" or "Storage Loft").
+
+### See Also
+- [House](#help/house)
+- [Structures](#help/structures)
+- [Vehicles](#help/vehicles)
+
+---
+
+## screen:structures
+
+### Quick Help
+- Track outdoor structures -- sheds, decks, pergolas, gazebos, pools, fences, etc.
+- Each structure has photos, activities, calendar events, problems, facts, and quick tasks
+- Mark a structure as "Storage" to unlock a Things inventory section inside it
+- Things and sub-things inside storage structures support the same AI photo identification as the Garage
+
+### Details
+
+**What structures are:** A dedicated section for outdoor structures separate from the main house -- anything built in your yard or on your property that you want to track separately. Examples: shed, deck, pergola, gazebo, pool, fence, playhouse, workshop.
+
+**Structure list page:**
+- Each card shows the structure name and type. A **Storage** badge appears if the structure is marked as a storage space (shed, etc.).
+- **+ Add Structure** -- fields: name (required), type (free text, e.g., "Shed", "Deck"), storage toggle (enables Things section), notes.
+- **Edit** and **Delete** buttons on each card. Deleting a structure deletes all its contents.
+- Tap a card to open the structure detail page.
+
+**Structure detail page (collapsible accordions, all collapsed by default):**
+- **Photos** -- photos of the structure itself.
+- **Things** -- only visible if the structure is marked as Storage. Same inventory system as the Garage.
+- **Activity History** -- maintenance events (painting, repairs, power washing, sealing).
+- **Calendar Events** -- upcoming maintenance, e.g., "Deck staining due in spring".
+- **Problems / Concerns** -- open issues: rot, leaks, cracked concrete, pest damage.
+- **Facts** -- built year, square footage, builder, permit number, material type.
+- **Quick Task List** -- project to-dos: "Restain deck boards", "Replace shed door latch".
+
+**Storage structures -- Things and Sub-Things:**
+- Enable the **Is Storage** toggle when adding or editing a structure to unlock the Things section.
+- The toggle is disabled (locked) if the structure already has things recorded -- remove things first before toggling off.
+- Things inside structures work identically to Garage things: categories, AI photo identification, sub-things, move support, and all cross-entity sections.
+- **Thing categories for structures**: Appliance, Auto, Chemical, Electronics, Fixture, Furniture, Power Tools, Tools, Other.
+- **+ From Photo** (AI identification) -- stages photos and sends to the LLM to identify the item and pre-fill the form. Requires LLM configured in Settings. An optional "Show AI Response First" toggle lets you review before auto-saving.
+
+**AI identification details:**
+- Open a structure thing, tap **+ From Photo**, select photos, and tap Identify.
+- The LLM returns a structured response: name, category, description, notes.
+- If "Show AI Response First" is toggled on, a review modal appears before saving so you can edit the result.
+- Photos are attached to the newly created item automatically.
+
+**Move:** Things and sub-things can be moved between structures (or to a garage room) via the Move button on their detail page.
+
+**Tips:**
+- Even if a structure is not for storage, add it here so you have a maintenance history, photos, and problem log in one place.
+- The deck, fence, and pool are easy to forget until they need attention. Use Problems to track known issues and Quick Tasks for upcoming repairs.
+- Use Facts to store builder info, permit numbers, and warranty details for newer structures.
+
+### See Also
+- [Garage](#help/garage)
+- [Yard Home (Zones)](#help/zones)
+- [House](#help/house)
+
+---
+
+## screen:collections
+
+### Quick Help
+- Track physical collectible inventories: comics, records, hats, hat pins, Beanie Babies, Ceramic Stadiums, books/magazines, or any custom Generic collection
+- Each collection is typed -- type-specific fields auto-appear for each item (series + issue # for comics, artist + album for records, etc.)
+- Use **+ From Photo** to let the AI identify and log collectibles from photos
+- Items support photos, acquired date, price paid, estimated value, location reference, and notes
+
+### Details
+
+**What collections are:** A structured inventory for physical collectibles. Instead of one giant list, each collection has a type, and each item within it gets type-specific fields. The app knows that comics have issue numbers and records have formats -- so the right fields show up automatically.
+
+**Collections list page:**
+- Each card shows the collection name, type badge, item count, and total estimated worth (sum of all item estimated values).
+- **+ Add Collection** -- name (required), type (select from list below), and for Generic type: up to 3 custom label names.
+- **Edit** button on each card to rename or change custom labels. Type cannot be changed after items are added.
+- Tap a card to open the collection detail page.
+
+**Collection types and their type-specific fields:**
+
+| Type | Type-Specific Fields | Sort Order | Search Field |
+|------|---------------------|------------|--------------|
+| Comics | Series, Issue #, Variant, Publisher, Year | Series A-Z → Issue # | Series |
+| Records/Albums | Format (LP/45/Cassette/CD/8-Track), Artist, Album, Label, Year | Format → Artist → Album | Artist |
+| Hats | Style, Color, Brand, Year | Name A-Z | Name |
+| Hat Pins | Description | Name A-Z | Name |
+| Beanie Babies | Style, Year, Has Tags (checkbox) | Name A-Z | Name |
+| Ceramic Stadiums | Team, Year | Name A-Z | Name |
+| Books & Magazines | Type (Book/Magazine), Author, Publisher, Year, ISBN, Issue Date | Name A-Z | Title + Author |
+| Generic | Three custom-labeled fields (you name them) | Name A-Z | Name |
+
+**Collection detail page:**
+- Header shows item count and total estimated worth.
+- **Filter bar** -- pre-labeled based on type ("Filter by series...", "Filter by artist...", etc.). Client-side search within the current collection.
+- Item rows show: 48×48 thumbnail, name, key field (series/artist/style/team/author), estimated value.
+- **+ Add Item** -- opens the item form with type-specific fields injected automatically.
+- **+ From Photo** -- AI identification. Takes photos, sends to LLM with type context, and auto-saves the item with photos attached. Thumbnail is set from the first photo. Button only appears if LLM is configured in Settings.
+
+**Collection item detail page:**
+- All type-specific fields displayed in a detail card.
+- **Acquired Date** -- when you got it.
+- **Price Paid** -- what you paid.
+- **Estimated Value** -- current estimated worth (used in the collection's total).
+- **Location Reference** -- where it is stored: link to a House Room, House Thing, or Garage Room from your existing inventory. Alternatively, free-text location (e.g., "Shelf 3, Box B").
+- **Notes** -- free-form notes about the item.
+- **Photos** -- full gallery. First photo auto-sets the list thumbnail.
+- **Edit** and **Delete** buttons. Deleting is permanent.
+
+**AI photo identification:**
+- On the collection detail page, tap **+ From Photo**.
+- Select photos of the item (can be multiple angles).
+- The LLM receives the photos and your collection type, then returns structured fields appropriate to that type.
+- The item is auto-saved with the fields filled in and photos attached.
+- A result modal confirms what was saved and offers an "Another" button to immediately identify the next item.
+
+**Location reference:**
+- Tap the location button on an item detail page to assign a location.
+- Pick from House Rooms, House Things, or Garage Rooms -- categorized in a grouped picker.
+- The assigned location appears as a tappable link on the item page, navigating directly to that room or thing.
+- Use **Clear Location** to remove an assigned location.
+
+**Tips:**
+- For comics, the series + issue number combination makes the sort and filter extremely useful -- browse by series name instantly.
+- For records, the format filter lets you quickly see only your LPs or only your 45s.
+- For Generic collections, name the three label fields when creating the collection -- you cannot change them later without losing the label context.
+- The Total Estimated Worth on the collection card gives you an at-a-glance valuation as you add items. Great for insurance purposes.
+- Photos are stored on the item record -- add multiple angles for valuable items.
+
+### See Also
+- [House](#help/house)
+- [Garage](#help/garage)
+

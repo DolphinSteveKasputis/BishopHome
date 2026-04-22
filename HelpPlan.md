@@ -319,11 +319,11 @@ reflected. The spec and the help file are updated together.
 **Phase 5 — Vehicles, Garage, Structures, Collections ✅ COMPLETE**
 - vehicles, garage, structures, collections
 
-**Phase 6 — SecondBrain `ASK_HELP` action** (after all content is authored)
-- Add `ASK_HELP` to SecondBrain classification
-- Wire Stage 2 LLM call using full `AppHelp.md`
-- Display Help reply inline in SB chat with distinct styling
-- Update `SB_HELP_ACTIONS` array (required behavior)
+**Phase 6 — SecondBrain `ASK_HELP` action ✅ COMPLETE**
+- [x] Added `ASK_HELP` to LLM classification prompt in secondbrain.js (broad trigger — explicit and implicit confusion)
+- [x] Short-circuited in `_sbHandleSend()` — skips confirm modal, stores question in `window._helpPendingQuestion`, navigates to `#help/main`
+- [x] `loadHelpPage()` detects pending question, opens Ask AI panel, and auto-fires the question — full follow-up support via existing Q&A thread
+- [x] Added `ASK_HELP` to `SB_ICONS`, `SB_LABELS`, and `SB_HELP_ACTIONS` with 4 examples
 
 ---
 

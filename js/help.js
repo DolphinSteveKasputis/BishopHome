@@ -280,6 +280,25 @@ async function loadHelpPage(screenName) {
             renderedContent = _helpRenderContent(sectionText);
         }
         if (contentEl) contentEl.innerHTML = renderedContent;
+
+        // If SecondBrain routed a help question here, auto-open Ask AI and fire it
+        var pendingQ = window._helpPendingQuestion;
+        if (pendingQ) {
+            window._helpPendingQuestion = null;
+            setTimeout(async function() {
+                var configured = await _helpCheckLlm();
+                if (!configured) { window.location.hash = 'help/settings'; return; }
+                _helpAiOpen = true;
+                var aiSection = document.getElementById('helpAskAiSection');
+                var aiBtn     = document.getElementById('helpAskAiBtn');
+                var inputEl   = document.getElementById('helpAiInput');
+                if (aiSection) aiSection.classList.remove('hidden');
+                if (aiBtn)     aiBtn.textContent = '✕ Close AI';
+                if (inputEl)   inputEl.value = pendingQ;
+                helpSendQuestion();
+            }, 50);
+        }
+
     } catch (e) {
         if (contentEl) {
             contentEl.innerHTML =

@@ -52,6 +52,7 @@ var SB_ICONS = {
     ADD_NOTE:           '📝', FIND_THING:         '🔍', ADD_DEV_NOTE:       '🛠️',
     ADD_CHEMICAL:       '🧪', ADD_PERSONAL_EVENT: '🗓️',
     CHECK_IN:           '📍',
+    ASK_HELP:           '💡',
     UNKNOWN_ACTION:     '❓'
 };
 var SB_LABELS = {
@@ -66,6 +67,7 @@ var SB_LABELS = {
     ADD_PLANT:          'Add Plant',           ADD_NOTE:           'Add Note',
     ADD_CHEMICAL:       'Add Product',         ADD_PERSONAL_EVENT: 'Add Personal Event',
     CHECK_IN:           'Check In',
+    ASK_HELP:           'Help Question',
     UNKNOWN_ACTION:     'Unknown Action'
 };
 
@@ -505,6 +507,9 @@ ctxJson,
 'useGps: set true ONLY when user says "here", "this place", "my location", "current location", or similar with no specific named place.',
 'Do NOT use CHECK_IN for journal entries or activities that happen to mention a place — only when the primary intent is to record a physical presence at a location.',
 '',
+'ASK_HELP — the user is asking how to use the app, looking for a feature, expressing confusion, or asking a "how do I" / "where is" / "what does X do" question. Use this broadly — implicit confusion ("I can\'t find", "this isn\'t working") counts.',
+'{"action":"ASK_HELP","payload":{"originalPrompt":"exact user question"}}',
+'',
 'UNKNOWN_ACTION — nothing above fits.',
 '{"action":"UNKNOWN_ACTION","payload":{"raw":"user text","llmNote":"reason"}}',
 '',
@@ -850,6 +855,16 @@ async function _sbHandleSend() {
         var result       = _sbParseResponse(raw);
 
         _sbLastResult = result;
+
+        // ASK_HELP: skip the confirm modal — navigate directly to the help page
+        if (result.action === 'ASK_HELP') {
+            _sbSetThinking(false);
+            _sbCloseInput();
+            window._helpPendingQuestion = (result.payload && result.payload.originalPrompt) || text;
+            window.location.hash = 'help/main';
+            return;
+        }
+
         _sbCloseInput();
         _sbShowConfirmation(result);
 
@@ -1432,6 +1447,13 @@ function _sbRenderConfirmFields(action, payload) {
                         '<div class="sb-find-path">Best match will be selected · you can change it in the form</div>' +
                         '</div>';
             }
+            break;
+
+        case 'ASK_HELP':
+            html += '<div class="sb-find-result">' +
+                    '<div class="sb-find-name">💡 Opening Help</div>' +
+                    '<div class="sb-find-path">' + _sbEsc(p.originalPrompt || '') + '</div>' +
+                    '</div>';
             break;
 
         case 'UNKNOWN_ACTION':
@@ -2415,6 +2437,17 @@ var SB_HELP_ACTIONS = [
             "I'm at Home Depot",
             'Check in here',
             'Just arrived at the dentist'
+        ]
+    },
+    {
+        action: 'ASK_HELP',
+        icon: '💡', label: 'Help Question',
+        desc: 'Ask how to use the app. Opens the Help page with your question already submitted — follow-up questions are supported there.',
+        examples: [
+            'How do I add a plant?',
+            "Where do I log a doctor's visit?",
+            "I can't find where to track my medications",
+            'What does All Activity do?'
         ]
     }
 ];

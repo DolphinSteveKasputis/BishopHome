@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=526">
+    <link rel="stylesheet" href="css/styles.css?v=527">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -9363,7 +9363,6 @@ export default {
                 <div class="help-ai-input-row">
                     <textarea id="helpAiInput" class="help-ai-textarea"
                         placeholder="Ask a question about the app…"
-                        onkeydown="if(event.key==='Enter' && !event.shiftKey){ event.preventDefault(); helpSendQuestion(); }"
                         rows="2"></textarea>
                     <button id="helpAiSendBtn" class="btn btn-primary" onclick="helpSendQuestion()">Send</button>
                 </div>
@@ -9421,8 +9420,8 @@ export default {
     <script src="js/memories.js?v=473"></script>
     <script src="js/firebasesetup.js?v=510"></script>
     <script src="js/views.js?v=505"></script>
-    <script src="js/help.js?v=526"></script>
-    <script src="js/app.js?v=526"></script>
+    <script src="js/help.js?v=527"></script>
+    <script src="js/app.js?v=527"></script>
 
 </body>
 </html>

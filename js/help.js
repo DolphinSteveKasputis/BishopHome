@@ -419,3 +419,18 @@ function openHelpForCurrentScreen(e) {
     if (screenName === 'help') return;
     window.location.hash = '#help/' + screenName;
 }
+
+// ── Init ─────────────────────────────────────────────────────
+
+// Wire Enter key on the AI input: Enter sends, Shift+Enter inserts newline.
+// Done via addEventListener (more reliable than inline onkeydown on textarea).
+document.addEventListener('DOMContentLoaded', function() {
+    var inputEl = document.getElementById('helpAiInput');
+    if (!inputEl) return;
+    inputEl.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            helpSendQuestion();
+        }
+    });
+});

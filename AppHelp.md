@@ -1544,3 +1544,252 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 ### See Also
 - [Appointments](#help/health-appointments)
 - [Health Visits](#help/health-visits)
+
+
+---
+
+## screen:life
+
+### Quick Help
+- The Life home page -- a tile grid linking to Journal, Contacts, Health, Notes, Calendar, Projects, and Checklists
+- The **Coming Up** section below the tiles shows birthdays, anniversaries, and upcoming life events in the next 30 days
+- Today's events show a clickable address and phone number so you can navigate or call without digging
+
+### Details
+
+**What the Life section is:** A personal hub for the non-house, non-yard parts of your life -- your journal, the people you know, your health, your notes, and major events and plans.
+
+**Tile grid:**
+- **Journal** -- daily entries, tracking metrics, photos, voice-to-text, check-ins, and the All Activity timeline
+- **Contacts** -- everyone you know: personal contacts, doctors, service professionals, businesses, facilities
+- **Health** -- full medical tracking hub (conditions, visits, medications, vitals, and more)
+- **Notes** -- notebook-organized notes system
+- **Calendar** -- Life Calendar for trips, milestones, goals, and major events
+- **Projects** -- Life Projects (vacation planner, build projects, etc.)
+- **Checklists** -- reusable checklists for life tasks
+
+**Coming Up section:** Shows events and contact dates within the next 30 days. Two sources:
+- **Annual contact dates** -- birthdays and anniversaries from your contacts. Shows the person name as a tappable link and a "turns N" age badge if birth year is recorded.
+- **Upcoming life calendar events** -- events from the Life Calendar. Shows the title as a tappable link.
+- For events happening **today**, the address (clickable Google Maps link) and phone number (clickable call link) appear directly on the card -- no need to open the event.
+
+**Relative time labels:** Each Coming Up item shows "Today!", "Tomorrow", or "In N days."
+
+### See Also
+- [Journal](#help/journal)
+- [Contacts](#help/contacts)
+- [Life Calendar](#help/lifecalendar)
+- [Notes](#help/notes)
+
+---
+
+## screen:journal
+
+### Quick Help
+- Daily journal entries with photos, voice-to-text, @mentions of contacts, place check-ins, and tracking metrics
+- Filter the feed by date range (7/30/60/90 days or custom) -- preference is saved
+- **All Activity** toggle replaces the journal with a unified timeline of everything logged across the entire app
+- Tap any entry card to open and edit it
+
+### Details
+
+**What the journal is:** A chronological personal log. Write about your day, log a check-in at a place, attach photos, mention people with @mentions, and track numeric metrics (weight, mood, vitals, etc.).
+
+**Journal feed:** Shows entries in reverse-chronological order within the selected date range. Each card shows the date, time, preview text, photos, and any tracking items. Life Calendar mini-log entries also appear in the feed (toggle "Show Event Notes" to show/hide them).
+
+**Date range filter:** Choose 7, 30, 60, or 90 days, or set a custom range. Your selection is saved and persists across sessions.
+
+**Writing an entry:**
+- Tap **+ New Entry** (or the date button) to open the entry form
+- **Entry text:** Free-form textarea. Supports @mentions (see below). Tab key inserts 4 spaces.
+- **Date and time:** Defaults to now; editable.
+- **Photos:** Tap Camera (take a new photo), Gallery (pick from device), or paste an image from clipboard. Photos are compressed automatically. Appear as 80x80 thumbnails in the form; full-screen lightbox in the feed.
+- **Tracking items:** Log numeric values per category (e.g., "Weight = 183", "Mood = 7"). Categories are managed on the Journal Categories page.
+- **Place / Check-in:** Attach a place to the entry. The Check-In button opens a GPS-based picker to find nearby venues (Foursquare-powered) or search by name. After check-in, the venue is locked to the entry. Check-in entries show a "checked in" badge in the feed.
+
+**@Mentions:**
+- Type @ in the entry text to trigger an autocomplete dropdown filtered to contacts marked "Include in quick mentions" (set in the contact's edit modal).
+- Type @@ to open the full contact list for mentions.
+- Mentioned contacts are linked to the entry and the interaction is logged on their contact record.
+
+**Voice-to-text:** Tap the microphone button to speak your entry. The Web Speech API transcribes continuously. Spoken punctuation commands work: say "period", "comma", "question mark", "exclamation point", "colon", "semicolon", "dash", "open paren", "close paren", "ellipsis". Editing commands (spoken as their own phrase): "new line", "new paragraph", "delete last word", "delete last sentence", "clear all".
+
+**Tracking items and categories:**
+- Navigate to Journal Tracking (separate page) to view trends for each category over time.
+- Navigate to Journal Categories to add, rename, or delete tracking categories.
+- In the feed filter panel, pick a category to see only that category's tracking items in the current date range.
+
+**All Activity toggle:** The most powerful feature of the journal. Checking "All Activity" replaces the journal feed with a unified timeline of everything logged across the entire app in the selected date range: journal entries, tracking items, yard activities, calendar events, health visits, appointments, concern updates, condition logs, blood work, vitals, and people interactions -- all in one sorted list. Tap any item to navigate to its source record. Useful for reviewing everything that happened in a given week or month.
+
+**Filter panel options:**
+- **Category dropdown** -- show only a specific tracking category (e.g., only weight entries)
+- **Check-Ins Only** -- show only entries that are GPS check-ins
+- **All Activity** -- the unified cross-app timeline described above
+
+**Life event mini logs:** If you write a mini log on a Life Calendar event, those entries appear in the journal feed alongside regular entries. Toggle "Show Event Notes" to show or hide them. All Activity mode shows them regardless.
+
+**View Visit link:** If an entry was created from a Health Visit (using "Create Journal" on the visit detail page), a "View Visit" button appears on the entry form, linking back to that visit.
+
+**Tips:**
+- The @mention system works best when you mark frequently-mentioned people as "Include in quick mentions" in their contact record. This keeps the autocomplete dropdown short and fast.
+- Voice-to-text is ideal for longer entries -- speak naturally and use punctuation commands to format. "New paragraph. Delete last sentence." work as standalone phrases with a brief pause before and after.
+- All Activity is a powerful retrospective tool -- select a 30-day range and you get a complete picture of your health, yard work, and daily life in one scrollable list.
+- Photos on journal entries are stored on the entry document itself (not in the photos collection). They are full-resolution compressed images viewable in a lightbox by tapping.
+
+### See Also
+- [Life Home](#help/life)
+- [Contacts](#help/contacts)
+- [Life Calendar](#help/lifecalendar)
+
+---
+
+## screen:contacts
+
+### Quick Help
+- Everyone you know -- personal contacts, doctors, specialists, service professionals, businesses, facilities, pets
+- Color-coded by category: green = Personal, blue = Medical Professional, purple = Medical Facility, orange = Service Professional
+- Contact detail includes: info, important dates (birthdays/anniversaries), photos, interaction log, shared life events, and facts
+- Medical professionals and facilities link to Health Appointments and Visits
+
+### Details
+
+**What contacts are:** A unified address book for every person, provider, and organization you interact with. Contacts power @mentions in the journal, provider pickers in health appointments and visits, facility pickers, and the Coming Up section on the Life home page.
+
+**Contact categories:**
+- **Personal** -- friends, family, neighbors, coworkers, acquaintances. Shows a personal type (Friend / Family / Neighbor / etc.). Personal types are user-customizable in Settings > Contact Types.
+- **Medical Professional** -- doctors, specialists, therapists, nurses, dentists. Shows specialty (free text with ~35 built-in options). Appears in the health appointment and visit provider pickers.
+- **Medical Facility** -- clinics, hospitals, labs, pharmacies. Appears in the health appointment facility picker. Staff sub-contacts (Medical Professionals) can be linked under a facility.
+- **Service Professional** -- plumbers, electricians, HVAC, pest control, handyman, etc. Trade is user-customizable in Settings > Contact Types.
+- **Business** -- stores, restaurants, hardware stores, etc. Business type is user-customizable.
+- **Pet** -- pets as contacts (useful for @mentions in journal entries about pet activities).
+- **Other** -- anything that does not fit above.
+
+**Sub-contacts (hierarchy):** A contact can have sub-contacts linked under it via a parent-child relationship. For Medical Facilities, staff members (Medical Professionals) appear under the facility in a "Staff" section. For Personal contacts, sub-contacts appear under "Family Members." This is useful for tracking a whole family or all staff at a clinic.
+
+**Adding a contact:**
+- Tap **+ Add Contact** -- select category, fill in name, type/specialty/trade as applicable, phone, email, address, website, Facebook URL, how you know them, notes, and whether to include in quick @mentions.
+
+**Contact detail page sections:**
+- **Contact info:** Phone (tappable tel: link), email (tappable mailto: link), address (tappable Google Maps link), website (external link), Facebook, how known, specialty (Medical Professional), notes.
+- **Important Dates:** Birthdays, anniversaries, and other recurring dates. Month and day required; year optional (age calculation requires year). Annual dates feed the Coming Up section on the Life home page. Add with **+ Add Date** -- label, month, day, optional year, recurrence.
+- **Photos:** Full photo gallery with profile photo support. First photo uploaded auto-sets the profile thumbnail shown on the contact list card.
+- **Interactions:** A log of times you met, talked, or interacted with this person. Add entries with date and free-form text. Interactions also appear in the All Activity timeline.
+- **Shared Life Events:** Life Calendar events that tag this contact appear here, showing what events you have attended or planned together.
+- **Facts:** Key-value notes about this contact (e.g., "Kids = Sarah, Tom, Emma", "Favorite restaurant = Mario's", "Parking = Street parking on Oak Ave").
+- **Sub-contacts (Staff / Family Members):** Linked sub-contacts listed here with Add and Remove buttons.
+
+**Quick mention flag:** The "Include in quick mentions" checkbox on the contact form controls whether this contact appears in the @ autocomplete in the journal and other text fields. Keep this list to people you mention frequently to keep the dropdown manageable.
+
+**Contact types settings:** Go to Settings > Contact Types to manage custom service trades, personal relationship types, and business categories. You can add, rename, and delete custom types.
+
+**Tips:**
+- Medical Professional contacts are most useful when you link them to your Care Team and then use them in Appointments and Visits. Their specialty auto-populates on the visit detail page.
+- The interaction log is a lightweight way to track when you last talked to someone -- useful for staying in touch with friends and family you do not see often.
+- For Medical Facilities, add staff members as sub-contacts (Medical Professionals) with the facility as parent. Then in the appointment form, selecting the facility will show its staff in the provider dropdown automatically.
+- Important dates with a year set show a "turns N" age calculation in the Coming Up section -- great for tracking milestone birthdays.
+
+### See Also
+- [Life Home](#help/life)
+- [Journal](#help/journal)
+- [My Care Team](#help/health-care-team)
+
+---
+
+## screen:notes
+
+### Quick Help
+- Notebook-organized notes -- create multiple color-coded notebooks and fill them with notes
+- One notebook can be set as your **default** (starred) -- QuickLog's ADD_NOTE action saves there automatically
+- Global search works across all note body text
+- Tap any note to open and edit it
+
+### Details
+
+**What notes are:** Simple free-form text notes organized into named notebooks. Different from journal entries (which are date-stamped and personal) -- notes are more like reference material, checklists, ideas, or anything you want to keep and retrieve.
+
+**Notebooks:**
+- Each notebook has a name and a color (8 preset gradient options rendered as colored cards on the notebook list).
+- **Default notebook (built-in):** A "Default" gray notebook auto-created on first visit. Cannot be deleted.
+- **Default notebook (user-configured):** Tap the star icon on any notebook's detail page to make it your default. Only one notebook can be the default at a time. The star label "Default" appears in the header. The SecondBrain/QuickLog "ADD_NOTE" voice command saves to your configured default notebook before falling back to the built-in Default.
+- **Add a notebook:** Tap **+ Add Notebook** -- enter a name and pick a color.
+- **Edit or delete a notebook:** Use the pencil icon on the notebook card. The built-in Default notebook cannot be deleted.
+
+**Notes within a notebook:**
+- Tap any notebook card to open it and see its notes.
+- Tap **+ New Note** to create a note. The body is a free-form textarea. Tab key inserts 4 spaces.
+- After saving a new note, the app navigates back to the notebook list (not the note page).
+- Tap any note card to open and edit it.
+- Notes show a preview of the first line in the notebook view.
+
+**Search:** Use the global search (magnifying glass in the nav) to search across all note body text. Results link directly to the matching note.
+
+**Tips:**
+- Use notebooks to separate categories of notes: "Work Ideas", "Recipes", "Home Projects", "Travel Research", "Meeting Notes."
+- Set the notebook you write in most often as your default. Then you can say "QuickLog: add a note -- [text]" and it lands in the right place without specifying the notebook name.
+- Notes are plain text only -- no formatting support. For formatted content, the Journal or Life Projects are better options.
+
+### See Also
+- [Life Home](#help/life)
+- [Journal](#help/journal)
+
+---
+
+## screen:lifecalendar
+
+### Quick Help
+- Life Calendar for major events -- trips, concerts, appointments, milestones, goals, relationship events
+- Two views: **List** (upcoming/past, filterable) and **Grid** (monthly calendar view)
+- Health appointments also appear on this calendar automatically
+- Events can have a location, linked people, categories, mini-log notes, and a status
+
+### Details
+
+**What the Life Calendar is:** A place to track significant life events -- things worth remembering and planning for. Different from the Yard Calendar (which tracks recurring maintenance) -- this is for your life: vacations, concerts, weddings, doctor appointments (shown automatically), anniversaries, fitness goals, home projects with a timeline.
+
+**Event status values:**
+- **Upcoming** -- scheduled in the future
+- **In Progress** -- event spans multiple days and today is within the range
+- **Attended / Completed** -- you went / it happened
+- **Missed** -- scheduled but did not happen
+- **Did Not Go** -- chose not to attend
+
+**List view:**
+- Default filter: Upcoming events only (startDate >= today)
+- Status filter dropdown: Upcoming, Upcoming + Attended, Attended, Missed, All
+- Category filter: filter by custom color-coded categories
+- **Show Past 30 Days toggle** (list view only): when ON, extends the date window 30 days back and shows attended/missed events from that period too. Off by default and resets on each page load.
+- Health appointments appear automatically in the Upcoming and Upcoming + Attended filters as red "Appt" badge cards. Clicking navigates to the Appointments page.
+
+**Grid view:**
+- Monthly calendar grid showing colored event bars on their start dates
+- All events visible regardless of status filter -- past, present, future
+- Health appointments always appear (non-cancelled) regardless of status filter
+- Scroll or use the month navigation to browse any month
+
+**Adding an event:**
+- Tap **+ Add Event** (or **+ Life Event** / **+ New**)
+- **Title, start date, end date** (optional; end date cannot be before start date)
+- **Start time, end time** (optional)
+- **Category:** Color-coded category. Manage categories in the category settings.
+- **Status:** Set initial status (usually Upcoming for a new event)
+- **Location:** Two modes -- Contacts (pick from your contacts list, stores a link) or Manual (type a city, venue, or address). Contacts mode hides Personal contacts by default; check "Show Personal" to include them. On events happening today, the linked contact's address and phone appear as tappable links on the event card.
+- **People:** Tag contacts from your contacts list who are involved in this event. Tagged events appear on each person's detail page under "Shared Life Events."
+- **Description:** Free-form description of the event.
+- **Mini Log:** A journal-style notes area attached directly to the event. Mini log entries appear in the main journal feed (toggle "Show Event Notes" to include/exclude them).
+- Saving a new event navigates back to the Life Calendar list. Saving an edited event also returns to the list.
+
+**Event detail page:** Tap any event card in the list to open its edit form. All fields editable. The mini log entries appear below the form.
+
+**Mini logs:** You can add timestamped notes to a life event over its duration (e.g., daily travel diary entries). These flow into the journal's All Activity timeline and appear in the feed with "Show Event Notes" enabled.
+
+**Tips:**
+- The location-contact link is most useful when the venue has a contact record with an address -- then the address auto-appears as a Maps link on today's events on the Life home page and the calendar card.
+- Tag people on events to build a history of shared experiences. A person's contact detail page shows all life events they were tagged in.
+- Use categories and colors to distinguish event types at a glance in the grid view: trips (blue), health appointments (auto-red), concerts (orange), family (green).
+- Health appointments appear automatically from the Health section -- you do not add them here. Completing them in Health (Mark Done) is what converts them to visits.
+
+### See Also
+- [Life Home](#help/life)
+- [Journal](#help/journal)
+- [Contacts](#help/contacts)
+- [Appointments](#help/health-appointments)

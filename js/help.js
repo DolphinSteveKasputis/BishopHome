@@ -87,6 +87,16 @@ var HELP_TOPIC_MAP = [
         ]
     },
     {
+        section: 'Life',
+        topics: [
+            { label: 'Life Home',       key: 'life'         },
+            { label: 'Journal',         key: 'journal'      },
+            { label: 'Contacts',        key: 'contacts'     },
+            { label: 'Notes',           key: 'notes'        },
+            { label: 'Life Calendar',   key: 'lifecalendar' }
+        ]
+    },
+    {
         section: 'App Setup',
         topics: [
             { label: 'Settings & AI Setup', key: 'settings' }
@@ -138,6 +148,10 @@ var HELP_SCREEN_LABELS = {
     'health-eye'           : 'Eye / Glasses',
     'health-care-team'     : 'My Care Team',
     'life'                 : 'Life',
+    'journal'              : 'Journal',
+    'contacts'             : 'Contacts',
+    'notes'                : 'Notes',
+    'lifecalendar'         : 'Life Calendar',
     'settings'             : 'Settings & AI Setup'
 };
 

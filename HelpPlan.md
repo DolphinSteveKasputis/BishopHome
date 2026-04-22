@@ -255,8 +255,14 @@ reflected. The spec and the help file are updated together.
 - `health`, `health-vitals`, `health-medications`, `health-visits`,
   `health-conditions`, `health-bloodwork`, `health-insurance`
 
-### Life (Phase 4 — not started)
-- `journal`, `contacts`, `notes`, `life`, `lifecalendar`, `life-projects`
+### Life (Phase 4 — complete)
+| Screen | Key | Status |
+|--------|-----|--------|
+| Life Home | `life` | ✅ |
+| Journal | `journal` | ✅ |
+| Contacts | `contacts` | ✅ |
+| Notes | `notes` | ✅ |
+| Life Calendar | `lifecalendar` | ✅ |
 
 ### Vehicles / Garage / Structures / Collections (Phase 5 — not started)
 - `vehicles`, `vehicle`, `garage`, `structures`, `structure`, `collections`, `collection`
@@ -301,7 +307,8 @@ reflected. The spec and the help file are updated together.
   health-bloodwork, health-vitals, health-insurance, health-emergency,
   health-allergies, health-vaccinations, health-eye, health-care-team
 
-**Phase 4 — Life, Notes, Contacts** (after Phase 3 approved)
+**Phase 4 — Life, Notes, Contacts ✅ COMPLETE**
+- life, journal, contacts, notes, lifecalendar
 
 **Phase 5 — Vehicles, Garage, Structures, Collections** (after Phase 4 approved)
 

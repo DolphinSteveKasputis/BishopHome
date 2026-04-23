@@ -306,7 +306,7 @@ Tracks beneficiary assignments across Things, Sub-Things, Items, Garage Things/S
 
 **Editing**: The "Goes to (if I die)" contact picker appears in each entity's add/edit modal. Uses `buildContactPicker` from `contacts.js`. Supports search by name. Clear the field to remove the direct assignment (inheritance from parent still applies).
 
-**Summary page** (`#beneficiaries`): Accessible from the House "More" section as "Who Gets What". The person dropdown is pre-populated with only people who have at least one direct assignment — no guessing needed. Select a specific person or "All People" to see everyone grouped by person. Results are single-line rows showing item name · path · direct/inherited badge. A "Show inherited" checkbox (default off) toggles display of inherited items. A "Print / PDF" button calls `window.print()` — the browser's print dialog allows saving as PDF.
+**Summary page** (`#beneficiaries`): Accessible from the House "More" section as "Who Gets What". The person dropdown is pre-populated with only people who have at least one direct assignment — no guessing needed. Select a specific person or "All People" to see everyone grouped by person. Results are single-line rows showing item name · path · direct/inherited badge. A "Show inherited" checkbox (default off) toggles display of inherited items. A "Print / PDF" button calls `window.print()` — the browser's print dialog allows saving as PDF. Single-person printouts include an "Items for: [Name]" heading. All-People printouts insert a page break between each person so each prints on their own page.
 
 ### LLM Photo Identification (House)
 Things, Sub-Things, and Items can all be added via `+Photo` button:

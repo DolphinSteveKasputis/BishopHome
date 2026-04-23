@@ -2092,7 +2092,7 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 
 **Show inherited toggle:** By default, only directly assigned items are shown. Check **Show inherited** to also include items that inherit a beneficiary from a parent entity (e.g., a collection item inheriting from the collection). This is useful if you want to verify complete coverage, but for large collections you may prefer to leave it off.
 
-**Print / PDF:** Tap the **Print / PDF** button to open your browser's print dialog. Select "Save as PDF" as the destination to download a clean printable list. The navigation and controls are hidden from the printed output.
+**Print / PDF:** Tap the **Print / PDF** button to open your browser's print dialog. Select "Save as PDF" as the destination to download a clean printable list. The navigation and controls are hidden from the printed output. When a single person is selected, the printout includes an "Items for: [Name]" heading so it's clear who the list belongs to. When "All People" is selected, each person prints on their own page.
 
 **Setting beneficiaries:**
 - Open any Thing, Sub-Thing, Item, Garage Thing/Sub-Thing, Structure Thing/Sub-Thing, Collection, or Collection Item and tap **Edit**.

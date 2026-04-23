@@ -177,7 +177,15 @@ function _beneRenderFromCache() {
         return;
     }
 
-    var html = filtered.map(function(group) {
+    // Toggle all-mode class for page-break CSS
+    resultEl.classList.toggle('bene-all-mode', _beneCache.mode === 'all');
+
+    // Print header: single-person mode only (all-mode already has person names as group titles)
+    var printHeader = _beneCache.mode === 'person'
+        ? '<div class="bene-print-header">Items for: ' + escapeHtml(_beneCache.label) + '</div>'
+        : '';
+
+    var html = printHeader + filtered.map(function(group) {
         var itemsHtml = group.items.map(function(item) {
             return '<div class="bene-result-item">' +
                 '<a href="' + escapeHtml(item.hash) + '" class="bene-item-name">' + escapeHtml(item.name) + '</a>' +

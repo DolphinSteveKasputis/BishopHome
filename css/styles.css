@@ -12193,6 +12193,10 @@ a.health-chip--link:hover { filter: brightness(0.93); }
     padding: 2px 8px;
 }
 
+.bene-print-header {
+    display: none;
+}
+
 /* ---- Print styles ---- */
 @media print {
     header, nav, .mobile-nav, .update-banner, .bene-no-print { display: none !important; }
@@ -12200,4 +12204,6 @@ a.health-chip--link:hover { filter: brightness(0.93); }
     #page-beneficiaries { display: block !important; }
     .bene-item-name { color: #000 !important; text-decoration: none !important; }
     .bene-result-item { background: none !important; border-color: #ccc !important; }
+    .bene-print-header { display: block !important; font-size: 1.1rem; font-weight: 600; margin-bottom: 12px; }
+    #beneResults.bene-all-mode .bene-group:not(:last-child) { break-after: page; page-break-after: always; }
 }

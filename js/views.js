@@ -173,11 +173,22 @@ function _viewOnTypeChange(newType) {
     if (subEl)   { subEl.innerHTML   = ''; subEl.disabled = true; }
     _viewCheckNewPageUnlock();
 
+    // Show/hide AI topic button based on type (Views only)
+    var aiBtn = document.getElementById('viewAskAiBtn');
+    if (aiBtn) aiBtn.classList.toggle('hidden', newType !== 'view');
+
     _viewLoadCatsData(newType).then(function(cats) {
         _viewCatsData = cats;
         if (majorEl) {
-            majorEl.innerHTML = '<option value="">— Select —</option>' + _viewBuildMajorOptions(cats, '');
-            majorEl.disabled  = false;
+            // If only one category exists, auto-select it
+            if (cats.length === 1) {
+                majorEl.innerHTML = _viewBuildMajorOptions(cats, cats[0].id);
+                majorEl.disabled  = false;
+                _viewOnMajorCatChange(cats[0].id, false);
+            } else {
+                majorEl.innerHTML = '<option value="">— Select —</option>' + _viewBuildMajorOptions(cats, '');
+                majorEl.disabled  = false;
+            }
         }
         _viewCheckNewPageUnlock();
     });
@@ -579,12 +590,15 @@ function _viewRenderNewPage() {
         majorEl.onchange = function() { _viewOnMajorCatChange(this.value, false); _viewCheckNewPageUnlock(); };
     }
 
-    userCol('settings').doc('llm').get().then(function(doc) {
-        if (doc.exists && doc.data().provider && doc.data().apiKey) {
-            var btn = document.getElementById('viewAskAiBtn');
-            if (btn) btn.classList.remove('hidden');
-        }
-    });
+    // AI topic button only available for Views and only when LLM is configured
+    if (_viewCurrentType === 'view') {
+        userCol('settings').doc('llm').get().then(function(doc) {
+            if (doc.exists && doc.data().provider && doc.data().apiKey) {
+                var btn = document.getElementById('viewAskAiBtn');
+                if (btn) btn.classList.remove('hidden');
+            }
+        });
+    }
 }
 
 function _viewCreateNew() {

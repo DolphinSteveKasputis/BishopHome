@@ -73,7 +73,7 @@ function _viewChangedBtnLabel(thoughtType) {
 function _viewLoadCatsData(thoughtType) {
     return userCol('viewCategories')
         .where('thoughtType', '==', thoughtType)
-        .orderBy('order').get()
+        .get()
         .then(function(catSnap) {
             var subPromises = catSnap.docs.map(function(catDoc) {
                 return catDoc.ref.collection('subcategories').orderBy('order').get()
@@ -86,7 +86,9 @@ function _viewLoadCatsData(thoughtType) {
                         };
                     });
             });
-            return Promise.all(subPromises);
+            return Promise.all(subPromises).then(function(cats) {
+                return cats.sort(function(a, b) { return (a.order || 0) - (b.order || 0); });
+            });
         });
 }
 
@@ -206,7 +208,7 @@ function _viewLoadForType(thoughtType) {
     container.innerHTML = '<p class="views-empty-state">Loading...</p>';
 
     Promise.all([
-        userCol('viewCategories').where('thoughtType', '==', thoughtType).orderBy('order').get(),
+        userCol('viewCategories').where('thoughtType', '==', thoughtType).get(),
         userCol('views').where('thoughtType', '==', thoughtType).get()
     ]).then(function(results) {
         var catSnap  = results[0];
@@ -231,7 +233,11 @@ function _viewLoadForType(thoughtType) {
             return;
         }
 
-        var subPromises = catSnap.docs.map(function(catDoc) {
+        var sortedCatDocs = catSnap.docs.slice().sort(function(a, b) {
+            return (a.data().order || 0) - (b.data().order || 0);
+        });
+
+        var subPromises = sortedCatDocs.map(function(catDoc) {
             return userCol('viewCategories').doc(catDoc.id).collection('subcategories').orderBy('order').get()
                 .then(function(subSnap) { return { catDoc: catDoc, subDocs: subSnap.docs }; });
         });

@@ -9128,21 +9128,22 @@ export default {
                 <p style="font-weight:600;margin-bottom:4px;">Step 2 — Enable the Google Calendar API</p>
                 <p style="margin-top:0;">On the dashboard you'll see a <strong>Quick access</strong> section with tiles. Click <strong>APIs &amp; Services</strong>. Then in the left sidebar click <strong>Library</strong>. Search for <strong>Google Calendar API</strong>. Click it, then click <strong>Enable</strong>. (If you see "Manage" instead of "Enable", it's already on — move to Step 3.)</p>
 
-                <p style="font-weight:600;margin-bottom:4px;">Step 3 — Configure the OAuth Consent Screen</p>
-                <p style="margin-top:0;">Go to <strong>APIs &amp; Services → OAuth consent screen</strong>.</p>
+                <p style="font-weight:600;margin-bottom:4px;">Step 3 — Configure the OAuth Consent Screen (Google Auth Platform)</p>
+                <p style="margin-top:0;">Go to <strong>APIs &amp; Services → OAuth consent screen</strong> (or search "OAuth" in the top bar). You'll land on the <strong>Google Auth Platform / Overview</strong> page saying "not configured yet".</p>
                 <ul style="margin-top:4px;padding-left:20px;line-height:1.8;">
-                    <li>If you see a setup form: choose <strong>External</strong>, click <strong>Create</strong>.</li>
-                    <li>Fill in <strong>App name</strong> (e.g., "Bishop"), your <strong>email</strong> for support, and your <strong>email</strong> as developer contact. Click <strong>Save and Continue</strong>.</li>
-                    <li>On the Scopes page — click <strong>Save and Continue</strong> (no changes needed).</li>
-                    <li>On the Test Users page — click <strong>Add Users</strong>, add your own Google email address, then <strong>Save and Continue</strong>.</li>
-                    <li>If you already see an existing consent screen — verify your email is listed under Test Users. If so, skip to Step 4.</li>
+                    <li>Click <strong>Get started</strong>.</li>
+                    <li><strong>App information:</strong> Enter <em>Bishop</em> as the App name and your Google email as the support email. Click <strong>Next</strong>.</li>
+                    <li><strong>Audience:</strong> Select <strong>External</strong>. Click <strong>Next</strong>.</li>
+                    <li><strong>Contact information:</strong> Enter your Google email again. Click <strong>Next</strong>.</li>
+                    <li><strong>Finish:</strong> Click <strong>Continue</strong>, then <strong>Create</strong>.</li>
+                    <li>You'll land back on the Overview/Dashboard. In the left sidebar, click <strong>Audience</strong>, then click <strong>Add Users</strong> and add your own Google email as a test user. Save.</li>
                 </ul>
                 <p style="margin-top:4px;background:#fef9c3;border-left:3px solid #ca8a04;padding:8px 12px;border-radius:4px;">
-                    <strong>Publishing note:</strong> Leaving the app in <em>Testing</em> mode is fine for personal use. Tokens last 7 days in test mode — after that Bishop will silently re-authorize in the background. If you prefer not to deal with this, click <strong>Publish App</strong> on the consent screen. Google will show an "unverified app" warning when you connect, but you can click <strong>Advanced → Go to Bishop (unsafe)</strong> to proceed — it's your own app, this is expected.
+                    <strong>Publishing note:</strong> Leaving the app in <em>Testing</em> mode is fine for personal use. Tokens last 7 days in test mode — Bishop will try to silently re-authorize when they expire. To avoid this, go to <strong>Audience</strong> in the left sidebar and click <strong>Publish App</strong>. Google will show an "unverified app" warning when you connect — click <strong>Advanced → Go to Bishop (unsafe)</strong> to proceed. It's your own app; this warning is expected.
                 </p>
 
                 <p style="font-weight:600;margin-bottom:4px;">Step 4 — Create an OAuth Client ID</p>
-                <p style="margin-top:0;">Go to <strong>APIs &amp; Services → Credentials</strong>. Click <strong>+ Create Credentials → OAuth client ID</strong>.</p>
+                <p style="margin-top:0;">In the left sidebar (still under Google Auth Platform) click <strong>Clients</strong>. Then click <strong>+ Create Client</strong>.</p>
                 <ul style="margin-top:4px;padding-left:20px;line-height:1.8;">
                     <li>Application type: <strong>Web application</strong></li>
                     <li>Name: anything (e.g., "Bishop Web")</li>

@@ -1988,6 +1988,28 @@ button {
     font-size: 0.9rem;
     margin-bottom: 8px;
 }
+.login-password-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.login-password-wrap input {
+    flex: 1;
+    padding-right: 60px;
+}
+.login-show-pw {
+    position: absolute;
+    right: 8px;
+    background: none;
+    border: none;
+    color: #388e3c;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 4px;
+}
+.login-show-pw:hover { text-decoration: underline; }
+
 .login-forgot {
     text-align: center;
     margin-top: 12px;

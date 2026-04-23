@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=548">
+    <link rel="stylesheet" href="css/styles.css?v=550">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -73,7 +73,11 @@
                 </div>
                 <div class="form-group">
                     <label for="loginPassword">Password</label>
-                    <input type="password" id="loginPassword" placeholder="Password" required autocomplete="current-password">
+                    <div class="login-password-wrap">
+                        <input type="password" id="loginPassword" placeholder="Password" required autocomplete="current-password">
+                        <button type="button" class="login-show-pw" id="togglePasswordBtn"
+                            onclick="(function(){var i=document.getElementById('loginPassword'),b=document.getElementById('togglePasswordBtn');i.type=i.type==='password'?'text':'password';b.textContent=i.type==='password'?'Show':'Hide';})()">Show</button>
+                    </div>
                 </div>
                 <p class="login-error" id="loginError"></p>
                 <button type="submit" class="btn btn-primary btn-full" id="loginSubmitBtn">Sign In</button>

@@ -856,6 +856,8 @@ function initApp() {
     initAppName().then(function() {
         handleRoute();
     });
+    // Pre-load GCal settings so gcalIsConnected() works on any page without visiting Settings first
+    if (typeof gcalLoadSettings === 'function') gcalLoadSettings();
     _initTabIndentTextareas();
     _initChecklistsNavLinks();
     console.log("Bishop app initialized.");

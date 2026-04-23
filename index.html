@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=540">
+    <link rel="stylesheet" href="css/styles.css?v=542">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -8536,14 +8536,22 @@
             <div class="page-header">
                 <h2>Who Gets What</h2>
             </div>
-            <p class="house-thing-meta">Choose a person to see everything assigned to them, including items inherited from parent categories.</p>
-            <div class="form-group" style="max-width:360px; margin-bottom:16px;">
-                <label>Select person</label>
-                <select id="benePersonSelect" class="form-control">
-                    <option value="">Loading…</option>
-                </select>
+            <p class="house-thing-meta bene-no-print">Choose a person to see everything assigned to them.</p>
+            <div class="bene-controls bene-no-print">
+                <div class="form-group" style="flex:1; min-width:200px; max-width:360px; margin-bottom:0;">
+                    <label>Select person</label>
+                    <select id="benePersonSelect" class="form-control">
+                        <option value="">Loading…</option>
+                    </select>
+                </div>
+                <div class="bene-ctrl-right">
+                    <label class="bene-toggle-label">
+                        <input type="checkbox" id="beneShowInherited"> Show inherited
+                    </label>
+                    <button class="btn btn-secondary btn-sm" id="benePrintBtn">🖨️ Print / PDF</button>
+                </div>
             </div>
-            <p class="empty-state" id="beneNoSelection">Select a person above to see their items.</p>
+            <p class="empty-state bene-no-print" id="beneNoSelection">Select a person above to see their items.</p>
             <div id="beneResults"></div>
         </section>
 
@@ -9589,7 +9597,7 @@ export default {
     <script src="js/moveThings.js?v=350"></script>
     <script src="js/journal.js?v=488"></script>
     <script src="js/contacts.js?v=379"></script>
-    <script src="js/beneficiaries.js?v=541"></script>
+    <script src="js/beneficiaries.js?v=542"></script>
     <script src="js/collections.js?v=537"></script>
     <script src="js/health.js?v=380"></script>
     <script src="js/notes.js?v=521"></script>

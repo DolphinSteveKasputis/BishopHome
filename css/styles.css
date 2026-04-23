@@ -12126,6 +12126,28 @@ a.health-chip--link:hover { filter: brightness(0.93); }
 /* ============================================================
    BENEFICIARIES SUMMARY PAGE  (#beneficiaries)
    ============================================================ */
+.bene-controls {
+    display: flex;
+    align-items: flex-end;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+.bene-ctrl-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 4px;
+}
+.bene-toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+    color: #374151;
+    cursor: pointer;
+    white-space: nowrap;
+}
 .bene-group {
     margin-bottom: 20px;
 }
@@ -12143,16 +12165,14 @@ a.health-chip--link:hover { filter: brightness(0.93); }
     font-size: 0.88rem;
 }
 .bene-result-item {
-    padding: 8px 12px;
+    padding: 5px 10px;
     background: #f9fafb;
     border: 1px solid #e5e7eb;
     border-radius: 6px;
-    margin-bottom: 6px;
-}
-.bene-item-main {
+    margin-bottom: 4px;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     flex-wrap: wrap;
 }
 .bene-item-name {
@@ -12167,9 +12187,17 @@ a.health-chip--link:hover { filter: brightness(0.93); }
 .bene-item-path {
     font-size: 0.8rem;
     color: #6b7280;
-    margin-top: 2px;
 }
 .bene-badge {
     font-size: 0.75rem;
     padding: 2px 8px;
+}
+
+/* ---- Print styles ---- */
+@media print {
+    header, nav, .mobile-nav, .update-banner, .bene-no-print { display: none !important; }
+    .page { display: none !important; }
+    #page-beneficiaries { display: block !important; }
+    .bene-item-name { color: #000 !important; text-decoration: none !important; }
+    .bene-result-item { background: none !important; border-color: #ccc !important; }
 }

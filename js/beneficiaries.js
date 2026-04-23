@@ -6,7 +6,8 @@
  * (own assignment or inherited from a parent entity) on detail pages.
  *
  * loadBeneficiariesPage() drives the #beneficiaries summary page where
- * the user picks a contact and sees everything assigned to them.
+ * the user picks a contact (or "All People") and sees everything assigned
+ * to them, with a toggle to show/hide inherited items and a print button.
  */
 
 // ============================================================
@@ -64,14 +65,27 @@ function _renderBeneficiaryRow(rowId, entity, parents) {
 // BENEFICIARIES SUMMARY PAGE  (#beneficiaries)
 // ============================================================
 
+var _beneCache = null; // { mode: 'person'|'all', groups: [...], label: string }
+
 function loadBeneficiariesPage() {
     var resultEl = document.getElementById('beneResults');
     var noSelEl  = document.getElementById('beneNoSelection');
     var selectEl = document.getElementById('benePersonSelect');
+    var toggleEl = document.getElementById('beneShowInherited');
+    var printBtn = document.getElementById('benePrintBtn');
     if (!resultEl || !selectEl) return;
 
+    _beneCache = null;
     resultEl.innerHTML = '';
     if (noSelEl) noSelEl.classList.remove('hidden');
+
+    if (toggleEl) {
+        toggleEl.checked = false;
+        toggleEl.onchange = function() { if (_beneCache) _beneRenderFromCache(); };
+    }
+    if (printBtn) {
+        printBtn.onclick = function() { window.print(); };
+    }
 
     selectEl.innerHTML = '<option value="">Loading\u2026</option>';
     selectEl.onchange = null;
@@ -102,7 +116,6 @@ function loadBeneficiariesPage() {
             return;
         }
 
-        // Look up names for all assigned contact IDs
         return Promise.all(ids.map(function(id) {
             return userCol('people').doc(id).get().then(function(doc) {
                 return { id: id, name: doc.exists ? (doc.data().name || '?') : '?' };
@@ -111,21 +124,27 @@ function loadBeneficiariesPage() {
             people.sort(function(a, b) { return a.name.localeCompare(b.name); });
 
             var opts = '<option value="">— Pick a person —</option>';
+            opts += '<option value="__ALL__">— All People —</option>';
             people.forEach(function(p) {
                 opts += '<option value="' + escapeHtml(p.id) + '">' + escapeHtml(p.name) + '</option>';
             });
             selectEl.innerHTML = opts;
 
             selectEl.onchange = function() {
-                var contactId = selectEl.value;
-                var contactName = contactId ? selectEl.options[selectEl.selectedIndex].text : '';
+                var val = selectEl.value;
+                var label = val ? selectEl.options[selectEl.selectedIndex].text : '';
                 resultEl.innerHTML = '';
-                if (!contactId) {
+                _beneCache = null;
+                if (!val) {
                     if (noSelEl) noSelEl.classList.remove('hidden');
                     return;
                 }
                 if (noSelEl) noSelEl.classList.add('hidden');
-                _loadBeneficiaryResults(contactId, contactName);
+                if (val === '__ALL__') {
+                    _loadAllBeneficiaryResults();
+                } else {
+                    _loadBeneficiaryResults(val, label);
+                }
             };
         });
     }).catch(function(err) {
@@ -134,6 +153,51 @@ function loadBeneficiariesPage() {
     });
 }
 
+// Render cached groups, respecting the show-inherited toggle
+function _beneRenderFromCache() {
+    var resultEl = document.getElementById('beneResults');
+    var toggleEl = document.getElementById('beneShowInherited');
+    if (!resultEl || !_beneCache) return;
+
+    var showInherited = toggleEl ? toggleEl.checked : false;
+
+    var filtered = _beneCache.groups.map(function(g) {
+        return {
+            title: g.title,
+            items: showInherited ? g.items : g.items.filter(function(i) { return !i.inherited; })
+        };
+    }).filter(function(g) { return g.items.length > 0; });
+
+    if (!filtered.length) {
+        var msg = _beneCache.mode === 'all'
+            ? 'No direct assignments found.'
+            : 'Nothing assigned directly to ' + escapeHtml(_beneCache.label) + '.' +
+              (showInherited ? '' : ' Try enabling "Show inherited".');
+        resultEl.innerHTML = '<p class="empty-state">' + msg + '</p>';
+        return;
+    }
+
+    var html = filtered.map(function(group) {
+        var itemsHtml = group.items.map(function(item) {
+            return '<div class="bene-result-item">' +
+                '<a href="' + escapeHtml(item.hash) + '" class="bene-item-name">' + escapeHtml(item.name) + '</a>' +
+                (item.path ? '<span class="bene-item-path">\u00b7 ' + escapeHtml(item.path) + '</span>' : '') +
+                (item.inherited
+                    ? '<span class="badge badge-secondary bene-badge">inherited</span>'
+                    : '<span class="badge badge-primary bene-badge">direct</span>') +
+                '</div>';
+        }).join('');
+        return '<div class="bene-group">' +
+            '<h3 class="bene-group-title">' + escapeHtml(group.title) +
+            ' <span class="bene-group-count">(' + group.items.length + ')</span></h3>' +
+            itemsHtml +
+            '</div>';
+    }).join('');
+
+    resultEl.innerHTML = html;
+}
+
+// Load results for a single person
 function _loadBeneficiaryResults(contactId, contactName) {
     var resultEl = document.getElementById('beneResults');
     if (!resultEl) return;
@@ -167,32 +231,137 @@ function _loadBeneficiaryResults(contactId, contactName) {
             _beneCollectionsGroup(collections, collectionItems, contactId)
         ].filter(function(g) { return g.items.length > 0; });
 
-        if (!groups.length) {
-            resultEl.innerHTML = '<p class="empty-state">Nothing assigned to ' + escapeHtml(contactName) + ' yet.</p>';
+        _beneCache = { mode: 'person', groups: groups, label: contactName };
+        _beneRenderFromCache();
+    }).catch(function(err) {
+        console.error('_loadBeneficiaryResults error:', err);
+        resultEl.innerHTML = '<p class="empty-state">Error loading data.</p>';
+    });
+}
+
+// Load results for ALL people, grouped by person
+function _loadAllBeneficiaryResults() {
+    var resultEl = document.getElementById('beneResults');
+    if (!resultEl) return;
+    resultEl.innerHTML = '<p class="empty-state">Loading\u2026</p>';
+
+    Promise.all([
+        userCol('things').get(),
+        userCol('subThings').get(),
+        userCol('subThingItems').get(),
+        userCol('garageThings').get(),
+        userCol('garageSubThings').get(),
+        userCol('structureThings').get(),
+        userCol('structureSubThings').get(),
+        userCol('collections').get(),
+        userCol('collectionItems').get()
+    ]).then(function(snaps) {
+        var things             = _beneDocsToMap(snaps[0]);
+        var subThings          = _beneDocsToMap(snaps[1]);
+        var subThingItems      = _beneDocsToMap(snaps[2]);
+        var garageThings       = _beneDocsToMap(snaps[3]);
+        var garageSubThings    = _beneDocsToMap(snaps[4]);
+        var structureThings    = _beneDocsToMap(snaps[5]);
+        var structureSubThings = _beneDocsToMap(snaps[6]);
+        var collections        = _beneDocsToMap(snaps[7]);
+        var collectionItems    = _beneDocsToMap(snaps[8]);
+
+        var byPerson = {}; // contactId → [items]
+        function addItem(cid, item) {
+            if (!byPerson[cid]) byPerson[cid] = [];
+            byPerson[cid].push(item);
+        }
+
+        Object.values(things).forEach(function(t) {
+            if (t.beneficiaryContactId)
+                addItem(t.beneficiaryContactId, { name: t.name || 'Thing', path: 'House \u203a Thing', hash: '#thing/' + t.id, inherited: false });
+        });
+
+        Object.values(subThings).forEach(function(st) {
+            var parent = things[st.thingId];
+            if (st.beneficiaryContactId) {
+                addItem(st.beneficiaryContactId, { name: st.name || 'Sub-item', path: 'House \u203a ' + (parent ? parent.name : 'Thing'), hash: '#subthing/' + st.id, inherited: false });
+            } else if (parent && parent.beneficiaryContactId) {
+                addItem(parent.beneficiaryContactId, { name: st.name || 'Sub-item', path: 'House \u203a ' + (parent.name || 'Thing'), hash: '#subthing/' + st.id, inherited: true });
+            }
+        });
+
+        Object.values(subThingItems).forEach(function(item) {
+            var pSt = subThings[item.subThingId];
+            var pT  = pSt ? things[pSt.thingId] : null;
+            var path = 'House \u203a ' + (pT ? pT.name + ' \u203a ' : '') + (pSt ? pSt.name : 'Sub-item');
+            if (item.beneficiaryContactId) {
+                addItem(item.beneficiaryContactId, { name: item.name || 'Item', path: path, hash: '#item/' + item.id, inherited: false });
+            } else if (pSt && pSt.beneficiaryContactId) {
+                addItem(pSt.beneficiaryContactId, { name: item.name || 'Item', path: path, hash: '#item/' + item.id, inherited: true });
+            } else if (pT && pT.beneficiaryContactId) {
+                addItem(pT.beneficiaryContactId, { name: item.name || 'Item', path: path, hash: '#item/' + item.id, inherited: true });
+            }
+        });
+
+        Object.values(garageThings).forEach(function(t) {
+            if (t.beneficiaryContactId)
+                addItem(t.beneficiaryContactId, { name: t.name || 'Thing', path: 'Garage \u203a Thing', hash: '#garagething/' + t.id, inherited: false });
+        });
+
+        Object.values(garageSubThings).forEach(function(st) {
+            var parent = garageThings[st.thingId];
+            if (st.beneficiaryContactId) {
+                addItem(st.beneficiaryContactId, { name: st.name || 'Sub-item', path: 'Garage \u203a ' + (parent ? parent.name : 'Thing'), hash: '#garagesubthing/' + st.id, inherited: false });
+            } else if (parent && parent.beneficiaryContactId) {
+                addItem(parent.beneficiaryContactId, { name: st.name || 'Sub-item', path: 'Garage \u203a ' + (parent.name || 'Thing'), hash: '#garagesubthing/' + st.id, inherited: true });
+            }
+        });
+
+        Object.values(structureThings).forEach(function(t) {
+            if (t.beneficiaryContactId)
+                addItem(t.beneficiaryContactId, { name: t.name || 'Thing', path: 'Structures \u203a Thing', hash: '#structurething/' + t.id, inherited: false });
+        });
+
+        Object.values(structureSubThings).forEach(function(st) {
+            var parent = structureThings[st.thingId];
+            if (st.beneficiaryContactId) {
+                addItem(st.beneficiaryContactId, { name: st.name || 'Sub-item', path: 'Structures \u203a ' + (parent ? parent.name : 'Thing'), hash: '#structuresubthing/' + st.id, inherited: false });
+            } else if (parent && parent.beneficiaryContactId) {
+                addItem(parent.beneficiaryContactId, { name: st.name || 'Sub-item', path: 'Structures \u203a ' + (parent.name || 'Thing'), hash: '#structuresubthing/' + st.id, inherited: true });
+            }
+        });
+
+        Object.values(collections).forEach(function(col) {
+            if (col.beneficiaryContactId)
+                addItem(col.beneficiaryContactId, { name: col.name || 'Collection', path: 'Collections', hash: '#collection/' + col.id, inherited: false });
+        });
+
+        Object.values(collectionItems).forEach(function(item) {
+            var parent = collections[item.collectionId];
+            if (item.beneficiaryContactId) {
+                addItem(item.beneficiaryContactId, { name: item.name || 'Item', path: 'Collections \u203a ' + (parent ? parent.name : 'Collection'), hash: '#collectionitem/' + item.id, inherited: false });
+            } else if (parent && parent.beneficiaryContactId) {
+                addItem(parent.beneficiaryContactId, { name: item.name || 'Item', path: (parent.name || 'Collection'), hash: '#collectionitem/' + item.id, inherited: true });
+            }
+        });
+
+        var contactIds = Object.keys(byPerson);
+        if (!contactIds.length) {
+            resultEl.innerHTML = '<p class="empty-state">No assignments found.</p>';
             return;
         }
 
-        var html = groups.map(function(group) {
-            var itemsHtml = group.items.map(function(item) {
-                return '<div class="bene-result-item">' +
-                    '<div class="bene-item-main">' +
-                    '<a href="' + escapeHtml(item.hash) + '" class="bene-item-name">' + escapeHtml(item.name) + '</a>' +
-                    (item.inherited
-                        ? '<span class="badge badge-secondary bene-badge">inherited</span>'
-                        : '<span class="badge badge-primary bene-badge">direct</span>') +
-                    '</div>' +
-                    (item.path ? '<div class="bene-item-path">' + escapeHtml(item.path) + '</div>' : '') +
-                    '</div>';
-            }).join('');
-            return '<div class="bene-group">' +
-                '<h3 class="bene-group-title">' + escapeHtml(group.title) + ' <span class="bene-group-count">(' + group.items.length + ')</span></h3>' +
-                itemsHtml +
-                '</div>';
-        }).join('');
+        return Promise.all(contactIds.map(function(id) {
+            return userCol('people').doc(id).get().then(function(doc) {
+                return { id: id, name: doc.exists ? (doc.data().name || '?') : '?' };
+            });
+        })).then(function(people) {
+            people.sort(function(a, b) { return a.name.localeCompare(b.name); });
+            var groups = people.map(function(p) {
+                return { title: p.name, items: byPerson[p.id] || [] };
+            }).filter(function(g) { return g.items.length > 0; });
 
-        resultEl.innerHTML = html;
+            _beneCache = { mode: 'all', groups: groups, label: 'all people' };
+            _beneRenderFromCache();
+        });
     }).catch(function(err) {
-        console.error('_loadBeneficiaryResults error:', err);
+        console.error('_loadAllBeneficiaryResults error:', err);
         resultEl.innerHTML = '<p class="empty-state">Error loading data.</p>';
     });
 }
@@ -207,9 +376,8 @@ function _beneHouseGroup(things, subThings, subThingItems, contactId) {
     var items = [];
 
     Object.values(things).forEach(function(t) {
-        if (t.beneficiaryContactId === contactId) {
+        if (t.beneficiaryContactId === contactId)
             items.push({ name: t.name || 'Thing', path: 'House \u203a Thing', hash: '#thing/' + t.id, inherited: false });
-        }
     });
 
     Object.values(subThings).forEach(function(st) {
@@ -218,9 +386,8 @@ function _beneHouseGroup(things, subThings, subThingItems, contactId) {
             items.push({ name: st.name || 'Sub-item', path: 'House \u203a ' + (parent ? parent.name : 'Thing'), hash: '#subthing/' + st.id, inherited: false });
         } else if (!st.beneficiaryContactId) {
             var p = things[st.thingId];
-            if (p && p.beneficiaryContactId === contactId) {
+            if (p && p.beneficiaryContactId === contactId)
                 items.push({ name: st.name || 'Sub-item', path: 'House \u203a ' + (p.name || 'Thing'), hash: '#subthing/' + st.id, inherited: true });
-            }
         }
     });
 
@@ -237,9 +404,8 @@ function _beneHouseGroup(things, subThings, subThingItems, contactId) {
                     items.push({ name: item.name || 'Item', path: 'House \u203a ' + tName + ' \u203a ' + (st.name || 'Sub-item'), hash: '#item/' + item.id, inherited: true });
                 } else if (!st.beneficiaryContactId) {
                     var t = things[st.thingId];
-                    if (t && t.beneficiaryContactId === contactId) {
+                    if (t && t.beneficiaryContactId === contactId)
                         items.push({ name: item.name || 'Item', path: 'House \u203a ' + (t.name || 'Thing') + ' \u203a ' + (st.name || 'Sub-item'), hash: '#item/' + item.id, inherited: true });
-                    }
                 }
             }
         }
@@ -252,9 +418,8 @@ function _beneGarageGroup(garageThings, garageSubThings, contactId) {
     var items = [];
 
     Object.values(garageThings).forEach(function(t) {
-        if (t.beneficiaryContactId === contactId) {
+        if (t.beneficiaryContactId === contactId)
             items.push({ name: t.name || 'Thing', path: 'Garage \u203a Thing', hash: '#garagething/' + t.id, inherited: false });
-        }
     });
 
     Object.values(garageSubThings).forEach(function(st) {
@@ -263,9 +428,8 @@ function _beneGarageGroup(garageThings, garageSubThings, contactId) {
             items.push({ name: st.name || 'Sub-item', path: 'Garage \u203a ' + (parent ? parent.name : 'Thing'), hash: '#garagesubthing/' + st.id, inherited: false });
         } else if (!st.beneficiaryContactId) {
             var p = garageThings[st.thingId];
-            if (p && p.beneficiaryContactId === contactId) {
+            if (p && p.beneficiaryContactId === contactId)
                 items.push({ name: st.name || 'Sub-item', path: 'Garage \u203a ' + (p.name || 'Thing'), hash: '#garagesubthing/' + st.id, inherited: true });
-            }
         }
     });
 
@@ -276,9 +440,8 @@ function _beneStructureGroup(structureThings, structureSubThings, contactId) {
     var items = [];
 
     Object.values(structureThings).forEach(function(t) {
-        if (t.beneficiaryContactId === contactId) {
+        if (t.beneficiaryContactId === contactId)
             items.push({ name: t.name || 'Thing', path: 'Structures \u203a Thing', hash: '#structurething/' + t.id, inherited: false });
-        }
     });
 
     Object.values(structureSubThings).forEach(function(st) {
@@ -287,9 +450,8 @@ function _beneStructureGroup(structureThings, structureSubThings, contactId) {
             items.push({ name: st.name || 'Sub-item', path: 'Structures \u203a ' + (parent ? parent.name : 'Thing'), hash: '#structuresubthing/' + st.id, inherited: false });
         } else if (!st.beneficiaryContactId) {
             var p = structureThings[st.thingId];
-            if (p && p.beneficiaryContactId === contactId) {
+            if (p && p.beneficiaryContactId === contactId)
                 items.push({ name: st.name || 'Sub-item', path: 'Structures \u203a ' + (p.name || 'Thing'), hash: '#structuresubthing/' + st.id, inherited: true });
-            }
         }
     });
 
@@ -300,9 +462,8 @@ function _beneCollectionsGroup(collections, collectionItems, contactId) {
     var items = [];
 
     Object.values(collections).forEach(function(col) {
-        if (col.beneficiaryContactId === contactId) {
+        if (col.beneficiaryContactId === contactId)
             items.push({ name: col.name || 'Collection', path: 'Collections', hash: '#collection/' + col.id, inherited: false });
-        }
     });
 
     Object.values(collectionItems).forEach(function(item) {
@@ -311,9 +472,8 @@ function _beneCollectionsGroup(collections, collectionItems, contactId) {
             items.push({ name: item.name || 'Item', path: 'Collections \u203a ' + (parent ? parent.name : 'Collection'), hash: '#collectionitem/' + item.id, inherited: false });
         } else if (!item.beneficiaryContactId) {
             var p = collections[item.collectionId];
-            if (p && p.beneficiaryContactId === contactId) {
+            if (p && p.beneficiaryContactId === contactId)
                 items.push({ name: item.name || 'Item', path: (p.name || 'Collection'), hash: '#collectionitem/' + item.id, inherited: true });
-            }
         }
     });
 

@@ -2074,8 +2074,10 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 
 ### Quick Help
 - See everything that goes to a specific person if you die -- across House Things, Garage, Structures, and Collections
-- Pick a contact from the picker to load their summary
-- Items show as direct assignments or inherited from a parent (e.g., a collection item inheriting from the collection)
+- The dropdown shows only people who actually have items assigned -- no searching required
+- Select "All People" to see everyone's assignments grouped by person
+- Use "Show inherited" to include items that inherit a beneficiary from a parent
+- Use "Print / PDF" to generate a printable list from your browser
 
 ### Details
 
@@ -2083,10 +2085,14 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 
 **How to use it:**
 1. Open the House section and tap **More → Who Gets What**.
-2. Use the contact picker to search for and select a person.
-3. Results appear grouped by section: **House**, **Garage**, **Structures**, **Collections**.
-4. Each row shows the item name and its path (e.g., "1st Floor > Bedroom > Dresser > Top Drawer").
-5. A badge indicates whether the assignment is **Direct** (set explicitly on that item) or **Inherited** (from a parent entity).
+2. The dropdown is pre-populated with only people who have at least one direct beneficiary assignment.
+3. Select a specific person to see their items grouped by section (House Things, Garage Things, etc.).
+4. Select **— All People —** to see everyone grouped by person, each showing their total item count.
+5. Each row shows the item name, its path (e.g., "House › Pin Collection"), and a **direct** or **inherited** badge -- all on one line.
+
+**Show inherited toggle:** By default, only directly assigned items are shown. Check **Show inherited** to also include items that inherit a beneficiary from a parent entity (e.g., a collection item inheriting from the collection). This is useful if you want to verify complete coverage, but for large collections you may prefer to leave it off.
+
+**Print / PDF:** Tap the **Print / PDF** button to open your browser's print dialog. Select "Save as PDF" as the destination to download a clean printable list. The navigation and controls are hidden from the printed output.
 
 **Setting beneficiaries:**
 - Open any Thing, Sub-Thing, Item, Garage Thing/Sub-Thing, Structure Thing/Sub-Thing, Collection, or Collection Item and tap **Edit**.
@@ -2104,6 +2110,7 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 
 **Tips:**
 - Assign at the collection/thing level to cover everything at once -- only override individual items when a specific item goes to someone different.
+- Use "All People" view to spot gaps -- if someone is missing or has far fewer items than expected, investigate.
 - The summary page is useful for estate planning discussions -- quickly verify that every major item is covered.
 
 ### See Also

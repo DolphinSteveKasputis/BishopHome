@@ -5714,6 +5714,8 @@ a.ar-target-link:hover {
 #journalEntryText {
     width: 100%;
     min-height: 320px;
+    max-height: 60vh;
+    overflow-y: auto;
     resize: vertical;
     font-size: 1rem;
     line-height: 1.6;

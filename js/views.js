@@ -15,20 +15,30 @@ var _viewsCategorySeed = [
 ];
 
 function seedViewCategories() {
-    userCol('viewCategories').limit(1).get().then(function(snap) {
-        if (!snap.empty) return;
-        var batch = db.batch();
-        _viewsCategorySeed.forEach(function(cat, catIdx) {
-            var catRef = userCol('viewCategories').doc();
-            batch.set(catRef, { name: cat.name, order: catIdx, thoughtType: 'view', createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-            var generalRef = catRef.collection('subcategories').doc();
-            batch.set(generalRef, { name: 'General', order: 0, isDefault: true, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-            cat.subs.forEach(function(subName, subIdx) {
-                var subRef = catRef.collection('subcategories').doc();
-                batch.set(subRef, { name: subName, order: subIdx + 1, isDefault: false, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+    userCol('viewCategories').get().then(function(snap) {
+        if (snap.empty) {
+            // No categories yet — seed fresh
+            var batch = db.batch();
+            _viewsCategorySeed.forEach(function(cat, catIdx) {
+                var catRef = userCol('viewCategories').doc();
+                batch.set(catRef, { name: cat.name, order: catIdx, thoughtType: 'view', createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+                var generalRef = catRef.collection('subcategories').doc();
+                batch.set(generalRef, { name: 'General', order: 0, isDefault: true, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+                cat.subs.forEach(function(subName, subIdx) {
+                    var subRef = catRef.collection('subcategories').doc();
+                    batch.set(subRef, { name: subName, order: subIdx + 1, isDefault: false, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+                });
             });
-        });
-        batch.commit().catch(function(err) { console.error('seedViewCategories error:', err); });
+            batch.commit().catch(function(err) { console.error('seedViewCategories error:', err); });
+        } else {
+            // Migrate existing categories that are missing thoughtType — treat them as 'view'
+            var needsMigration = snap.docs.filter(function(d) { return !d.data().thoughtType; });
+            if (needsMigration.length > 0) {
+                var batch = db.batch();
+                needsMigration.forEach(function(d) { batch.update(d.ref, { thoughtType: 'view' }); });
+                batch.commit().catch(function(err) { console.error('seedViewCategories migrate error:', err); });
+            }
+        }
     }).catch(function(err) { console.error('seedViewCategories check error:', err); });
 }
 
@@ -74,7 +84,7 @@ function _viewLoadCatsData(thoughtType) {
     return userCol('viewCategories').get()
         .then(function(catSnap) {
             var filteredDocs = catSnap.docs
-                .filter(function(d) { return d.data().thoughtType === thoughtType; })
+                .filter(function(d) { var t = d.data().thoughtType; return t === thoughtType || (!t && thoughtType === 'view'); })
                 .sort(function(a, b) { return (a.data().order || 0) - (b.data().order || 0); });
 
             var subPromises = filteredDocs.map(function(catDoc) {
@@ -212,7 +222,7 @@ function _viewLoadForType(thoughtType) {
         userCol('viewCategories').get(),
         userCol('views').get()
     ]).then(function(results) {
-        var allCatDocs  = results[0].docs.filter(function(d) { return d.data().thoughtType === thoughtType; });
+        var allCatDocs  = results[0].docs.filter(function(d) { var t = d.data().thoughtType; return t === thoughtType || (!t && thoughtType === 'view'); });
         var allViewDocs = results[1].docs.filter(function(d) { return d.data().thoughtType === thoughtType; });
 
         // Update tile count with total across all types

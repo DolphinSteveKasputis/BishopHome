@@ -14,7 +14,9 @@ var _viewsCategorySeed = [
     { name: 'Other',              subs: ['Environment', 'Sports', 'Food & Lifestyle'] }
 ];
 
-var _reviewsCategorySeed = ['Book', 'Movie', 'TV Show', 'Restaurant', 'Experience', 'Product'];
+var _reviewsCategorySeed    = ['Book', 'Movie', 'TV Show', 'Restaurant', 'Experience', 'Product'];
+var _adviceCategorySeed     = ['Parenting', 'Career', 'Faith', 'Money'];
+var _reflectionCategorySeed = ['General'];
 
 function seedViewCategories() {
     userCol('viewCategories').get().then(function(snap) {
@@ -41,18 +43,24 @@ function seedViewCategories() {
                 batch.commit().catch(function(err) { console.error('seedViewCategories migrate error:', err); });
             }
 
-            // Seed Review categories if none exist yet for that type
-            var hasReviews = snap.docs.some(function(d) { return d.data().thoughtType === 'review'; });
-            if (!hasReviews) {
-                var batch2 = db.batch();
-                _reviewsCategorySeed.forEach(function(name, idx) {
-                    var catRef = userCol('viewCategories').doc();
-                    batch2.set(catRef, { name: name, order: idx, thoughtType: 'review', createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-                    var genRef = catRef.collection('subcategories').doc();
-                    batch2.set(genRef, { name: 'General', order: 0, isDefault: true, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-                });
-                batch2.commit().catch(function(err) { console.error('seedReviewCategories error:', err); });
-            }
+            // Seed Review, Advice, Reflection categories if none exist yet for each type
+            [
+                { type: 'review',     names: _reviewsCategorySeed },
+                { type: 'advice',     names: _adviceCategorySeed },
+                { type: 'reflection', names: _reflectionCategorySeed }
+            ].forEach(function(seed) {
+                var exists = snap.docs.some(function(d) { return d.data().thoughtType === seed.type; });
+                if (!exists) {
+                    var batch2 = db.batch();
+                    seed.names.forEach(function(name, idx) {
+                        var catRef = userCol('viewCategories').doc();
+                        batch2.set(catRef, { name: name, order: idx, thoughtType: seed.type, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+                        var genRef = catRef.collection('subcategories').doc();
+                        batch2.set(genRef, { name: 'General', order: 0, isDefault: true, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+                    });
+                    batch2.commit().catch(function(err) { console.error('seed ' + seed.type + ' categories error:', err); });
+                }
+            });
         }
     }).catch(function(err) { console.error('seedViewCategories check error:', err); });
 }

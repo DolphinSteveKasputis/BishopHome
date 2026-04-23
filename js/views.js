@@ -533,7 +533,13 @@ function _viewRenderNewPage() {
             if (this.value) _viewOnTypeChange(this.value);
             _viewCheckNewPageUnlock();
         };
-        typeEl.focus();
+        // Pre-select the type the user was browsing
+        if (_viewCurrentType) {
+            typeEl.value = _viewCurrentType;
+            _viewOnTypeChange(_viewCurrentType);
+        } else {
+            typeEl.focus();
+        }
     }
     if (titleEl) { titleEl.oninput = _viewCheckNewPageUnlock; }
     if (majorEl) {

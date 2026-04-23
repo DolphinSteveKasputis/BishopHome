@@ -1600,6 +1600,7 @@ function initVoiceToText(textareaId, btnId) {
                 && !existing.endsWith('\n')
                 && !transcript.startsWith('\n');
             textarea.value = existing + (needsSpace ? ' ' : '') + transcript;
+            textarea.scrollTop = textarea.scrollHeight;
         }
     };
 

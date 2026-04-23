@@ -71,11 +71,13 @@ function _viewChangedBtnLabel(thoughtType) {
 
 // ─────── Load Category Data (filtered by type) ───────
 function _viewLoadCatsData(thoughtType) {
-    return userCol('viewCategories')
-        .where('thoughtType', '==', thoughtType)
-        .get()
+    return userCol('viewCategories').get()
         .then(function(catSnap) {
-            var subPromises = catSnap.docs.map(function(catDoc) {
+            var filteredDocs = catSnap.docs
+                .filter(function(d) { return d.data().thoughtType === thoughtType; })
+                .sort(function(a, b) { return (a.data().order || 0) - (b.data().order || 0); });
+
+            var subPromises = filteredDocs.map(function(catDoc) {
                 return catDoc.ref.collection('subcategories').orderBy('order').get()
                     .then(function(subSnap) {
                         return {
@@ -86,9 +88,7 @@ function _viewLoadCatsData(thoughtType) {
                         };
                     });
             });
-            return Promise.all(subPromises).then(function(cats) {
-                return cats.sort(function(a, b) { return (a.order || 0) - (b.order || 0); });
-            });
+            return Promise.all(subPromises);
         });
 }
 
@@ -207,16 +207,21 @@ function _viewLoadForType(thoughtType) {
     if (!container) return;
     container.innerHTML = '<p class="views-empty-state">Loading...</p>';
 
+    // Fetch all docs and filter client-side — avoids composite index requirements
     Promise.all([
-        userCol('viewCategories').where('thoughtType', '==', thoughtType).get(),
-        userCol('views').where('thoughtType', '==', thoughtType).get()
+        userCol('viewCategories').get(),
+        userCol('views').get()
     ]).then(function(results) {
-        var catSnap  = results[0];
-        var viewSnap = results[1];
+        var allCatDocs  = results[0].docs.filter(function(d) { return d.data().thoughtType === thoughtType; });
+        var allViewDocs = results[1].docs.filter(function(d) { return d.data().thoughtType === thoughtType; });
+
+        // Update tile count with total across all types
+        var tileEl = document.getElementById('viewsCount');
+        if (tileEl) tileEl.textContent = 'My Thoughts (' + results[1].size + ')';
 
         var viewsBySubId  = {};
         var uncategorized = [];
-        viewSnap.docs.forEach(function(doc) {
+        allViewDocs.forEach(function(doc) {
             var data = doc.data(); data.id = doc.id;
             var subId = data.subcategoryId || null;
             if (!subId) { uncategorized.push(data); }
@@ -227,18 +232,16 @@ function _viewLoadForType(thoughtType) {
         });
 
         var typeLabel = THOUGHT_TYPE_LABELS[thoughtType] || 'Thought';
-        if (catSnap.empty && uncategorized.length === 0) {
+        if (allCatDocs.length === 0 && uncategorized.length === 0) {
             container.innerHTML = '<p class="views-empty-state">No ' + typeLabel.toLowerCase() +
                 's yet. Click <strong>+ New Thought</strong> to get started.</p>';
             return;
         }
 
-        var sortedCatDocs = catSnap.docs.slice().sort(function(a, b) {
-            return (a.data().order || 0) - (b.data().order || 0);
-        });
+        allCatDocs.sort(function(a, b) { return (a.data().order || 0) - (b.data().order || 0); });
 
-        var subPromises = sortedCatDocs.map(function(catDoc) {
-            return userCol('viewCategories').doc(catDoc.id).collection('subcategories').orderBy('order').get()
+        var subPromises = allCatDocs.map(function(catDoc) {
+            return catDoc.ref.collection('subcategories').orderBy('order').get()
                 .then(function(subSnap) { return { catDoc: catDoc, subDocs: subSnap.docs }; });
         });
 
@@ -248,7 +251,7 @@ function _viewLoadForType(thoughtType) {
 
     }).catch(function(err) {
         console.error('_viewLoadForType error:', err);
-        container.innerHTML = '<p class="views-empty-state">Error loading thoughts.</p>';
+        container.innerHTML = '<p class="views-empty-state">Error: ' + (err.message || err) + '</p>';
     });
 }
 

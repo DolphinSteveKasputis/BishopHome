@@ -1,8 +1,11 @@
 // ============================================================
-// views.js — My Views section
+// views.js — My Thoughts section (Views, Reflections, Advice, Reviews)
 // ============================================================
 
-// ─────── Seed Data ───────
+var THOUGHT_TYPES  = ['view', 'reflection', 'advice', 'review'];
+var THOUGHT_TYPE_LABELS = { view: 'View', reflection: 'Reflection', advice: 'Advice', review: 'Review' };
+
+// ─────── Seed Data (View-type categories) ───────
 var _viewsCategorySeed = [
     { name: 'Politics & Society', subs: ['Politics', 'Government', 'Culture', 'Society', 'Media'] },
     { name: 'Personal Beliefs',   subs: ['Religion / Faith', 'Ethics & Morality', 'Philosophy'] },
@@ -17,7 +20,7 @@ function seedViewCategories() {
         var batch = db.batch();
         _viewsCategorySeed.forEach(function(cat, catIdx) {
             var catRef = userCol('viewCategories').doc();
-            batch.set(catRef, { name: cat.name, order: catIdx, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+            batch.set(catRef, { name: cat.name, order: catIdx, thoughtType: 'view', createdAt: firebase.firestore.FieldValue.serverTimestamp() });
             var generalRef = catRef.collection('subcategories').doc();
             batch.set(generalRef, { name: 'General', order: 0, isDefault: true, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
             cat.subs.forEach(function(subName, subIdx) {
@@ -30,13 +33,15 @@ function seedViewCategories() {
 }
 
 // ─────── Module State ───────
-var _viewId               = null;   // Firestore ID of the current view (null = new)
-var _viewData             = null;   // current view document data
-var _viewCatsData         = [];     // [{id, name, order, subs:[{id,name,isDefault,order}]}]
-var _viewUrls             = [];     // [{label, url}] — links on the current view
-var _viewLongLast         = '';     // last-saved long version (for auto-save change detection)
-var _viewAiPrevSuggestions = [];    // cumulative list of AI suggestions to exclude on retry
-var _viewAiCurrentTopics   = [];    // topics shown in the modal right now (indexed by button)
+var _viewId                = null;   // Firestore ID of current thought (null = new)
+var _viewData              = null;   // current thought document data
+var _viewCatsData          = [];     // [{id, name, order, subs:[{id,name,isDefault,order}]}]
+var _viewUrls              = [];     // [{label, url}]
+var _viewLongLast          = '';     // last-saved long version (change detection)
+var _viewAiPrevSuggestions = [];
+var _viewAiCurrentTopics   = [];
+var _viewCurrentType       = 'view'; // active type tab on list page
+var _catPageCurrentType    = 'view'; // active type on categories page
 
 // ─────── Helpers ───────
 function _viewEsc(str) {
@@ -49,8 +54,6 @@ function _viewFormatDate(ts) {
     var d = ts.toDate ? ts.toDate() : new Date(ts);
     return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 }
-
-// Returns true if the given Firestore timestamp is today (calendar day)
 function _viewIsToday(ts) {
     if (!ts) return false;
     var d     = ts.toDate ? ts.toDate() : new Date(ts);
@@ -60,22 +63,31 @@ function _viewIsToday(ts) {
            d.getDate()     === today.getDate();
 }
 
-// ─────── Load Category Data ───────
-function _viewLoadCatsData() {
-    return userCol('viewCategories').orderBy('order').get().then(function(catSnap) {
-        var subPromises = catSnap.docs.map(function(catDoc) {
-            return catDoc.ref.collection('subcategories').orderBy('order').get()
-                .then(function(subSnap) {
-                    return {
-                        id:    catDoc.id,
-                        name:  catDoc.data().name,
-                        order: catDoc.data().order,
-                        subs:  subSnap.docs.map(function(s) { return Object.assign({ id: s.id }, s.data()); })
-                    };
-                });
+// Returns the type-appropriate label for the archive/update button
+function _viewChangedBtnLabel(thoughtType) {
+    var map = { view: "I've Changed My View", reflection: 'Update My Reflection', advice: 'Update My Advice', review: 'Update My Review' };
+    return map[thoughtType] || "Update This Thought";
+}
+
+// ─────── Load Category Data (filtered by type) ───────
+function _viewLoadCatsData(thoughtType) {
+    return userCol('viewCategories')
+        .where('thoughtType', '==', thoughtType)
+        .orderBy('order').get()
+        .then(function(catSnap) {
+            var subPromises = catSnap.docs.map(function(catDoc) {
+                return catDoc.ref.collection('subcategories').orderBy('order').get()
+                    .then(function(subSnap) {
+                        return {
+                            id:    catDoc.id,
+                            name:  catDoc.data().name,
+                            order: catDoc.data().order,
+                            subs:  subSnap.docs.map(function(s) { return Object.assign({ id: s.id }, s.data()); })
+                        };
+                    });
+            });
+            return Promise.all(subPromises);
         });
-        return Promise.all(subPromises);
-    });
 }
 
 // ─────── Dropdown Builders ───────
@@ -85,14 +97,12 @@ function _viewBuildMajorOptions(cats, selectedCatId) {
             _viewEsc(cat.name) + '</option>';
     }).join('');
 }
-
 function _viewBuildSubOptions(subs, selectedSubId) {
     return subs.map(function(sub) {
         return '<option value="' + sub.id + '"' + (sub.id === selectedSubId ? ' selected' : '') + '>' +
             _viewEsc(sub.name) + '</option>';
     }).join('');
 }
-
 function _viewBuildSubOptionsForCat(catId, selectedSubId) {
     if (!catId) return '';
     var cat = _viewCatsData.find(function(c) { return c.id === catId; });
@@ -104,7 +114,6 @@ function _viewBuildSubOptionsForCat(catId, selectedSubId) {
 function _viewOnMajorCatChange(newCatId, saveToFirestore) {
     var subSelect = document.getElementById('viewSubCatSelect');
     if (!subSelect) return;
-
     if (!newCatId) {
         subSelect.disabled = true;
         subSelect.innerHTML = '';
@@ -112,32 +121,49 @@ function _viewOnMajorCatChange(newCatId, saveToFirestore) {
         _viewCheckNewPageUnlock();
         return;
     }
-
     var cat = _viewCatsData.find(function(c) { return c.id === newCatId; });
     if (!cat) return;
-
     var generalSub = cat.subs.find(function(s) { return s.isDefault; }) || cat.subs[0];
     subSelect.disabled = false;
     subSelect.innerHTML = _viewBuildSubOptions(cat.subs, generalSub ? generalSub.id : '');
-
     if (saveToFirestore && _viewId) _viewSaveCategory();
     _viewCheckNewPageUnlock();
 }
 
-// Enables Create button on the new-view page once both title + category are set
+// Called when type changes on the new thought page — reloads categories for that type
+function _viewOnTypeChange(newType) {
+    var majorEl = document.getElementById('viewMajorCatSelect');
+    var subEl   = document.getElementById('viewSubCatSelect');
+    if (majorEl) { majorEl.innerHTML = '<option value="">— Loading… —</option>'; majorEl.disabled = true; }
+    if (subEl)   { subEl.innerHTML   = ''; subEl.disabled = true; }
+    _viewCheckNewPageUnlock();
+
+    _viewLoadCatsData(newType).then(function(cats) {
+        _viewCatsData = cats;
+        if (majorEl) {
+            majorEl.innerHTML = '<option value="">— Select —</option>' + _viewBuildMajorOptions(cats, '');
+            majorEl.disabled  = false;
+        }
+        _viewCheckNewPageUnlock();
+    });
+}
+
+// Enables Create button once type + title + category are all set
 function _viewCheckNewPageUnlock() {
     if (_viewId) return;
+    var typeEl  = document.getElementById('viewTypeSelect');
     var titleEl = document.getElementById('viewTitleInput');
     var majorEl = document.getElementById('viewMajorCatSelect');
     var btn     = document.getElementById('viewCreateBtn');
     if (!btn) return;
+    var hasType  = typeEl  && typeEl.value;
     var hasTitle = titleEl && titleEl.value.trim().length > 0;
     var hasCat   = majorEl && majorEl.value;
-    btn.disabled = !(hasTitle && hasCat);
+    btn.disabled = !(hasType && hasTitle && hasCat);
 }
 
 // ══════════════════════════════════════════════════════════════
-// VIEWS LIST PAGE  (#views)
+// THOUGHTS LIST PAGE  (#views)
 // ══════════════════════════════════════════════════════════════
 function loadViewsPage() {
     seedViewCategories();
@@ -146,36 +172,62 @@ function loadViewsPage() {
     if (crumb) crumb.innerHTML =
         '<a href="#thoughts">Thoughts</a>' +
         '<span class="separator">&rsaquo;</span>' +
-        '<span>My Views</span>';
+        '<span>My Thoughts</span>';
+
+    // Render type tabs
+    var tabsEl = document.getElementById('viewsTypeTabs');
+    if (tabsEl) {
+        tabsEl.innerHTML = THOUGHT_TYPES.map(function(type) {
+            return '<button class="view-type-tab' + (type === _viewCurrentType ? ' active' : '') + '" ' +
+                'data-type="' + type + '" ' +
+                'onclick="_viewLoadForType(\'' + type + '\')">' +
+                THOUGHT_TYPE_LABELS[type] + 's' +
+                '</button>';
+        }).join('');
+    }
 
     var searchEl = document.getElementById('viewsSearchInput');
     if (searchEl) { searchEl.value = ''; searchEl.oninput = function() { _viewSearch(this.value); }; }
+
+    _viewLoadForType(_viewCurrentType);
+}
+
+function _viewLoadForType(thoughtType) {
+    _viewCurrentType = thoughtType;
+
+    // Update tab active state
+    var tabs = document.querySelectorAll('.view-type-tab');
+    tabs.forEach(function(t) {
+        t.classList.toggle('active', t.dataset.type === thoughtType);
+    });
 
     var container = document.getElementById('viewsAccordion');
     if (!container) return;
     container.innerHTML = '<p class="views-empty-state">Loading...</p>';
 
     Promise.all([
-        userCol('viewCategories').orderBy('order').get(),
-        userCol('views').get()
+        userCol('viewCategories').where('thoughtType', '==', thoughtType).orderBy('order').get(),
+        userCol('views').where('thoughtType', '==', thoughtType).get()
     ]).then(function(results) {
         var catSnap  = results[0];
         var viewSnap = results[1];
 
-        var tileEl = document.getElementById('viewsCount');
-        if (tileEl) tileEl.textContent = 'My Views (' + viewSnap.size + ')';
-
-        var viewsBySubId = {};
+        var viewsBySubId  = {};
         var uncategorized = [];
         viewSnap.docs.forEach(function(doc) {
             var data = doc.data(); data.id = doc.id;
             var subId = data.subcategoryId || null;
             if (!subId) { uncategorized.push(data); }
-            else { if (!viewsBySubId[subId]) viewsBySubId[subId] = []; viewsBySubId[subId].push(data); }
+            else {
+                if (!viewsBySubId[subId]) viewsBySubId[subId] = [];
+                viewsBySubId[subId].push(data);
+            }
         });
 
+        var typeLabel = THOUGHT_TYPE_LABELS[thoughtType] || 'Thought';
         if (catSnap.empty && uncategorized.length === 0) {
-            container.innerHTML = '<p class="views-empty-state">No views yet. Click <strong>+ New View</strong> to get started.</p>';
+            container.innerHTML = '<p class="views-empty-state">No ' + typeLabel.toLowerCase() +
+                's yet. Click <strong>+ New Thought</strong> to get started.</p>';
             return;
         }
 
@@ -185,18 +237,19 @@ function loadViewsPage() {
         });
 
         Promise.all(subPromises).then(function(catData) {
-            _viewRenderAccordion(container, catData, viewsBySubId, uncategorized);
+            _viewRenderAccordion(container, catData, viewsBySubId, uncategorized, thoughtType);
         });
 
     }).catch(function(err) {
-        console.error('loadViewsPage error:', err);
-        container.innerHTML = '<p class="views-empty-state">Error loading views.</p>';
+        console.error('_viewLoadForType error:', err);
+        container.innerHTML = '<p class="views-empty-state">Error loading thoughts.</p>';
     });
 }
 
-function _viewRenderAccordion(container, catData, viewsBySubId, uncategorized) {
-    var html = '';
+function _viewRenderAccordion(container, catData, viewsBySubId, uncategorized, thoughtType) {
+    var html       = '';
     var anyVisible = false;
+    var typeLabel  = THOUGHT_TYPE_LABELS[thoughtType] || 'Thought';
 
     catData.forEach(function(cd) {
         var cat = cd.catDoc.data(); cat.id = cd.catDoc.id;
@@ -204,7 +257,7 @@ function _viewRenderAccordion(container, catData, viewsBySubId, uncategorized) {
         var subHtml  = '';
 
         cd.subDocs.forEach(function(subDoc) {
-            var sub = subDoc.data(); sub.id = subDoc.id;
+            var sub   = subDoc.data(); sub.id = subDoc.id;
             var views = viewsBySubId[sub.id] || [];
             if (views.length === 0) return;
             catTotal += views.length;
@@ -247,21 +300,27 @@ function _viewRenderAccordion(container, catData, viewsBySubId, uncategorized) {
 
     container.innerHTML = anyVisible
         ? html
-        : '<p class="views-empty-state">No views yet. Click <strong>+ New View</strong> to get started.</p>';
+        : '<p class="views-empty-state">No ' + typeLabel.toLowerCase() + 's yet. Click <strong>+ New Thought</strong> to get started.</p>';
 }
 
 function _viewRenderCard(v) {
-    var dateStr    = _viewFormatDate(v.currentDate || v.createdAt);
-    var shortHtml  = v.shortVersion ? '<p class="views-card-short">' + _viewEsc(v.shortVersion) + '</p>' : '';
-    var histBadge  = (v.historyCount && v.historyCount > 0)
-        ? '<div class="views-card-footer"><span class="views-history-badge">' +
-          v.historyCount + ' previous view' + (v.historyCount !== 1 ? 's' : '') + '</span></div>'
+    var dateStr   = _viewFormatDate(v.currentDate || v.createdAt);
+    var typeLabel = v.thoughtType ? THOUGHT_TYPE_LABELS[v.thoughtType] : '';
+    var typeBadge = typeLabel
+        ? '<span class="view-type-badge view-type-badge--' + _viewEsc(v.thoughtType) + '">' + _viewEsc(typeLabel) + '</span>'
+        : '';
+    var shortHtml = v.shortVersion ? '<p class="views-card-short">' + _viewEsc(v.shortVersion) + '</p>' : '';
+    var histBadge = (v.historyCount && v.historyCount > 0)
+        ? '<span class="views-history-badge">' + v.historyCount + ' previous version' + (v.historyCount !== 1 ? 's' : '') + '</span>'
+        : '';
+    var footer = (typeBadge || histBadge)
+        ? '<div class="views-card-footer">' + typeBadge + histBadge + '</div>'
         : '';
     return '<a href="#view/' + v.id + '" class="views-card">' +
         '<div class="views-card-header">' +
             '<span class="views-card-title">' + _viewEsc(v.title || '(Untitled)') + '</span>' +
             (dateStr ? '<span class="views-card-date">' + dateStr + '</span>' : '') +
-        '</div>' + shortHtml + histBadge +
+        '</div>' + shortHtml + footer +
     '</a>';
 }
 
@@ -309,9 +368,8 @@ function _viewSearch(term) {
     }
 
     var anyHit = false;
-
     majors.forEach(function(major) {
-        var majorHit = false;
+        var majorHit  = false;
         var majorBody = major.querySelector('.views-major-body');
         var majorChev = major.querySelector('.views-major-header .views-chevron');
 
@@ -322,7 +380,7 @@ function _viewSearch(term) {
         });
 
         major.querySelectorAll('.views-sub-accordion').forEach(function(sub) {
-            var subHit = false;
+            var subHit  = false;
             var subBody = sub.querySelector('.views-sub-body');
             var subChev = sub.querySelector('.views-sub-header .views-chevron');
             sub.querySelectorAll('.views-card').forEach(function(card) {
@@ -331,21 +389,28 @@ function _viewSearch(term) {
                 if (match) subHit = true;
             });
             sub.classList.toggle('hidden', !subHit);
-            if (subHit) { majorHit = true; if (subBody) subBody.classList.remove('hidden'); if (subChev) subChev.style.transform = 'rotate(90deg)'; }
+            if (subHit) {
+                majorHit = true;
+                if (subBody) subBody.classList.remove('hidden');
+                if (subChev) subChev.style.transform = 'rotate(90deg)';
+            }
         });
 
         major.classList.toggle('hidden', !majorHit);
-        if (majorHit) { anyHit = true; if (majorBody) majorBody.classList.remove('hidden'); if (majorChev) majorChev.style.transform = 'rotate(90deg)'; }
+        if (majorHit) {
+            anyHit = true;
+            if (majorBody) majorBody.classList.remove('hidden');
+            if (majorChev) majorChev.style.transform = 'rotate(90deg)';
+        }
     });
 
-    // Show or clear the no-results message
     var noResults = document.getElementById('viewsNoResults');
     if (!anyHit) {
         if (!noResults) {
             var msg = document.createElement('p');
             msg.id = 'viewsNoResults';
             msg.className = 'views-empty-state';
-            msg.textContent = 'No views match "' + term.trim() + '"';
+            msg.textContent = 'No thoughts match "' + term.trim() + '"';
             container.appendChild(msg);
         }
     } else {
@@ -360,7 +425,7 @@ function _viewCardMatches(card, lc) {
 }
 
 // ══════════════════════════════════════════════════════════════
-// VIEW DETAIL PAGE  (#view/:id  or  #view/new)
+// THOUGHT DETAIL PAGE  (#view/:id  or  #view/new)
 // ══════════════════════════════════════════════════════════════
 function loadViewDetailPage(id) {
     _viewId   = (id === 'new') ? null : id;
@@ -371,49 +436,62 @@ function loadViewDetailPage(id) {
     if (!container) return;
     container.innerHTML = '<p class="views-empty-state">Loading...</p>';
 
-    _viewLoadCatsData().then(function(cats) {
-        _viewCatsData = cats;
-
-        if (_viewId === null) {
-            _viewRenderNewPage();
-        } else {
-            userCol('views').doc(_viewId).get().then(function(doc) {
-                if (!doc.exists) {
-                    container.innerHTML = '<p class="views-empty-state">View not found. <a href="#views">Back to My Views</a></p>';
-                    return;
-                }
-                _viewData = Object.assign({ id: doc.id }, doc.data());
-                _viewUrls = (_viewData.urls || []).map(function(u) { return Object.assign({}, u); });
+    if (_viewId === null) {
+        // New thought — start with empty cats, type selector drives the load
+        _viewCatsData = [];
+        _viewRenderNewPage();
+    } else {
+        userCol('views').doc(_viewId).get().then(function(doc) {
+            if (!doc.exists) {
+                container.innerHTML = '<p class="views-empty-state">Thought not found. <a href="#views">Back to My Thoughts</a></p>';
+                return;
+            }
+            _viewData = Object.assign({ id: doc.id }, doc.data());
+            _viewUrls = (_viewData.urls || []).map(function(u) { return Object.assign({}, u); });
+            var type  = _viewData.thoughtType || 'view';
+            _viewLoadCatsData(type).then(function(cats) {
+                _viewCatsData = cats;
                 _viewRenderExistingPage();
-            }).catch(function(err) {
-                console.error('loadViewDetailPage error:', err);
-                container.innerHTML = '<p class="views-empty-state">Error loading view.</p>';
             });
-        }
-    });
+        }).catch(function(err) {
+            console.error('loadViewDetailPage error:', err);
+            container.innerHTML = '<p class="views-empty-state">Error loading thought.</p>';
+        });
+    }
 }
 
-// ── New View Page ──
+// ── New Thought Page ──
 function _viewRenderNewPage() {
     var crumb = document.getElementById('breadcrumbBar');
     if (crumb) crumb.innerHTML =
         '<a href="#thoughts">Thoughts</a><span class="separator">&rsaquo;</span>' +
-        '<a href="#views">My Views</a><span class="separator">&rsaquo;</span>' +
-        '<span>New View</span>';
+        '<a href="#views">My Thoughts</a><span class="separator">&rsaquo;</span>' +
+        '<span>New Thought</span>';
 
-    _viewAiPrevSuggestions = []; // reset on each new-view page load
+    _viewAiPrevSuggestions = [];
 
     var container = document.getElementById('viewDetailContent');
     container.innerHTML =
         '<div class="view-detail-container">' +
-            '<h2 class="view-new-heading">New View</h2>' +
+            '<h2 class="view-new-heading">New Thought</h2>' +
 
+            // Type selector (required — drives category options)
+            '<div class="view-field-group">' +
+                '<label class="view-field-label">Type <span class="view-required">*</span></label>' +
+                '<select id="viewTypeSelect" class="form-control">' +
+                    '<option value="">— Select type —</option>' +
+                    THOUGHT_TYPES.map(function(t) {
+                        return '<option value="' + t + '">' + THOUGHT_TYPE_LABELS[t] + '</option>';
+                    }).join('') +
+                '</select>' +
+            '</div>' +
+
+            // Category row
             '<div class="view-category-row">' +
                 '<div class="view-field-group">' +
                     '<label class="view-field-label">Major Category <span class="view-required">*</span></label>' +
-                    '<select id="viewMajorCatSelect" class="form-control">' +
-                        '<option value="">— Select —</option>' +
-                        _viewBuildMajorOptions(_viewCatsData, '') +
+                    '<select id="viewMajorCatSelect" class="form-control" disabled>' +
+                        '<option value="">— Select type first —</option>' +
                     '</select>' +
                 '</div>' +
                 '<div class="view-field-group">' +
@@ -424,29 +502,35 @@ function _viewRenderNewPage() {
                 '</div>' +
             '</div>' +
 
+            // Title
             '<div class="view-field-group">' +
                 '<label class="view-field-label">Title <span class="view-required">*</span></label>' +
-                '<input type="text" id="viewTitleInput" class="form-control" placeholder="What is this view about?">' +
+                '<input type="text" id="viewTitleInput" class="form-control" placeholder="What is this about?">' +
                 '<button id="viewAskAiBtn" class="btn btn-secondary btn-small view-ask-ai-btn hidden" ' +
                     'onclick="_viewAskAiForTopic(false)">✨ Ask AI For a Topic</button>' +
             '</div>' +
 
             '<div class="view-create-actions">' +
-                '<button id="viewCreateBtn" class="btn btn-primary" onclick="_viewCreateNew()" disabled>Create View</button>' +
+                '<button id="viewCreateBtn" class="btn btn-primary" onclick="_viewCreateNew()" disabled>Create Thought</button>' +
                 '<a href="#views" class="btn btn-secondary">Cancel</a>' +
             '</div>' +
         '</div>';
 
-    // Wire handlers
+    var typeEl  = document.getElementById('viewTypeSelect');
     var titleEl = document.getElementById('viewTitleInput');
     var majorEl = document.getElementById('viewMajorCatSelect');
+    if (typeEl)  {
+        typeEl.onchange = function() {
+            if (this.value) _viewOnTypeChange(this.value);
+            _viewCheckNewPageUnlock();
+        };
+        typeEl.focus();
+    }
     if (titleEl) { titleEl.oninput = _viewCheckNewPageUnlock; }
     if (majorEl) {
         majorEl.onchange = function() { _viewOnMajorCatChange(this.value, false); _viewCheckNewPageUnlock(); };
-        majorEl.focus();
     }
 
-    // Show AI button if LLM is configured
     userCol('settings').doc('llm').get().then(function(doc) {
         if (doc.exists && doc.data().provider && doc.data().apiKey) {
             var btn = document.getElementById('viewAskAiBtn');
@@ -456,16 +540,19 @@ function _viewRenderNewPage() {
 }
 
 function _viewCreateNew() {
+    var typeEl  = document.getElementById('viewTypeSelect');
     var titleEl = document.getElementById('viewTitleInput');
     var majorEl = document.getElementById('viewMajorCatSelect');
     var subEl   = document.getElementById('viewSubCatSelect');
 
-    var title = titleEl ? titleEl.value.trim() : '';
-    var catId  = majorEl ? majorEl.value        : '';
-    var subId  = subEl  ? subEl.value           : '';
+    var thoughtType = typeEl  ? typeEl.value        : '';
+    var title       = titleEl ? titleEl.value.trim() : '';
+    var catId       = majorEl ? majorEl.value        : '';
+    var subId       = subEl   ? subEl.value          : '';
 
-    if (!title) { alert('Please enter a title.'); if (titleEl) titleEl.focus(); return; }
-    if (!catId) { alert('Please select a major category.'); if (majorEl) majorEl.focus(); return; }
+    if (!thoughtType) { alert('Please select a type.'); if (typeEl) typeEl.focus(); return; }
+    if (!title)       { alert('Please enter a title.'); if (titleEl) titleEl.focus(); return; }
+    if (!catId)       { alert('Please select a major category.'); if (majorEl) majorEl.focus(); return; }
 
     var btn = document.getElementById('viewCreateBtn');
     if (btn) { btn.disabled = true; btn.textContent = 'Creating…'; }
@@ -475,6 +562,7 @@ function _viewCreateNew() {
         shortVersion:  '',
         longVersion:   '',
         urls:          [],
+        thoughtType:   thoughtType,
         categoryId:    catId || null,
         subcategoryId: subId || null,
         historyCount:  0,
@@ -485,29 +573,25 @@ function _viewCreateNew() {
         window.location.hash = '#view/' + ref.id;
     }).catch(function(err) {
         console.error('_viewCreateNew error:', err);
-        if (btn) { btn.disabled = false; btn.textContent = 'Create View'; }
-        alert('Error creating view. Please try again.');
+        if (btn) { btn.disabled = false; btn.textContent = 'Create Thought'; }
+        alert('Error creating thought. Please try again.');
     });
 }
 
 // ══════════════════════════════════════════════════════════════
 // AI TOPIC SUGGESTIONS
 // ══════════════════════════════════════════════════════════════
-
-/**
- * Ask the LLM for 10 topic suggestions for the selected category.
- * @param {boolean} isRetry - true when "Get 10 Different Ones" is clicked
- */
 async function _viewAskAiForTopic(isRetry) {
+    var typeEl  = document.getElementById('viewTypeSelect');
     var majorEl = document.getElementById('viewMajorCatSelect');
     var subEl   = document.getElementById('viewSubCatSelect');
-    var catId   = majorEl ? majorEl.value : '';
-    var subId   = subEl   ? subEl.value   : '';
+    var thoughtType = typeEl  ? typeEl.value  : 'view';
+    var catId       = majorEl ? majorEl.value : '';
+    var subId       = subEl   ? subEl.value   : '';
 
     if (!catId) { alert('Please select a major category first.'); return; }
 
-    // Resolve display names
-    var cat    = _viewCatsData.find(function(c) { return c.id === catId; });
+    var cat     = _viewCatsData.find(function(c) { return c.id === catId; });
     var catName = cat ? cat.name : 'Unknown';
     var subName = '';
     if (subId && cat) {
@@ -515,39 +599,38 @@ async function _viewAskAiForTopic(isRetry) {
         subName = sub ? sub.name : '';
     }
 
-    // Load LLM config
     var cfgDoc = await userCol('settings').doc('llm').get().catch(function() { return null; });
     if (!cfgDoc || !cfgDoc.exists) { alert('LLM not configured. Go to Settings > AI.'); return; }
     var cfg = cfgDoc.data();
     var llm = (typeof LLM_PROVIDERS !== 'undefined') ? LLM_PROVIDERS[cfg.provider] : null;
     if (!llm) { alert('Unknown LLM provider. Check Settings > AI.'); return; }
 
-    // Fetch existing view titles for this category
     var snap = await userCol('views').where('categoryId', '==', catId).get();
     var existingTitles = [];
-    snap.forEach(function(doc) {
-        var t = doc.data().title;
-        if (t) existingTitles.push(t);
-    });
+    snap.forEach(function(doc) { var t = doc.data().title; if (t) existingTitles.push(t); });
 
-    // Build prompt
     var categoryDesc = subName && subName !== 'General'
         ? '"' + catName + '" › "' + subName + '"'
         : '"' + catName + '"';
 
+    var typeContextMap = {
+        view:       'log their personal opinions and views',
+        reflection: 'write personal reflections on experiences, people, and things that shaped them',
+        advice:     'record personal advice and guidance they would pass on to others',
+        review:     'write reviews and share their thoughts on books, movies, and experiences'
+    };
+    var typeContext = typeContextMap[thoughtType] || 'record their thoughts';
+
     var prompt =
-        'You are helping an everyday working person log their personal opinions and views. ' +
+        'You are helping an everyday working person ' + typeContext + '. ' +
         'This person is a regular working adult — someone dealing with real life: paying bills, ' +
         'raising a family, holding down a job. They likely have a high school diploma or an associate\'s degree. ' +
         'They are NOT academics or political theorists. Keep language plain and grounded.\n\n' +
-        'They want to record their views in the category ' + categoryDesc + '.\n\n' +
+        'They want to write about something in the category ' + categoryDesc + '.\n\n' +
         'Suggest exactly 10 topic titles using this breakdown:\n' +
-        '- Topics 1–5: Current events or cultural issues that are in the news or affecting everyday life right now. ' +
-        'Real things people talk about at the dinner table or at work.\n' +
-        '- Topics 6–8: Timeless discussion topics that come up in everyday conversation — not tied to current events, ' +
-        'but things most people have a clear opinion on.\n' +
-        '- Topics 9–10: A little outside the box — designed for someone who wants to think deeper or consider ' +
-        'an angle most people overlook. Still relatable, not abstract philosophy.\n\n' +
+        '- Topics 1–5: Current or highly relatable topics that most people deal with or talk about.\n' +
+        '- Topics 6–8: Timeless topics that come up in everyday conversation.\n' +
+        '- Topics 9–10: A little outside the box — designed for someone who wants to think deeper.\n\n' +
         'All topics should be written as short, clear titles (not full questions). ' +
         'Avoid jargon, academic language, or anything that sounds like a college essay prompt.\n\n';
 
@@ -556,18 +639,15 @@ async function _viewAskAiForTopic(isRetry) {
         existingTitles.forEach(function(t) { prompt += '- ' + t + '\n'; });
         prompt += '\n';
     }
-
     if (isRetry && _viewAiPrevSuggestions.length > 0) {
         prompt += 'Previously suggested topics (do not suggest any of these either):\n';
         _viewAiPrevSuggestions.forEach(function(t) { prompt += '- ' + t + '\n'; });
         prompt += '\n';
     }
-
     prompt += 'Return ONLY a JSON array of exactly 10 topic strings and nothing else. ' +
         'Example format: ["Topic 1", "Topic 2", "Topic 3", "Topic 4", "Topic 5", ' +
         '"Topic 6", "Topic 7", "Topic 8", "Topic 9", "Topic 10"]';
 
-    // Set category label and show modal in loading state
     var catLabelEl = document.getElementById('viewAiTopicsCatLabel');
     if (catLabelEl) {
         catLabelEl.textContent = subName && subName !== 'General'
@@ -578,17 +658,12 @@ async function _viewAskAiForTopic(isRetry) {
 
     try {
         var activeModel = cfg.model || llm.model;
-        var raw = await chatCallOpenAICompat(llm, cfg.apiKey, prompt, activeModel);
-
-        // Extract JSON array from response (strip any markdown fences)
-        var jsonMatch = raw.match(/\[[\s\S]*\]/);
+        var raw         = await chatCallOpenAICompat(llm, cfg.apiKey, prompt, activeModel);
+        var jsonMatch   = raw.match(/\[[\s\S]*\]/);
         if (!jsonMatch) throw new Error('Could not parse AI response.');
         var topics = JSON.parse(jsonMatch[0]);
         if (!Array.isArray(topics) || topics.length === 0) throw new Error('Empty suggestion list.');
-
-        // Accumulate for future retries
         _viewAiPrevSuggestions = _viewAiPrevSuggestions.concat(topics);
-
         _viewShowAiTopicsModal(topics);
     } catch (err) {
         console.error('AI topic error:', err);
@@ -597,20 +672,16 @@ async function _viewAskAiForTopic(isRetry) {
     }
 }
 
-/** Render the AI topics modal. Pass null to show loading state. */
 function _viewShowAiTopicsModal(topics) {
-    var bodyEl = document.getElementById('viewAiTopicsBody');
+    var bodyEl   = document.getElementById('viewAiTopicsBody');
     var retryBtn = document.getElementById('viewAiRetryBtn');
     if (!bodyEl) return;
-
     openModal('viewAiTopicsModal');
-
     if (!topics) {
         bodyEl.innerHTML = '<p class="views-ai-loading">✨ Asking AI for suggestions…</p>';
         if (retryBtn) retryBtn.disabled = true;
         return;
     }
-
     _viewAiCurrentTopics = topics;
     bodyEl.innerHTML = topics.map(function(topic, i) {
         return '<button class="views-ai-topic-btn" onclick="_viewSelectAiTopic(_viewAiCurrentTopics[' + i + '])">' +
@@ -618,11 +689,9 @@ function _viewShowAiTopicsModal(topics) {
             '<span class="views-ai-topic-text">' + _viewEsc(topic) + '</span>' +
             '</button>';
     }).join('');
-
     if (retryBtn) retryBtn.disabled = false;
 }
 
-/** Populate the title input with the selected AI topic and close modal. */
 function _viewSelectAiTopic(topic) {
     var titleEl = document.getElementById('viewTitleInput');
     if (titleEl) {
@@ -633,21 +702,25 @@ function _viewSelectAiTopic(topic) {
     closeModal('viewAiTopicsModal');
 }
 
-// ── Existing View Detail Page ──
+// ── Existing Thought Detail Page ──
 function _viewRenderExistingPage() {
     var d        = _viewData;
     var dateStr  = _viewFormatDate(d.currentDate || d.createdAt);
     var shortVal = d.shortVersion || '';
     var longVal  = d.longVersion  || '';
+    var type     = d.thoughtType  || 'view';
+    var typeLabel = THOUGHT_TYPE_LABELS[type] || 'Thought';
 
     var crumb = document.getElementById('breadcrumbBar');
     if (crumb) crumb.innerHTML =
         '<a href="#thoughts">Thoughts</a><span class="separator">&rsaquo;</span>' +
-        '<a href="#views">My Views</a><span class="separator">&rsaquo;</span>' +
-        '<span id="viewDetailCrumb">' + _viewEsc(d.title || 'View') + '</span>';
+        '<a href="#views">My Thoughts</a><span class="separator">&rsaquo;</span>' +
+        '<span id="viewDetailCrumb">' + _viewEsc(d.title || 'Thought') + '</span>';
 
-    // Build subcategory options for current category
     var subOptions = d.categoryId ? _viewBuildSubOptionsForCat(d.categoryId, d.subcategoryId) : '';
+
+    var canChange     = !_viewIsToday(d.currentDate);
+    var changedLabel  = _viewChangedBtnLabel(type);
 
     var container = document.getElementById('viewDetailContent');
     container.innerHTML =
@@ -660,8 +733,12 @@ function _viewRenderExistingPage() {
                 '<button class="btn btn-small btn-secondary" onclick="_viewSaveTitle()">Save</button>' +
             '</div>' +
 
-            // Category row
+            // Type badge (read-only) + category row
             '<div class="view-category-row">' +
+                '<div class="view-field-group">' +
+                    '<label class="view-field-label">Type</label>' +
+                    '<span class="view-type-badge view-type-badge--' + _viewEsc(type) + ' view-type-badge--detail">' + _viewEsc(typeLabel) + '</span>' +
+                '</div>' +
                 '<div class="view-field-group">' +
                     '<label class="view-field-label">Major Category</label>' +
                     '<select id="viewMajorCatSelect" class="form-control" onchange="_viewOnMajorCatChange(this.value, true)">' +
@@ -679,15 +756,12 @@ function _viewRenderExistingPage() {
             '</div>' +
 
             // Action buttons
-            (function() {
-                var canChange = !_viewIsToday(d.currentDate);
-                return '<div class="view-header-actions">' +
-                    '<button class="btn btn-secondary"' +
-                        (canChange ? ' onclick="_viewOpenChangedModal()"' : ' disabled title="You\'ve already archived this view today"') + '>' +
-                        'I\'ve Changed My View</button>' +
-                    '<button class="btn btn-danger btn-small" onclick="_viewDeleteView()">Delete View</button>' +
-                '</div>';
-            })() +
+            '<div class="view-header-actions">' +
+                '<button class="btn btn-secondary"' +
+                    (canChange ? ' onclick="_viewOpenChangedModal()"' : ' disabled title="You\'ve already archived this today"') + '>' +
+                    _viewEsc(changedLabel) + '</button>' +
+                '<button class="btn btn-danger btn-small" onclick="_viewDeleteView()">Delete</button>' +
+            '</div>' +
 
             // Short Version
             '<div class="view-field-section">' +
@@ -696,7 +770,7 @@ function _viewRenderExistingPage() {
                     '<span class="view-char-counter" id="viewShortCounter">' + shortVal.length + ' / 500</span>' +
                 '</div>' +
                 '<textarea id="viewShortInput" class="form-control" rows="3" maxlength="500" ' +
-                    'placeholder="Brief summary of your stance (optional)...">' +
+                    'placeholder="Brief summary (optional)...">' +
                     _viewEsc(shortVal) + '</textarea>' +
                 '<button class="btn btn-small btn-secondary view-save-btn" onclick="_viewSaveShort()">Save</button>' +
             '</div>' +
@@ -708,7 +782,7 @@ function _viewRenderExistingPage() {
                     (dateStr ? '<span class="view-current-date">Current since ' + dateStr + '</span>' : '') +
                 '</div>' +
                 '<textarea id="viewLongInput" class="form-control view-long-textarea" ' +
-                    'placeholder="Your full viewpoint...">' +
+                    'placeholder="Your full thoughts...">' +
                     _viewEsc(longVal) + '</textarea>' +
                 '<button class="btn btn-small btn-secondary view-save-btn" onclick="_viewSaveLong()">Save</button>' +
             '</div>' +
@@ -720,9 +794,9 @@ function _viewRenderExistingPage() {
                 '<button class="btn btn-small btn-secondary view-add-link-btn" onclick="_viewOpenUrlForm(-1)">+ Add Link</button>' +
             '</div>' +
 
-            // Previous Views
+            // Previous Versions
             '<div class="view-field-section">' +
-                '<label class="view-field-label">Previous Views</label>' +
+                '<label class="view-field-label">Previous Versions</label>' +
                 '<div id="viewHistoryList"><p class="view-history-empty">Loading...</p></div>' +
             '</div>' +
 
@@ -737,12 +811,10 @@ function _viewRenderExistingPage() {
 function _viewWireDetailHandlers() {
     var shortEl = document.getElementById('viewShortInput');
     var longEl  = document.getElementById('viewLongInput');
-
     if (shortEl) shortEl.oninput = function() {
         var c = document.getElementById('viewShortCounter');
         if (c) c.textContent = this.value.length + ' / 500';
     };
-
     if (longEl) {
         longEl.onblur = function() {
             if (this.value !== _viewLongLast) _viewSaveLong();
@@ -801,7 +873,7 @@ function _viewSaveCategory() {
 
 function _viewDeleteView() {
     if (!_viewId) return;
-    if (!confirm('Delete this view and all its history? This cannot be undone.')) return;
+    if (!confirm('Delete this thought and all its history? This cannot be undone.')) return;
     userCol('views').doc(_viewId).collection('history').get().then(function(snap) {
         var batch = db.batch();
         snap.docs.forEach(function(d) { batch.delete(d.ref); });
@@ -813,7 +885,7 @@ function _viewDeleteView() {
 }
 
 // ══════════════════════════════════════════════════════════════
-// "I'VE CHANGED MY VIEW" FLOW
+// ARCHIVE PREVIOUS VERSION FLOW
 // ══════════════════════════════════════════════════════════════
 function _viewOpenChangedModal() {
     var shortEl = document.getElementById('viewShortInput');
@@ -821,6 +893,13 @@ function _viewOpenChangedModal() {
     document.getElementById('viewChangedShort').value  = shortEl ? shortEl.value : '';
     document.getElementById('viewChangedLong').value   = longEl  ? longEl.value  : '';
     document.getElementById('viewChangedPrompt').value = '';
+
+    // Update modal title to match thought type
+    var titleEl = document.getElementById('viewChangedModalTitle');
+    if (titleEl && _viewData) {
+        titleEl.textContent = _viewChangedBtnLabel(_viewData.thoughtType || 'view');
+    }
+
     openModal('viewChangedModal');
 }
 
@@ -848,7 +927,6 @@ function _viewSaveChangedView() {
     });
     batch.commit().then(function() {
         closeModal('viewChangedModal');
-        // Reload the detail page fresh so button state and history list update correctly
         loadViewDetailPage(_viewId);
     }).catch(function(err) {
         console.error('_viewSaveChangedView error:', err);
@@ -862,12 +940,11 @@ function _viewSaveChangedView() {
 function _viewLoadHistory() {
     var container = document.getElementById('viewHistoryList');
     if (!container) return;
-
     userCol('views').doc(_viewId).collection('history')
         .orderBy('archivedAt', 'desc').get()
         .then(function(snap) {
             if (snap.empty) {
-                container.innerHTML = '<p class="view-history-empty">No previous views yet.</p>';
+                container.innerHTML = '<p class="view-history-empty">No previous versions yet.</p>';
                 return;
             }
             var html = snap.docs.map(function(doc) {
@@ -887,99 +964,19 @@ function _viewLoadHistory() {
 }
 
 function _viewDeleteHistoryEntry(historyId) {
-    if (!confirm('Delete this historical viewpoint? This cannot be undone.')) return;
+    if (!confirm('Delete this archived version? This cannot be undone.')) return;
     var batch = db.batch();
     batch.delete(userCol('views').doc(_viewId).collection('history').doc(historyId));
     batch.update(userCol('views').doc(_viewId), {
         historyCount: firebase.firestore.FieldValue.increment(-1),
         updatedAt:    firebase.firestore.FieldValue.serverTimestamp()
     });
-    batch.commit().then(function() {
-        _viewLoadHistory();
-    }).catch(function(err) {
-        console.error('_viewDeleteHistoryEntry error:', err);
-    });
+    batch.commit().then(function() { _viewLoadHistory(); })
+        .catch(function(err) { console.error('_viewDeleteHistoryEntry error:', err); });
 }
 
 // ══════════════════════════════════════════════════════════════
-// LINKS SECTION  (same pattern as Memories)
-// ══════════════════════════════════════════════════════════════
-function _viewRenderUrls() {
-    var container = document.getElementById('viewUrlsList');
-    if (!container) return;
-
-    if (_viewUrls.length === 0) { container.innerHTML = ''; return; }
-
-    var html = _viewUrls.map(function(entry, i) {
-        var display = _viewEsc(entry.label || entry.url || '(no URL)');
-        var href    = _viewEsc(entry.url || '');
-        return '<div class="view-url-row" data-index="' + i + '">' +
-            '<a href="' + href + '" target="_blank" rel="noopener" class="view-url-link">&#128279; ' + display + '</a>' +
-            '<button class="view-url-btn" title="Edit" data-index="' + i + '" onclick="_viewOpenUrlForm(' + i + ')">&#9998;</button>' +
-            '<button class="view-url-btn" title="Remove" data-index="' + i + '" onclick="_viewDeleteUrl(' + i + ')">&times;</button>' +
-        '</div>';
-    }).join('');
-
-    container.innerHTML = html;
-}
-
-function _viewDeleteUrl(index) {
-    _viewUrls.splice(index, 1);
-    _viewRenderUrls();
-    _viewSaveUrls();
-}
-
-function _viewOpenUrlForm(index) {
-    var container = document.getElementById('viewUrlsList');
-    if (!container) return;
-
-    var existing = index >= 0 ? _viewUrls[index] : { label: '', url: '' };
-    var formHtml =
-        '<div class="view-url-form" id="viewUrlForm">' +
-            '<input type="url" id="viewUrlInput" class="form-control" placeholder="https://..." ' +
-                'value="' + _viewEsc(existing.url) + '">' +
-            '<input type="text" id="viewUrlLabelInput" class="form-control" placeholder="Label (optional)" ' +
-                'value="' + _viewEsc(existing.label) + '">' +
-            '<div class="view-url-form-btns">' +
-                '<button class="btn btn-small btn-primary" onclick="_viewSubmitUrlForm(' + index + ')">Save</button>' +
-                '<button class="btn btn-small btn-secondary" onclick="_viewRenderUrls()">Cancel</button>' +
-            '</div>' +
-        '</div>';
-
-    if (index >= 0) {
-        var rows = container.querySelectorAll('.view-url-row');
-        if (rows[index]) { rows[index].outerHTML = formHtml; }
-        else { container.insertAdjacentHTML('beforeend', formHtml); }
-    } else {
-        container.insertAdjacentHTML('beforeend', formHtml);
-    }
-
-    var urlInput = document.getElementById('viewUrlInput');
-    if (urlInput) urlInput.focus();
-}
-
-function _viewSubmitUrlForm(index) {
-    var urlInput   = document.getElementById('viewUrlInput');
-    var labelInput = document.getElementById('viewUrlLabelInput');
-    var url   = urlInput   ? urlInput.value.trim()   : '';
-    var label = labelInput ? labelInput.value.trim() : '';
-    if (!url) { if (urlInput) urlInput.focus(); return; }
-    if (index >= 0) { _viewUrls[index] = { label: label, url: url }; }
-    else            { _viewUrls.push({ label: label, url: url }); }
-    _viewRenderUrls();
-    _viewSaveUrls();
-}
-
-function _viewSaveUrls() {
-    if (!_viewId) return;
-    userCol('views').doc(_viewId).update({
-        urls:      _viewUrls.slice(),
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }).catch(function(err) { console.error('_viewSaveUrls error:', err); });
-}
-
-// ══════════════════════════════════════════════════════════════
-// STUB PAGES  (built in later phases)
+// HISTORY DETAIL PAGE  (#view-history/:viewId/:historyId)
 // ══════════════════════════════════════════════════════════════
 function loadViewHistoryPage(viewId, historyId) {
     var container = document.getElementById('viewHistoryContent');
@@ -990,11 +987,11 @@ function loadViewHistoryPage(viewId, historyId) {
         userCol('views').doc(viewId).get(),
         userCol('views').doc(viewId).collection('history').doc(historyId).get()
     ]).then(function(results) {
-        var viewDoc    = results[0];
-        var histDoc    = results[1];
+        var viewDoc = results[0];
+        var histDoc = results[1];
 
         if (!viewDoc.exists || !histDoc.exists) {
-            container.innerHTML = '<p class="views-empty-state">Entry not found. <a href="#views">Back to My Views</a></p>';
+            container.innerHTML = '<p class="views-empty-state">Entry not found. <a href="#views">Back to My Thoughts</a></p>';
             return;
         }
 
@@ -1006,7 +1003,7 @@ function loadViewHistoryPage(viewId, historyId) {
         var crumb = document.getElementById('breadcrumbBar');
         if (crumb) crumb.innerHTML =
             '<a href="#thoughts">Thoughts</a><span class="separator">&rsaquo;</span>' +
-            '<a href="#views">My Views</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#views">My Thoughts</a><span class="separator">&rsaquo;</span>' +
             '<a href="#view/' + viewId + '">' + _viewEsc(title) + '</a>' +
             '<span class="separator">&rsaquo;</span>' +
             '<span>' + _viewEsc(dateStr) + '</span>';
@@ -1019,7 +1016,7 @@ function loadViewHistoryPage(viewId, historyId) {
                     '<span class="view-history-page-date">Archived ' + _viewEsc(dateStr) + '</span>' +
                 '</div>' +
 
-                '<div class="view-history-badge-readonly">Past View — Read Only</div>' +
+                '<div class="view-history-badge-readonly">Previous Version — Read Only</div>' +
 
                 (hd.prompt ?
                     '<div class="view-field-section">' +
@@ -1056,7 +1053,7 @@ function loadViewHistoryPage(viewId, historyId) {
 }
 
 function _viewDeleteHistoryPage(viewId, historyId) {
-    if (!confirm('Delete this historical viewpoint? This cannot be undone.')) return;
+    if (!confirm('Delete this archived version? This cannot be undone.')) return;
     var batch = db.batch();
     batch.delete(userCol('views').doc(viewId).collection('history').doc(historyId));
     batch.update(userCol('views').doc(viewId), {
@@ -1065,34 +1062,102 @@ function _viewDeleteHistoryPage(viewId, historyId) {
     });
     batch.commit().then(function() {
         window.location.hash = '#view/' + viewId;
-    }).catch(function(err) {
-        console.error('_viewDeleteHistoryPage error:', err);
-    });
+    }).catch(function(err) { console.error('_viewDeleteHistoryPage error:', err); });
+}
+
+// ══════════════════════════════════════════════════════════════
+// LINKS SECTION
+// ══════════════════════════════════════════════════════════════
+function _viewRenderUrls() {
+    var container = document.getElementById('viewUrlsList');
+    if (!container) return;
+    if (_viewUrls.length === 0) { container.innerHTML = ''; return; }
+    var html = _viewUrls.map(function(entry, i) {
+        var display = _viewEsc(entry.label || entry.url || '(no URL)');
+        var href    = _viewEsc(entry.url || '');
+        return '<div class="view-url-row" data-index="' + i + '">' +
+            '<a href="' + href + '" target="_blank" rel="noopener" class="view-url-link">&#128279; ' + display + '</a>' +
+            '<button class="view-url-btn" title="Edit" onclick="_viewOpenUrlForm(' + i + ')">&#9998;</button>' +
+            '<button class="view-url-btn" title="Remove" onclick="_viewDeleteUrl(' + i + ')">&times;</button>' +
+        '</div>';
+    }).join('');
+    container.innerHTML = html;
+}
+
+function _viewDeleteUrl(index) {
+    _viewUrls.splice(index, 1);
+    _viewRenderUrls();
+    _viewSaveUrls();
+}
+
+function _viewOpenUrlForm(index) {
+    var container = document.getElementById('viewUrlsList');
+    if (!container) return;
+    var existing = index >= 0 ? _viewUrls[index] : { label: '', url: '' };
+    var formHtml =
+        '<div class="view-url-form" id="viewUrlForm">' +
+            '<input type="url" id="viewUrlInput" class="form-control" placeholder="https://..." ' +
+                'value="' + _viewEsc(existing.url) + '">' +
+            '<input type="text" id="viewUrlLabelInput" class="form-control" placeholder="Label (optional)" ' +
+                'value="' + _viewEsc(existing.label) + '">' +
+            '<div class="view-url-form-btns">' +
+                '<button class="btn btn-small btn-primary" onclick="_viewSubmitUrlForm(' + index + ')">Save</button>' +
+                '<button class="btn btn-small btn-secondary" onclick="_viewRenderUrls()">Cancel</button>' +
+            '</div>' +
+        '</div>';
+    if (index >= 0) {
+        var rows = container.querySelectorAll('.view-url-row');
+        if (rows[index]) { rows[index].outerHTML = formHtml; }
+        else { container.insertAdjacentHTML('beforeend', formHtml); }
+    } else {
+        container.insertAdjacentHTML('beforeend', formHtml);
+    }
+    var urlInput = document.getElementById('viewUrlInput');
+    if (urlInput) urlInput.focus();
+}
+
+function _viewSubmitUrlForm(index) {
+    var urlInput   = document.getElementById('viewUrlInput');
+    var labelInput = document.getElementById('viewUrlLabelInput');
+    var url   = urlInput   ? urlInput.value.trim()   : '';
+    var label = labelInput ? labelInput.value.trim() : '';
+    if (!url) { if (urlInput) urlInput.focus(); return; }
+    if (index >= 0) { _viewUrls[index] = { label: label, url: url }; }
+    else            { _viewUrls.push({ label: label, url: url }); }
+    _viewRenderUrls();
+    _viewSaveUrls();
+}
+
+function _viewSaveUrls() {
+    if (!_viewId) return;
+    userCol('views').doc(_viewId).update({
+        urls:      _viewUrls.slice(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).catch(function(err) { console.error('_viewSaveUrls error:', err); });
 }
 
 // ══════════════════════════════════════════════════════════════
 // CATEGORY MAINTENANCE PAGE  (#views-categories)
-// Phases 9 + 10: CRUD + drag-and-drop reorder
 // ══════════════════════════════════════════════════════════════
 
-var _catPageData     = [];   // [{id, name, order, subs:[{id,name,isDefault,order}]}]
-var _catDragType     = null; // 'major' or 'sub'
-var _catDragId       = null; // ID of the item being dragged
-var _catDragParentId = null; // catId context for sub drags
-var _catDragOverEl   = null; // element highlighted as drop target
+var _catPageData     = [];
+var _catDragType     = null;
+var _catDragId       = null;
+var _catDragParentId = null;
+var _catDragOverEl   = null;
 
 function loadViewsCategoriesPage() {
     var crumb = document.getElementById('breadcrumbBar');
     if (crumb) crumb.innerHTML =
         '<a href="#thoughts">Thoughts</a><span class="separator">&rsaquo;</span>' +
-        '<a href="#views">My Views</a><span class="separator">&rsaquo;</span>' +
+        '<a href="#views">My Thoughts</a><span class="separator">&rsaquo;</span>' +
         '<span>Manage Categories</span>';
 
     var container = document.getElementById('viewsCategoriesContent');
     if (!container) return;
     container.innerHTML = '<p class="views-empty-state">Loading...</p>';
 
-    _viewLoadCatsData().then(function(cats) {
+    _viewLoadCatsData(_catPageCurrentType).then(function(cats) {
         _catPageData = cats;
         _viewCatRenderPage();
     }).catch(function(err) {
@@ -1101,11 +1166,32 @@ function loadViewsCategoriesPage() {
     });
 }
 
+function _viewCatSwitchType(newType) {
+    _catPageCurrentType = newType;
+    var container = document.getElementById('viewsCategoriesContent');
+    if (container) container.innerHTML = '<p class="views-empty-state">Loading...</p>';
+    _viewLoadCatsData(newType).then(function(cats) {
+        _catPageData = cats;
+        _viewCatRenderPage();
+    });
+}
+
 function _viewCatRenderPage() {
     var container = document.getElementById('viewsCategoriesContent');
     if (!container) return;
 
-    var html = '<div class="vcat-page"><div id="vcatMajorList">';
+    // Type selector at top
+    var typeSelector =
+        '<div class="vcat-type-selector">' +
+        THOUGHT_TYPES.map(function(t) {
+            return '<button class="view-type-tab' + (t === _catPageCurrentType ? ' active' : '') + '" ' +
+                'data-type="' + t + '" onclick="_viewCatSwitchType(\'' + t + '\')">' +
+                THOUGHT_TYPE_LABELS[t] + 's</button>';
+        }).join('') +
+        '</div>';
+
+    var html = typeSelector +
+        '<div class="vcat-page"><div id="vcatMajorList">';
     _catPageData.forEach(function(cat) { html += _viewCatMajorHtml(cat); });
     html += '</div>' +
         '<button class="btn btn-secondary vcat-add-major-btn" onclick="_viewCatAddMajor()">+ Add Major Category</button>' +
@@ -1163,7 +1249,6 @@ function _viewCatSubHtml(catId, sub) {
     );
 }
 
-// ── Add major category ──
 function _viewCatAddMajor() {
     var name = prompt('New major category name:');
     if (!name || !name.trim()) return;
@@ -1173,13 +1258,12 @@ function _viewCatAddMajor() {
     var catRef = userCol('viewCategories').doc();
     var genRef = catRef.collection('subcategories').doc();
     var batch  = db.batch();
-    batch.set(catRef, { name: name, order: maxOrd, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+    batch.set(catRef, { name: name, order: maxOrd, thoughtType: _catPageCurrentType, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
     batch.set(genRef, { name: 'General', order: 0, isDefault: true, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
     batch.commit().then(function() { loadViewsCategoriesPage(); })
         .catch(function(err) { console.error('_viewCatAddMajor error:', err); });
 }
 
-// ── Add subcategory ──
 function _viewCatAddSub(catId) {
     var name = prompt('New subcategory name:');
     if (!name || !name.trim()) return;
@@ -1194,7 +1278,6 @@ function _viewCatAddSub(catId) {
         .catch(function(err) { console.error('_viewCatAddSub error:', err); });
 }
 
-// ── Inline rename (major or sub) ──
 function _viewCatRename(type, catId, subId) {
     var elemId   = type === 'major' ? 'vcatMajorName_' + catId : 'vcatSubName_' + subId;
     var nameEl   = document.getElementById(elemId);
@@ -1202,8 +1285,7 @@ function _viewCatRename(type, catId, subId) {
     var original = nameEl.textContent;
 
     var input = document.createElement('input');
-    input.type = 'text';
-    input.value = original;
+    input.type = 'text'; input.value = original;
     input.className = 'form-control vcat-rename-input';
     nameEl.replaceWith(input);
     input.focus(); input.select();
@@ -1239,11 +1321,10 @@ function _viewCatRename(type, catId, subId) {
     };
 }
 
-// ── Delete major category ──
 function _viewCatDeleteMajor(catId) {
     userCol('views').where('categoryId', '==', catId).limit(1).get().then(function(snap) {
         if (!snap.empty) {
-            alert('This category still has views assigned to it. Move or delete those views first.');
+            alert('This category still has thoughts assigned to it. Move or delete those thoughts first.');
             return;
         }
         var cat = _catPageData.find(function(c) { return c.id === catId; });
@@ -1258,7 +1339,6 @@ function _viewCatDeleteMajor(catId) {
     }).catch(function(err) { console.error('_viewCatDeleteMajor check:', err); });
 }
 
-// ── Delete subcategory ──
 function _viewCatDeleteSub(catId, subId) {
     userCol('views').where('subcategoryId', '==', subId).get().then(function(snap) {
         var cat     = _catPageData.find(function(c) { return c.id === catId; });
@@ -1266,7 +1346,7 @@ function _viewCatDeleteSub(catId, subId) {
         var general = cat ? cat.subs.find(function(s) { return s.isDefault; }) : null;
         var subName = sub ? sub.name : 'this subcategory';
         var msg = snap.size > 0
-            ? 'Delete "' + subName + '"? ' + snap.size + ' view' + (snap.size !== 1 ? 's' : '') + ' will be moved to General. Continue?'
+            ? 'Delete "' + subName + '"? ' + snap.size + ' thought' + (snap.size !== 1 ? 's' : '') + ' will be moved to General. Continue?'
             : 'Delete "' + subName + '"?';
         if (!confirm(msg)) return;
         var batch = db.batch();

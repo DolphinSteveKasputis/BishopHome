@@ -11242,8 +11242,56 @@ a.health-chip--link:hover { filter: brightness(0.93); }
     margin: 4px 0 0;
     line-height: 1.45;
 }
+/* ── Type tabs (list page + categories page) ── */
+.view-type-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    padding: 10px 16px 4px;
+}
+.view-type-tab {
+    padding: 5px 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 999px;
+    background: #f9fafb;
+    color: #374151;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+.view-type-tab:hover { background: #e5e7eb; }
+.view-type-tab.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+
+/* ── Type badge (on cards and detail) ── */
+.view-type-badge {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    border-radius: 999px;
+    padding: 2px 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+.view-type-badge--view       { background: #dbeafe; color: #1d4ed8; }
+.view-type-badge--reflection { background: #ede9fe; color: #6d28d9; }
+.view-type-badge--advice     { background: #dcfce7; color: #15803d; }
+.view-type-badge--review     { background: #fef9c3; color: #854d0e; }
+.view-type-badge--detail     { font-size: 0.82rem; padding: 4px 12px; }
+
+/* ── Category page type selector ── */
+.vcat-type-selector {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
 .views-card-footer {
     margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
 }
 .views-history-badge {
     display: inline-block;

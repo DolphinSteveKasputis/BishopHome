@@ -22,7 +22,7 @@ function loadThoughtsPage() {
     // Count My Views and update the tile label
     userCol('views').get().then(function(snap) {
         var el = document.getElementById('viewsCount');
-        if (el) el.textContent = 'My Views (' + snap.size + ')';
+        if (el) el.textContent = 'My Thoughts (' + snap.size + ')';
     }).catch(function(err) {
         console.error('loadThoughtsPage views error:', err);
     });

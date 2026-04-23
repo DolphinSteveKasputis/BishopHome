@@ -13,7 +13,7 @@ It is used by the in-app AI assistant to answer your questions.
 - **Yard** — Track plants, zones, weeds, chemicals, and yard activities
 - **House** — Track floors, rooms, things (appliances/fixtures), floor plans, and electrical panels
 - **Life** — Journal, contacts, notes, life projects (vacation planner), life calendar
-- **Thoughts** — Top 10 lists, memories, saved views
+- **Thoughts** — Top 10 lists, memories, personal thoughts (views, reflections, advice, reviews)
 - **Vehicles** — Track vehicles and their maintenance
 - **Garage** — Track garage rooms and stored items
 - **Structures** — Outdoor structures (sheds, pergolas, fences, etc.)
@@ -2123,25 +2123,25 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 ## screen:thoughts
 
 ### Quick Help
-- Thoughts is your personal reflection hub -- three sub-sections: Top 10 Lists, Memories, and My Views
+- Thoughts is your personal reflection hub -- three sub-sections: Top 10 Lists, Memories, and My Thoughts
 - Tap any tile to jump directly to that sub-section
 - thoughtsNav bar at the top links to all three sub-sections from anywhere in Thoughts
 
 ### Details
 
-**What Thoughts is:** A section for the more reflective, personal side of your inner life -- ranked lists, recorded memories, and your evolving opinions and viewpoints. Separate from the Journal (which is day-to-day logging) -- Thoughts is for content you want to capture and revisit over time.
+**What Thoughts is:** A section for the more reflective, personal side of your inner life -- ranked lists, recorded memories, and your personal thoughts. Separate from the Journal (which is day-to-day logging) -- Thoughts is for content you want to capture and revisit over time.
 
 **Three sub-sections:**
 - **Top 10 Lists** -- ranked lists of anything: favorite movies, best restaurants, top albums, greatest players. Each list is its own document with up to 10 (or more) ranked entries.
 - **Memories** -- long-form personal memory records. Richer than a journal entry -- memories have a title, when/where, tags, @mentions of people, linked URLs, linked other memories, and a full body textarea.
-- **My Views** -- your personal opinions and positions on topics, organized in a two-level category hierarchy. Each view has a versioned history so you can see how your thinking has evolved over time.
+- **My Thoughts** -- four types of personal writing: Views (opinions), Reflections (essays on experiences), Advice (guidance you'd pass on), and Reviews (books, movies, experiences). Each thought has versioned history so you can see how your thinking has evolved over time.
 
-**Thoughts landing page:** Shows three tiles with live counts (e.g., "Top 10 Lists (12)"). Tap any tile to enter that sub-section. The thoughtsNav bar at the top always shows Top 10 Lists / Memories / My Views links so you can jump between sub-sections without returning here.
+**Thoughts landing page:** Shows three tiles with live counts (e.g., "Top 10 Lists (12)"). Tap any tile to enter that sub-section. The thoughtsNav bar at the top always shows Top 10 Lists / Memories / My Thoughts links so you can jump between sub-sections without returning here.
 
 ### See Also
 - [Top 10 Lists](#help/top10lists)
 - [Memories](#help/memories)
-- [My Views](#help/views)
+- [My Thoughts](#help/views)
 
 ---
 
@@ -2180,7 +2180,7 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 ### See Also
 - [Thoughts Home](#help/thoughts)
 - [Memories](#help/memories)
-- [My Views](#help/views)
+- [My Thoughts](#help/views)
 
 ---
 
@@ -2225,51 +2225,59 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 ### See Also
 - [Thoughts Home](#help/thoughts)
 - [Top 10 Lists](#help/top10lists)
-- [My Views](#help/views)
+- [My Thoughts](#help/views)
 
 ---
 
 ## screen:views
 
 ### Quick Help
-- My Views -- your personal opinions and positions on topics, organized by category
-- Two-level accordion: major categories > subcategories > individual views
-- Each view has a versioned history so you can track how your thinking changes over time
-- Live search filters by title and short version -- matching accordions expand automatically
+- My Thoughts -- your personal thoughts organized by type: View, Reflection, Advice, or Review
+- Use the type tabs (Views / Reflections / Advice / Reviews) to switch between thought types
+- Each type has its own category system so you can organize them independently
+- Each thought has versioned history so you can track how your thinking changes over time
+- Live search filters by title and short version within the current type tab
 
 ### Details
 
-**What My Views are:** A place to record your considered opinions, stances, or positions on topics -- anything from "My view on remote work" to "What I believe about diet and health" to "My political philosophy." Unlike a journal entry (which captures what happened today), a View is a living document you update over time, with history preserved.
+**What My Thoughts are:** A place to record four kinds of personal writing:
+- **View** -- your opinions and stances on topics ("My view on remote work", "What I think about diet and health")
+- **Reflection** -- essays on experiences or things that shaped you ("What working from home meant to me", "What Raising a Modern Day Knight did for me as a father")
+- **Advice** -- guidance you'd pass on to others ("How I talk to my kids about failure", "What I've learned about money")
+- **Review** -- your take on a book, movie, restaurant, or experience
 
-**Views list page:**
-- **Two-level accordion** -- major categories are the outer accordion; subcategories are inner accordions within each major category. Individual views are cards inside subcategories.
-- Each view card shows: title, date of the current version, a short preview of the current short version, and a history badge if previous versions exist.
-- **Search bar** -- live filter by title and short version text. Matching accordions auto-expand; non-matching views are hidden. Clear the search to collapse back to the default state.
-- **+ New View** -- opens the create/edit page.
-- **Manage Categories** -- link at the bottom of the page. Opens the category management screen where you add, rename, or delete major and subcategories.
+Each thought is a living document -- you can update it over time with history preserved.
 
-**View detail / edit page:**
-- **Title** -- the topic or question this view addresses (required).
-- **Category** -- pick a subcategory from the two-level category tree (major > sub).
-- **Short version** -- a 1-3 sentence summary of your current position. This is what appears in the list preview.
-- **Full version** -- the complete, detailed articulation of your view. As long as you want.
-- **Save** -- saves the current text. If the content changed since the last save, a new history entry is created automatically with a timestamp.
+**Thoughts list page:**
+- **Type tabs** at the top (Views / Reflections / Advice / Reviews) -- click a tab to see only thoughts of that type. Each type shows its own category structure.
+- **Two-level accordion** -- major categories are the outer accordion; subcategories are inner. Thought cards are inside subcategories.
+- Each card shows: title, date of current version, short version preview, type badge, and a history badge if previous versions exist.
+- **Search bar** -- live filter by title and short version within the current type. Matching accordions auto-expand; clear to collapse.
+- **+ New Thought** -- opens the create page.
+- **Manage Categories** -- link at bottom. Each type has its own independent category list.
+
+**New thought page:**
+- Select a **Type** first (required) -- this determines which categories load.
+- Pick a **Major Category** and **Subcategory** for organization.
+- Enter a **Title** (required).
+- Click **Create Thought** when all three required fields are filled.
+
+**Thought detail / edit page:**
+- **Type** is shown as a colored badge (read-only after creation).
+- **Category** -- pick from the two-level category tree for this thought's type.
+- **Short version** -- a 1-3 sentence summary. This is what appears in the list preview.
+- **Long version** -- the full text. Auto-saves on blur if changed.
+- **Archive button** (label varies: "I've Changed My View", "Update My Reflection", etc.) -- archives the current version to history and starts a fresh version. Can only be used once per calendar day.
 
 **Version history:**
-- Every time you save a changed view, the previous version is stored.
-- A history badge on the view card shows how many prior versions exist.
-- Tap the history badge (or navigate to the view history page) to browse past versions and see how your thinking has evolved.
-- History is read-only -- you view past versions but cannot revert (your current version is always the live one).
+- Each time you archive, the previous version is stored with a timestamp.
+- Browse past versions via the Previous Versions section at the bottom of the detail page.
+- History is read-only -- you cannot revert, but you can see how your thinking evolved.
 
 **Categories:**
-- Major categories are the top-level groupings (e.g., "Health & Fitness", "Work & Career", "Politics & Society").
-- Subcategories sit inside a major category (e.g., "Diet", "Exercise" inside "Health & Fitness").
-- Manage both levels in the Manage Categories page. Views must be assigned to a subcategory.
-
-**Tips:**
-- The two-level structure works best with 4-8 major categories and 2-5 subcategories each. Too many categories makes navigation hard; too few makes everything pile into one bucket.
-- Use the Short Version as a quick summary -- this is what you see in the list without opening the view. Keep it to your current one-line stance.
-- Version history is most valuable when you update views occasionally (yearly, after a major life event). The comparison over time is the whole point.
+- Each thought type has its own independent category list -- "Parenting" under Views is separate from "Parenting" under Reflections.
+- Manage categories from the Manage Categories page (type tabs let you switch between types).
+- Major categories are top-level groupings; subcategories sit inside them.
 
 ### See Also
 - [Thoughts Home](#help/thoughts)

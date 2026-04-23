@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=547">
+    <link rel="stylesheet" href="css/styles.css?v=548">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -151,7 +151,7 @@
         <nav class="header-nav hidden" id="thoughtsNav">
             <a href="#top10lists" class="nav-link" data-page="top10lists">Top 10 Lists</a>
             <a href="#memories" class="nav-link" data-page="memories">Memories</a>
-            <a href="#views" class="nav-link" data-page="views">My Views</a>
+            <a href="#views" class="nav-link" data-page="views">My Thoughts</a>
             <a href="#search" class="nav-link" data-page="search">🔍 Search</a>
             <a href="#chat" class="nav-link" data-page="chat">Chat</a>
             <a href="#settings" class="nav-link" data-page="settings">⚙️</a>
@@ -201,7 +201,7 @@
         <div id="mobileNavThoughts" class="hidden">
             <a href="#top10lists" class="nav-link" data-page="top10lists">Top 10 Lists</a>
             <a href="#memories" class="nav-link" data-page="memories">Memories</a>
-            <a href="#views" class="nav-link" data-page="views">My Views</a>
+            <a href="#views" class="nav-link" data-page="views">My Thoughts</a>
             <a href="#search" class="nav-link" data-page="search">🔍 Search</a>
             <a href="#chat" class="nav-link" data-page="chat">Chat</a>
             <a href="#settings" class="nav-link" data-page="settings">⚙️ Settings</a>
@@ -9311,7 +9311,7 @@ export default {
                 </a>
                 <a href="#views" class="landing-tile landing-tile--views">
                     <span class="landing-tile-icon">💬</span>
-                    <span class="landing-tile-label" id="viewsCount">My Views</span>
+                    <span class="landing-tile-label" id="viewsCount">My Thoughts</span>
                 </a>
             </div>
         </section>
@@ -9459,14 +9459,15 @@ export default {
              VIEWS SECTION
              ══════════════════════════════════════════════ -->
 
-        <!-- Page: My Views List (#views) -->
+        <!-- Page: My Thoughts List (#views) -->
         <section class="page hidden" id="page-views">
             <div class="page-header">
-                <h2>My Views</h2>
+                <h2>My Thoughts</h2>
                 <div class="page-header-actions">
-                    <button class="btn btn-primary" onclick="window.location.hash='#view/new'">+ New View</button>
+                    <button class="btn btn-primary" onclick="window.location.hash='#view/new'">+ New Thought</button>
                 </div>
             </div>
+            <div id="viewsTypeTabs" class="view-type-tabs"></div>
             <div class="views-search-bar">
                 <input type="text" id="viewsSearchInput" class="form-control"
                        placeholder="Search by title or short version...">
@@ -9498,10 +9499,10 @@ export default {
             </div>
         </section>
 
-        <!-- Modal: I've Changed My View -->
+        <!-- Modal: Archive Previous Version -->
         <div class="modal-overlay" id="viewChangedModal">
             <div class="modal">
-                <h3>I've Changed My View</h3>
+                <h3 id="viewChangedModalTitle">I've Changed My View</h3>
                 <p class="view-changed-hint">Review and archive your current stance before it's replaced.</p>
                 <div class="form-group">
                     <label for="viewChangedShort">Short Version <span class="view-changed-label-note">(being archived)</span></label>
@@ -9608,11 +9609,11 @@ export default {
     <script src="js/secondbrain.js?v=535"></script>
     <script src="js/sbissues.js?v=350"></script>
     <script src="js/places.js?v=357"></script>
-    <script src="js/thoughts.js?v=490"></script>
+    <script src="js/thoughts.js?v=548"></script>
     <script src="js/top10lists.js?v=465"></script>
     <script src="js/memories.js?v=473"></script>
     <script src="js/firebasesetup.js?v=510"></script>
-    <script src="js/views.js?v=505"></script>
+    <script src="js/views.js?v=548"></script>
     <script src="js/help.js?v=536"></script>
     <script src="js/app.js?v=540"></script>
 

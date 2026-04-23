@@ -1070,8 +1070,8 @@ Rich project management for the Life section — supports day-by-day itineraries
 - Shows a grid of feature cards: Top 10 Lists, Memories, and My Views
 - **Top 10 Lists (x)** tile: displays the live count of created lists; navigates to `#top10lists`
 - **Memories (x)** tile: displays the live count of memories; amber gradient; navigates to `#memories`
-- **My Views (x)** tile: displays the live count of views; teal gradient (`landing-tile--views`); navigates to `#views`
-- thoughtsNav bar shows on all Thoughts pages: Top 10 Lists / Memories / My Views links
+- **My Thoughts (x)** tile: displays the live count of all thoughts; teal gradient (`landing-tile--views`); navigates to `#views`
+- thoughtsNav bar shows on all Thoughts pages: Top 10 Lists / Memories / My Thoughts links
 - Breadcrumb: _(none — top-level page)_
 
 ### Top 10 Lists Page (`#top10lists`)
@@ -1214,100 +1214,113 @@ Both routes share the `page-top10list-edit` HTML section.
 
 ---
 
-## Part 10c: My Views
+## Part 10c: My Thoughts
 
 **JS file**: `js/views.js`
 **Routes**: `#views`, `#view/:id`, `#view/new`, `#view-history/:viewId/:historyId`, `#views-categories`
-**Firestore**: `views` collection; `views/{id}/history` subcollection; `viewCategories` collection with `subcategories` subcollection per major category
+**Firestore**: `views` collection; `views/{id}/history` subcollection; `viewCategories` collection (with `thoughtType` field + `subcategories` subcollection per major category)
 
-A personal viewpoint journal — record, edit, and historically track opinions and stances on any subject.
+A personal thought journal — record, edit, and historically track opinions, reflections, advice, and reviews. Each thought has a **type**: View, Reflection, Advice, or Review.
+
+### Thought Types
+| Type | Purpose |
+|---|---|
+| **View** | Personal opinions and stances on topics |
+| **Reflection** | Personal essays on experiences, books, people that shaped you |
+| **Advice** | Guidance you would pass on to others |
+| **Review** | Reviews of books, movies, experiences, etc. |
 
 ### Category System
 - Two-level hierarchy: **Major Category** → **Subcategory**
-- 5 seeded major categories: Politics & Society, Personal Beliefs, Life & Family, Practical, Other (with named subcategories under each)
+- Categories are **scoped by type** — each `viewCategories` doc has a `thoughtType` field; the category dropdowns only show categories matching the current thought's type
+- 5 seeded major categories (type: `view`): Politics & Society, Personal Beliefs, Life & Family, Practical, Other
 - Every major category always has a **General** subcategory (isDefault:true, order:0, protected from deletion)
-- Seeding runs once on first `#views` load; subsequent visits skip seeding if categories already exist
-- Category management page at `#views-categories` (fully built — see Category Maintenance Page section below)
+- Seeding runs once on first `#views` load; subsequent visits skip if categories already exist
+- Category management page at `#views-categories`
 
-### Views List Page (`#views`)
-- Header: "My Views" + "+ New View" button
-- Search bar: live filter by title and short version; matching accordions auto-expand; non-matching hidden; "No views match '…'" message when nothing matches; clearing search collapses all back to default
-- **Two-level accordion**: major categories are outer accordions; subcategories are inner accordions
-  - Each shows view count in parens; empty categories/subcategories are hidden
-  - All accordions collapsed by default; search auto-expands matching ones
-- **View cards** inside sub-accordions: title, date (currentDate), short version preview, history badge (if `historyCount > 0`)
+### Thoughts List Page (`#views`)
+- Header: "My Thoughts" + "+ New Thought" button
+- **Type tabs**: View / Reflection / Advice / Review — clicking a tab filters the accordion to show only thoughts of that type (and their type-specific categories); defaults to View
+- Search bar: live filter by title and short version within the current type tab; matching accordions auto-expand; "No thoughts match '…'" message; clearing collapses all back to default
+- **Two-level accordion**: major categories (filtered to current type) are outer; subcategories are inner
+  - Each shows count in parens; empty categories/subcategories are hidden
+- **Thought cards**: title, date (currentDate), short version preview, type badge, history badge (if `historyCount > 0`)
 - Footer: "Manage Categories" link → `#views-categories`
-- Breadcrumb: Thoughts › My Views
+- Breadcrumb: Thoughts › My Thoughts
 
-### New View Page (`#view/new`)
-- Form order: **Major Category** (required) and **Subcategory** (defaults to General) appear first, then **Title** (required); Short Version and Long Version fields removed from this screen
-- "Create View" button enabled only when both title and major category are filled
-- **"✨ Ask AI For a Topic" button**: shown below the title field only when LLM is configured (checks `userCol('settings').doc('llm')` on load); hidden otherwise
-  - Clicking opens the AI Topics modal showing 10 suggested topic titles for the chosen category/subcategory
-  - AI is given the existing view titles in that category to avoid overlap
-  - **"🔄 Get 10 Different Ones"** re-prompts, excluding all previously suggested topics (cumulative across retries)
+### New Thought Page (`#view/new`)
+- Form order: **Type** (required) first — drives which categories load; then **Major Category** (required) and **Subcategory** (defaults to General); then **Title** (required)
+- Category dropdowns are disabled until a type is selected; switching type reloads categories for the new type
+- "Create Thought" button enabled only when type + title + major category are all filled
+- **"✨ Ask AI For a Topic" button**: shown below title only when LLM is configured; prompts are tailored to the selected type
+  - AI Topics modal: 10 suggested titles for chosen category/subcategory
+  - **"🔄 Get 10 Different Ones"**: re-prompts excluding all prior suggestions
   - Selecting a suggestion populates the title field and closes the modal
-- "Create View" button → writes doc to `views` collection → navigates to `#view/{id}`
-- Breadcrumb: Thoughts › My Views › New View
+- "Create Thought" → writes doc to `views` collection with `thoughtType` field → navigates to `#view/{id}`
+- Breadcrumb: Thoughts › My Thoughts › New Thought
 
-### View Detail Page (`#view/:id`)
+### Thought Detail Page (`#view/:id`)
 - All fields editable in-place; each has its own Save button
 - **Title**: inline input + Save button; saving also updates breadcrumb label
-- **Category row**: Major Category + Subcategory dropdowns; changing either auto-saves to Firestore
-- **"I've Changed My View"** button: enabled when `currentDate` is NOT today; disabled (with tooltip) when it is today (one archive per calendar day)
-- **Delete View** button: confirms then batch-deletes `history` subcollection + view doc → navigates to `#views`
+- **Type**: shown as a read-only colored badge (not editable after creation)
+- **Category row**: Major Category + Subcategory dropdowns (filtered to the thought's type); changing either auto-saves
+- **Archive/Update button** (label varies by type): enabled when `currentDate` is NOT today
+  - View: "I've Changed My View" / Reflection: "Update My Reflection" / Advice: "Update My Advice" / Review: "Update My Review"
+- **Delete** button: confirms then batch-deletes `history` subcollection + thought doc → navigates to `#views`
 - **Short Version**: textarea (500-char cap, live counter) + Save button
-- **Long Version**: large textarea (`min-height: 260px`) + Save button; also auto-saves on blur if value changed since last save; shows "Current since [date]" label
-- **Links section**: list of `{label, url}` pairs stored in `urls[]` array on the view doc; Add/Edit/Delete; saved to Firestore immediately
-- **Previous Views section**: list of archived dates, newest first; each row has a date link → `#view-history/{id}/{historyId}` and a delete button (confirm required); "No previous views yet." when empty
-- Breadcrumb: Thoughts › My Views › [title]
+- **Long Version**: large textarea + Save button; auto-saves on blur if changed; shows "Current since [date]"
+- **Links section**: list of `{label, url}` pairs in `urls[]`; Add/Edit/Delete; saves immediately
+- **Previous Versions section**: list of archived dates, newest first; each row has date link → history page + delete button
+- Breadcrumb: Thoughts › My Thoughts › [title]
 
-### "I've Changed My View" Modal
-- Opens pre-filled with current short version and long version (both editable in the modal)
+### Archive Previous Version Modal
+- Opens pre-filled with current short and long version (both editable)
+- Modal title reflects the thought type (e.g., "I've Changed My View" for View type)
 - Optional "What prompted this change?" textarea
-- On Save: archives modal values to `views/{id}/history` subcollection with `archivedAt` timestamp; updates `currentDate` to today; increments `historyCount`; reloads detail page
-- Cancel closes modal with no changes
+- On Save: archives to `views/{id}/history` with `archivedAt`; updates `currentDate`; increments `historyCount`; reloads page
 
-### Historical Viewpoint Page (`#view-history/:viewId/:historyId`)
+### Historical Version Page (`#view-history/:viewId/:historyId`)
 - Read-only — no edit controls
-- Shows: current (global) title, "Archived [date]" label, "Past View — Read Only" badge
+- Shows: current (global) title, "Archived [date]" label, "Previous Version — Read Only" badge
 - Sections: "What prompted this change?" (if present), Short Version, Long Version
-- Back button → `#view/{id}`
-- Delete button (confirm required) → removes history doc, decrements `historyCount`, redirects to `#view/{id}`
-- Breadcrumb: Thoughts › My Views › [title] › [archived date]
+- Back button → `#view/{id}`; Delete button (confirm) → removes doc, decrements `historyCount`, redirects to `#view/{id}`
+- Breadcrumb: Thoughts › My Thoughts › [title] › [archived date]
 
 ### Firestore Data Model
 | Field | Type | Notes |
 |---|---|---|
 | `title` | string | global — never versioned |
+| `thoughtType` | string | `view` / `reflection` / `advice` / `review` |
 | `shortVersion` | string | 500-char cap |
 | `longVersion` | string | auto-saves on blur |
 | `urls` | array of {label, url} | links, not versioned |
 | `categoryId` | string | major category doc ID |
 | `subcategoryId` | string | subcategory doc ID |
-| `historyCount` | number | incremented on "I've Changed My View" |
-| `currentDate` | timestamp | set on create; updated on "I've Changed My View" |
+| `historyCount` | number | incremented on archive |
+| `currentDate` | timestamp | set on create; updated on archive |
 | `createdAt` / `updatedAt` | timestamp | standard |
 
 History subcollection (`views/{id}/history`): `shortVersion`, `longVersion`, `archivedAt` (timestamp), `prompt` (optional string).
+
+`viewCategories` docs: `name`, `order`, `thoughtType` (scopes category to a thought type), `createdAt`.
 
 ### Backup
 - `views` collection (with `history` subcollection per doc) included in `BACKUP_DATA_COLLECTIONS` in `settings.js`
 - `viewCategories` collection (with `subcategories` subcollection per doc) included in `BACKUP_DATA_COLLECTIONS`
 
 ### Category Maintenance Page (`#views-categories`)
-- Breadcrumb: Thoughts › My Views › Manage Categories
-- Accessible via "Manage Categories" link at bottom of views list
-- Lists all major categories with their subcategories; General always first in each major
+- Breadcrumb: Thoughts › My Thoughts › Manage Categories
+- **Type selector tabs** at top (View / Reflection / Advice / Review) — switching type reloads to show only categories for that type
+- Lists major categories (filtered to selected type) with their subcategories; General always first in each major
 - **Major category rows**: drag handle (⋮), name, Rename + Delete buttons; all draggable to reorder
 - **Subcategory rows**: drag handle (⋮), name, Rename + Delete buttons (no drag / no delete on General)
-- **General row**: "default" badge, Rename only, no drag handle, always stays first
-- **+ Add Subcategory** button under each major: `prompt()` for name → creates doc + appends to list
-- **+ Add Major Category** button at bottom: `prompt()` for name → creates major cat doc + auto-creates General subcategory
-- **Rename**: inline — clicking Rename replaces name span with an input; Enter/blur saves, Escape cancels
-- **Delete subcategory**: checks if any views assigned; if yes: warns "X views will be moved to General. Continue?" and batch-moves them; then deletes sub doc
-- **Delete major category**: blocked (alert) if any views have `categoryId == catId`; otherwise batch-deletes all subcollection docs + major doc
-- **Drag-and-drop reorder**: HTML5 drag; majors reorder among majors; subs reorder within their major only; General cannot be displaced from first position; `order` fields updated in Firestore on drop
+- **General row**: "default" badge, Rename only, always stays first
+- **+ Add Subcategory** button under each major: `prompt()` for name → creates doc
+- **+ Add Major Category** button at bottom: `prompt()` for name → creates major cat doc stamped with current type + auto-creates General subcategory
+- **Rename**: inline — clicking Rename replaces name span with input; Enter/blur saves, Escape cancels
+- **Delete subcategory**: checks if any thoughts assigned; if yes: warns "X thoughts will be moved to General. Continue?" and batch-moves them; then deletes sub doc
+- **Delete major category**: blocked (alert) if any thoughts have `categoryId == catId`; otherwise batch-deletes all subcollection docs + major doc
+- **Drag-and-drop reorder**: HTML5 drag; majors reorder among majors; subs reorder within their major only; `order` fields updated in Firestore on drop
 
 ---
 

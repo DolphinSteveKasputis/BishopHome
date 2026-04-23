@@ -1615,8 +1615,17 @@ function buildContactPicker(containerId, options) {
 
     // Pre-populate if an initial value was provided
     if (options.initialId) {
-        hiddenInput.value    = options.initialId;
-        searchInput.value    = options.initialName || '';
+        hiddenInput.value = options.initialId;
+        if (options.initialName) {
+            searchInput.value = options.initialName;
+        } else {
+            // Name not cached on the doc — fetch it from the people collection
+            userCol('people').doc(options.initialId).get().then(function(doc) {
+                if (doc.exists && !searchInput.value) {
+                    searchInput.value = doc.data().name || '';
+                }
+            });
+        }
     }
 
     // All contacts cache — loaded once on first open
@@ -1793,9 +1802,10 @@ function buildContactPicker(containerId, options) {
 
     searchInput.addEventListener('keydown', function(e) {
         if (e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
             var first = dropdown.querySelector('.contact-picker-item');
             if (first && dropdown.style.display !== 'none') {
-                e.preventDefault();
                 _selectContact(first.dataset.id, first.dataset.name);
             }
         }

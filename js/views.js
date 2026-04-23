@@ -5,7 +5,7 @@
 var THOUGHT_TYPES  = ['view', 'reflection', 'advice', 'review'];
 var THOUGHT_TYPE_LABELS = { view: 'View', reflection: 'Reflection', advice: 'Advice', review: 'Review' };
 
-// ─────── Seed Data (View-type categories) ───────
+// ─────── Seed Data ───────
 var _viewsCategorySeed = [
     { name: 'Politics & Society', subs: ['Politics', 'Government', 'Culture', 'Society', 'Media'] },
     { name: 'Personal Beliefs',   subs: ['Religion / Faith', 'Ethics & Morality', 'Philosophy'] },
@@ -13,6 +13,8 @@ var _viewsCategorySeed = [
     { name: 'Practical',          subs: ['Finance & Money', 'Health & Medicine', 'Education', 'Career & Work', 'Technology'] },
     { name: 'Other',              subs: ['Environment', 'Sports', 'Food & Lifestyle'] }
 ];
+
+var _reviewsCategorySeed = ['Book', 'Movie', 'TV Show', 'Restaurant', 'Experience', 'Product'];
 
 function seedViewCategories() {
     userCol('viewCategories').get().then(function(snap) {
@@ -37,6 +39,19 @@ function seedViewCategories() {
                 var batch = db.batch();
                 needsMigration.forEach(function(d) { batch.update(d.ref, { thoughtType: 'view' }); });
                 batch.commit().catch(function(err) { console.error('seedViewCategories migrate error:', err); });
+            }
+
+            // Seed Review categories if none exist yet for that type
+            var hasReviews = snap.docs.some(function(d) { return d.data().thoughtType === 'review'; });
+            if (!hasReviews) {
+                var batch2 = db.batch();
+                _reviewsCategorySeed.forEach(function(name, idx) {
+                    var catRef = userCol('viewCategories').doc();
+                    batch2.set(catRef, { name: name, order: idx, thoughtType: 'review', createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+                    var genRef = catRef.collection('subcategories').doc();
+                    batch2.set(genRef, { name: 'General', order: 0, isDefault: true, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+                });
+                batch2.commit().catch(function(err) { console.error('seedReviewCategories error:', err); });
             }
         }
     }).catch(function(err) { console.error('seedViewCategories check error:', err); });

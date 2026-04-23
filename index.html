@@ -8539,9 +8539,11 @@
             <p class="house-thing-meta">Choose a person to see everything assigned to them, including items inherited from parent categories.</p>
             <div class="form-group" style="max-width:360px; margin-bottom:16px;">
                 <label>Select person</label>
-                <div id="beneContactPicker"></div>
+                <select id="benePersonSelect" class="form-control">
+                    <option value="">Loading…</option>
+                </select>
             </div>
-            <p class="empty-state" id="beneNoSelection">Select a person above to see their inheritance.</p>
+            <p class="empty-state" id="beneNoSelection">Select a person above to see their items.</p>
             <div id="beneResults"></div>
         </section>
 
@@ -9587,7 +9589,7 @@ export default {
     <script src="js/moveThings.js?v=350"></script>
     <script src="js/journal.js?v=488"></script>
     <script src="js/contacts.js?v=379"></script>
-    <script src="js/beneficiaries.js?v=537"></script>
+    <script src="js/beneficiaries.js?v=541"></script>
     <script src="js/collections.js?v=537"></script>
     <script src="js/health.js?v=380"></script>
     <script src="js/notes.js?v=521"></script>

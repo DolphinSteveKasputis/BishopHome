@@ -67,17 +67,70 @@ function _renderBeneficiaryRow(rowId, entity, parents) {
 function loadBeneficiariesPage() {
     var resultEl = document.getElementById('beneResults');
     var noSelEl  = document.getElementById('beneNoSelection');
-    if (!resultEl) return;
+    var selectEl = document.getElementById('benePersonSelect');
+    if (!resultEl || !selectEl) return;
 
     resultEl.innerHTML = '';
     if (noSelEl) noSelEl.classList.remove('hidden');
 
-    buildContactPicker('beneContactPicker', {
-        placeholder: 'Choose a person\u2026',
-        onSelect: function(contactId, contactName) {
-            if (noSelEl) noSelEl.classList.add('hidden');
-            _loadBeneficiaryResults(contactId, contactName);
+    selectEl.innerHTML = '<option value="">Loading\u2026</option>';
+    selectEl.onchange = null;
+
+    // Query all 9 collections for direct beneficiary assignments, collect unique contact IDs
+    Promise.all([
+        userCol('things').get(),
+        userCol('subThings').get(),
+        userCol('subThingItems').get(),
+        userCol('garageThings').get(),
+        userCol('garageSubThings').get(),
+        userCol('structureThings').get(),
+        userCol('structureSubThings').get(),
+        userCol('collections').get(),
+        userCol('collectionItems').get()
+    ]).then(function(snaps) {
+        var contactIds = {};
+        snaps.forEach(function(snap) {
+            snap.forEach(function(doc) {
+                var cid = doc.data().beneficiaryContactId;
+                if (cid) contactIds[cid] = true;
+            });
+        });
+
+        var ids = Object.keys(contactIds);
+        if (!ids.length) {
+            selectEl.innerHTML = '<option value="">No assignments yet</option>';
+            return;
         }
+
+        // Look up names for all assigned contact IDs
+        return Promise.all(ids.map(function(id) {
+            return userCol('people').doc(id).get().then(function(doc) {
+                return { id: id, name: doc.exists ? (doc.data().name || '?') : '?' };
+            });
+        })).then(function(people) {
+            people.sort(function(a, b) { return a.name.localeCompare(b.name); });
+
+            var opts = '<option value="">— Pick a person —</option>';
+            people.forEach(function(p) {
+                opts += '<option value="' + escapeHtml(p.id) + '">' + escapeHtml(p.name) + '</option>';
+            });
+            selectEl.innerHTML = opts;
+
+            selectEl.onchange = function() {
+                var contactId = selectEl.value;
+                var contactName = contactId ? selectEl.options[selectEl.selectedIndex].text : '';
+                resultEl.innerHTML = '';
+                if (!contactId) {
+                    if (noSelEl) noSelEl.classList.remove('hidden');
+                    return;
+                }
+                if (noSelEl) noSelEl.classList.add('hidden');
+                _loadBeneficiaryResults(contactId, contactName);
+            };
+        });
+    }).catch(function(err) {
+        console.error('loadBeneficiariesPage error:', err);
+        selectEl.innerHTML = '<option value="">Error loading</option>';
     });
 }
 

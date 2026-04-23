@@ -1791,6 +1791,16 @@ function buildContactPicker(containerId, options) {
         }
     });
 
+    searchInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            var first = dropdown.querySelector('.contact-picker-item');
+            if (first && dropdown.style.display !== 'none') {
+                e.preventDefault();
+                _selectContact(first.dataset.id, first.dataset.name);
+            }
+        }
+    });
+
     searchInput.addEventListener('blur', function() {
         // Small delay so mousedown on dropdown items fires before blur hides them
         setTimeout(function() { dropdown.style.display = 'none'; }, 150);

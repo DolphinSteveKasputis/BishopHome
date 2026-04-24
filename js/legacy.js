@@ -521,19 +521,6 @@ async function loadLegacyLettersPage() {
         if (!container) return;
         container.innerHTML = '';
 
-        // Row 1: empty col 1 · Read Me First · empty col 3
-        var spacer1 = document.createElement('div');
-        var spacer2 = document.createElement('div');
-        var rmf = document.createElement('a');
-        rmf.href = '#legacy/letters/intro';
-        rmf.className = 'legacy-letter-card legacy-letter-card--rmf';
-        rmf.innerHTML =
-            '<div class="legacy-letter-card-title">📖 Read Me First</div>' +
-            '<div class="legacy-letter-card-meta">Instructions for your reader</div>';
-        container.appendChild(spacer1);
-        container.appendChild(rmf);
-        container.appendChild(spacer2);
-
         if (snap.empty) {
             var emptyMsg = document.createElement('p');
             emptyMsg.className = 'empty-state';
@@ -747,58 +734,6 @@ function _legacyLetterPrint() {
 
     window.print();
 }
-async function loadLegacyLettersIntroPage() {
-    var page = document.getElementById('page-legacy-letters-intro');
-    if (!page) return;
-
-    page.innerHTML =
-        '<div class="page-header">' +
-            '<button class="btn btn-secondary btn-small" onclick="location.hash=\'#legacy/letters\'">&#8592; Letters</button>' +
-            '<h2>📖 Read Me First</h2>' +
-        '</div>' +
-        '<div class="legacy-section">' +
-            '<div class="legacy-obit-block">' +
-                '<p class="legacy-hint">Write a message for whoever reads these letters — context, a note of love, or anything you want them to know before they open the individual letters.</p>' +
-                '<textarea id="legacyLettersIntroBody" class="legacy-textarea" rows="18"' +
-                    ' placeholder="To whoever is reading this..."></textarea>' +
-            '</div>' +
-            '<p class="legacy-save-status" id="legacyLettersIntroSaveStatus"></p>' +
-        '</div>';
-
-    var crumb = document.getElementById('breadcrumbBar');
-    if (crumb) {
-        crumb.innerHTML =
-            '<a href="#life">Life</a><span class="separator">&rsaquo;</span>' +
-            '<a href="#legacy">My Legacy</a><span class="separator">&rsaquo;</span>' +
-            '<a href="#legacy/letters">Letters</a><span class="separator">&rsaquo;</span>' +
-            '<span>Read Me First</span>';
-    }
-
-    try {
-        var doc = await userCol('legacyMeta').doc('lettersIntro').get();
-        if (doc.exists) {
-            document.getElementById('legacyLettersIntroBody').value = doc.data().body || '';
-        }
-    } catch (e) {
-        console.error('Error loading letters intro:', e);
-    }
-
-    document.getElementById('legacyLettersIntroBody').addEventListener('blur', _legacySaveLettersIntro);
-}
-
-function _legacySaveLettersIntro() {
-    var body   = (document.getElementById('legacyLettersIntroBody') || {}).value || '';
-    var status = document.getElementById('legacyLettersIntroSaveStatus');
-    userCol('legacyMeta').doc('lettersIntro').set({ body: body }, { merge: true })
-        .then(function() {
-            if (status) { status.textContent = 'Saved.'; setTimeout(function() { if (status) status.textContent = ''; }, 2000); }
-        })
-        .catch(function(e) {
-            console.error('Error saving letters intro:', e);
-            if (status) status.textContent = 'Error saving.';
-        });
-}
-
 function loadLegacyMessagePage() {
     _legacyLoadStub('page-legacy-message', 'Final Message', 'message');
 }

@@ -926,7 +926,8 @@ End-of-life information hub — private information for the user's loved ones if
 **People to Notify section** (`#legacy/notify`): List of people your family should contact after you die. Two add flows:
 - **From Contacts**: shows an inline contact picker (searches the `people` collection). On selection, creates a `legacyNotify` doc with only `contactId` + `createdAt`. Contact name, phone, email, and "how I know them" (`howKnown`) are fetched at runtime from `people` — never duplicated in `legacyNotify`.
 - **Add Manually**: opens a modal with fields: Name (required), Phone, Email, Address, How do I know them. Creates a `legacyNotify` doc with `contactId: null`.
-- **List display**: each row shows name · phone · email on line 1, "how do I know them" on line 2 (identical layout for both types). Free-form rows are clickable to re-open the edit modal (modal has a Delete button). Contact-linked rows show only a Delete button.
+- **List display**: each row shows name · phone · email on line 1, "how do I know them" on line 2 (identical layout for both types). Email addresses are rendered as clickable `mailto:` links. Free-form rows are clickable to re-open the edit modal (modal has a Delete button). Contact-linked rows show only a Delete button.
+- **Notify All**: A **✉ Notify All** button appears in the header when at least one entry has an email address. Clicking it opens a compose modal with Subject and Body fields. Clicking **Open in Email** builds a `mailto:` URL with all email addresses in the To field and the subject/body pre-filled, then opens it via `window.location.href`.
 - **Duplicate prevention**: adding a contact who is already in the list shows an alert instead of creating a duplicate.
 - **Firestore**: `legacyNotify` collection — `contactId` (nullable), `name`, `phone`, `email`, `address`, `howDoIKnowThem`, `createdAt`. Contact-linked docs store only `contactId` and `createdAt`; all other fields are empty strings or absent.
 

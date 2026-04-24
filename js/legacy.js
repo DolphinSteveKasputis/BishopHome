@@ -759,6 +759,7 @@ async function loadLegacyNotifyPage() {
             '<div class="legacy-notify-header-btns">' +
                 '<button class="btn btn-secondary btn-small" id="legacyNotifyFromContactsBtn" onclick="_legacyNotifyShowPicker()">+ From Contacts</button>' +
                 '<button class="btn btn-primary btn-small" onclick="_legacyNotifyOpenModal(null)">+ Add Manually</button>' +
+                '<button class="btn btn-secondary btn-small hidden" id="legacyNotifyAllBtn" onclick="_legacyNotifyOpenCompose()">&#9993; Notify All</button>' +
             '</div>' +
         '</div>' +
         // Inline contact picker — hidden until "From Contacts" is clicked
@@ -768,6 +769,25 @@ async function loadLegacyNotifyPage() {
             '<button class="btn btn-secondary btn-small" style="margin-top:8px;" onclick="_legacyNotifyHidePicker()">Cancel</button>' +
         '</div>' +
         '<div id="legacyNotifyList"><p class="empty-state" id="legacyNotifyEmpty" style="padding:16px;">Loading…</p></div>' +
+        // Notify All compose modal
+        '<div id="legacyNotifyComposeModal" class="modal" role="dialog" aria-modal="true">' +
+            '<div class="modal-content">' +
+                '<h3>&#9993; Notify All</h3>' +
+                '<p style="margin-bottom:12px;font-size:0.9em;color:var(--text-secondary);">Compose your message below. Clicking <strong>Open in Email</strong> will open your email app with all addresses pre-filled.</p>' +
+                '<div class="form-group">' +
+                    '<label>Subject</label>' +
+                    '<input type="text" id="legacyNotifyComposeSubject" class="form-control" placeholder="e.g. Important news about Steve">' +
+                '</div>' +
+                '<div class="form-group">' +
+                    '<label>Message</label>' +
+                    '<textarea id="legacyNotifyComposeBody" class="form-control" rows="7" placeholder="Write your message here…"></textarea>' +
+                '</div>' +
+                '<div class="modal-actions">' +
+                    '<button class="btn btn-secondary" onclick="_legacyNotifyCloseCompose()">Cancel</button>' +
+                    '<button class="btn btn-primary" onclick="_legacyNotifySendAll()">Open in Email</button>' +
+                '</div>' +
+            '</div>' +
+        '</div>' +
         // Free-form add/edit modal
         '<div id="legacyNotifyModal" class="modal" role="dialog" aria-modal="true">' +
             '<div class="modal-content">' +
@@ -808,11 +828,17 @@ async function loadLegacyNotifyPage() {
             '<span>People to Notify</span>';
     }
 
-    // Close modal on backdrop click
+    // Close modals on backdrop click
     var modal = document.getElementById('legacyNotifyModal');
     if (modal) {
         modal.addEventListener('click', function(e) {
             if (e.target === modal) _legacyNotifyCloseModal();
+        });
+    }
+    var composeModal = document.getElementById('legacyNotifyComposeModal');
+    if (composeModal) {
+        composeModal.addEventListener('click', function(e) {
+            if (e.target === composeModal) _legacyNotifyCloseCompose();
         });
     }
 
@@ -977,10 +1003,44 @@ function _legacyNotifyDeleteRow(btn) {
         });
 }
 
+// Emails collected during the last render — used by Notify All
+var _legacyNotifyEmailList = [];
+
+function _legacyNotifyOpenCompose() {
+    var modal = document.getElementById('legacyNotifyComposeModal');
+    if (modal) modal.classList.add('open');
+    var subj = document.getElementById('legacyNotifyComposeSubject');
+    if (subj) subj.focus();
+}
+
+function _legacyNotifyCloseCompose() {
+    var modal = document.getElementById('legacyNotifyComposeModal');
+    if (modal) modal.classList.remove('open');
+}
+
+function _legacyNotifySendAll() {
+    var emails  = _legacyNotifyEmailList;
+    var subject = (document.getElementById('legacyNotifyComposeSubject') || {}).value || '';
+    var body    = (document.getElementById('legacyNotifyComposeBody') || {}).value || '';
+
+    if (!emails.length) {
+        alert('No email addresses found on your notify list.');
+        return;
+    }
+
+    var mailto = 'mailto:' + emails.join(',') +
+        '?subject=' + encodeURIComponent(subject) +
+        '&body='    + encodeURIComponent(body);
+
+    window.location.href = mailto;
+    _legacyNotifyCloseCompose();
+}
+
 async function _legacyNotifyRenderList() {
     var list = document.getElementById('legacyNotifyList');
     if (!list) return;
 
+    _legacyNotifyEmailList = [];
     list.innerHTML = '<p class="empty-state" id="legacyNotifyEmpty" style="padding:16px;">Loading…</p>';
 
     try {
@@ -1025,8 +1085,8 @@ async function _legacyNotifyRenderList() {
             }
 
             var metaParts = [];
-            if (phone) metaParts.push(phone);
-            if (email) metaParts.push(email);
+            if (phone) metaParts.push(_esc(phone));
+            if (email) metaParts.push('<a href="mailto:' + _esc(email) + '" onclick="event.stopPropagation()">' + _esc(email) + '</a>');
 
             var row = document.createElement('div');
             row.className = 'legacy-notify-row';
@@ -1040,7 +1100,7 @@ async function _legacyNotifyRenderList() {
                     '<div class="legacy-notify-row-line1">' +
                         '<span class="legacy-notify-name">' + _esc(name) + '</span>' +
                         (metaParts.length
-                            ? '<span class="legacy-notify-meta">' + _esc(metaParts.join(' · ')) + '</span>'
+                            ? '<span class="legacy-notify-meta">' + metaParts.join(' · ') + '</span>'
                             : '') +
                     '</div>' +
                     (howKnown ? '<div class="legacy-notify-row-line2">' + _esc(howKnown) + '</div>' : '') +
@@ -1051,7 +1111,15 @@ async function _legacyNotifyRenderList() {
                     ' onclick="_legacyNotifyDeleteRow(this)">Delete</button>';
 
             list.appendChild(row);
+
+            // Track emails for the Notify All button
+            if (email) _legacyNotifyEmailList.push(email);
         });
+
+        // Show Notify All button only when at least one person has an email
+        var notifyAllBtn = document.getElementById('legacyNotifyAllBtn');
+        if (notifyAllBtn) notifyAllBtn.classList.toggle('hidden', _legacyNotifyEmailList.length === 0);
+
     } catch (e) {
         console.error('Error loading notify list:', e);
         list.innerHTML = '<p class="empty-state" style="padding:16px;">Error loading list.</p>';

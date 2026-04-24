@@ -1801,6 +1801,8 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 - Tap **+ Add Manually** to add someone not in your contacts — fill in name, phone, email, address, and how you know them
 - Free-form entries are editable — tap anywhere on a row to edit (or delete from inside the edit screen)
 - Contact-linked entries can only be deleted (edit their info in the Contacts section instead)
+- Email addresses in the list are clickable — tap to open your email app for a single person
+- Tap **✉ Notify All** to compose one message and open your email app with all addresses pre-filled
 
 ### Details
 
@@ -1817,7 +1819,9 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 
 Tap **Save**. To edit later, tap anywhere on that row. To delete, open the edit form and tap **Delete**.
 
-**The list:** Each row shows name · phone · email on the first line, and "how I know them" on the second line. Both types (contact-linked and manual) look the same in the list.
+**The list:** Each row shows name · phone · email on the first line, and "how I know them" on the second line. Email addresses are clickable links — tap one to open your email app addressed to that person. Both types (contact-linked and manual) look the same in the list.
+
+**Notify All:** When at least one person has an email address, a **✉ Notify All** button appears in the header. Tap it to open a compose panel where you write a subject and message. Tap **Open in Email** and your email app opens with all email addresses in the To field and your message pre-filled — just hit Send.
 
 ---
 

@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=563">
+    <link rel="stylesheet" href="css/styles.css?v=564">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -6331,13 +6331,72 @@ service firebase.storage {
              PRIVATE VAULT SECTION — pages: settings-private-storage, private
              ================================================================ -->
 
-        <!-- Page: Private Vault Home (#private) — gate + vault home (content added in Phase 2) -->
+        <!-- Page: Private Vault Home (#private) — passphrase gate + vault home -->
         <section class="page hidden" id="page-private">
             <div class="page-header">
                 <button class="btn btn-secondary btn-small back-btn" onclick="window.location.hash='#life'">&#8592; Back</button>
                 <h2>Private</h2>
             </div>
-            <p class="empty-state" style="margin-top:48px;">Private vault coming soon.</p>
+
+            <!-- Gate: shown when vault is locked -->
+            <div id="private-gate">
+                <div class="private-gate-card">
+                    <div class="private-gate-icon">&#128274;</div>
+                    <p class="private-gate-desc">Enter your passphrase to unlock your private vault.</p>
+                    <div class="form-group">
+                        <input type="password" id="privateGatePassphrase" class="private-gate-input"
+                            placeholder="Passphrase"
+                            onkeydown="if(event.key==='Enter')privateUnlock()">
+                    </div>
+                    <p class="text-error hidden" id="privateGateError"></p>
+                    <button class="btn btn-primary private-gate-btn" id="privateGateBtn" onclick="privateUnlock()">Unlock</button>
+                </div>
+            </div>
+
+            <!-- Vault Home: shown when unlocked -->
+            <div id="private-home" class="hidden">
+                <div class="landing-tiles">
+                    <a href="#private/bookmarks" class="landing-tile landing-tile--private-bm">
+                        <span class="landing-tile-icon">&#128278;</span>
+                        <span class="landing-tile-label">Bookmarks</span>
+                    </a>
+                    <a href="#private/documents" class="landing-tile landing-tile--private-doc">
+                        <span class="landing-tile-icon">&#128196;</span>
+                        <span class="landing-tile-label">Documents</span>
+                    </a>
+                    <a href="#private/photos" class="landing-tile landing-tile--private-photo">
+                        <span class="landing-tile-icon">&#128247;</span>
+                        <span class="landing-tile-label">Photos</span>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Page: Private Bookmarks (#private/bookmarks) — stub for Phase 3 -->
+        <section class="page hidden" id="page-private-bookmarks">
+            <div class="page-header">
+                <button class="btn btn-secondary btn-small back-btn" onclick="window.location.hash='#private'">&#8592; Back</button>
+                <h2>Private Bookmarks</h2>
+            </div>
+            <p class="empty-state" style="margin-top:48px;">Bookmarks coming soon.</p>
+        </section>
+
+        <!-- Page: Private Documents (#private/documents) — stub for Phase 4 -->
+        <section class="page hidden" id="page-private-documents">
+            <div class="page-header">
+                <button class="btn btn-secondary btn-small back-btn" onclick="window.location.hash='#private'">&#8592; Back</button>
+                <h2>Private Documents</h2>
+            </div>
+            <p class="empty-state" style="margin-top:48px;">Documents coming soon.</p>
+        </section>
+
+        <!-- Page: Private Photos (#private/photos) — stub for Phase 5 -->
+        <section class="page hidden" id="page-private-photos">
+            <div class="page-header">
+                <button class="btn btn-secondary btn-small back-btn" onclick="window.location.hash='#private'">&#8592; Back</button>
+                <h2>Private Photos</h2>
+            </div>
+            <p class="empty-state" style="margin-top:48px;">Photos coming soon.</p>
         </section>
 
         <!-- ================================================================
@@ -9823,7 +9882,7 @@ export default {
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=563"></script>
+    <script src="js/firebase-config.js?v=564"></script>
     <script src="js/auth.js?v=350"></script>
     <script src="js/zones.js?v=355"></script>
     <script src="js/plants.js?v=351"></script>
@@ -9876,8 +9935,8 @@ export default {
     <script src="js/help.js?v=536"></script>
     <script src="js/legacy-crypto.js?v=2"></script>
     <script src="js/legacy.js?v=18"></script>
-    <script src="js/private.js?v=563"></script>
-    <script src="js/app.js?v=563"></script>
+    <script src="js/private.js?v=564"></script>
+    <script src="js/app.js?v=564"></script>
 
 </body>
 </html>

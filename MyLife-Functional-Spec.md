@@ -1022,12 +1022,20 @@ The Private Storage accordion in General Settings handles one-time setup:
 
 The Private tile is hidden on the Life landing page until activation is complete. Visibility is checked at app load via `privateCheckActivated()` in `initApp()`, which reads `privateVault/auth` from Firestore.
 
+### Vault Home & Passphrase Gate (`#private`)
+
+`#private` is a single page with two states, toggled by lock status:
+
+**Gate state (locked):** Centered card with a lock icon, passphrase input, and Unlock button. Wrong passphrase shows inline error and clears the input. Correct passphrase: derives the CryptoKey, verifies against stored sentinel, stores key in memory, switches to Home state.
+
+**Home state (unlocked):** Three tiles — Bookmarks (`#private/bookmarks`), Documents (`#private/documents`), Photos (`#private/photos`). Navigating to any sub-page when locked redirects to `#private` gate automatically.
+
 ### Session & Auto-Lock
 
-- Entering `#private` always prompts for passphrase (even within a session)
-- Correct passphrase: derives the CryptoKey, verifies against stored sentinel, holds key in memory
-- **Auto-lock**: 60 minutes of inactivity (any click or keypress anywhere in the app resets the timer). On expiry: CryptoKey cleared from memory. Phase 2 will add the vault home UI and timer wiring.
+- Entering `#private` always shows the gate if vault is locked; if already unlocked within the session, home is shown directly
+- **Auto-lock**: 60 minutes of inactivity (any click or keypress anywhere in the app resets the timer). On expiry: CryptoKey cleared from memory; if on any `#private/*` page, gate is shown immediately
 - Page reload always requires re-entry
+- If a Storage upload is in progress when the timer fires, lock is deferred until the upload completes
 
 ### Encryption Details
 

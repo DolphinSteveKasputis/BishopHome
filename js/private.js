@@ -18,6 +18,18 @@ var _privateCryptoKey = null;
 // privateCheckActivated(), used to show/hide the Life tile).
 var window_privateActivated = false;
 
+// True while a Storage upload is in progress — lock is deferred
+// until the upload completes so data is never partially written.
+window.privateUploadInProgress = false;
+
+// Auto-lock timer handle.
+var _privateLockTimer = null;
+var _PRIVATE_LOCK_MS  = 60 * 60 * 1000; // 60 minutes
+
+// Reset the inactivity timer on any click or keypress anywhere in the app.
+document.addEventListener('click',    function() { if (_privateCryptoKey) _privateResetTimer(); });
+document.addEventListener('keypress', function() { if (_privateCryptoKey) _privateResetTimer(); });
+
 // ============================================================
 // Public state helpers
 // ============================================================
@@ -26,8 +38,127 @@ function privateIsUnlocked() {
     return _privateCryptoKey !== null;
 }
 
+// ============================================================
+// Auto-lock timer
+// ============================================================
+
+function _privateStartTimer() {
+    _privateResetTimer();
+}
+
+function _privateResetTimer() {
+    clearTimeout(_privateLockTimer);
+    if (!_privateCryptoKey) return;
+    _privateLockTimer = setTimeout(privateLock, _PRIVATE_LOCK_MS);
+}
+
+// Lock the vault: clear the key, stop the timer, show gate if on a
+// private page. Deferred if an upload is currently in progress.
 function privateLock() {
+    if (window.privateUploadInProgress) {
+        setTimeout(privateLock, 5000);
+        return;
+    }
     _privateCryptoKey = null;
+    clearTimeout(_privateLockTimer);
+    _privateLockTimer = null;
+    // If user is on any private page, redirect to gate
+    var hash = window.location.hash;
+    if (hash === '#private' || hash.startsWith('#private/')) {
+        window.location.hash = '#private';
+        _privateShowGateState();
+    }
+}
+
+// ============================================================
+// Gate / home state helpers
+// ============================================================
+
+// Show the passphrase gate, hide the vault home.
+function _privateShowGateState() {
+    var gate   = document.getElementById('private-gate');
+    var home   = document.getElementById('private-home');
+    var passEl = document.getElementById('privateGatePassphrase');
+    var errEl  = document.getElementById('privateGateError');
+    var btnEl  = document.getElementById('privateGateBtn');
+    if (gate) gate.classList.remove('hidden');
+    if (home) home.classList.add('hidden');
+    if (passEl) { passEl.value = ''; setTimeout(function() { passEl.focus(); }, 100); }
+    if (errEl)  { errEl.textContent = ''; errEl.classList.add('hidden'); }
+    if (btnEl)  { btnEl.disabled = false; btnEl.textContent = 'Unlock'; }
+}
+
+// Show the vault home, hide the gate.
+function _privateShowHomeState() {
+    var gate = document.getElementById('private-gate');
+    var home = document.getElementById('private-home');
+    if (gate) gate.classList.add('hidden');
+    if (home) home.classList.remove('hidden');
+}
+
+// ============================================================
+// Navigation entry point — called by app.js route handler
+// ============================================================
+
+function privateNavigateTo(subpage) {
+    if (!window.privateActivated) {
+        window.location.hash = '#life';
+        return;
+    }
+    if (subpage === 'home') {
+        if (_privateCryptoKey) {
+            _privateShowHomeState();
+        } else {
+            _privateShowGateState();
+        }
+    }
+    // Sub-pages (bookmarks, documents, photos) gate-check in the
+    // app.js route handler before calling showPage().
+}
+
+// ============================================================
+// Unlock — verify passphrase against stored sentinel
+// ============================================================
+
+async function privateUnlock() {
+    var passEl = document.getElementById('privateGatePassphrase');
+    var btnEl  = document.getElementById('privateGateBtn');
+    var errEl  = document.getElementById('privateGateError');
+
+    var passphrase = passEl ? passEl.value : '';
+    if (!passphrase) {
+        if (errEl) { errEl.textContent = 'Enter your passphrase.'; errEl.classList.remove('hidden'); }
+        return;
+    }
+
+    if (btnEl) { btnEl.disabled = true; btnEl.textContent = 'Unlocking\u2026'; }
+    if (errEl) errEl.classList.add('hidden');
+
+    try {
+        var doc = await userCol('privateVault').doc('auth').get();
+        if (!doc.exists || !doc.data().encryptedSentinel) throw new Error('No vault auth doc');
+
+        var key = await _privateDerive(passphrase);
+        if (!key) throw new Error('Key derivation failed');
+
+        var decrypted = await _privateDecryptStringWithKey(doc.data().encryptedSentinel, key);
+        if (decrypted !== 'PRIVATE_VAULT_OK') {
+            if (errEl) { errEl.textContent = 'Incorrect passphrase.'; errEl.classList.remove('hidden'); }
+            if (passEl) { passEl.value = ''; passEl.focus(); }
+            if (btnEl)  { btnEl.disabled = false; btnEl.textContent = 'Unlock'; }
+            return;
+        }
+
+        // Correct passphrase — store key and show vault home
+        _privateCryptoKey = key;
+        if (passEl) passEl.value = '';
+        _privateStartTimer();
+        _privateShowHomeState();
+    } catch (e) {
+        console.error('Private unlock failed:', e);
+        if (errEl) { errEl.textContent = 'Unlock failed. Please try again.'; errEl.classList.remove('hidden'); }
+        if (btnEl) { btnEl.disabled = false; btnEl.textContent = 'Unlock'; }
+    }
 }
 
 // ============================================================

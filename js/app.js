@@ -134,7 +134,7 @@ const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'h
                          'health-vitals', 'health-insurance', 'health-emergency', 'health-appointments', 'health-care-team',
                          'life-calendar', 'life-projects',
                          'legacy',
-                         'private',
+                         'private', 'private-bookmarks', 'private-documents', 'private-photos',
                          'thoughts', 'top10lists', 'memories', 'views'];
 
 /**
@@ -196,7 +196,7 @@ const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'jo
                      'legacy', 'legacy-burial', 'legacy-service', 'legacy-obituary', 'legacy-social',
                      'legacy-accounts', 'legacy-documents', 'legacy-household',
                      'legacy-pets', 'legacy-notify', 'legacy-letters', 'legacy-letter', 'legacy-message',
-                     'private'];
+                     'private', 'private-bookmarks', 'private-documents', 'private-photos'];
 
 /** Tracks which nav context is currently active ('yard', 'house', or 'life'). */
 var currentNavContext = 'yard';
@@ -734,8 +734,18 @@ function handleRoute() {
         showPage('legacy');
         loadLegacyPage();
     // ---------- Private Vault routes ----------
+    } else if (page === 'private' && id === 'bookmarks') {
+        if (!privateIsUnlocked()) { window.location.hash = '#private'; return; }
+        showPage('private-bookmarks');
+    } else if (page === 'private' && id === 'documents') {
+        if (!privateIsUnlocked()) { window.location.hash = '#private'; return; }
+        showPage('private-documents');
+    } else if (page === 'private' && id === 'photos') {
+        if (!privateIsUnlocked()) { window.location.hash = '#private'; return; }
+        showPage('private-photos');
     } else if (page === 'private') {
         showPage('private');
+        if (typeof privateNavigateTo === 'function') privateNavigateTo('home');
     // ---------- Thoughts routes ----------
     } else if (page === 'thoughts') {
         showPage('thoughts');

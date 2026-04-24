@@ -1631,6 +1631,38 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 
 ---
 
+## screen:private
+
+### Quick Help
+- The Private vault stores bookmarks, documents, and photos that are encrypted — unreadable without your passphrase
+- Every visit prompts for your passphrase (vault auto-locks after 60 minutes of inactivity, or on page reload)
+- Wrong passphrase: the error is immediate and the input clears — try again
+- The vault must be activated in General Settings before it appears here
+
+### Details
+
+**What the Private vault is:** An encrypted personal vault for data you never want anyone else to see — not even someone with your app login or direct access to the database. Everything is encrypted in your browser before it ever leaves your device.
+
+**Unlocking:**
+- Enter your passphrase and tap **Unlock**
+- Correct passphrase: vault opens and shows three tiles — Bookmarks, Documents, Photos
+- Wrong passphrase: inline error appears, input clears — just try again
+- If you've unlocked within the last 60 minutes and haven't left the app, you won't be prompted again
+
+**Auto-lock:**
+- The vault locks automatically after 60 minutes of inactivity
+- Any click or keypress anywhere in the app resets the 60-minute timer
+- Page reload always requires re-entry regardless of the timer
+
+**The three sections:**
+- **Bookmarks** — private URL bookmarks in a tree structure (up to 5 levels deep), not visible to Chrome or any browser sync
+- **Documents** — encrypted .docx files; download to edit in Word, then re-upload
+- **Photos** — encrypted photos organized by album
+
+**If you forget your passphrase:** There is no recovery. The passphrase is never stored anywhere. All private data is permanently inaccessible without it.
+
+---
+
 ## screen:legacy
 
 ### Quick Help

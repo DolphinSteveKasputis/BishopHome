@@ -1794,6 +1794,26 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 
 ---
 
+## screen:legacy-pets
+
+### Quick Help
+- Tap **+ Add Pet** to add a pet — it opens automatically so you can fill it in right away
+- Tap a pet's name bar to expand or collapse it
+- Name and instructions save automatically when you click away
+- Tap **Delete** to remove a pet (asks for confirmation)
+
+### Details
+
+**What it's for:** Tell your family what to do with your pets after you're gone — who should take them, feeding routines, vet contact info, medications, anything the new caretaker needs to know.
+
+**Adding a pet:** Tap **+ Add Pet**. A new card appears at the top, already open. Fill in the name and instructions, then click away to save.
+
+**Editing:** Tap any pet's name bar to expand it. Edit the name or instructions directly — saves automatically when you click away.
+
+**Deleting:** Expand a pet card and tap **Delete**. You'll be asked to confirm before it's removed.
+
+---
+
 ## screen:legacy-service
 
 ### Quick Help

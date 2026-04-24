@@ -5677,6 +5677,43 @@ a.ar-target-link:hover {
 .legacy-letter-card--rmf .legacy-letter-card-title { color: #fff; }
 .legacy-letter-card--rmf .legacy-letter-card-meta  { color: rgba(255,255,255,0.75); }
 
+/* ── My Legacy — Pet accordion cards ───────────────────────── */
+.legacy-pet-card {
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 10px;
+    margin: 0 16px 12px;
+    overflow: hidden;
+    background: var(--bg-card, #fff);
+}
+.legacy-pet-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    cursor: pointer;
+    user-select: none;
+}
+.legacy-pet-card-header:hover { background: var(--bg-subtle, #f9fafb); }
+.legacy-pet-card-name  { font-weight: 600; font-size: 1rem; }
+.legacy-pet-card-chevron {
+    font-size: 0.9rem;
+    color: var(--text-secondary, #6b7280);
+    transition: transform 0.2s;
+}
+.legacy-pet-card--expanded .legacy-pet-card-chevron { transform: rotate(180deg); }
+.legacy-pet-card-body {
+    display: none;
+    padding: 0 16px 16px;
+    border-top: 1px solid var(--border, #e5e7eb);
+}
+.legacy-pet-card--expanded .legacy-pet-card-body { display: block; }
+.legacy-pet-card-footer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+}
+
 /* ── My Legacy — Print area (screen: hidden; print: shown) ─── */
 .legacy-print-area { display: none; }
 

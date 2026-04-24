@@ -906,9 +906,11 @@ End-of-life information hub — private information for the user's loved ones if
 | `#legacy/accounts` | Financial & Account Access 🔒 | Stub |
 | `#legacy/documents` | Important Documents & Where to Find Them | Stub |
 | `#legacy/household` | Practical Household Instructions | Stub |
-| `#legacy/pets` | Pets | Stub |
+| `#legacy/pets` | Pets — accordion cards, inline editing | ✅ Built |
 | `#legacy/notify` | People to Notify | Stub |
 | `#legacy/message` | Final Message | Stub |
+
+**Pets section** (`#legacy/pets`): Accordion card list stored in `legacyPets` collection. Each card shows the pet's name as a collapsed preview; tap to expand and reveal inline-editable name input and instructions textarea. "+ Add Pet" creates a new Firestore doc and prepends an auto-expanded card. Auto-saves on blur. Delete button on each card with confirmation dialog. Empty state shown when no pets exist. Firestore fields: `name`, `instructions`, `createdAt`.
 
 **Service Wishes section** (`#legacy/service`): Single form auto-saving to `legacyMeta/service`. Field order: Type of Service (dropdown: Traditional Funeral / Memorial Service / Celebration of Life / Graveside Only / No Service / Other), Location Preference (multi-line textarea, rows=3), Who Should Officiate (multi-line textarea, rows=3), My Wishes (large textarea, rows=16, with 🎙️ Speak voice-to-text button), Music (textarea, rows=5 — listed last). All fields save on blur/change.
 

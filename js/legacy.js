@@ -21,7 +21,7 @@ var LEGACY_SECTIONS = [
     { key: 'accounts',  icon: '💰',  label: 'Financial Accounts',     route: '#legacy/accounts', gated: true, stub: true },
     { key: 'documents', icon: '📁',  label: 'Documents',              route: '#legacy/documents', stub: true },
     { key: 'household', icon: '🏠',  label: 'Household Instructions', route: '#legacy/household', stub: true },
-    { key: 'pets',      icon: '🐾',  label: 'Pets',                   route: '#legacy/pets',      stub: true },
+    { key: 'pets',      icon: '🐾',  label: 'Pets',                   route: '#legacy/pets'      },
     { key: 'notify',    icon: '📞',  label: 'People to Notify',       route: '#legacy/notify',    stub: true },
     { key: 'letters',   icon: '✉️',  label: 'Letters',                route: '#legacy/letters'   },
     { key: 'message',   icon: '💬',  label: 'Final Message',          route: '#legacy/message',   stub: true }
@@ -598,8 +598,151 @@ function loadLegacyDocumentsPage() {
 function loadLegacyHouseholdPage() {
     _legacyLoadStub('page-legacy-household', 'Household Instructions', 'household');
 }
-function loadLegacyPetsPage() {
-    _legacyLoadStub('page-legacy-pets', 'Pets', 'pets');
+async function loadLegacyPetsPage() {
+    var page = document.getElementById('page-legacy-pets');
+    if (!page) return;
+
+    page.innerHTML =
+        '<div class="page-header">' +
+            '<button class="btn btn-secondary btn-small" onclick="location.hash=\'#legacy\'">&#8592; My Legacy</button>' +
+            '<h2>🐾 Pets</h2>' +
+            '<button class="btn btn-primary btn-small" id="legacyPetAddBtn" onclick="_legacyPetAddNew()">+ Add Pet</button>' +
+        '</div>' +
+        '<div id="legacyPetsList"><p class="empty-state" id="legacyPetsEmpty" style="padding:16px;">Loading…</p></div>';
+
+    var crumb = document.getElementById('breadcrumbBar');
+    if (crumb) {
+        crumb.innerHTML =
+            '<a href="#life">Life</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#legacy">My Legacy</a><span class="separator">&rsaquo;</span>' +
+            '<span>Pets</span>';
+    }
+
+    try {
+        var snap = await userCol('legacyPets').orderBy('createdAt', 'asc').get();
+        var list = document.getElementById('legacyPetsList');
+        var empty = document.getElementById('legacyPetsEmpty');
+        if (snap.empty) {
+            if (empty) empty.textContent = 'No pets added yet. Use Add Pet to get started.';
+        } else {
+            if (empty) empty.remove();
+            snap.forEach(function(doc) {
+                list.appendChild(_legacyPetCard(doc.id, doc.data().name || '', doc.data().instructions || '', false));
+            });
+        }
+    } catch (e) {
+        console.error('Error loading pets:', e);
+        var empty = document.getElementById('legacyPetsEmpty');
+        if (empty) empty.textContent = 'Error loading pets.';
+    }
+}
+
+function _legacyPetCard(id, name, instructions, expanded) {
+    var card = document.createElement('div');
+    card.className = 'legacy-pet-card' + (expanded ? ' legacy-pet-card--expanded' : '');
+    card.id = 'legacy-pet-card-' + id;
+    card.innerHTML =
+        '<div class="legacy-pet-card-header" onclick="_legacyPetToggle(\'' + id + '\')">' +
+            '<span class="legacy-pet-card-name" id="legacy-pet-preview-' + id + '">' + _esc(name || 'New Pet') + '</span>' +
+            '<span class="legacy-pet-card-chevron">▾</span>' +
+        '</div>' +
+        '<div class="legacy-pet-card-body">' +
+            '<div class="form-group">' +
+                '<label>Pet\'s Name</label>' +
+                '<input type="text" class="form-control" id="legacy-pet-name-' + id + '" value="' + _esc(name) + '" placeholder="e.g. Biscuit">' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>Instructions</label>' +
+                '<p class="legacy-hint">Who should take this pet? Any care notes, feeding routine, vet info, etc.</p>' +
+                '<textarea class="legacy-textarea" id="legacy-pet-instructions-' + id + '" rows="6"' +
+                    ' placeholder="e.g. Give to Karen. Eats twice a day — 1 cup dry food. Vet is Dr. Smith at 612-555-1234.">' + _esc(instructions) + '</textarea>' +
+            '</div>' +
+            '<div class="legacy-pet-card-footer">' +
+                '<button class="btn btn-danger btn-small" onclick="_legacyPetDelete(\'' + id + '\')">Delete</button>' +
+                '<span class="legacy-save-status" id="legacy-pet-save-' + id + '"></span>' +
+            '</div>' +
+        '</div>';
+
+    // Auto-save on blur
+    var nameEl  = card.querySelector('#legacy-pet-name-' + id);
+    var instrEl = card.querySelector('#legacy-pet-instructions-' + id);
+    nameEl.addEventListener('blur',  function() { _legacyPetSave(id); });
+    instrEl.addEventListener('blur', function() { _legacyPetSave(id); });
+
+    // Update preview label when name changes
+    nameEl.addEventListener('input', function() {
+        var preview = document.getElementById('legacy-pet-preview-' + id);
+        if (preview) preview.textContent = nameEl.value.trim() || 'New Pet';
+    });
+
+    return card;
+}
+
+function _legacyPetToggle(id) {
+    var card = document.getElementById('legacy-pet-card-' + id);
+    if (card) card.classList.toggle('legacy-pet-card--expanded');
+}
+
+function _legacyPetSave(id) {
+    var nameEl  = document.getElementById('legacy-pet-name-' + id);
+    var instrEl = document.getElementById('legacy-pet-instructions-' + id);
+    var status  = document.getElementById('legacy-pet-save-' + id);
+    var name    = nameEl  ? nameEl.value.trim()  : '';
+    var instr   = instrEl ? instrEl.value        : '';
+
+    userCol('legacyPets').doc(id).set({ name: name, instructions: instr }, { merge: true })
+        .then(function() {
+            if (status) { status.textContent = 'Saved.'; setTimeout(function() { if (status) status.textContent = ''; }, 2000); }
+        })
+        .catch(function(e) {
+            console.error('Error saving pet:', e);
+            if (status) status.textContent = 'Error saving.';
+        });
+}
+
+async function _legacyPetAddNew() {
+    var btn = document.getElementById('legacyPetAddBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Adding…'; }
+    try {
+        var ref = await userCol('legacyPets').add({
+            name: '', instructions: '',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        var empty = document.getElementById('legacyPetsEmpty');
+        if (empty) empty.remove();
+        var list = document.getElementById('legacyPetsList');
+        var card = _legacyPetCard(ref.id, '', '', true);
+        list.insertBefore(card, list.firstChild);
+        // Focus the name field
+        var nameEl = document.getElementById('legacy-pet-name-' + ref.id);
+        if (nameEl) setTimeout(function() { nameEl.focus(); }, 50);
+    } catch (e) {
+        console.error('Error adding pet:', e);
+        alert('Could not add pet. Please try again.');
+    }
+    if (btn) { btn.disabled = false; btn.textContent = '+ Add Pet'; }
+}
+
+function _legacyPetDelete(id) {
+    var nameEl = document.getElementById('legacy-pet-name-' + id);
+    var name   = nameEl ? (nameEl.value.trim() || 'this pet') : 'this pet';
+    if (!confirm('Delete ' + name + '?')) return;
+    userCol('legacyPets').doc(id).delete()
+        .then(function() {
+            var card = document.getElementById('legacy-pet-card-' + id);
+            if (card) card.remove();
+            // Show empty state if no cards left
+            var list = document.getElementById('legacyPetsList');
+            if (list && !list.querySelector('.legacy-pet-card')) {
+                var p = document.createElement('p');
+                p.className = 'empty-state';
+                p.id = 'legacyPetsEmpty';
+                p.style.padding = '16px';
+                p.textContent = 'No pets added yet. Use Add Pet to get started.';
+                list.appendChild(p);
+            }
+        })
+        .catch(function(e) { console.error('Error deleting pet:', e); alert('Could not delete. Please try again.'); });
 }
 function loadLegacyNotifyPage() {
     _legacyLoadStub('page-legacy-notify', 'People to Notify', 'notify');

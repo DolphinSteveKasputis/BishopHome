@@ -416,6 +416,13 @@ A button on the Legacy landing page (or in Settings) that generates a clean prin
 - Pre-arrangement: yes/no toggle + funeral home name, phone, docs location, notes
 - Organ donation removed (hospital-handled, not a day-after decision)
 
+### Section: Pets — DECIDED
+- Add Pet button creates a new Firestore doc in `legacyPets` and prepends an auto-expanded card
+- Cards show pet name as collapsed preview; click header to expand/collapse
+- Expanded card: name input + instructions textarea (both inline-editable), delete button with confirmation
+- Auto-save on blur for name and instructions
+- Firestore: `legacyPets` — `name`, `instructions`, `createdAt`
+
 ### Section 2: Service Wishes — DECIDED
 - **Service type**: dropdown — Traditional Funeral, Memorial Service, Celebration of Life, Graveside Only, No Service, Other
 - **Location preference**: single-line text input (free-form — church name, address, outdoor location, "no preference", etc.)

@@ -979,7 +979,7 @@ function _legacyPassphraseError(msg) {
 // Allow Enter key to submit the passphrase modal
 document.addEventListener('keydown', function(e) {
     var modal = document.getElementById('modal-legacy-passphrase');
-    if (modal && !modal.classList.contains('hidden') && e.key === 'Enter') {
+    if (modal && modal.classList.contains('open') && e.key === 'Enter') {
         e.preventDefault();
         legacySubmitPassphrase();
     }

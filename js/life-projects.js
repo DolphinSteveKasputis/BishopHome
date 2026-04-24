@@ -245,7 +245,7 @@ function openNewLifeProjectModal() {
             </div>
             <div class="form-group" style="flex:1;">
                 <label for="lpEndDate">End Date</label>
-                <input type="date" id="lpEndDate" class="form-control">
+                <input type="date" id="lpEndDate" class="form-control" onfocus="_lpDefaultEndDate()">
             </div>
         </div>
     `;
@@ -285,7 +285,7 @@ function openEditLifeProjectModal(projectId) {
                 </div>
                 <div class="form-group" style="flex:1;">
                     <label for="lpEndDate">End Date</label>
-                    <input type="date" id="lpEndDate" class="form-control" value="${p.endDate || ''}">
+                    <input type="date" id="lpEndDate" class="form-control" value="${p.endDate || ''}" onfocus="_lpDefaultEndDate()">
                 </div>
             </div>
             <div class="form-group" style="margin-bottom:12px;">
@@ -298,6 +298,13 @@ function openEditLifeProjectModal(projectId) {
 
         openModal('lpProjectModal');
     });
+}
+
+/** When focusing the end date with no value, default it to the start date */
+function _lpDefaultEndDate() {
+    const end   = document.getElementById('lpEndDate');
+    const start = document.getElementById('lpStartDate');
+    if (end && !end.value && start && start.value) end.value = start.value;
 }
 
 /** Template picker highlight */

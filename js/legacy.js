@@ -15,17 +15,17 @@ var _legacyPassphraseCallback = null;
 // Section metadata: key → { icon, label, route, gated }
 var LEGACY_SECTIONS = [
     { key: 'burial',    icon: '⚱️',  label: 'Burial & Remains',      route: '#legacy/burial'    },
-    { key: 'service',   icon: '🕊️',  label: 'Service Wishes',         route: '#legacy/service'   },
+    { key: 'service',   icon: '🕊️',  label: 'Service Wishes',         route: '#legacy/service',   stub: true },
     { key: 'obituary',  icon: '📜',  label: 'My Obituary',            route: '#legacy/obituary'  },
-    { key: 'social',    icon: '📱',  label: 'Social Media',           route: '#legacy/social',   gated: true },
-    { key: 'accounts',  icon: '💰',  label: 'Financial Accounts',     route: '#legacy/accounts', gated: true },
-    { key: 'documents', icon: '📁',  label: 'Documents',              route: '#legacy/documents' },
-    { key: 'medical',   icon: '🏥',  label: 'Medical Wishes',         route: '#legacy/medical'   },
-    { key: 'household', icon: '🏠',  label: 'Household Instructions', route: '#legacy/household' },
-    { key: 'pets',      icon: '🐾',  label: 'Pets',                   route: '#legacy/pets'      },
-    { key: 'notify',    icon: '📞',  label: 'People to Notify',       route: '#legacy/notify'    },
+    { key: 'social',    icon: '📱',  label: 'Social Media',           route: '#legacy/social',   gated: true, stub: true },
+    { key: 'accounts',  icon: '💰',  label: 'Financial Accounts',     route: '#legacy/accounts', gated: true, stub: true },
+    { key: 'documents', icon: '📁',  label: 'Documents',              route: '#legacy/documents', stub: true },
+    { key: 'medical',   icon: '🏥',  label: 'Medical Wishes',         route: '#legacy/medical',   stub: true },
+    { key: 'household', icon: '🏠',  label: 'Household Instructions', route: '#legacy/household', stub: true },
+    { key: 'pets',      icon: '🐾',  label: 'Pets',                   route: '#legacy/pets',      stub: true },
+    { key: 'notify',    icon: '📞',  label: 'People to Notify',       route: '#legacy/notify',    stub: true },
     { key: 'letters',   icon: '✉️',  label: 'Letters',                route: '#legacy/letters'   },
-    { key: 'message',   icon: '💬',  label: 'Final Message',          route: '#legacy/message'   }
+    { key: 'message',   icon: '💬',  label: 'Final Message',          route: '#legacy/message',   stub: true }
 ];
 
 // ============================================================
@@ -62,7 +62,8 @@ function loadLegacyPage() {
         tile.innerHTML =
             '<span class="landing-tile-icon">' + s.icon + '</span>' +
             '<span class="landing-tile-label">' + s.label + '</span>' +
-            (s.gated ? '<span class="landing-tile-soon">🔒 Encrypted</span>' : '');
+            (s.gated ? '<span class="landing-tile-soon">🔒 Encrypted</span>' : '') +
+            (s.stub  ? '<span class="landing-tile-soon">Coming Soon</span>' : '');
         grid.appendChild(tile);
     });
 }

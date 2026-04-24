@@ -1794,6 +1794,33 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 
 ---
 
+## screen:legacy-notify
+
+### Quick Help
+- Tap **+ From Contacts** to add someone from your Contacts list — their phone, email, and relationship are pulled in automatically
+- Tap **+ Add Manually** to add someone not in your contacts — fill in name, phone, email, address, and how you know them
+- Free-form entries are editable — tap anywhere on a row to edit (or delete from inside the edit screen)
+- Contact-linked entries can only be deleted (edit their info in the Contacts section instead)
+
+### Details
+
+**What it's for:** A list of people your family should call or notify after you pass — friends, colleagues, organizations, or anyone who should hear the news directly.
+
+**From Contacts:** Tap **+ From Contacts**. An inline search box appears — type a name to search your Contacts list and tap to select. The person is added immediately. Their phone number, email, and "how I know them" are read live from Contacts every time the page loads — if you update their contact record later, the changes appear here automatically. Contacts can only be deleted from this list (not edited here).
+
+**Add Manually:** Tap **+ Add Manually** to open a form. Fill in:
+- **Name** (required)
+- **Phone**
+- **Email**
+- **Address**
+- **How do I know them** — e.g. "College friend", "neighbor", "book club"
+
+Tap **Save**. To edit later, tap anywhere on that row. To delete, open the edit form and tap **Delete**.
+
+**The list:** Each row shows name · phone · email on the first line, and "how I know them" on the second line. Both types (contact-linked and manual) look the same in the list.
+
+---
+
 ## screen:legacy-pets
 
 ### Quick Help

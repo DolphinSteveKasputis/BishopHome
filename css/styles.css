@@ -12564,3 +12564,50 @@ a.health-chip--link:hover { filter: brightness(0.93); }
     .bene-print-header { display: block !important; font-size: 1.1rem; font-weight: 600; margin-bottom: 12px; }
     #beneResults.bene-all-mode .bene-group:not(:last-child) { break-after: page; page-break-after: always; }
 }
+
+/* ============================================================
+   Legacy — People to Notify
+   ============================================================ */
+.legacy-notify-header-btns {
+    display: flex;
+    gap: 8px;
+}
+.legacy-notify-picker-area {
+    padding: 12px 16px;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+    margin-bottom: 4px;
+}
+.legacy-notify-row {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e5e7eb;
+    gap: 10px;
+}
+.legacy-notify-row:last-child {
+    border-bottom: none;
+}
+.legacy-notify-row-content {
+    flex: 1;
+    min-width: 0;
+}
+.legacy-notify-row-line1 {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.legacy-notify-name {
+    font-weight: 600;
+    color: #111827;
+}
+.legacy-notify-meta {
+    color: #6b7280;
+    font-size: 0.9em;
+}
+.legacy-notify-row-line2 {
+    color: #6b7280;
+    font-size: 0.85em;
+    margin-top: 2px;
+}

@@ -907,7 +907,7 @@ End-of-life information hub — private information for the user's loved ones if
 | `#legacy/documents` | Important Documents & Where to Find Them | Stub |
 | `#legacy/household` | Practical Household Instructions | Stub |
 | `#legacy/pets` | Pets — accordion cards, inline editing | ✅ Built |
-| `#legacy/notify` | People to Notify | Stub |
+| `#legacy/notify` | People to Notify — list contacts + free-form entries, runtime lookup | ✅ Built |
 | `#legacy/message` | Final Message | Stub |
 
 **Pets section** (`#legacy/pets`): Accordion card list stored in `legacyPets` collection. Each card shows the pet's name as a collapsed preview; tap to expand and reveal inline-editable name input and instructions textarea. "+ Add Pet" creates a new Firestore doc and prepends an auto-expanded card. Auto-saves on blur. Delete button on each card with confirmation dialog. Empty state shown when no pets exist. Firestore fields: `name`, `instructions`, `createdAt`.
@@ -921,6 +921,13 @@ End-of-life information hub — private information for the user's loved ones if
 - **Auto-save**: all fields save on blur.
 - **Firestore**: `legacyLetters` collection — fields: `contactId` (nullable), `recipientName`, `title`, `instructions`, `body`, `createdAt`, `updatedAt`.
 
+**People to Notify section** (`#legacy/notify`): List of people your family should contact after you die. Two add flows:
+- **From Contacts**: shows an inline contact picker (searches the `people` collection). On selection, creates a `legacyNotify` doc with only `contactId` + `createdAt`. Contact name, phone, email, and "how I know them" (`howKnown`) are fetched at runtime from `people` — never duplicated in `legacyNotify`.
+- **Add Manually**: opens a modal with fields: Name (required), Phone, Email, Address, How do I know them. Creates a `legacyNotify` doc with `contactId: null`.
+- **List display**: each row shows name · phone · email on line 1, "how do I know them" on line 2 (identical layout for both types). Free-form rows are clickable to re-open the edit modal (modal has a Delete button). Contact-linked rows show only a Delete button.
+- **Duplicate prevention**: adding a contact who is already in the list shows an alert instead of creating a duplicate.
+- **Firestore**: `legacyNotify` collection — `contactId` (nullable), `name`, `phone`, `email`, `address`, `howDoIKnowThem`, `createdAt`. Contact-linked docs store only `contactId` and `createdAt`; all other fields are empty strings or absent.
+
 **Passphrase encryption** (🔒 sections): Financial Accounts and Social Media require a **Legacy Passphrase** before displaying content. This passphrase encrypts sensitive fields (passwords, account numbers, SSNs, PINs) using AES-GCM 256-bit via the browser Web Crypto API. Key derivation uses PBKDF2 with a random salt stored in `legacyMeta/crypto`. The passphrase is **never stored** — only the salt is in Firestore. Once entered, the session stays unlocked until the browser tab is closed. Implemented in `legacy-crypto.js`.
 
 **Firestore collections**:
@@ -928,8 +935,8 @@ End-of-life information hub — private information for the user's loved ones if
 - `legacyLetters` — `contactId`, `recipientName`, `title`, `instructions`, `body`, `createdAt`, `updatedAt` ✅ active
 - `legacyAccounts` — financial and digital account entries (encrypted fields — planned)
 - `legacyDocuments` — document checklist entries (planned)
-- `legacyNotifyList` — people to notify (planned)
-- `legacyPets` — pet entries (planned)
+- `legacyNotify` — `contactId` (nullable), `name`, `phone`, `email`, `address`, `howDoIKnowThem`, `createdAt` ✅ active
+- `legacyPets` — `name`, `instructions`, `createdAt` ✅ active
 
 ### Life Calendar (`lifecalendar.js`)
 

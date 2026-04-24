@@ -22,7 +22,7 @@ var LEGACY_SECTIONS = [
     { key: 'documents', icon: '📁',  label: 'Documents',              route: '#legacy/documents', stub: true },
     { key: 'household', icon: '🏠',  label: 'Household Instructions', route: '#legacy/household', stub: true },
     { key: 'pets',      icon: '🐾',  label: 'Pets',                   route: '#legacy/pets'      },
-    { key: 'notify',    icon: '📞',  label: 'People to Notify',       route: '#legacy/notify',    stub: true },
+    { key: 'notify',    icon: '📞',  label: 'People to Notify',       route: '#legacy/notify'    },
     { key: 'letters',   icon: '✉️',  label: 'Letters',                route: '#legacy/letters'   },
     { key: 'message',   icon: '💬',  label: 'Final Message',          route: '#legacy/message',   stub: true }
 ];
@@ -744,8 +744,318 @@ function _legacyPetDelete(id) {
         })
         .catch(function(e) { console.error('Error deleting pet:', e); alert('Could not delete. Please try again.'); });
 }
-function loadLegacyNotifyPage() {
-    _legacyLoadStub('page-legacy-notify', 'People to Notify', 'notify');
+// ============================================================
+// People to Notify
+// ============================================================
+
+async function loadLegacyNotifyPage() {
+    var page = document.getElementById('page-legacy-notify');
+    if (!page) return;
+
+    page.innerHTML =
+        '<div class="page-header">' +
+            '<button class="btn btn-secondary btn-small" onclick="location.hash=\'#legacy\'">&#8592; My Legacy</button>' +
+            '<h2>📞 People to Notify</h2>' +
+            '<div class="legacy-notify-header-btns">' +
+                '<button class="btn btn-secondary btn-small" id="legacyNotifyFromContactsBtn" onclick="_legacyNotifyShowPicker()">+ From Contacts</button>' +
+                '<button class="btn btn-primary btn-small" onclick="_legacyNotifyOpenModal(null)">+ Add Manually</button>' +
+            '</div>' +
+        '</div>' +
+        // Inline contact picker — hidden until "From Contacts" is clicked
+        '<div id="legacyNotifyPickerArea" class="legacy-notify-picker-area hidden">' +
+            '<p class="legacy-hint" style="margin-bottom:6px;">Select a contact to add them to your notify list:</p>' +
+            '<div id="legacyNotifyContactPicker"></div>' +
+            '<button class="btn btn-secondary btn-small" style="margin-top:8px;" onclick="_legacyNotifyHidePicker()">Cancel</button>' +
+        '</div>' +
+        '<div id="legacyNotifyList"><p class="empty-state" id="legacyNotifyEmpty" style="padding:16px;">Loading…</p></div>' +
+        // Free-form add/edit modal
+        '<div id="legacyNotifyModal" class="modal" role="dialog" aria-modal="true">' +
+            '<div class="modal-content">' +
+                '<h3 id="legacyNotifyModalTitle">Add Person</h3>' +
+                '<div class="form-group">' +
+                    '<label>Name <span style="color:var(--danger)">*</span></label>' +
+                    '<input type="text" id="legacyNotifyName" class="form-control" placeholder="Full name">' +
+                '</div>' +
+                '<div class="form-group">' +
+                    '<label>Phone</label>' +
+                    '<input type="text" id="legacyNotifyPhone" class="form-control" placeholder="Phone number">' +
+                '</div>' +
+                '<div class="form-group">' +
+                    '<label>Email</label>' +
+                    '<input type="text" id="legacyNotifyEmail" class="form-control" placeholder="Email address">' +
+                '</div>' +
+                '<div class="form-group">' +
+                    '<label>Address</label>' +
+                    '<textarea id="legacyNotifyAddress" class="form-control" rows="2" placeholder="Mailing address"></textarea>' +
+                '</div>' +
+                '<div class="form-group">' +
+                    '<label>How do I know them</label>' +
+                    '<input type="text" id="legacyNotifyHowKnown" class="form-control" placeholder="e.g. College friend, neighbor, coworker">' +
+                '</div>' +
+                '<div class="modal-actions">' +
+                    '<button class="btn btn-secondary" onclick="_legacyNotifyCloseModal()">Cancel</button>' +
+                    '<button class="btn btn-danger hidden" id="legacyNotifyDeleteBtn" onclick="_legacyNotifyDeleteFromModal()">Delete</button>' +
+                    '<button class="btn btn-primary" onclick="_legacyNotifySaveModal()">Save</button>' +
+                '</div>' +
+            '</div>' +
+        '</div>';
+
+    var crumb = document.getElementById('breadcrumbBar');
+    if (crumb) {
+        crumb.innerHTML =
+            '<a href="#life">Life</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#legacy">My Legacy</a><span class="separator">&rsaquo;</span>' +
+            '<span>People to Notify</span>';
+    }
+
+    // Close modal on backdrop click
+    var modal = document.getElementById('legacyNotifyModal');
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) _legacyNotifyCloseModal();
+        });
+    }
+
+    // Build the inline contact picker
+    if (typeof buildContactPicker === 'function') {
+        buildContactPicker('legacyNotifyContactPicker', {
+            placeholder: 'Search contacts…',
+            onSelect: function(person) { _legacyNotifyAddFromContact(person); }
+        });
+    }
+
+    await _legacyNotifyRenderList();
+}
+
+function _legacyNotifyShowPicker() {
+    var area = document.getElementById('legacyNotifyPickerArea');
+    var btn  = document.getElementById('legacyNotifyFromContactsBtn');
+    if (area) area.classList.remove('hidden');
+    if (btn)  btn.style.display = 'none';
+    var searchEl = document.getElementById('legacyNotifyContactPicker_search');
+    if (searchEl) { searchEl.value = ''; searchEl.focus(); }
+}
+
+function _legacyNotifyHidePicker() {
+    var area = document.getElementById('legacyNotifyPickerArea');
+    var btn  = document.getElementById('legacyNotifyFromContactsBtn');
+    if (area) area.classList.add('hidden');
+    if (btn)  btn.style.display = '';
+}
+
+async function _legacyNotifyAddFromContact(person) {
+    _legacyNotifyHidePicker();
+    try {
+        // Prevent duplicates
+        var existing = await userCol('legacyNotify').where('contactId', '==', person.id).get();
+        if (!existing.empty) {
+            alert((person.name || 'That contact') + ' is already in your notify list.');
+            return;
+        }
+        await userCol('legacyNotify').add({
+            contactId: person.id,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        await _legacyNotifyRenderList();
+    } catch (e) {
+        console.error('Error adding contact to notify list:', e);
+        alert('Could not add contact. Please try again.');
+    }
+}
+
+async function _legacyNotifyOpenModal(id) {
+    var modal     = document.getElementById('legacyNotifyModal');
+    var titleEl   = document.getElementById('legacyNotifyModalTitle');
+    var deleteBtn = document.getElementById('legacyNotifyDeleteBtn');
+    if (!modal) return;
+
+    // Clear all fields
+    ['legacyNotifyName','legacyNotifyPhone','legacyNotifyEmail',
+     'legacyNotifyAddress','legacyNotifyHowKnown'].forEach(function(fid) {
+        var el = document.getElementById(fid);
+        if (el) el.value = '';
+    });
+    modal.dataset.editId = id || '';
+
+    if (id) {
+        titleEl.textContent = 'Edit Person';
+        deleteBtn.classList.remove('hidden');
+        try {
+            var doc = await userCol('legacyNotify').doc(id).get();
+            if (doc.exists) {
+                var d = doc.data();
+                document.getElementById('legacyNotifyName').value     = d.name           || '';
+                document.getElementById('legacyNotifyPhone').value    = d.phone          || '';
+                document.getElementById('legacyNotifyEmail').value    = d.email          || '';
+                document.getElementById('legacyNotifyAddress').value  = d.address        || '';
+                document.getElementById('legacyNotifyHowKnown').value = d.howDoIKnowThem || '';
+            }
+        } catch (e) {
+            console.error('Error loading notify entry:', e);
+        }
+    } else {
+        titleEl.textContent = 'Add Person';
+        deleteBtn.classList.add('hidden');
+    }
+
+    modal.classList.add('open');
+    setTimeout(function() {
+        var nameEl = document.getElementById('legacyNotifyName');
+        if (nameEl) nameEl.focus();
+    }, 50);
+}
+
+function _legacyNotifyCloseModal() {
+    var modal = document.getElementById('legacyNotifyModal');
+    if (modal) modal.classList.remove('open');
+}
+
+async function _legacyNotifySaveModal() {
+    var modal    = document.getElementById('legacyNotifyModal');
+    var id       = modal ? (modal.dataset.editId || '') : '';
+    var name     = (document.getElementById('legacyNotifyName')     || {}).value.trim();
+    var phone    = (document.getElementById('legacyNotifyPhone')    || {}).value.trim();
+    var email    = (document.getElementById('legacyNotifyEmail')    || {}).value.trim();
+    var address  = (document.getElementById('legacyNotifyAddress')  || {}).value.trim();
+    var howKnown = (document.getElementById('legacyNotifyHowKnown') || {}).value.trim();
+
+    if (!name) {
+        alert('Please enter a name.');
+        var nameEl = document.getElementById('legacyNotifyName');
+        if (nameEl) nameEl.focus();
+        return;
+    }
+
+    var data = {
+        contactId:      null,
+        name:           name,
+        phone:          phone,
+        email:          email,
+        address:        address,
+        howDoIKnowThem: howKnown
+    };
+
+    try {
+        if (id) {
+            await userCol('legacyNotify').doc(id).set(data, { merge: true });
+        } else {
+            data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+            await userCol('legacyNotify').add(data);
+        }
+        _legacyNotifyCloseModal();
+        await _legacyNotifyRenderList();
+    } catch (e) {
+        console.error('Error saving notify entry:', e);
+        alert('Could not save. Please try again.');
+    }
+}
+
+async function _legacyNotifyDeleteFromModal() {
+    var modal = document.getElementById('legacyNotifyModal');
+    var id    = modal ? (modal.dataset.editId || '') : '';
+    if (!id) return;
+    if (!confirm('Remove this person from your notify list?')) return;
+    try {
+        await userCol('legacyNotify').doc(id).delete();
+        _legacyNotifyCloseModal();
+        await _legacyNotifyRenderList();
+    } catch (e) {
+        console.error('Error deleting notify entry:', e);
+        alert('Could not delete. Please try again.');
+    }
+}
+
+function _legacyNotifyDeleteRow(btn) {
+    var id   = btn.getAttribute('data-nid');
+    var name = btn.getAttribute('data-nname') || 'this person';
+    if (!confirm('Remove ' + name + ' from your notify list?')) return;
+    userCol('legacyNotify').doc(id).delete()
+        .then(function() { _legacyNotifyRenderList(); })
+        .catch(function(e) {
+            console.error('Error deleting notify entry:', e);
+            alert('Could not delete. Please try again.');
+        });
+}
+
+async function _legacyNotifyRenderList() {
+    var list = document.getElementById('legacyNotifyList');
+    if (!list) return;
+
+    list.innerHTML = '<p class="empty-state" id="legacyNotifyEmpty" style="padding:16px;">Loading…</p>';
+
+    try {
+        var snap = await userCol('legacyNotify').orderBy('createdAt', 'asc').get();
+
+        if (snap.empty) {
+            document.getElementById('legacyNotifyEmpty').textContent =
+                'No one added yet. Use the buttons above to add people.';
+            return;
+        }
+
+        var docs = [];
+        snap.forEach(function(doc) { docs.push({ id: doc.id, data: doc.data() }); });
+
+        // Fetch people data for contact-linked entries in parallel
+        var personFetches = docs.map(function(entry) {
+            if (entry.data.contactId) {
+                return userCol('people').doc(entry.data.contactId).get()
+                    .then(function(pDoc) { return pDoc.exists ? pDoc.data() : null; })
+                    .catch(function() { return null; });
+            }
+            return Promise.resolve(null);
+        });
+        var personDatas = await Promise.all(personFetches);
+
+        list.innerHTML = '';
+        docs.forEach(function(entry, i) {
+            var d          = entry.data;
+            var personData = personDatas[i];
+            var name, phone, email, howKnown;
+
+            if (d.contactId) {
+                name     = (personData && personData.name)     || '(contact not found)';
+                phone    = (personData && personData.phone)    || '';
+                email    = (personData && personData.email)    || '';
+                howKnown = (personData && personData.howKnown) || '';
+            } else {
+                name     = d.name           || '(no name)';
+                phone    = d.phone          || '';
+                email    = d.email          || '';
+                howKnown = d.howDoIKnowThem || '';
+            }
+
+            var metaParts = [];
+            if (phone) metaParts.push(phone);
+            if (email) metaParts.push(email);
+
+            var row = document.createElement('div');
+            row.className = 'legacy-notify-row';
+
+            // Free-form rows open the edit modal on click
+            var contentAttrs = d.contactId ? '' :
+                ' onclick="_legacyNotifyOpenModal(\'' + entry.id + '\')" style="cursor:pointer;" title="Click to edit"';
+
+            row.innerHTML =
+                '<div class="legacy-notify-row-content"' + contentAttrs + '>' +
+                    '<div class="legacy-notify-row-line1">' +
+                        '<span class="legacy-notify-name">' + _esc(name) + '</span>' +
+                        (metaParts.length
+                            ? '<span class="legacy-notify-meta">' + _esc(metaParts.join(' · ')) + '</span>'
+                            : '') +
+                    '</div>' +
+                    (howKnown ? '<div class="legacy-notify-row-line2">' + _esc(howKnown) + '</div>' : '') +
+                '</div>' +
+                '<button class="btn btn-danger btn-small"' +
+                    ' data-nid="' + entry.id + '"' +
+                    ' data-nname="' + _esc(name) + '"' +
+                    ' onclick="_legacyNotifyDeleteRow(this)">Delete</button>';
+
+            list.appendChild(row);
+        });
+    } catch (e) {
+        console.error('Error loading notify list:', e);
+        list.innerHTML = '<p class="empty-state" style="padding:16px;">Error loading list.</p>';
+    }
 }
 // Stores createdAt of the currently-open letter for use in print
 var _legacyLetterCreatedAt = null;

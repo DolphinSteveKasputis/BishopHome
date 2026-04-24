@@ -1596,6 +1596,38 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 - **Checklists** -- reusable checklists for life tasks
 - **My Legacy** -- private end-of-life information for your loved ones (burial wishes, financial accounts, letters, and more)
 
+---
+
+## screen:legacy
+
+### Quick Help
+- My Legacy is a private hub of end-of-life information for your loved ones
+- Tap any tile to open that section — each section saves independently
+- Financial Accounts and Social Media are encrypted and require your Legacy Passphrase
+
+### Details
+**What it is:** A place to document everything your family would need if you passed away — burial wishes, funeral preferences, financial accounts, letters to loved ones, and more.
+
+**Passphrase:** Financial Accounts and Social Media sections are protected by a separate Legacy Passphrase. It is never stored — write it down and keep it with your app login instructions. Once entered, it stays unlocked for the browser session.
+
+**Tiles:** Tap any of the 12 section tiles to open that section. Each saves independently.
+
+---
+
+## screen:legacy-obituary
+
+### Quick Help
+- Three boxes: plan what you want covered, write your own draft, and leave notes for whoever writes the final version
+- If AI is configured in Settings, use "Ask AI to Write" to generate a draft from your planning notes
+- All three boxes auto-save when you click away
+
+### Details
+**My Planning Notes:** Brain dump anything you'd want in your obituary — facts, stories, people, career highlights, hobbies. No structure needed. This feeds the AI if you use it.
+
+**My Draft:** Write the obituary yourself, or generate one from your planning notes using the AI button. You can edit the AI output freely. The AI will confirm before overwriting anything you've already written.
+
+**Instructions for the Writer:** Leave guidance for whoever writes or finalizes the real obituary — preferred length, tone, what to include or skip, where to publish it.
+
 **Coming Up section:** Shows events and contact dates within the next 30 days. Two sources:
 - **Annual contact dates** -- birthdays and anniversaries from your contacts. Shows the person name as a tappable link and a "turns N" age badge if birth year is recorded.
 - **Upcoming life calendar events** -- events from the Life Calendar. Shows the title as a tappable link.

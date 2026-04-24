@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=560">
+    <link rel="stylesheet" href="css/styles.css?v=561">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -3860,14 +3860,31 @@
         <div class="modal modal--wide">
             <h3>Setup Firebase Storage</h3>
             <p style="font-size:0.9rem;color:#6b7280;margin-bottom:16px;">
-                Complete both steps below before activating your private vault.
+                Complete all three steps below before activating your private vault.
             </p>
 
             <div class="private-help-step">
-                <h4>Step 1 — Enable Firebase Storage</h4>
+                <h4>Step 1 — Upgrade to Blaze Plan <span class="private-help-required">(required for Storage)</span></h4>
+                <p style="font-size:0.85rem;color:#6b7280;margin-bottom:8px;">
+                    Firebase Storage is not available on the free Spark plan — it requires the Blaze (pay-as-you-go) plan.
+                    The good news: <strong>you won't be charged anything</strong> unless you exceed 5 GB storage or 1 GB/day download.
+                    For a personal private vault this is effectively free, but Firebase requires a credit card on file to enable Storage at all.
+                </p>
                 <ol class="private-help-list">
                     <li>Go to <a href="https://console.firebase.google.com" target="_blank" rel="noopener">console.firebase.google.com</a></li>
-                    <li>Select project <strong>bishop-62d43</strong></li>
+                    <li>Select your project</li>
+                    <li>In the bottom-left corner, click the <strong>Spark</strong> badge (it shows your current plan)</li>
+                    <li>Click <strong>Upgrade</strong></li>
+                    <li>Select the <strong>Blaze</strong> plan</li>
+                    <li>Add a payment method and confirm</li>
+                    <li>You're now on Blaze — Storage is unlocked and you won't be charged unless you exceed the free limits</li>
+                </ol>
+            </div>
+
+            <div class="private-help-step">
+                <h4>Step 2 — Enable Firebase Storage</h4>
+                <ol class="private-help-list">
+                    <li>Still in the Firebase console, select your project</li>
                     <li>Click <strong>Storage</strong> in the left nav</li>
                     <li>Click <strong>Get Started</strong></li>
                     <li>Choose region <strong>us-central1</strong> (recommended)</li>
@@ -3876,7 +3893,7 @@
             </div>
 
             <div class="private-help-step">
-                <h4>Step 2 — Secure the Storage Rules <span class="private-help-required">(required)</span></h4>
+                <h4>Step 3 — Secure the Storage Rules <span class="private-help-required">(required)</span></h4>
                 <p style="font-size:0.85rem;color:#6b7280;margin-bottom:8px;">
                     The default rules allow any logged-in user to read anyone's files. Replace them with rules that restrict each user to their own folder.
                 </p>
@@ -9806,7 +9823,7 @@ export default {
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=560"></script>
+    <script src="js/firebase-config.js?v=561"></script>
     <script src="js/auth.js?v=350"></script>
     <script src="js/zones.js?v=355"></script>
     <script src="js/plants.js?v=351"></script>
@@ -9859,8 +9876,8 @@ export default {
     <script src="js/help.js?v=536"></script>
     <script src="js/legacy-crypto.js?v=2"></script>
     <script src="js/legacy.js?v=18"></script>
-    <script src="js/private.js?v=560"></script>
-    <script src="js/app.js?v=560"></script>
+    <script src="js/private.js?v=561"></script>
+    <script src="js/app.js?v=561"></script>
 
 </body>
 </html>

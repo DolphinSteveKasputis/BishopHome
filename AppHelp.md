@@ -542,14 +542,20 @@ The **Private Storage** accordion in General Settings activates an encrypted per
 
 **How it works:** All data is encrypted in your browser using your passphrase before anything leaves your device. The passphrase is never stored anywhere. Without it, the data is permanently unreadable.
 
-**Two steps to activate:**
+**Three steps to activate:**
 
-**Step 1 — Enable Firebase Storage** (one-time, in the Firebase console):
-1. Click **View Setup Instructions** for the full walkthrough
-2. Enable Storage in the Firebase console for project `bishop-62d43`
-3. Paste in the security rules shown in the instructions and click Publish
+**Step 1 — Upgrade to Blaze Plan** (one-time, required for Storage):
+Firebase Storage is not available on the free Spark plan. The Blaze (pay-as-you-go) plan is required, but it's still effectively free for personal use — you get 5 GB storage and 1 GB/day downloads before any charges apply. Firebase just requires a credit card on file to unlock Storage.
+1. Go to console.firebase.google.com and select your project
+2. Click the **Spark** badge in the bottom-left corner
+3. Click **Upgrade**, select **Blaze**, add a payment method, and confirm
 
-**Step 2 — Activate Private Data:**
+**Step 2 — Enable Firebase Storage** (one-time, in the Firebase console):
+1. Click **View Setup Instructions** in this app for the full walkthrough
+2. In the Firebase console, click **Storage** in the left nav → **Get Started** → choose region → **Done**
+3. Paste in the security rules shown in the instructions and click **Publish**
+
+**Step 3 — Activate Private Data:**
 1. Click **Activate Private Data**
 2. Enter a passphrase and confirm it (must be more than 3 characters)
 3. The app tests Firebase Storage, then encrypts a verification token

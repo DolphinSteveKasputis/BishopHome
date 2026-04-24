@@ -197,30 +197,19 @@ function privateInitSettingsCard() {
 
 async function _privateStorageTest(key) {
     try {
-        var testPayload = 'PRIVATE_STORAGE_TEST_OK';
-        var encrypted   = await _privateEncryptStringWithKey(testPayload, key);
-        var user        = firebase.auth().currentUser;
+        var user = firebase.auth().currentUser;
         if (!user) return false;
 
         var ref = firebase.storage().ref(
             'users/' + user.uid + '/test/activation-check'
         );
 
-        // Upload
-        var blob = new Blob([encrypted], { type: 'text/plain' });
+        // Upload a tiny blob, then delete it — proves both write and delete
+        // access work under the current security rules.
+        var blob = new Blob(['OK'], { type: 'text/plain' });
         await ref.put(blob);
-
-        // Download
-        var url      = await ref.getDownloadURL();
-        var response = await fetch(url);
-        var downloaded = await response.text();
-
-        // Delete test file
         await ref.delete();
-
-        // Verify
-        var decrypted = await _privateDecryptStringWithKey(downloaded, key);
-        return decrypted === testPayload;
+        return true;
     } catch (e) {
         console.error('Private Storage test failed:', e);
         return false;

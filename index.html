@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=550">
+    <link rel="stylesheet" href="css/styles.css?v=551">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -3814,6 +3814,32 @@
 
     <!-- ========== MODALS ========== -->
 
+    <!-- Legacy Passphrase Modal -->
+    <div class="modal-overlay" id="modal-legacy-passphrase">
+        <div class="modal">
+            <h3 id="legacyPassphraseTitle">Unlock Financial Info</h3>
+            <p id="legacyPassphraseDesc" style="font-size:0.9rem;color:#6b7280;margin-bottom:16px;"></p>
+            <div class="form-group">
+                <label for="legacyPassphraseInput">Passphrase</label>
+                <input type="password" id="legacyPassphraseInput" placeholder="Enter your Legacy Passphrase">
+            </div>
+            <div class="form-group hidden" id="legacyPassphraseConfirmGroup">
+                <label for="legacyPassphraseConfirm">Confirm Passphrase</label>
+                <input type="password" id="legacyPassphraseConfirm" placeholder="Confirm passphrase">
+            </div>
+            <p class="form-hint hidden" id="legacyPassphraseWarning">
+                ⚠️ Write this down — it cannot be recovered if lost. Store it with your app login instructions.
+            </p>
+            <p class="text-error hidden" id="legacyPassphraseError"></p>
+            <div class="modal-buttons">
+                <button class="btn btn-primary" onclick="legacySubmitPassphrase()">
+                    <span id="legacyPassphraseBtnLabel">Unlock</span>
+                </button>
+                <button class="btn btn-secondary" onclick="legacyCancelPassphrase()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Checklist Template Add/Edit Modal -->
     <div class="modal-overlay" id="checklistTemplateModal">
         <div class="modal">
@@ -6205,6 +6231,10 @@
                     <span class="landing-tile-icon">✅</span>
                     <span class="landing-tile-label">Checklists</span>
                 </a>
+                <a href="#legacy" class="landing-tile landing-tile--legacy">
+                    <span class="landing-tile-icon">🕊️</span>
+                    <span class="landing-tile-label">My Legacy</span>
+                </a>
             </div>
             <!-- Coming Up — annual dates within the next 30 days -->
             <div id="lifeCalendarSection" style="display:none; margin-top:24px;">
@@ -6238,6 +6268,80 @@
         <!-- Page: Life Event detail / new (#life-event/id, #life-event/new) -->
         <section class="page hidden" id="page-life-event">
             <!-- Populated by loadLifeEventPage() / loadNewLifeEventPage() in lifecalendar.js -->
+        </section>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             MY LEGACY PAGES
+             ═══════════════════════════════════════════════════════════ -->
+
+        <!-- Page: My Legacy Landing (#legacy) -->
+        <section class="page hidden" id="page-legacy">
+            <!-- Populated by loadLegacyPage() in legacy.js -->
+        </section>
+
+        <!-- Page: Burial & Remains (#legacy/burial) -->
+        <section class="page hidden" id="page-legacy-burial">
+            <!-- Populated by loadLegacyBurialPage() in legacy.js -->
+        </section>
+
+        <!-- Page: Service Wishes (#legacy/service) -->
+        <section class="page hidden" id="page-legacy-service">
+            <!-- Populated by loadLegacyServicePage() in legacy.js -->
+        </section>
+
+        <!-- Page: My Obituary (#legacy/obituary) -->
+        <section class="page hidden" id="page-legacy-obituary">
+            <!-- Populated by loadLegacyObituaryPage() in legacy.js -->
+        </section>
+
+        <!-- Page: Social Media (#legacy/social) — passphrase gated -->
+        <section class="page hidden" id="page-legacy-social">
+            <!-- Populated by loadLegacySocialPage() in legacy.js -->
+        </section>
+
+        <!-- Page: Financial Accounts (#legacy/accounts) — passphrase gated -->
+        <section class="page hidden" id="page-legacy-accounts">
+            <!-- Populated by loadLegacyAccountsPage() in legacy.js -->
+        </section>
+
+        <!-- Page: Documents (#legacy/documents) -->
+        <section class="page hidden" id="page-legacy-documents">
+            <!-- Populated by loadLegacyDocumentsPage() in legacy.js -->
+        </section>
+
+        <!-- Page: Medical Wishes (#legacy/medical) -->
+        <section class="page hidden" id="page-legacy-medical">
+            <!-- Populated by loadLegacyMedicalPage() in legacy.js -->
+        </section>
+
+        <!-- Page: Household Instructions (#legacy/household) -->
+        <section class="page hidden" id="page-legacy-household">
+            <!-- Populated by loadLegacyHouseholdPage() in legacy.js -->
+        </section>
+
+        <!-- Page: Pets (#legacy/pets) -->
+        <section class="page hidden" id="page-legacy-pets">
+            <!-- Populated by loadLegacyPetsPage() in legacy.js -->
+        </section>
+
+        <!-- Page: People to Notify (#legacy/notify) -->
+        <section class="page hidden" id="page-legacy-notify">
+            <!-- Populated by loadLegacyNotifyPage() in legacy.js -->
+        </section>
+
+        <!-- Page: Letters List (#legacy/letters) -->
+        <section class="page hidden" id="page-legacy-letters">
+            <!-- Populated by loadLegacyLettersPage() in legacy.js -->
+        </section>
+
+        <!-- Page: Letter Detail (#legacy/letter/:id) -->
+        <section class="page hidden" id="page-legacy-letter">
+            <!-- Populated by loadLegacyLetterDetailPage() in legacy.js -->
+        </section>
+
+        <!-- Page: Final Message (#legacy/message) -->
+        <section class="page hidden" id="page-legacy-message">
+            <!-- Populated by loadLegacyMessagePage() in legacy.js -->
         </section>
 
         <!-- ═══════════════════════════════════════════════════════════
@@ -9619,7 +9723,9 @@ export default {
     <script src="js/firebasesetup.js?v=510"></script>
     <script src="js/views.js?v=556"></script>
     <script src="js/help.js?v=536"></script>
-    <script src="js/app.js?v=540"></script>
+    <script src="js/legacy-crypto.js?v=1"></script>
+    <script src="js/legacy.js?v=1"></script>
+    <script src="js/app.js?v=541"></script>
 
 </body>
 </html>

@@ -880,11 +880,47 @@ A notebook-organized note-taking system.
 
 ### Life Main Page (`#life`)
 
-Landing page showing a **3-column grid** of tile shortcuts: Journal, Contacts, Health, Notes, Calendar, Projects, and Checklists. The Checklists tile navigates to `#checklists/life`. Below the tiles, a **"Coming Up"** section (hidden when empty) shows events within the next 30 days, sorted by date. Two sources are merged:
+Landing page showing a **3-column grid** of tile shortcuts: Journal, Contacts, Health, Notes, Calendar, Projects, Checklists, and **My Legacy**. The Checklists tile navigates to `#checklists/life`. The My Legacy tile navigates to `#legacy`. Below the tiles, a **"Coming Up"** section (hidden when empty) shows events within the next 30 days, sorted by date. Two sources are merged:
 - **Annual contact dates** (`peopleImportantDates` where `recurrence == annual`) — shows label, person name (tappable link to `#contact/{id}`), and "turns N" age badge if a birth year is set
 - **Upcoming life calendar events** (`lifeEvents` where `startDate` in next 30 days, excluding attended/missed/didntgo) — shows event title as a tappable link to `#life-event/{id}`. For **today's events**, also shows a clickable 📍 address (opens Google Maps) and 📞 phone number. Address/phone come from the linked location contact (`locationContactId` → `people` doc) if set, or from the plain-text `location` field (as address only).
 
 Each item shows a relative time label: "Today!", "Tomorrow", or "In N days".
+
+### My Legacy (`legacy.js`, `legacy-crypto.js`)
+
+**Plan document**: `DeathPlan.md`
+
+End-of-life information hub — private information for the user's loved ones if the user passes away. Accessible from the Life landing page via the My Legacy tile (🕊️).
+
+**Route**: `#legacy` — landing page with a 3-column tile grid of 12 sub-sections.
+
+**Sub-sections** (all stubs at this stage; being built individually):
+
+| Route | Section |
+|-------|---------|
+| `#legacy/burial` | Burial & Remains Preferences |
+| `#legacy/service` | Funeral / Memorial Service Wishes |
+| `#legacy/obituary` | My Obituary (freeform draft + fact sheet) |
+| `#legacy/social` | Social Media & Digital Memorial Preferences 🔒 |
+| `#legacy/accounts` | Financial & Account Access 🔒 |
+| `#legacy/documents` | Important Documents & Where to Find Them |
+| `#legacy/medical` | Medical Wishes / Healthcare Directives |
+| `#legacy/household` | Practical Household Instructions |
+| `#legacy/pets` | Pets |
+| `#legacy/notify` | People to Notify |
+| `#legacy/letters` | Letters to People |
+| `#legacy/message` | Final Message |
+
+**Passphrase encryption** (🔒 sections): Financial Accounts and Social Media require a **Legacy Passphrase** before displaying content. This passphrase encrypts sensitive fields (passwords, account numbers, SSNs, PINs) using AES-GCM 256-bit via the browser Web Crypto API. Key derivation uses PBKDF2 with a random salt stored in `legacyMeta/crypto`. The passphrase is **never stored** — only the salt is in Firestore. Once entered, the session stays unlocked until the browser tab is closed. Implemented in `legacy-crypto.js`.
+
+**Firestore collections** (planned — not yet populated):
+- `legacyMeta` — single doc for burial/service/obituary/medical/household/retirement preferences; also holds `pbkdf2Salt`
+- `legacyAccounts` — financial and digital account entries (with `passwordEnc`, `accountNumberEnc` encrypted fields)
+- `legacyDocuments` — document checklist entries
+- `legacyLetters` — letters to people
+- `legacyNotifyList` — people to notify
+- `legacyPets` — pet entries
+- `legacySectionStatus` — completion status per section
 
 ### Life Calendar (`lifecalendar.js`)
 

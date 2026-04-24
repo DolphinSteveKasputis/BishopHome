@@ -1594,6 +1594,7 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 - **Calendar** -- Life Calendar for trips, milestones, goals, and major events
 - **Projects** -- Life Projects (vacation planner, build projects, etc.)
 - **Checklists** -- reusable checklists for life tasks
+- **My Legacy** -- private end-of-life information for your loved ones (burial wishes, financial accounts, letters, and more)
 
 **Coming Up section:** Shows events and contact dates within the next 30 days. Two sources:
 - **Annual contact dates** -- birthdays and anniversaries from your contacts. Shows the person name as a tappable link and a "turns N" age badge if birth year is recorded.

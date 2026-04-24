@@ -133,6 +133,7 @@ const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'h
                          'health', 'health-visits', 'health-medications', 'health-conditions', 'health-concerns', 'health-bloodwork',
                          'health-vitals', 'health-insurance', 'health-emergency', 'health-appointments', 'health-care-team',
                          'life-calendar', 'life-projects',
+                         'legacy',
                          'thoughts', 'top10lists', 'memories', 'views'];
 
 /**
@@ -155,6 +156,9 @@ const ALL_PAGES = [
     'health-bloodwork-detail', 'health-insurance-detail',
     'life-event',
     'life-projects', 'life-project',
+    'legacy', 'legacy-burial', 'legacy-service', 'legacy-obituary', 'legacy-social',
+    'legacy-accounts', 'legacy-documents', 'legacy-medical', 'legacy-household',
+    'legacy-pets', 'legacy-notify', 'legacy-letters', 'legacy-letter', 'legacy-message',
     'top10list-create', 'top10list-edit',
     'memory-create', 'memory-edit',
     'view', 'view-history', 'views-categories',
@@ -187,7 +191,10 @@ const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'jo
                      'health-vitals', 'health-insurance', 'health-insurance-detail', 'health-emergency',
                      'health-appointments', 'health-care-team',
                      'life-calendar', 'life-event',
-                     'life-projects', 'life-project'];
+                     'life-projects', 'life-project',
+                     'legacy', 'legacy-burial', 'legacy-service', 'legacy-obituary', 'legacy-social',
+                     'legacy-accounts', 'legacy-documents', 'legacy-medical', 'legacy-household',
+                     'legacy-pets', 'legacy-notify', 'legacy-letters', 'legacy-letter', 'legacy-message'];
 
 /** Tracks which nav context is currently active ('yard', 'house', or 'life'). */
 var currentNavContext = 'yard';
@@ -681,6 +688,49 @@ function handleRoute() {
     } else if (page === 'life-project' && id) {
         showPage('life-project');
         loadLifeProjectDetailPage(id);
+    // ---------- My Legacy routes ----------
+    } else if (page === 'legacy' && id === 'burial') {
+        showPage('legacy-burial');
+        loadLegacyBurialPage();
+    } else if (page === 'legacy' && id === 'service') {
+        showPage('legacy-service');
+        loadLegacyServicePage();
+    } else if (page === 'legacy' && id === 'obituary') {
+        showPage('legacy-obituary');
+        loadLegacyObituaryPage();
+    } else if (page === 'legacy' && id === 'social') {
+        showPage('legacy-social');
+        loadLegacySocialPage();
+    } else if (page === 'legacy' && id === 'accounts') {
+        showPage('legacy-accounts');
+        loadLegacyAccountsPage();
+    } else if (page === 'legacy' && id === 'documents') {
+        showPage('legacy-documents');
+        loadLegacyDocumentsPage();
+    } else if (page === 'legacy' && id === 'medical') {
+        showPage('legacy-medical');
+        loadLegacyMedicalPage();
+    } else if (page === 'legacy' && id === 'household') {
+        showPage('legacy-household');
+        loadLegacyHouseholdPage();
+    } else if (page === 'legacy' && id === 'pets') {
+        showPage('legacy-pets');
+        loadLegacyPetsPage();
+    } else if (page === 'legacy' && id === 'notify') {
+        showPage('legacy-notify');
+        loadLegacyNotifyPage();
+    } else if (page === 'legacy' && id === 'letters') {
+        showPage('legacy-letters');
+        loadLegacyLettersPage();
+    } else if (page === 'legacy' && id === 'letter' && parts[2]) {
+        showPage('legacy-letter');
+        loadLegacyLetterDetailPage(parts[2]);
+    } else if (page === 'legacy' && id === 'message') {
+        showPage('legacy-message');
+        loadLegacyMessagePage();
+    } else if (page === 'legacy') {
+        showPage('legacy');
+        loadLegacyPage();
     // ---------- Thoughts routes ----------
     } else if (page === 'thoughts') {
         showPage('thoughts');

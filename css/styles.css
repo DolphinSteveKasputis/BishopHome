@@ -5460,6 +5460,86 @@ a.ar-target-link:hover {
     box-shadow: 0 8px 24px rgba(107, 72, 255, 0.35);
 }
 
+/* ── My Legacy tile (on Life landing page) ─────────────────── */
+.landing-tile--legacy {
+    background: linear-gradient(135deg, #374151, #6b7280);
+    color: #fff;
+}
+.landing-tile--legacy:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(55, 65, 81, 0.4);
+}
+
+/* ── My Legacy landing grid — 3-column ──────────────────────── */
+.landing-grid--3col {
+    grid-template-columns: 1fr 1fr 1fr;
+    max-width: 680px;
+}
+@media (max-width: 480px) {
+    .landing-grid--3col { grid-template-columns: 1fr 1fr; }
+}
+
+/* ── My Legacy intro text ────────────────────────────────────── */
+.legacy-intro {
+    font-size: 0.9rem;
+    color: var(--text-secondary, #6b7280);
+    margin: 0 auto 16px;
+    max-width: 680px;
+    text-align: center;
+    padding: 0 4px;
+}
+
+/* ── My Legacy sub-section tile colors ───────────────────────── */
+.landing-tile--legacy-burial,
+.landing-tile--legacy-service,
+.landing-tile--legacy-obituary,
+.landing-tile--legacy-message {
+    background: linear-gradient(135deg, #6b7280, #9ca3af);
+    color: #fff;
+}
+.landing-tile--legacy-accounts,
+.landing-tile--legacy-social,
+.landing-tile--legacy-documents {
+    background: linear-gradient(135deg, #1e3a5f, #2563eb);
+    color: #fff;
+}
+.landing-tile--legacy-medical,
+.landing-tile--legacy-household,
+.landing-tile--legacy-pets,
+.landing-tile--legacy-notify,
+.landing-tile--legacy-letters {
+    background: linear-gradient(135deg, #374151, #4b5563);
+    color: #fff;
+}
+.landing-tile--legacy-burial:hover,
+.landing-tile--legacy-service:hover,
+.landing-tile--legacy-obituary:hover,
+.landing-tile--legacy-message:hover,
+.landing-tile--legacy-medical:hover,
+.landing-tile--legacy-household:hover,
+.landing-tile--legacy-pets:hover,
+.landing-tile--legacy-notify:hover,
+.landing-tile--legacy-letters:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(55, 65, 81, 0.4);
+}
+.landing-tile--legacy-accounts:hover,
+.landing-tile--legacy-social:hover,
+.landing-tile--legacy-documents:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.35);
+}
+
+/* ── My Legacy stub pages ────────────────────────────────────── */
+.legacy-stub {
+    text-align: center;
+    padding: 60px 24px;
+    color: var(--text-secondary, #6b7280);
+}
+.legacy-stub-icon { font-size: 2.5rem; margin-bottom: 12px; }
+.legacy-stub-text { font-size: 1.1rem; font-weight: 600; margin-bottom: 8px; }
+.legacy-stub-hint { font-size: 0.9rem; }
+
 /* Life landing page — Journal tile (amber/gold gradient) */
 .landing-tile--journal {
     background: linear-gradient(135deg, #f59e0b, #fbbf24);

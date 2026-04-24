@@ -1806,13 +1806,13 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 
 **Type of Service:** Traditional Funeral, Memorial Service, Celebration of Life, Graveside Only, No Service, or Other.
 
-**Location Preference:** Free text — a church name, address, outdoor location, or just "no preference."
+**Location Preference:** Multi-line text box — a church name, address, outdoor location, or just "no preference."
 
-**Who Should Officiate:** A pastor, celebrant, specific family member by name, or "no preference."
+**Who Should Officiate:** Multi-line text box — a pastor, celebrant, specific family member by name, or "no preference."
 
-**Music:** Multi-line — list as many songs as you want. Include artist and timing if you like (entry, during, closing, reception).
+**My Wishes:** The catch-all box — flowers vs. donations to charity, open or closed casket, whether you want a reception, specific things you definitely do or don't want. Write in plain English. Tap 🎙️ **Speak** to dictate by voice.
 
-**My Wishes:** The catch-all box — flowers vs. donations to charity, open or closed casket, whether you want a reception, specific things you definitely do or don't want. Write in plain English.
+**Music:** Listed last. Multi-line — list as many songs as you want. Include artist and timing if you like (entry, during, closing, reception).
 
 ---
 

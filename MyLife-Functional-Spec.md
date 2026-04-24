@@ -911,7 +911,7 @@ End-of-life information hub — private information for the user's loved ones if
 | `#legacy/notify` | People to Notify | Stub |
 | `#legacy/message` | Final Message | Stub |
 
-**Service Wishes section** (`#legacy/service`): Single form auto-saving to `legacyMeta/service`. Fields: Type of Service (dropdown: Traditional Funeral / Memorial Service / Celebration of Life / Graveside Only / No Service / Other), Location Preference (text), Who Should Officiate (text), Music (multi-line textarea for song list), My Wishes (large free-form textarea for everything else — flowers, casket, reception, etc.). All fields save on blur/change.
+**Service Wishes section** (`#legacy/service`): Single form auto-saving to `legacyMeta/service`. Field order: Type of Service (dropdown: Traditional Funeral / Memorial Service / Celebration of Life / Graveside Only / No Service / Other), Location Preference (multi-line textarea, rows=3), Who Should Officiate (multi-line textarea, rows=3), My Wishes (large textarea, rows=16, with 🎙️ Speak voice-to-text button), Music (textarea, rows=5 — listed last). All fields save on blur/change.
 
 **Letters section** (`#legacy/letters`, `#legacy/letter/:id`):
 - **List page**: cards sorted newest-first, showing title and recipient name + date created. "+ Add Letter" button in the header creates a new blank `legacyLetters` document and immediately navigates to the detail page.

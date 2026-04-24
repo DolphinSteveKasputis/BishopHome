@@ -1821,6 +1821,25 @@ Tap **Save**. To edit later, tap anywhere on that row. To delete, open the edit 
 
 ---
 
+## screen:legacy-message
+
+### Quick Help
+- **Instructions** — tell your family when and how to share this message (read at service, email it out, give to one person)
+- **Message** — write whatever you want to say; there are no rules
+- Both fields save automatically when you click away
+
+### Details
+
+**What it's for:** A final message in your own words — something to be read at your memorial, sent to your family, or left for whoever finds this section. You decide.
+
+**Instructions (3-line box):** Tell your family what to do with it. Examples: "Read this aloud at my memorial service", "Email a copy to everyone who attended", "Give this to Karen privately."
+
+**Message (tall box):** Write freely — to the room, to your family, to no one in particular. There's no structure, no format, no limit.
+
+**Saving:** Both fields save automatically when you click away. There's no Save button.
+
+---
+
 ## screen:legacy-pets
 
 ### Quick Help

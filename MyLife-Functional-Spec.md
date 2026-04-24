@@ -908,7 +908,9 @@ End-of-life information hub — private information for the user's loved ones if
 | `#legacy/household` | Practical Household Instructions | Stub |
 | `#legacy/pets` | Pets — accordion cards, inline editing | ✅ Built |
 | `#legacy/notify` | People to Notify — list contacts + free-form entries, runtime lookup | ✅ Built |
-| `#legacy/message` | Final Message | Stub |
+| `#legacy/message` | Final Message — instructions + free-form message body | ✅ Built |
+
+**Final Message section** (`#legacy/message`): Two fields, both auto-saving to `legacyMeta/message` on blur. Instructions (rows=3) — when/how the message should be shared (read at service, emailed out, etc.). Message body (rows=20) — free-form text, written to whoever reads it. No AI, no print, no contacts.
 
 **Pets section** (`#legacy/pets`): Accordion card list stored in `legacyPets` collection. Each card shows the pet's name as a collapsed preview; tap to expand and reveal inline-editable name input and instructions textarea. "+ Add Pet" creates a new Firestore doc and prepends an auto-expanded card. Auto-saves on blur. Delete button on each card with confirmation dialog. Empty state shown when no pets exist. Firestore fields: `name`, `instructions`, `createdAt`.
 

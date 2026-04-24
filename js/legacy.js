@@ -24,7 +24,7 @@ var LEGACY_SECTIONS = [
     { key: 'pets',      icon: '🐾',  label: 'Pets',                   route: '#legacy/pets'      },
     { key: 'notify',    icon: '📞',  label: 'People to Notify',       route: '#legacy/notify'    },
     { key: 'letters',   icon: '✉️',  label: 'Letters',                route: '#legacy/letters'   },
-    { key: 'message',   icon: '💬',  label: 'Final Message',          route: '#legacy/message',   stub: true }
+    { key: 'message',   icon: '💬',  label: 'Final Message',          route: '#legacy/message'   }
 ];
 
 // ============================================================
@@ -1299,9 +1299,70 @@ function _legacyLetterPrint() {
 
     window.print();
 }
-function loadLegacyMessagePage() {
-    _legacyLoadStub('page-legacy-message', 'Final Message', 'message');
+async function loadLegacyMessagePage() {
+    var page = document.getElementById('page-legacy-message');
+    if (!page) return;
+
+    page.innerHTML =
+        '<div class="page-header">' +
+            '<button class="btn btn-secondary btn-small" onclick="location.hash=\'#legacy\'">&#8592; My Legacy</button>' +
+            '<h2>💬 Final Message</h2>' +
+        '</div>' +
+        '<div class="legacy-section">' +
+            '<div class="legacy-obit-block">' +
+                '<label class="legacy-label" for="legacyMessageInstructions">Instructions</label>' +
+                '<p class="legacy-hint">When or how should this message be shared — read aloud at the service, sent to everyone, given to a specific person?</p>' +
+                '<textarea id="legacyMessageInstructions" class="legacy-textarea" rows="3"' +
+                    ' placeholder="e.g. Read this aloud at my memorial service, then send a copy to everyone who attended."></textarea>' +
+            '</div>' +
+            '<div class="legacy-obit-block">' +
+                '<label class="legacy-label" for="legacyMessageBody">Message</label>' +
+                '<p class="legacy-hint">Write whatever you want to say — to the room, to your family, to anyone reading this.</p>' +
+                '<textarea id="legacyMessageBody" class="legacy-textarea" rows="20"' +
+                    ' placeholder="Write your message here…"></textarea>' +
+            '</div>' +
+            '<p class="legacy-save-status" id="legacyMessageSaveStatus"></p>' +
+        '</div>';
+
+    var crumb = document.getElementById('breadcrumbBar');
+    if (crumb) {
+        crumb.innerHTML =
+            '<a href="#life">Life</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#legacy">My Legacy</a><span class="separator">&rsaquo;</span>' +
+            '<span>Final Message</span>';
+    }
+
+    try {
+        var doc = await userCol('legacyMeta').doc('message').get();
+        if (doc.exists) {
+            var d = doc.data();
+            document.getElementById('legacyMessageInstructions').value = d.instructions || '';
+            document.getElementById('legacyMessageBody').value         = d.body         || '';
+        }
+    } catch (e) {
+        console.error('Error loading final message:', e);
+    }
+
+    ['legacyMessageInstructions', 'legacyMessageBody'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.addEventListener('blur', _legacySaveMessage);
+    });
 }
+
+function _legacySaveMessage() {
+    var instructions = (document.getElementById('legacyMessageInstructions') || {}).value || '';
+    var body         = (document.getElementById('legacyMessageBody')         || {}).value || '';
+    var status       = document.getElementById('legacyMessageSaveStatus');
+    userCol('legacyMeta').doc('message').set({ instructions: instructions, body: body }, { merge: true })
+        .then(function() {
+            if (status) { status.textContent = 'Saved.'; setTimeout(function() { if (status) status.textContent = ''; }, 2000); }
+        })
+        .catch(function(e) {
+            console.error('Error saving final message:', e);
+            if (status) status.textContent = 'Error saving.';
+        });
+}
+
 
 /** Gated — requires passphrase. */
 function loadLegacyAccountsPage() {

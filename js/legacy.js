@@ -356,15 +356,27 @@ async function loadLegacyServicePage() {
             // Location
             '<div class="legacy-obit-block">' +
                 '<label class="legacy-label" for="legacyServiceLocation">Location Preference</label>' +
-                '<input type="text" id="legacyServiceLocation" class="form-control"' +
-                    ' placeholder="e.g. St. Michael\'s Church, the backyard, no preference">' +
+                '<textarea id="legacyServiceLocation" class="legacy-textarea" rows="3"' +
+                    ' placeholder="e.g. St. Michael\'s Church, the backyard, no preference"></textarea>' +
             '</div>' +
 
             // Officiant
             '<div class="legacy-obit-block">' +
                 '<label class="legacy-label" for="legacyServiceOfficiant">Who Should Officiate</label>' +
-                '<input type="text" id="legacyServiceOfficiant" class="form-control"' +
-                    ' placeholder="e.g. Pastor Dan, a family member, no preference">' +
+                '<textarea id="legacyServiceOfficiant" class="legacy-textarea" rows="3"' +
+                    ' placeholder="e.g. Pastor Dan, a family member, no preference"></textarea>' +
+            '</div>' +
+
+            // Wishes
+            '<div class="legacy-obit-block">' +
+                '<label class="legacy-label" for="legacyServiceWishes">My Wishes</label>' +
+                '<p class="legacy-hint">Anything else — flowers vs. donations, open/closed casket, reception, things you definitely don\'t want, etc.</p>' +
+                '<div class="legacy-ai-row" style="margin-bottom:8px;">' +
+                    '<button class="btn btn-secondary btn-small" id="legacyServiceWishesVoiceBtn">🎙️ Speak</button>' +
+                    '<span class="legacy-ai-status" id="legacyServiceWishesVoiceStatus"></span>' +
+                '</div>' +
+                '<textarea id="legacyServiceWishes" class="legacy-textarea" rows="16"' +
+                    ' placeholder="Write whatever you want your family to know about the service..."></textarea>' +
             '</div>' +
 
             // Music
@@ -373,14 +385,6 @@ async function loadLegacyServicePage() {
                 '<p class="legacy-hint">List any songs you\'d like played — feel free to include artist and when (entry, during, closing, reception).</p>' +
                 '<textarea id="legacyServiceMusic" class="legacy-textarea" rows="5"' +
                     ' placeholder="e.g. Amazing Grace (entry)&#10;In My Life – The Beatles (during)&#10;Don\'t Stop Believin\' – Journey (reception)"></textarea>' +
-            '</div>' +
-
-            // Wishes
-            '<div class="legacy-obit-block">' +
-                '<label class="legacy-label" for="legacyServiceWishes">My Wishes</label>' +
-                '<p class="legacy-hint">Anything else — flowers vs. donations, open/closed casket, reception, things you definitely don\'t want, etc.</p>' +
-                '<textarea id="legacyServiceWishes" class="legacy-textarea" rows="8"' +
-                    ' placeholder="Write whatever you want your family to know about the service..."></textarea>' +
             '</div>' +
 
             '<p class="legacy-save-status" id="legacyServiceSaveStatus"></p>' +
@@ -411,10 +415,18 @@ async function loadLegacyServicePage() {
     ['legacyServiceType', 'legacyServiceLocation', 'legacyServiceOfficiant',
      'legacyServiceMusic', 'legacyServiceWishes'].forEach(function(id) {
         var el = document.getElementById(id);
-        if (el) el.addEventListener('change', _legacySaveService);
-        if (el && el.tagName === 'TEXTAREA') el.addEventListener('blur', _legacySaveService);
-        if (el && el.tagName === 'INPUT')    el.addEventListener('blur', _legacySaveService);
+        if (el) {
+            el.addEventListener('change', _legacySaveService);
+            el.addEventListener('blur',   _legacySaveService);
+        }
     });
+
+    if (typeof initVoiceToText === 'function') {
+        initVoiceToText('legacyServiceWishes', 'legacyServiceWishesVoiceBtn');
+    } else {
+        var vBtn = document.getElementById('legacyServiceWishesVoiceBtn');
+        if (vBtn) vBtn.style.display = 'none';
+    }
 }
 
 function _legacySaveService() {

@@ -64,8 +64,151 @@ function loadLegacyBurialPage() {
 function loadLegacyServicePage() {
     _legacyLoadStub('page-legacy-service', 'Service Wishes', 'service');
 }
-function loadLegacyObituaryPage() {
-    _legacyLoadStub('page-legacy-obituary', 'My Obituary', 'obituary');
+async function loadLegacyObituaryPage() {
+    var page = document.getElementById('page-legacy-obituary');
+    if (!page) return;
+
+    // Render the page shell immediately so the user sees something
+    page.innerHTML =
+        '<div class="page-header">' +
+            '<button class="btn btn-secondary btn-small" onclick="location.hash=\'#legacy\'">&#8592; My Legacy</button>' +
+            '<h2>📜 My Obituary</h2>' +
+        '</div>' +
+        '<div class="legacy-section">' +
+
+            // Box 1 — Planning Notes
+            '<div class="legacy-obit-block">' +
+                '<label class="legacy-label" for="legacyObituaryNotes">My Planning Notes</label>' +
+                '<p class="legacy-hint">Brain dump — facts, stories, people, anything you\'d want included. No structure needed.</p>' +
+                '<textarea id="legacyObituaryNotes" class="legacy-textarea" rows="7" placeholder="Things I want covered: where I grew up, my career, my family, hobbies, a funny story about..."></textarea>' +
+                '<div id="legacyObituaryAiRow" class="legacy-ai-row hidden">' +
+                    '<button class="btn btn-secondary btn-small" id="legacyObituaryAiBtn" onclick="legacyObituaryAskAI()">✨ Ask AI to Write</button>' +
+                    '<span class="legacy-ai-status" id="legacyObituaryAiStatus"></span>' +
+                '</div>' +
+            '</div>' +
+
+            // Box 2 — My Draft
+            '<div class="legacy-obit-block">' +
+                '<label class="legacy-label" for="legacyObituaryDraft">My Draft</label>' +
+                '<p class="legacy-hint">Write your own obituary, or let the AI generate one from your planning notes above.</p>' +
+                '<textarea id="legacyObituaryDraft" class="legacy-textarea" rows="10" placeholder="Write your obituary here..."></textarea>' +
+            '</div>' +
+
+            // Box 3 — Instructions for the Writer
+            '<div class="legacy-obit-block">' +
+                '<label class="legacy-label" for="legacyObituaryInstructions">Instructions for the Writer</label>' +
+                '<p class="legacy-hint">Notes for whoever writes or finalizes the real obituary — tone, length, what to include or skip.</p>' +
+                '<textarea id="legacyObituaryInstructions" class="legacy-textarea" rows="5" placeholder="Please keep it under 300 words. Mention my love of fishing. Publish in the Star Tribune..."></textarea>' +
+            '</div>' +
+
+            '<p class="legacy-save-status" id="legacyObituarySaveStatus"></p>' +
+        '</div>';
+
+    // Set breadcrumb
+    var crumb = document.getElementById('breadcrumbBar');
+    if (crumb) {
+        crumb.innerHTML =
+            '<a href="#life">Life</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#legacy">My Legacy</a><span class="separator">&rsaquo;</span>' +
+            '<span>My Obituary</span>';
+    }
+
+    // Load saved data
+    try {
+        var doc = await userCol('legacyMeta').doc('obituary').get();
+        if (doc.exists) {
+            var d = doc.data();
+            document.getElementById('legacyObituaryNotes').value        = d.obituaryNotes        || '';
+            document.getElementById('legacyObituaryDraft').value        = d.obituaryDraft        || '';
+            document.getElementById('legacyObituaryInstructions').value = d.obituaryInstructions || '';
+        }
+    } catch (e) {
+        console.error('Error loading obituary:', e);
+    }
+
+    // Show AI button only if LLM is configured
+    _legacyCheckLlm(function(enabled) {
+        if (enabled) {
+            document.getElementById('legacyObituaryAiRow').classList.remove('hidden');
+        }
+    });
+
+    // Wire auto-save on blur for all three fields
+    ['legacyObituaryNotes', 'legacyObituaryDraft', 'legacyObituaryInstructions'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.addEventListener('blur', _legacySaveObituary);
+    });
+}
+
+function _legacySaveObituary() {
+    var notes   = (document.getElementById('legacyObituaryNotes')        || {}).value || '';
+    var draft   = (document.getElementById('legacyObituaryDraft')        || {}).value || '';
+    var instrs  = (document.getElementById('legacyObituaryInstructions') || {}).value || '';
+    var status  = document.getElementById('legacyObituarySaveStatus');
+
+    userCol('legacyMeta').doc('obituary').set(
+        { obituaryNotes: notes, obituaryDraft: draft, obituaryInstructions: instrs },
+        { merge: true }
+    ).then(function() {
+        if (status) { status.textContent = 'Saved.'; setTimeout(function() { if (status) status.textContent = ''; }, 2000); }
+    }).catch(function(e) {
+        console.error('Error saving obituary:', e);
+        if (status) status.textContent = 'Error saving.';
+    });
+}
+
+async function legacyObituaryAskAI() {
+    var notes   = (document.getElementById('legacyObituaryNotes') || {}).value.trim();
+    var draftEl = document.getElementById('legacyObituaryDraft');
+    var btn     = document.getElementById('legacyObituaryAiBtn');
+    var status  = document.getElementById('legacyObituaryAiStatus');
+
+    if (!notes) {
+        status.textContent = 'Add some planning notes first.';
+        setTimeout(function() { status.textContent = ''; }, 3000);
+        return;
+    }
+
+    // Confirm before overwriting an existing draft
+    if (draftEl.value.trim()) {
+        if (!confirm('This will replace your current draft. Continue?')) return;
+    }
+
+    btn.disabled = true;
+    status.textContent = 'Writing…';
+
+    try {
+        var cfgDoc = await userCol('settings').doc('llm').get();
+        if (!cfgDoc.exists) throw new Error('No LLM configured');
+        var cfg = cfgDoc.data();
+        var llm = LLM_PROVIDERS[cfg.provider];
+        if (!llm) throw new Error('Unknown provider');
+
+        var prompt =
+            'Write a warm, personal obituary based on the following notes written by the person themselves. ' +
+            'Use the information naturally. Keep it to 3-4 paragraphs suitable for a newspaper or memorial program. ' +
+            'Do not add invented details — only use what is provided.\n\n' + notes;
+
+        var activeModel = cfg.model || llm.model;
+        var result = await chatCallOpenAICompat(llm, cfg.apiKey, prompt, activeModel);
+
+        draftEl.value = result;
+        _legacySaveObituary();
+        status.textContent = 'Done — review and edit as needed.';
+        setTimeout(function() { status.textContent = ''; }, 4000);
+    } catch (e) {
+        console.error('Obituary AI error:', e);
+        status.textContent = 'Error: ' + e.message;
+    }
+
+    btn.disabled = false;
+}
+
+// Checks if LLM is configured and calls cb(true/false)
+function _legacyCheckLlm(cb) {
+    userCol('settings').doc('llm').get().then(function(doc) {
+        cb(doc.exists && !!(doc.data().provider && doc.data().apiKey));
+    }).catch(function() { cb(false); });
 }
 function loadLegacyDocumentsPage() {
     _legacyLoadStub('page-legacy-documents', 'Documents', 'documents');

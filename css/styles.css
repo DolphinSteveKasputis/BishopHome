@@ -5540,6 +5540,63 @@ a.ar-target-link:hover {
 .legacy-stub-text { font-size: 1.1rem; font-weight: 600; margin-bottom: 8px; }
 .legacy-stub-hint { font-size: 0.9rem; }
 
+/* ── My Legacy section pages ────────────────────────────────── */
+.legacy-section {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 0 4px 32px;
+}
+.legacy-obit-block {
+    margin-bottom: 28px;
+}
+.legacy-label {
+    display: block;
+    font-weight: 600;
+    font-size: 1rem;
+    margin-bottom: 4px;
+    color: var(--text, #111);
+}
+.legacy-hint {
+    font-size: 0.85rem;
+    color: var(--text-secondary, #6b7280);
+    margin: 0 0 8px;
+}
+.legacy-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    border: 1px solid var(--border, #d1d5db);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    line-height: 1.5;
+    resize: vertical;
+    background: var(--card-bg, #fff);
+    color: var(--text, #111);
+}
+.legacy-textarea:focus {
+    outline: none;
+    border-color: #6b7280;
+    box-shadow: 0 0 0 3px rgba(107,114,128,0.15);
+}
+.legacy-ai-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+}
+.legacy-ai-status {
+    font-size: 0.85rem;
+    color: var(--text-secondary, #6b7280);
+}
+.legacy-save-status {
+    font-size: 0.82rem;
+    color: var(--text-secondary, #6b7280);
+    text-align: right;
+    min-height: 1.2em;
+    margin: 0;
+}
+
 /* Life landing page — Journal tile (amber/gold gradient) */
 .landing-tile--journal {
     background: linear-gradient(135deg, #f59e0b, #fbbf24);

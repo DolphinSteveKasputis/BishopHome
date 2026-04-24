@@ -900,7 +900,7 @@ End-of-life information hub — private information for the user's loved ones if
 |-------|---------|
 | `#legacy/burial` | Burial & Remains Preferences |
 | `#legacy/service` | Funeral / Memorial Service Wishes |
-| `#legacy/obituary` | My Obituary (freeform draft + fact sheet) |
+| `#legacy/obituary` | My Obituary — planning notes, draft, writer instructions |
 | `#legacy/social` | Social Media & Digital Memorial Preferences 🔒 |
 | `#legacy/accounts` | Financial & Account Access 🔒 |
 | `#legacy/documents` | Important Documents & Where to Find Them |
@@ -914,7 +914,7 @@ End-of-life information hub — private information for the user's loved ones if
 **Passphrase encryption** (🔒 sections): Financial Accounts and Social Media require a **Legacy Passphrase** before displaying content. This passphrase encrypts sensitive fields (passwords, account numbers, SSNs, PINs) using AES-GCM 256-bit via the browser Web Crypto API. Key derivation uses PBKDF2 with a random salt stored in `legacyMeta/crypto`. The passphrase is **never stored** — only the salt is in Firestore. Once entered, the session stays unlocked until the browser tab is closed. Implemented in `legacy-crypto.js`.
 
 **Firestore collections** (planned — not yet populated):
-- `legacyMeta` — single doc for burial/service/obituary/medical/household/retirement preferences; also holds `pbkdf2Salt`
+- `legacyMeta` — multiple docs by section key (e.g. `obituary`, `burial`, etc.) for single-form sections; `crypto` doc holds `pbkdf2Salt` and `verifyToken`
 - `legacyAccounts` — financial and digital account entries (with `passwordEnc`, `accountNumberEnc` encrypted fields)
 - `legacyDocuments` — document checklist entries
 - `legacyLetters` — letters to people

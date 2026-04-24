@@ -767,7 +767,7 @@ function _lpRenderDetailPage(page) {
                         </div>
                         <div>
                             <label class="form-label">Text</label>
-                            <textarea id="lpNoteText" class="form-control" rows="6" style="width:100%; resize:vertical;" placeholder="Journal entry…"></textarea>
+                            <textarea id="lpNoteText" class="form-control" rows="12" style="width:100%; resize:vertical;" placeholder="Journal entry…"></textarea>
                         </div>
                         <div>
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">

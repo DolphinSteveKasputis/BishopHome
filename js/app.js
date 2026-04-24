@@ -157,7 +157,7 @@ const ALL_PAGES = [
     'life-event',
     'life-projects', 'life-project',
     'legacy', 'legacy-burial', 'legacy-service', 'legacy-obituary', 'legacy-social',
-    'legacy-accounts', 'legacy-documents', 'legacy-medical', 'legacy-household',
+    'legacy-accounts', 'legacy-documents', 'legacy-household',
     'legacy-pets', 'legacy-notify', 'legacy-letters', 'legacy-letter', 'legacy-intro', 'legacy-message',
     'top10list-create', 'top10list-edit',
     'memory-create', 'memory-edit',
@@ -193,7 +193,7 @@ const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'jo
                      'life-calendar', 'life-event',
                      'life-projects', 'life-project',
                      'legacy', 'legacy-burial', 'legacy-service', 'legacy-obituary', 'legacy-social',
-                     'legacy-accounts', 'legacy-documents', 'legacy-medical', 'legacy-household',
+                     'legacy-accounts', 'legacy-documents', 'legacy-household',
                      'legacy-pets', 'legacy-notify', 'legacy-letters', 'legacy-letter', 'legacy-message'];
 
 /** Tracks which nav context is currently active ('yard', 'house', or 'life'). */
@@ -707,9 +707,6 @@ function handleRoute() {
     } else if (page === 'legacy' && id === 'documents') {
         showPage('legacy-documents');
         loadLegacyDocumentsPage();
-    } else if (page === 'legacy' && id === 'medical') {
-        showPage('legacy-medical');
-        loadLegacyMedicalPage();
     } else if (page === 'legacy' && id === 'household') {
         showPage('legacy-household');
         loadLegacyHouseholdPage();

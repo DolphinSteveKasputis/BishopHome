@@ -20,7 +20,6 @@ var LEGACY_SECTIONS = [
     { key: 'social',    icon: '📱',  label: 'Social Media',           route: '#legacy/social',   gated: true, stub: true },
     { key: 'accounts',  icon: '💰',  label: 'Financial Accounts',     route: '#legacy/accounts', gated: true, stub: true },
     { key: 'documents', icon: '📁',  label: 'Documents',              route: '#legacy/documents', stub: true },
-    { key: 'medical',   icon: '🏥',  label: 'Medical Wishes',         route: '#legacy/medical',   stub: true },
     { key: 'household', icon: '🏠',  label: 'Household Instructions', route: '#legacy/household', stub: true },
     { key: 'pets',      icon: '🐾',  label: 'Pets',                   route: '#legacy/pets',      stub: true },
     { key: 'notify',    icon: '📞',  label: 'People to Notify',       route: '#legacy/notify',    stub: true },
@@ -595,9 +594,6 @@ function _legacyCheckLlm(cb) {
 }
 function loadLegacyDocumentsPage() {
     _legacyLoadStub('page-legacy-documents', 'Documents', 'documents');
-}
-function loadLegacyMedicalPage() {
-    _legacyLoadStub('page-legacy-medical', 'Medical Wishes', 'medical');
 }
 function loadLegacyHouseholdPage() {
     _legacyLoadStub('page-legacy-household', 'Household Instructions', 'household');

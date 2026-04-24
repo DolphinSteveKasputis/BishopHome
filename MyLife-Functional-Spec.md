@@ -905,7 +905,6 @@ End-of-life information hub — private information for the user's loved ones if
 | `#legacy/social` | Social Media & Digital Memorial Preferences 🔒 | Stub |
 | `#legacy/accounts` | Financial & Account Access 🔒 | Stub |
 | `#legacy/documents` | Important Documents & Where to Find Them | Stub |
-| `#legacy/medical` | Medical Wishes / Healthcare Directives | Stub |
 | `#legacy/household` | Practical Household Instructions | Stub |
 | `#legacy/pets` | Pets | Stub |
 | `#legacy/notify` | People to Notify | Stub |

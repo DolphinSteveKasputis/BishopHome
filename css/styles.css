@@ -5471,12 +5471,13 @@ a.ar-target-link:hover {
 }
 
 /* ── My Legacy landing grid — 3-column ──────────────────────── */
-.landing-grid--3col {
+/* Compound selector (2 classes) beats .landing-grid (1 class) regardless of order */
+.landing-grid.landing-grid--3col {
     grid-template-columns: 1fr 1fr 1fr;
-    max-width: 680px;
+    max-width: 700px;
 }
-@media (max-width: 480px) {
-    .landing-grid--3col { grid-template-columns: 1fr 1fr; }
+@media (max-width: 540px) {
+    .landing-grid.landing-grid--3col { grid-template-columns: 1fr 1fr; }
 }
 
 /* ── My Legacy intro text ────────────────────────────────────── */
@@ -5490,6 +5491,14 @@ a.ar-target-link:hover {
 }
 
 /* ── My Legacy sub-section tile colors ───────────────────────── */
+.landing-tile--legacy-intro {
+    background: linear-gradient(135deg, #1e3a5f, #2d5f8a);
+    color: #fff;
+}
+.landing-tile--legacy-intro:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(30,58,95,0.4);
+}
 .landing-tile--legacy-burial,
 .landing-tile--legacy-service,
 .landing-tile--legacy-obituary,

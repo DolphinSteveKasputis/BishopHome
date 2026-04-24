@@ -42,6 +42,19 @@ function loadLegacyPage() {
         '<div class="landing-grid landing-grid--3col" id="legacyTileGrid"></div>';
 
     var grid = document.getElementById('legacyTileGrid');
+
+    // Row 1: empty · Read Me First · empty  (alone in the center slot)
+    grid.appendChild(document.createElement('div'));
+    var rmf = document.createElement('a');
+    rmf.href = '#legacy/intro';
+    rmf.className = 'landing-tile landing-tile--legacy-intro';
+    rmf.innerHTML =
+        '<span class="landing-tile-icon">📖</span>' +
+        '<span class="landing-tile-label">Read Me First</span>';
+    grid.appendChild(rmf);
+    grid.appendChild(document.createElement('div'));
+
+    // Remaining rows: all 12 section tiles
     LEGACY_SECTIONS.forEach(function(s) {
         var tile = document.createElement('a');
         tile.href = s.route;
@@ -57,6 +70,55 @@ function loadLegacyPage() {
 // ============================================================
 // Sub-section Loaders
 // ============================================================
+
+async function loadLegacyIntroPage() {
+    var page = document.getElementById('page-legacy-intro');
+    if (!page) return;
+
+    page.innerHTML =
+        '<div class="page-header">' +
+            '<button class="btn btn-secondary btn-small" onclick="location.hash=\'#legacy\'">&#8592; My Legacy</button>' +
+            '<h2>📖 Read Me First</h2>' +
+        '</div>' +
+        '<div class="legacy-section">' +
+            '<div class="legacy-obit-block">' +
+                '<p class="legacy-hint">Write whatever you want your loved ones to read before they explore the rest of this section — context, important instructions, or just a note of love.</p>' +
+                '<textarea id="legacyIntroBody" class="legacy-textarea" rows="20"' +
+                    ' placeholder="Start here..."></textarea>' +
+            '</div>' +
+            '<p class="legacy-save-status" id="legacyIntroSaveStatus"></p>' +
+        '</div>';
+
+    var crumb = document.getElementById('breadcrumbBar');
+    if (crumb) {
+        crumb.innerHTML =
+            '<a href="#life">Life</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#legacy">My Legacy</a><span class="separator">&rsaquo;</span>' +
+            '<span>Read Me First</span>';
+    }
+
+    try {
+        var doc = await userCol('legacyMeta').doc('intro').get();
+        if (doc.exists) {
+            document.getElementById('legacyIntroBody').value = doc.data().body || '';
+        }
+    } catch (e) {
+        console.error('Error loading legacy intro:', e);
+    }
+
+    document.getElementById('legacyIntroBody').addEventListener('blur', function() {
+        var body   = document.getElementById('legacyIntroBody').value || '';
+        var status = document.getElementById('legacyIntroSaveStatus');
+        userCol('legacyMeta').doc('intro').set({ body: body }, { merge: true })
+            .then(function() {
+                if (status) { status.textContent = 'Saved.'; setTimeout(function() { if (status) status.textContent = ''; }, 2000); }
+            })
+            .catch(function(e) {
+                console.error('Error saving legacy intro:', e);
+                if (status) status.textContent = 'Error saving.';
+            });
+    });
+}
 
 async function loadLegacyBurialPage() {
     var page = document.getElementById('page-legacy-burial');

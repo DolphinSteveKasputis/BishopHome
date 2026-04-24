@@ -58,12 +58,40 @@ What does NOT get encrypted:
 ## Sections
 
 ### 1. Burial & Remains Preferences
-- Remains type: Cremation / Burial / Body donation / Other
-- If cremation: what to do with ashes (scatter / keep urn / bury urn / split — multiple choice)
-- Preferred location(s) for scattering or burial
-- Organ & tissue donation: yes / no / specific restrictions
-- Pre-arranged funeral: yes/no, with whom, paid in full?
-- Free-form additional notes
+
+**Disposition type** — single dropdown (mutually exclusive):
+- Cremation
+- Burial
+- Body donation to science
+- Natural / green burial
+- Other
+
+**My Wishes** — free-form text area. Plain English description of everything: where to scatter ashes, what cemetery, special requests, tone, etc.
+
+**Reference Links** — labeled URL list (add/remove rows):
+- Per entry: Label (e.g. "Tombstone I want", "Green burial cemetery near us") + URL
+- Opens in new tab
+- Stored as array on the doc
+
+**Pre-arrangement** — yes/no toggle. If yes:
+- Funeral home name
+- Phone number
+- Payment status: dropdown — Deposit paid / Paid in full / Not yet paid
+- Where the documents/contract are kept (e.g. "filing cabinet in the office, green folder")
+- Notes
+
+**Removed from original plan**: Organ & tissue donation — organ transplant donation is handled by the hospital based on driver's license/registry within hours of death. By the time family reads this page, it's already decided. Body donation to science (whole body) is covered by the disposition type dropdown.
+
+**Data fields** (on `legacyMeta/burial` doc):
+- `dispositionType` — string
+- `wishes` — string (free-form)
+- `links[]` — array of `{ label, url }`
+- `preArranged` — bool
+- `preArrangementName` — string
+- `preArrangementPhone` — string
+- `preArrangementPayment` — string (deposit-paid / paid-in-full / not-yet-paid)
+- `preArrangementDocsLocation` — string
+- `preArrangementNotes` — string
 
 ### 2. Funeral / Memorial Service Wishes
 - Service type: Traditional funeral / Graveside only / Celebration of life / No service / Memorial later / Other
@@ -78,20 +106,33 @@ What does NOT get encrypted:
 - Free-form additional wishes
 
 ### 3. My Obituary
-Two parallel tracks — fill one or both:
-- **Write it myself**: full freeform draft (rich text)
-- **Fact sheet** (for a survivor or AI to assemble):
-  - Full legal name, preferred name/nickname
-  - Date & place of birth; hometown(s)
-  - Spouse: name, years married
-  - Children & grandchildren (list)
-  - Parents & siblings (survivors and predeceased)
-  - Career / profession highlights
-  - Accomplishments, awards, notable moments
-  - Hobbies, passions, what you loved doing
-  - Organizations, clubs, faith community
-  - What you want to be remembered for
-  - Preferred tone: funny / heartfelt / brief / formal / mix
+Three sections on one page, top to bottom:
+
+**Box 1 — My Planning Notes**
+Free-form brain dump: facts, stories, things to cover, people to mention — anything
+you'd want included. No structure required.
+- If LLM is enabled in Settings: **"Ask AI to Write"** button below this box
+  - Sends the planning notes to the LLM with a prompt to write a full obituary
+  - Generated text populates Box 2 (My Draft)
+  - If Box 2 already has content: confirm before overwriting ("Replace your current draft?")
+
+**Box 2 — My Draft**
+The written obituary. Populated manually or by the AI button from Box 1.
+- Plain textarea (no rich text needed for an obituary)
+- Can be edited freely after AI generates it
+
+**Box 3 — Instructions for the Writer**
+A note to whoever will write or finalize the real obituary.
+Examples: "keep it under 300 words", "make sure you mention my love of fishing",
+"don't mention [X]", "publish in the Star Tribune"
+
+**Data fields** (all on `legacyMeta` doc):
+- `obituaryNotes` — planning notes (Box 1)
+- `obituaryDraft` — the written draft (Box 2)
+- `obituaryInstructions` — writer instructions (Box 3)
+
+**LLM prompt** (when "Ask AI to Write" is clicked):
+> "Write a warm, personal obituary based on the following notes from the person themselves. Use first-person information naturally. Keep it to 3-4 paragraphs suitable for a newspaper or memorial program.\n\n[obituaryNotes]"
 
 ### 4. Social Media & Digital Memorial Preferences
 Per platform: platform name, username/profile URL, what to do after death
@@ -334,17 +375,22 @@ A button on the Legacy landing page (or in Settings) that generates a clean prin
 
 ## Questions — Per Section (Ask When Building Each One)
 
-### Section 1: Burial & Remains
-- Any specific scattering locations you want to pre-fill as examples?
-- "Pre-arranged funeral" — just a yes/no note, or a full account entry with funeral home contact and payment details?
+### Section 1: Burial & Remains — DECIDED
+- Disposition type: single dropdown (Cremation / Burial / Body donation to science / Natural/green burial / Other)
+- My Wishes: free-form text area
+- Reference Links: labeled URL list, add/remove rows, opens in new tab
+- Pre-arrangement: yes/no toggle + funeral home name, phone, docs location, notes
+- Organ donation removed (hospital-handled, not a day-after decision)
 
 ### Section 2: Service Wishes
 - Songs list — structured rows (title + artist + context) or just a free-form text area?
 - Officiant — link to Contacts, or plain text name is fine?
 
-### Section 3: Obituary
-- Should the fact sheet have an "AI Draft" button that sends the facts to OpenAI and generates a draft obituary? (SecondBrain-style action)
-- Formatted rich text for the freeform draft, or plain textarea?
+### Section 3: Obituary — DECIDED
+- Three boxes: Planning Notes → My Draft → Instructions for Writer
+- "Ask AI to Write" button on Planning Notes box (only shown if LLM is enabled)
+- AI output populates My Draft box; confirms before overwriting existing content
+- Plain textarea for all three boxes (no rich text)
 
 ### Section 4: Social Media
 - Do you have a password manager (1Password, iCloud Keychain, etc.)? If so, we'll add a specific "Password Manager" entry type with master password field (encrypted).

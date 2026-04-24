@@ -5596,6 +5596,36 @@ a.ar-target-link:hover {
     min-height: 1.2em;
     margin: 0;
 }
+.legacy-link-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+}
+.legacy-link-row .legacy-link-label { flex: 0 0 40%; }
+.legacy-link-row .legacy-link-url   { flex: 1; }
+.legacy-link-remove                 { flex-shrink: 0; }
+.legacy-toggle-row {
+    margin-bottom: 8px;
+}
+.legacy-toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.95rem;
+    cursor: pointer;
+}
+.legacy-subsection {
+    background: var(--bg-subtle, #f9fafb);
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.legacy-subsection .form-group { margin-bottom: 0; }
 
 /* Life landing page — Journal tile (amber/gold gradient) */
 .landing-tile--journal {

@@ -898,7 +898,7 @@ End-of-life information hub — private information for the user's loved ones if
 
 | Route | Section |
 |-------|---------|
-| `#legacy/burial` | Burial & Remains Preferences |
+| `#legacy/burial` | Burial & Remains — disposition type, wishes, reference links, pre-arrangement |
 | `#legacy/service` | Funeral / Memorial Service Wishes |
 | `#legacy/obituary` | My Obituary — planning notes, draft, writer instructions |
 | `#legacy/social` | Social Media & Digital Memorial Preferences 🔒 |

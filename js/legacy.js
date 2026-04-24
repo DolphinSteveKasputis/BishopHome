@@ -58,8 +58,212 @@ function loadLegacyPage() {
 // Sub-section Loaders
 // ============================================================
 
-function loadLegacyBurialPage() {
-    _legacyLoadStub('page-legacy-burial', 'Burial & Remains', 'burial');
+async function loadLegacyBurialPage() {
+    var page = document.getElementById('page-legacy-burial');
+    if (!page) return;
+
+    page.innerHTML =
+        '<div class="page-header">' +
+            '<button class="btn btn-secondary btn-small" onclick="location.hash=\'#legacy\'">&#8592; My Legacy</button>' +
+            '<h2>⚱️ Burial & Remains</h2>' +
+        '</div>' +
+        '<div class="legacy-section">' +
+
+            // Disposition type
+            '<div class="legacy-obit-block">' +
+                '<label class="legacy-label" for="legacyBurialType">Disposition Type</label>' +
+                '<select id="legacyBurialType" class="form-control">' +
+                    '<option value="">-- Select --</option>' +
+                    '<option value="cremation">Cremation</option>' +
+                    '<option value="burial">Burial</option>' +
+                    '<option value="body-donation">Body donation to science</option>' +
+                    '<option value="natural-burial">Natural / green burial</option>' +
+                    '<option value="other">Other</option>' +
+                '</select>' +
+            '</div>' +
+
+            // My Wishes
+            '<div class="legacy-obit-block">' +
+                '<label class="legacy-label" for="legacyBurialWishes">My Wishes</label>' +
+                '<p class="legacy-hint">Describe everything in plain English — where to scatter ashes, which cemetery, special requests, anything your family needs to know.</p>' +
+                '<textarea id="legacyBurialWishes" class="legacy-textarea" rows="8" placeholder="e.g. Cremate me and scatter half at Lake Superior near Two Harbors. Give the other half to Karen. No expensive urn needed."></textarea>' +
+            '</div>' +
+
+            // Reference Links
+            '<div class="legacy-obit-block">' +
+                '<label class="legacy-label">Reference Links</label>' +
+                '<p class="legacy-hint">Links your family should look at — tombstone, cemetery, memorial planner, etc.</p>' +
+                '<div id="legacyBurialLinks"></div>' +
+                '<button class="btn btn-secondary btn-small" onclick="legacyBurialAddLink()" style="margin-top:8px;">+ Add Link</button>' +
+            '</div>' +
+
+            // Pre-arrangement
+            '<div class="legacy-obit-block">' +
+                '<label class="legacy-label">Pre-arrangement</label>' +
+                '<div class="legacy-toggle-row">' +
+                    '<label class="legacy-toggle-label">' +
+                        '<input type="checkbox" id="legacyBurialPreArranged"> I have a pre-arranged funeral plan' +
+                    '</label>' +
+                '</div>' +
+                '<div id="legacyBurialPreArrangementDetails" class="legacy-subsection hidden">' +
+                    '<div class="form-group">' +
+                        '<label for="legacyBurialFuneralHome">Funeral Home Name</label>' +
+                        '<input type="text" id="legacyBurialFuneralHome" class="form-control" placeholder="e.g. Johnson Funeral Home">' +
+                    '</div>' +
+                    '<div class="form-group">' +
+                        '<label for="legacyBurialFuneralPhone">Phone Number</label>' +
+                        '<input type="tel" id="legacyBurialFuneralPhone" class="form-control" placeholder="e.g. 612-555-1234">' +
+                    '</div>' +
+                    '<div class="form-group">' +
+                        '<label for="legacyBurialPayment">Payment Status</label>' +
+                        '<select id="legacyBurialPayment" class="form-control">' +
+                            '<option value="">-- Select --</option>' +
+                            '<option value="paid-in-full">Paid in full</option>' +
+                            '<option value="deposit-paid">Deposit paid</option>' +
+                            '<option value="not-yet-paid">Not yet paid</option>' +
+                        '</select>' +
+                    '</div>' +
+                    '<div class="form-group">' +
+                        '<label for="legacyBurialDocsLocation">Where are the documents?</label>' +
+                        '<input type="text" id="legacyBurialDocsLocation" class="form-control" placeholder="e.g. Filing cabinet in the office, green folder">' +
+                    '</div>' +
+                    '<div class="form-group">' +
+                        '<label for="legacyBurialPreNotes">Notes</label>' +
+                        '<textarea id="legacyBurialPreNotes" class="legacy-textarea" rows="3" placeholder="Any other details about the pre-arrangement..."></textarea>' +
+                    '</div>' +
+                '</div>' +
+            '</div>' +
+
+            '<p class="legacy-save-status" id="legacyBurialSaveStatus"></p>' +
+        '</div>';
+
+    // Set breadcrumb
+    var crumb = document.getElementById('breadcrumbBar');
+    if (crumb) {
+        crumb.innerHTML =
+            '<a href="#life">Life</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#legacy">My Legacy</a><span class="separator">&rsaquo;</span>' +
+            '<span>Burial & Remains</span>';
+    }
+
+    // Load saved data
+    try {
+        var doc = await userCol('legacyMeta').doc('burial').get();
+        if (doc.exists) {
+            var d = doc.data();
+            document.getElementById('legacyBurialType').value        = d.dispositionType || '';
+            document.getElementById('legacyBurialWishes').value      = d.wishes          || '';
+            document.getElementById('legacyBurialFuneralHome').value = d.preArrangementName     || '';
+            document.getElementById('legacyBurialFuneralPhone').value= d.preArrangementPhone    || '';
+            document.getElementById('legacyBurialPayment').value     = d.preArrangementPayment  || '';
+            document.getElementById('legacyBurialDocsLocation').value= d.preArrangementDocsLocation || '';
+            document.getElementById('legacyBurialPreNotes').value    = d.preArrangementNotes    || '';
+
+            if (d.preArranged) {
+                document.getElementById('legacyBurialPreArranged').checked = true;
+                document.getElementById('legacyBurialPreArrangementDetails').classList.remove('hidden');
+            }
+
+            _legacyBurialRenderLinks(d.links || []);
+        } else {
+            _legacyBurialRenderLinks([]);
+        }
+    } catch (e) {
+        console.error('Error loading burial data:', e);
+        _legacyBurialRenderLinks([]);
+    }
+
+    // Toggle pre-arrangement details
+    document.getElementById('legacyBurialPreArranged').addEventListener('change', function() {
+        var details = document.getElementById('legacyBurialPreArrangementDetails');
+        details.classList.toggle('hidden', !this.checked);
+        _legacySaveBurial();
+    });
+
+    // Auto-save on blur/change for all fields
+    ['legacyBurialType', 'legacyBurialWishes', 'legacyBurialFuneralHome',
+     'legacyBurialFuneralPhone', 'legacyBurialPayment', 'legacyBurialDocsLocation',
+     'legacyBurialPreNotes'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.addEventListener('change', _legacySaveBurial);
+        if (el && el.tagName === 'TEXTAREA') el.addEventListener('blur', _legacySaveBurial);
+    });
+}
+
+function _legacyBurialRenderLinks(links) {
+    var container = document.getElementById('legacyBurialLinks');
+    if (!container) return;
+    container.innerHTML = '';
+    links.forEach(function(link, i) {
+        container.appendChild(_legacyBurialLinkRow(link.label || '', link.url || '', i));
+    });
+}
+
+function _legacyBurialLinkRow(label, url, index) {
+    var row = document.createElement('div');
+    row.className = 'legacy-link-row';
+    row.dataset.index = index;
+    row.innerHTML =
+        '<input type="text" class="form-control legacy-link-label" placeholder="Label (e.g. Tombstone I want)" value="' + _esc(label) + '">' +
+        '<input type="url" class="form-control legacy-link-url" placeholder="https://" value="' + _esc(url) + '">' +
+        '<button class="btn btn-danger btn-small legacy-link-remove" onclick="legacyBurialRemoveLink(' + index + ')">✕</button>';
+    row.querySelector('.legacy-link-label').addEventListener('blur', _legacySaveBurial);
+    row.querySelector('.legacy-link-url').addEventListener('blur', _legacySaveBurial);
+    return row;
+}
+
+function legacyBurialAddLink() {
+    var container = document.getElementById('legacyBurialLinks');
+    if (!container) return;
+    var index = container.children.length;
+    container.appendChild(_legacyBurialLinkRow('', '', index));
+}
+
+function legacyBurialRemoveLink(index) {
+    var links = _legacyBurialGetLinks();
+    links.splice(index, 1);
+    _legacyBurialRenderLinks(links);
+    _legacySaveBurial();
+}
+
+function _legacyBurialGetLinks() {
+    var rows = document.querySelectorAll('.legacy-link-row');
+    var links = [];
+    rows.forEach(function(row) {
+        var label = row.querySelector('.legacy-link-label').value.trim();
+        var url   = row.querySelector('.legacy-link-url').value.trim();
+        if (label || url) links.push({ label: label, url: url });
+    });
+    return links;
+}
+
+function _legacySaveBurial() {
+    var preArranged = document.getElementById('legacyBurialPreArranged').checked;
+    var data = {
+        dispositionType          : document.getElementById('legacyBurialType').value,
+        wishes                   : document.getElementById('legacyBurialWishes').value,
+        links                    : _legacyBurialGetLinks(),
+        preArranged              : preArranged,
+        preArrangementName       : document.getElementById('legacyBurialFuneralHome').value,
+        preArrangementPhone      : document.getElementById('legacyBurialFuneralPhone').value,
+        preArrangementPayment    : document.getElementById('legacyBurialPayment').value,
+        preArrangementDocsLocation: document.getElementById('legacyBurialDocsLocation').value,
+        preArrangementNotes      : document.getElementById('legacyBurialPreNotes').value
+    };
+    var status = document.getElementById('legacyBurialSaveStatus');
+    userCol('legacyMeta').doc('burial').set(data, { merge: true })
+        .then(function() {
+            if (status) { status.textContent = 'Saved.'; setTimeout(function() { if (status) status.textContent = ''; }, 2000); }
+        })
+        .catch(function(e) {
+            console.error('Error saving burial data:', e);
+            if (status) status.textContent = 'Error saving.';
+        });
+}
+
+// Simple HTML escape for values inserted into innerHTML
+function _esc(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 function loadLegacyServicePage() {
     _legacyLoadStub('page-legacy-service', 'Service Wishes', 'service');

@@ -1794,6 +1794,25 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 
 ---
 
+## screen:legacy-burial
+
+### Quick Help
+- Pick your disposition type, describe your wishes in plain English, and add any reference links
+- Check the pre-arrangement box if you've already made funeral arrangements
+- Auto-saves when you click away from any field
+
+### Details
+
+**Disposition Type:** Choose how you want your remains handled — Cremation, Burial, Body donation to science, Natural/green burial, or Other.
+
+**My Wishes:** Write anything in plain English — where to scatter ashes, which cemetery, special requests. This is the main thing your family will read.
+
+**Reference Links:** Add labeled links your family should visit — a tombstone you like, a cemetery website, a memorial planner, etc. Each entry has a label and a URL.
+
+**Pre-arrangement:** Check this if you've already made funeral arrangements. Fill in the funeral home name, phone, payment status (paid in full / deposit paid / not yet paid), where the documents are kept, and any notes.
+
+---
+
 ## screen:lifecalendar
 
 ### Quick Help

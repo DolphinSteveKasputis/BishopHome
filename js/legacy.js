@@ -181,8 +181,12 @@ async function legacySubmitPassphrase() {
         }
     }
 
-    var ok = await legacyCryptoDeriveKey(passphrase);
-    if (!ok) {
+    var result = await legacyCryptoDeriveKey(passphrase);
+    if (result === 'wrong') {
+        _legacyPassphraseError('Incorrect passphrase. Please try again.');
+        return;
+    }
+    if (result === 'error') {
         _legacyPassphraseError('Something went wrong. Please try again.');
         return;
     }

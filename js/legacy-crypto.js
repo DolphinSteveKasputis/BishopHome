@@ -34,6 +34,18 @@ function legacyLock() {
  * If no salt exists yet (first-time setup), creates and saves one.
  * Returns true on success, false if Firestore fails.
  */
+/**
+ * Derives an AES-GCM key from the passphrase + stored salt.
+ *
+ * First-time setup: creates the salt, derives the key, encrypts a known
+ * verification string ("bishop-legacy-ok") and saves it to Firestore.
+ *
+ * Returning visits: derives the key and decrypts the verification token.
+ * If it matches, the passphrase is correct. If not, clears the key and
+ * returns 'wrong' so the modal can show "Incorrect passphrase."
+ *
+ * Returns: 'ok' | 'wrong' | 'error'
+ */
 async function legacyCryptoDeriveKey(passphrase) {
     try {
         var salt = await _legacyGetOrCreateSalt();
@@ -48,10 +60,29 @@ async function legacyCryptoDeriveKey(passphrase) {
             false,
             ['encrypt', 'decrypt']
         );
-        return true;
+
+        // Read the crypto doc to check for an existing verification token
+        var cryptoDoc = await userCol('legacyMeta').doc('crypto').get();
+        var verifyToken = cryptoDoc.exists ? cryptoDoc.data().verifyToken : null;
+
+        if (verifyToken) {
+            // Returning visit: verify the passphrase is correct
+            var result = await legacyDecrypt(verifyToken);
+            if (result !== 'bishop-legacy-ok') {
+                _legacyCryptoKey = null;
+                return 'wrong';
+            }
+        } else {
+            // First-time setup: encrypt the verification string and save it
+            var token = await legacyEncrypt('bishop-legacy-ok');
+            await userCol('legacyMeta').doc('crypto').set({ verifyToken: token }, { merge: true });
+        }
+
+        return 'ok';
     } catch (e) {
         console.error('Legacy key derivation failed:', e);
-        return false;
+        _legacyCryptoKey = null;
+        return 'error';
     }
 }
 

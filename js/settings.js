@@ -595,6 +595,9 @@ var BACKUP_DATA_COLLECTIONS = [
     // Thoughts — My Views
     'views', 'viewCategories',
 
+    // Legacy / End of Life
+    'legacyLetters', 'legacyMeta',
+
     // Misc
     'sbIssues', 'settings'
 ];

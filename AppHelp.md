@@ -1813,6 +1813,47 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 
 ---
 
+## screen:legacy-letters
+
+### Quick Help
+- Each card is one letter — tap to open and edit it
+- Use **Add Letter** to start a new letter to someone
+- Pick from your contacts or just type the person's name
+- Tap **Print** to print the letter (only the recipient, date, and letter text print — no titles or instructions)
+
+### Details
+
+**What it's for:** Personal letters to people you love — to be opened and read after you're gone. Each letter is its own record: you can write as many as you want to the same person or different people.
+
+**Adding a letter:** Tap **+ Add Letter** in the header. A blank letter is created and you go straight to the edit page.
+
+**Recipient:** Use the contact search field to link the letter to someone in your contacts. If the person isn't in your contacts, just type their name in the "Not in contacts?" field below the picker. If you select a contact, the typed name is cleared automatically.
+
+**Title:** For your reference only — helps you find the letter in the list. It is not printed.
+
+**Instructions:** Notes about when or how to deliver the letter (e.g., "Open this on your 30th birthday"). Not printed.
+
+**Letter body:** Write freely. Tap **🎙️ Speak** to dictate by voice — it appends spoken words to the text box.
+
+**Printing:** Tap **🖨️ Print** to print the letter. Only the recipient name, date written, and letter body appear on the printed page — nothing else.
+
+**Auto-save:** All fields save automatically when you click away.
+
+---
+
+## screen:legacy-letter
+
+### Quick Help
+- Fill in recipient, title (internal only), optional delivery instructions, and your letter
+- Tap 🎙️ Speak to dictate the letter by voice
+- Tap 🖨️ Print to print — only the recipient name, date, and letter body are printed
+
+### Details
+
+See `screen:legacy-letters` above for full details on the letter form.
+
+---
+
 ## screen:lifecalendar
 
 ### Quick Help

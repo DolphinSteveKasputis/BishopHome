@@ -223,12 +223,46 @@ Per person: name (link to Contact or free-form), relationship, phone, email, not
 - Note field per person ("tell her before it goes public")
 
 ### 11. Letters to People
-- Pick a recipient from Contacts or type a name
-- Write a personal letter (rich text, no length limit)
-- Letters are NOT encrypted (plain text in Firestore — not considered sensitive)
-- List view: recipient name, date written, last edited
-- Add / edit / delete
-- **Print button** per letter — prints just the letter with clean formatting, no app chrome (good for physical delivery or PDF)
+
+**List page (`#legacy/letters`)**
+- Card per letter showing: recipient name, letter title, date created, first line of body as a snippet
+- "+ Add Letter" button
+- Click a card → letter detail/edit page
+- Delete from card (with confirm)
+
+**Letter page (`#legacy/letter/:id`)**
+
+Fields:
+- **Recipient**: contact picker (search existing contacts) OR fallback to typed name if not in contacts
+- **Letter title**: internal label only — shown on card, NOT printed. Helps distinguish multiple letters to the same person.
+- **Instructions** (for executor, not recipient): shown in the app, NOT printed.
+  - For non-contact recipients: use this to explain who they are and how to reach them
+  - For any letter: delivery timing, context ("give this after the service, not before")
+- **Letter body**: the actual letter — textarea with speak button (Web Speech API, appends to existing text)
+- **Date created**: auto-set on first save, shown on card and printed
+- **Print button**: outputs recipient name, date created, and letter body — no title, no instructions, no app chrome
+
+**Multiple letters per person**: allowed — letter title distinguishes them on the card
+
+**Non-contact recipient flow**: show typed name field + instructions box is expanded and labeled "How to reach this person / why you're writing to them"
+
+**Data fields** (`legacyLetters` collection):
+- `contactId` — string (nullable — null if free-form recipient)
+- `recipientName` — string (contact display name or typed name)
+- `title` — string
+- `instructions` — string
+- `body` — string (plain text)
+- `createdAt` — timestamp (auto on first save)
+- `updatedAt` — timestamp
+
+### Section 11: Letters — DECIDED
+- Multiple letters per person: yes
+- Letter title: yes, internal only, not printed
+- Date created: yes, shown on card and printed
+- Instructions box: on all letters — for executor, not recipient, not printed
+- Non-contact fallback: typed name field + instructions box auto-expanded with "how to reach / why writing"
+- Print: recipient name + date + body only
+- Speak button: Web Speech API, appends to existing text
 
 ### 12. Final Message
 A single open message to whoever reads this. No structure — just say what you want to say.

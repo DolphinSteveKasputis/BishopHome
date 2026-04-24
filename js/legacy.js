@@ -429,11 +429,242 @@ function loadLegacyPetsPage() {
 function loadLegacyNotifyPage() {
     _legacyLoadStub('page-legacy-notify', 'People to Notify', 'notify');
 }
-function loadLegacyLettersPage() {
-    _legacyLoadStub('page-legacy-letters', 'Letters', 'letters');
+// Stores createdAt of the currently-open letter for use in print
+var _legacyLetterCreatedAt = null;
+
+async function loadLegacyLettersPage() {
+    var page = document.getElementById('page-legacy-letters');
+    if (!page) return;
+
+    page.innerHTML =
+        '<div class="page-header">' +
+            '<button class="btn btn-secondary btn-small" onclick="location.hash=\'#legacy\'">&#8592; My Legacy</button>' +
+            '<h2>✉️ Letters</h2>' +
+            '<button class="btn btn-primary btn-small" id="legacyLetterAddBtn" onclick="_legacyLetterAddNew()">+ Add Letter</button>' +
+        '</div>' +
+        '<div id="legacyLettersList" class="legacy-letters-list"><p class="empty-state">Loading…</p></div>';
+
+    var crumb = document.getElementById('breadcrumbBar');
+    if (crumb) {
+        crumb.innerHTML =
+            '<a href="#life">Life</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#legacy">My Legacy</a><span class="separator">&rsaquo;</span>' +
+            '<span>Letters</span>';
+    }
+
+    try {
+        var snap = await userCol('legacyLetters').orderBy('createdAt', 'desc').get();
+        var container = document.getElementById('legacyLettersList');
+        if (!container) return;
+        if (snap.empty) {
+            container.innerHTML = '<p class="empty-state">No letters yet. Tap <strong>Add Letter</strong> to write your first one.</p>';
+            return;
+        }
+        container.innerHTML = '';
+        snap.forEach(function(doc) {
+            var d = doc.data();
+            var title     = d.title         || 'Untitled';
+            var recipient = d.recipientName || '(no recipient)';
+            var dateStr   = d.createdAt ? d.createdAt.toDate().toLocaleDateString() : '';
+            var card = document.createElement('div');
+            card.className = 'legacy-letter-card';
+            card.onclick = function() { window.location.hash = '#legacy/letter/' + doc.id; };
+            card.innerHTML =
+                '<div class="legacy-letter-card-title">' + _esc(title) + '</div>' +
+                '<div class="legacy-letter-card-meta">To: ' + _esc(recipient) + (dateStr ? ' &nbsp;&middot;&nbsp; ' + dateStr : '') + '</div>';
+            container.appendChild(card);
+        });
+    } catch (e) {
+        console.error('Error loading letters:', e);
+        var c = document.getElementById('legacyLettersList');
+        if (c) c.innerHTML = '<p class="empty-state">Error loading letters.</p>';
+    }
 }
-function loadLegacyLetterDetailPage(id) {
-    _legacyLoadStub('page-legacy-letter', 'Letter', 'letters');
+
+async function _legacyLetterAddNew() {
+    var btn = document.getElementById('legacyLetterAddBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Creating…'; }
+    try {
+        var ref = await userCol('legacyLetters').add({
+            contactId:     null,
+            recipientName: '',
+            title:         '',
+            instructions:  '',
+            body:          '',
+            createdAt:     firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt:     firebase.firestore.FieldValue.serverTimestamp()
+        });
+        window.location.hash = '#legacy/letter/' + ref.id;
+    } catch (e) {
+        console.error('Error creating letter:', e);
+        alert('Could not create letter. Please try again.');
+        if (btn) { btn.disabled = false; btn.textContent = '+ Add Letter'; }
+    }
+}
+
+async function loadLegacyLetterDetailPage(id) {
+    var page = document.getElementById('page-legacy-letter');
+    if (!page) return;
+    page.dataset.letterId = id;
+    _legacyLetterCreatedAt = null;
+
+    page.innerHTML =
+        '<div class="page-header">' +
+            '<button class="btn btn-secondary btn-small" onclick="location.hash=\'#legacy/letters\'">&#8592; Letters</button>' +
+            '<h2>✉️ Letter</h2>' +
+            '<button class="btn btn-secondary btn-small" onclick="_legacyLetterPrint()">🖨️ Print</button>' +
+        '</div>' +
+        '<div class="legacy-section">' +
+
+            // To: contact picker + typed-name fallback
+            '<div class="legacy-obit-block">' +
+                '<label class="legacy-label">To</label>' +
+                '<div id="legacyLetterContactPicker"></div>' +
+                '<p class="legacy-hint" style="margin:8px 0 4px;">Not in contacts? Type the name:</p>' +
+                '<input type="text" id="legacyLetterTypedName" class="form-control" placeholder="Recipient\'s name…">' +
+            '</div>' +
+
+            // Title
+            '<div class="legacy-obit-block">' +
+                '<label class="legacy-label" for="legacyLetterTitle">Title ' +
+                    '<span class="legacy-hint" style="font-weight:normal;font-size:0.85em;">(for your reference — not printed)</span>' +
+                '</label>' +
+                '<input type="text" id="legacyLetterTitle" class="form-control" placeholder="e.g. To Karen">' +
+            '</div>' +
+
+            // Instructions
+            '<div class="legacy-obit-block">' +
+                '<label class="legacy-label" for="legacyLetterInstructions">Instructions</label>' +
+                '<p class="legacy-hint">When or how to deliver this letter — not printed with the letter.</p>' +
+                '<textarea id="legacyLetterInstructions" class="legacy-textarea" rows="3"' +
+                    ' placeholder="e.g. Open this on your first birthday after I\'m gone."></textarea>' +
+            '</div>' +
+
+            // Body + voice
+            '<div class="legacy-obit-block">' +
+                '<label class="legacy-label" for="legacyLetterBody">Letter</label>' +
+                '<div class="legacy-ai-row" style="margin-bottom:8px;">' +
+                    '<button class="btn btn-secondary btn-small" id="legacyLetterVoiceBtn">🎙️ Speak</button>' +
+                    '<span class="legacy-ai-status" id="legacyLetterVoiceStatus"></span>' +
+                '</div>' +
+                '<textarea id="legacyLetterBody" class="legacy-textarea" rows="16"' +
+                    ' placeholder="Write your letter here…"></textarea>' +
+            '</div>' +
+
+            '<p class="legacy-save-status" id="legacyLetterSaveStatus"></p>' +
+        '</div>' +
+        // Print-only area — populated on print, hidden on screen
+        '<div id="legacyLetterPrintArea" class="legacy-print-area"></div>';
+
+    var crumb = document.getElementById('breadcrumbBar');
+    if (crumb) {
+        crumb.innerHTML =
+            '<a href="#life">Life</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#legacy">My Legacy</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#legacy/letters">Letters</a><span class="separator">&rsaquo;</span>' +
+            '<span>Letter</span>';
+    }
+
+    // Load saved data
+    var d = { contactId: null, recipientName: '', title: '', instructions: '', body: '', createdAt: null };
+    try {
+        var doc = await userCol('legacyLetters').doc(id).get();
+        if (doc.exists) {
+            d = Object.assign(d, doc.data());
+            _legacyLetterCreatedAt = d.createdAt;
+        }
+    } catch (e) {
+        console.error('Error loading letter:', e);
+    }
+
+    document.getElementById('legacyLetterTitle').value        = d.title        || '';
+    document.getElementById('legacyLetterInstructions').value = d.instructions || '';
+    document.getElementById('legacyLetterBody').value         = d.body         || '';
+
+    // Typed name: used when no contact is linked
+    document.getElementById('legacyLetterTypedName').value = d.contactId ? '' : (d.recipientName || '');
+
+    // Build contact picker; onSelect triggers auto-save and clears typed-name field
+    buildContactPicker('legacyLetterContactPicker', {
+        placeholder:  'Search contacts…',
+        initialId:    d.contactId    || '',
+        initialName:  d.contactId    ? (d.recipientName || '') : '',
+        allowCreate:  false,
+        onSelect: function(cid, cname) {
+            if (cid) {
+                // Contact selected — clear typed name
+                document.getElementById('legacyLetterTypedName').value = '';
+            }
+            _legacySaveLetter(id);
+        }
+    });
+
+    // Wire voice-to-text
+    if (typeof initVoiceToText === 'function') {
+        initVoiceToText('legacyLetterBody', 'legacyLetterVoiceBtn');
+    } else {
+        var vBtn = document.getElementById('legacyLetterVoiceBtn');
+        if (vBtn) vBtn.style.display = 'none';
+    }
+
+    // Auto-save on blur for all text fields
+    ['legacyLetterTitle', 'legacyLetterInstructions', 'legacyLetterBody', 'legacyLetterTypedName'].forEach(function(fid) {
+        var el = document.getElementById(fid);
+        if (el) el.addEventListener('blur', function() { _legacySaveLetter(id); });
+    });
+}
+
+function _legacySaveLetter(id) {
+    // Determine recipient: prefer contact picker, fall back to typed name
+    var hiddenInput  = document.getElementById('legacyLetterContactPicker_id');
+    var searchInput  = document.getElementById('legacyLetterContactPicker_search');
+    var contactId    = hiddenInput  ? (hiddenInput.value.trim()  || null) : null;
+    var contactName  = searchInput  ? (searchInput.value.trim()  || '')   : '';
+    var typedName    = (document.getElementById('legacyLetterTypedName') || {}).value || '';
+    var recipientName = contactId ? contactName : (typedName.trim() || contactName);
+
+    var data = {
+        contactId:     contactId,
+        recipientName: recipientName,
+        title:         (document.getElementById('legacyLetterTitle')        || {}).value || '',
+        instructions:  (document.getElementById('legacyLetterInstructions') || {}).value || '',
+        body:          (document.getElementById('legacyLetterBody')         || {}).value || '',
+        updatedAt:     firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    var status = document.getElementById('legacyLetterSaveStatus');
+    userCol('legacyLetters').doc(id).set(data, { merge: true })
+        .then(function() {
+            if (status) { status.textContent = 'Saved.'; setTimeout(function() { if (status) status.textContent = ''; }, 2000); }
+        })
+        .catch(function(e) {
+            console.error('Error saving letter:', e);
+            if (status) status.textContent = 'Error saving.';
+        });
+}
+
+function _legacyLetterPrint() {
+    var hiddenInput = document.getElementById('legacyLetterContactPicker_id');
+    var searchInput = document.getElementById('legacyLetterContactPicker_search');
+    var contactId   = hiddenInput ? hiddenInput.value.trim() : '';
+    var contactName = searchInput ? searchInput.value.trim() : '';
+    var typedName   = (document.getElementById('legacyLetterTypedName') || {}).value.trim();
+    var recipient   = contactId ? contactName : (typedName || contactName || '');
+
+    var body    = (document.getElementById('legacyLetterBody') || {}).value || '';
+    var dateStr = _legacyLetterCreatedAt
+        ? _legacyLetterCreatedAt.toDate().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+        : new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    var printArea = document.getElementById('legacyLetterPrintArea');
+    if (!printArea) return;
+
+    printArea.innerHTML =
+        (recipient ? '<div class="legacy-print-recipient">To: ' + _esc(recipient) + '</div>' : '') +
+        '<div class="legacy-print-date">' + _esc(dateStr) + '</div>' +
+        '<div class="legacy-print-body">' + _esc(body).replace(/\n/g, '<br>') + '</div>';
+
+    window.print();
 }
 function loadLegacyMessagePage() {
     _legacyLoadStub('page-legacy-message', 'Final Message', 'message');

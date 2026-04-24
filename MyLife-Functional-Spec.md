@@ -894,33 +894,39 @@ End-of-life information hub — private information for the user's loved ones if
 
 **Route**: `#legacy` — landing page with a 3-column tile grid of 12 sub-sections.
 
-**Sub-sections** (all stubs at this stage; being built individually):
+**Sub-sections**:
 
-| Route | Section |
-|-------|---------|
-| `#legacy/burial` | Burial & Remains — disposition type, wishes, reference links, pre-arrangement |
-| `#legacy/service` | Funeral / Memorial Service Wishes |
-| `#legacy/obituary` | My Obituary — planning notes, draft, writer instructions |
-| `#legacy/social` | Social Media & Digital Memorial Preferences 🔒 |
-| `#legacy/accounts` | Financial & Account Access 🔒 |
-| `#legacy/documents` | Important Documents & Where to Find Them |
-| `#legacy/medical` | Medical Wishes / Healthcare Directives |
-| `#legacy/household` | Practical Household Instructions |
-| `#legacy/pets` | Pets |
-| `#legacy/notify` | People to Notify |
-| `#legacy/letters` | Letters to People |
-| `#legacy/message` | Final Message |
+| Route | Section | Status |
+|-------|---------|--------|
+| `#legacy/burial` | Burial & Remains — disposition type, wishes, reference links, pre-arrangement | ✅ Built |
+| `#legacy/obituary` | My Obituary — planning notes, AI-assisted draft, writer instructions | ✅ Built |
+| `#legacy/letters` | Letters to People — list + per-letter detail | ✅ Built |
+| `#legacy/service` | Funeral / Memorial Service Wishes | Stub |
+| `#legacy/social` | Social Media & Digital Memorial Preferences 🔒 | Stub |
+| `#legacy/accounts` | Financial & Account Access 🔒 | Stub |
+| `#legacy/documents` | Important Documents & Where to Find Them | Stub |
+| `#legacy/medical` | Medical Wishes / Healthcare Directives | Stub |
+| `#legacy/household` | Practical Household Instructions | Stub |
+| `#legacy/pets` | Pets | Stub |
+| `#legacy/notify` | People to Notify | Stub |
+| `#legacy/message` | Final Message | Stub |
+
+**Letters section** (`#legacy/letters`, `#legacy/letter/:id`):
+- **List page**: cards sorted newest-first, showing title and recipient name + date created. "+ Add Letter" button in the header creates a new blank `legacyLetters` document and immediately navigates to the detail page.
+- **Detail page**: contact picker (searches the `people` collection), plus a "Not in contacts? Type the name" free-text fallback below it. If a contact is selected, the typed-name field is cleared and the contact name is used as `recipientName`. Title field (internal use only — not printed). Instructions textarea (delivery notes — not printed). Letter body textarea with 🎙️ Speak (voice-to-text via `initVoiceToText`) and 🖨️ Print buttons.
+- **Print**: prints only recipient name, date created, and letter body — no title, no instructions, no app chrome. Uses `@media print` CSS that hides everything except `.legacy-print-area`.
+- **Auto-save**: all fields save on blur.
+- **Firestore**: `legacyLetters` collection — fields: `contactId` (nullable), `recipientName`, `title`, `instructions`, `body`, `createdAt`, `updatedAt`.
 
 **Passphrase encryption** (🔒 sections): Financial Accounts and Social Media require a **Legacy Passphrase** before displaying content. This passphrase encrypts sensitive fields (passwords, account numbers, SSNs, PINs) using AES-GCM 256-bit via the browser Web Crypto API. Key derivation uses PBKDF2 with a random salt stored in `legacyMeta/crypto`. The passphrase is **never stored** — only the salt is in Firestore. Once entered, the session stays unlocked until the browser tab is closed. Implemented in `legacy-crypto.js`.
 
-**Firestore collections** (planned — not yet populated):
-- `legacyMeta` — multiple docs by section key (e.g. `obituary`, `burial`, etc.) for single-form sections; `crypto` doc holds `pbkdf2Salt` and `verifyToken`
-- `legacyAccounts` — financial and digital account entries (with `passwordEnc`, `accountNumberEnc` encrypted fields)
-- `legacyDocuments` — document checklist entries
-- `legacyLetters` — letters to people
-- `legacyNotifyList` — people to notify
-- `legacyPets` — pet entries
-- `legacySectionStatus` — completion status per section
+**Firestore collections**:
+- `legacyMeta` — docs keyed by section (e.g. `obituary`, `burial`); `crypto` doc holds `pbkdf2Salt` and `verifyToken` ✅ active
+- `legacyLetters` — `contactId`, `recipientName`, `title`, `instructions`, `body`, `createdAt`, `updatedAt` ✅ active
+- `legacyAccounts` — financial and digital account entries (encrypted fields — planned)
+- `legacyDocuments` — document checklist entries (planned)
+- `legacyNotifyList` — people to notify (planned)
+- `legacyPets` — pet entries (planned)
 
 ### Life Calendar (`lifecalendar.js`)
 

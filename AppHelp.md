@@ -1794,6 +1794,28 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 
 ---
 
+## screen:legacy-service
+
+### Quick Help
+- Choose your service type, location, and who should officiate
+- List any songs you want played in the Music box
+- Use My Wishes for everything else — flowers, casket, reception, things you don't want
+- Auto-saves when you click away from any field
+
+### Details
+
+**Type of Service:** Traditional Funeral, Memorial Service, Celebration of Life, Graveside Only, No Service, or Other.
+
+**Location Preference:** Free text — a church name, address, outdoor location, or just "no preference."
+
+**Who Should Officiate:** A pastor, celebrant, specific family member by name, or "no preference."
+
+**Music:** Multi-line — list as many songs as you want. Include artist and timing if you like (entry, during, closing, reception).
+
+**My Wishes:** The catch-all box — flowers vs. donations to charity, open or closed casket, whether you want a reception, specific things you definitely do or don't want. Write in plain English.
+
+---
+
 ## screen:legacy-burial
 
 ### Quick Help

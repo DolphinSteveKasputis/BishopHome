@@ -901,7 +901,7 @@ End-of-life information hub — private information for the user's loved ones if
 | `#legacy/burial` | Burial & Remains — disposition type, wishes, reference links, pre-arrangement | ✅ Built |
 | `#legacy/obituary` | My Obituary — planning notes, AI-assisted draft, writer instructions | ✅ Built |
 | `#legacy/letters` | Letters to People — list + per-letter detail | ✅ Built |
-| `#legacy/service` | Funeral / Memorial Service Wishes | Stub |
+| `#legacy/service` | Funeral / Memorial Service Wishes — type, location, officiant, music, wishes | ✅ Built |
 | `#legacy/social` | Social Media & Digital Memorial Preferences 🔒 | Stub |
 | `#legacy/accounts` | Financial & Account Access 🔒 | Stub |
 | `#legacy/documents` | Important Documents & Where to Find Them | Stub |
@@ -910,6 +910,8 @@ End-of-life information hub — private information for the user's loved ones if
 | `#legacy/pets` | Pets | Stub |
 | `#legacy/notify` | People to Notify | Stub |
 | `#legacy/message` | Final Message | Stub |
+
+**Service Wishes section** (`#legacy/service`): Single form auto-saving to `legacyMeta/service`. Fields: Type of Service (dropdown: Traditional Funeral / Memorial Service / Celebration of Life / Graveside Only / No Service / Other), Location Preference (text), Who Should Officiate (text), Music (multi-line textarea for song list), My Wishes (large free-form textarea for everything else — flowers, casket, reception, etc.). All fields save on blur/change.
 
 **Letters section** (`#legacy/letters`, `#legacy/letter/:id`):
 - **List page**: cards sorted newest-first, showing title and recipient name + date created. "+ Add Letter" button in the header creates a new blank `legacyLetters` document and immediately navigates to the detail page.

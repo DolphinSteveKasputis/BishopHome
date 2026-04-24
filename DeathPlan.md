@@ -416,9 +416,14 @@ A button on the Legacy landing page (or in Settings) that generates a clean prin
 - Pre-arrangement: yes/no toggle + funeral home name, phone, docs location, notes
 - Organ donation removed (hospital-handled, not a day-after decision)
 
-### Section 2: Service Wishes
-- Songs list — structured rows (title + artist + context) or just a free-form text area?
-- Officiant — link to Contacts, or plain text name is fine?
+### Section 2: Service Wishes — DECIDED
+- **Service type**: dropdown — Traditional Funeral, Memorial Service, Celebration of Life, Graveside Only, No Service, Other
+- **Location preference**: single-line text input (free-form — church name, address, outdoor location, "no preference", etc.)
+- **Who should officiate**: single-line text input (pastor name, family member, specific person, "no preference")
+- **Music**: multi-line textarea (list songs, artists, context — whatever format works for the user)
+- **My Wishes**: large free-form textarea — everything else (flowers vs. donations, open/closed casket, reception, things you don't want, etc.)
+- All fields auto-save on blur/change to `legacyMeta/service`
+- Firestore fields: `serviceType`, `location`, `officiant`, `music`, `wishes`
 
 ### Section 3: Obituary — DECIDED
 - Three boxes: Planning Notes → My Draft → Instructions for Writer

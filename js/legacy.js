@@ -15,7 +15,7 @@ var _legacyPassphraseCallback = null;
 // Section metadata: key → { icon, label, route, gated }
 var LEGACY_SECTIONS = [
     { key: 'burial',    icon: '⚱️',  label: 'Burial & Remains',      route: '#legacy/burial'    },
-    { key: 'service',   icon: '🕊️',  label: 'Service Wishes',         route: '#legacy/service',   stub: true },
+    { key: 'service',   icon: '🕊️',  label: 'Service Wishes',         route: '#legacy/service'   },
     { key: 'obituary',  icon: '📜',  label: 'My Obituary',            route: '#legacy/obituary'  },
     { key: 'social',    icon: '📱',  label: 'Social Media',           route: '#legacy/social',   gated: true, stub: true },
     { key: 'accounts',  icon: '💰',  label: 'Financial Accounts',     route: '#legacy/accounts', gated: true, stub: true },
@@ -328,8 +328,112 @@ function _legacySaveBurial() {
 function _esc(str) {
     return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
-function loadLegacyServicePage() {
-    _legacyLoadStub('page-legacy-service', 'Service Wishes', 'service');
+async function loadLegacyServicePage() {
+    var page = document.getElementById('page-legacy-service');
+    if (!page) return;
+
+    page.innerHTML =
+        '<div class="page-header">' +
+            '<button class="btn btn-secondary btn-small" onclick="location.hash=\'#legacy\'">&#8592; My Legacy</button>' +
+            '<h2>🕊️ Service Wishes</h2>' +
+        '</div>' +
+        '<div class="legacy-section">' +
+
+            // Service type
+            '<div class="legacy-obit-block">' +
+                '<label class="legacy-label" for="legacyServiceType">Type of Service</label>' +
+                '<select id="legacyServiceType" class="form-control">' +
+                    '<option value="">-- Select --</option>' +
+                    '<option value="traditional-funeral">Traditional Funeral</option>' +
+                    '<option value="memorial-service">Memorial Service</option>' +
+                    '<option value="celebration-of-life">Celebration of Life</option>' +
+                    '<option value="graveside-only">Graveside Only</option>' +
+                    '<option value="no-service">No Service</option>' +
+                    '<option value="other">Other</option>' +
+                '</select>' +
+            '</div>' +
+
+            // Location
+            '<div class="legacy-obit-block">' +
+                '<label class="legacy-label" for="legacyServiceLocation">Location Preference</label>' +
+                '<input type="text" id="legacyServiceLocation" class="form-control"' +
+                    ' placeholder="e.g. St. Michael\'s Church, the backyard, no preference">' +
+            '</div>' +
+
+            // Officiant
+            '<div class="legacy-obit-block">' +
+                '<label class="legacy-label" for="legacyServiceOfficiant">Who Should Officiate</label>' +
+                '<input type="text" id="legacyServiceOfficiant" class="form-control"' +
+                    ' placeholder="e.g. Pastor Dan, a family member, no preference">' +
+            '</div>' +
+
+            // Music
+            '<div class="legacy-obit-block">' +
+                '<label class="legacy-label" for="legacyServiceMusic">Music</label>' +
+                '<p class="legacy-hint">List any songs you\'d like played — feel free to include artist and when (entry, during, closing, reception).</p>' +
+                '<textarea id="legacyServiceMusic" class="legacy-textarea" rows="5"' +
+                    ' placeholder="e.g. Amazing Grace (entry)&#10;In My Life – The Beatles (during)&#10;Don\'t Stop Believin\' – Journey (reception)"></textarea>' +
+            '</div>' +
+
+            // Wishes
+            '<div class="legacy-obit-block">' +
+                '<label class="legacy-label" for="legacyServiceWishes">My Wishes</label>' +
+                '<p class="legacy-hint">Anything else — flowers vs. donations, open/closed casket, reception, things you definitely don\'t want, etc.</p>' +
+                '<textarea id="legacyServiceWishes" class="legacy-textarea" rows="8"' +
+                    ' placeholder="Write whatever you want your family to know about the service..."></textarea>' +
+            '</div>' +
+
+            '<p class="legacy-save-status" id="legacyServiceSaveStatus"></p>' +
+        '</div>';
+
+    var crumb = document.getElementById('breadcrumbBar');
+    if (crumb) {
+        crumb.innerHTML =
+            '<a href="#life">Life</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#legacy">My Legacy</a><span class="separator">&rsaquo;</span>' +
+            '<span>Service Wishes</span>';
+    }
+
+    try {
+        var doc = await userCol('legacyMeta').doc('service').get();
+        if (doc.exists) {
+            var d = doc.data();
+            document.getElementById('legacyServiceType').value     = d.serviceType || '';
+            document.getElementById('legacyServiceLocation').value = d.location    || '';
+            document.getElementById('legacyServiceOfficiant').value= d.officiant   || '';
+            document.getElementById('legacyServiceMusic').value    = d.music       || '';
+            document.getElementById('legacyServiceWishes').value   = d.wishes      || '';
+        }
+    } catch (e) {
+        console.error('Error loading service wishes:', e);
+    }
+
+    ['legacyServiceType', 'legacyServiceLocation', 'legacyServiceOfficiant',
+     'legacyServiceMusic', 'legacyServiceWishes'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.addEventListener('change', _legacySaveService);
+        if (el && el.tagName === 'TEXTAREA') el.addEventListener('blur', _legacySaveService);
+        if (el && el.tagName === 'INPUT')    el.addEventListener('blur', _legacySaveService);
+    });
+}
+
+function _legacySaveService() {
+    var data = {
+        serviceType: document.getElementById('legacyServiceType').value,
+        location:    document.getElementById('legacyServiceLocation').value,
+        officiant:   document.getElementById('legacyServiceOfficiant').value,
+        music:       document.getElementById('legacyServiceMusic').value,
+        wishes:      document.getElementById('legacyServiceWishes').value
+    };
+    var status = document.getElementById('legacyServiceSaveStatus');
+    userCol('legacyMeta').doc('service').set(data, { merge: true })
+        .then(function() {
+            if (status) { status.textContent = 'Saved.'; setTimeout(function() { if (status) status.textContent = ''; }, 2000); }
+        })
+        .catch(function(e) {
+            console.error('Error saving service wishes:', e);
+            if (status) status.textContent = 'Error saving.';
+        });
 }
 async function loadLegacyObituaryPage() {
     var page = document.getElementById('page-legacy-obituary');

@@ -904,11 +904,17 @@ End-of-life information hub — private information for the user's loved ones if
 | `#legacy/service` | Funeral / Memorial Service Wishes — type, location, officiant, music, wishes | ✅ Built |
 | `#legacy/social` | Social Media & Digital Memorial Preferences 🔒 | Stub |
 | `#legacy/accounts` | Financial & Account Access 🔒 | Stub |
-| `#legacy/documents` | Important Documents & Where to Find Them | Stub |
+| `#legacy/documents` | Documents — online (URL) + physical, drag-to-reorder, accordion expand | ✅ Built |
 | `#legacy/household` | Practical Household Instructions | Stub |
 | `#legacy/pets` | Pets — accordion cards, inline editing | ✅ Built |
 | `#legacy/notify` | People to Notify — list contacts + free-form entries, runtime lookup | ✅ Built |
 | `#legacy/message` | Final Message — instructions + free-form message body | ✅ Built |
+
+**Documents section** (`#legacy/documents`): Single unified list of document entries (online and physical). User drags ⠿ handle to reorder — most important docs at top. Clicking a row expands it (accordion) to show details; collapsed by default. Edit/Delete buttons inside expanded view.
+- **Modal fields**: Kind (Physical/Online dropdown), Document Type (Will, Trust, Power of Attorney, Advance Directive/Living Will, Insurance Policy, Real Estate Deed, Vehicle Title, Financial Account, Medical Records, Other), Title (required), Why it matters (textarea). Online docs: URL field. Physical docs: Where is it (multi-line textarea — handles both "filing cabinet" and "Attorney name/address/phone").
+- **Card display**: drag handle · type badge · title · Online/Physical badge · chevron. Expanded: Why it matters, URL (clickable) or Where is it, Edit/Delete.
+- **Ordering**: `sortOrder` integer; batch-updated via Firestore after each drag. New docs append to end.
+- **Firestore**: `legacyDocuments` — `isOnline`, `docType`, `title`, `whyMatters`, `url`, `whereIsIt`, `sortOrder`, `createdAt`.
 
 **Final Message section** (`#legacy/message`): Two fields, both auto-saving to `legacyMeta/message` on blur. Instructions (rows=3) — when/how the message should be shared (read at service, emailed out, etc.). Message body (rows=20) — free-form text, written to whoever reads it. No AI, no print, no contacts.
 
@@ -937,7 +943,7 @@ End-of-life information hub — private information for the user's loved ones if
 - `legacyMeta` — docs keyed by section (e.g. `obituary`, `burial`); `crypto` doc holds `pbkdf2Salt` and `verifyToken` ✅ active
 - `legacyLetters` — `contactId`, `recipientName`, `title`, `instructions`, `body`, `createdAt`, `updatedAt` ✅ active
 - `legacyAccounts` — financial and digital account entries (encrypted fields — planned)
-- `legacyDocuments` — document checklist entries (planned)
+- `legacyDocuments` — `isOnline`, `docType`, `title`, `whyMatters`, `url`, `whereIsIt`, `sortOrder`, `createdAt` ✅ active
 - `legacyNotify` — `contactId` (nullable), `name`, `phone`, `email`, `address`, `howDoIKnowThem`, `createdAt` ✅ active
 - `legacyPets` — `name`, `instructions`, `createdAt` ✅ active
 

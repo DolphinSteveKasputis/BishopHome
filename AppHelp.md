@@ -1794,6 +1794,34 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 
 ---
 
+## screen:legacy-documents
+
+### Quick Help
+- Tap **+ Add Document** — pick Physical or Online, choose a type, fill in the details
+- Drag **⠿** to reorder — put the most critical documents at the top
+- Tap any row to expand and see full details
+- Tap **Edit** inside an expanded row to change it, **Delete** to remove it
+
+### Details
+
+**What it's for:** A list of every important document your family needs to find — wills, insurance policies, deeds, online accounts, anything that matters. You control the order so the most important things are at the top.
+
+**Adding a document:** Tap **+ Add Document**. Choose:
+- **Kind** — Physical (paper) or Online (has a URL)
+- **Document Type** — Will, Trust, Power of Attorney, Advance Directive, Insurance Policy, Real Estate Deed, Vehicle Title, Financial Account, Medical Records, or Other
+- **Title** — what to call it (required)
+- **Why it matters** — a sentence or two so your family knows what this is for
+- **URL** (Online only) — the link, shown as a clickable link in the list
+- **Where is it** (Physical only) — free-form: "filing cabinet in office, red folder" or "Attorney Jane Smith, 123 Main St, 612-555-1234"
+
+**Reordering:** Grab the **⠿** handle on the left of any row and drag it up or down. Order is saved immediately. Put the will and healthcare directive first — those are what families need most urgently.
+
+**Expanding a row:** Tap anywhere on a row (except the drag handle) to expand it and see all the details. Tap again to collapse.
+
+**Editing / Deleting:** Expand a row, then tap **Edit** or **Delete**. Delete asks for confirmation.
+
+---
+
 ## screen:legacy-notify
 
 ### Quick Help

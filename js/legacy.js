@@ -19,7 +19,7 @@ var LEGACY_SECTIONS = [
     { key: 'obituary',  icon: '📜',  label: 'My Obituary',            route: '#legacy/obituary'  },
     { key: 'social',    icon: '📱',  label: 'Social Media',           route: '#legacy/social',   gated: true, stub: true },
     { key: 'accounts',  icon: '💰',  label: 'Financial Accounts',     route: '#legacy/accounts', gated: true, stub: true },
-    { key: 'documents', icon: '📁',  label: 'Documents',              route: '#legacy/documents', stub: true },
+    { key: 'documents', icon: '📁',  label: 'Documents',              route: '#legacy/documents' },
     { key: 'household', icon: '🏠',  label: 'Household Instructions', route: '#legacy/household', stub: true },
     { key: 'pets',      icon: '🐾',  label: 'Pets',                   route: '#legacy/pets'      },
     { key: 'notify',    icon: '📞',  label: 'People to Notify',       route: '#legacy/notify'    },
@@ -592,8 +592,324 @@ function _legacyCheckLlm(cb) {
         cb(doc.exists && !!(doc.data().provider && doc.data().apiKey));
     }).catch(function() { cb(false); });
 }
+// ============================================================
+// Documents
+// ============================================================
+
+var _legacyDocCache = {}; // id → data, populated on load
+
+var _LEGACY_DOC_TYPE_LABELS = {
+    'will': 'Will', 'trust': 'Trust', 'poa': 'POA',
+    'directive': 'Directive', 'insurance': 'Insurance',
+    'deed': 'Deed', 'vehicle': 'Vehicle Title',
+    'financial': 'Financial', 'medical': 'Medical',
+    'other': 'Other', '': 'Document'
+};
+
 function loadLegacyDocumentsPage() {
-    _legacyLoadStub('page-legacy-documents', 'Documents', 'documents');
+    var page = document.getElementById('page-legacy-documents');
+    if (!page) return;
+
+    page.innerHTML =
+        '<div class="page-header">' +
+            '<button class="btn btn-secondary btn-small" onclick="location.hash=\'#legacy\'">&#8592; My Legacy</button>' +
+            '<h2>📁 Documents</h2>' +
+            '<button class="btn btn-primary btn-small" onclick="_legacyDocOpenModal(null)">+ Add Document</button>' +
+        '</div>' +
+        '<p class="legacy-hint" style="padding:0 16px 8px;">Drag ⠿ to reorder — most important at top.</p>' +
+        '<div id="legacyDocList"><p class="empty-state" id="legacyDocEmpty" style="padding:16px;">Loading…</p></div>' +
+        '<div id="legacyDocModal" class="modal" role="dialog" aria-modal="true">' +
+            '<div class="modal-content">' +
+                '<h3 id="legacyDocModalTitle">Add Document</h3>' +
+                '<div class="form-group">' +
+                    '<label>Kind</label>' +
+                    '<select id="legacyDocKind" class="form-control" onchange="_legacyDocKindChanged()">' +
+                        '<option value="physical">Physical (Paper)</option>' +
+                        '<option value="online">Online (URL)</option>' +
+                    '</select>' +
+                '</div>' +
+                '<div class="form-group">' +
+                    '<label>Document Type</label>' +
+                    '<select id="legacyDocType" class="form-control">' +
+                        '<option value="">-- Select type --</option>' +
+                        '<option value="will">Will</option>' +
+                        '<option value="trust">Trust</option>' +
+                        '<option value="poa">Power of Attorney</option>' +
+                        '<option value="directive">Advance Directive / Living Will</option>' +
+                        '<option value="insurance">Insurance Policy</option>' +
+                        '<option value="deed">Real Estate Deed</option>' +
+                        '<option value="vehicle">Vehicle Title</option>' +
+                        '<option value="financial">Financial Account</option>' +
+                        '<option value="medical">Medical Records</option>' +
+                        '<option value="other">Other</option>' +
+                    '</select>' +
+                '</div>' +
+                '<div class="form-group">' +
+                    '<label>Title <span style="color:var(--danger)">*</span></label>' +
+                    '<input type="text" id="legacyDocTitle" class="form-control" placeholder="e.g. Last Will and Testament">' +
+                '</div>' +
+                '<div class="form-group">' +
+                    '<label>Why it matters</label>' +
+                    '<textarea id="legacyDocWhy" class="form-control" rows="3" placeholder="e.g. Names executor and beneficiaries for all assets"></textarea>' +
+                '</div>' +
+                '<div class="form-group" id="legacyDocUrlGroup">' +
+                    '<label>URL</label>' +
+                    '<input type="url" id="legacyDocUrl" class="form-control" placeholder="https://...">' +
+                '</div>' +
+                '<div class="form-group" id="legacyDocWhereGroup">' +
+                    '<label>Where is it</label>' +
+                    '<textarea id="legacyDocWhere" class="form-control" rows="3"' +
+                        ' placeholder="e.g. Filing cabinet in office, red folder&#10;— or —&#10;Attorney Jane Smith, 123 Main St, 612-555-1234"></textarea>' +
+                '</div>' +
+                '<div class="modal-actions">' +
+                    '<button class="btn btn-secondary" onclick="_legacyDocCloseModal()">Cancel</button>' +
+                    '<button class="btn btn-danger hidden" id="legacyDocDeleteBtn" onclick="_legacyDocDeleteFromModal()">Delete</button>' +
+                    '<button class="btn btn-primary" onclick="_legacyDocSaveModal()">Save</button>' +
+                '</div>' +
+            '</div>' +
+        '</div>';
+
+    var crumb = document.getElementById('breadcrumbBar');
+    if (crumb) {
+        crumb.innerHTML =
+            '<a href="#life">Life</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#legacy">My Legacy</a><span class="separator">&rsaquo;</span>' +
+            '<span>Documents</span>';
+    }
+
+    var modal = document.getElementById('legacyDocModal');
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) _legacyDocCloseModal();
+        });
+    }
+
+    _legacyDocKindChanged();
+    _legacyDocLoadList();
+}
+
+async function _legacyDocLoadList() {
+    var list = document.getElementById('legacyDocList');
+    if (!list) return;
+    _legacyDocCache = {};
+    list.innerHTML = '<p class="empty-state" id="legacyDocEmpty" style="padding:16px;">Loading…</p>';
+
+    try {
+        var snap = await userCol('legacyDocuments').orderBy('sortOrder', 'asc').get();
+        if (snap.empty) {
+            var emptyEl = document.getElementById('legacyDocEmpty');
+            if (emptyEl) emptyEl.textContent = 'No documents yet. Tap + Add Document to get started.';
+            return;
+        }
+        list.innerHTML = '';
+        snap.forEach(function(doc) {
+            _legacyDocCache[doc.id] = doc.data();
+            list.appendChild(_legacyDocCard(doc.id, doc.data()));
+        });
+
+        if (typeof Sortable !== 'undefined') {
+            Sortable.create(list, {
+                animation: 150,
+                handle: '.legacy-doc-drag',
+                onEnd: _legacyDocReorder
+            });
+        }
+    } catch (e) {
+        console.error('Error loading documents:', e);
+        list.innerHTML = '<p class="empty-state" style="padding:16px;">Error loading documents.</p>';
+    }
+}
+
+function _legacyDocCard(id, data) {
+    var typeLabel = _LEGACY_DOC_TYPE_LABELS[data.docType] || 'Document';
+    var kindLabel = data.isOnline ? 'Online' : 'Physical';
+    var kindClass = data.isOnline ? 'legacy-doc-badge--online' : 'legacy-doc-badge--physical';
+
+    var card = document.createElement('div');
+    card.className = 'legacy-doc-card';
+    card.setAttribute('data-id', id);
+
+    card.innerHTML =
+        '<div class="legacy-doc-card-header" onclick="_legacyDocToggle(\'' + id + '\')">' +
+            '<span class="legacy-doc-drag" onclick="event.stopPropagation()">⠿</span>' +
+            '<span class="legacy-doc-type-badge">' + _esc(typeLabel) + '</span>' +
+            '<span class="legacy-doc-title">' + _esc(data.title || 'Untitled') + '</span>' +
+            '<span class="legacy-doc-kind-badge ' + kindClass + '">' + kindLabel + '</span>' +
+            '<span class="legacy-doc-chevron">▾</span>' +
+        '</div>' +
+        '<div class="legacy-doc-card-body">' +
+            (data.whyMatters
+                ? '<div class="legacy-doc-field">' +
+                      '<span class="legacy-doc-field-label">Why it matters</span>' +
+                      '<span class="legacy-doc-field-value">' + _esc(data.whyMatters) + '</span>' +
+                  '</div>'
+                : '') +
+            (data.isOnline && data.url
+                ? '<div class="legacy-doc-field">' +
+                      '<span class="legacy-doc-field-label">Link</span>' +
+                      '<a href="' + _esc(data.url) + '" target="_blank" rel="noopener" class="legacy-doc-link">' + _esc(data.url) + '</a>' +
+                  '</div>'
+                : '') +
+            (!data.isOnline && data.whereIsIt
+                ? '<div class="legacy-doc-field">' +
+                      '<span class="legacy-doc-field-label">Where is it</span>' +
+                      '<span class="legacy-doc-field-value" style="white-space:pre-wrap;">' + _esc(data.whereIsIt) + '</span>' +
+                  '</div>'
+                : '') +
+            '<div class="legacy-doc-card-footer">' +
+                '<button class="btn btn-secondary btn-small"' +
+                    ' onclick="event.stopPropagation(); _legacyDocOpenModal(\'' + id + '\')">Edit</button>' +
+                '<button class="btn btn-danger btn-small"' +
+                    ' onclick="event.stopPropagation(); _legacyDocDeleteFromCard(\'' + id + '\')">Delete</button>' +
+            '</div>' +
+        '</div>';
+
+    return card;
+}
+
+function _legacyDocToggle(id) {
+    var card = document.querySelector('.legacy-doc-card[data-id="' + id + '"]');
+    if (card) card.classList.toggle('legacy-doc-card--expanded');
+}
+
+function _legacyDocKindChanged() {
+    var kind = (document.getElementById('legacyDocKind') || {}).value;
+    var urlGroup   = document.getElementById('legacyDocUrlGroup');
+    var whereGroup = document.getElementById('legacyDocWhereGroup');
+    if (urlGroup)   urlGroup.style.display   = (kind === 'online')   ? '' : 'none';
+    if (whereGroup) whereGroup.style.display = (kind === 'physical') ? '' : 'none';
+}
+
+function _legacyDocOpenModal(id) {
+    var modal     = document.getElementById('legacyDocModal');
+    var titleEl   = document.getElementById('legacyDocModalTitle');
+    var deleteBtn = document.getElementById('legacyDocDeleteBtn');
+    if (!modal) return;
+
+    document.getElementById('legacyDocKind').value  = 'physical';
+    document.getElementById('legacyDocType').value  = '';
+    document.getElementById('legacyDocTitle').value = '';
+    document.getElementById('legacyDocWhy').value   = '';
+    document.getElementById('legacyDocUrl').value   = '';
+    document.getElementById('legacyDocWhere').value = '';
+    modal.dataset.editId = id || '';
+
+    if (id) {
+        titleEl.textContent = 'Edit Document';
+        deleteBtn.classList.remove('hidden');
+        var data = _legacyDocCache[id];
+        if (data) {
+            document.getElementById('legacyDocKind').value  = data.isOnline ? 'online' : 'physical';
+            document.getElementById('legacyDocType').value  = data.docType    || '';
+            document.getElementById('legacyDocTitle').value = data.title      || '';
+            document.getElementById('legacyDocWhy').value   = data.whyMatters || '';
+            document.getElementById('legacyDocUrl').value   = data.url        || '';
+            document.getElementById('legacyDocWhere').value = data.whereIsIt  || '';
+        }
+    } else {
+        titleEl.textContent = 'Add Document';
+        deleteBtn.classList.add('hidden');
+    }
+
+    _legacyDocKindChanged();
+    modal.classList.add('open');
+    setTimeout(function() {
+        var el = document.getElementById('legacyDocTitle');
+        if (el) el.focus();
+    }, 50);
+}
+
+function _legacyDocCloseModal() {
+    var modal = document.getElementById('legacyDocModal');
+    if (modal) modal.classList.remove('open');
+}
+
+async function _legacyDocSaveModal() {
+    var modal    = document.getElementById('legacyDocModal');
+    var id       = modal ? (modal.dataset.editId || '') : '';
+    var isOnline = (document.getElementById('legacyDocKind')  || {}).value === 'online';
+    var docType  = ((document.getElementById('legacyDocType')  || {}).value || '');
+    var title    = ((document.getElementById('legacyDocTitle') || {}).value || '').trim();
+    var why      = ((document.getElementById('legacyDocWhy')   || {}).value || '').trim();
+    var url      = ((document.getElementById('legacyDocUrl')   || {}).value || '').trim();
+    var where    = ((document.getElementById('legacyDocWhere') || {}).value || '').trim();
+
+    if (!title) {
+        alert('Please enter a title.');
+        var el = document.getElementById('legacyDocTitle');
+        if (el) el.focus();
+        return;
+    }
+
+    var data = {
+        isOnline:   isOnline,
+        docType:    docType,
+        title:      title,
+        whyMatters: why,
+        url:        isOnline  ? url   : '',
+        whereIsIt:  !isOnline ? where : ''
+    };
+
+    try {
+        if (id) {
+            await userCol('legacyDocuments').doc(id).set(data, { merge: true });
+            _legacyDocCache[id] = Object.assign(_legacyDocCache[id] || {}, data);
+        } else {
+            var snap = await userCol('legacyDocuments').orderBy('sortOrder', 'desc').limit(1).get();
+            data.sortOrder = snap.empty ? 0 : ((snap.docs[0].data().sortOrder || 0) + 1);
+            data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+            var ref = await userCol('legacyDocuments').add(data);
+            _legacyDocCache[ref.id] = data;
+        }
+        _legacyDocCloseModal();
+        await _legacyDocLoadList();
+    } catch (e) {
+        console.error('Error saving document:', e);
+        alert('Could not save. Please try again.');
+    }
+}
+
+async function _legacyDocDeleteFromModal() {
+    var modal = document.getElementById('legacyDocModal');
+    var id    = modal ? (modal.dataset.editId || '') : '';
+    if (!id) return;
+    var title = (_legacyDocCache[id] || {}).title || 'this document';
+    if (!confirm('Delete "' + title + '"?')) return;
+    try {
+        await userCol('legacyDocuments').doc(id).delete();
+        delete _legacyDocCache[id];
+        _legacyDocCloseModal();
+        await _legacyDocLoadList();
+    } catch (e) {
+        console.error('Error deleting document:', e);
+        alert('Could not delete. Please try again.');
+    }
+}
+
+async function _legacyDocDeleteFromCard(id) {
+    var title = (_legacyDocCache[id] || {}).title || 'this document';
+    if (!confirm('Delete "' + title + '"?')) return;
+    try {
+        await userCol('legacyDocuments').doc(id).delete();
+        delete _legacyDocCache[id];
+        await _legacyDocLoadList();
+    } catch (e) {
+        console.error('Error deleting document:', e);
+        alert('Could not delete. Please try again.');
+    }
+}
+
+async function _legacyDocReorder() {
+    var items = document.querySelectorAll('#legacyDocList .legacy-doc-card');
+    var batch = firebase.firestore().batch();
+    items.forEach(function(el, i) {
+        batch.update(userCol('legacyDocuments').doc(el.getAttribute('data-id')), { sortOrder: i });
+    });
+    try {
+        await batch.commit();
+    } catch (e) {
+        console.error('Error reordering documents:', e);
+    }
 }
 function loadLegacyHouseholdPage() {
     _legacyLoadStub('page-legacy-household', 'Household Instructions', 'household');

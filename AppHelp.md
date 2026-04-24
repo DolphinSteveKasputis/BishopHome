@@ -552,7 +552,7 @@ Firebase Storage is not available on the free Spark plan. The Blaze (pay-as-you-
 
 **Step 2 — Enable Firebase Storage** (one-time, in the Firebase console):
 1. Click **View Setup Instructions** in this app for the full walkthrough
-2. In the Firebase console, click **Storage** in the left nav → **Get Started** → choose region → **Done**
+2. In the Firebase console, click **Storage** in the left nav → **Get Started** → leave "No cost location" selected, pick **US-CENTRAL1** → **Continue** → choose **Start in production mode** → **Create**
 3. Paste in the security rules shown in the instructions and click **Publish**
 
 **Step 3 — Activate Private Data:**

@@ -44,6 +44,9 @@ firebase.firestore().enablePersistence({ synchronizeTabs: true })
 // Get a reference to Firebase Auth — used by auth.js for login/logout
 const auth = firebase.auth();
 
+// Get a reference to Firebase Storage — used by private.js for encrypted document/photo storage
+const storage = firebase.storage();
+
 // ============================================================
 // userCol() — Per-user Firestore collection helper
 //

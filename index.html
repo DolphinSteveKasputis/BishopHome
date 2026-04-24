@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=559">
+    <link rel="stylesheet" href="css/styles.css?v=560">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -25,6 +25,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-storage-compat.js"></script>
 </head>
 <body>
 
@@ -1043,6 +1044,46 @@
                     <p class="accordion-desc">Shared scratchpad for tracking issues and ideas — visible to all users.</p>
                     <div class="settings-save-row">
                         <a class="btn btn-secondary" href="#devnotes">&#128221; Open Dev Notes</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Private Storage -->
+            <div class="settings-card accordion-card">
+                <button class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>Private Storage</span>
+                    <span class="private-active-badge hidden" id="privateSettingsActiveBadge">Active</span>
+                    <span class="accordion-chevron">&#9658;</span>
+                </button>
+                <div class="accordion-body">
+                    <p class="accordion-desc">
+                        A personal vault protected by a passphrase only you know. Stores encrypted bookmarks,
+                        documents, and photos. No one can read this data without your passphrase — not even
+                        someone with access to your app login or Firestore.
+                    </p>
+
+                    <div class="private-setup-steps">
+                        <div class="private-step">
+                            <span class="private-step-num">1</span>
+                            <div class="private-step-body">
+                                <strong>Enable Firebase Storage</strong>
+                                <p class="private-step-desc">Firebase Storage is where your encrypted files are kept. Enable it once in the Firebase console and set the security rules.</p>
+                                <button class="btn btn-secondary btn-small" onclick="privateOpenHelpModal()">View Setup Instructions</button>
+                            </div>
+                        </div>
+                        <div class="private-step">
+                            <span class="private-step-num">2</span>
+                            <div class="private-step-body">
+                                <strong>Activate Private Data</strong>
+                                <p class="private-step-desc">Choose a passphrase only you know. <strong>Do not write it down</strong> — it is never stored and cannot be recovered if forgotten.</p>
+                                <div id="privateActivateBtnWrap">
+                                    <button class="btn btn-primary btn-small" onclick="privateOpenActivateModal()">Activate Private Data</button>
+                                </div>
+                                <p class="private-active-msg hidden" id="privateActiveConfirmMsg">
+                                    ✓ Private vault is active. The Private card is now visible on the Life screen.
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -3814,6 +3855,81 @@
 
     <!-- ========== MODALS ========== -->
 
+    <!-- Private Vault: Firebase Storage Setup Help Modal -->
+    <div class="modal-overlay" id="modal-private-help">
+        <div class="modal modal--wide">
+            <h3>Setup Firebase Storage</h3>
+            <p style="font-size:0.9rem;color:#6b7280;margin-bottom:16px;">
+                Complete both steps below before activating your private vault.
+            </p>
+
+            <div class="private-help-step">
+                <h4>Step 1 — Enable Firebase Storage</h4>
+                <ol class="private-help-list">
+                    <li>Go to <a href="https://console.firebase.google.com" target="_blank" rel="noopener">console.firebase.google.com</a></li>
+                    <li>Select project <strong>bishop-62d43</strong></li>
+                    <li>Click <strong>Storage</strong> in the left nav</li>
+                    <li>Click <strong>Get Started</strong></li>
+                    <li>Choose region <strong>us-central1</strong> (recommended)</li>
+                    <li>Click <strong>Done</strong></li>
+                </ol>
+            </div>
+
+            <div class="private-help-step">
+                <h4>Step 2 — Secure the Storage Rules <span class="private-help-required">(required)</span></h4>
+                <p style="font-size:0.85rem;color:#6b7280;margin-bottom:8px;">
+                    The default rules allow any logged-in user to read anyone's files. Replace them with rules that restrict each user to their own folder.
+                </p>
+                <ol class="private-help-list">
+                    <li>In the Storage section, click the <strong>Rules</strong> tab</li>
+                    <li>Replace all existing content with the rules below</li>
+                    <li>Click <strong>Publish</strong></li>
+                </ol>
+                <pre class="private-rules-block">rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /users/{userId}/{allPaths=**} {
+      allow read, write: if request.auth != null
+                         &amp;&amp; request.auth.uid == userId;
+    }
+  }
+}</pre>
+            </div>
+
+            <div class="modal-buttons">
+                <button class="btn btn-primary" onclick="closeModal('modal-private-help')">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Private Vault: Activate Modal -->
+    <div class="modal-overlay" id="modal-private-activate">
+        <div class="modal">
+            <h3>Activate Private Vault</h3>
+            <p style="font-size:0.9rem;color:#6b7280;margin-bottom:4px;">
+                Choose a passphrase only you know.
+            </p>
+            <p class="private-warning-text">
+                ⚠️ This passphrase is <strong>never stored</strong> and cannot be recovered. If you forget it, all private data is permanently inaccessible.
+            </p>
+            <div class="form-group">
+                <label for="privateActivatePassphrase">Passphrase</label>
+                <input type="password" id="privateActivatePassphrase" placeholder="Enter a passphrase"
+                    onkeydown="if(event.key==='Enter')document.getElementById('privateActivateConfirm').focus()">
+            </div>
+            <div class="form-group">
+                <label for="privateActivateConfirm">Confirm Passphrase</label>
+                <input type="password" id="privateActivateConfirm" placeholder="Re-enter passphrase"
+                    onkeydown="if(event.key==='Enter')privateSubmitActivate()">
+            </div>
+            <p class="text-error hidden" id="privateActivateError"></p>
+            <div class="modal-buttons">
+                <button class="btn btn-primary" id="privateActivateBtn" onclick="privateSubmitActivate()">Activate</button>
+                <button class="btn btn-secondary" onclick="closeModal('modal-private-activate')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Legacy Passphrase Modal -->
     <div class="modal-overlay" id="modal-legacy-passphrase">
         <div class="modal">
@@ -6195,6 +6311,19 @@
     </div>
 
         <!-- ================================================================
+             PRIVATE VAULT SECTION — pages: settings-private-storage, private
+             ================================================================ -->
+
+        <!-- Page: Private Vault Home (#private) — gate + vault home (content added in Phase 2) -->
+        <section class="page hidden" id="page-private">
+            <div class="page-header">
+                <button class="btn btn-secondary btn-small back-btn" onclick="window.location.hash='#life'">&#8592; Back</button>
+                <h2>Private</h2>
+            </div>
+            <p class="empty-state" style="margin-top:48px;">Private vault coming soon.</p>
+        </section>
+
+        <!-- ================================================================
              LIFE SECTION — pages: life, journal, journal-entry,
                             journal-tracking, journal-categories
              ================================================================ -->
@@ -6234,6 +6363,10 @@
                 <a href="#legacy" class="landing-tile landing-tile--legacy">
                     <span class="landing-tile-icon">🕊️</span>
                     <span class="landing-tile-label">My Legacy</span>
+                </a>
+                <a href="#private" class="landing-tile landing-tile--private hidden" id="private-life-tile">
+                    <span class="landing-tile-icon">🔐</span>
+                    <span class="landing-tile-label">Private</span>
                 </a>
             </div>
             <!-- Coming Up — annual dates within the next 30 days -->
@@ -9673,7 +9806,7 @@ export default {
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=509"></script>
+    <script src="js/firebase-config.js?v=560"></script>
     <script src="js/auth.js?v=350"></script>
     <script src="js/zones.js?v=355"></script>
     <script src="js/plants.js?v=351"></script>
@@ -9726,7 +9859,8 @@ export default {
     <script src="js/help.js?v=536"></script>
     <script src="js/legacy-crypto.js?v=2"></script>
     <script src="js/legacy.js?v=18"></script>
-    <script src="js/app.js?v=545"></script>
+    <script src="js/private.js?v=560"></script>
+    <script src="js/app.js?v=560"></script>
 
 </body>
 </html>

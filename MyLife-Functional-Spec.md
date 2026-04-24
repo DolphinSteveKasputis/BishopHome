@@ -880,7 +880,7 @@ A notebook-organized note-taking system.
 
 ### Life Main Page (`#life`)
 
-Landing page showing a **3-column grid** of tile shortcuts: Journal, Contacts, Health, Notes, Calendar, Projects, Checklists, and **My Legacy**. The Checklists tile navigates to `#checklists/life`. The My Legacy tile navigates to `#legacy`. Below the tiles, a **"Coming Up"** section (hidden when empty) shows events within the next 30 days, sorted by date. Two sources are merged:
+Landing page showing a **3-column grid** of tile shortcuts: Journal, Contacts, Health, Notes, Calendar, Projects, Checklists, **My Legacy**, and **Private** (hidden until vault is activated). The Checklists tile navigates to `#checklists/life`. The My Legacy tile navigates to `#legacy`. The Private tile (`#private`) is hidden until the user activates the Private vault in General Settings. Below the tiles, a **"Coming Up"** section (hidden when empty) shows events within the next 30 days, sorted by date. Two sources are merged:
 - **Annual contact dates** (`peopleImportantDates` where `recurrence == annual`) — shows label, person name (tappable link to `#contact/{id}`), and "turns N" age badge if a birth year is set
 - **Upcoming life calendar events** (`lifeEvents` where `startDate` in next 30 days, excluding attended/missed/didntgo) — shows event title as a tappable link to `#life-event/{id}`. For **today's events**, also shows a clickable 📍 address (opens Google Maps) and 📞 phone number. Address/phone come from the linked location contact (`locationContactId` → `people` doc) if set, or from the plain-text `location` field (as address only).
 
@@ -994,6 +994,73 @@ Tracks major life events — trips, milestones, goals, relationships.
 **People linking**: Events can tag multiple people from the `people` collection. Linked events appear on each person's detail page.
 
 **Mini logs**: Inline journal-style entries attached to a life event. Appear in the main journal feed (togglable).
+
+---
+
+## Part 8a: Private Vault
+
+**Plan document**: `PrivatePlan.md`
+
+**JS file**: `js/private.js`
+
+An encrypted personal vault for data the user never wants anyone else to access — not even someone with the app login or direct Firestore/Storage access. All encryption is client-side (AES-256-GCM + PBKDF2 via Web Crypto API). The passphrase is never stored.
+
+### Setup (`#settings-general` → Private Storage accordion)
+
+The Private Storage accordion in General Settings handles one-time setup:
+
+- **Step 1 — Firebase Storage**: User must enable Firebase Storage in the Firebase console (project `bishop-62d43`) and set the security rules that restrict each user to their own path. A "View Setup Instructions" button opens a help modal with the exact steps and rules text.
+- **Step 2 — Activate**: User clicks "Activate Private Data", enters a passphrase twice. App:
+  1. Derives an AES-256-GCM key via PBKDF2 (100,000 iterations, SHA-256)
+  2. Tests Firebase Storage connectivity (upload/download/delete a tiny encrypted blob)
+  3. Encrypts the sentinel string `"PRIVATE_VAULT_OK"` and saves `{pbkdf2Salt, encryptedSentinel}` to `userCol('privateVault').doc('auth')`
+  4. Shows green **Active** badge; Private tile becomes visible on Life screen
+
+**Passphrase rules**: More than 3 characters. No recovery if forgotten — all private data is permanently inaccessible.
+
+### Private Tile (`#life` → `#private`)
+
+The Private tile is hidden on the Life landing page until activation is complete. Visibility is checked at app load via `privateCheckActivated()` in `initApp()`, which reads `privateVault/auth` from Firestore.
+
+### Session & Auto-Lock
+
+- Entering `#private` always prompts for passphrase (even within a session)
+- Correct passphrase: derives the CryptoKey, verifies against stored sentinel, holds key in memory
+- **Auto-lock**: 60 minutes of inactivity (any click or keypress anywhere in the app resets the timer). On expiry: CryptoKey cleared from memory. Phase 2 will add the vault home UI and timer wiring.
+- Page reload always requires re-entry
+
+### Encryption Details
+
+- **Algorithm**: AES-256-GCM
+- **Key derivation**: PBKDF2 (passphrase + random 16-byte salt, 100,000 iterations, SHA-256)
+- **Salt**: Stored plaintext in Firestore (not secret — prevents rainbow table attacks)
+- **IV**: 12 random bytes generated fresh per encryption; prepended to ciphertext before Base64 encoding: `Base64(IV + ciphertext)`
+- **In-memory**: Stores the derived `CryptoKey` object, never the raw passphrase
+
+### Three Sub-Features (Phases 3–5)
+
+| Feature | Description |
+|---|---|
+| Bookmarks | Encrypted URL bookmark tree (up to 5 levels), drag-to-reorder cross-folder |
+| Documents | Encrypted .docx files in Firebase Storage; download-to-edit workflow |
+| Photos | Encrypted photos in Firebase Storage, organized by album |
+
+### Firestore Collections
+
+| Collection | Key Fields |
+|---|---|
+| `privateVault` | `{pbkdf2Salt, encryptedSentinel}` — single doc `auth` |
+| `privateBookmarks` | `{parentId, type, encryptedData, order, depth}` — Phase 3 |
+| `privateDocuments` | `{encryptedTitle, encryptedOriginalFileName, storageRef, createdAt, updatedAt, fileSizeBytes}` — Phase 4 |
+| `privatePhotoAlbums` | `{encryptedName, order, createdAt}` — Phase 5 |
+| `privatePhotos` | `{albumId, encryptedCaption, encryptedOriginalFileName, storageRef, createdAt}` — Phase 5 |
+
+### Firebase Storage Paths
+
+All files encrypted before upload. Storage never sees plaintext.
+
+- `/users/{uid}/privateDocuments/{docId}` — encrypted .docx blobs
+- `/users/{uid}/privatePhotos/{photoId}` — encrypted image blobs
 
 ---
 

@@ -12720,3 +12720,147 @@ a.health-chip--link:hover { filter: brightness(0.93); }
     gap: 8px;
     margin-top: 12px;
 }
+
+/* ============================================================
+   Private Vault — Settings card, Life tile, modals
+   ============================================================ */
+
+/* Life screen tile */
+.landing-tile--private {
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+    color: #fff;
+}
+.landing-tile--private .landing-tile-icon,
+.landing-tile--private .landing-tile-label {
+    color: #fff;
+}
+
+/* Active badge inside accordion header */
+.private-active-badge {
+    display: inline-block;
+    background: #16a34a;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 2px 8px;
+    border-radius: 99px;
+    margin-left: 8px;
+    vertical-align: middle;
+    text-transform: uppercase;
+}
+
+/* Setup steps layout inside the accordion */
+.private-setup-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-top: 12px;
+}
+
+.private-step {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+}
+
+.private-step-num {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #312e81;
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 2px;
+}
+
+.private-step-body {
+    flex: 1;
+}
+
+.private-step-body strong {
+    display: block;
+    font-size: 0.95rem;
+    margin-bottom: 4px;
+}
+
+.private-step-desc {
+    font-size: 0.85rem;
+    color: #6b7280;
+    margin: 0 0 10px;
+}
+
+.private-active-msg {
+    font-size: 0.85rem;
+    color: #16a34a;
+    font-weight: 600;
+    margin-top: 8px;
+}
+
+/* Activation modal warning text */
+.private-warning-text {
+    font-size: 0.85rem;
+    color: #b45309;
+    background: #fef3c7;
+    border: 1px solid #fcd34d;
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-bottom: 16px;
+}
+
+/* Help modal — wider to fit the rules code block */
+.modal--wide {
+    max-width: 560px;
+    width: 95vw;
+}
+
+/* Help modal steps */
+.private-help-step {
+    margin-bottom: 20px;
+}
+
+.private-help-step h4 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #111827;
+}
+
+.private-help-required {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #dc2626;
+    margin-left: 4px;
+}
+
+.private-help-list {
+    padding-left: 20px;
+    font-size: 0.88rem;
+    color: #374151;
+    line-height: 1.7;
+    margin-bottom: 10px;
+}
+
+.private-help-list a {
+    color: #2563eb;
+}
+
+/* Security rules code block */
+.private-rules-block {
+    background: #1e1b4b;
+    color: #a5b4fc;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.78rem;
+    line-height: 1.6;
+    padding: 12px 14px;
+    border-radius: 8px;
+    overflow-x: auto;
+    white-space: pre;
+    margin-top: 8px;
+    user-select: all;
+}

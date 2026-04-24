@@ -134,6 +134,7 @@ const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'h
                          'health-vitals', 'health-insurance', 'health-emergency', 'health-appointments', 'health-care-team',
                          'life-calendar', 'life-projects',
                          'legacy',
+                         'private',
                          'thoughts', 'top10lists', 'memories', 'views'];
 
 /**
@@ -194,7 +195,8 @@ const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'jo
                      'life-projects', 'life-project',
                      'legacy', 'legacy-burial', 'legacy-service', 'legacy-obituary', 'legacy-social',
                      'legacy-accounts', 'legacy-documents', 'legacy-household',
-                     'legacy-pets', 'legacy-notify', 'legacy-letters', 'legacy-letter', 'legacy-message'];
+                     'legacy-pets', 'legacy-notify', 'legacy-letters', 'legacy-letter', 'legacy-message',
+                     'private'];
 
 /** Tracks which nav context is currently active ('yard', 'house', or 'life'). */
 var currentNavContext = 'yard';
@@ -731,6 +733,9 @@ function handleRoute() {
     } else if (page === 'legacy') {
         showPage('legacy');
         loadLegacyPage();
+    // ---------- Private Vault routes ----------
+    } else if (page === 'private') {
+        showPage('private');
     // ---------- Thoughts routes ----------
     } else if (page === 'thoughts') {
         showPage('thoughts');
@@ -906,6 +911,8 @@ function initApp() {
     initAppName().then(function() {
         handleRoute();
     });
+    // Check Private vault activation state (shows/hides Life tile)
+    if (typeof privateCheckActivated === 'function') privateCheckActivated();
     // Pre-load GCal settings so gcalIsConnected() works on any page without visiting Settings first
     if (typeof gcalLoadSettings === 'function') gcalLoadSettings();
     _initTabIndentTextareas();

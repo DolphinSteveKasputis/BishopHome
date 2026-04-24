@@ -534,6 +534,32 @@ Sync your Yard and Life Calendar events to Google Calendar so you get reminders 
 
 **Note:** If you previously used the "Add to Google Calendar" links to add events manually and then connect the full sync, running Sync All may create duplicates. Delete the duplicates directly in Google Calendar.
 
+### Private Storage Setup
+
+The **Private Storage** accordion in General Settings activates an encrypted personal vault — visible as a **Private** tile on the Life screen once activated.
+
+**What it protects:** Bookmarks, documents, and photos that you never want anyone else to access — not even someone with your app login or direct access to Firestore.
+
+**How it works:** All data is encrypted in your browser using your passphrase before anything leaves your device. The passphrase is never stored anywhere. Without it, the data is permanently unreadable.
+
+**Two steps to activate:**
+
+**Step 1 — Enable Firebase Storage** (one-time, in the Firebase console):
+1. Click **View Setup Instructions** for the full walkthrough
+2. Enable Storage in the Firebase console for project `bishop-62d43`
+3. Paste in the security rules shown in the instructions and click Publish
+
+**Step 2 — Activate Private Data:**
+1. Click **Activate Private Data**
+2. Enter a passphrase and confirm it (must be more than 3 characters)
+3. The app tests Firebase Storage, then encrypts a verification token
+4. On success: a green **Active** badge appears and the Private tile becomes visible on Life
+
+**Important warnings:**
+- Your passphrase is **never stored** and **cannot be recovered**. If you forget it, all private data is permanently inaccessible.
+- Do not reuse your app login password as your private passphrase — they serve different purposes.
+- The vault auto-locks after 60 minutes of inactivity. Any activity anywhere in the app resets the timer.
+
 ---
 
 ## screen:house
@@ -1595,6 +1621,7 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 - **Projects** -- Life Projects (vacation planner, build projects, etc.)
 - **Checklists** -- reusable checklists for life tasks
 - **My Legacy** -- private end-of-life information for your loved ones (burial wishes, financial accounts, letters, and more)
+- **Private** -- encrypted vault for bookmarks, documents, and photos that only you can access (only visible after activation in General Settings)
 
 ---
 

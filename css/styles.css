@@ -5627,12 +5627,15 @@ a.ar-target-link:hover {
 }
 .legacy-subsection .form-group { margin-bottom: 0; }
 
-/* ── My Legacy — Letters list ───────────────────────────────── */
-.legacy-letters-list {
-    display: flex;
-    flex-direction: column;
+/* ── My Legacy — Letters grid (3 columns) ───────────────────── */
+.legacy-letters-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
     gap: 12px;
     padding: 16px;
+}
+@media (max-width: 600px) {
+    .legacy-letters-grid { grid-template-columns: 1fr; }
 }
 .legacy-letter-card {
     background: var(--bg-card, #fff);
@@ -5656,6 +5659,14 @@ a.ar-target-link:hover {
     font-size: 0.85rem;
     color: var(--text-secondary, #6b7280);
 }
+.legacy-letter-card--rmf {
+    background: linear-gradient(135deg, #1e3a5f, #2d5f8a);
+    color: #fff;
+    text-decoration: none;
+    border-color: transparent;
+}
+.legacy-letter-card--rmf .legacy-letter-card-title { color: #fff; }
+.legacy-letter-card--rmf .legacy-letter-card-meta  { color: rgba(255,255,255,0.75); }
 
 /* ── My Legacy — Print area (screen: hidden; print: shown) ─── */
 .legacy-print-area { display: none; }

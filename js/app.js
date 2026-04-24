@@ -158,7 +158,7 @@ const ALL_PAGES = [
     'life-projects', 'life-project',
     'legacy', 'legacy-burial', 'legacy-service', 'legacy-obituary', 'legacy-social',
     'legacy-accounts', 'legacy-documents', 'legacy-medical', 'legacy-household',
-    'legacy-pets', 'legacy-notify', 'legacy-letters', 'legacy-letter', 'legacy-message',
+    'legacy-pets', 'legacy-notify', 'legacy-letters', 'legacy-letter', 'legacy-letters-intro', 'legacy-message',
     'top10list-create', 'top10list-edit',
     'memory-create', 'memory-edit',
     'view', 'view-history', 'views-categories',
@@ -719,7 +719,10 @@ function handleRoute() {
     } else if (page === 'legacy' && id === 'notify') {
         showPage('legacy-notify');
         loadLegacyNotifyPage();
-    } else if (page === 'legacy' && id === 'letters') {
+    } else if (page === 'legacy' && id === 'letters' && parts[2] === 'intro') {
+        showPage('legacy-letters-intro');
+        loadLegacyLettersIntroPage();
+    } else if (page === 'legacy' && id === 'letters' && !parts[2]) {
         showPage('legacy-letters');
         loadLegacyLettersPage();
     } else if (page === 'legacy' && id === 'letter' && parts[2]) {

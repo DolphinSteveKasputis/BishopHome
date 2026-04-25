@@ -165,7 +165,7 @@ const ALL_PAGES = [
     'memory-create', 'memory-edit',
     'view', 'view-history', 'views-categories',
     'credentials-add', 'credentials-edit', 'credentials-categories',
-    'investments',
+    'investments', 'investments-form',
     'help'
 ];
 
@@ -201,7 +201,7 @@ const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'jo
                      'legacy-pets', 'legacy-notify', 'legacy-letters', 'legacy-letter', 'legacy-message',
                      'private', 'private-bookmarks', 'private-documents', 'private-photos', 'private-photos-gallery',
                      'credentials', 'credentials-add', 'credentials-edit', 'credentials-categories',
-                     'investments'];
+                     'investments', 'investments-form'];
 
 /** Tracks which nav context is currently active ('yard', 'house', or 'life'). */
 var currentNavContext = 'yard';
@@ -739,6 +739,12 @@ function handleRoute() {
         showPage('legacy');
         loadLegacyPage();
     // ---------- Investments routes ----------
+    } else if (page === 'investments' && id === 'add') {
+        showPage('investments-form');
+        loadInvestmentsFormPage(null);
+    } else if (page === 'investments' && id === 'edit' && parts[2]) {
+        showPage('investments-form');
+        loadInvestmentsFormPage(parts[2]);
     } else if (page === 'investments') {
         showPage('investments');
         loadInvestmentsPage();

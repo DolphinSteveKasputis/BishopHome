@@ -132,7 +132,7 @@ function _investRenderPage() {
             '<select id="investPersonSel" onchange="_investOnPersonChange()">' + personOpts + '</select>' +
         '</div>' +
         '<div class="invest-toolbar">' +
-            '<button class="btn btn-primary" onclick="_investOpenModal(null)">+ Add Account</button>' +
+            '<button class="btn btn-primary" onclick="window.location.hash=\'#investments/add\'">+ Add Account</button>' +
             '<button class="btn btn-secondary" id="investShowArchivedBtn" onclick="_investToggleArchived()">' +
                 (_investShowArchived ? 'Hide Archived' : 'Show Archived') +
             '</button>' +
@@ -263,7 +263,7 @@ function _investCardHtml(acct) {
         body +=
             '<div class="invest-card-actions">' +
                 '<button class="btn btn-secondary btn-small"' +
-                    ' onclick="event.stopPropagation();_investOpenModal(\'' + acct.id + '\')">Edit</button>' +
+                    ' onclick="event.stopPropagation();window.location.hash=\'#investments/edit/' + acct.id + '\'">Edit</button>' +
                 (acct.archived
                     ? '<button class="btn btn-secondary btn-small"' +
                         ' onclick="event.stopPropagation();_investRestore(\'' + acct.id + '\')">Restore</button>'
@@ -398,106 +398,191 @@ async function _investRemovePerson(contactId) {
     _investRenderPeopleModal();
 }
 
-// ---------- Add / Edit Modal ----------
+// ---------- Add / Edit Form Page ----------
 
-async function _investOpenModal(id) {
-    var modal = document.getElementById('investAccountModal');
-    if (!modal) return;
-    var acct = id ? _investAccounts.find(function(a) { return a.id === id; }) : null;
-    modal.dataset.editId = id || '';
+var _investFormEditId = null;  // null = add mode; account ID = edit mode
+var _investFormDraft  = null;  // basic field values preserved across passphrase unlock
 
-    // Modal title
-    document.getElementById('investModalTitle').textContent = acct ? 'Edit Account' : 'Add Account';
+async function loadInvestmentsFormPage(id) {
+    _investFormEditId = id || null;
+    var isNew = !id;
+    var acct  = id ? _investAccounts.find(function(a) { return a.id === id; }) : null;
 
-    // Populate account type options
-    var typeSelect = document.getElementById('investModalType');
-    var typeOpts = '';
-    INVEST_ACCOUNT_TYPES.forEach(function(t) {
-        typeOpts += '<option value="' + t.value + '">' + t.label + '</option>';
-    });
-    typeSelect.innerHTML = typeOpts;
-
-    // Basic fields
-    _investVal('investModalType',        acct ? acct.accountType    || '' : '');
-    _investVal('investModalNickname',    acct ? acct.nickname       || '' : '');
-    _investVal('investModalInstitution', acct ? acct.institution    || '' : '');
-    _investVal('investModalLast4',       acct ? acct.last4          || '' : '');
-    _investVal('investModalUrl',         acct ? acct.url            || '' : '');
-    _investVal('investModalLoginNotes',  acct ? acct.loginNotes     || '' : '');
-    _investVal('investModalBeneficiary', acct ? acct.beneficiary    || '' : '');
-
-    var lockSection      = document.getElementById('investModalLock');
-    var sensitiveSection = document.getElementById('investModalSensitive');
-
-    if (legacyIsUnlocked()) {
-        lockSection.classList.add('hidden');
-        sensitiveSection.classList.remove('hidden');
-        // Decrypt existing sensitive fields
-        _investVal('investModalAcctNum',  '');
-        _investVal('investModalUsername', '');
-        _investVal('investModalPassword', '');
-        if (acct) {
-            try {
-                if (acct.accountNumberEnc) _investVal('investModalAcctNum',  await legacyDecrypt(acct.accountNumberEnc) || '');
-                if (acct.usernameEnc)      _investVal('investModalUsername', await legacyDecrypt(acct.usernameEnc)      || '');
-                if (acct.passwordEnc)      _investVal('investModalPassword', await legacyDecrypt(acct.passwordEnc)      || '');
-            } catch (e) { console.error('Investments modal decrypt error', e); }
-        }
-    } else {
-        lockSection.classList.remove('hidden');
-        sensitiveSection.classList.add('hidden');
+    // If navigated directly (e.g. back/forward) without the list in memory, load it first
+    if (id && !acct) {
+        await _investLoadAll();
+        acct = _investAccounts.find(function(a) { return a.id === id; });
     }
 
-    openModal('investAccountModal');
+    document.getElementById('breadcrumbBar').innerHTML =
+        '<a href="#investments">Investments</a><span class="separator">&rsaquo;</span>' +
+        '<span>' + (isNew ? 'Add Account' : 'Edit Account') + '</span>';
+    document.getElementById('headerTitle').innerHTML =
+        '<a href="#main" class="home-link">' + escapeHtml(window.appName || 'My Life') + '</a>';
+
+    var typeOpts = '';
+    INVEST_ACCOUNT_TYPES.forEach(function(t) {
+        typeOpts += '<option value="' + escapeHtml(t.value) + '">' + escapeHtml(t.label) + '</option>';
+    });
+
+    var page = document.getElementById('page-investments-form');
+    if (!page) return;
+
+    page.innerHTML =
+        '<div class="page-header">' +
+            '<button class="btn btn-secondary btn-small back-btn"' +
+                ' onclick="window.location.hash=\'#investments\'">← Investments</button>' +
+            '<h2>' + (isNew ? 'Add Account' : 'Edit Account') + '</h2>' +
+        '</div>' +
+        '<div class="invest-form">' +
+            '<div class="form-group">' +
+                '<label>Account Type *</label>' +
+                '<select id="investFormType">' + typeOpts + '</select>' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>Nickname *</label>' +
+                '<input type="text" id="investFormNickname" placeholder="e.g. Fidelity Roth IRA">' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>Institution</label>' +
+                '<input type="text" id="investFormInstitution" placeholder="e.g. Fidelity Investments">' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>Last 4 Digits</label>' +
+                '<input type="text" id="investFormLast4" placeholder="1234" maxlength="4">' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>URL</label>' +
+                '<input type="url" id="investFormUrl" placeholder="https://...">' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>Login Notes</label>' +
+                '<textarea id="investFormLoginNotes" rows="3"' +
+                    ' placeholder="2FA method, authenticator app, etc."></textarea>' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>Beneficiary / Joint Owner</label>' +
+                '<input type="text" id="investFormBeneficiary"' +
+                    ' placeholder="Who inherits or is on the account">' +
+            '</div>' +
+            '<div class="invest-form-sensitive-section">' +
+                '<div class="invest-modal-sensitive-header">Sensitive Fields</div>' +
+                '<div id="investFormSensitiveContent"></div>' +
+            '</div>' +
+            '<div class="invest-form-actions">' +
+                '<button class="btn btn-primary" onclick="_investSaveForm()">Save</button>' +
+                '<button class="btn btn-secondary" onclick="_investCancelForm()">Cancel</button>' +
+            '</div>' +
+        '</div>';
+
+    // Populate basic fields — use preserved draft values if returning from passphrase prompt
+    var d = _investFormDraft;
+    _investVal('investFormType',        d ? d.accountType : (acct ? acct.accountType  || '' : ''));
+    _investVal('investFormNickname',    d ? d.nickname    : (acct ? acct.nickname     || '' : ''));
+    _investVal('investFormInstitution', d ? d.institution : (acct ? acct.institution  || '' : ''));
+    _investVal('investFormLast4',       d ? d.last4       : (acct ? acct.last4        || '' : ''));
+    _investVal('investFormUrl',         d ? d.url         : (acct ? acct.url          || '' : ''));
+    _investVal('investFormLoginNotes',  d ? d.loginNotes  : (acct ? acct.loginNotes   || '' : ''));
+    _investVal('investFormBeneficiary', d ? d.beneficiary : (acct ? acct.beneficiary  || '' : ''));
+    _investFormDraft = null; // consumed
+
+    await _investRenderSensitiveFields(acct);
 }
 
-function _investUnlockForModal() {
-    var id = document.getElementById('investAccountModal').dataset.editId || null;
+async function _investRenderSensitiveFields(acct) {
+    var container = document.getElementById('investFormSensitiveContent');
+    if (!container) return;
+
+    if (!legacyIsUnlocked()) {
+        container.innerHTML =
+            '<div class="invest-modal-lock">' +
+                '<span>Enter your Legacy passphrase to edit Account Number, Username, and Password.</span>' +
+                '<button class="btn btn-secondary" onclick="_investUnlockForForm()">🔓 Unlock Sensitive Fields</button>' +
+            '</div>';
+        return;
+    }
+
+    var acctNum = '', uname = '', pwd = '';
+    if (acct) {
+        try {
+            if (acct.accountNumberEnc) acctNum = await legacyDecrypt(acct.accountNumberEnc) || '';
+            if (acct.usernameEnc)      uname   = await legacyDecrypt(acct.usernameEnc)      || '';
+            if (acct.passwordEnc)      pwd     = await legacyDecrypt(acct.passwordEnc)      || '';
+        } catch (e) { console.error('Investments form decrypt error', e); }
+    }
+
+    container.innerHTML =
+        '<div class="form-group">' +
+            '<label>Account Number</label>' +
+            '<input type="text" id="investFormAcctNum" placeholder="Full account number">' +
+        '</div>' +
+        '<div class="form-group">' +
+            '<label>Username</label>' +
+            '<input type="text" id="investFormUsername" autocomplete="off" placeholder="Login username">' +
+        '</div>' +
+        '<div class="form-group">' +
+            '<label>Password</label>' +
+            '<input type="text" id="investFormPassword" autocomplete="off" placeholder="Login password">' +
+        '</div>';
+
+    _investVal('investFormAcctNum',  acctNum);
+    _investVal('investFormUsername', uname);
+    _investVal('investFormPassword', pwd);
+}
+
+function _investUnlockForForm() {
+    // Capture what the user has typed so it survives the page re-render after unlock
+    _investFormDraft = {
+        accountType: (document.getElementById('investFormType')        || {}).value || '',
+        nickname:    (document.getElementById('investFormNickname')    || {}).value || '',
+        institution: (document.getElementById('investFormInstitution') || {}).value || '',
+        last4:       (document.getElementById('investFormLast4')       || {}).value || '',
+        url:         (document.getElementById('investFormUrl')         || {}).value || '',
+        loginNotes:  (document.getElementById('investFormLoginNotes')  || {}).value || '',
+        beneficiary: (document.getElementById('investFormBeneficiary') || {}).value || ''
+    };
     _legacyRequireUnlock(function() {
-        _investOpenModal(id || null);
+        loadInvestmentsFormPage(_investFormEditId);
     });
 }
 
-async function _investSaveModal() {
-    var modal       = document.getElementById('investAccountModal');
-    var id          = modal.dataset.editId || null;
-    var isNew       = !id;
-    var accountType = document.getElementById('investModalType').value;
-    var nickname    = (document.getElementById('investModalNickname').value || '').trim();
+async function _investSaveForm() {
+    var accountType = (document.getElementById('investFormType')     || {}).value || '';
+    var nickname    = ((document.getElementById('investFormNickname') || {}).value || '').trim();
 
     if (!accountType) { alert('Please select an account type.'); return; }
     if (!nickname)    { alert('Please enter a nickname.'); return; }
 
+    var id    = _investFormEditId;
+    var isNew = !id;
+
     var data = {
         accountType:  accountType,
         nickname:     nickname,
-        institution:  (document.getElementById('investModalInstitution').value || '').trim(),
-        last4:        (document.getElementById('investModalLast4').value || '').replace(/\D/g, '').slice(0, 4),
-        url:          (document.getElementById('investModalUrl').value || '').trim(),
-        loginNotes:   (document.getElementById('investModalLoginNotes').value || '').trim(),
-        beneficiary:  (document.getElementById('investModalBeneficiary').value || '').trim()
+        institution:  ((document.getElementById('investFormInstitution') || {}).value || '').trim(),
+        last4:        ((document.getElementById('investFormLast4')       || {}).value || '').replace(/\D/g, '').slice(0, 4),
+        url:          ((document.getElementById('investFormUrl')         || {}).value || '').trim(),
+        loginNotes:   ((document.getElementById('investFormLoginNotes')  || {}).value || '').trim(),
+        beneficiary:  ((document.getElementById('investFormBeneficiary') || {}).value || '').trim()
     };
 
-    // Only touch encrypted fields if passphrase is unlocked
-    var sensitiveSection = document.getElementById('investModalSensitive');
-    if (legacyIsUnlocked() && !sensitiveSection.classList.contains('hidden')) {
-        var existing = id ? _investAccounts.find(function(a) { return a.id === id; }) : null;
-        var acctNumVal  = (document.getElementById('investModalAcctNum').value  || '').trim();
-        var usernameVal = (document.getElementById('investModalUsername').value || '').trim();
-        var passwordVal = (document.getElementById('investModalPassword').value || '').trim();
+    // Encrypt sensitive fields only if passphrase is unlocked and fields are rendered
+    if (legacyIsUnlocked() && document.getElementById('investFormAcctNum')) {
+        var existing    = id ? _investAccounts.find(function(a) { return a.id === id; }) : null;
+        var acctNumVal  = ((document.getElementById('investFormAcctNum')  || {}).value || '').trim();
+        var usernameVal = ((document.getElementById('investFormUsername') || {}).value || '').trim();
+        var passwordVal = ((document.getElementById('investFormPassword') || {}).value || '').trim();
 
         if (acctNumVal) {
             data.accountNumberEnc = await legacyEncrypt(acctNumVal);
         } else if (existing && existing.accountNumberEnc) {
             data.accountNumberEnc = firebase.firestore.FieldValue.delete();
         }
-
         if (usernameVal) {
             data.usernameEnc = await legacyEncrypt(usernameVal);
         } else if (existing && existing.usernameEnc) {
             data.usernameEnc = firebase.firestore.FieldValue.delete();
         }
-
         if (passwordVal) {
             data.passwordEnc = await legacyEncrypt(passwordVal);
         } else if (existing && existing.passwordEnc) {
@@ -513,9 +598,15 @@ async function _investSaveModal() {
         await _investCol().doc(id).update(data);
     }
 
-    closeModal('investAccountModal');
-    await _investLoadAccounts();
-    _investRenderList();
+    _investFormEditId = null;
+    _investFormDraft  = null;
+    window.location.hash = '#investments';
+}
+
+function _investCancelForm() {
+    _investFormEditId = null;
+    _investFormDraft  = null;
+    window.location.hash = '#investments';
 }
 
 // ---------- Archive / Restore ----------

@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=581">
+    <link rel="stylesheet" href="css/styles.css?v=582">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -6855,65 +6855,10 @@ service firebase.storage {
             <!-- Populated by loadInvestmentsPage() in investments.js -->
         </section>
 
-        <!-- Modal: Add/Edit Account (Investments) -->
-        <div class="modal-overlay" id="investAccountModal">
-            <div class="modal">
-                <h3 id="investModalTitle">Add Account</h3>
-                <div class="form-group">
-                    <label>Account Type *</label>
-                    <select id="investModalType"></select>
-                </div>
-                <div class="form-group">
-                    <label>Nickname *</label>
-                    <input type="text" id="investModalNickname" placeholder="e.g. Fidelity Roth IRA">
-                </div>
-                <div class="form-group">
-                    <label>Institution</label>
-                    <input type="text" id="investModalInstitution" placeholder="e.g. Fidelity Investments">
-                </div>
-                <div class="form-group">
-                    <label>Last 4 Digits</label>
-                    <input type="text" id="investModalLast4" placeholder="1234" maxlength="4">
-                </div>
-                <div class="form-group">
-                    <label>URL</label>
-                    <input type="url" id="investModalUrl" placeholder="https://...">
-                </div>
-                <div class="form-group">
-                    <label>Login Notes</label>
-                    <textarea id="investModalLoginNotes" rows="3" placeholder="2FA method, authenticator app, etc."></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Beneficiary / Joint Owner</label>
-                    <input type="text" id="investModalBeneficiary" placeholder="Who inherits or is on the account">
-                </div>
-                <!-- Lock placeholder — shown when passphrase is not entered -->
-                <div id="investModalLock" class="invest-modal-lock">
-                    <p>Account Number, Username, and Password are encrypted.</p>
-                    <button class="btn btn-secondary" onclick="_investUnlockForModal()">🔓 Unlock to Edit Sensitive Fields</button>
-                </div>
-                <!-- Sensitive fields — shown after passphrase is entered -->
-                <div id="investModalSensitive" class="hidden">
-                    <div class="invest-modal-sensitive-header">Sensitive Fields</div>
-                    <div class="form-group">
-                        <label>Account Number</label>
-                        <input type="text" id="investModalAcctNum" placeholder="Full account number">
-                    </div>
-                    <div class="form-group">
-                        <label>Username</label>
-                        <input type="text" id="investModalUsername" autocomplete="off" placeholder="Login username">
-                    </div>
-                    <div class="form-group">
-                        <label>Password</label>
-                        <input type="text" id="investModalPassword" autocomplete="off" placeholder="Login password">
-                    </div>
-                </div>
-                <div class="modal-buttons">
-                    <button class="btn btn-primary" onclick="_investSaveModal()">Save</button>
-                    <button class="btn btn-secondary" onclick="closeModal('investAccountModal')">Cancel</button>
-                </div>
-            </div>
-        </div>
+        <!-- Page: Add/Edit Account (#investments/add, #investments/edit/:id) -->
+        <section class="page hidden" id="page-investments-form">
+            <!-- Populated by loadInvestmentsFormPage() in investments.js -->
+        </section>
 
         <!-- Modal: Manage People (Investments) -->
         <div class="modal-overlay" id="investPeopleModal">
@@ -10317,9 +10262,9 @@ export default {
     <script src="js/legacy-crypto.js?v=2"></script>
     <script src="js/legacy.js?v=18"></script>
     <script src="js/credentials.js?v=582"></script>
-    <script src="js/investments.js?v=1"></script>
+    <script src="js/investments.js?v=2"></script>
     <script src="js/private.js?v=579"></script>
-    <script src="js/app.js?v=580"></script>
+    <script src="js/app.js?v=581"></script>
 
 </body>
 </html>

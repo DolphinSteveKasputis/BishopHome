@@ -1767,7 +1767,7 @@ function loadLegacyAccountsPage() {
 
         var cards = [
             { icon: '💼', label: 'Accounts',       desc: 'Bank, retirement, brokerage, and other assets.',      route: '#legacy/accounts/accounts',  built: true  },
-            { icon: '🏦', label: 'Loans',           desc: 'Mortgage, car loans, credit cards, and other debts.', route: '#legacy/accounts/loans',     built: false },
+            { icon: '🏦', label: 'Loans',           desc: 'Mortgage, car loans, credit cards, and other debts.', route: '#legacy/accounts/loans',     built: true  },
             { icon: '📄', label: 'Bills',           desc: 'Recurring expenses and auto-pay items.',              route: '#legacy/accounts/bills',     built: false },
             { icon: '🛡️', label: 'Insurance',      desc: 'Life insurance policies and how to file a claim.',    route: '#legacy/accounts/insurance', built: false },
             { icon: '📋', label: 'Financial Plan',  desc: 'Your big-picture instructions for your loved ones.', route: '#legacy/accounts/plan',      built: false }

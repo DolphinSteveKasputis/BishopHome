@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=583">
+    <link rel="stylesheet" href="css/styles.css?v=584">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -4096,11 +4096,17 @@ service firebase.storage {
             <p id="legacyPassphraseDesc" style="font-size:0.9rem;color:#6b7280;margin-bottom:16px;"></p>
             <div class="form-group">
                 <label for="legacyPassphraseInput">Passphrase</label>
-                <input type="password" id="legacyPassphraseInput" placeholder="Enter your Legacy Passphrase">
+                <div class="pw-show-wrap">
+                    <input type="password" id="legacyPassphraseInput" placeholder="Enter your Legacy Passphrase">
+                    <button type="button" class="pw-show-btn" onclick="_pwToggle('legacyPassphraseInput', this)">Show</button>
+                </div>
             </div>
             <div class="form-group hidden" id="legacyPassphraseConfirmGroup">
                 <label for="legacyPassphraseConfirm">Confirm Passphrase</label>
-                <input type="password" id="legacyPassphraseConfirm" placeholder="Confirm passphrase">
+                <div class="pw-show-wrap">
+                    <input type="password" id="legacyPassphraseConfirm" placeholder="Confirm passphrase">
+                    <button type="button" class="pw-show-btn" onclick="_pwToggle('legacyPassphraseConfirm', this)">Show</button>
+                </div>
             </div>
             <p class="form-hint hidden" id="legacyPassphraseWarning">
                 ⚠️ Write this down — it cannot be recovered if lost. Store it with your app login instructions.
@@ -6528,9 +6534,12 @@ service firebase.storage {
                     <div class="private-gate-icon">&#128274;</div>
                     <p class="private-gate-desc">Enter your passphrase to unlock your private vault.</p>
                     <div class="form-group">
-                        <input type="password" id="privateGatePassphrase" class="private-gate-input"
-                            placeholder="Passphrase"
-                            onkeydown="if(event.key==='Enter')privateUnlock()">
+                        <div class="pw-show-wrap">
+                            <input type="password" id="privateGatePassphrase" class="private-gate-input"
+                                placeholder="Passphrase"
+                                onkeydown="if(event.key==='Enter')privateUnlock()">
+                            <button type="button" class="pw-show-btn" onclick="_pwToggle('privateGatePassphrase', this)">Show</button>
+                        </div>
                     </div>
                     <p class="text-error hidden" id="privateGateError"></p>
                     <button class="btn btn-primary private-gate-btn" id="privateGateBtn" onclick="privateUnlock()">Unlock</button>
@@ -10289,7 +10298,7 @@ export default {
     <script src="js/credentials.js?v=583"></script>
     <script src="js/investments.js?v=4"></script>
     <script src="js/private.js?v=579"></script>
-    <script src="js/app.js?v=582"></script>
+    <script src="js/app.js?v=583"></script>
 
 </body>
 </html>

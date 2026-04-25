@@ -3,6 +3,16 @@
 // Handles page routing (hash-based) and shared UI behavior
 // ============================================================
 
+// ---------- Shared Utilities ----------
+
+/** Toggle a password input between masked and visible. btn is the Show/Hide button element. */
+function _pwToggle(inputId, btn) {
+    var inp = document.getElementById(inputId);
+    if (!inp) return;
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+    btn.textContent = inp.type === 'password' ? 'Show' : 'Hide';
+}
+
 // ---------- PWA Service Worker Registration ----------
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', function() {

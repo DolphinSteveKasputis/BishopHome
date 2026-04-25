@@ -1691,7 +1691,7 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 
 **If you forget your passphrase:** There is no recovery. The passphrase is never stored anywhere. All private data is permanently inaccessible without it.
 
-**If photos or documents fail to load (warning banner appears):** Firebase Storage requires a one-time CORS configuration before files can be downloaded. Go to Setup Instructions (the ? button in General Settings → Private Vault) and follow Step 4. It takes about two minutes and requires no software installation — just a command in a browser terminal.
+**If photos or documents fail to load (warning banner appears):** Firebase Storage requires a one-time CORS configuration before files can be downloaded. Go to Setup Instructions (the ? button in General Settings → Private Vault) and follow Step 4. Step 4 walks you through finding the built-in browser terminal on Google Cloud and running one command — takes about two minutes, no software to install.
 
 ---
 

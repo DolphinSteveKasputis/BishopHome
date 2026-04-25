@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=573">
+    <link rel="stylesheet" href="css/styles.css?v=574">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -3914,7 +3914,9 @@
                     <li>Replace all existing content with the rules below</li>
                     <li>Click <strong>Publish</strong></li>
                 </ol>
-                <pre class="private-rules-block">rules_version = '2';
+                <div class="private-code-block-wrap">
+                    <button class="private-copy-btn" onclick="privateCopyCode(this)">Copy</button>
+                    <pre class="private-rules-block">rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     match /users/{userId}/{allPaths=**} {
@@ -3923,26 +3925,40 @@ service firebase.storage {
     }
   }
 }</pre>
+                </div>
             </div>
 
             <div class="private-help-step">
                 <h4>Step 4 — Allow the App to Download Your Files <span class="private-help-required">(required)</span></h4>
                 <p style="font-size:0.85rem;color:#6b7280;margin-bottom:8px;">
                     By default, Firebase Storage blocks browsers from downloading files directly. You need to run one command
-                    that tells Storage to allow your app to read files. This is called "configuring CORS" and only needs to be done once.
-                    No software to install — you run the command in a browser terminal built into Google Cloud.
+                    that tells Storage to allow your app to read files. This only needs to be done once and takes about 2 minutes.
+                    No software to install — Google Cloud has a built-in terminal you can run right in your browser.
                 </p>
                 <ol class="private-help-list">
-                    <li>Go to <a href="https://console.cloud.google.com" target="_blank" rel="noopener">console.cloud.google.com</a></li>
-                    <li>Make sure your project is selected in the dropdown at the top of the page</li>
-                    <li>Click the <strong>Activate Cloud Shell</strong> button — it looks like <code>&gt;_</code> and is in the top-right toolbar</li>
-                    <li>A terminal will open at the bottom of the screen. Wait for it to finish loading</li>
-                    <li>Find your Storage bucket name: go back to the Firebase console → Storage → the bucket name appears near the top (looks like <code>your-project.firebasestorage.app</code> or <code>your-project.appspot.com</code>)</li>
-                    <li>In the Cloud Shell terminal, paste the command below — replacing <code>YOUR-BUCKET-NAME</code> with your actual bucket name — and press Enter:</li>
+                    <li>Open <a href="https://console.cloud.google.com" target="_blank" rel="noopener">console.cloud.google.com</a> in a new tab</li>
+                    <li>Confirm your project name appears in the top-left area next to the Google Cloud logo. If it shows a different project, click it and switch to the correct one.</li>
+                    <li>
+                        <strong>Find the Cloud Shell button:</strong> Look at the very top-right of the page. You'll see a row of small icons just to the left of your profile photo/avatar.
+                        Hover your mouse slowly over each icon — you're looking for one with the tooltip that says <strong>"Activate Cloud Shell"</strong>.
+                        It looks like a small monitor screen. Click it.
+                        <br><em style="font-size:0.8rem;color:#9ca3af;">(If a blue banner appears asking you to authorize, click Authorize.)</em>
+                    </li>
+                    <li>A terminal panel slides up from the bottom of the screen. Wait until you see a <code>$</code> prompt — this can take up to 60 seconds the first time.</li>
+                    <li>
+                        Find your Storage bucket name: go to the Firebase console → your project → <strong>Storage</strong> (left nav) → the bucket name is shown near the top of the page.
+                        It looks like <code>your-project.firebasestorage.app</code> or <code>your-project.appspot.com</code>.
+                        Copy that name exactly.
+                    </li>
+                    <li>Click inside the Cloud Shell terminal, paste the command below, replace <code>YOUR-BUCKET-NAME</code> with the bucket name you just copied, then press <strong>Enter</strong>:</li>
                 </ol>
-                <pre class="private-rules-block">printf '[{"origin":["*"],"method":["GET","HEAD"],"maxAgeSeconds":3600}]' > cors.json && gcloud storage buckets update gs://YOUR-BUCKET-NAME --cors-file=cors.json</pre>
+                <div class="private-code-block-wrap">
+                    <button class="private-copy-btn" onclick="privateCopyCode(this)">Copy</button>
+                    <pre class="private-rules-block">printf '[{"origin":["*"],"method":["GET","HEAD"],"maxAgeSeconds":3600}]' > cors.json && gcloud storage buckets update gs://YOUR-BUCKET-NAME --cors-file=cors.json</pre>
+                </div>
                 <p style="font-size:0.85rem;color:#6b7280;margin-top:8px;">
-                    You should see a success message. If it asks you to authorize Cloud Shell, click <strong>Authorize</strong>. After this step, photos and documents will load correctly.
+                    You should see a line that says <em>Updating...</em> followed by a success message. If it asks you to authorize again, click <strong>Authorize</strong>.
+                    Once you see the <code>$</code> prompt return, you're done — photos and documents will now load correctly.
                 </p>
             </div>
 
@@ -10113,7 +10129,7 @@ export default {
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=573"></script>
+    <script src="js/firebase-config.js?v=574"></script>
     <script src="js/auth.js?v=350"></script>
     <script src="js/zones.js?v=355"></script>
     <script src="js/plants.js?v=351"></script>
@@ -10132,7 +10148,7 @@ export default {
     <script src="js/gps.js?v=350"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="js/gcal.js?v=6"></script>
-    <script src="js/settings.js?v=573"></script>
+    <script src="js/settings.js?v=574"></script>
     <script src="js/devnotes.js?v=376"></script>
     <script src="js/house.js?v=537"></script>
     <script src="js/floorplan.js?v=398"></script>
@@ -10168,9 +10184,9 @@ export default {
     <script src="js/help.js?v=536"></script>
     <script src="js/legacy-crypto.js?v=2"></script>
     <script src="js/legacy.js?v=18"></script>
-    <script src="js/credentials.js?v=573"></script>
-    <script src="js/private.js?v=573"></script>
-    <script src="js/app.js?v=573"></script>
+    <script src="js/credentials.js?v=574"></script>
+    <script src="js/private.js?v=574"></script>
+    <script src="js/app.js?v=574"></script>
 
 </body>
 </html>

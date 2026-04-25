@@ -199,6 +199,14 @@ function privateOpenHelpModal() {
     openModal('modal-private-help');
 }
 
+function privateCopyCode(btn) {
+    var pre = btn.parentElement.querySelector('pre');
+    navigator.clipboard.writeText(pre.textContent).then(function() {
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+    });
+}
+
 // ============================================================
 // Settings card — open activation modal
 // ============================================================

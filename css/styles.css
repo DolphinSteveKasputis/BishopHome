@@ -443,6 +443,7 @@ button {
 
 .page-header h2 {
     margin-bottom: 0;
+    flex: 1;
 }
 
 

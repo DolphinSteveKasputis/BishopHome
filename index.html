@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=569">
+    <link rel="stylesheet" href="css/styles.css?v=570">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -6494,7 +6494,7 @@ service firebase.storage {
         </section>
 
         <!-- Modal: Add/rename album -->
-        <div class="modal-overlay hidden" id="modal-photo-album-edit">
+        <div class="modal-overlay" id="modal-photo-album-edit">
             <div class="modal">
                 <h3 id="album-modal-title">New Album</h3>
                 <label>Album Name</label>
@@ -6509,7 +6509,7 @@ service firebase.storage {
         </div>
 
         <!-- Modal: Photo viewer -->
-        <div class="modal-overlay hidden" id="modal-photo-viewer">
+        <div class="modal-overlay" id="modal-photo-viewer">
             <div class="modal photo-viewer-modal">
                 <div class="pv-nav-row">
                     <button class="btn btn-secondary btn-small" id="pv-older-btn" onclick="privateOlderPhoto()">&#8592; Older</button>
@@ -6532,7 +6532,7 @@ service firebase.storage {
         </div>
 
         <!-- Modal: Private Vault backup passphrase -->
-        <div class="modal-overlay hidden" id="modal-private-backup">
+        <div class="modal-overlay" id="modal-private-backup">
             <div class="modal">
                 <h3>Backup Private Vault</h3>
                 <p style="font-size:0.875rem;color:#6b7280;margin-bottom:12px;">Enter your vault passphrase. It will also be the password for the downloaded zip file.</p>
@@ -6549,7 +6549,7 @@ service firebase.storage {
         </div>
 
         <!-- Modal: Move photo to album -->
-        <div class="modal-overlay hidden" id="modal-photo-move">
+        <div class="modal-overlay" id="modal-photo-move">
             <div class="modal">
                 <h3>Move to Album</h3>
                 <div id="photo-move-list" class="photo-move-list"></div>
@@ -10042,7 +10042,7 @@ export default {
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=569"></script>
+    <script src="js/firebase-config.js?v=570"></script>
     <script src="js/auth.js?v=350"></script>
     <script src="js/zones.js?v=355"></script>
     <script src="js/plants.js?v=351"></script>
@@ -10061,7 +10061,7 @@ export default {
     <script src="js/gps.js?v=350"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="js/gcal.js?v=6"></script>
-    <script src="js/settings.js?v=569"></script>
+    <script src="js/settings.js?v=570"></script>
     <script src="js/devnotes.js?v=376"></script>
     <script src="js/house.js?v=537"></script>
     <script src="js/floorplan.js?v=398"></script>
@@ -10097,8 +10097,8 @@ export default {
     <script src="js/help.js?v=536"></script>
     <script src="js/legacy-crypto.js?v=2"></script>
     <script src="js/legacy.js?v=18"></script>
-    <script src="js/private.js?v=569"></script>
-    <script src="js/app.js?v=569"></script>
+    <script src="js/private.js?v=570"></script>
+    <script src="js/app.js?v=570"></script>
 
 </body>
 </html>

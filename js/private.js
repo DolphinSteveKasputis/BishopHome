@@ -1381,6 +1381,8 @@ async function loadPrivatePhotosGallery(albumKey) {
 
     var el = document.getElementById('private-gallery');
     if (el) el.innerHTML = '<p class="loading-state">Loading\u2026</p>';
+    var warn = document.getElementById('gallery-cors-warning');
+    if (warn) warn.classList.add('hidden');
 
     try {
         var snap;
@@ -1439,7 +1441,15 @@ async function _photoDecryptThumb(photo, idx) {
         _photoBlobUrls[photo.id] = url;
         var el = document.querySelector('.photo-thumb[data-idx="' + idx + '"]');
         if (el) el.innerHTML = '<img src="' + url + '" class="photo-thumb-img" alt="' + _bmEsc(photo.caption) + '">';
-    } catch (e) { /* leave placeholder on error */ }
+    } catch (e) {
+        console.error('Thumb decrypt failed:', e);
+        if (e.message === 'Network error') _photoShowCorsWarning();
+    }
+}
+
+function _photoShowCorsWarning() {
+    var el = document.getElementById('gallery-cors-warning');
+    if (el) el.classList.remove('hidden');
 }
 
 // ---- Photo upload ----
@@ -1523,7 +1533,14 @@ async function privateOpenPhotoViewer(idx) {
             var plain = await _privateDecryptBuffer(enc);
             url = URL.createObjectURL(new Blob([plain], { type: 'image/jpeg' }));
             _photoBlobUrls[photo.id] = url;
-        } catch (e) { console.error('Viewer decrypt failed:', e); return; }
+        } catch (e) {
+            console.error('Viewer decrypt failed:', e);
+            document.getElementById('pv-img').alt = 'Error: ' + e.message;
+            document.getElementById('pv-img').style.display = 'none';
+            var wrap = document.getElementById('pv-img').parentElement;
+            if (wrap) wrap.innerHTML += '<p style="color:#dc2626;padding:16px;text-align:center;">Failed to decrypt: ' + e.message + '</p>';
+            return;
+        }
     }
     document.getElementById('pv-img').src = url;
 }

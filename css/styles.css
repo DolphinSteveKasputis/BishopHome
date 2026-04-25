@@ -13158,11 +13158,11 @@ a.health-chip--link:hover { filter: brightness(0.93); }
     color: #6b7280;
 }
 
-/* Photo grid (3 columns) */
+/* Photo grid — medium preview tiles */
 .photo-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 6px;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 8px;
     padding: 4px 0 16px;
 }
 
@@ -13260,7 +13260,7 @@ a.health-chip--link:hover { filter: brightness(0.93); }
         grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
     }
     .photo-grid {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
         gap: 4px;
     }
 }

@@ -494,6 +494,8 @@ var _bmModalEditId   = null;
 
 async function loadPrivateBookmarksPage() {
     if (!privateIsUnlocked()) { window.location.hash = '#private'; return; }
+    var crumb = document.getElementById('breadcrumbBar');
+    if (crumb) crumb.innerHTML = '<a href="#private" class="breadcrumb-link">Private Vault</a><span class="breadcrumb-sep"> › </span><span class="breadcrumb-current">Bookmarks</span>';
     var el = document.getElementById('private-bm-tree');
     if (el) el.innerHTML = '<p class="loading-state">Loading\u2026</p>';
     try {
@@ -939,6 +941,8 @@ function _docSetStatus(msg) {
 
 async function loadPrivateDocumentsPage() {
     if (!privateIsUnlocked()) { window.location.hash = '#private'; return; }
+    var crumb = document.getElementById('breadcrumbBar');
+    if (crumb) crumb.innerHTML = '<a href="#private" class="breadcrumb-link">Private Vault</a><span class="breadcrumb-sep"> › </span><span class="breadcrumb-current">Documents</span>';
     var el = document.getElementById('private-doc-list');
     if (el) el.innerHTML = '<p class="loading-state">Loading\u2026</p>';
     try {
@@ -1238,6 +1242,8 @@ function _photoRevokeBlobs() {
 
 async function loadPrivatePhotosPage() {
     if (!privateIsUnlocked()) { window.location.hash = '#private'; return; }
+    var crumb = document.getElementById('breadcrumbBar');
+    if (crumb) crumb.innerHTML = '<a href="#private" class="breadcrumb-link">Private Vault</a><span class="breadcrumb-sep"> › </span><span class="breadcrumb-current">Photos</span>';
     var el = document.getElementById('private-album-list');
     if (el) el.innerHTML = '<p class="loading-state">Loading\u2026</p>';
     _photoRevokeBlobs();
@@ -1387,14 +1393,22 @@ async function loadPrivatePhotosGallery(albumKey) {
     // Set heading and show/hide named-album actions
     var heading = document.getElementById('gallery-album-name');
     var namedActions = document.getElementById('gallery-named-actions');
+    var _albumDisplayName;
     if (albumKey === null) {
         if (heading) heading.textContent = 'Uncategorized';
         if (namedActions) namedActions.style.display = 'none';
+        _albumDisplayName = 'Uncategorized';
     } else {
         var al = _photoAlbums.find(function(a) { return a.id === albumKey; });
-        if (heading) heading.textContent = al ? al.name : 'Album';
+        _albumDisplayName = al ? al.name : 'Album';
+        if (heading) heading.textContent = _albumDisplayName;
         if (namedActions) namedActions.style.display = '';
     }
+    var crumb = document.getElementById('breadcrumbBar');
+    if (crumb) crumb.innerHTML =
+        '<a href="#private" class="breadcrumb-link">Private Vault</a><span class="breadcrumb-sep"> › </span>' +
+        '<a href="#private/photos" class="breadcrumb-link">Photos</a><span class="breadcrumb-sep"> › </span>' +
+        '<span class="breadcrumb-current">' + _bmEsc(_albumDisplayName) + '</span>';
 
     var el = document.getElementById('private-gallery');
     if (el) el.innerHTML = '<p class="loading-state">Loading\u2026</p>';

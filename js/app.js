@@ -135,6 +135,7 @@ const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'h
                          'life-calendar', 'life-projects',
                          'legacy',
                          'private', 'private-bookmarks', 'private-documents', 'private-photos', 'private-photos-gallery',
+                         'credentials',
                          'thoughts', 'top10lists', 'memories', 'views'];
 
 /**
@@ -163,6 +164,7 @@ const ALL_PAGES = [
     'top10list-create', 'top10list-edit',
     'memory-create', 'memory-edit',
     'view', 'view-history', 'views-categories',
+    'credentials-add', 'credentials-edit', 'credentials-categories',
     'help'
 ];
 
@@ -196,7 +198,8 @@ const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'jo
                      'legacy', 'legacy-burial', 'legacy-service', 'legacy-obituary', 'legacy-social',
                      'legacy-accounts', 'legacy-documents', 'legacy-household',
                      'legacy-pets', 'legacy-notify', 'legacy-letters', 'legacy-letter', 'legacy-message',
-                     'private', 'private-bookmarks', 'private-documents', 'private-photos', 'private-photos-gallery'];
+                     'private', 'private-bookmarks', 'private-documents', 'private-photos', 'private-photos-gallery',
+                     'credentials', 'credentials-add', 'credentials-edit', 'credentials-categories'];
 
 /** Tracks which nav context is currently active ('yard', 'house', or 'life'). */
 var currentNavContext = 'yard';
@@ -733,6 +736,19 @@ function handleRoute() {
     } else if (page === 'legacy') {
         showPage('legacy');
         loadLegacyPage();
+    // ---------- Credentials routes ----------
+    } else if (page === 'credentials' && id === 'edit' && parts[2]) {
+        showPage('credentials-edit');
+        loadCredentialEditPage(parts[2]);
+    } else if (page === 'credentials' && id === 'add') {
+        showPage('credentials-add');
+        loadCredentialAddPage();
+    } else if (page === 'credentials' && id === 'categories') {
+        showPage('credentials-categories');
+        loadCredentialCategoriesPage();
+    } else if (page === 'credentials') {
+        showPage('credentials');
+        loadCredentialsPage();
     // ---------- Private Vault routes ----------
     } else if (page === 'private' && id === 'bookmarks') {
         if (!privateIsUnlocked()) { window.location.hash = '#private'; return; }

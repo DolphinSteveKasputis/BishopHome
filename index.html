@@ -6392,6 +6392,48 @@ service firebase.storage {
     </div>
 
         <!-- ================================================================
+             CREDENTIALS PAGES — #credentials, /add, /edit/:id, /categories
+             ================================================================ -->
+
+        <!-- Page: Credentials list (#credentials) -->
+        <section class="page hidden" id="page-credentials">
+            <!-- Populated by loadCredentialsPage() in credentials.js -->
+        </section>
+
+        <!-- Page: Credential Add (#credentials/add) -->
+        <section class="page hidden" id="page-credentials-add">
+            <!-- Populated by loadCredentialAddPage() in credentials.js -->
+        </section>
+
+        <!-- Page: Credential Edit (#credentials/edit/:id) -->
+        <section class="page hidden" id="page-credentials-edit">
+            <!-- Populated by loadCredentialEditPage() in credentials.js -->
+        </section>
+
+        <!-- Page: Category Management (#credentials/categories) -->
+        <section class="page hidden" id="page-credentials-categories">
+            <!-- Populated by loadCredentialCategoriesPage() in credentials.js -->
+        </section>
+
+        <!-- Modal: Manage People (credentials) -->
+        <div class="modal-overlay" id="credPeopleModal">
+            <div class="modal">
+                <h3>Manage People</h3>
+                <p style="font-size:0.85rem;color:#666;margin-bottom:12px">
+                    Add contacts whose credentials you want to track. "Me" is always available and cannot be removed.
+                </p>
+                <div id="credPeopleListBody"></div>
+                <div style="margin-top:16px">
+                    <p style="font-size:0.85rem;color:#444;margin-bottom:6px;font-weight:500">Add from Contacts:</p>
+                    <div id="credPeoplePicker"></div>
+                </div>
+                <div class="modal-buttons" style="margin-top:20px">
+                    <button class="btn btn-secondary" onclick="closeModal('credPeopleModal')">Done</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================================================================
              PRIVATE VAULT SECTION — pages: settings-private-storage, private
              ================================================================ -->
 
@@ -6599,6 +6641,10 @@ service firebase.storage {
                 <a href="#legacy" class="landing-tile landing-tile--legacy">
                     <span class="landing-tile-icon">🕊️</span>
                     <span class="landing-tile-label">My Legacy</span>
+                </a>
+                <a href="#credentials" class="landing-tile landing-tile--credentials">
+                    <span class="landing-tile-icon">🔑</span>
+                    <span class="landing-tile-label">Credentials</span>
                 </a>
                 <a href="#private" class="landing-tile landing-tile--private hidden" id="private-life-tile">
                     <span class="landing-tile-icon">🔐</span>
@@ -10097,6 +10143,7 @@ export default {
     <script src="js/help.js?v=536"></script>
     <script src="js/legacy-crypto.js?v=2"></script>
     <script src="js/legacy.js?v=18"></script>
+    <script src="js/credentials.js?v=570"></script>
     <script src="js/private.js?v=570"></script>
     <script src="js/app.js?v=570"></script>
 

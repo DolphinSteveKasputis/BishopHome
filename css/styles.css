@@ -13245,3 +13245,371 @@ a.health-chip--link:hover { filter: brightness(0.93); }
         gap: 4px;
     }
 }
+
+/* ============================================================
+   CREDENTIALS
+   ============================================================ */
+
+/* Life page tile */
+.landing-tile--credentials {
+    background: #fef9c3;
+    border: 2px solid #fbbf24;
+    color: #78350f;
+}
+.landing-tile--credentials:hover {
+    background: #fef08a;
+}
+
+/* Filters row (person + search) */
+.cred-filters {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+.cred-filter-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.cred-filter-label {
+    font-weight: 500;
+    white-space: nowrap;
+    color: #444;
+}
+.cred-filter-row select {
+    flex: 1;
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    max-width: 260px;
+}
+.cred-search-input {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    box-sizing: border-box;
+}
+.cred-search-input:focus {
+    outline: none;
+    border-color: #2e7d32;
+    box-shadow: 0 0 0 2px rgba(46,125,50,0.15);
+}
+
+/* Manage dropdown */
+.cred-manage-wrap {
+    position: relative;
+}
+.cred-manage-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 4px);
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    z-index: 50;
+    min-width: 170px;
+    overflow: hidden;
+}
+.cred-manage-menu.open {
+    display: block;
+}
+.cred-manage-menu button {
+    display: block;
+    width: 100%;
+    padding: 12px 16px;
+    text-align: left;
+    background: none;
+    border: none;
+    font-size: 0.95rem;
+    cursor: pointer;
+    color: #333;
+}
+.cred-manage-menu button:hover {
+    background: #f5f5f5;
+}
+
+/* Outer accordion (category) */
+.cred-cat {
+    margin-bottom: 8px;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    overflow: hidden;
+    background: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+}
+.cred-cat-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 13px 14px;
+    cursor: pointer;
+    user-select: none;
+    background: #f9fafb;
+    transition: background 0.15s;
+}
+.cred-cat-header:hover {
+    background: #f0fdf4;
+}
+.cred-chevron {
+    font-size: 0.8rem;
+    color: #888;
+    width: 14px;
+    flex-shrink: 0;
+}
+.cred-cat-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #1b5e20;
+    flex: 1;
+}
+.cred-cat-count {
+    font-size: 0.8rem;
+    color: #888;
+    margin-right: 4px;
+}
+.cred-cat-add-btn {
+    padding: 4px 10px !important;
+    font-size: 1rem !important;
+    line-height: 1;
+}
+.cred-cat-body {
+    padding: 4px 0;
+}
+.cred-empty-cat {
+    padding: 12px 16px;
+    color: #aaa;
+    font-style: italic;
+    font-size: 0.875rem;
+}
+
+/* Inner accordion (credential item) */
+.cred-item {
+    border-top: 1px solid #f0f0f0;
+    background: white;
+    transition: background 0.1s;
+}
+.cred-item:first-child {
+    border-top: none;
+}
+.cred-item-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 14px;
+    cursor: pointer;
+    user-select: none;
+}
+.cred-item-header:hover {
+    background: #fafafa;
+}
+.cred-drag-handle {
+    color: #bbb;
+    cursor: grab;
+    font-size: 1.1rem;
+    padding: 0 2px;
+    flex-shrink: 0;
+}
+.cred-drag-handle:active {
+    cursor: grabbing;
+}
+.cred-item-name {
+    font-size: 0.925rem;
+    color: #333;
+    flex: 1;
+}
+.cred-item-body {
+    padding: 4px 14px 14px 38px;
+}
+
+/* Detail rows inside expanded item */
+.cred-detail-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+.cred-detail-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 0.875rem;
+}
+.cred-detail-label {
+    min-width: 110px;
+    font-weight: 500;
+    color: #666;
+    flex-shrink: 0;
+    padding-top: 1px;
+}
+.cred-detail-value {
+    flex: 1;
+    color: #222;
+    word-break: break-word;
+}
+.cred-detail-value a {
+    color: #2e7d32;
+    text-decoration: underline;
+    word-break: break-all;
+}
+
+/* Copy + reveal */
+.cred-copy-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.cred-copy-btn {
+    padding: 3px 9px !important;
+    font-size: 0.8rem !important;
+    min-width: 60px;
+}
+.cred-reveal-btn {
+    background: none;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 3px 7px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: #555;
+    line-height: 1.4;
+}
+.cred-reveal-btn:hover {
+    background: #f5f5f5;
+}
+.cred-mask-wrap {
+    display: inline-flex;
+    align-items: center;
+}
+.cred-dots {
+    color: #888;
+    letter-spacing: 2px;
+    font-size: 0.95rem;
+}
+.cred-plain {
+    font-family: monospace;
+    font-size: 0.9rem;
+    color: #222;
+    word-break: break-all;
+}
+.cred-multiline {
+    white-space: pre-wrap;
+    font-size: 0.875rem;
+}
+
+/* Item action buttons */
+.cred-item-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+/* Add / Edit form */
+.cred-form {
+    max-width: 560px;
+}
+
+/* Category management page */
+.cred-cat-mgmt-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 12px;
+}
+.cred-cat-mgmt-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+}
+.cred-cat-mgmt-name {
+    flex: 1;
+    font-size: 0.95rem;
+    color: #333;
+}
+.cred-cat-mgmt-input {
+    flex: 1;
+    padding: 6px 8px;
+    border: 1px solid #2e7d32;
+    border-radius: 6px;
+    font-size: 0.95rem;
+}
+.cred-cat-mgmt-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+.cred-cat-mgmt-system {
+    font-size: 0.8rem;
+    color: #aaa;
+    font-style: italic;
+}
+.cred-cat-mgmt-add {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+.cred-cat-mgmt-add input {
+    flex: 1;
+    padding: 9px 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 0.95rem;
+}
+.cred-cat-mgmt-pinned {
+    margin-top: 8px;
+    opacity: 0.6;
+}
+
+/* Manage people modal list */
+.cred-person-mgmt-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 0.925rem;
+}
+.cred-people-empty {
+    color: #aaa;
+    font-style: italic;
+    font-size: 0.875rem;
+    margin: 8px 0;
+}
+
+/* Drag visual feedback */
+.cred-dragging {
+    opacity: 0.4;
+}
+.cred-drop-before {
+    border-top: 2px solid #2e7d32 !important;
+}
+.cred-drop-after {
+    border-bottom: 2px solid #2e7d32 !important;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .cred-detail-row {
+        flex-direction: column;
+        gap: 2px;
+    }
+    .cred-detail-label {
+        min-width: unset;
+        font-size: 0.8rem;
+        color: #888;
+    }
+    .cred-cat-mgmt-actions {
+        flex-wrap: wrap;
+    }
+}

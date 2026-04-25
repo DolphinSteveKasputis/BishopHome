@@ -1627,7 +1627,37 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 - **Projects** -- Life Projects (vacation planner, build projects, etc.)
 - **Checklists** -- reusable checklists for life tasks
 - **My Legacy** -- private end-of-life information for your loved ones (burial wishes, financial accounts, letters, and more)
+- **Credentials** -- passwords, usernames, API keys, and other sensitive data organized by category
 - **Private** -- encrypted vault for bookmarks, documents, and photos that only you can access (only visible after activation in General Settings)
+
+---
+
+## screen:credentials
+
+### Quick Help
+- The Credentials page stores passwords, usernames, API keys, and other sensitive data
+- Data is organized by **category** (outer accordion) and **credential** (inner accordion)
+- Use the **Person** filter at the top to switch between your credentials and those you track for family members
+- **Copy** buttons grab a value to your clipboard — the clipboard auto-clears after 60 seconds
+- **Credential values are masked** by default — tap 👁 to reveal
+
+### Details
+
+**Person filter**: Defaults to "Me". Add family members or others via Manage → Manage People (picks from your Contacts list). Their credentials are stored separately and toggled with the Person dropdown.
+
+**Categories**: Organize credentials into groups (Financial, Streaming, etc.). Categories are shared across all people. Use **Manage → Manage Categories** to reorder (drag), rename, or delete categories. Deleting a category moves its credentials to Uncategorized.
+
+**Uncategorized**: A built-in virtual category for credentials with no category. Always shown last. Cannot be deleted.
+
+**Adding a credential**: Tap **+ Add** (top right) or the **+** button on any category header. All fields are optional. Pick a credential type (Password, API Key, Client Secret, Social Security Number, Code). You can create a new category on the fly from the Add form.
+
+**Editing**: Tap **Edit** inside an expanded credential. The credential value is shown unmasked in the edit form. If you change the credential value and save, the old value automatically moves to the "Previous Credential" field and the Last Updated date is set to today.
+
+**Copy & reveal**: 📋 copies the value to clipboard and shows "Copied!" for 2 seconds. The clipboard is automatically cleared after 60 seconds. 👁 toggles the masked/revealed view for the credential value and previous credential.
+
+**Reordering**: Drag credentials within a category using the ≡ handle. Reorder categories on the Category Management page.
+
+**Search**: The search box filters by credential name or URL across all categories for the current person. Non-matching categories are hidden while searching.
 
 ---
 

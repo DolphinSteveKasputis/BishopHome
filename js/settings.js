@@ -616,6 +616,9 @@ var BACKUP_DATA_COLLECTIONS = [
     // Misc
     'sbIssues', 'settings',
 
+    // Credentials
+    'credentials', 'credentialCategories',
+
     // Private Vault (exported as ciphertext — useful for Firestore disaster recovery)
     'privateVault', 'privateBookmarks', 'privateDocuments', 'privatePhotoAlbums', 'privatePhotos'
 ];

@@ -997,6 +997,67 @@ Tracks major life events — trips, milestones, goals, relationships.
 
 ---
 
+## Part 8b: Credentials
+
+**Plan document**: `PWPlan.md`
+
+**JS file**: `js/credentials.js`
+
+Stores passwords, usernames, API keys, and other sensitive data. No encryption — Firebase Auth login is sufficient security.
+
+### Life Page Tile
+Simple tile labeled **Credentials** (🔑) always visible on the Life page.
+
+### Data Model
+| Collection | Key Fields |
+|---|---|
+| `credentials` | `personId` (null = "Me"), `categoryId` (null = Uncategorized), `name`, `url`, `username`, `credentialType`, `credentialValue`, `previousCredential`, `email`, `notes`, `secretQA`, `order`, `updatedAt`, `createdAt` |
+| `credentialCategories` | `name`, `order`, `createdAt` |
+| `settings/credentials` | `{ enrolledPersonIds: [contactId, …] }` |
+
+**Credential types**: Password, API Key, Client Secret, Social Security Number, Code.
+
+### Page: Credentials List (`#credentials`)
+- **Person filter** (dropdown at top): Me (default) + enrolled contacts; filters all categories/counts
+- **Search box**: searches `name` and `url` fields client-side; hides non-matching categories; updates count badge to "N of M" while active
+- **Category accordions** (outer): shown in user-defined order; count badge reflects current person filter; empty categories always shown; each header has a **[+]** button to add a credential pre-filled with that category
+- **Credential accordions** (inner): show credential name in header; drag-to-reorder within category; collapsed by default
+- **Expanded credential** shows: URL (clickable link), email, username + 📋 Copy, credential type + value (masked ••••••) + 👁 Reveal + 📋 Copy, last updated, previous credential (masked) + 👁, secret Q&A, notes, **[Edit]** and **[Delete]** buttons
+- **Copy behavior**: button shows "Copied!" for 2 s; clipboard auto-cleared after 60 s
+- **Uncategorized** is a virtual category (credentials with `categoryId: null`) — always last, cannot be deleted
+- **[Manage ▾]** dropdown: Manage Categories → `#credentials/categories`; Manage People → modal
+
+### Page: Add Credential (`#credentials/add`)
+Full-page form with all fields. No fields required. Person defaults to current page filter. Category can be picked from existing or a new one typed in line (creates on save). When navigated from a category's [+] button, that category is pre-filled.
+
+### Page: Edit Credential (`#credentials/edit/{id}`)
+Same form as Add, pre-filled. Credential value shown **unmasked** in the form. On save: if credential value changed → old value auto-moves to Previous Credential and `updatedAt` is set to today.
+
+### Page: Category Management (`#credentials/categories`)
+- Drag-to-reorder list of all real categories; order saved to Firestore as `order` field
+- Inline rename (Rename → input → Save/Cancel)
+- Delete: moves all credentials in that category to Uncategorized (with confirmation), then deletes
+- Add new category via text input at bottom
+- Uncategorized row shown pinned at the bottom; cannot be deleted or reordered
+
+### Manage People Modal
+- Lists enrolled contacts with **Remove** button (removes from enrolled list and deletes their credentials)
+- ContactPicker to add new contacts from the `people` collection
+- "Me" (personId: null) is always available and cannot be removed
+
+### Routes
+| Hash | Page |
+|---|---|
+| `#credentials` | Credentials list |
+| `#credentials/add` | Add new credential |
+| `#credentials/edit/{id}` | Edit existing credential |
+| `#credentials/categories` | Category management |
+
+### Backup
+`credentials` and `credentialCategories` included in `BACKUP_DATA_COLLECTIONS`.
+
+---
+
 ## Part 8a: Private Vault
 
 **Plan document**: `PrivatePlan.md`

@@ -169,7 +169,7 @@ const ALL_PAGES = [
     'life-event',
     'life-projects', 'life-project',
     'legacy', 'legacy-burial', 'legacy-service', 'legacy-obituary', 'legacy-social',
-    'legacy-accounts', 'legacy-financial-accounts', 'legacy-financial-loans',
+    'legacy-accounts', 'legacy-financial-accounts', 'legacy-financial-loans', 'legacy-loans-form',
     'legacy-financial-bills', 'legacy-financial-insurance', 'legacy-financial-plan',
     'legacy-documents', 'legacy-household',
     'legacy-pets', 'legacy-notify', 'legacy-letters', 'legacy-letter', 'legacy-intro', 'legacy-message',
@@ -209,7 +209,7 @@ const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'jo
                      'life-calendar', 'life-event',
                      'life-projects', 'life-project',
                      'legacy', 'legacy-burial', 'legacy-service', 'legacy-obituary', 'legacy-social',
-                     'legacy-accounts', 'legacy-financial-accounts', 'legacy-financial-loans',
+                     'legacy-accounts', 'legacy-financial-accounts', 'legacy-financial-loans', 'legacy-loans-form',
                      'legacy-financial-bills', 'legacy-financial-insurance', 'legacy-financial-plan',
                      'legacy-documents', 'legacy-household',
                      'legacy-pets', 'legacy-notify', 'legacy-letters', 'legacy-letter', 'legacy-message',
@@ -725,6 +725,12 @@ function handleRoute() {
     } else if (page === 'legacy' && id === 'accounts' && parts[2] === 'accounts') {
         showPage('legacy-financial-accounts');
         loadLegacyFinancialAccountsPage();
+    } else if (page === 'legacy' && id === 'accounts' && parts[2] === 'loans' && parts[3] === 'add') {
+        showPage('legacy-loans-form');
+        loadLegacyLoansFormPage(null);
+    } else if (page === 'legacy' && id === 'accounts' && parts[2] === 'loans' && parts[3] === 'edit' && parts[4]) {
+        showPage('legacy-loans-form');
+        loadLegacyLoansFormPage(parts[4]);
     } else if (page === 'legacy' && id === 'accounts' && parts[2] === 'loans') {
         showPage('legacy-financial-loans');
         loadLegacyFinancialLoansPage();

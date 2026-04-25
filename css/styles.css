@@ -14029,3 +14029,58 @@ a.legacy-fin-card:hover {
         align-items: flex-start;
     }
 }
+
+/* ============================================================
+   Loans — type badge, payment badge, header hints, calc tip
+   ============================================================ */
+
+.loan-type-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
+    background: #fff3e0;
+    color: #e65100;
+    margin-right: 6px;
+}
+
+/* Small dim hints shown in the collapsed card header */
+.loan-header-hint {
+    font-size: 0.82rem;
+    color: #888;
+    margin-left: 4px;
+}
+
+/* "Auto Pay" / "Pay Manually" badge */
+.loan-pay-badge {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 8px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    white-space: nowrap;
+    margin-left: 6px;
+}
+.loan-pay-badge--auto   { background: #e8f5e9; color: #2e7d32; }
+.loan-pay-badge--manual { background: #fff8e1; color: #f57f17; }
+
+/* ⓘ tooltip trigger on estimated remaining */
+.loan-calc-tip {
+    cursor: help;
+    color: #1565c0;
+    font-size: 0.85rem;
+}
+
+/* "Show Archived" checkbox label in the loans toolbar */
+.loan-archived-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+    color: #555;
+    cursor: pointer;
+    user-select: none;
+}

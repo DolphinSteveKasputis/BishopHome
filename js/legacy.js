@@ -2066,12 +2066,634 @@ async function _legacyFinSaveOverlay(id) {
 }
 
 // ============================================================
-// Legacy Financial — Stub sub-pages (Loans, Bills, Insurance, Plan)
+// Legacy Financial — Loans
 // ============================================================
 
-function loadLegacyFinancialLoansPage() {
-    _legacyRequireUnlock(function() { _legacyFinStub('page-legacy-financial-loans', 'Loans', '🏦'); });
+// ---------- Constants ----------
+
+var LOAN_TYPES = [
+    'Mortgage', 'Home Equity / HELOC', 'Car Loan', 'Credit Card',
+    'Student Loan', 'Personal Loan', 'Business Loan', 'Furniture', 'Other'
+];
+
+var LOAN_HOW_PAID = [
+    '', 'Auto Pay – Bank', 'Auto Pay – Credit Card',
+    'Ebill – Pay Manually', 'Paper Bill – Pay Manually', 'Other'
+];
+
+// ---------- Module State ----------
+
+var _loanLoans        = [];
+var _loanExpandedIds  = {};
+var _loanRevealedIds  = {};
+var _loanDecryptCache = {};
+var _loanShowArchived = false;
+var _loanFormEditId   = null;
+var _loanFormDraft    = null;
+
+// ---------- Firestore Path ----------
+
+function _loanCol() {
+    return userCol('legacyFinancial').doc(_legacyFinPersonFilter).collection('loans');
 }
+
+// ---------- Page Loader ----------
+
+function loadLegacyFinancialLoansPage() {
+    _legacyRequireUnlock(function() { _loanLoadAndRender(); });
+}
+
+async function _loanLoadAndRender() {
+    var crumb = document.getElementById('breadcrumbBar');
+    if (crumb) {
+        crumb.innerHTML =
+            '<a href="#life">Life</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#legacy">My Legacy</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#legacy/accounts">Financial Accounts</a><span class="separator">&rsaquo;</span>' +
+            '<span>Loans</span>';
+    }
+    await _loanLoadPeople();
+    await _loanLoadLoans();
+    _loanRenderPage();
+}
+
+async function _loanLoadPeople() {
+    var settingsDoc = await userCol('settings').doc('investments').get();
+    _legacyFinPeople = [];
+    if (settingsDoc.exists) {
+        var enrolledIds = (settingsDoc.data().enrolledPersonIds || []).filter(Boolean);
+        var fetches = enrolledIds.map(function(pid) {
+            return userCol('people').doc(pid).get().then(function(d) {
+                return d.exists ? { id: pid, name: d.data().name || pid } : null;
+            });
+        });
+        var results = await Promise.all(fetches);
+        _legacyFinPeople = results.filter(Boolean).sort(function(a, b) {
+            return a.name.localeCompare(b.name);
+        });
+    }
+}
+
+async function _loanLoadLoans() {
+    _loanExpandedIds  = {};
+    _loanRevealedIds  = {};
+    _loanDecryptCache = {};
+    var snap = await _loanCol().orderBy('sortOrder').get();
+    _loanLoans = [];
+    snap.forEach(function(doc) {
+        _loanLoans.push(Object.assign({ id: doc.id }, doc.data()));
+    });
+}
+
+// ---------- Page Render ----------
+
+function _loanRenderPage() {
+    var page = document.getElementById('page-legacy-financial-loans');
+    if (!page) return;
+
+    var personOpts = '<option value="self"' + (_legacyFinPersonFilter === 'self' ? ' selected' : '') + '>Me</option>';
+    _legacyFinPeople.forEach(function(p) {
+        personOpts += '<option value="' + escapeHtml(p.id) + '"' +
+            (_legacyFinPersonFilter === p.id ? ' selected' : '') + '>' +
+            escapeHtml(p.name) + '</option>';
+    });
+
+    page.innerHTML =
+        '<div class="page-header">' +
+            '<h2>🏦 Loans</h2>' +
+        '</div>' +
+        '<div class="invest-person-row">' +
+            '<label class="invest-person-label">Person:</label>' +
+            '<select id="loanPersonSel" onchange="_loanOnPersonChange()">' + personOpts + '</select>' +
+        '</div>' +
+        '<div class="invest-toolbar">' +
+            '<button class="btn btn-primary" onclick="window.location.hash=\'#legacy/accounts/loans/add\'">+ Add Loan</button>' +
+            '<label class="loan-archived-toggle">' +
+                '<input type="checkbox" id="loanShowArchivedChk"' + (_loanShowArchived ? ' checked' : '') +
+                    ' onchange="_loanToggleShowArchived()"> Show Archived' +
+            '</label>' +
+        '</div>' +
+        '<div id="loanList"></div>';
+
+    _loanRenderList();
+}
+
+function _loanRenderList() {
+    var container = document.getElementById('loanList');
+    if (!container) return;
+
+    var list = _loanLoans.filter(function(l) { return _loanShowArchived || !l.archived; });
+
+    if (list.length === 0) {
+        container.innerHTML = '<div class="empty-state">No loans yet. Add one above.</div>';
+        return;
+    }
+
+    var html = '<div id="loanSortableList">';
+    list.forEach(function(loan) { html += _loanCardHtml(loan); });
+    html += '</div>';
+    container.innerHTML = html;
+
+    if (window.Sortable) {
+        Sortable.create(document.getElementById('loanSortableList'), {
+            handle: '.invest-drag-handle',
+            animation: 150,
+            onEnd: function(evt) { _loanOnReorder(evt); }
+        });
+    }
+}
+
+// ---------- Card HTML ----------
+
+function _loanCardHtml(loan) {
+    var isExpanded = !!_loanExpandedIds[loan.id];
+    var payBadge   = _loanPaymentBadge(loan.howItsPaid);
+
+    var titleParts = [escapeHtml(loan.nickname || '(untitled)')];
+    if (loan.lender) titleParts.push(escapeHtml(loan.lender));
+
+    var headerMeta = titleParts.join(' — ');
+    if (loan.monthlyPayment) headerMeta += '<span class="loan-header-hint"> $' + escapeHtml(String(loan.monthlyPayment)) + '/mo</span>';
+    if (payBadge) headerMeta += '<span class="loan-pay-badge loan-pay-badge--' + payBadge.type + '">' + escapeHtml(payBadge.label) + '</span>';
+    if (loan.payoffDate) headerMeta += '<span class="loan-header-hint"> Payoff: ' + _loanFmtDate(loan.payoffDate) + '</span>';
+    if (loan.inWhoseName) headerMeta += '<span class="loan-header-hint"> (' + escapeHtml(loan.inWhoseName) + ')</span>';
+
+    var header =
+        '<div class="invest-card-header" onclick="_loanToggle(\'' + loan.id + '\')">' +
+            '<span class="invest-drag-handle" onclick="event.stopPropagation()">⠿</span>' +
+            '<span class="loan-type-badge">' + escapeHtml(loan.loanType || 'Loan') + '</span>' +
+            '<span class="invest-card-title">' + headerMeta + '</span>' +
+            (loan.archived ? '<span class="invest-archived-badge">Archived</span>' : '') +
+            '<span class="invest-chevron">' + (isExpanded ? '▾' : '›') + '</span>' +
+        '</div>';
+
+    var body = '';
+    if (isExpanded) {
+        var isRevealed = !!_loanRevealedIds[loan.id];
+        var cache      = _loanDecryptCache[loan.id] || {};
+        var hasEnc     = loan.accountNumberEnc || loan.usernameEnc || loan.passwordEnc;
+
+        body = '<div class="invest-card-body">';
+
+        if (loan.lender)         body += _loanRow('Lender',        escapeHtml(loan.lender));
+        if (loan.inWhoseName)    body += _loanRow('In Whose Name', escapeHtml(loan.inWhoseName));
+        if (loan.paymentAddress) body += _loanRow('Payment Address', escapeHtml(loan.paymentAddress).replace(/\n/g, '<br>'));
+        if (loan.phone)          body += _loanRow('Phone', '<a href="tel:' + escapeHtml(loan.phone) + '">' + escapeHtml(loan.phone) + '</a>');
+        if (loan.monthlyPayment) body += _loanRow('Monthly Payment', '$' + escapeHtml(String(loan.monthlyPayment)));
+        if (loan.interestRate)   body += _loanRow('Interest Rate',  escapeHtml(String(loan.interestRate)) + '%');
+        if (loan.howItsPaid)     body += _loanRow('How Paid',       escapeHtml(loan.howItsPaid));
+        if (loan.startDate)      body += _loanRow('Start Date',     _loanFmtDate(loan.startDate));
+        if (loan.payoffDate)     body += _loanRow('Payoff Date',    _loanFmtDate(loan.payoffDate));
+
+        // Calculated fields (only if payoffDate is set)
+        var months = _loanMonthsLeft(loan.payoffDate);
+        if (months !== null) {
+            body += _loanRow('Months Left', String(months));
+            if (loan.monthlyPayment) {
+                var est = months * parseFloat(String(loan.monthlyPayment).replace(/[^0-9.]/g, ''));
+                body +=
+                    '<div class="invest-detail-row">' +
+                        '<span class="invest-detail-label">Est. Remaining</span>' +
+                        '<span class="invest-detail-value">' +
+                            '$' + est.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) +
+                            ' <span class="loan-calc-tip" title="Includes principal + interest. Not an exact payoff quote — call the lender for that.">ⓘ</span>' +
+                        '</span>' +
+                    '</div>';
+            }
+        }
+
+        if (loan.url) {
+            body += '<div class="invest-detail-row">' +
+                '<span class="invest-detail-label">URL</span>' +
+                '<span class="invest-detail-value"><a href="' + escapeHtml(loan.url) + '" target="_blank" rel="noopener">' + escapeHtml(loan.url) + '</a></span>' +
+                '</div>';
+        }
+
+        // Encrypted fields
+        if (hasEnc) {
+            body += '<div class="invest-sensitive-box">';
+            if (!legacyIsUnlocked()) {
+                body += '<div class="invest-sensitive-lock">' +
+                    '<span>Sensitive fields are encrypted.</span>' +
+                    '<button class="btn btn-secondary btn-small" onclick="event.stopPropagation();_loanReveal(\'' + loan.id + '\')">🔓 Reveal Sensitive Info</button>' +
+                    '</div>';
+            } else if (!isRevealed) {
+                body += '<button class="btn btn-secondary btn-small invest-reveal-btn" onclick="event.stopPropagation();_loanReveal(\'' + loan.id + '\')">🔓 Reveal All</button>';
+            } else {
+                body += '<button class="btn btn-secondary btn-small invest-reveal-btn" onclick="event.stopPropagation();_loanHide(\'' + loan.id + '\')">🔒 Hide</button>';
+                if (loan.accountNumberEnc) body += _loanRow('Account #', '<span class="invest-sensitive-val">' + escapeHtml(cache.accountNumber || '(decrypt failed)') + '</span>');
+                if (loan.usernameEnc)      body += _loanRow('Username',  '<span class="invest-sensitive-val">' + escapeHtml(cache.username      || '(decrypt failed)') + '</span>');
+                if (loan.passwordEnc)      body += _loanRow('Password',  '<span class="invest-sensitive-val">' + escapeHtml(cache.password      || '(decrypt failed)') + '</span>');
+            }
+            body += '</div>';
+        }
+
+        if (loan.whatToDo) body += _loanRow('Upon My Death', '<span style="white-space:pre-wrap">' + escapeHtml(loan.whatToDo) + '</span>');
+        if (loan.notes)    body += _loanRow('Notes',         '<span style="white-space:pre-wrap">' + escapeHtml(loan.notes)    + '</span>');
+
+        body +=
+            '<div class="invest-card-actions">' +
+                '<button class="btn btn-secondary btn-small" onclick="event.stopPropagation();window.location.hash=\'#legacy/accounts/loans/edit/' + loan.id + '\'">Edit</button>' +
+                (loan.archived
+                    ? '<button class="btn btn-secondary btn-small" onclick="event.stopPropagation();_loanRestore(\'' + loan.id + '\')">Restore</button>'
+                    : '<button class="btn btn-secondary btn-small" onclick="event.stopPropagation();_loanArchive(\'' + loan.id + '\')">Archive</button>') +
+            '</div>' +
+        '</div>';
+    }
+
+    return '<div class="invest-card' +
+        (loan.archived ? ' invest-card--archived' : '') +
+        (isExpanded    ? ' invest-card--expanded'  : '') +
+        '" data-id="' + loan.id + '">' + header + body + '</div>';
+}
+
+function _loanRow(label, valueHtml) {
+    return '<div class="invest-detail-row">' +
+        '<span class="invest-detail-label">' + escapeHtml(label) + '</span>' +
+        '<span class="invest-detail-value">' + valueHtml + '</span>' +
+        '</div>';
+}
+
+function _loanPaymentBadge(howItsPaid) {
+    if (!howItsPaid) return null;
+    var isAuto = howItsPaid.indexOf('Auto Pay') === 0;
+    return { label: isAuto ? 'Auto Pay' : 'Pay Manually', type: isAuto ? 'auto' : 'manual' };
+}
+
+function _loanFmtDate(dateStr) {
+    if (!dateStr) return '';
+    var d = new Date(dateStr + 'T00:00:00');
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+}
+
+function _loanMonthsLeft(payoffDate) {
+    if (!payoffDate) return null;
+    var now = new Date();
+    var pd  = new Date(payoffDate + 'T00:00:00');
+    if (isNaN(pd.getTime())) return null;
+    if (pd <= now) return 0;
+    var months = (pd.getFullYear() - now.getFullYear()) * 12 + (pd.getMonth() - now.getMonth());
+    if (pd.getDate() < now.getDate()) months--;
+    return Math.max(0, months);
+}
+
+// ---------- Card Interactions ----------
+
+function _loanToggle(id) {
+    _loanExpandedIds[id] = !_loanExpandedIds[id];
+    if (!_loanExpandedIds[id]) {
+        delete _loanRevealedIds[id];
+        delete _loanDecryptCache[id];
+    }
+    _loanRenderList();
+}
+
+async function _loanReveal(id) {
+    if (!legacyIsUnlocked()) {
+        _legacyRequireUnlock(function() { _loanReveal(id); });
+        return;
+    }
+    var loan = _loanLoans.find(function(l) { return l.id === id; });
+    if (!loan) return;
+
+    var cache = {};
+    try {
+        if (loan.accountNumberEnc) cache.accountNumber = await legacyDecrypt(loan.accountNumberEnc) || '';
+        if (loan.usernameEnc)      cache.username      = await legacyDecrypt(loan.usernameEnc)      || '';
+        if (loan.passwordEnc)      cache.password      = await legacyDecrypt(loan.passwordEnc)      || '';
+    } catch (e) { console.error('Loan decrypt error', e); }
+
+    _loanDecryptCache[id] = cache;
+    _loanRevealedIds[id]  = true;
+    _loanExpandedIds[id]  = true;
+    _loanRenderList();
+}
+
+function _loanHide(id) {
+    delete _loanRevealedIds[id];
+    delete _loanDecryptCache[id];
+    _loanRenderList();
+}
+
+// ---------- Archive / Restore ----------
+
+async function _loanArchive(id) {
+    if (!confirm('Archive this loan? It will be hidden from the main list. You can restore it anytime.')) return;
+    await _loanCol().doc(id).update({ archived: true });
+    delete _loanExpandedIds[id];
+    await _loanLoadLoans();
+    _loanRenderList();
+}
+
+async function _loanRestore(id) {
+    await _loanCol().doc(id).update({ archived: false });
+    await _loanLoadLoans();
+    _loanRenderList();
+}
+
+// ---------- Toolbar Interactions ----------
+
+function _loanToggleShowArchived() {
+    var chk = document.getElementById('loanShowArchivedChk');
+    _loanShowArchived = chk ? chk.checked : false;
+    _loanRenderList();
+}
+
+async function _loanOnPersonChange() {
+    var sel = document.getElementById('loanPersonSel');
+    if (sel) _legacyFinPersonFilter = sel.value || 'self';
+    await _loanLoadLoans();
+    _loanRenderList();
+}
+
+// ---------- Drag-to-Reorder ----------
+
+async function _loanOnReorder(evt) {
+    if (evt.oldIndex === evt.newIndex) return;
+    var list = _loanLoans.filter(function(l) { return _loanShowArchived || !l.archived; });
+    var moved = list.splice(evt.oldIndex, 1)[0];
+    list.splice(evt.newIndex, 0, moved);
+
+    var batch = firebase.firestore().batch();
+    list.forEach(function(loan, i) {
+        batch.update(_loanCol().doc(loan.id), { sortOrder: i });
+    });
+    await batch.commit();
+    await _loanLoadLoans();
+}
+
+// ---------- Add / Edit Form Page ----------
+
+async function loadLegacyLoansFormPage(id) {
+    _loanFormEditId = id || null;
+    var isNew = !id;
+    var loan  = id ? _loanLoans.find(function(l) { return l.id === id; }) : null;
+
+    if (id && !loan) {
+        await _loanLoadPeople();
+        await _loanLoadLoans();
+        loan = _loanLoans.find(function(l) { return l.id === id; });
+    }
+
+    var crumb = document.getElementById('breadcrumbBar');
+    if (crumb) {
+        crumb.innerHTML =
+            '<a href="#life">Life</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#legacy">My Legacy</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#legacy/accounts">Financial Accounts</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#legacy/accounts/loans">Loans</a><span class="separator">&rsaquo;</span>' +
+            '<span>' + (isNew ? 'Add Loan' : 'Edit Loan') + '</span>';
+    }
+    document.getElementById('headerTitle').innerHTML =
+        '<a href="#main" class="home-link">' + escapeHtml(window.appName || 'My Life') + '</a>';
+
+    var typeDatalist = LOAN_TYPES.map(function(t) {
+        return '<option value="' + escapeHtml(t) + '">';
+    }).join('');
+
+    var howPaidOpts = LOAN_HOW_PAID.map(function(v) {
+        return '<option value="' + escapeHtml(v) + '">' + escapeHtml(v || '— Select —') + '</option>';
+    }).join('');
+
+    var page = document.getElementById('page-legacy-loans-form');
+    if (!page) return;
+
+    page.innerHTML =
+        '<datalist id="loanTypeList">' + typeDatalist + '</datalist>' +
+        '<div class="page-header"><h2>' + (isNew ? '+ Add Loan' : 'Edit Loan') + '</h2></div>' +
+        '<div class="invest-form">' +
+
+            '<div class="form-group">' +
+                '<label>Nickname *</label>' +
+                '<input type="text" id="loanFormNickname" placeholder="e.g. Nissan Rogue, Home Mortgage">' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>Loan Type</label>' +
+                '<input type="text" id="loanFormType" list="loanTypeList" placeholder="e.g. Car Loan, Mortgage">' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>Lender (formal name)</label>' +
+                '<input type="text" id="loanFormLender" placeholder="e.g. Nissan Motor Acceptance Corp">' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>In Whose Name</label>' +
+                '<input type="text" id="loanFormWhoseName" placeholder="e.g. Steve, Karen, Joint">' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>Payment Address</label>' +
+                '<textarea id="loanFormPaymentAddress" rows="2" placeholder="Where to send a check"></textarea>' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>Phone</label>' +
+                '<input type="tel" id="loanFormPhone" placeholder="Lender customer service number">' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>Monthly Payment ($)</label>' +
+                '<input type="number" id="loanFormMonthlyPayment" placeholder="e.g. 389.00" step="0.01" min="0">' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>Interest Rate (%)</label>' +
+                '<input type="number" id="loanFormInterestRate" placeholder="e.g. 4.75" step="0.01" min="0">' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>How It\'s Paid</label>' +
+                '<select id="loanFormHowPaid">' + howPaidOpts + '</select>' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>Loan Start Date</label>' +
+                '<input type="date" id="loanFormStartDate">' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>Payoff Date</label>' +
+                '<input type="date" id="loanFormPayoffDate">' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>URL</label>' +
+                '<input type="url" id="loanFormUrl" placeholder="https://...">' +
+            '</div>' +
+
+            '<div class="invest-form-sensitive-section">' +
+                '<div class="invest-modal-sensitive-header">Sensitive Fields</div>' +
+                '<div id="loanFormSensitiveContent"></div>' +
+            '</div>' +
+
+            '<div class="form-group">' +
+                '<label>What to Do Upon My Death</label>' +
+                '<textarea id="loanFormWhatToDo" rows="4"' +
+                    ' placeholder="e.g. Sell the car and use proceeds to pay off the loan. Contact lender at..."></textarea>' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>Notes</label>' +
+                '<textarea id="loanFormNotes" rows="3"></textarea>' +
+            '</div>' +
+
+            '<div class="invest-form-actions">' +
+                '<button class="btn btn-primary" onclick="_loanSaveForm()">Save</button>' +
+                '<button class="btn btn-secondary" onclick="_loanCancelForm()">Cancel</button>' +
+            '</div>' +
+        '</div>';
+
+    var d = _loanFormDraft;
+    _loanVal('loanFormNickname',       d ? d.nickname       : (loan ? loan.nickname       || '' : ''));
+    _loanVal('loanFormType',           d ? d.loanType       : (loan ? loan.loanType       || '' : ''));
+    _loanVal('loanFormLender',         d ? d.lender         : (loan ? loan.lender         || '' : ''));
+    _loanVal('loanFormWhoseName',      d ? d.inWhoseName    : (loan ? loan.inWhoseName    || '' : ''));
+    _loanVal('loanFormPaymentAddress', d ? d.paymentAddress : (loan ? loan.paymentAddress || '' : ''));
+    _loanVal('loanFormPhone',          d ? d.phone          : (loan ? loan.phone          || '' : ''));
+    _loanVal('loanFormMonthlyPayment', d ? d.monthlyPayment : (loan ? loan.monthlyPayment || '' : ''));
+    _loanVal('loanFormInterestRate',   d ? d.interestRate   : (loan ? loan.interestRate   || '' : ''));
+    _loanVal('loanFormHowPaid',        d ? d.howItsPaid     : (loan ? loan.howItsPaid     || '' : ''));
+    _loanVal('loanFormStartDate',      d ? d.startDate      : (loan ? loan.startDate      || '' : ''));
+    _loanVal('loanFormPayoffDate',     d ? d.payoffDate     : (loan ? loan.payoffDate     || '' : ''));
+    _loanVal('loanFormUrl',            d ? d.url            : (loan ? loan.url            || '' : ''));
+    _loanVal('loanFormWhatToDo',       d ? d.whatToDo       : (loan ? loan.whatToDo       || '' : ''));
+    _loanVal('loanFormNotes',          d ? d.notes          : (loan ? loan.notes          || '' : ''));
+    _loanFormDraft = null;
+
+    await _loanRenderSensitiveFields(loan);
+}
+
+async function _loanRenderSensitiveFields(loan) {
+    var container = document.getElementById('loanFormSensitiveContent');
+    if (!container) return;
+
+    if (!legacyIsUnlocked()) {
+        container.innerHTML =
+            '<div class="invest-modal-lock">' +
+                '<span>Enter your Legacy passphrase to edit Account Number, Username, and Password.</span>' +
+                '<button class="btn btn-secondary" onclick="_loanUnlockForForm()">🔓 Unlock Sensitive Fields</button>' +
+            '</div>';
+        return;
+    }
+
+    var acctNum = '', uname = '', pwd = '';
+    if (loan) {
+        try {
+            if (loan.accountNumberEnc) acctNum = await legacyDecrypt(loan.accountNumberEnc) || '';
+            if (loan.usernameEnc)      uname   = await legacyDecrypt(loan.usernameEnc)      || '';
+            if (loan.passwordEnc)      pwd     = await legacyDecrypt(loan.passwordEnc)      || '';
+        } catch (e) { console.error('Loan form decrypt error', e); }
+    }
+
+    container.innerHTML =
+        '<div class="form-group">' +
+            '<label>Account Number</label>' +
+            '<input type="text" id="loanFormAcctNum" autocomplete="off" placeholder="Loan account number">' +
+        '</div>' +
+        '<div class="form-group">' +
+            '<label>Username</label>' +
+            '<input type="text" id="loanFormUsername" autocomplete="off" placeholder="Login username">' +
+        '</div>' +
+        '<div class="form-group">' +
+            '<label>Password</label>' +
+            '<input type="text" id="loanFormPassword" autocomplete="off" placeholder="Login password">' +
+        '</div>';
+
+    _loanVal('loanFormAcctNum',  acctNum);
+    _loanVal('loanFormUsername', uname);
+    _loanVal('loanFormPassword', pwd);
+}
+
+function _loanUnlockForForm() {
+    _loanFormDraft = {
+        nickname:       _loanGv('loanFormNickname'),
+        loanType:       _loanGv('loanFormType'),
+        lender:         _loanGv('loanFormLender'),
+        inWhoseName:    _loanGv('loanFormWhoseName'),
+        paymentAddress: _loanGv('loanFormPaymentAddress'),
+        phone:          _loanGv('loanFormPhone'),
+        monthlyPayment: _loanGv('loanFormMonthlyPayment'),
+        interestRate:   _loanGv('loanFormInterestRate'),
+        howItsPaid:     _loanGv('loanFormHowPaid'),
+        startDate:      _loanGv('loanFormStartDate'),
+        payoffDate:     _loanGv('loanFormPayoffDate'),
+        url:            _loanGv('loanFormUrl'),
+        whatToDo:       _loanGv('loanFormWhatToDo'),
+        notes:          _loanGv('loanFormNotes')
+    };
+    _legacyRequireUnlock(function() { loadLegacyLoansFormPage(_loanFormEditId); });
+}
+
+async function _loanSaveForm() {
+    var nickname = (_loanGv('loanFormNickname') || '').trim();
+    if (!nickname) { alert('Please enter a nickname for this loan.'); return; }
+
+    var id    = _loanFormEditId;
+    var isNew = !id;
+
+    var data = {
+        nickname:       nickname,
+        loanType:       (_loanGv('loanFormType')           || '').trim(),
+        lender:         (_loanGv('loanFormLender')         || '').trim(),
+        inWhoseName:    (_loanGv('loanFormWhoseName')      || '').trim(),
+        paymentAddress: (_loanGv('loanFormPaymentAddress') || '').trim(),
+        phone:          (_loanGv('loanFormPhone')          || '').trim(),
+        monthlyPayment: (_loanGv('loanFormMonthlyPayment') || '').trim(),
+        interestRate:   (_loanGv('loanFormInterestRate')   || '').trim(),
+        howItsPaid:     (_loanGv('loanFormHowPaid')        || ''),
+        startDate:      (_loanGv('loanFormStartDate')      || ''),
+        payoffDate:     (_loanGv('loanFormPayoffDate')     || ''),
+        url:            (_loanGv('loanFormUrl')            || '').trim(),
+        whatToDo:       (_loanGv('loanFormWhatToDo')       || '').trim(),
+        notes:          (_loanGv('loanFormNotes')          || '').trim()
+    };
+
+    if (legacyIsUnlocked() && document.getElementById('loanFormAcctNum')) {
+        var existing   = id ? _loanLoans.find(function(l) { return l.id === id; }) : null;
+        var acctNumVal = (_loanGv('loanFormAcctNum')  || '').trim();
+        var usernameVal= (_loanGv('loanFormUsername') || '').trim();
+        var passwordVal= (_loanGv('loanFormPassword') || '').trim();
+
+        if (acctNumVal) {
+            data.accountNumberEnc = await legacyEncrypt(acctNumVal);
+        } else if (existing && existing.accountNumberEnc) {
+            data.accountNumberEnc = firebase.firestore.FieldValue.delete();
+        }
+        if (usernameVal) {
+            data.usernameEnc = await legacyEncrypt(usernameVal);
+        } else if (existing && existing.usernameEnc) {
+            data.usernameEnc = firebase.firestore.FieldValue.delete();
+        }
+        if (passwordVal) {
+            data.passwordEnc = await legacyEncrypt(passwordVal);
+        } else if (existing && existing.passwordEnc) {
+            data.passwordEnc = firebase.firestore.FieldValue.delete();
+        }
+    }
+
+    if (isNew) {
+        data.sortOrder = _loanLoans.filter(function(l) { return !l.archived; }).length;
+        data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        await _loanCol().add(data);
+    } else {
+        await _loanCol().doc(id).update(data);
+    }
+
+    _loanFormEditId = null;
+    _loanFormDraft  = null;
+    window.location.hash = '#legacy/accounts/loans';
+}
+
+function _loanCancelForm() {
+    _loanFormEditId = null;
+    _loanFormDraft  = null;
+    window.location.hash = '#legacy/accounts/loans';
+}
+
+function _loanVal(id, value) {
+    var el = document.getElementById(id);
+    if (el) el.value = value !== undefined ? value : '';
+}
+
+function _loanGv(id) {
+    var el = document.getElementById(id);
+    return el ? el.value : '';
+}
+
+// ============================================================
+// Legacy Financial — Stub sub-pages (Bills, Insurance, Plan)
+// ============================================================
 function loadLegacyFinancialBillsPage() {
     _legacyRequireUnlock(function() { _legacyFinStub('page-legacy-financial-bills', 'Bills', '📄'); });
 }

@@ -1279,7 +1279,7 @@ async function saveJournalEntry() {
         alert('Please select a date.');
         return;
     }
-    if (!text) {
+    if (!text && !_journalCheckinMode) {
         alert('Please enter some text for the journal entry.');
         return;
     }

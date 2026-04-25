@@ -35,6 +35,9 @@ function loadLegacyPage() {
     var page = document.getElementById('page-legacy');
     if (!page) return;
 
+    var crumb = document.getElementById('breadcrumbBar');
+    if (crumb) crumb.innerHTML = '<a href="#life" class="breadcrumb-link">Life</a><span class="breadcrumb-sep"> › </span><span class="breadcrumb-current">My Legacy</span>';
+
     page.innerHTML =
         '<div class="page-header"><h2>🕊️ My Legacy</h2></div>' +
         '<p class="legacy-intro">Private information for your loved ones. Keep your Legacy Passphrase stored safely alongside your app login.</p>' +

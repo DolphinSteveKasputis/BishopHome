@@ -49,6 +49,7 @@ function userCol(collectionName) {
 - Login screen is a full-page overlay rendered before any app content
 - `#changepassword` route allows password update
 - No multi-user sharing or role-based access currently
+- **Create Account**: login screen shows a "Create Account" section when the user has saved their own Firebase config (`usingCustomFirebase === true`). Calls `createUserWithEmailAndPassword`. After success, a one-time modal appears with instructions to disable new sign-ups in Firebase Console (Build → Authentication → Settings → User actions → uncheck "Enable create (sign-up)").
 
 ### Routing (`app.js`)
 - **Hash-based SPA routing**: All navigation uses `window.location.hash` (e.g., `#zone/abc123`, `#plant/xyz`)

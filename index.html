@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=579">
+    <link rel="stylesheet" href="css/styles.css?v=580">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -93,6 +93,27 @@
             <a href="#" class="btn btn-secondary btn-full login-setup-btn" onclick="fsbShowFromLogin(); return false;">
                 🔥 Set Up My Own Account
             </a>
+
+            <!-- Create Account — only visible after the user has saved their own Firebase config -->
+            <div id="createAccountSection" class="hidden">
+                <div class="login-setup-divider" style="margin-top:16px;">
+                    <span>Create your account</span>
+                </div>
+                <div class="form-group">
+                    <label for="caEmail">Email</label>
+                    <input type="email" id="caEmail" placeholder="your@email.com" autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label for="caPassword">Password</label>
+                    <input type="password" id="caPassword" placeholder="At least 6 characters" autocomplete="new-password">
+                </div>
+                <div class="form-group">
+                    <label for="caConfirm">Confirm Password</label>
+                    <input type="password" id="caConfirm" placeholder="Repeat password" autocomplete="new-password">
+                </div>
+                <p class="login-error" id="caError"></p>
+                <button type="button" class="btn btn-primary btn-full" id="caSubmitBtn" onclick="handleCreateAccount()">Create Account</button>
+            </div>
         </div>
     </div>
 
@@ -3866,6 +3887,26 @@
     </main>
 
     <!-- ========== MODALS ========== -->
+
+    <!-- New Account Welcome Modal — shown once after first account creation -->
+    <div class="modal-overlay hidden" id="modal-new-account-welcome">
+        <div class="modal">
+            <h3>🎉 Account Created!</h3>
+            <p>You're all set and signed in. One important step to keep your data private:</p>
+            <p style="margin-top:12px;"><strong>Disable new sign-ups in Firebase</strong> so no one else can create an account on your project:</p>
+            <ol class="fsb-steps" style="margin-top:8px;">
+                <li>Go to <span class="fsb-url">console.firebase.google.com</span> and select your project</li>
+                <li>In the left sidebar click <em>Build → Authentication</em></li>
+                <li>Click the <strong>Settings</strong> tab (not the Users tab)</li>
+                <li>Under <strong>"User actions"</strong>, uncheck <strong>"Enable create (sign-up)"</strong></li>
+                <li>Click <strong>Save</strong></li>
+            </ol>
+            <p style="font-size:0.85rem;color:#6b7280;margin-top:10px;">Your existing account and password reset will still work after this. You can find these instructions again under <strong>Settings → Data Storage</strong>.</p>
+            <div class="modal-buttons">
+                <button class="btn btn-primary" onclick="closeModal('modal-new-account-welcome')">Got it!</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Private Vault: Firebase Storage Setup Help Modal -->
     <div class="modal-overlay" id="modal-private-help">
@@ -10130,7 +10171,7 @@ export default {
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="js/firebase-config.js?v=579"></script>
-    <script src="js/auth.js?v=350"></script>
+    <script src="js/auth.js?v=351"></script>
     <script src="js/zones.js?v=355"></script>
     <script src="js/plants.js?v=351"></script>
     <script src="js/problems.js?v=389"></script>
@@ -10179,7 +10220,7 @@ export default {
     <script src="js/thoughts.js?v=548"></script>
     <script src="js/top10lists.js?v=465"></script>
     <script src="js/memories.js?v=473"></script>
-    <script src="js/firebasesetup.js?v=510"></script>
+    <script src="js/firebasesetup.js?v=511"></script>
     <script src="js/views.js?v=556"></script>
     <script src="js/help.js?v=536"></script>
     <script src="js/legacy-crypto.js?v=2"></script>

@@ -40,6 +40,7 @@ auth.onAuthStateChanged(function(user) {
         if (!_appInitialized) {
             _appInitialized = true;
             initApp();
+            _checkNewAccountWelcome();
         }
     } else {
         // Signed out — reset flag and show login screen
@@ -117,6 +118,70 @@ function handleSignOut() {
 
 document.getElementById('signOutBtn').addEventListener('click', handleSignOut);
 document.getElementById('signOutBtnMobile').addEventListener('click', handleSignOut);
+
+// ---------- Create Account (shown when user has their own Firebase config) ----------
+
+// Reveal the create-account section on load if the user has saved their own Firebase config
+(function() {
+    if (typeof usingCustomFirebase !== 'undefined' && usingCustomFirebase) {
+        var el = document.getElementById('createAccountSection');
+        if (el) el.classList.remove('hidden');
+    }
+})();
+
+async function handleCreateAccount() {
+    var email     = (document.getElementById('caEmail').value || '').trim();
+    var password  = document.getElementById('caPassword').value;
+    var confirm   = document.getElementById('caConfirm').value;
+    var errorEl   = document.getElementById('caError');
+    var submitBtn = document.getElementById('caSubmitBtn');
+
+    errorEl.textContent = '';
+
+    if (!email || !password || !confirm) {
+        errorEl.textContent = 'Please fill in all fields.';
+        return;
+    }
+    if (password.length < 6) {
+        errorEl.textContent = 'Password must be at least 6 characters.';
+        return;
+    }
+    if (password !== confirm) {
+        errorEl.textContent = 'Passwords do not match.';
+        return;
+    }
+
+    submitBtn.disabled    = true;
+    submitBtn.textContent = 'Creating…';
+
+    try {
+        await auth.createUserWithEmailAndPassword(email, password);
+        // Flag so the app shows lock-down instructions after loading
+        localStorage.setItem('bishopNewAccountCreated', '1');
+        // onAuthStateChanged fires automatically and transitions to the app
+    } catch (err) {
+        submitBtn.disabled    = false;
+        submitBtn.textContent = 'Create Account';
+        if (err.code === 'auth/email-already-in-use') {
+            errorEl.textContent = 'An account with that email already exists. Try signing in instead.';
+        } else if (err.code === 'auth/invalid-email') {
+            errorEl.textContent = 'Please enter a valid email address.';
+        } else if (err.code === 'auth/weak-password') {
+            errorEl.textContent = 'Password must be at least 6 characters.';
+        } else {
+            errorEl.textContent = 'Could not create account. Please try again.';
+            console.error('Create account error:', err);
+        }
+    }
+}
+
+// Called after app initializes — shows lock-down instructions once if account was just created
+function _checkNewAccountWelcome() {
+    if (!localStorage.getItem('bishopNewAccountCreated')) return;
+    localStorage.removeItem('bishopNewAccountCreated');
+    // Small delay so the app finishes routing before the modal opens
+    setTimeout(function() { openModal('modal-new-account-welcome'); }, 400);
+}
 
 // ---------- Change Password Page ----------
 

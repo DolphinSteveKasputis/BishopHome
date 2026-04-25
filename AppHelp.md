@@ -568,6 +568,43 @@ Firebase Storage is not available on the free Spark plan. The Blaze (pay-as-you-
 
 ---
 
+## screen:firebase-setup
+
+**What this screen is for:** Setting up your own private Firebase project so your data is stored in your own database — not the shared default. Also used for first-time account creation and locking down your Firebase to prevent others from signing up.
+
+### First-Time Setup Flow
+
+New users follow these steps from the login screen:
+
+1. On the login screen, tap **🔥 Set Up My Own Account**
+2. Follow the 6-step guide to create a free Firebase project:
+   - Create a project at `console.firebase.google.com`
+   - Enable Firestore (production mode)
+   - Set security rules (auth-gated read/write)
+   - Enable Email/Password authentication
+   - Get your web app config block
+3. Paste the config and tap **Validate & Save** — the app reloads pointing to your Firebase
+4. A **Create Account** section appears on the login screen — enter your email and password
+5. After sign-in, a one-time prompt shows instructions to disable new sign-ups
+
+### Create Account
+
+The Create Account section only appears on the login screen when you have saved your own Firebase config. Fill in email, password, and confirm password, then tap **Create Account**.
+
+### Lock Down — Disable New Sign-Ups
+
+After creating your account, disable new sign-ups so no one else can register on your project:
+
+1. Go to `console.firebase.google.com` and select your project
+2. In the left sidebar click **Build → Authentication**
+3. Click the **Settings** tab (not the Users tab)
+4. Under **"User actions"**, uncheck **"Enable create (sign-up)"**
+5. Click **Save**
+
+Your existing account and password reset still work after this.
+
+---
+
 ## screen:house
 
 ### Quick Help

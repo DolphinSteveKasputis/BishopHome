@@ -124,6 +124,19 @@ function renderFirebaseSetupPage() {
             '</ol>' +
         '</div>' +
 
+        // Lock down
+        '<div class="settings-card">' +
+            '<h3 class="settings-section-title">Lock Down Your Account</h3>' +
+            '<p class="settings-section-desc">After creating your account, disable new sign-ups so no one else can register on your Firebase project. Your existing account and password reset will still work.</p>' +
+            '<ol class="fsb-steps">' +
+                '<li>Go to <span class="fsb-url">console.firebase.google.com</span> and select your project</li>' +
+                '<li>In the left sidebar click <em>Build → Authentication</em></li>' +
+                '<li>Click the <strong>Settings</strong> tab (not the Users tab)</li>' +
+                '<li>Under <strong>"User actions"</strong>, uncheck <strong>"Enable create (sign-up)"</strong></li>' +
+                '<li>Click <strong>Save</strong></li>' +
+            '</ol>' +
+        '</div>' +
+
         // Paste config
         '<div class="settings-card">' +
             '<h3 class="settings-section-title">Paste Your Config Here</h3>' +

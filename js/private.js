@@ -1385,9 +1385,9 @@ async function loadPrivatePhotosGallery(albumKey) {
     try {
         var snap;
         if (albumKey === null) {
-            snap = await userCol('privatePhotos').where('albumId', '==', null).orderBy('createdAt', 'desc').get();
+            snap = await userCol('privatePhotos').where('albumId', '==', null).get();
         } else {
-            snap = await userCol('privatePhotos').where('albumId', '==', albumKey).orderBy('createdAt', 'desc').get();
+            snap = await userCol('privatePhotos').where('albumId', '==', albumKey).get();
         }
         _photoCurrentPhotos = [];
         for (var i = 0; i < snap.docs.length; i++) {
@@ -1400,6 +1400,12 @@ async function loadPrivatePhotosGallery(albumKey) {
                 : 'photo.jpg';
             _photoCurrentPhotos.push({ id: doc.id, caption: caption, originalFileName: origName, storageRef: d.storageRef, albumId: d.albumId, createdAt: d.createdAt });
         }
+        // Sort newest-first client-side (avoids composite Firestore index requirement)
+        _photoCurrentPhotos.sort(function(a, b) {
+            var ta = a.createdAt ? a.createdAt.toMillis() : 0;
+            var tb = b.createdAt ? b.createdAt.toMillis() : 0;
+            return tb - ta;
+        });
         _photoRenderGallery();
     } catch (e) {
         console.error('Gallery load failed:', e);

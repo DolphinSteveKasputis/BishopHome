@@ -1059,6 +1059,53 @@ Same form as Add, pre-filled. Credential value shown **unmasked** in the form. O
 
 ---
 
+## Part 8c: Investments
+
+**Plan document**: `LegacyFinancial.md`
+
+**JS file**: `js/investments.js`
+
+Person-scoped financial account tracker. The **canonical storage** for financial accounts — the Legacy Financial Accounts tab reads from these same records rather than duplicating them.
+
+### Life Page Tile
+Tile labeled **Investments** (📈), always visible on the Life landing page.
+
+### Person Switcher
+- Dropdown at top of page: **Me** (personId = `'self'`) + enrolled contacts
+- **Manage ▾** button → dropdown → **Manage People** → modal to add/remove contacts from the `people` collection
+- Enrolled IDs stored in `settings/investments.enrolledPersonIds[]`
+- Changing person reloads the account list
+
+### Accounts
+Each account is a doc in `investments/{personId}/accounts/`.
+
+**Collapsed card**: drag handle (⠿) · account type badge (color-coded) · Nickname — Institution · ····last4 · expand chevron
+
+**Expanded card** shows: URL (clickable), Login Notes, Beneficiary, a **Sensitive** box (Account Number, Username, Password), and **[Edit]** / **[Archive]** (or **[Restore]** if archived).
+
+**Type badge colors**: bank types (Checking/Savings/Money Market/CD) = blue; retirement types (Roth IRA/Traditional IRA/401k variants/403b) = green; brokerage types (Individual/Joint) = purple; tax-advantaged (HSA/529) = orange; Other = gray.
+
+**Archive vs. delete**: accounts are never hard-deleted. Archive sets `archived: true`; archived accounts are hidden by default, revealed via **Show Archived** toggle. Legacy Financial will never see archived accounts.
+
+**Drag-to-reorder**: SortableJS on the visible list; saves `sortOrder` to Firestore via batch write.
+
+### Encryption
+Sensitive fields (`accountNumberEnc`, `usernameEnc`, `passwordEnc`) use AES-GCM via `legacy-crypto.js` — the same passphrase and session key shared with the Legacy section. Entering the passphrase in either feature unlocks both for the session.
+
+**In the card (reveal)**: if passphrase not in memory → single "🔓 Reveal Sensitive Info" button triggers passphrase prompt, then decrypts. If passphrase already in memory → "🔓 Reveal All" button decrypts immediately. Revealed values stay visible until the card collapses.
+
+**In the modal (edit)**: if passphrase not in memory → sensitive fields are hidden behind a "🔓 Unlock to Edit Sensitive Fields" button. Once unlocked, fields decrypt and become editable. On save, non-empty values are re-encrypted with the session key; an empty field clears the encrypted value in Firestore.
+
+### Add / Edit Modal Fields
+Account Type (required), Nickname (required), Institution, Last 4 Digits (4 chars max), URL, Login Notes (3-row textarea), Beneficiary / Joint Owner, Account Number (sensitive), Username (sensitive), Password (sensitive).
+
+### Routes
+| Hash | Page |
+|---|---|
+| `#investments` | Investments page (person switcher + account list) |
+
+---
+
 ## Part 8a: Private Vault
 
 **Plan document**: `PrivatePlan.md`
@@ -2169,6 +2216,19 @@ All collections live under `/users/{uid}/`. Every module uses `userCol('collecti
 | `lifeProjects/{id}/packingItems` | text, done, notes, category, sortOrder |
 | `lifeProjects/{id}/projectNotes` | title, text, createdAt, sortOrder |
 
+### Investments
+
+| Collection / Path | Key Fields |
+|-------------------|------------|
+| `investments/{personId}/accounts` | nickname, accountType, institution, last4, url, loginNotes, beneficiary, accountNumberEnc, usernameEnc, passwordEnc, archived, sortOrder, createdAt |
+| `settings/investments` | enrolledPersonIds[] |
+
+`personId` = `'self'` for the logged-in user, or a `people` doc ID for tracked contacts.
+
+Encrypted fields (`accountNumberEnc`, `usernameEnc`, `passwordEnc`) are AES-GCM ciphertext stored as base64 strings via `legacy-crypto.js`. The same passphrase and session key are shared with the Legacy section.
+
+Legacy overlay fields (`currentValue`, `whatToDo`, `legacyNotes`) will be added to the same account docs by the Legacy Financial Accounts feature (not yet built).
+
 ### Places
 
 | Collection | Key Fields |
@@ -2181,6 +2241,7 @@ All collections live under `/users/{uid}/`. Every module uses `userCol('collecti
 |------|--------|
 | `settings/llm` | provider, apiKey, model? |
 | `settings/journal` | defaultDateRange |
+| `settings/investments` | enrolledPersonIds[] |
 
 ### Dev Notes (Shared)
 

@@ -1698,6 +1698,33 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 
 ---
 
+## screen:investments
+
+### Quick Help
+- Investments tracks your financial accounts (bank, retirement, brokerage, HSA, etc.) — one card per account
+- Sensitive fields (account number, username, password) are encrypted and require your Legacy passphrase to reveal
+- Use the **Person** dropdown to switch between your accounts and those of other people you track
+- Accounts are never deleted — **Archive** hides a closed account; use **Show Archived** to see it again
+- Drag the ⠿ handle to reorder accounts
+
+### Details
+
+**Person switcher**: Defaults to "Me". Add family members or others via **Manage → Manage People** (picks from your Contacts list). Each person's accounts are stored independently under their own person ID.
+
+**Account type badges**: Color-coded by category — blue = bank (Checking/Savings/Money Market/CD), green = retirement (IRA/401k/403b), purple = brokerage, orange = tax-advantaged (HSA/529), gray = Other.
+
+**Adding an account**: Tap **+ Add Account**. Account Type and Nickname are required. Last 4 Digits (optional) shows as ····1234 in the card header for quick identification.
+
+**Sensitive fields**: Account Number, Username, and Password are encrypted with your Legacy passphrase. In the **Add/Edit modal**, tap "🔓 Unlock to Edit Sensitive Fields" to enter your passphrase and enable those fields. On the **expanded card**, tap "🔓 Reveal All" to decrypt and view them in place.
+
+**Passphrase**: Same passphrase as the Legacy (My Legacy) section. Entering it in either place unlocks both for the session. The passphrase is never stored — it must be re-entered each browser session.
+
+**Archive**: Use Archive (not Delete) to close an account. Archived accounts can be restored at any time. Legacy Financial will only show active (non-archived) accounts.
+
+**Reordering**: Drag the ⠿ handle on any card to change the order. Order is saved immediately.
+
+---
+
 ## screen:private
 
 ### Quick Help

@@ -13632,3 +13632,261 @@ a.health-chip--link:hover { filter: brightness(0.93); }
         flex-wrap: wrap;
     }
 }
+
+/* ============================================================
+   INVESTMENTS
+   ============================================================ */
+
+/* Landing tile */
+.landing-tile--investments { background: #e8f5e9; }
+.landing-tile--investments:hover { background: #c8e6c9; }
+
+/* Person row */
+.invest-person-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+.invest-person-label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+.invest-person-row select {
+    flex: 1;
+    max-width: 240px;
+}
+
+/* Toolbar */
+.invest-toolbar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+}
+
+/* Manage dropdown */
+.invest-manage-wrap {
+    position: relative;
+}
+.invest-manage-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 4px);
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    z-index: 200;
+    min-width: 170px;
+    overflow: hidden;
+}
+.invest-manage-menu.open { display: block; }
+.invest-manage-menu button {
+    display: block;
+    width: 100%;
+    padding: 10px 16px;
+    text-align: left;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: #333;
+}
+.invest-manage-menu button:hover { background: #f5f5f5; }
+
+/* Account cards */
+.invest-card {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    overflow: hidden;
+    transition: box-shadow 0.15s;
+}
+.invest-card--expanded {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.invest-card--archived {
+    opacity: 0.65;
+    border-style: dashed;
+}
+.invest-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    cursor: pointer;
+    user-select: none;
+}
+.invest-card-header:hover { background: #f9f9f9; }
+.invest-drag-handle {
+    color: #bbb;
+    cursor: grab;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+.invest-card-title {
+    flex: 1;
+    font-weight: 500;
+    font-size: 0.95rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.invest-last4 {
+    color: #888;
+    font-size: 0.85rem;
+    font-family: monospace;
+}
+.invest-chevron {
+    color: #999;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+.invest-archived-badge {
+    font-size: 0.72rem;
+    font-weight: 600;
+    background: #e0e0e0;
+    color: #666;
+    padding: 2px 7px;
+    border-radius: 10px;
+    flex-shrink: 0;
+}
+
+/* Type badges */
+.invest-type-badge {
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.invest-badge--bank       { background: #e3f2fd; color: #1565c0; }
+.invest-badge--retirement { background: #e8f5e9; color: #2e7d32; }
+.invest-badge--brokerage  { background: #f3e5f5; color: #7b1fa2; }
+.invest-badge--tax-adv    { background: #fff3e0; color: #e65100; }
+.invest-badge--other      { background: #f5f5f5; color: #555; }
+
+/* Expanded card body */
+.invest-card-body {
+    padding: 0 14px 14px 14px;
+    border-top: 1px solid #f0f0f0;
+}
+.invest-detail-row {
+    display: flex;
+    gap: 10px;
+    padding: 6px 0;
+    border-bottom: 1px solid #f5f5f5;
+    font-size: 0.875rem;
+}
+.invest-detail-row:last-of-type { border-bottom: none; }
+.invest-detail-label {
+    min-width: 110px;
+    font-weight: 600;
+    color: #555;
+    flex-shrink: 0;
+}
+.invest-detail-value {
+    color: #333;
+    word-break: break-word;
+}
+.invest-detail-value a {
+    color: #1565c0;
+    text-decoration: none;
+}
+.invest-detail-value a:hover { text-decoration: underline; }
+
+/* Sensitive box */
+.invest-sensitive-box {
+    background: #fafafa;
+    border: 1px solid #e8e8e8;
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin: 10px 0;
+}
+.invest-sensitive-lock {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.85rem;
+    color: #666;
+    flex-wrap: wrap;
+}
+.invest-sensitive-val {
+    font-family: monospace;
+    font-size: 0.9rem;
+}
+.invest-reveal-btn {
+    margin-bottom: 8px;
+}
+
+/* Card action buttons */
+.invest-card-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid #f0f0f0;
+}
+
+/* Modal: sensitive section header */
+.invest-modal-lock {
+    background: #fff8e1;
+    border: 1px solid #ffe082;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin: 16px 0 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-size: 0.875rem;
+    color: #555;
+}
+.invest-modal-sensitive-header {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #888;
+    margin: 16px 0 4px;
+    border-top: 1px solid #eee;
+    padding-top: 14px;
+}
+
+/* Manage People modal */
+.invest-people-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 0.9rem;
+}
+.invest-people-row:last-child { border-bottom: none; }
+.invest-people-empty {
+    color: #aaa;
+    font-style: italic;
+    font-size: 0.875rem;
+    margin: 8px 0;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .invest-detail-row {
+        flex-direction: column;
+        gap: 2px;
+    }
+    .invest-detail-label {
+        min-width: unset;
+        font-size: 0.8rem;
+        color: #888;
+    }
+    .invest-sensitive-lock {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

@@ -165,6 +165,7 @@ const ALL_PAGES = [
     'memory-create', 'memory-edit',
     'view', 'view-history', 'views-categories',
     'credentials-add', 'credentials-edit', 'credentials-categories',
+    'investments',
     'help'
 ];
 
@@ -199,7 +200,8 @@ const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'jo
                      'legacy-accounts', 'legacy-documents', 'legacy-household',
                      'legacy-pets', 'legacy-notify', 'legacy-letters', 'legacy-letter', 'legacy-message',
                      'private', 'private-bookmarks', 'private-documents', 'private-photos', 'private-photos-gallery',
-                     'credentials', 'credentials-add', 'credentials-edit', 'credentials-categories'];
+                     'credentials', 'credentials-add', 'credentials-edit', 'credentials-categories',
+                     'investments'];
 
 /** Tracks which nav context is currently active ('yard', 'house', or 'life'). */
 var currentNavContext = 'yard';
@@ -736,6 +738,10 @@ function handleRoute() {
     } else if (page === 'legacy') {
         showPage('legacy');
         loadLegacyPage();
+    // ---------- Investments routes ----------
+    } else if (page === 'investments') {
+        showPage('investments');
+        loadInvestmentsPage();
     // ---------- Credentials routes ----------
     } else if (page === 'credentials' && id === 'edit' && parts[2]) {
         showPage('credentials-edit');

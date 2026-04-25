@@ -1273,16 +1273,12 @@ function _photoRenderAlbumList(counts, uncatCount) {
 }
 
 function _photoAlbumCardHtml(albumId, name, count, isVirtual) {
-    var key  = albumId || 'uncategorized';
-    var acts = isVirtual ? '' :
-        '<button class="btn btn-small btn-secondary" onclick="event.stopPropagation();privateRenameAlbumModal(\'' + albumId + '\')">Rename</button>' +
-        '<button class="btn btn-small btn-danger"    onclick="event.stopPropagation();privateDeleteAlbum(\'' + albumId + '\')">Delete</button>';
+    var key = albumId || 'uncategorized';
     return (
-        '<div class="album-card" onclick="window.location.hash=\'#private/photos/album/' + key + '\'">' +
-            '<div class="album-card-icon">&#128247;</div>' +
-            '<div class="album-card-name">' + _bmEsc(name) + '</div>' +
-            '<div class="album-card-count">' + count + ' photo' + (count === 1 ? '' : 's') + '</div>' +
-            (acts ? '<div class="album-card-actions">' + acts + '</div>' : '') +
+        '<div class="photo-album-card" onclick="window.location.hash=\'#private/photos/album/' + key + '\'">' +
+            '<div class="photo-album-icon">&#128247;</div>' +
+            '<div class="photo-album-name">' + _bmEsc(name) + '</div>' +
+            '<div class="photo-album-count">' + count + ' photo' + (count === 1 ? '' : 's') + '</div>' +
         '</div>'
     );
 }

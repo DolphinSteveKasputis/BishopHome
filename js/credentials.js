@@ -40,7 +40,8 @@ var _credDragCatId    = null;
 // ---------- Page Loaders ----------
 
 async function loadCredentialsPage() {
-    document.getElementById('breadcrumbBar').innerHTML = '';
+    document.getElementById('breadcrumbBar').innerHTML =
+        '<a href="#life">Life</a><span class="separator">&rsaquo;</span><span>Credentials</span>';
     document.getElementById('headerTitle').innerHTML =
         '<a href="#main" class="home-link">' + escapeHtml(window.appName || 'My Life') + '</a>';
     await _credLoadAll();

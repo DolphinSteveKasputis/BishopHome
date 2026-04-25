@@ -619,9 +619,25 @@ var BACKUP_DATA_COLLECTIONS = [
     // Credentials
     'credentials', 'credentialCategories',
 
+    // Investments (person-scoped — subcollections handled via PERSON_SCOPED_COLLECTIONS)
+    'investments',
+
+    // Legacy Financial (person-scoped — subcollections handled via PERSON_SCOPED_COLLECTIONS)
+    'legacyFinancial',
+
     // Private Vault (exported as ciphertext — useful for Firestore disaster recovery)
     'privateVault', 'privateBookmarks', 'privateDocuments', 'privatePhotoAlbums', 'privatePhotos'
 ];
+
+/**
+ * Person-scoped collections: top-level docs are person IDs ('self' or contact IDs),
+ * and the actual data lives in named subcollections under each person doc.
+ * Add new subcollections here as they are built — backup and restore handle them automatically.
+ */
+var PERSON_SCOPED_COLLECTIONS = {
+    'investments':     ['accounts'],
+    'legacyFinancial': ['loans']   // add 'bills', 'insurance', 'plan' as those tabs are built
+};
 
 /**
  * Build a timestamp string for the filename: YYYY-MM-DD_HHmm
@@ -706,6 +722,26 @@ async function backupReadCollections(collectionNames) {
                         data: backupSerialize(sdoc.data())
                     });
                 });
+            }
+        }
+        // For person-scoped collections (investments, legacyFinancial):
+        // each top-level doc is a person container; data lives in named subcollections.
+        if (PERSON_SCOPED_COLLECTIONS[name]) {
+            var subColNames = PERSON_SCOPED_COLLECTIONS[name];
+            for (var j = 0; j < entries.length; j++) {
+                var entry = entries[j];
+                entry.subcollections = {};
+                for (var s = 0; s < subColNames.length; s++) {
+                    var subName = subColNames[s];
+                    var subSnap = await userCol(name).doc(entry.id).collection(subName).get();
+                    entry.subcollections[subName] = [];
+                    subSnap.forEach(function(sdoc) {
+                        entry.subcollections[subName].push({
+                            id: sdoc.id,
+                            data: backupSerialize(sdoc.data())
+                        });
+                    });
+                }
             }
         }
         result[name] = entries;
@@ -883,6 +919,24 @@ async function restoreDeleteCollection(colName) {
             }
         }
     }
+    // For person-scoped collections, delete subcollection docs before the person container docs
+    if (PERSON_SCOPED_COLLECTIONS[colName]) {
+        var subColNames = PERSON_SCOPED_COLLECTIONS[colName];
+        for (var p = 0; p < docs.length; p++) {
+            for (var s = 0; s < subColNames.length; s++) {
+                var subSnap = await userCol(colName).doc(docs[p].id).collection(subColNames[s]).get();
+                if (!subSnap.empty) {
+                    var si = 0;
+                    while (si < subSnap.docs.length) {
+                        var batch = db.batch();
+                        subSnap.docs.slice(si, si + 400).forEach(function(sd) { batch.delete(sd.ref); });
+                        await batch.commit();
+                        si += 400;
+                    }
+                }
+            }
+        }
+    }
     var i = 0;
     while (i < docs.length) {
         var batch = db.batch();
@@ -909,20 +963,21 @@ async function restoreWriteCollection(colName, docs) {
         await batch.commit();
         i += 400;
     }
-    // Write lifeProjects subcollections
-    if (colName === 'lifeProjects') {
+    // Write subcollections for lifeProjects and person-scoped collections
+    var needsSubcollections = colName === 'lifeProjects' || !!PERSON_SCOPED_COLLECTIONS[colName];
+    if (needsSubcollections) {
         for (var p = 0; p < docs.length; p++) {
             var entry = docs[p];
             if (!entry.subcollections) continue;
             var subNames = Object.keys(entry.subcollections);
             for (var s = 0; s < subNames.length; s++) {
-                var subName  = subNames[s];
-                var subDocs  = entry.subcollections[subName];
+                var subName = subNames[s];
+                var subDocs = entry.subcollections[subName];
                 var si = 0;
                 while (si < subDocs.length) {
                     var batch = db.batch();
                     subDocs.slice(si, si + 400).forEach(function(sdoc) {
-                        var ref = userCol('lifeProjects').doc(entry.id).collection(subName).doc(sdoc.id);
+                        var ref = userCol(colName).doc(entry.id).collection(subName).doc(sdoc.id);
                         batch.set(ref, sdoc.data);
                     });
                     await batch.commit();

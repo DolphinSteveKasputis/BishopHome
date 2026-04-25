@@ -18,7 +18,7 @@ var LEGACY_SECTIONS = [
     { key: 'service',   icon: '🕊️',  label: 'Service Wishes',         route: '#legacy/service'   },
     { key: 'obituary',  icon: '📜',  label: 'My Obituary',            route: '#legacy/obituary'  },
     { key: 'social',    icon: '📱',  label: 'Social Media',           route: '#legacy/social',   gated: true, stub: true },
-    { key: 'accounts',  icon: '💰',  label: 'Financial Accounts',     route: '#legacy/accounts', gated: true, stub: true },
+    { key: 'accounts',  icon: '💰',  label: 'Financial Accounts',     route: '#legacy/accounts', gated: true },
     { key: 'documents', icon: '📁',  label: 'Documents',              route: '#legacy/documents' },
     { key: 'household', icon: '🏠',  label: 'Household Instructions', route: '#legacy/household', stub: true },
     { key: 'pets',      icon: '🐾',  label: 'Pets',                   route: '#legacy/pets'      },
@@ -1751,11 +1751,361 @@ function _legacySaveMessage() {
 }
 
 
-/** Gated — requires passphrase. */
+/** Financial Accounts hub — 5-card landing page. Gated. */
 function loadLegacyAccountsPage() {
     _legacyRequireUnlock(function() {
-        _legacyLoadStub('page-legacy-accounts', 'Financial Accounts', 'accounts');
+        var page = document.getElementById('page-legacy-accounts');
+        if (!page) return;
+
+        var crumb = document.getElementById('breadcrumbBar');
+        if (crumb) {
+            crumb.innerHTML =
+                '<a href="#life">Life</a><span class="separator">&rsaquo;</span>' +
+                '<a href="#legacy">My Legacy</a><span class="separator">&rsaquo;</span>' +
+                '<span>Financial Accounts</span>';
+        }
+
+        var cards = [
+            { icon: '💼', label: 'Accounts',       desc: 'Bank, retirement, brokerage, and other assets.',      route: '#legacy/accounts/accounts',  built: true  },
+            { icon: '🏦', label: 'Loans',           desc: 'Mortgage, car loans, credit cards, and other debts.', route: '#legacy/accounts/loans',     built: false },
+            { icon: '📄', label: 'Bills',           desc: 'Recurring expenses and auto-pay items.',              route: '#legacy/accounts/bills',     built: false },
+            { icon: '🛡️', label: 'Insurance',      desc: 'Life insurance policies and how to file a claim.',    route: '#legacy/accounts/insurance', built: false },
+            { icon: '📋', label: 'Financial Plan',  desc: 'Your big-picture instructions for your loved ones.', route: '#legacy/accounts/plan',      built: false }
+        ];
+
+        page.innerHTML =
+            '<div class="page-header">' +
+                '<button class="btn btn-secondary btn-small" onclick="location.hash=\'#legacy\'">← My Legacy</button>' +
+                '<h2>💰 Financial Accounts</h2>' +
+            '</div>' +
+            '<div class="legacy-fin-hub" id="legacyFinHub"></div>';
+
+        var hub = document.getElementById('legacyFinHub');
+        cards.forEach(function(c) {
+            var el = document.createElement(c.built ? 'a' : 'div');
+            if (c.built) el.href = c.route;
+            el.className = 'legacy-fin-card' + (c.built ? '' : ' legacy-fin-card--soon');
+            el.innerHTML =
+                '<span class="legacy-fin-card-icon">' + c.icon + '</span>' +
+                '<div class="legacy-fin-card-body">' +
+                    '<span class="legacy-fin-card-label">' + escapeHtml(c.label) + '</span>' +
+                    '<span class="legacy-fin-card-desc">' + escapeHtml(c.desc) + '</span>' +
+                    (!c.built ? '<span class="legacy-fin-card-soon-badge">Coming Soon</span>' : '') +
+                '</div>' +
+                (c.built ? '<span class="legacy-fin-card-arrow">›</span>' : '');
+            hub.appendChild(el);
+        });
     });
+}
+
+// ============================================================
+// Legacy Financial — Accounts Sub-page (#legacy/accounts/accounts)
+// Reads from investments/{personId}/accounts (canonical storage).
+// ============================================================
+
+var _legacyFinPersonFilter = 'self';
+var _legacyFinPeople       = [];
+var _legacyFinAccounts     = [];
+var _legacyFinExpandedIds  = {};
+var _legacyFinRevealedIds  = {};
+var _legacyFinDecryptCache = {};
+
+function _legacyFinCol() {
+    return userCol('investments').doc(_legacyFinPersonFilter).collection('accounts');
+}
+
+function loadLegacyFinancialAccountsPage() {
+    _legacyRequireUnlock(function() { _legacyFinLoadAndRender(); });
+}
+
+async function _legacyFinLoadAndRender() {
+    var crumb = document.getElementById('breadcrumbBar');
+    if (crumb) {
+        crumb.innerHTML =
+            '<a href="#life">Life</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#legacy">My Legacy</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#legacy/accounts">Financial Accounts</a><span class="separator">&rsaquo;</span>' +
+            '<span>Accounts</span>';
+    }
+    await _legacyFinLoadAll();
+    _legacyFinRenderPage();
+}
+
+async function _legacyFinLoadAll() {
+    var settingsDoc = await userCol('settings').doc('investments').get();
+    _legacyFinPeople = [];
+    if (settingsDoc.exists) {
+        var enrolledIds = (settingsDoc.data().enrolledPersonIds || []).filter(Boolean);
+        var fetches = enrolledIds.map(function(pid) {
+            return userCol('people').doc(pid).get().then(function(d) {
+                return d.exists ? { id: pid, name: d.data().name || pid } : null;
+            });
+        });
+        var results = await Promise.all(fetches);
+        _legacyFinPeople = results.filter(Boolean).sort(function(a, b) {
+            return a.name.localeCompare(b.name);
+        });
+    }
+    await _legacyFinLoadAccounts();
+}
+
+async function _legacyFinLoadAccounts() {
+    _legacyFinExpandedIds = {};
+    _legacyFinRevealedIds = {};
+    _legacyFinDecryptCache = {};
+    var snap = await _legacyFinCol().orderBy('sortOrder').get();
+    _legacyFinAccounts = [];
+    snap.forEach(function(doc) {
+        _legacyFinAccounts.push(Object.assign({ id: doc.id }, doc.data()));
+    });
+}
+
+function _legacyFinRenderPage() {
+    var page = document.getElementById('page-legacy-financial-accounts');
+    if (!page) return;
+
+    var personOpts = '<option value="self"' + (_legacyFinPersonFilter === 'self' ? ' selected' : '') + '>Me</option>';
+    _legacyFinPeople.forEach(function(p) {
+        personOpts += '<option value="' + escapeHtml(p.id) + '"' +
+            (_legacyFinPersonFilter === p.id ? ' selected' : '') + '>' +
+            escapeHtml(p.name) + '</option>';
+    });
+
+    page.innerHTML =
+        '<div class="page-header">' +
+            '<button class="btn btn-secondary btn-small" onclick="location.hash=\'#legacy/accounts\'">← Financial Accounts</button>' +
+            '<h2>💼 Accounts</h2>' +
+        '</div>' +
+        '<div class="invest-person-row">' +
+            '<label class="invest-person-label">Person:</label>' +
+            '<select id="legacyFinPersonSel" onchange="_legacyFinOnPersonChange()">' + personOpts + '</select>' +
+        '</div>' +
+        '<div id="legacyFinAccountList"></div>';
+
+    _legacyFinRenderList();
+}
+
+function _legacyFinRenderList() {
+    var container = document.getElementById('legacyFinAccountList');
+    if (!container) return;
+
+    var active = _legacyFinAccounts.filter(function(a) { return !a.archived; });
+
+    if (active.length === 0) {
+        container.innerHTML =
+            '<div class="empty-state">No accounts found. ' +
+            '<a href="#investments">Add them in Investments →</a></div>';
+        return;
+    }
+
+    var html = '';
+    active.forEach(function(acct) { html += _legacyFinCardHtml(acct); });
+    container.innerHTML = html;
+}
+
+function _legacyFinCardHtml(acct) {
+    var isExpanded = !!_legacyFinExpandedIds[acct.id];
+    var badgeClass = _investBadgeClass(acct.accountType || '');
+    var typeLabel  = _investTypeLabel(acct.accountType || '');
+
+    var titleParts = [escapeHtml(acct.nickname || '(untitled)')];
+    if (acct.institution) titleParts.push(escapeHtml(acct.institution));
+
+    var header =
+        '<div class="invest-card-header" onclick="_legacyFinToggleCard(\'' + acct.id + '\')">' +
+            '<span class="invest-type-badge ' + escapeHtml(badgeClass) + '">' + escapeHtml(typeLabel) + '</span>' +
+            '<span class="invest-card-title">' + titleParts.join(' — ') +
+                (acct.last4 ? '<span class="invest-last4"> ····' + escapeHtml(acct.last4) + '</span>' : '') +
+            '</span>' +
+            '<span class="invest-chevron">' + (isExpanded ? '▾' : '›') + '</span>' +
+        '</div>';
+
+    var body = '';
+    if (isExpanded) {
+        var isRevealed = !!_legacyFinRevealedIds[acct.id];
+        var cache      = _legacyFinDecryptCache[acct.id] || {};
+        var hasEnc     = acct.accountNumberEnc || acct.usernameEnc || acct.passwordEnc;
+
+        body = '<div class="invest-card-body">';
+
+        if (acct.url) {
+            body += '<div class="invest-detail-row"><span class="invest-detail-label">URL</span>' +
+                '<span class="invest-detail-value"><a href="' + escapeHtml(acct.url) + '" target="_blank" rel="noopener">' + escapeHtml(acct.url) + '</a></span></div>';
+        }
+        if (acct.loginNotes) {
+            body += '<div class="invest-detail-row"><span class="invest-detail-label">Login Notes</span>' +
+                '<span class="invest-detail-value">' + escapeHtml(acct.loginNotes) + '</span></div>';
+        }
+        if (acct.beneficiary) {
+            body += '<div class="invest-detail-row"><span class="invest-detail-label">Beneficiary</span>' +
+                '<span class="invest-detail-value">' + escapeHtml(acct.beneficiary) + '</span></div>';
+        }
+
+        if (hasEnc) {
+            body += '<div class="invest-sensitive-box">';
+            if (!isRevealed) {
+                body += '<button class="btn btn-secondary btn-small invest-reveal-btn"' +
+                    ' onclick="event.stopPropagation();_legacyFinRevealAccount(\'' + acct.id + '\')">' +
+                    '🔓 Reveal All</button>';
+            } else {
+                body += '<button class="btn btn-secondary btn-small invest-reveal-btn"' +
+                    ' onclick="event.stopPropagation();_legacyFinHideAccount(\'' + acct.id + '\')">' +
+                    '🔒 Hide</button>';
+                if (acct.accountNumberEnc) {
+                    body += '<div class="invest-detail-row"><span class="invest-detail-label">Account #</span>' +
+                        '<span class="invest-detail-value invest-sensitive-val">' + escapeHtml(cache.accountNumber || '') + '</span></div>';
+                }
+                if (acct.usernameEnc) {
+                    body += '<div class="invest-detail-row"><span class="invest-detail-label">Username</span>' +
+                        '<span class="invest-detail-value invest-sensitive-val">' + escapeHtml(cache.username || '') + '</span></div>';
+                }
+                if (acct.passwordEnc) {
+                    body += '<div class="invest-detail-row"><span class="invest-detail-label">Password</span>' +
+                        '<span class="invest-detail-value invest-sensitive-val">' + escapeHtml(cache.password || '') + '</span></div>';
+                }
+            }
+            body += '</div>';
+        }
+
+        // Legacy overlay fields — editable inline
+        body +=
+            '<div class="legacy-fin-overlay">' +
+                '<div class="legacy-fin-overlay-header">For Your Loved One</div>' +
+                '<div class="form-group">' +
+                    '<label>Current Value</label>' +
+                    '<input type="text" id="legacyFinVal_' + acct.id + '"' +
+                        ' class="legacy-fin-inline-input"' +
+                        ' value="' + escapeHtml(acct.currentValue || '') + '"' +
+                        ' placeholder="e.g. ~$45,000 as of Jan 2025">' +
+                '</div>' +
+                '<div class="form-group">' +
+                    '<label>What to Do</label>' +
+                    '<textarea id="legacyFinWtd_' + acct.id + '" class="legacy-fin-inline-textarea" rows="5"' +
+                        ' placeholder="Roll over, close, leave alone — specific instructions for your loved one.">' +
+                        escapeHtml(acct.whatToDo || '') + '</textarea>' +
+                '</div>' +
+                '<div class="form-group">' +
+                    '<label>Legacy Notes</label>' +
+                    '<textarea id="legacyFinNotes_' + acct.id + '" class="legacy-fin-inline-textarea" rows="3"' +
+                        ' placeholder="Anything else useful for your loved one.">' +
+                        escapeHtml(acct.legacyNotes || '') + '</textarea>' +
+                '</div>' +
+                '<div class="legacy-fin-overlay-actions">' +
+                    '<button class="btn btn-primary btn-small"' +
+                        ' onclick="event.stopPropagation();_legacyFinSaveOverlay(\'' + acct.id + '\')">Save</button>' +
+                    '<span class="legacy-fin-save-status" id="legacyFinStatus_' + acct.id + '"></span>' +
+                '</div>' +
+            '</div>';
+
+        body +=
+            '<div class="invest-card-actions">' +
+                '<a href="#investments/edit/' + acct.id + '" class="btn btn-secondary btn-small"' +
+                    ' onclick="event.stopPropagation()">Edit in Investments →</a>' +
+            '</div>' +
+        '</div>';
+    }
+
+    return '<div class="invest-card' + (isExpanded ? ' invest-card--expanded' : '') +
+        '" data-id="' + acct.id + '">' + header + body + '</div>';
+}
+
+function _legacyFinToggleCard(id) {
+    _legacyFinExpandedIds[id] = !_legacyFinExpandedIds[id];
+    if (!_legacyFinExpandedIds[id]) {
+        delete _legacyFinRevealedIds[id];
+        delete _legacyFinDecryptCache[id];
+    }
+    _legacyFinRenderList();
+}
+
+async function _legacyFinRevealAccount(id) {
+    var acct = _legacyFinAccounts.find(function(a) { return a.id === id; });
+    if (!acct) return;
+    var cache = {};
+    try {
+        if (acct.accountNumberEnc) cache.accountNumber = await legacyDecrypt(acct.accountNumberEnc) || '';
+        if (acct.usernameEnc)      cache.username      = await legacyDecrypt(acct.usernameEnc)      || '';
+        if (acct.passwordEnc)      cache.password      = await legacyDecrypt(acct.passwordEnc)      || '';
+    } catch (e) { console.error('Legacy financial decrypt error', e); }
+    _legacyFinDecryptCache[id] = cache;
+    _legacyFinRevealedIds[id]  = true;
+    _legacyFinExpandedIds[id]  = true;
+    _legacyFinRenderList();
+}
+
+function _legacyFinHideAccount(id) {
+    delete _legacyFinRevealedIds[id];
+    delete _legacyFinDecryptCache[id];
+    _legacyFinRenderList();
+}
+
+async function _legacyFinOnPersonChange() {
+    var sel = document.getElementById('legacyFinPersonSel');
+    if (sel) _legacyFinPersonFilter = sel.value || 'self';
+    await _legacyFinLoadAccounts();
+    _legacyFinRenderList();
+}
+
+async function _legacyFinSaveOverlay(id) {
+    var currentValue = (document.getElementById('legacyFinVal_'   + id) || {}).value || '';
+    var whatToDo     = (document.getElementById('legacyFinWtd_'   + id) || {}).value || '';
+    var legacyNotes  = (document.getElementById('legacyFinNotes_' + id) || {}).value || '';
+
+    await _legacyFinCol().doc(id).update({
+        currentValue: currentValue,
+        whatToDo:     whatToDo,
+        legacyNotes:  legacyNotes
+    });
+
+    var acct = _legacyFinAccounts.find(function(a) { return a.id === id; });
+    if (acct) { acct.currentValue = currentValue; acct.whatToDo = whatToDo; acct.legacyNotes = legacyNotes; }
+
+    var statusEl = document.getElementById('legacyFinStatus_' + id);
+    if (statusEl) {
+        statusEl.textContent = 'Saved ✓';
+        setTimeout(function() { if (statusEl) statusEl.textContent = ''; }, 2000);
+    }
+}
+
+// ============================================================
+// Legacy Financial — Stub sub-pages (Loans, Bills, Insurance, Plan)
+// ============================================================
+
+function loadLegacyFinancialLoansPage() {
+    _legacyRequireUnlock(function() { _legacyFinStub('page-legacy-financial-loans', 'Loans', '🏦'); });
+}
+function loadLegacyFinancialBillsPage() {
+    _legacyRequireUnlock(function() { _legacyFinStub('page-legacy-financial-bills', 'Bills', '📄'); });
+}
+function loadLegacyFinancialInsurancePage() {
+    _legacyRequireUnlock(function() { _legacyFinStub('page-legacy-financial-insurance', 'Insurance', '🛡️'); });
+}
+function loadLegacyFinancialPlanPage() {
+    _legacyRequireUnlock(function() { _legacyFinStub('page-legacy-financial-plan', 'Financial Plan', '📋'); });
+}
+
+function _legacyFinStub(pageId, title, icon) {
+    var page = document.getElementById(pageId);
+    if (!page) return;
+
+    var crumb = document.getElementById('breadcrumbBar');
+    if (crumb) {
+        crumb.innerHTML =
+            '<a href="#life">Life</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#legacy">My Legacy</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#legacy/accounts">Financial Accounts</a><span class="separator">&rsaquo;</span>' +
+            '<span>' + escapeHtml(title) + '</span>';
+    }
+
+    page.innerHTML =
+        '<div class="page-header">' +
+            '<button class="btn btn-secondary btn-small" onclick="location.hash=\'#legacy/accounts\'">← Financial Accounts</button>' +
+            '<h2>' + icon + ' ' + escapeHtml(title) + '</h2>' +
+        '</div>' +
+        '<div class="legacy-stub">' +
+            '<p class="legacy-stub-icon">🔧</p>' +
+            '<p class="legacy-stub-text">This section is coming soon.</p>' +
+        '</div>';
 }
 
 /** Gated — requires passphrase. */

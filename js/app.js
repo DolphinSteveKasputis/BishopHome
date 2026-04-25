@@ -159,7 +159,9 @@ const ALL_PAGES = [
     'life-event',
     'life-projects', 'life-project',
     'legacy', 'legacy-burial', 'legacy-service', 'legacy-obituary', 'legacy-social',
-    'legacy-accounts', 'legacy-documents', 'legacy-household',
+    'legacy-accounts', 'legacy-financial-accounts', 'legacy-financial-loans',
+    'legacy-financial-bills', 'legacy-financial-insurance', 'legacy-financial-plan',
+    'legacy-documents', 'legacy-household',
     'legacy-pets', 'legacy-notify', 'legacy-letters', 'legacy-letter', 'legacy-intro', 'legacy-message',
     'top10list-create', 'top10list-edit',
     'memory-create', 'memory-edit',
@@ -197,7 +199,9 @@ const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'jo
                      'life-calendar', 'life-event',
                      'life-projects', 'life-project',
                      'legacy', 'legacy-burial', 'legacy-service', 'legacy-obituary', 'legacy-social',
-                     'legacy-accounts', 'legacy-documents', 'legacy-household',
+                     'legacy-accounts', 'legacy-financial-accounts', 'legacy-financial-loans',
+                     'legacy-financial-bills', 'legacy-financial-insurance', 'legacy-financial-plan',
+                     'legacy-documents', 'legacy-household',
                      'legacy-pets', 'legacy-notify', 'legacy-letters', 'legacy-letter', 'legacy-message',
                      'private', 'private-bookmarks', 'private-documents', 'private-photos', 'private-photos-gallery',
                      'credentials', 'credentials-add', 'credentials-edit', 'credentials-categories',
@@ -708,6 +712,21 @@ function handleRoute() {
     } else if (page === 'legacy' && id === 'social') {
         showPage('legacy-social');
         loadLegacySocialPage();
+    } else if (page === 'legacy' && id === 'accounts' && parts[2] === 'accounts') {
+        showPage('legacy-financial-accounts');
+        loadLegacyFinancialAccountsPage();
+    } else if (page === 'legacy' && id === 'accounts' && parts[2] === 'loans') {
+        showPage('legacy-financial-loans');
+        loadLegacyFinancialLoansPage();
+    } else if (page === 'legacy' && id === 'accounts' && parts[2] === 'bills') {
+        showPage('legacy-financial-bills');
+        loadLegacyFinancialBillsPage();
+    } else if (page === 'legacy' && id === 'accounts' && parts[2] === 'insurance') {
+        showPage('legacy-financial-insurance');
+        loadLegacyFinancialInsurancePage();
+    } else if (page === 'legacy' && id === 'accounts' && parts[2] === 'plan') {
+        showPage('legacy-financial-plan');
+        loadLegacyFinancialPlanPage();
     } else if (page === 'legacy' && id === 'accounts') {
         showPage('legacy-accounts');
         loadLegacyAccountsPage();

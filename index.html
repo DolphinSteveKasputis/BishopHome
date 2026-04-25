@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=566">
+    <link rel="stylesheet" href="css/styles.css?v=567">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -6449,14 +6449,84 @@ service firebase.storage {
             <div id="private-doc-list" class="doc-list"></div>
         </section>
 
-        <!-- Page: Private Photos (#private/photos) — stub for Phase 5 -->
+        <!-- Page: Private Photos — album list (#private/photos) -->
         <section class="page hidden" id="page-private-photos">
             <div class="page-header">
                 <button class="btn btn-secondary btn-small back-btn" onclick="window.location.hash='#private'">&#8592; Back</button>
                 <h2>Private Photos</h2>
             </div>
-            <p class="empty-state" style="margin-top:48px;">Photos coming soon.</p>
+            <div class="section-actions">
+                <button class="btn btn-primary" onclick="privateOpenAddAlbumModal()">+ New Album</button>
+            </div>
+            <div id="private-album-list" class="photo-album-grid"></div>
         </section>
+
+        <!-- Page: Private Photos — gallery (#private/photos/album/{key}) -->
+        <section class="page hidden" id="page-private-photos-gallery">
+            <div class="page-header">
+                <button class="btn btn-secondary btn-small back-btn" onclick="window.location.hash='#private/photos'">&#8592; Albums</button>
+                <h2 id="gallery-album-title">Album</h2>
+                <div class="page-header-actions">
+                    <button class="btn btn-secondary btn-small" id="gallery-rename-btn" onclick="privateRenameAlbumModal()">Rename</button>
+                    <button class="btn btn-danger btn-small" id="gallery-delete-btn" onclick="privateDeleteAlbum()">Delete Album</button>
+                </div>
+            </div>
+            <div class="section-actions">
+                <label class="btn btn-primary" style="cursor:pointer;">
+                    + Add Photos
+                    <input type="file" id="gallery-file-input" accept="image/*" multiple style="display:none;" onchange="document.getElementById('gallery-file-input')._handler && document.getElementById('gallery-file-input')._handler(this)">
+                </label>
+            </div>
+            <div id="gallery-upload-status" class="doc-upload-status hidden"></div>
+            <div id="private-photo-grid" class="photo-grid"></div>
+        </section>
+
+        <!-- Modal: Add/rename album -->
+        <div class="modal-overlay hidden" id="modal-photo-album-edit">
+            <div class="modal">
+                <h3 id="album-modal-title">New Album</h3>
+                <label>Album Name</label>
+                <input type="text" id="album-name-input" placeholder="e.g. Family, Travel">
+                <div class="modal-actions">
+                    <button class="btn btn-primary" onclick="privateSubmitAlbumModal()">Save</button>
+                    <button class="btn btn-secondary" onclick="closeModal('modal-photo-album-edit')">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal: Photo viewer -->
+        <div class="modal-overlay hidden" id="modal-photo-viewer">
+            <div class="modal photo-viewer-modal">
+                <div class="pv-nav-row">
+                    <button class="btn btn-secondary btn-small" id="pv-older-btn" onclick="privateOlderPhoto()">&#8592; Older</button>
+                    <span id="pv-counter" class="pv-counter"></span>
+                    <button class="btn btn-secondary btn-small" id="pv-newer-btn" onclick="privateNewerPhoto()">Newer &#8594;</button>
+                </div>
+                <div class="pv-img-wrap">
+                    <img id="pv-img" src="" alt="Photo" class="pv-img">
+                </div>
+                <div class="pv-caption-row">
+                    <input type="text" id="pv-caption" placeholder="Add a caption…" oninput="_pvOnCaptionInput()">
+                    <button class="btn btn-primary btn-small hidden" id="pv-caption-save" onclick="privateSaveCaption()">Save</button>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-secondary btn-small" onclick="privateOpenMoveModal()">Move to Album</button>
+                    <button class="btn btn-danger btn-small" onclick="privateDeletePhotoFromViewer()">Delete</button>
+                    <button class="btn btn-secondary btn-small" onclick="closeModal('modal-photo-viewer')">Close</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal: Move photo to album -->
+        <div class="modal-overlay hidden" id="modal-photo-move">
+            <div class="modal">
+                <h3>Move to Album</h3>
+                <div id="photo-move-list" class="photo-move-list"></div>
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" onclick="closeModal('modal-photo-move')">Cancel</button>
+                </div>
+            </div>
+        </div>
 
         <!-- ================================================================
              LIFE SECTION — pages: life, journal, journal-entry,
@@ -9941,7 +10011,7 @@ export default {
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=566"></script>
+    <script src="js/firebase-config.js?v=567"></script>
     <script src="js/auth.js?v=350"></script>
     <script src="js/zones.js?v=355"></script>
     <script src="js/plants.js?v=351"></script>
@@ -9994,8 +10064,8 @@ export default {
     <script src="js/help.js?v=536"></script>
     <script src="js/legacy-crypto.js?v=2"></script>
     <script src="js/legacy.js?v=18"></script>
-    <script src="js/private.js?v=566"></script>
-    <script src="js/app.js?v=566"></script>
+    <script src="js/private.js?v=567"></script>
+    <script src="js/app.js?v=567"></script>
 
 </body>
 </html>

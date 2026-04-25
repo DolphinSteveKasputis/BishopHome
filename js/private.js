@@ -1173,3 +1173,446 @@ async function privateDeleteDoc(docId) {
         alert('Delete failed: ' + e.message);
     }
 }
+
+// ============================================================
+// Phase 5: Private Photos
+// ============================================================
+
+// In-memory state
+var _photoAlbums          = []; // [{id, name, order}]
+var _photoCurrentKey      = null; // Firestore albumId | null (uncategorized)
+var _photoCurrentPhotos   = []; // [{id, caption, originalFileName, storageRef, albumId, createdAt}]
+var _photoBlobUrls        = {}; // {photoId: blobUrl} — revoked on gallery reload
+var _photoViewerIdx       = -1; // current index into _photoCurrentPhotos
+var _photoAlbumModalMode  = null; // 'add' | 'rename'
+var _photoAlbumRenameId   = null;
+
+// ---- Image compression ----
+
+function _photoCompress(file) {
+    return new Promise(function(resolve, reject) {
+        var img = new Image();
+        var objUrl = URL.createObjectURL(file);
+        img.onload = function() {
+            var MAX = 1400;
+            var w = img.width, h = img.height;
+            if (w > MAX || h > MAX) {
+                if (w >= h) { h = Math.round(h * MAX / w); w = MAX; }
+                else        { w = Math.round(w * MAX / h); h = MAX; }
+            }
+            var canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            URL.revokeObjectURL(objUrl);
+            canvas.toBlob(function(blob) { resolve(blob); }, 'image/jpeg', 0.82);
+        };
+        img.onerror = reject;
+        img.src = objUrl;
+    });
+}
+
+// Revoke all cached thumbnail blob URLs (call before loading a new gallery).
+function _photoRevokeBlobs() {
+    Object.values(_photoBlobUrls).forEach(function(u) { URL.revokeObjectURL(u); });
+    _photoBlobUrls = {};
+}
+
+// ---- Album list page ----
+
+async function loadPrivatePhotosPage() {
+    if (!privateIsUnlocked()) { window.location.hash = '#private'; return; }
+    var el = document.getElementById('private-album-list');
+    if (el) el.innerHTML = '<p class="loading-state">Loading\u2026</p>';
+    _photoRevokeBlobs();
+    try {
+        _photoAlbums = await _photoLoadAlbums();
+        // Count photos per album and uncategorized
+        var countSnap = await userCol('privatePhotos').get();
+        var counts = {}; var uncatCount = 0;
+        countSnap.docs.forEach(function(d) {
+            var aid = d.data().albumId;
+            if (aid) counts[aid] = (counts[aid] || 0) + 1;
+            else uncatCount++;
+        });
+        _photoRenderAlbumList(counts, uncatCount);
+    } catch (e) {
+        console.error('Photo albums load failed:', e);
+        if (el) el.innerHTML = '<p class="empty-state">Failed to load albums.</p>';
+    }
+}
+
+async function _photoLoadAlbums() {
+    var snap = await userCol('privatePhotoAlbums').orderBy('order').get();
+    var albums = [];
+    for (var i = 0; i < snap.docs.length; i++) {
+        var doc = snap.docs[i]; var d = doc.data();
+        var name = d.encryptedName
+            ? (await _privateDecryptStringWithKey(d.encryptedName, _privateCryptoKey) || '(album)')
+            : '(album)';
+        albums.push({ id: doc.id, name: name, order: d.order || i });
+    }
+    return albums;
+}
+
+function _photoRenderAlbumList(counts, uncatCount) {
+    var el = document.getElementById('private-album-list');
+    if (!el) return;
+    var html = '';
+    // Uncategorized virtual album (first, only if photos exist)
+    if (uncatCount > 0) {
+        html += _photoAlbumCardHtml(null, 'Uncategorized', uncatCount, true);
+    }
+    _photoAlbums.forEach(function(album) {
+        html += _photoAlbumCardHtml(album.id, album.name, counts[album.id] || 0, false);
+    });
+    if (!html) {
+        el.innerHTML = '<p class="empty-state">No albums yet. Click \u201c+ Add Album\u201d to create one.</p>';
+        return;
+    }
+    el.innerHTML = html;
+}
+
+function _photoAlbumCardHtml(albumId, name, count, isVirtual) {
+    var key  = albumId || 'uncategorized';
+    var acts = isVirtual ? '' :
+        '<button class="btn btn-small btn-secondary" onclick="event.stopPropagation();privateRenameAlbumModal(\'' + albumId + '\')">Rename</button>' +
+        '<button class="btn btn-small btn-danger"    onclick="event.stopPropagation();privateDeleteAlbum(\'' + albumId + '\')">Delete</button>';
+    return (
+        '<div class="album-card" onclick="window.location.hash=\'#private/photos/album/' + key + '\'">' +
+            '<div class="album-card-icon">&#128247;</div>' +
+            '<div class="album-card-name">' + _bmEsc(name) + '</div>' +
+            '<div class="album-card-count">' + count + ' photo' + (count === 1 ? '' : 's') + '</div>' +
+            (acts ? '<div class="album-card-actions">' + acts + '</div>' : '') +
+        '</div>'
+    );
+}
+
+// ---- Album CRUD ----
+
+function privateOpenAddAlbumModal() {
+    _photoAlbumModalMode = 'add'; _photoAlbumRenameId = null;
+    document.getElementById('album-modal-title').textContent = 'Add Album';
+    document.getElementById('album-modal-name').value = '';
+    var err = document.getElementById('album-modal-error');
+    err.textContent = ''; err.classList.add('hidden');
+    var btn = document.getElementById('album-modal-save-btn');
+    if (btn) { btn.disabled = false; btn.textContent = 'Save'; }
+    openModal('modal-photo-album-edit');
+    setTimeout(function() { document.getElementById('album-modal-name').focus(); }, 100);
+}
+
+function privateRenameAlbumModal(albumId) {
+    var album = _photoAlbums.find(function(a) { return a.id === albumId; });
+    if (!album) return;
+    _photoAlbumModalMode = 'rename'; _photoAlbumRenameId = albumId;
+    document.getElementById('album-modal-title').textContent = 'Rename Album';
+    document.getElementById('album-modal-name').value = album.name;
+    var err = document.getElementById('album-modal-error');
+    err.textContent = ''; err.classList.add('hidden');
+    var btn = document.getElementById('album-modal-save-btn');
+    if (btn) { btn.disabled = false; btn.textContent = 'Save'; }
+    openModal('modal-photo-album-edit');
+    setTimeout(function() { document.getElementById('album-modal-name').focus(); }, 100);
+}
+
+async function privateSubmitAlbumModal() {
+    var name  = (document.getElementById('album-modal-name').value || '').trim();
+    var errEl = document.getElementById('album-modal-error');
+    var btn   = document.getElementById('album-modal-save-btn');
+    if (!name) { errEl.textContent = 'Name is required.'; errEl.classList.remove('hidden'); return; }
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving\u2026'; }
+    try {
+        var encName = await _privateEncryptStringWithKey(name, _privateCryptoKey);
+        if (_photoAlbumModalMode === 'add') {
+            await userCol('privatePhotoAlbums').add({
+                encryptedName: encName,
+                order: _photoAlbums.length,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        } else {
+            await userCol('privatePhotoAlbums').doc(_photoAlbumRenameId).update({ encryptedName: encName });
+        }
+        closeModal('modal-photo-album-edit');
+        await loadPrivatePhotosPage();
+    } catch (e) {
+        console.error('Album save failed:', e);
+        errEl.textContent = 'Save failed. Try again.'; errEl.classList.remove('hidden');
+        if (btn) { btn.disabled = false; btn.textContent = 'Save'; }
+    }
+}
+
+async function privateDeleteAlbum(albumId) {
+    var album = _photoAlbums.find(function(a) { return a.id === albumId; });
+    if (!confirm('Delete album "' + (album ? album.name : '') + '" and ALL its photos? This cannot be undone.')) return;
+    try {
+        // Delete all photos in this album from Storage + Firestore
+        var snap = await userCol('privatePhotos').where('albumId', '==', albumId).get();
+        var batch = firebase.firestore().batch();
+        var storageDeletes = [];
+        snap.docs.forEach(function(doc) {
+            var sr = doc.data().storageRef;
+            if (sr) storageDeletes.push(firebase.storage().ref(sr).delete().catch(function(){}));
+            batch.delete(userCol('privatePhotos').doc(doc.id));
+        });
+        await Promise.all(storageDeletes);
+        await batch.commit();
+        await userCol('privatePhotoAlbums').doc(albumId).delete();
+        await loadPrivatePhotosPage();
+    } catch (e) {
+        console.error('Album delete failed:', e);
+        alert('Delete failed: ' + e.message);
+    }
+}
+
+// ---- Gallery page ----
+
+async function loadPrivatePhotosGallery(albumKey) {
+    if (!privateIsUnlocked()) { window.location.hash = '#private'; return; }
+    _photoCurrentKey = albumKey; // null = uncategorized, otherwise Firestore albumId
+    _photoRevokeBlobs();
+
+    // Set heading
+    var heading = document.getElementById('gallery-album-name');
+    if (heading) {
+        if (albumKey === null) {
+            heading.textContent = 'Uncategorized';
+        } else {
+            var al = _photoAlbums.find(function(a) { return a.id === albumKey; });
+            heading.textContent = al ? al.name : 'Album';
+        }
+    }
+
+    var el = document.getElementById('private-gallery');
+    if (el) el.innerHTML = '<p class="loading-state">Loading\u2026</p>';
+
+    try {
+        var snap;
+        if (albumKey === null) {
+            snap = await userCol('privatePhotos').where('albumId', '==', null).orderBy('createdAt', 'desc').get();
+        } else {
+            snap = await userCol('privatePhotos').where('albumId', '==', albumKey).orderBy('createdAt', 'desc').get();
+        }
+        _photoCurrentPhotos = [];
+        for (var i = 0; i < snap.docs.length; i++) {
+            var doc = snap.docs[i]; var d = doc.data();
+            var caption = d.encryptedCaption
+                ? (await _privateDecryptStringWithKey(d.encryptedCaption, _privateCryptoKey) || '')
+                : '';
+            var origName = d.encryptedOriginalFileName
+                ? (await _privateDecryptStringWithKey(d.encryptedOriginalFileName, _privateCryptoKey) || 'photo.jpg')
+                : 'photo.jpg';
+            _photoCurrentPhotos.push({ id: doc.id, caption: caption, originalFileName: origName, storageRef: d.storageRef, albumId: d.albumId, createdAt: d.createdAt });
+        }
+        _photoRenderGallery();
+    } catch (e) {
+        console.error('Gallery load failed:', e);
+        if (el) el.innerHTML = '<p class="empty-state">Failed to load photos.</p>';
+    }
+}
+
+function _photoRenderGallery() {
+    var el = document.getElementById('private-gallery');
+    if (!el) return;
+    if (_photoCurrentPhotos.length === 0) {
+        el.innerHTML = '<p class="empty-state">No photos yet. Tap \u201c+ Add Photo\u201d to upload.</p>';
+        return;
+    }
+    el.innerHTML = _photoCurrentPhotos.map(function(photo, idx) {
+        return (
+            '<div class="photo-thumb" data-photo-id="' + photo.id + '" data-idx="' + idx + '" onclick="privateOpenPhotoViewer(' + idx + ')">' +
+                '<div class="photo-thumb-placeholder">&#128247;</div>' +
+            '</div>'
+        );
+    }).join('');
+    // Decrypt thumbnails progressively
+    _photoCurrentPhotos.forEach(function(photo, idx) { _photoDecryptThumb(photo, idx); });
+}
+
+async function _photoDecryptThumb(photo, idx) {
+    try {
+        var enc  = await _docFetchBytes(photo.storageRef);
+        var plain = await _privateDecryptBuffer(enc);
+        var url  = URL.createObjectURL(new Blob([plain], { type: 'image/jpeg' }));
+        _photoBlobUrls[photo.id] = url;
+        var el = document.querySelector('.photo-thumb[data-idx="' + idx + '"]');
+        if (el) el.innerHTML = '<img src="' + url + '" class="photo-thumb-img" alt="' + _bmEsc(photo.caption) + '">';
+    } catch (e) { /* leave placeholder on error */ }
+}
+
+// ---- Photo upload ----
+
+function _photoOnFileSelected(input) {
+    if (!input.files || !input.files.length) return;
+    var files = Array.from(input.files);
+    input.value = ''; // reset so same file can be re-selected
+    _photoUploadFiles(files);
+}
+
+async function _photoUploadFiles(files) {
+    var statusEl = document.getElementById('gallery-upload-status');
+    var user = firebase.auth().currentUser;
+    if (!user) return;
+    window.privateUploadInProgress = true;
+    if (statusEl) { statusEl.textContent = 'Preparing\u2026'; statusEl.classList.remove('hidden'); }
+    try {
+        for (var i = 0; i < files.length; i++) {
+            var file = files[i];
+            if (statusEl) statusEl.textContent = 'Compressing ' + (i + 1) + '/' + files.length + '\u2026';
+            var compressed = await _photoCompress(file);
+            var buffer     = await compressed.arrayBuffer();
+
+            if (statusEl) statusEl.textContent = 'Encrypting ' + (i + 1) + '/' + files.length + '\u2026';
+            var encrypted = await _privateEncryptBuffer(buffer);
+
+            var newDocRef   = userCol('privatePhotos').doc();
+            var storagePath = 'users/' + user.uid + '/privatePhotos/' + newDocRef.id;
+            var storageRef  = firebase.storage().ref(storagePath);
+
+            if (statusEl) statusEl.textContent = 'Uploading ' + (i + 1) + '/' + files.length + '\u2026 0%';
+            var task = storageRef.put(encrypted.buffer, { contentType: 'application/octet-stream' });
+            task.on('state_changed', function(snap) {
+                var pct = Math.round(snap.bytesTransferred / snap.totalBytes * 100);
+                if (statusEl) statusEl.textContent = 'Uploading ' + (i + 1) + '/' + files.length + '\u2026 ' + pct + '%';
+            });
+            await task;
+
+            var encCaption  = await _privateEncryptStringWithKey('', _privateCryptoKey);
+            var encFileName = await _privateEncryptStringWithKey(file.name, _privateCryptoKey);
+            await newDocRef.set({
+                albumId: _photoCurrentKey,
+                encryptedCaption: encCaption,
+                encryptedOriginalFileName: encFileName,
+                storageRef: storagePath,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+        if (statusEl) { statusEl.textContent = 'Done!'; }
+        window.privateUploadInProgress = false;
+        setTimeout(function() {
+            if (statusEl) { statusEl.textContent = ''; statusEl.classList.add('hidden'); }
+            loadPrivatePhotosGallery(_photoCurrentKey);
+        }, 700);
+    } catch (e) {
+        console.error('Photo upload failed:', e);
+        window.privateUploadInProgress = false;
+        if (statusEl) { statusEl.textContent = 'Upload failed: ' + e.message; }
+    }
+}
+
+// ---- Photo viewer ----
+
+async function privateOpenPhotoViewer(idx) {
+    _photoViewerIdx = idx;
+    var photo = _photoCurrentPhotos[idx];
+    if (!photo) return;
+
+    document.getElementById('pv-img').src = '';
+    document.getElementById('pv-caption').value = photo.caption || '';
+    document.getElementById('pv-caption-save').classList.add('hidden');
+    _photoUpdateViewerNav();
+    openModal('modal-photo-viewer');
+
+    // Reuse cached blob or decrypt fresh
+    var url = _photoBlobUrls[photo.id];
+    if (!url) {
+        try {
+            var enc   = await _docFetchBytes(photo.storageRef);
+            var plain = await _privateDecryptBuffer(enc);
+            url = URL.createObjectURL(new Blob([plain], { type: 'image/jpeg' }));
+            _photoBlobUrls[photo.id] = url;
+        } catch (e) { console.error('Viewer decrypt failed:', e); return; }
+    }
+    document.getElementById('pv-img').src = url;
+}
+
+function _photoUpdateViewerNav() {
+    var older = document.getElementById('pv-older-btn');
+    var newer = document.getElementById('pv-newer-btn');
+    if (older) older.disabled = _photoViewerIdx >= _photoCurrentPhotos.length - 1;
+    if (newer) newer.disabled = _photoViewerIdx <= 0;
+}
+
+function privateOlderPhoto() { if (_photoViewerIdx < _photoCurrentPhotos.length - 1) privateOpenPhotoViewer(_photoViewerIdx + 1); }
+function privateNewerPhoto() { if (_photoViewerIdx > 0) privateOpenPhotoViewer(_photoViewerIdx - 1); }
+
+function _pvOnCaptionInput() {
+    document.getElementById('pv-caption-save').classList.remove('hidden');
+}
+
+async function privateSaveCaption() {
+    var photo   = _photoCurrentPhotos[_photoViewerIdx];
+    if (!photo) return;
+    var caption = (document.getElementById('pv-caption').value || '').trim();
+    var btn     = document.getElementById('pv-caption-save');
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving\u2026'; }
+    try {
+        var enc = await _privateEncryptStringWithKey(caption, _privateCryptoKey);
+        await userCol('privatePhotos').doc(photo.id).update({ encryptedCaption: enc });
+        _photoCurrentPhotos[_photoViewerIdx].caption = caption;
+        if (btn) { btn.classList.add('hidden'); btn.disabled = false; btn.textContent = 'Save'; }
+    } catch (e) {
+        console.error('Caption save failed:', e);
+        if (btn) { btn.disabled = false; btn.textContent = 'Save'; }
+    }
+}
+
+// ---- Move photo ----
+
+function privateOpenMoveModal() {
+    var listEl = document.getElementById('photo-move-list');
+    if (!listEl) return;
+    var html = '';
+    // Uncategorized option (only if not currently in uncategorized)
+    if (_photoCurrentKey !== null) {
+        html += '<button class="btn btn-secondary photo-move-opt" onclick="privateMovePhoto(null)">Uncategorized</button>';
+    }
+    _photoAlbums.forEach(function(album) {
+        if (album.id !== _photoCurrentKey) {
+            html += '<button class="btn btn-secondary photo-move-opt" onclick="privateMovePhoto(\'' + album.id + '\')">' + _bmEsc(album.name) + '</button>';
+        }
+    });
+    listEl.innerHTML = html || '<p class="empty-state" style="margin:0">No other albums available.</p>';
+    openModal('modal-photo-move');
+}
+
+async function privateMovePhoto(newAlbumKey) {
+    var photo = _photoCurrentPhotos[_photoViewerIdx];
+    if (!photo) return;
+    closeModal('modal-photo-move');
+    try {
+        await userCol('privatePhotos').doc(photo.id).update({ albumId: newAlbumKey });
+        // Remove from current gallery
+        _photoCurrentPhotos.splice(_photoViewerIdx, 1);
+        if (_photoBlobUrls[photo.id]) { URL.revokeObjectURL(_photoBlobUrls[photo.id]); delete _photoBlobUrls[photo.id]; }
+        closeModal('modal-photo-viewer');
+        _photoRenderGallery();
+    } catch (e) {
+        console.error('Move failed:', e);
+        alert('Move failed: ' + e.message);
+    }
+}
+
+// ---- Delete photo ----
+
+async function privateDeletePhotoFromViewer() {
+    var photo = _photoCurrentPhotos[_photoViewerIdx];
+    if (!photo) return;
+    if (!confirm('Delete this photo? This cannot be undone.')) return;
+    try {
+        await firebase.storage().ref(photo.storageRef).delete();
+        await userCol('privatePhotos').doc(photo.id).delete();
+        if (_photoBlobUrls[photo.id]) { URL.revokeObjectURL(_photoBlobUrls[photo.id]); delete _photoBlobUrls[photo.id]; }
+        _photoCurrentPhotos.splice(_photoViewerIdx, 1);
+        closeModal('modal-photo-viewer');
+        // Adjust index and re-render
+        if (_photoCurrentPhotos.length === 0) {
+            _photoRenderGallery();
+        } else {
+            _photoViewerIdx = Math.min(_photoViewerIdx, _photoCurrentPhotos.length - 1);
+            _photoRenderGallery();
+        }
+    } catch (e) {
+        console.error('Photo delete failed:', e);
+        alert('Delete failed: ' + e.message);
+    }
+}

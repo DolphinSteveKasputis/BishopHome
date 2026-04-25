@@ -1657,7 +1657,7 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 **The three sections:**
 - **Bookmarks** — private URL bookmarks in a tree structure (up to 5 levels deep), not visible to Chrome or any browser sync. Add folders and bookmarks, drag to reorder or move between folders. Clicking a bookmark opens the URL in a new tab.
 - **Documents** — encrypted .docx files. Upload any .docx, open it to download a decrypted copy (Word opens it automatically), then re-upload after editing. Title and file are both encrypted.
-- **Photos** — encrypted photos organized by album
+- **Photos** — encrypted photos organized by albums. Tap an album to open its gallery. Tap any photo to view full-size, edit the caption, move it to another album, or delete it. Use **Add Photos** in the gallery to upload new images (automatically compressed and encrypted before upload).
 
 **If you forget your passphrase:** There is no recovery. The passphrase is never stored anywhere. All private data is permanently inaccessible without it.
 

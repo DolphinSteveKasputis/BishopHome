@@ -134,7 +134,7 @@ const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'h
                          'health-vitals', 'health-insurance', 'health-emergency', 'health-appointments', 'health-care-team',
                          'life-calendar', 'life-projects',
                          'legacy',
-                         'private', 'private-bookmarks', 'private-documents', 'private-photos',
+                         'private', 'private-bookmarks', 'private-documents', 'private-photos', 'private-photos-gallery',
                          'thoughts', 'top10lists', 'memories', 'views'];
 
 /**
@@ -196,7 +196,7 @@ const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'jo
                      'legacy', 'legacy-burial', 'legacy-service', 'legacy-obituary', 'legacy-social',
                      'legacy-accounts', 'legacy-documents', 'legacy-household',
                      'legacy-pets', 'legacy-notify', 'legacy-letters', 'legacy-letter', 'legacy-message',
-                     'private', 'private-bookmarks', 'private-documents', 'private-photos'];
+                     'private', 'private-bookmarks', 'private-documents', 'private-photos', 'private-photos-gallery'];
 
 /** Tracks which nav context is currently active ('yard', 'house', or 'life'). */
 var currentNavContext = 'yard';
@@ -742,9 +742,14 @@ function handleRoute() {
         if (!privateIsUnlocked()) { window.location.hash = '#private'; return; }
         showPage('private-documents');
         if (typeof loadPrivateDocumentsPage === 'function') loadPrivateDocumentsPage();
+    } else if (page === 'private' && id === 'photos' && parts[2] === 'album') {
+        if (!privateIsUnlocked()) { window.location.hash = '#private'; return; }
+        showPage('private-photos-gallery');
+        if (typeof loadPrivatePhotosGallery === 'function') loadPrivatePhotosGallery(parts[3] || null);
     } else if (page === 'private' && id === 'photos') {
         if (!privateIsUnlocked()) { window.location.hash = '#private'; return; }
         showPage('private-photos');
+        if (typeof loadPrivatePhotosPage === 'function') loadPrivatePhotosPage();
     } else if (page === 'private') {
         showPage('private');
         if (typeof privateNavigateTo === 'function') privateNavigateTo('home');

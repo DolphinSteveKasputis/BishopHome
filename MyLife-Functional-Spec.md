@@ -1071,11 +1071,25 @@ Encrypted .docx files stored in Firebase Storage. Files are encrypted client-sid
 **Firestore** `userCol('privateDocuments')`: `{encryptedTitle, encryptedOriginalFileName, storageRef, fileSizeBytes, createdAt, updatedAt}`
 **Storage** path: `users/{uid}/privateDocuments/{docId}` — raw encrypted bytes (IV prepended).
 
-### Remaining Sub-Feature (Phase 5)
+### Private Photos (Phase 5)
 
-| Feature | Description |
-|---|---|
-| Photos | Encrypted photos in Firebase Storage, organized by album |
+**Page:** `#private/photos` → album list; `#private/photos/album/{albumKey}` → gallery
+
+Albums list page shows a grid of album cards (icon, name, count). An "Uncategorized" virtual album collects photos with no album assignment. Each album card links to its gallery.
+
+Gallery page:
+- **3-column thumbnail grid** — thumbnails decrypted progressively as the page loads; tapping any thumbnail opens the photo viewer modal.
+- **Add Photos** button: opens a file picker (multi-select). Each selected image is: client-side compressed (max 1400px, JPEG quality 0.82) → AES-256-GCM encrypted → uploaded to Firebase Storage → metadata saved to Firestore `privatePhotos`.
+- **Album actions**: Rename album (pencil), Delete album (deletes all photos in album from Storage + Firestore).
+
+Photo viewer modal:
+- Full-size decrypted image displayed via temporary Blob URL (cached to avoid re-download on nav).
+- **Older / Newer** navigation buttons (newest-first order).
+- **Caption** input — edits encrypted in Firestore on Save.
+- **Move to Album** — opens modal with list of all albums; moving updates `albumId` in Firestore metadata only (blob stays in Storage).
+- **Delete** — removes blob from Storage and Firestore metadata.
+
+Image compression uses `<canvas>` before encryption; canvas is drawn then `toBlob()` at JPEG quality 0.82. `window.privateUploadInProgress` flag prevents auto-lock during uploads.
 
 ### Firestore Collections
 

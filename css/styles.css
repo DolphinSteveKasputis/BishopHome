@@ -12736,6 +12736,75 @@ a.health-chip--link:hover { filter: brightness(0.93); }
 }
 
 /* ============================================================
+   Private Documents — list and upload modal
+   ============================================================ */
+
+.doc-list {
+    padding: 0 16px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.doc-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.doc-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.doc-title {
+    font-weight: 500;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.doc-meta {
+    font-size: 0.8rem;
+    color: #6b7280;
+}
+
+.doc-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.doc-file-size {
+    font-size: 0.8rem;
+    color: #6b7280;
+    margin-left: 4px;
+}
+
+.doc-upload-status {
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 0.875rem;
+    color: #0369a1;
+    margin-bottom: 8px;
+}
+
+@media (max-width: 480px) {
+    .doc-row { flex-direction: column; align-items: flex-start; }
+    .doc-actions { width: 100%; }
+}
+
+/* ============================================================
    Private Bookmarks — tree, toolbar, drag-and-drop
    ============================================================ */
 

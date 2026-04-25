@@ -1057,11 +1057,24 @@ Encrypted URL bookmark tree, invisible to browsers and cloud sync. All node data
 - **Drag-and-drop**: Drag any node by the ☰ handle. Drop above a node to insert before it, below to insert after, or onto a folder to move inside. Drops that would exceed depth 5 are blocked with an alert.
 - **Firestore collection**: `userCol('privateBookmarks')` — one doc per node: `{type, parentId, order, depth, encryptedData, createdAt}`. Root node has `{type:'root', name:'Bookmarks'}` (not encrypted).
 
-### Remaining Sub-Features (Phases 4–5)
+### Private Documents (`#private/documents`)
+
+Encrypted .docx files stored in Firebase Storage. Files are encrypted client-side before upload; Firestore holds only encrypted metadata.
+
+- **List**: Title (decrypted on load) and last-updated date + file size per row. Sorted newest-first.
+- **Add Document**: Enter a title, pick a .docx file. Progress status shows "Encrypting…" → "Uploading… N%" → "Done!". On success, Firestore metadata is saved and the list reloads.
+- **Open**: Downloads the encrypted blob via XHR, decrypts in-browser, triggers a browser download with the original filename. Word opens it automatically via the OS file association.
+- **Re-upload**: Replaces the Storage blob with a newly encrypted version of a different file. Updates `updatedAt` and `fileSizeBytes` in Firestore; title is preserved.
+- **Delete**: Confirms, then deletes the Storage blob AND the Firestore record.
+- **Upload guard**: `window.privateUploadInProgress` is set true during upload; auto-lock is deferred until it clears.
+
+**Firestore** `userCol('privateDocuments')`: `{encryptedTitle, encryptedOriginalFileName, storageRef, fileSizeBytes, createdAt, updatedAt}`
+**Storage** path: `users/{uid}/privateDocuments/{docId}` — raw encrypted bytes (IV prepended).
+
+### Remaining Sub-Feature (Phase 5)
 
 | Feature | Description |
 |---|---|
-| Documents | Encrypted .docx files in Firebase Storage; download-to-edit workflow |
 | Photos | Encrypted photos in Firebase Storage, organized by album |
 
 ### Firestore Collections

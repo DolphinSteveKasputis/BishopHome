@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=565">
+    <link rel="stylesheet" href="css/styles.css?v=566">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -3919,6 +3919,32 @@ service firebase.storage {
         </div>
     </div>
 
+    <!-- Private Documents: Add / Re-upload Modal -->
+    <div class="modal-overlay" id="modal-doc-edit">
+        <div class="modal">
+            <h3 id="doc-modal-heading">Add Document</h3>
+            <p id="doc-reupload-label" class="hidden" style="font-size:0.9rem;color:#6b7280;margin-bottom:8px;"></p>
+            <div class="form-group" id="doc-title-group">
+                <label for="doc-modal-title-input">Title</label>
+                <input type="text" id="doc-modal-title-input" placeholder="Document title"
+                    onkeydown="if(event.key==='Enter')document.getElementById('doc-modal-file').click()">
+            </div>
+            <div class="form-group">
+                <label for="doc-modal-file">File (.docx)</label>
+                <input type="file" id="doc-modal-file"
+                    accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    onchange="_docOnFileChange(this)">
+                <span class="doc-file-size hidden" id="doc-file-size"></span>
+            </div>
+            <div class="doc-upload-status hidden" id="doc-upload-status"></div>
+            <p class="text-error hidden" id="doc-modal-error"></p>
+            <div class="modal-buttons">
+                <button class="btn btn-primary" id="doc-modal-save-btn" onclick="privateSubmitDocModal()">Upload</button>
+                <button class="btn btn-secondary" id="doc-modal-cancel-btn" onclick="closeModal('modal-doc-edit')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Private Bookmarks: Add / Edit Modal -->
     <div class="modal-overlay" id="modal-bm-edit">
         <div class="modal">
@@ -6411,13 +6437,16 @@ service firebase.storage {
             <div id="private-bm-tree" class="bm-tree"></div>
         </section>
 
-        <!-- Page: Private Documents (#private/documents) — stub for Phase 4 -->
+        <!-- Page: Private Documents (#private/documents) -->
         <section class="page hidden" id="page-private-documents">
             <div class="page-header">
                 <button class="btn btn-secondary btn-small back-btn" onclick="window.location.hash='#private'">&#8592; Back</button>
                 <h2>Private Documents</h2>
             </div>
-            <p class="empty-state" style="margin-top:48px;">Documents coming soon.</p>
+            <div class="section-actions">
+                <button class="btn btn-primary" onclick="privateOpenAddDocModal()">+ Add Document</button>
+            </div>
+            <div id="private-doc-list" class="doc-list"></div>
         </section>
 
         <!-- Page: Private Photos (#private/photos) — stub for Phase 5 -->
@@ -9912,7 +9941,7 @@ export default {
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=565"></script>
+    <script src="js/firebase-config.js?v=566"></script>
     <script src="js/auth.js?v=350"></script>
     <script src="js/zones.js?v=355"></script>
     <script src="js/plants.js?v=351"></script>
@@ -9965,8 +9994,8 @@ export default {
     <script src="js/help.js?v=536"></script>
     <script src="js/legacy-crypto.js?v=2"></script>
     <script src="js/legacy.js?v=18"></script>
-    <script src="js/private.js?v=565"></script>
-    <script src="js/app.js?v=565"></script>
+    <script src="js/private.js?v=566"></script>
+    <script src="js/app.js?v=566"></script>
 
 </body>
 </html>

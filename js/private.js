@@ -838,3 +838,338 @@ function _bmMaxSubtreeDepth(id) {
     if (!ch.length) return 0;
     return 1 + Math.max.apply(null, ch.map(function(c) { return _bmMaxSubtreeDepth(c.id); }));
 }
+
+// ============================================================
+// Phase 4: Private Documents
+// ============================================================
+
+// In-memory document list (decrypted titles, unencrypted metadata).
+var _docList = []; // [{id, title, originalFileName, storageRef, fileSizeBytes, updatedAt, createdAt}]
+
+// Modal state
+var _docModalMode       = null; // 'add' | 'reupload'
+var _docReuploadId      = null; // doc ID being replaced
+var _docReuploadTitle   = null; // kept as-is on reupload
+
+// ---- Binary crypto helpers ----
+
+// Encrypt an ArrayBuffer using the in-memory key.
+// Returns Uint8Array: [IV(12 bytes) | ciphertext]
+async function _privateEncryptBuffer(buffer) {
+    var iv        = crypto.getRandomValues(new Uint8Array(12));
+    var cipherBuf = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, _privateCryptoKey, buffer);
+    var result    = new Uint8Array(12 + cipherBuf.byteLength);
+    result.set(iv, 0);
+    result.set(new Uint8Array(cipherBuf), 12);
+    return result;
+}
+
+// Decrypt a Uint8Array/ArrayBuffer produced by _privateEncryptBuffer.
+// Returns ArrayBuffer of the original plaintext.
+async function _privateDecryptBuffer(combined) {
+    var arr  = combined instanceof Uint8Array ? combined : new Uint8Array(combined);
+    var iv   = arr.slice(0, 12);
+    var data = arr.slice(12);
+    return crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv }, _privateCryptoKey, data);
+}
+
+// Download raw bytes from Firebase Storage via XHR (avoids fetch CORS quirks).
+function _docFetchBytes(storagePath) {
+    return firebase.storage().ref(storagePath).getDownloadURL().then(function(url) {
+        return new Promise(function(resolve, reject) {
+            var xhr = new XMLHttpRequest();
+            xhr.responseType = 'arraybuffer';
+            xhr.onload  = function() { xhr.status === 200 ? resolve(xhr.response) : reject(new Error('HTTP ' + xhr.status)); };
+            xhr.onerror = function() { reject(new Error('Network error')); };
+            xhr.open('GET', url);
+            xhr.send();
+        });
+    });
+}
+
+// Trigger a browser download of a decrypted ArrayBuffer as a .docx file.
+function _docTriggerDownload(buffer, filename) {
+    var blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+    var url  = URL.createObjectURL(blob);
+    var a    = document.createElement('a');
+    a.href = url; a.download = filename || 'document.docx';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function() { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1500);
+}
+
+function _docFormatSize(bytes) {
+    if (!bytes) return '';
+    if (bytes < 1024)        return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function _docFormatDate(ts) {
+    if (!ts) return '';
+    var d = ts.toDate ? ts.toDate() : new Date(ts);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function _docSetStatus(msg) {
+    var el = document.getElementById('doc-upload-status');
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.toggle('hidden', !msg);
+}
+
+// ---- Page entry ----
+
+async function loadPrivateDocumentsPage() {
+    if (!privateIsUnlocked()) { window.location.hash = '#private'; return; }
+    var el = document.getElementById('private-doc-list');
+    if (el) el.innerHTML = '<p class="loading-state">Loading\u2026</p>';
+    try {
+        _docList = await _docLoadAll();
+        _docRenderList();
+    } catch (e) {
+        console.error('Docs load failed:', e);
+        if (el) el.innerHTML = '<p class="empty-state">Failed to load documents.</p>';
+    }
+}
+
+// ---- Data loading ----
+
+async function _docLoadAll() {
+    var snap = await userCol('privateDocuments').orderBy('updatedAt', 'desc').get();
+    var docs = [];
+    for (var i = 0; i < snap.docs.length; i++) {
+        var doc = snap.docs[i];
+        var d   = doc.data();
+        var title = d.encryptedTitle
+            ? (await _privateDecryptStringWithKey(d.encryptedTitle, _privateCryptoKey) || '(decrypt error)')
+            : '(untitled)';
+        var originalFileName = d.encryptedOriginalFileName
+            ? (await _privateDecryptStringWithKey(d.encryptedOriginalFileName, _privateCryptoKey) || 'document.docx')
+            : 'document.docx';
+        docs.push({
+            id: doc.id,
+            title: title,
+            originalFileName: originalFileName,
+            storageRef: d.storageRef,
+            fileSizeBytes: d.fileSizeBytes || 0,
+            updatedAt: d.updatedAt,
+            createdAt: d.createdAt
+        });
+    }
+    return docs;
+}
+
+// ---- Rendering ----
+
+function _docRenderList() {
+    var el = document.getElementById('private-doc-list');
+    if (!el) return;
+    if (_docList.length === 0) {
+        el.innerHTML = '<p class="empty-state">No documents yet. Click \u201c+ Add Document\u201d to upload one.</p>';
+        return;
+    }
+    el.innerHTML = _docList.map(function(doc) {
+        return (
+            '<div class="doc-row">' +
+                '<div class="doc-info">' +
+                    '<span class="doc-title">' + _bmEsc(doc.title) + '</span>' +
+                    '<span class="doc-meta">' + _docFormatDate(doc.updatedAt) + ' &bull; ' + _docFormatSize(doc.fileSizeBytes) + '</span>' +
+                '</div>' +
+                '<div class="doc-actions">' +
+                    '<button class="btn btn-small btn-secondary" onclick="privateOpenDoc(\'' + doc.id + '\')">Open</button>' +
+                    '<button class="btn btn-small btn-secondary" onclick="privateReuploadDocModal(\'' + doc.id + '\')">Re-upload</button>' +
+                    '<button class="btn btn-small btn-danger"    onclick="privateDeleteDoc(\'' + doc.id + '\')">Delete</button>' +
+                '</div>' +
+            '</div>'
+        );
+    }).join('');
+}
+
+// ---- Add document modal ----
+
+function privateOpenAddDocModal() {
+    _docModalMode = 'add'; _docReuploadId = null; _docReuploadTitle = null;
+    document.getElementById('doc-modal-heading').textContent = 'Add Document';
+    document.getElementById('doc-title-group').classList.remove('hidden');
+    document.getElementById('doc-reupload-label').classList.add('hidden');
+    document.getElementById('doc-modal-title-input').value = '';
+    document.getElementById('doc-modal-file').value = '';
+    document.getElementById('doc-file-size').textContent = '';
+    document.getElementById('doc-file-size').classList.add('hidden');
+    document.getElementById('doc-modal-error').textContent = '';
+    document.getElementById('doc-modal-error').classList.add('hidden');
+    _docSetStatus('');
+    var btn = document.getElementById('doc-modal-save-btn');
+    if (btn) { btn.disabled = false; btn.textContent = 'Upload'; }
+    var cancel = document.getElementById('doc-modal-cancel-btn');
+    if (cancel) cancel.disabled = false;
+    openModal('modal-doc-edit');
+    setTimeout(function() { document.getElementById('doc-modal-title-input').focus(); }, 100);
+}
+
+function privateReuploadDocModal(docId) {
+    var doc = _docList.find(function(d) { return d.id === docId; });
+    if (!doc) return;
+    _docModalMode = 'reupload'; _docReuploadId = docId; _docReuploadTitle = doc.title;
+    document.getElementById('doc-modal-heading').textContent = 'Re-upload Document';
+    document.getElementById('doc-title-group').classList.add('hidden');
+    var lbl = document.getElementById('doc-reupload-label');
+    lbl.textContent = 'Replacing: ' + doc.title;
+    lbl.classList.remove('hidden');
+    document.getElementById('doc-modal-file').value = '';
+    document.getElementById('doc-file-size').textContent = '';
+    document.getElementById('doc-file-size').classList.add('hidden');
+    document.getElementById('doc-modal-error').textContent = '';
+    document.getElementById('doc-modal-error').classList.add('hidden');
+    _docSetStatus('');
+    var btn = document.getElementById('doc-modal-save-btn');
+    if (btn) { btn.disabled = false; btn.textContent = 'Upload'; }
+    var cancel = document.getElementById('doc-modal-cancel-btn');
+    if (cancel) cancel.disabled = false;
+    openModal('modal-doc-edit');
+    setTimeout(function() { document.getElementById('doc-modal-file').focus(); }, 100);
+}
+
+// Show selected file size in the modal
+function _docOnFileChange(input) {
+    var sizeEl = document.getElementById('doc-file-size');
+    if (input.files && input.files[0]) {
+        sizeEl.textContent = _docFormatSize(input.files[0].size);
+        sizeEl.classList.remove('hidden');
+    } else {
+        sizeEl.textContent = '';
+        sizeEl.classList.add('hidden');
+    }
+}
+
+async function privateSubmitDocModal() {
+    var errEl  = document.getElementById('doc-modal-error');
+    var btn    = document.getElementById('doc-modal-save-btn');
+    var cancel = document.getElementById('doc-modal-cancel-btn');
+    var file   = document.getElementById('doc-modal-file').files[0];
+    var title  = _docModalMode === 'add'
+        ? (document.getElementById('doc-modal-title-input').value || '').trim()
+        : _docReuploadTitle;
+
+    errEl.textContent = ''; errEl.classList.add('hidden');
+
+    if (_docModalMode === 'add' && !title) {
+        errEl.textContent = 'Title is required.'; errEl.classList.remove('hidden'); return;
+    }
+    if (!file) {
+        errEl.textContent = 'Please select a .docx file.'; errEl.classList.remove('hidden'); return;
+    }
+
+    if (btn)    { btn.disabled = true; btn.textContent = 'Working\u2026'; }
+    if (cancel) cancel.disabled = true;
+    window.privateUploadInProgress = true;
+
+    try {
+        _docSetStatus('Reading file\u2026');
+        var buffer = await file.arrayBuffer();
+
+        _docSetStatus('Encrypting\u2026');
+        var encrypted = await _privateEncryptBuffer(buffer);
+
+        var user = firebase.auth().currentUser;
+        if (!user) throw new Error('Not authenticated');
+
+        if (_docModalMode === 'add') {
+            // Create Firestore doc ref first to get the ID for the Storage path
+            var newRef = userCol('privateDocuments').doc();
+            var storagePath = 'users/' + user.uid + '/privateDocuments/' + newRef.id;
+            var storageRef  = firebase.storage().ref(storagePath);
+
+            _docSetStatus('Uploading\u2026 0%');
+            var uploadTask = storageRef.put(encrypted.buffer, { contentType: 'application/octet-stream' });
+            uploadTask.on('state_changed', function(snap) {
+                var pct = Math.round(snap.bytesTransferred / snap.totalBytes * 100);
+                _docSetStatus('Uploading\u2026 ' + pct + '%');
+            });
+            await uploadTask;
+
+            _docSetStatus('Saving\u2026');
+            var encTitle    = await _privateEncryptStringWithKey(title, _privateCryptoKey);
+            var encFileName = await _privateEncryptStringWithKey(file.name, _privateCryptoKey);
+            await newRef.set({
+                encryptedTitle: encTitle,
+                encryptedOriginalFileName: encFileName,
+                storageRef: storagePath,
+                fileSizeBytes: file.size,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        } else {
+            // Re-upload: overwrite Storage, update Firestore
+            var existing = _docList.find(function(d) { return d.id === _docReuploadId; });
+            if (!existing) throw new Error('Doc not found');
+            var rStorageRef = firebase.storage().ref(existing.storageRef);
+
+            _docSetStatus('Uploading\u2026 0%');
+            var rTask = rStorageRef.put(encrypted.buffer, { contentType: 'application/octet-stream' });
+            rTask.on('state_changed', function(snap) {
+                var pct = Math.round(snap.bytesTransferred / snap.totalBytes * 100);
+                _docSetStatus('Uploading\u2026 ' + pct + '%');
+            });
+            await rTask;
+
+            _docSetStatus('Saving\u2026');
+            var encFN2 = await _privateEncryptStringWithKey(file.name, _privateCryptoKey);
+            await userCol('privateDocuments').doc(_docReuploadId).update({
+                encryptedOriginalFileName: encFN2,
+                fileSizeBytes: file.size,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+
+        _docSetStatus('Done!');
+        window.privateUploadInProgress = false;
+        setTimeout(function() {
+            closeModal('modal-doc-edit');
+            loadPrivateDocumentsPage();
+        }, 600);
+    } catch (e) {
+        console.error('Doc upload failed:', e);
+        window.privateUploadInProgress = false;
+        errEl.textContent = 'Upload failed: ' + e.message;
+        errEl.classList.remove('hidden');
+        _docSetStatus('');
+        if (btn)    { btn.disabled = false; btn.textContent = 'Upload'; }
+        if (cancel) cancel.disabled = false;
+    }
+}
+
+// ---- Open (download + decrypt) ----
+
+async function privateOpenDoc(docId) {
+    var doc = _docList.find(function(d) { return d.id === docId; });
+    if (!doc) return;
+    var btn = event && event.target ? event.target : null;
+    if (btn) { btn.disabled = true; btn.textContent = 'Opening\u2026'; }
+    try {
+        var encBytes = await _docFetchBytes(doc.storageRef);
+        var plain    = await _privateDecryptBuffer(encBytes);
+        _docTriggerDownload(plain, doc.originalFileName);
+    } catch (e) {
+        console.error('Doc open failed:', e);
+        alert('Failed to open document: ' + e.message);
+    }
+    if (btn) { btn.disabled = false; btn.textContent = 'Open'; }
+}
+
+// ---- Delete ----
+
+async function privateDeleteDoc(docId) {
+    var doc = _docList.find(function(d) { return d.id === docId; });
+    if (!doc) return;
+    if (!confirm('Delete "' + doc.title + '"? This cannot be undone.')) return;
+    try {
+        await firebase.storage().ref(doc.storageRef).delete();
+        await userCol('privateDocuments').doc(docId).delete();
+        await loadPrivateDocumentsPage();
+    } catch (e) {
+        console.error('Doc delete failed:', e);
+        alert('Delete failed: ' + e.message);
+    }
+}

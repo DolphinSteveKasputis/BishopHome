@@ -741,6 +741,7 @@ function handleRoute() {
     } else if (page === 'private' && id === 'documents') {
         if (!privateIsUnlocked()) { window.location.hash = '#private'; return; }
         showPage('private-documents');
+        if (typeof loadPrivateDocumentsPage === 'function') loadPrivateDocumentsPage();
     } else if (page === 'private' && id === 'photos') {
         if (!privateIsUnlocked()) { window.location.hash = '#private'; return; }
         showPage('private-photos');

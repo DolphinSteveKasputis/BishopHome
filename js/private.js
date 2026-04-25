@@ -998,7 +998,7 @@ function _docRenderList() {
                     '<span class="doc-meta">' + _docFormatDate(doc.updatedAt) + ' &bull; ' + _docFormatSize(doc.fileSizeBytes) + '</span>' +
                 '</div>' +
                 '<div class="doc-actions">' +
-                    '<button class="btn btn-small btn-secondary" onclick="privateOpenDoc(\'' + doc.id + '\')">Open</button>' +
+                    '<button class="btn btn-small btn-secondary" onclick="privateOpenDoc(\'' + doc.id + '\')">Download</button>' +
                     '<button class="btn btn-small btn-secondary" onclick="privateReuploadDocModal(\'' + doc.id + '\')">Re-upload</button>' +
                     '<button class="btn btn-small btn-danger"    onclick="privateDeleteDoc(\'' + doc.id + '\')">Delete</button>' +
                 '</div>' +
@@ -1167,16 +1167,16 @@ async function privateOpenDoc(docId) {
     var doc = _docList.find(function(d) { return d.id === docId; });
     if (!doc) return;
     var btn = event && event.target ? event.target : null;
-    if (btn) { btn.disabled = true; btn.textContent = 'Opening\u2026'; }
+    if (btn) { btn.disabled = true; btn.textContent = 'Downloading\u2026'; }
     try {
         var encBytes = await _docFetchBytes(doc.storageRef);
         var plain    = await _privateDecryptBuffer(encBytes);
         _docTriggerDownload(plain, doc.originalFileName);
     } catch (e) {
-        console.error('Doc open failed:', e);
-        alert('Failed to open document: ' + e.message);
+        console.error('Doc download failed:', e);
+        alert('Failed to download document: ' + e.message);
     }
-    if (btn) { btn.disabled = false; btn.textContent = 'Open'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'Download'; }
 }
 
 // ---- Delete ----

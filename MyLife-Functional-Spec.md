@@ -1045,11 +1045,22 @@ The Private tile is hidden on the Life landing page until activation is complete
 - **IV**: 12 random bytes generated fresh per encryption; prepended to ciphertext before Base64 encoding: `Base64(IV + ciphertext)`
 - **In-memory**: Stores the derived `CryptoKey` object, never the raw passphrase
 
-### Three Sub-Features (Phases 3–5)
+### Private Bookmarks (`#private/bookmarks`)
+
+Encrypted URL bookmark tree, invisible to browsers and cloud sync. All node data (name, URL, notes) is encrypted as a single JSON blob per node before storage.
+
+- **Tree structure**: Single root node "Bookmarks" (not encrypted). Up to 5 levels deep below root.
+- **Node types**: Folder (📁) or Bookmark (🔖). Clicking a bookmark opens the URL in a new tab.
+- **Toolbar**: "+ Folder" and "+ Bookmark" buttons at the top add to the root level. Each folder in the tree has inline "+ Bookmark" and "+ Folder" buttons that appear on hover.
+- **Edit / Delete**: Edit and Delete buttons appear on hover for every node. Deleting a folder recursively removes all its contents after confirmation.
+- **Collapse/Expand**: Folders can be collapsed with the ▼/▶ toggle. Collapse state persists within the session.
+- **Drag-and-drop**: Drag any node by the ☰ handle. Drop above a node to insert before it, below to insert after, or onto a folder to move inside. Drops that would exceed depth 5 are blocked with an alert.
+- **Firestore collection**: `userCol('privateBookmarks')` — one doc per node: `{type, parentId, order, depth, encryptedData, createdAt}`. Root node has `{type:'root', name:'Bookmarks'}` (not encrypted).
+
+### Remaining Sub-Features (Phases 4–5)
 
 | Feature | Description |
 |---|---|
-| Bookmarks | Encrypted URL bookmark tree (up to 5 levels), drag-to-reorder cross-folder |
 | Documents | Encrypted .docx files in Firebase Storage; download-to-edit workflow |
 | Photos | Encrypted photos in Firebase Storage, organized by album |
 

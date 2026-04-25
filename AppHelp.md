@@ -1655,7 +1655,7 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 - Page reload always requires re-entry regardless of the timer
 
 **The three sections:**
-- **Bookmarks** — private URL bookmarks in a tree structure (up to 5 levels deep), not visible to Chrome or any browser sync
+- **Bookmarks** — private URL bookmarks in a tree structure (up to 5 levels deep), not visible to Chrome or any browser sync. Add folders and bookmarks, drag to reorder or move between folders. Clicking a bookmark opens the URL in a new tab.
 - **Documents** — encrypted .docx files; download to edit in Word, then re-upload
 - **Photos** — encrypted photos organized by album
 

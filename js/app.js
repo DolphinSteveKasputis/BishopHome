@@ -737,6 +737,7 @@ function handleRoute() {
     } else if (page === 'private' && id === 'bookmarks') {
         if (!privateIsUnlocked()) { window.location.hash = '#private'; return; }
         showPage('private-bookmarks');
+        if (typeof loadPrivateBookmarksPage === 'function') loadPrivateBookmarksPage();
     } else if (page === 'private' && id === 'documents') {
         if (!privateIsUnlocked()) { window.location.hash = '#private'; return; }
         showPage('private-documents');

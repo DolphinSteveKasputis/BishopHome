@@ -452,3 +452,389 @@ function _privateHexToBytes(hex) {
     }
     return arr;
 }
+
+// ============================================================
+// Phase 3: Private Bookmarks
+// ============================================================
+
+// Flat array of all bookmark nodes, decrypted in-memory after unlock.
+// Each entry: {id, type, name, url, notes, parentId, order, depth}
+var _bmNodes     = [];
+var _bmRootId    = null;    // Firestore ID of the root node
+var _bmCollapsed = {};      // {nodeId: true} — collapsed folder state (session only)
+
+// Drag-and-drop state
+var _bmDragId   = null;
+var _bmDragOver = null;
+var _bmDropPos  = null;     // 'before' | 'inside' | 'after'
+
+// CRUD modal state
+var _bmModalMode     = null; // 'add-folder' | 'add-bookmark' | 'edit'
+var _bmModalParentId = null;
+var _bmModalEditId   = null;
+
+// ---- Page entry point ----
+
+async function loadPrivateBookmarksPage() {
+    if (!privateIsUnlocked()) { window.location.hash = '#private'; return; }
+    var el = document.getElementById('private-bm-tree');
+    if (el) el.innerHTML = '<p class="loading-state">Loading\u2026</p>';
+    try {
+        _bmNodes = await _bmLoadAll();
+        var root = _bmNodes.find(function(n) { return n.type === 'root'; });
+        if (!root) {
+            var ref = await userCol('privateBookmarks').add({
+                type: 'root', name: 'Bookmarks', parentId: null, order: 0, depth: 0,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            root = { id: ref.id, type: 'root', name: 'Bookmarks', url: '', notes: '', parentId: null, order: 0, depth: 0 };
+            _bmNodes.push(root);
+        }
+        _bmRootId = root.id;
+        _bmRenderTree();
+    } catch (e) {
+        console.error('Bookmarks load failed:', e);
+        if (el) el.innerHTML = '<p class="empty-state">Failed to load bookmarks.</p>';
+    }
+}
+
+// ---- Data loading ----
+
+async function _bmLoadAll() {
+    var snap  = await userCol('privateBookmarks').get();
+    var nodes = [];
+    for (var i = 0; i < snap.docs.length; i++) {
+        var doc = snap.docs[i];
+        var d   = doc.data();
+        var node = { id: doc.id, type: d.type, parentId: d.parentId || null, order: d.order || 0, depth: d.depth || 0 };
+        if (d.type === 'root') {
+            node.name = d.name || 'Bookmarks'; node.url = ''; node.notes = '';
+        } else if (d.encryptedData) {
+            var raw = await _privateDecryptStringWithKey(d.encryptedData, _privateCryptoKey);
+            if (raw) {
+                try {
+                    var obj = JSON.parse(raw);
+                    node.name = obj.name || ''; node.url = obj.url || ''; node.notes = obj.notes || '';
+                } catch (e2) { node.name = '(error)'; node.url = ''; node.notes = ''; }
+            } else { node.name = '(decrypt error)'; node.url = ''; node.notes = ''; }
+        } else { node.name = ''; node.url = ''; node.notes = ''; }
+        nodes.push(node);
+    }
+    return nodes;
+}
+
+async function _bmEncryptNode(name, url, notes) {
+    var plain = JSON.stringify({ name: name || '', url: url || '', notes: notes || '' });
+    return _privateEncryptStringWithKey(plain, _privateCryptoKey);
+}
+
+// ---- Rendering ----
+
+function _bmRenderTree() {
+    var el = document.getElementById('private-bm-tree');
+    if (!el) return;
+    var children = _bmGetChildren(_bmRootId);
+    if (children.length === 0) {
+        el.innerHTML = '<p class="empty-state">No bookmarks yet. Add a folder or bookmark above.</p>';
+        return;
+    }
+    el.innerHTML = children.map(_bmNodeHtml).join('');
+}
+
+function _bmNodeHtml(node) {
+    var isFolder  = node.type === 'folder';
+    var children  = isFolder ? _bmGetChildren(node.id) : [];
+    var collapsed = !!_bmCollapsed[node.id];
+    var icon      = isFolder ? '&#128193;' : '&#128278;';
+
+    var nameHtml = isFolder
+        ? '<span class="bm-name">' + _bmEsc(node.name) + '</span>'
+        : '<a class="bm-name bm-link" href="' + _bmEsc(node.url || '#') + '" target="_blank" rel="noopener">' + _bmEsc(node.name) + '</a>';
+
+    var toggleBtn = isFolder
+        ? '<button class="bm-toggle" onclick="_bmToggleFolder(\'' + node.id + '\')" title="' + (collapsed ? 'Expand' : 'Collapse') + '">' + (collapsed ? '&#9654;' : '&#9660;') + '</button>'
+        : '<span class="bm-toggle-spacer"></span>';
+
+    var acts = '';
+    if (isFolder) {
+        acts += '<button class="btn btn-small btn-secondary bm-act" onclick="event.stopPropagation();privateOpenAddBookmarkModal(\'' + node.id + '\')">+ Bookmark</button>';
+        acts += '<button class="btn btn-small btn-secondary bm-act" onclick="event.stopPropagation();privateOpenAddFolderModal(\'' + node.id + '\')">+ Folder</button>';
+    }
+    acts += '<button class="btn btn-small btn-secondary bm-act" onclick="event.stopPropagation();privateOpenEditBmModal(\'' + node.id + '\')">Edit</button>';
+    acts += '<button class="btn btn-small btn-danger bm-act" onclick="event.stopPropagation();privateDeleteNode(\'' + node.id + '\',\'' + node.type + '\')">Delete</button>';
+
+    var childHtml = isFolder ? children.map(_bmNodeHtml).join('') : '';
+
+    return (
+        '<div class="bm-node" data-bm-id="' + node.id + '" data-bm-type="' + node.type + '">' +
+            '<div class="bm-node-row"' +
+                ' draggable="true"' +
+                ' ondragstart="_bmOnDragStart(event,\'' + node.id + '\')"' +
+                ' ondragover="_bmOnDragOver(event,\'' + node.id + '\',' + isFolder + ')"' +
+                ' ondragleave="_bmOnDragLeave(event,\'' + node.id + '\')"' +
+                ' ondragend="_bmOnDragEnd(event)"' +
+                ' ondrop="_bmOnDrop(event,\'' + node.id + '\',' + isFolder + ')">' +
+                '<span class="bm-drag-handle" title="Drag to reorder">&#9776;</span>' +
+                toggleBtn +
+                '<span class="bm-icon">' + icon + '</span>' +
+                nameHtml +
+                '<div class="bm-actions">' + acts + '</div>' +
+            '</div>' +
+            (isFolder ? '<div class="bm-children' + (collapsed ? ' hidden' : '') + '" id="bm-ch-' + node.id + '">' + childHtml + '</div>' : '') +
+        '</div>'
+    );
+}
+
+function _bmGetChildren(parentId) {
+    return _bmNodes
+        .filter(function(n) { return n.parentId === parentId; })
+        .sort(function(a, b) { return a.order - b.order; });
+}
+
+function _bmGetDescendants(id) {
+    var result = [];
+    _bmGetChildren(id).forEach(function(child) {
+        result.push(child);
+        _bmGetDescendants(child.id).forEach(function(d) { result.push(d); });
+    });
+    return result;
+}
+
+function _bmEsc(str) {
+    return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function _bmToggleFolder(id) {
+    _bmCollapsed[id] = !_bmCollapsed[id];
+    var btn = document.querySelector('.bm-node[data-bm-id="' + id + '"] > .bm-node-row .bm-toggle');
+    var ch  = document.getElementById('bm-ch-' + id);
+    if (btn) { btn.innerHTML = _bmCollapsed[id] ? '&#9654;' : '&#9660;'; btn.title = _bmCollapsed[id] ? 'Expand' : 'Collapse'; }
+    if (ch)  ch.classList.toggle('hidden', !!_bmCollapsed[id]);
+}
+
+// Toolbar shortcuts — add at root level
+function privateAddFolderAtRoot()   { if (_bmRootId) privateOpenAddFolderModal(_bmRootId); }
+function privateAddBookmarkAtRoot() { if (_bmRootId) privateOpenAddBookmarkModal(_bmRootId); }
+
+// ---- CRUD modals ----
+
+function _bmResetModal(title, showUrl) {
+    document.getElementById('bm-modal-title').textContent = title;
+    document.getElementById('bm-url-group').classList.toggle('hidden', !showUrl);
+    document.getElementById('bm-modal-name').value  = '';
+    document.getElementById('bm-modal-url').value   = '';
+    document.getElementById('bm-modal-notes').value = '';
+    var err = document.getElementById('bm-modal-error');
+    err.textContent = ''; err.classList.add('hidden');
+    var btn = document.getElementById('bm-modal-save-btn');
+    if (btn) { btn.disabled = false; btn.textContent = 'Save'; }
+}
+
+function privateOpenAddFolderModal(parentId) {
+    _bmModalMode = 'add-folder'; _bmModalParentId = parentId; _bmModalEditId = null;
+    _bmResetModal('Add Folder', false);
+    openModal('modal-bm-edit');
+    setTimeout(function() { document.getElementById('bm-modal-name').focus(); }, 100);
+}
+
+function privateOpenAddBookmarkModal(parentId) {
+    _bmModalMode = 'add-bookmark'; _bmModalParentId = parentId; _bmModalEditId = null;
+    _bmResetModal('Add Bookmark', true);
+    openModal('modal-bm-edit');
+    setTimeout(function() { document.getElementById('bm-modal-name').focus(); }, 100);
+}
+
+function privateOpenEditBmModal(nodeId) {
+    var node = _bmNodes.find(function(n) { return n.id === nodeId; });
+    if (!node) return;
+    _bmModalMode = 'edit'; _bmModalParentId = node.parentId; _bmModalEditId = nodeId;
+    _bmResetModal(node.type === 'folder' ? 'Edit Folder' : 'Edit Bookmark', node.type === 'bookmark');
+    document.getElementById('bm-modal-name').value  = node.name  || '';
+    document.getElementById('bm-modal-url').value   = node.url   || '';
+    document.getElementById('bm-modal-notes').value = node.notes || '';
+    openModal('modal-bm-edit');
+    setTimeout(function() { document.getElementById('bm-modal-name').focus(); }, 100);
+}
+
+async function privateSubmitBmModal() {
+    var name  = (document.getElementById('bm-modal-name').value  || '').trim();
+    var url   = (document.getElementById('bm-modal-url').value   || '').trim();
+    var notes = (document.getElementById('bm-modal-notes').value || '').trim();
+    var errEl = document.getElementById('bm-modal-error');
+    var btn   = document.getElementById('bm-modal-save-btn');
+
+    if (!name) { errEl.textContent = 'Name is required.'; errEl.classList.remove('hidden'); return; }
+
+    var editNode   = _bmModalEditId ? _bmNodes.find(function(n) { return n.id === _bmModalEditId; }) : null;
+    var isBookmark = _bmModalMode === 'add-bookmark' || (editNode && editNode.type === 'bookmark');
+    if (isBookmark && !url) { errEl.textContent = 'URL is required.'; errEl.classList.remove('hidden'); return; }
+    if (isBookmark && url && !url.match(/^https?:\/\//)) url = 'https://' + url;
+
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving\u2026'; }
+    try {
+        if (_bmModalMode === 'edit') {
+            var enc = await _bmEncryptNode(name, url, notes);
+            await userCol('privateBookmarks').doc(_bmModalEditId).update({ encryptedData: enc });
+        } else {
+            var parentNode = _bmNodes.find(function(n) { return n.id === _bmModalParentId; });
+            var newDepth   = (parentNode ? parentNode.depth : 0) + 1;
+            if (newDepth > 5) {
+                errEl.textContent = 'Maximum depth of 5 levels reached.';
+                errEl.classList.remove('hidden');
+                if (btn) { btn.disabled = false; btn.textContent = 'Save'; }
+                return;
+            }
+            var enc2 = await _bmEncryptNode(name, url, notes);
+            await userCol('privateBookmarks').add({
+                type: _bmModalMode === 'add-folder' ? 'folder' : 'bookmark',
+                encryptedData: enc2,
+                parentId: _bmModalParentId,
+                order: _bmGetChildren(_bmModalParentId).length,
+                depth: newDepth,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+        closeModal('modal-bm-edit');
+        await loadPrivateBookmarksPage();
+    } catch (e3) {
+        console.error('BM save failed:', e3);
+        errEl.textContent = 'Save failed. Please try again.';
+        errEl.classList.remove('hidden');
+        if (btn) { btn.disabled = false; btn.textContent = 'Save'; }
+    }
+}
+
+async function privateDeleteNode(nodeId, type) {
+    var node = _bmNodes.find(function(n) { return n.id === nodeId; });
+    var msg  = type === 'folder'
+        ? 'Delete folder "' + (node ? node.name : '') + '" and ALL its contents?'
+        : 'Delete bookmark "' + (node ? node.name : '') + '"?';
+    if (!confirm(msg)) return;
+    var ids   = [nodeId].concat(_bmGetDescendants(nodeId).map(function(d) { return d.id; }));
+    var batch = firebase.firestore().batch();
+    ids.forEach(function(id) { batch.delete(userCol('privateBookmarks').doc(id)); });
+    await batch.commit();
+    await loadPrivateBookmarksPage();
+}
+
+// ---- Drag and Drop ----
+
+function _bmOnDragStart(e, id) {
+    _bmDragId = id;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', id);
+    setTimeout(function() {
+        var row = document.querySelector('.bm-node[data-bm-id="' + id + '"] > .bm-node-row');
+        if (row) row.classList.add('bm-dragging');
+    }, 0);
+}
+
+function _bmOnDragEnd(e) {
+    document.querySelectorAll('.bm-dragging,.bm-drop-before,.bm-drop-after,.bm-drop-inside').forEach(function(el) {
+        el.classList.remove('bm-dragging', 'bm-drop-before', 'bm-drop-after', 'bm-drop-inside');
+    });
+    _bmDragOver = null;
+}
+
+function _bmOnDragOver(e, id, isFolder) {
+    if (id === _bmDragId || _bmIsDescendant(id, _bmDragId)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    var row  = e.currentTarget;
+    var rect = row.getBoundingClientRect();
+    var yPct = (e.clientY - rect.top) / rect.height;
+    if (_bmDragOver && _bmDragOver !== id) _bmClearHighlight(_bmDragOver);
+    _bmDragOver = id;
+    row.classList.remove('bm-drop-before', 'bm-drop-after', 'bm-drop-inside');
+    if (yPct < 0.28) {
+        _bmDropPos = 'before'; row.classList.add('bm-drop-before');
+    } else if (isFolder && yPct <= 0.72) {
+        _bmDropPos = 'inside'; row.classList.add('bm-drop-inside');
+    } else {
+        _bmDropPos = 'after';  row.classList.add('bm-drop-after');
+    }
+}
+
+function _bmOnDragLeave(e, id) {
+    if (e.currentTarget.contains(e.relatedTarget)) return;
+    _bmClearHighlight(id);
+}
+
+function _bmClearHighlight(id) {
+    var row = document.querySelector('.bm-node[data-bm-id="' + id + '"] > .bm-node-row');
+    if (row) row.classList.remove('bm-drop-before', 'bm-drop-after', 'bm-drop-inside');
+}
+
+async function _bmOnDrop(e, targetId, isFolder) {
+    e.preventDefault();
+    var sourceId = _bmDragId;
+    var dropPos  = _bmDropPos;
+    _bmDragId = null;
+    if (!sourceId || sourceId === targetId || !dropPos) return;
+    if (_bmIsDescendant(targetId, sourceId)) return;
+
+    var source = _bmNodes.find(function(n) { return n.id === sourceId; });
+    var target = _bmNodes.find(function(n) { return n.id === targetId; });
+    if (!source || !target) return;
+
+    var newParentId = (dropPos === 'inside') ? targetId : target.parentId;
+    var newParent   = _bmNodes.find(function(n) { return n.id === newParentId; });
+    var newDepth    = (newParent ? newParent.depth : 0) + 1;
+    var depthDelta  = newDepth - source.depth;
+
+    if (newDepth + _bmMaxSubtreeDepth(sourceId) > 5) {
+        alert('Cannot move here \u2014 exceeds the 5-level depth limit.');
+        return;
+    }
+
+    // Build ordered sibling list for the new parent, inserting source at the right position
+    var newSibs = _bmGetChildren(newParentId).filter(function(n) { return n.id !== sourceId; });
+    var insertAt = newSibs.length;
+    if (dropPos === 'before') {
+        var ti = newSibs.findIndex(function(n) { return n.id === targetId; });
+        insertAt = ti >= 0 ? ti : 0;
+    } else if (dropPos === 'after') {
+        var ti2 = newSibs.findIndex(function(n) { return n.id === targetId; });
+        insertAt = ti2 >= 0 ? ti2 + 1 : newSibs.length;
+    }
+    newSibs.splice(insertAt, 0, { id: sourceId });
+
+    // Collect all Firestore updates; one entry per doc to avoid double-write
+    var upd = {};
+    upd[sourceId] = { parentId: newParentId, depth: newDepth, order: insertAt };
+    newSibs.forEach(function(s, i) { if (!upd[s.id]) upd[s.id] = {}; upd[s.id].order = i; });
+    if (depthDelta !== 0) {
+        _bmGetDescendants(sourceId).forEach(function(d) {
+            if (!upd[d.id]) upd[d.id] = {};
+            upd[d.id].depth = d.depth + depthDelta;
+        });
+    }
+    if (source.parentId !== newParentId) {
+        _bmGetChildren(source.parentId)
+            .filter(function(n) { return n.id !== sourceId; })
+            .forEach(function(s, i) { if (!upd[s.id]) upd[s.id] = {}; upd[s.id].order = i; });
+    }
+
+    var batch = firebase.firestore().batch();
+    Object.keys(upd).forEach(function(id) {
+        batch.update(userCol('privateBookmarks').doc(id), upd[id]);
+    });
+    await batch.commit();
+    await loadPrivateBookmarksPage();
+}
+
+function _bmIsDescendant(candidateId, ancestorId) {
+    if (!candidateId || !ancestorId) return false;
+    var node = _bmNodes.find(function(n) { return n.id === candidateId; });
+    while (node && node.parentId) {
+        if (node.parentId === ancestorId) return true;
+        node = _bmNodes.find(function(n2) { return n2.id === node.parentId; });
+    }
+    return false;
+}
+
+function _bmMaxSubtreeDepth(id) {
+    var ch = _bmGetChildren(id);
+    if (!ch.length) return 0;
+    return 1 + Math.max.apply(null, ch.map(function(c) { return _bmMaxSubtreeDepth(c.id); }));
+}

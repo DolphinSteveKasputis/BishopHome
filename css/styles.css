@@ -12735,6 +12735,106 @@ a.health-chip--link:hover { filter: brightness(0.93); }
     color: #fff;
 }
 
+/* ============================================================
+   Private Bookmarks — tree, toolbar, drag-and-drop
+   ============================================================ */
+
+.bm-toolbar {
+    display: flex;
+    gap: 8px;
+    padding: 0 16px 16px;
+}
+
+.bm-tree {
+    padding: 0 16px 32px;
+}
+
+.bm-node {
+    margin-bottom: 3px;
+}
+
+.bm-node-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #fff;
+    cursor: default;
+    user-select: none;
+    position: relative;
+}
+
+.bm-node-row:hover {
+    background: #f8fafc;
+}
+
+.bm-drag-handle {
+    cursor: grab;
+    color: #9ca3af;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.bm-drag-handle:active { cursor: grabbing; }
+
+.bm-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.7rem;
+    color: #6b7280;
+    padding: 2px 4px;
+    flex-shrink: 0;
+    width: 22px;
+    text-align: center;
+}
+
+.bm-toggle-spacer {
+    display: inline-block;
+    width: 22px;
+    flex-shrink: 0;
+}
+
+.bm-icon { flex-shrink: 0; }
+
+.bm-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.95rem;
+}
+
+.bm-link {
+    color: #1d4ed8;
+    text-decoration: none;
+}
+
+.bm-link:hover { text-decoration: underline; }
+
+.bm-actions {
+    display: none;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.bm-node-row:hover .bm-actions { display: flex; }
+
+.bm-children {
+    margin-left: 24px;
+    margin-top: 3px;
+    padding-left: 8px;
+    border-left: 2px solid #e2e8f0;
+}
+
+/* DnD visual indicators */
+.bm-dragging { opacity: 0.4; }
+.bm-drop-before { border-top: 3px solid #3b82f6 !important; }
+.bm-drop-after  { border-bottom: 3px solid #3b82f6 !important; }
+.bm-drop-inside { background: #dbeafe !important; border-color: #3b82f6 !important; }
+
 /* Vault sub-section tiles on home page */
 .landing-tile--private-bm {
     background: linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%);

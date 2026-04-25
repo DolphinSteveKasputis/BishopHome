@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=564">
+    <link rel="stylesheet" href="css/styles.css?v=565">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -3919,6 +3919,32 @@ service firebase.storage {
         </div>
     </div>
 
+    <!-- Private Bookmarks: Add / Edit Modal -->
+    <div class="modal-overlay" id="modal-bm-edit">
+        <div class="modal">
+            <h3 id="bm-modal-title">Add Bookmark</h3>
+            <div class="form-group">
+                <label for="bm-modal-name">Name</label>
+                <input type="text" id="bm-modal-name" placeholder="Display name"
+                    onkeydown="if(event.key==='Enter')privateSubmitBmModal()">
+            </div>
+            <div class="form-group" id="bm-url-group">
+                <label for="bm-modal-url">URL</label>
+                <input type="url" id="bm-modal-url" placeholder="https://example.com"
+                    onkeydown="if(event.key==='Enter')privateSubmitBmModal()">
+            </div>
+            <div class="form-group">
+                <label for="bm-modal-notes">Notes <span class="label-optional">(optional)</span></label>
+                <textarea id="bm-modal-notes" placeholder="Optional notes" rows="3"></textarea>
+            </div>
+            <p class="text-error hidden" id="bm-modal-error"></p>
+            <div class="modal-buttons">
+                <button class="btn btn-primary" id="bm-modal-save-btn" onclick="privateSubmitBmModal()">Save</button>
+                <button class="btn btn-secondary" onclick="closeModal('modal-bm-edit')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Private Vault: Activate Modal -->
     <div class="modal-overlay" id="modal-private-activate">
         <div class="modal">
@@ -6372,13 +6398,17 @@ service firebase.storage {
             </div>
         </section>
 
-        <!-- Page: Private Bookmarks (#private/bookmarks) — stub for Phase 3 -->
+        <!-- Page: Private Bookmarks (#private/bookmarks) -->
         <section class="page hidden" id="page-private-bookmarks">
             <div class="page-header">
                 <button class="btn btn-secondary btn-small back-btn" onclick="window.location.hash='#private'">&#8592; Back</button>
                 <h2>Private Bookmarks</h2>
             </div>
-            <p class="empty-state" style="margin-top:48px;">Bookmarks coming soon.</p>
+            <div class="bm-toolbar">
+                <button class="btn btn-primary btn-small" onclick="privateAddFolderAtRoot()">+ Folder</button>
+                <button class="btn btn-primary btn-small" onclick="privateAddBookmarkAtRoot()">+ Bookmark</button>
+            </div>
+            <div id="private-bm-tree" class="bm-tree"></div>
         </section>
 
         <!-- Page: Private Documents (#private/documents) — stub for Phase 4 -->
@@ -9882,7 +9912,7 @@ export default {
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=564"></script>
+    <script src="js/firebase-config.js?v=565"></script>
     <script src="js/auth.js?v=350"></script>
     <script src="js/zones.js?v=355"></script>
     <script src="js/plants.js?v=351"></script>
@@ -9935,8 +9965,8 @@ export default {
     <script src="js/help.js?v=536"></script>
     <script src="js/legacy-crypto.js?v=2"></script>
     <script src="js/legacy.js?v=18"></script>
-    <script src="js/private.js?v=564"></script>
-    <script src="js/app.js?v=564"></script>
+    <script src="js/private.js?v=565"></script>
+    <script src="js/app.js?v=565"></script>
 
 </body>
 </html>

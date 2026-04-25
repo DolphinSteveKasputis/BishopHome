@@ -13,7 +13,8 @@ var CRED_TYPES = [
     { value: 'apikey',       label: 'API Key' },
     { value: 'clientsecret', label: 'Client Secret' },
     { value: 'ssn',          label: 'Social Security Number' },
-    { value: 'code',         label: 'Code' }
+    { value: 'code',         label: 'Code' },
+    { value: 'oauthkey',     label: 'OAuth Key' }
 ];
 
 function _credTypeLabel(value) {

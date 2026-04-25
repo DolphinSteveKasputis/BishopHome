@@ -1616,3 +1616,228 @@ async function privateDeletePhotoFromViewer() {
         alert('Delete failed: ' + e.message);
     }
 }
+
+// ============================================================
+// Phase 6 — Private Backup Export
+// ============================================================
+
+function privateSanitizeFilename(str) {
+    if (!str) return 'file';
+    return str.replace(/[\\/:*?"<>|]/g, '_').replace(/\s+/g, ' ').trim().slice(0, 120) || 'file';
+}
+
+// Decrypt a binary blob using an explicit CryptoKey (not the global _privateCryptoKey).
+async function _backupDecryptBuffer(combined, key) {
+    var arr  = combined instanceof Uint8Array ? combined : new Uint8Array(combined);
+    var iv   = arr.slice(0, 12);
+    var data = arr.slice(12);
+    return crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv }, key, data);
+}
+
+// Render one bookmark node as Netscape Bookmark HTML (recursive).
+function _backupBmHtml(nodeId, nodeMap, childMap, indent) {
+    indent = indent || '';
+    var node = nodeMap[nodeId];
+    if (!node) return '';
+    if (node.type === 'bookmark') {
+        return indent + '<DT><A HREF="' + (node.url || '').replace(/"/g, '&quot;') + '">' +
+               (node.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</A>\n';
+    }
+    // Folder
+    var kids = (childMap[nodeId] || []).slice().sort(function(a, b) { return (a.order || 0) - (b.order || 0); });
+    var html = indent + '<DT><H3>' + (node.title || 'Folder').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</H3>\n';
+    html += indent + '<DL><p>\n';
+    for (var k of kids) html += _backupBmHtml(k.id, nodeMap, childMap, indent + '    ');
+    html += indent + '</DL><p>\n';
+    return html;
+}
+
+// Open the backup passphrase modal.
+function privateOpenBackupModal() {
+    var el     = document.getElementById('private-backup-passphrase');
+    var err    = document.getElementById('private-backup-err');
+    var status = document.getElementById('private-backup-status');
+    var btn    = document.getElementById('private-backup-btn');
+    if (el)     { el.value = ''; el.disabled = false; }
+    if (err)    { err.textContent = ''; }
+    if (status) { status.textContent = ''; status.classList.add('hidden'); }
+    if (btn)    { btn.disabled = false; btn.textContent = 'Export'; }
+    openModal('modal-private-backup');
+    if (el) setTimeout(function() { el.focus(); }, 100);
+}
+
+// Main export function — called when user clicks Export in the modal.
+async function privateExportBackup() {
+    var passEl   = document.getElementById('private-backup-passphrase');
+    var errEl    = document.getElementById('private-backup-err');
+    var statusEl = document.getElementById('private-backup-status');
+    var btn      = document.getElementById('private-backup-btn');
+
+    var passphrase = (passEl ? passEl.value : '').trim();
+    if (!passphrase) {
+        if (errEl) errEl.textContent = 'Enter your passphrase.';
+        return;
+    }
+
+    if (btn)     { btn.disabled = true; btn.textContent = 'Working\u2026'; }
+    if (errEl)   errEl.textContent = '';
+    if (statusEl) { statusEl.textContent = 'Verifying passphrase\u2026'; statusEl.classList.remove('hidden'); }
+
+    function setStatus(msg) { if (statusEl) statusEl.textContent = msg; }
+
+    try {
+        // 1. Derive key and verify sentinel
+        var key = await _privateDerive(passphrase);
+        if (!key) throw new Error('Key derivation failed.');
+
+        var vaultDoc = await userCol('privateVault').doc('auth').get();
+        if (!vaultDoc.exists || !vaultDoc.data().encryptedSentinel) throw new Error('Vault not activated.');
+
+        var sentinel = await _privateDecryptStringWithKey(vaultDoc.data().encryptedSentinel, key);
+        if (sentinel !== 'PRIVATE_VAULT_OK') {
+            if (errEl)  errEl.textContent = 'Wrong passphrase \u2014 try again.';
+            if (passEl) { passEl.value = ''; passEl.disabled = false; passEl.focus(); }
+            if (btn)    { btn.disabled = false; btn.textContent = 'Export'; }
+            if (statusEl) statusEl.classList.add('hidden');
+            return;
+        }
+
+        // 2. Set up zip writer (AES-256, password = passphrase)
+        var zipWriter = new zip.ZipWriter(new zip.BlobWriter('application/zip'), {
+            password: passphrase,
+            encryptionStrength: 3
+        });
+
+        // 3. Bookmarks
+        setStatus('Decrypting bookmarks\u2026');
+        var bmSnap    = await userCol('privateBookmarks').get();
+        var bmNodeMap  = {};
+        var bmChildMap = {};
+        var bmRootId   = null;
+
+        for (var bd of bmSnap.docs) {
+            var braw = bd.data();
+            try {
+                var bdec = JSON.parse(await _privateDecryptStringWithKey(braw.encryptedData, key));
+                var bn   = Object.assign({ id: bd.id, parentId: braw.parentId, type: braw.type, order: braw.order || 0 }, bdec);
+                bmNodeMap[bd.id] = bn;
+                if (!braw.parentId) {
+                    bmRootId = bd.id;
+                } else {
+                    if (!bmChildMap[braw.parentId]) bmChildMap[braw.parentId] = [];
+                    bmChildMap[braw.parentId].push(bn);
+                }
+            } catch (e) { console.warn('Bookmark decrypt skipped:', bd.id, e); }
+        }
+
+        // bookmarks.html (Netscape Bookmark File Format)
+        var bmHtmlBody = '';
+        if (bmRootId) {
+            var rootKids = (bmChildMap[bmRootId] || []).slice().sort(function(a, b) { return (a.order || 0) - (b.order || 0); });
+            for (var rk of rootKids) bmHtmlBody += _backupBmHtml(rk.id, bmNodeMap, bmChildMap, '    ');
+        }
+        var bmHtml = '<!DOCTYPE NETSCAPE-Bookmark-file-1>\n<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">\n<TITLE>Private Bookmarks</TITLE>\n<H1>Private Bookmarks</H1>\n<DL><p>\n' + bmHtmlBody + '</DL><p>\n';
+        await zipWriter.add('bookmarks.html', new zip.TextReader(bmHtml));
+
+        // bookmarks.json (full flat list)
+        await zipWriter.add('bookmarks.json', new zip.TextReader(JSON.stringify(Object.values(bmNodeMap), null, 2)));
+
+        // 4. Documents
+        setStatus('Downloading documents\u2026');
+        var docSnap   = await userCol('privateDocuments').get();
+        var docCount  = docSnap.docs.length;
+        var docIdx    = 0;
+        var usedDocNames = {};
+
+        for (var dd of docSnap.docs) {
+            docIdx++;
+            var draw   = dd.data();
+            var dTitle = '';
+            var dOrigFn = 'document.docx';
+            try { dTitle  = await _privateDecryptStringWithKey(draw.encryptedTitle, key); } catch (e) {}
+            try { dOrigFn = await _privateDecryptStringWithKey(draw.encryptedOriginalFileName, key); } catch (e) {}
+
+            setStatus('Decrypting document ' + docIdx + ' of ' + docCount + ': ' + (dTitle || dOrigFn));
+            try {
+                var dBytes = await _docFetchBytes(draw.storageRef);
+                var dPlain = await _backupDecryptBuffer(dBytes, key);
+                var dBase  = privateSanitizeFilename(dOrigFn || dTitle || 'document');
+                if (!/\.docx$/i.test(dBase)) dBase += '.docx';
+                var dKey   = dBase.toLowerCase();
+                if (usedDocNames[dKey]) { usedDocNames[dKey]++; dBase = dBase.replace(/\.docx$/i, '') + '-' + usedDocNames[dKey] + '.docx'; }
+                else usedDocNames[dKey] = 1;
+                await zipWriter.add('documents/' + dBase, new zip.Uint8ArrayReader(new Uint8Array(dPlain)));
+            } catch (e) { console.warn('Document backup failed:', dd.id, e); }
+        }
+
+        // 5. Photos
+        setStatus('Loading photo albums\u2026');
+        var albumSnap  = await userCol('privatePhotoAlbums').get();
+        var albumNames = {};
+        albumNames['null'] = 'Uncategorized';
+        for (var ad of albumSnap.docs) {
+            try { albumNames[ad.id] = await _privateDecryptStringWithKey(ad.data().encryptedName, key); } catch (e) { albumNames[ad.id] = 'Album'; }
+        }
+
+        var photoSnap  = await userCol('privatePhotos').orderBy('createdAt', 'desc').get();
+        var photoCount = photoSnap.docs.length;
+        var photoIdx   = 0;
+        var usedPhotoNames = {};
+
+        for (var pd of photoSnap.docs) {
+            photoIdx++;
+            var praw    = pd.data();
+            var pCaption = '';
+            var pOrigFn  = '';
+            try { pCaption = await _privateDecryptStringWithKey(praw.encryptedCaption, key); } catch (e) {}
+            try { pOrigFn  = await _privateDecryptStringWithKey(praw.encryptedOriginalFileName, key); } catch (e) {}
+
+            var albumId   = praw.albumId || null;
+            var albumName = privateSanitizeFilename(albumNames[albumId] || albumNames['null']);
+            var createdStr = '';
+            try { createdStr = new Date(praw.createdAt.toDate()).toISOString().slice(0, 10); } catch (e) { createdStr = new Date().toISOString().slice(0, 10); }
+            var nameBase  = privateSanitizeFilename(pCaption || pOrigFn || ('photo-' + createdStr + '-' + photoIdx));
+            var photoPath = 'photos/' + albumName + '/' + nameBase + '.jpg';
+            var nameKey   = photoPath.toLowerCase();
+            if (usedPhotoNames[nameKey]) {
+                usedPhotoNames[nameKey]++;
+                photoPath = 'photos/' + albumName + '/' + nameBase + '-' + usedPhotoNames[nameKey] + '.jpg';
+            } else {
+                usedPhotoNames[nameKey] = 1;
+            }
+
+            setStatus('Decrypting photo ' + photoIdx + ' of ' + photoCount + '\u2026');
+            try {
+                var pBytes = await _docFetchBytes(praw.storageRef);
+                var pPlain = await _backupDecryptBuffer(pBytes, key);
+                await zipWriter.add(photoPath, new zip.Uint8ArrayReader(new Uint8Array(pPlain)));
+            } catch (e) { console.warn('Photo backup failed:', pd.id, e); }
+        }
+
+        // 6. metadata.json
+        var meta = {
+            exportDate: new Date().toISOString(),
+            bookmarks:  Object.keys(bmNodeMap).length,
+            documents:  docCount,
+            photos:     photoCount,
+            app:        'Bishop Private Vault'
+        };
+        await zipWriter.add('metadata.json', new zip.TextReader(JSON.stringify(meta, null, 2)));
+
+        // 7. Build zip and download
+        setStatus('Building zip\u2026');
+        var zipBlob = await zipWriter.close();
+        var today   = new Date().toISOString().slice(0, 10);
+        _docTriggerDownload(zipBlob, 'private-backup-' + today + '.zip');
+
+        setStatus('\u2713 Export complete \u2014 check your Downloads folder.');
+        if (btn)    { btn.disabled = false; btn.textContent = 'Export'; }
+        if (passEl) passEl.value = '';
+
+    } catch (e) {
+        console.error('Private backup failed:', e);
+        if (errEl) errEl.textContent = 'Export failed: ' + (e.message || 'unknown error');
+        if (btn)   { btn.disabled = false; btn.textContent = 'Export'; }
+        if (passEl) passEl.disabled = false;
+    }
+}

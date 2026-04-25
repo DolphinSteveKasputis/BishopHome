@@ -412,6 +412,21 @@ function updateHeaderTitle() {
  */
 function loadBackupPage() {
     backupLoadLastMsg();
+    // Show private backup card only when vault is activated
+    var card = document.getElementById('private-backup-card');
+    if (card) {
+        if (window.privateActivated) {
+            card.classList.remove('hidden');
+        } else {
+            // Check Firestore in case activation happened in another tab
+            userCol('privateVault').doc('auth').get().then(function(doc) {
+                if (doc.exists && doc.data().encryptedSentinel) {
+                    window.privateActivated = true;
+                    card.classList.remove('hidden');
+                }
+            }).catch(function() {});
+        }
+    }
 }
 
 // ============================================================
@@ -599,7 +614,10 @@ var BACKUP_DATA_COLLECTIONS = [
     'legacyLetters', 'legacyMeta',
 
     // Misc
-    'sbIssues', 'settings'
+    'sbIssues', 'settings',
+
+    // Private Vault (exported as ciphertext — useful for Firestore disaster recovery)
+    'privateVault', 'privateBookmarks', 'privateDocuments', 'privatePhotoAlbums', 'privatePhotos'
 ];
 
 /**

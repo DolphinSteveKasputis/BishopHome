@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=567">
+    <link rel="stylesheet" href="css/styles.css?v=568">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -1166,6 +1166,18 @@
                     <span class="settings-saved-msg hidden" id="backupStatusMsg"></span>
                 </div>
                 <p class="settings-last-backup" id="backupLastMsg"></p>
+            </div>
+
+            <!-- ===== Private Data Backup (shown only when vault is activated) ===== -->
+            <div class="settings-card hidden" id="private-backup-card">
+                <h3 class="settings-section-title">Private Vault Backup</h3>
+                <p class="settings-section-desc">
+                    Downloads an AES-256 encrypted zip of all your private bookmarks, documents, and photos.
+                    The zip password is your vault passphrase — open with 7-Zip or WinZip.
+                </p>
+                <div class="settings-save-row">
+                    <button class="btn btn-primary" onclick="privateOpenBackupModal()">&#128274; Backup Private Data</button>
+                </div>
             </div>
 
             <!-- ===== Restore Section ===== -->
@@ -6517,6 +6529,23 @@ service firebase.storage {
             </div>
         </div>
 
+        <!-- Modal: Private Vault backup passphrase -->
+        <div class="modal-overlay hidden" id="modal-private-backup">
+            <div class="modal">
+                <h3>Backup Private Vault</h3>
+                <p style="font-size:0.875rem;color:#6b7280;margin-bottom:12px;">Enter your vault passphrase. It will also be the password for the downloaded zip file.</p>
+                <label>Vault Passphrase</label>
+                <input type="password" id="private-backup-passphrase" placeholder="Your vault passphrase"
+                       onkeydown="if(event.key==='Enter')privateExportBackup()">
+                <p class="form-error" id="private-backup-err" style="color:#dc2626;font-size:0.85rem;min-height:1.2em;margin:4px 0 0;"></p>
+                <p id="private-backup-status" class="hidden" style="font-size:0.85rem;color:#0369a1;margin:6px 0 0;"></p>
+                <div class="modal-actions">
+                    <button class="btn btn-primary" id="private-backup-btn" onclick="privateExportBackup()">Export</button>
+                    <button class="btn btn-secondary" onclick="closeModal('modal-private-backup')">Cancel</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Modal: Move photo to album -->
         <div class="modal-overlay hidden" id="modal-photo-move">
             <div class="modal">
@@ -10011,7 +10040,7 @@ export default {
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=567"></script>
+    <script src="js/firebase-config.js?v=568"></script>
     <script src="js/auth.js?v=350"></script>
     <script src="js/zones.js?v=355"></script>
     <script src="js/plants.js?v=351"></script>
@@ -10030,7 +10059,7 @@ export default {
     <script src="js/gps.js?v=350"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="js/gcal.js?v=6"></script>
-    <script src="js/settings.js?v=497"></script>
+    <script src="js/settings.js?v=568"></script>
     <script src="js/devnotes.js?v=376"></script>
     <script src="js/house.js?v=537"></script>
     <script src="js/floorplan.js?v=398"></script>
@@ -10052,6 +10081,8 @@ export default {
     <script src="js/lifecalendar.js?v=411"></script>
     <script src="js/life-projects.js?v=458"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- zip.js — AES-256 encrypted zip for Private Vault backup -->
+    <script src="https://cdn.jsdelivr.net/npm/@zip.js/zip.js@2/dist/zip.min.js"></script>
     <script src="js/chat.js?v=350"></script>
     <script src="js/secondbrain.js?v=535"></script>
     <script src="js/sbissues.js?v=350"></script>
@@ -10064,8 +10095,8 @@ export default {
     <script src="js/help.js?v=536"></script>
     <script src="js/legacy-crypto.js?v=2"></script>
     <script src="js/legacy.js?v=18"></script>
-    <script src="js/private.js?v=567"></script>
-    <script src="js/app.js?v=567"></script>
+    <script src="js/private.js?v=568"></script>
+    <script src="js/app.js?v=568"></script>
 
 </body>
 </html>

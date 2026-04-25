@@ -1108,6 +1108,31 @@ All files encrypted before upload. Storage never sees plaintext.
 - `/users/{uid}/privateDocuments/{docId}` — encrypted .docx blobs
 - `/users/{uid}/privatePhotos/{photoId}` — encrypted image blobs
 
+### Private Backup (Phase 6)
+
+**Location:** Backup & Restore page (`#backup`) — "Backup Private Data" card, visible only when vault is activated.
+
+**Flow:**
+1. User clicks **Backup Private Data** → passphrase modal appears.
+2. User enters vault passphrase → key derived via PBKDF2 → sentinel verified.
+3. Wrong passphrase: inline error, no download.
+4. Progress indicator updates through stages: bookmarks → documents → photos.
+5. zip.js (`@zip.js/zip.js@2`) builds an AES-256 encrypted zip (password = vault passphrase).
+6. Downloaded as `private-backup-YYYY-MM-DD.zip` — openable with 7-Zip or WinZip.
+
+**Zip contents:**
+| Path | Description |
+|---|---|
+| `bookmarks.html` | Netscape Bookmark File Format — importable into browsers |
+| `bookmarks.json` | Full flat JSON of all bookmark nodes |
+| `documents/{filename}.docx` | Decrypted originals, filename from stored original name |
+| `photos/{albumName}/{photoName}.jpg` | Decrypted photos, organized by album; name = caption → original filename → date-based fallback |
+| `metadata.json` | Export date, counts (bookmarks/documents/photos) |
+
+**Firestore backup:** `BACKUP_DATA_COLLECTIONS` in `settings.js` includes all five private collections (`privateVault`, `privateBookmarks`, `privateDocuments`, `privatePhotoAlbums`, `privatePhotos`) — exported as ciphertext in the main JSON backup for Firestore disaster recovery.
+
+**Key functions:** `privateOpenBackupModal()`, `privateExportBackup()`, `privateSanitizeFilename()`, `_backupDecryptBuffer(combined, key)`, `_backupBmHtml(nodeId, nodeMap, childMap, indent)` — all in `js/private.js`.
+
 ---
 
 ## Part 9: Places & Check-In

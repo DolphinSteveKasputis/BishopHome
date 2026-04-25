@@ -2562,3 +2562,30 @@ Each thought is a living document -- you can update it over time with history pr
 - [Top 10 Lists](#help/top10lists)
 - [Memories](#help/memories)
 
+
+---
+
+## screen:backup
+
+### Quick Help
+- **Download Backup** exports all your app data as a JSON file — do this monthly
+- **Backup Private Data** (shown only if the Private Vault is activated) exports an AES-256 encrypted zip of your private bookmarks, documents, and photos — the zip password is your vault passphrase
+- Open the private backup zip with 7-Zip or WinZip using your vault passphrase
+
+### Details
+
+**Download Backup:**
+Downloads a JSON file of all your Firestore data (activities, plants, zones, health records, journal entries, etc.). Private vault data is included as ciphertext — it is useless without your passphrase but preserves the Firestore structure for disaster recovery. Check "Create photos file also" to include a separate JSON file with your regular (non-private) photos.
+
+**Backup Private Data (vault only):**
+- Only visible when the Private Vault is activated in Settings → General Settings
+- Enter your vault passphrase — same passphrase you use to unlock the vault
+- Wrong passphrase: error shown, nothing downloaded
+- A progress indicator updates as bookmarks, documents, and photos are decrypted
+- Downloads `private-backup-YYYY-MM-DD.zip` — AES-256 encrypted, password = your vault passphrase
+- Zip contents: `bookmarks.html` (Netscape format, importable into browsers), `bookmarks.json` (full tree), `documents/` folder with original .docx files, `photos/` folder organized by album, `metadata.json` (counts and export date)
+- Photo filenames use caption first, then original filename, then a date-based name
+- Open with 7-Zip (free) or WinZip — enter your vault passphrase when prompted
+
+**Restore:**
+Replaces all current data with a previously downloaded backup file. Data and photos restore independently. This is permanent and cannot be undone.

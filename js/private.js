@@ -1376,7 +1376,7 @@ async function privateDeleteAlbum(albumId) {
         await Promise.all(storageDeletes);
         await batch.commit();
         await userCol('privatePhotoAlbums').doc(albumId).delete();
-        await loadPrivatePhotosPage();
+        window.location.hash = '#private/photos';
     } catch (e) {
         console.error('Album delete failed:', e);
         alert('Delete failed: ' + e.message);

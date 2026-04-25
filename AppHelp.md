@@ -1664,34 +1664,62 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 ## screen:private
 
 ### Quick Help
-- The Private vault stores bookmarks, documents, and photos that are encrypted — unreadable without your passphrase
-- Every visit prompts for your passphrase (vault auto-locks after 60 minutes of inactivity, or on page reload)
-- Wrong passphrase: the error is immediate and the input clears — try again
-- The vault must be activated in General Settings before it appears here
+- The Private Vault stores bookmarks, documents, and photos — all encrypted, unreadable without your passphrase
+- Every visit prompts for your passphrase; vault auto-locks after 60 minutes of inactivity or on page reload
+- Wrong passphrase: inline error appears immediately, input clears — try again
+- Must be activated in General Settings → Private Vault before first use
+- Firebase Storage must be set up (4 steps) before documents and photos will work
 
 ### Details
 
-**What the Private vault is:** An encrypted personal vault for data you never want anyone else to see — not even someone with your app login or direct access to the database. Everything is encrypted in your browser before it ever leaves your device.
+**What the Private Vault is:** An encrypted personal vault for data you never want anyone else to see — not even someone with your app login or direct Firestore access. Everything is encrypted in your browser using AES-256-GCM before it ever leaves your device. The passphrase is never stored anywhere.
+
+**First-time setup (required for documents and photos):**
+The vault requires Firebase Storage to store encrypted files. Setup is a one-time process with 4 steps — open the Setup Instructions via the **?** button in General Settings → Private Vault:
+1. Upgrade Firebase to the Blaze plan (free credit card required; effectively free for personal use)
+2. Enable Firebase Storage in the Firebase console
+3. Paste the security rules so only your account can access your files
+4. Run one command in Google Cloud Shell to configure CORS (allows your browser to download files)
 
 **Unlocking:**
 - Enter your passphrase and tap **Unlock**
 - Correct passphrase: vault opens and shows three tiles — Bookmarks, Documents, Photos
-- Wrong passphrase: inline error appears, input clears — just try again
-- If you've unlocked within the last 60 minutes and haven't left the app, you won't be prompted again
+- Wrong passphrase: inline error appears, input clears — try again
+- Once unlocked, you won't be prompted again for 60 minutes (unless the page is reloaded)
 
 **Auto-lock:**
-- The vault locks automatically after 60 minutes of inactivity
+- Vault locks automatically after 60 minutes of inactivity
 - Any click or keypress anywhere in the app resets the 60-minute timer
 - Page reload always requires re-entry regardless of the timer
 
-**The three sections:**
-- **Bookmarks** — private URL bookmarks in a tree structure (up to 5 levels deep), not visible to Chrome or any browser sync. Add folders and bookmarks, drag to reorder or move between folders. Clicking a bookmark opens the URL in a new tab.
-- **Documents** — encrypted .docx files. Upload any .docx, open it to download a decrypted copy (Word opens it automatically), then re-upload after editing. Title and file are both encrypted.
-- **Photos** — encrypted photos organized by albums. Tap an album to open its gallery. Tap any photo to view full-size, edit the caption, move it to another album, or delete it. Use **Add Photos** in the gallery to upload new images (automatically compressed and encrypted before upload).
+**Bookmarks:**
+- Private URL bookmarks stored in a folder tree — not visible to any browser or sync service
+- Up to 5 levels deep (folders inside folders)
+- Add folders and bookmarks using the toolbar buttons or the **+ Folder** / **+ Bookmark** buttons inside any folder
+- Click a bookmark to open its URL in a new tab
+- Edit or delete individual bookmarks and folders using the buttons on each row
 
-**If you forget your passphrase:** There is no recovery. The passphrase is never stored anywhere. All private data is permanently inaccessible without it.
+**Documents:**
+- Accepts `.docx` files only
+- Both the title and the file itself are encrypted — only you can read them
+- Tap **Download** to decrypt and download the file — open it in Word, edit it, then use **Re-upload** to replace the stored copy with your edited version
+- **Re-upload**: replaces the encrypted file for an existing document without changing its title (title is editable during re-upload)
+- Files are decrypted on-the-fly in your browser — nothing is stored unencrypted on the server
 
-**If photos or documents fail to load (warning banner appears):** Firebase Storage requires a one-time CORS configuration before files can be downloaded. Go to Setup Instructions (the ? button in General Settings → Private Vault) and follow Step 4. Step 4 walks you through finding the built-in browser terminal on Google Cloud and running one command — takes about two minutes, no software to install.
+**Photos:**
+- Photos are organized into albums
+- **Albums page**: shows all your albums as tiles. Tap an album to open its gallery. Use **+ New Album** to create one.
+- **Uncategorized**: photos uploaded without selecting an album land here automatically
+- **Gallery**: shows medium-sized preview tiles. Tap any photo to open the full-size viewer.
+- **Adding photos**: tap **+ Add Photos** inside a gallery — photos are compressed and encrypted in your browser before upload
+- **Renaming an album**: open the album, tap **Rename** in the top-right actions
+- **Deleting an album**: open the album, tap **Delete Album** — this permanently deletes the album and ALL photos inside it
+- **Photo viewer**: shows the photo full-size with **← Older** / **Newer →** navigation, a caption field (auto-saves on blur), **Move to Album**, and **Delete**
+
+**If photos or documents fail to load (warning banner appears):**
+Firebase Storage requires a one-time CORS configuration before files can be downloaded. Go to Setup Instructions (the **?** button in General Settings → Private Vault) and follow Step 4. Step 4 walks you through finding the built-in browser terminal in Google Cloud and running one command — takes about two minutes, no software to install.
+
+**If you forget your passphrase:** There is no recovery. The passphrase is never stored anywhere. All private data is permanently inaccessible without it. Store your passphrase somewhere very safe (a password manager, written down in a secure location, etc.).
 
 ---
 
@@ -2601,8 +2629,9 @@ Each thought is a living document -- you can update it over time with history pr
 
 ### Quick Help
 - **Download Backup** exports all your app data as a JSON file — do this monthly
-- **Backup Private Data** (shown only if the Private Vault is activated) exports an AES-256 encrypted zip of your private bookmarks, documents, and photos — the zip password is your vault passphrase
-- Open the private backup zip with 7-Zip or WinZip using your vault passphrase
+- **Backup Private Data** (shown only if Private Vault is activated) exports a password-protected zip of your decrypted private data — password is your vault passphrase
+- To open the private backup zip: use 7-Zip (free) or WinZip and enter your vault passphrase when prompted
+- Note: file and folder names inside the zip are visible without the password — only the file contents are protected
 
 ### Details
 
@@ -2611,13 +2640,25 @@ Downloads a JSON file of all your Firestore data (activities, plants, zones, hea
 
 **Backup Private Data (vault only):**
 - Only visible when the Private Vault is activated in Settings → General Settings
-- Enter your vault passphrase — same passphrase you use to unlock the vault
+- Enter your vault passphrase — same passphrase you use to unlock the vault daily
 - Wrong passphrase: error shown, nothing downloaded
-- A progress indicator updates as bookmarks, documents, and photos are decrypted
-- Downloads `private-backup-YYYY-MM-DD.zip` — AES-256 encrypted, password = your vault passphrase
-- Zip contents: `bookmarks.html` (Netscape format, importable into browsers), `bookmarks.json` (full tree), `documents/` folder with original .docx files, `photos/` folder organized by album, `metadata.json` (counts and export date)
-- Photo filenames use caption first, then original filename, then a date-based name
-- Open with 7-Zip (free) or WinZip — enter your vault passphrase when prompted
+- A progress indicator updates as each section (bookmarks, documents, photos) is decrypted and packaged
+- Downloads `private-backup-YYYY-MM-DD.zip`
+
+**What's in the zip:**
+- `bookmarks.html` — Netscape bookmark format, importable directly into Chrome, Firefox, or Edge
+- `bookmarks.json` — full bookmark tree with all metadata
+- `documents/` — your original `.docx` files, fully decrypted and ready to open
+- `photos/` — your original photos organized into subfolders by album name, fully decrypted
+- `metadata.json` — export date and item counts
+- Photo filenames use the caption first, then original filename, then a date-based fallback
+
+**ZIP encryption details:**
+- The zip is AES-256 encrypted (password = your vault passphrase)
+- Files inside are the original plaintext files — once you open the zip with the correct password, everything is fully readable with no additional steps
+- **Important limitation:** The ZIP format stores folder and file names in plaintext even when the zip is encrypted — anyone who has the zip file can see the names. Only the file contents are protected by the password. This is a limitation of the ZIP format, not the app.
+- Treat the backup zip like sensitive data — store it somewhere secure (external drive, encrypted cloud storage, etc.)
+- To open: use 7-Zip (free at 7-zip.org) or WinZip. Double-click the zip, enter your vault passphrase when prompted, then extract normally.
 
 **Restore:**
 Replaces all current data with a previously downloaded backup file. Data and photos restore independently. This is permanent and cannot be undone.

@@ -1775,7 +1775,6 @@ function loadLegacyAccountsPage() {
 
         page.innerHTML =
             '<div class="page-header">' +
-                '<button class="btn btn-secondary btn-small" onclick="location.hash=\'#legacy\'">← My Legacy</button>' +
                 '<h2>💰 Financial Accounts</h2>' +
             '</div>' +
             '<div class="legacy-fin-hub" id="legacyFinHub"></div>';
@@ -1873,7 +1872,6 @@ function _legacyFinRenderPage() {
 
     page.innerHTML =
         '<div class="page-header">' +
-            '<button class="btn btn-secondary btn-small" onclick="location.hash=\'#legacy/accounts\'">← Financial Accounts</button>' +
             '<h2>💼 Accounts</h2>' +
         '</div>' +
         '<div class="invest-person-row">' +
@@ -2099,7 +2097,6 @@ function _legacyFinStub(pageId, title, icon) {
 
     page.innerHTML =
         '<div class="page-header">' +
-            '<button class="btn btn-secondary btn-small" onclick="location.hash=\'#legacy/accounts\'">← Financial Accounts</button>' +
             '<h2>' + icon + ' ' + escapeHtml(title) + '</h2>' +
         '</div>' +
         '<div class="legacy-stub">' +

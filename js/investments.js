@@ -433,8 +433,6 @@ async function loadInvestmentsFormPage(id) {
 
     page.innerHTML =
         '<div class="page-header">' +
-            '<button class="btn btn-secondary btn-small back-btn"' +
-                ' onclick="window.location.hash=\'#investments\'">← Investments</button>' +
             '<h2>' + (isNew ? 'Add Account' : 'Edit Account') + '</h2>' +
         '</div>' +
         '<div class="invest-form">' +

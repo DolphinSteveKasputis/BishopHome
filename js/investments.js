@@ -388,6 +388,9 @@ async function _investAddPerson(contactId, contactName) {
     var ids = _investPeople.map(function(p) { return p.id; });
     await userCol('settings').doc('investments').set({ enrolledPersonIds: ids }, { merge: true });
     _investRenderPeopleModal();
+    // Return focus to the search input so the user can add another person immediately
+    var searchInput = document.getElementById('investPeoplePicker_search');
+    if (searchInput) searchInput.focus();
 }
 
 async function _investRemovePerson(contactId) {
@@ -514,7 +517,8 @@ async function _investRenderSensitiveFields(acct) {
     container.innerHTML =
         '<div class="form-group">' +
             '<label>Account Number</label>' +
-            '<input type="text" id="investFormAcctNum" placeholder="Full account number">' +
+            '<input type="text" id="investFormAcctNum" placeholder="Full account number"' +
+                ' oninput="_investAutoLast4(this.value)">' +
         '</div>' +
         '<div class="form-group">' +
             '<label>Username</label>' +
@@ -651,7 +655,14 @@ function _investToggleArchived() {
     _investRenderList();
 }
 
-// ---------- Helper ----------
+// ---------- Helpers ----------
+
+function _investAutoLast4(value) {
+    var digits = value.replace(/\D/g, '');
+    if (digits.length >= 4) {
+        _investVal('investFormLast4', digits.slice(-4));
+    }
+}
 
 function _investVal(id, value) {
     var el = document.getElementById(id);

@@ -1371,15 +1371,16 @@ async function loadPrivatePhotosGallery(albumKey) {
     _photoCurrentKey = albumKey; // null = uncategorized, otherwise Firestore albumId
     _photoRevokeBlobs();
 
-    // Set heading
+    // Set heading and show/hide named-album actions
     var heading = document.getElementById('gallery-album-name');
-    if (heading) {
-        if (albumKey === null) {
-            heading.textContent = 'Uncategorized';
-        } else {
-            var al = _photoAlbums.find(function(a) { return a.id === albumKey; });
-            heading.textContent = al ? al.name : 'Album';
-        }
+    var namedActions = document.getElementById('gallery-named-actions');
+    if (albumKey === null) {
+        if (heading) heading.textContent = 'Uncategorized';
+        if (namedActions) namedActions.style.display = 'none';
+    } else {
+        var al = _photoAlbums.find(function(a) { return a.id === albumKey; });
+        if (heading) heading.textContent = al ? al.name : 'Album';
+        if (namedActions) namedActions.style.display = '';
     }
 
     var el = document.getElementById('private-gallery');

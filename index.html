@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=568">
+    <link rel="stylesheet" href="css/styles.css?v=569">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -6477,20 +6477,20 @@ service firebase.storage {
         <section class="page hidden" id="page-private-photos-gallery">
             <div class="page-header">
                 <button class="btn btn-secondary btn-small back-btn" onclick="window.location.hash='#private/photos'">&#8592; Albums</button>
-                <h2 id="gallery-album-title">Album</h2>
-                <div class="page-header-actions">
-                    <button class="btn btn-secondary btn-small" id="gallery-rename-btn" onclick="privateRenameAlbumModal()">Rename</button>
-                    <button class="btn btn-danger btn-small" id="gallery-delete-btn" onclick="privateDeleteAlbum()">Delete Album</button>
+                <h2 id="gallery-album-name">Album</h2>
+                <div class="page-header-actions" id="gallery-named-actions">
+                    <button class="btn btn-secondary btn-small" id="gallery-rename-btn" onclick="privateRenameAlbumModal(_photoCurrentKey)">Rename</button>
+                    <button class="btn btn-danger btn-small" id="gallery-delete-btn" onclick="privateDeleteAlbum(_photoCurrentKey)">Delete Album</button>
                 </div>
             </div>
             <div class="section-actions">
                 <label class="btn btn-primary" style="cursor:pointer;">
                     + Add Photos
-                    <input type="file" id="gallery-file-input" accept="image/*" multiple style="display:none;" onchange="document.getElementById('gallery-file-input')._handler && document.getElementById('gallery-file-input')._handler(this)">
+                    <input type="file" id="gallery-file-input" accept="image/*" multiple style="display:none;" onchange="_photoOnFileSelected(this)">
                 </label>
             </div>
             <div id="gallery-upload-status" class="doc-upload-status hidden"></div>
-            <div id="private-photo-grid" class="photo-grid"></div>
+            <div id="private-gallery" class="photo-grid"></div>
         </section>
 
         <!-- Modal: Add/rename album -->
@@ -6498,9 +6498,11 @@ service firebase.storage {
             <div class="modal">
                 <h3 id="album-modal-title">New Album</h3>
                 <label>Album Name</label>
-                <input type="text" id="album-name-input" placeholder="e.g. Family, Travel">
+                <input type="text" id="album-modal-name" placeholder="e.g. Family, Travel"
+                       onkeydown="if(event.key==='Enter')privateSubmitAlbumModal()">
+                <p class="hidden" id="album-modal-error" style="color:#dc2626;font-size:0.85rem;margin:4px 0 0;"></p>
                 <div class="modal-actions">
-                    <button class="btn btn-primary" onclick="privateSubmitAlbumModal()">Save</button>
+                    <button class="btn btn-primary" id="album-modal-save-btn" onclick="privateSubmitAlbumModal()">Save</button>
                     <button class="btn btn-secondary" onclick="closeModal('modal-photo-album-edit')">Cancel</button>
                 </div>
             </div>
@@ -10040,7 +10042,7 @@ export default {
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=568"></script>
+    <script src="js/firebase-config.js?v=569"></script>
     <script src="js/auth.js?v=350"></script>
     <script src="js/zones.js?v=355"></script>
     <script src="js/plants.js?v=351"></script>
@@ -10059,7 +10061,7 @@ export default {
     <script src="js/gps.js?v=350"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="js/gcal.js?v=6"></script>
-    <script src="js/settings.js?v=568"></script>
+    <script src="js/settings.js?v=569"></script>
     <script src="js/devnotes.js?v=376"></script>
     <script src="js/house.js?v=537"></script>
     <script src="js/floorplan.js?v=398"></script>
@@ -10095,8 +10097,8 @@ export default {
     <script src="js/help.js?v=536"></script>
     <script src="js/legacy-crypto.js?v=2"></script>
     <script src="js/legacy.js?v=18"></script>
-    <script src="js/private.js?v=568"></script>
-    <script src="js/app.js?v=568"></script>
+    <script src="js/private.js?v=569"></script>
+    <script src="js/app.js?v=569"></script>
 
 </body>
 </html>

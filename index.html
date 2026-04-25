@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=574">
+    <link rel="stylesheet" href="css/styles.css?v=575">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -3950,11 +3950,11 @@ service firebase.storage {
                         It looks like <code>your-project.firebasestorage.app</code> or <code>your-project.appspot.com</code>.
                         Copy that name exactly.
                     </li>
-                    <li>Click inside the Cloud Shell terminal, paste the command below, replace <code>YOUR-BUCKET-NAME</code> with the bucket name you just copied, then press <strong>Enter</strong>:</li>
+                    <li id="help-cors-step-paste">Click inside the Cloud Shell terminal, paste the command below, then press <strong>Enter</strong>:</li>
                 </ol>
                 <div class="private-code-block-wrap">
                     <button class="private-copy-btn" onclick="privateCopyCode(this)">Copy</button>
-                    <pre class="private-rules-block">printf '[{"origin":["*"],"method":["GET","HEAD"],"maxAgeSeconds":3600}]' > cors.json && gcloud storage buckets update gs://YOUR-BUCKET-NAME --cors-file=cors.json</pre>
+                    <pre class="private-rules-block" id="help-cors-command">printf '[{"origin":["*"],"method":["GET","HEAD"],"maxAgeSeconds":3600}]' > cors.json && gcloud storage buckets update gs://YOUR-BUCKET-NAME --cors-file=cors.json</pre>
                 </div>
                 <p style="font-size:0.85rem;color:#6b7280;margin-top:8px;">
                     You should see a line that says <em>Updating...</em> followed by a success message. If it asks you to authorize again, click <strong>Authorize</strong>.
@@ -9694,11 +9694,11 @@ export default {
                 <p>This walks you through every step needed to connect Bishop to Google Calendar. Once done, events you create in Bishop automatically appear in Google Calendar with reminders on your phone.</p>
 
                 <div style="background:#dbeafe;border-left:3px solid #2563eb;padding:10px 14px;border-radius:4px;margin-bottom:14px;">
-                    <strong>You already have the right project.</strong> Bishop uses Firebase, which runs on Google Cloud. Your existing Google Cloud project is <strong>bishop-62d43</strong>. When you open <a href="https://console.cloud.google.com" target="_blank" rel="noopener">console.cloud.google.com</a> you'll already be in it — skip straight to Step 2.
+                    <strong>You already have the right project.</strong> Bishop uses Firebase, which runs on Google Cloud. Your existing Google Cloud project is <strong><span class="gcal-project-id">…</span></strong>. When you open <a href="https://console.cloud.google.com" target="_blank" rel="noopener">console.cloud.google.com</a> you'll already be in it — skip straight to Step 2.
                 </div>
 
                 <p style="font-weight:600;margin-bottom:4px;">Step 1 — Open Google Cloud Console</p>
-                <p style="margin-top:0;">Go to <strong><a href="https://console.cloud.google.com" target="_blank" rel="noopener">console.cloud.google.com</a></strong>. You'll land on the Welcome/Dashboard page. Confirm the header says <strong>Bishop</strong> and Project ID is <strong>bishop-62d43</strong>. If it says something else, click the project name in the header and switch to Bishop.</p>
+                <p style="margin-top:0;">Go to <strong><a href="https://console.cloud.google.com" target="_blank" rel="noopener">console.cloud.google.com</a></strong>. You'll land on the Welcome/Dashboard page. Confirm the header says <strong>Bishop</strong> and Project ID is <strong><span class="gcal-project-id">…</span></strong>. If it says something else, click the project name in the header and switch to Bishop.</p>
 
                 <p style="font-weight:600;margin-bottom:4px;">Step 2 — Enable the Google Calendar API</p>
                 <p style="margin-top:0;">On the dashboard you'll see a <strong>Quick access</strong> section with tiles. Click <strong>APIs &amp; Services</strong>. Then in the left sidebar click <strong>Library</strong>. Search for <strong>Google Calendar API</strong>. Click it, then click <strong>Enable</strong>. (If you see "Manage" instead of "Enable", it's already on — move to Step 3.)</p>
@@ -10129,7 +10129,7 @@ export default {
 
     <!-- ========== SCRIPTS ========== -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/firebase-config.js?v=574"></script>
+    <script src="js/firebase-config.js?v=575"></script>
     <script src="js/auth.js?v=350"></script>
     <script src="js/zones.js?v=355"></script>
     <script src="js/plants.js?v=351"></script>
@@ -10148,7 +10148,7 @@ export default {
     <script src="js/gps.js?v=350"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="js/gcal.js?v=6"></script>
-    <script src="js/settings.js?v=574"></script>
+    <script src="js/settings.js?v=575"></script>
     <script src="js/devnotes.js?v=376"></script>
     <script src="js/house.js?v=537"></script>
     <script src="js/floorplan.js?v=398"></script>
@@ -10184,9 +10184,9 @@ export default {
     <script src="js/help.js?v=536"></script>
     <script src="js/legacy-crypto.js?v=2"></script>
     <script src="js/legacy.js?v=18"></script>
-    <script src="js/credentials.js?v=574"></script>
-    <script src="js/private.js?v=574"></script>
-    <script src="js/app.js?v=574"></script>
+    <script src="js/credentials.js?v=575"></script>
+    <script src="js/private.js?v=575"></script>
+    <script src="js/app.js?v=575"></script>
 
 </body>
 </html>

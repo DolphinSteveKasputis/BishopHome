@@ -1410,7 +1410,17 @@ document.getElementById('llmHelpBtn').addEventListener('click', openLlmHelp);
 document.getElementById('llmTestBtn').addEventListener('click', testLlmKey);
 
 document.getElementById('gcalSaveBtn').addEventListener('click', saveGcalBasicSettings);
-document.getElementById('gcalHelpBtn').addEventListener('click', function() { openModal('gcalHelpModal'); });
+document.getElementById('gcalHelpBtn').addEventListener('click', function() {
+    openModal('gcalHelpModal');
+    try {
+        var projectId = firebase.app().options.projectId || '';
+        if (projectId) {
+            document.querySelectorAll('#gcalHelpModal .gcal-project-id').forEach(function(el) {
+                el.textContent = projectId;
+            });
+        }
+    } catch (e) {}
+});
 document.getElementById('gcalConnectBtn').addEventListener('click', gcalConnect);
 document.getElementById('gcalDisconnectBtn').addEventListener('click', function() {
     if (confirm('Disconnect from Google Calendar? Auto-sync will pause but your existing Google Calendar events will remain.')) {

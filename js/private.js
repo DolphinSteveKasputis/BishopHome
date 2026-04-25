@@ -197,6 +197,15 @@ function _privateUpdateLifeTile() {
 
 function privateOpenHelpModal() {
     openModal('modal-private-help');
+    try {
+        var bucket = firebase.app().options.storageBucket || 'YOUR-BUCKET-NAME';
+        var cmd = document.getElementById('help-cors-command');
+        if (cmd) cmd.textContent = cmd.textContent.replace(/YOUR-BUCKET-NAME/g, bucket);
+        var step = document.getElementById('help-cors-step-paste');
+        if (step && bucket !== 'YOUR-BUCKET-NAME') {
+            step.innerHTML = 'Click inside the Cloud Shell terminal, paste the command below (your bucket name is already filled in), then press <strong>Enter</strong>:';
+        }
+    } catch (e) {}
 }
 
 function privateCopyCode(btn) {

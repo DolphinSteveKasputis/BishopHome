@@ -80,7 +80,6 @@ async function loadLegacyIntroPage() {
 
     page.innerHTML =
         '<div class="page-header">' +
-            '<button class="btn btn-secondary btn-small" onclick="location.hash=\'#legacy\'">&#8592; My Legacy</button>' +
             '<h2>📖 Read Me First</h2>' +
         '</div>' +
         '<div class="legacy-section">' +
@@ -129,7 +128,6 @@ async function loadLegacyBurialPage() {
 
     page.innerHTML =
         '<div class="page-header">' +
-            '<button class="btn btn-secondary btn-small" onclick="location.hash=\'#legacy\'">&#8592; My Legacy</button>' +
             '<h2>⚱️ Burial & Remains</h2>' +
         '</div>' +
         '<div class="legacy-section">' +
@@ -336,7 +334,6 @@ async function loadLegacyServicePage() {
 
     page.innerHTML =
         '<div class="page-header">' +
-            '<button class="btn btn-secondary btn-small" onclick="location.hash=\'#legacy\'">&#8592; My Legacy</button>' +
             '<h2>🕊️ Service Wishes</h2>' +
         '</div>' +
         '<div class="legacy-section">' +
@@ -456,7 +453,6 @@ async function loadLegacyObituaryPage() {
     // Render the page shell immediately so the user sees something
     page.innerHTML =
         '<div class="page-header">' +
-            '<button class="btn btn-secondary btn-small" onclick="location.hash=\'#legacy\'">&#8592; My Legacy</button>' +
             '<h2>📜 My Obituary</h2>' +
         '</div>' +
         '<div class="legacy-section">' +
@@ -615,7 +611,6 @@ function loadLegacyDocumentsPage() {
 
     page.innerHTML =
         '<div class="page-header">' +
-            '<button class="btn btn-secondary btn-small" onclick="location.hash=\'#legacy\'">&#8592; My Legacy</button>' +
             '<h2>📁 Documents</h2>' +
             '<button class="btn btn-primary btn-small" onclick="_legacyDocOpenModal(null)">+ Add Document</button>' +
         '</div>' +
@@ -923,7 +918,6 @@ async function loadLegacyPetsPage() {
 
     page.innerHTML =
         '<div class="page-header">' +
-            '<button class="btn btn-secondary btn-small" onclick="location.hash=\'#legacy\'">&#8592; My Legacy</button>' +
             '<h2>🐾 Pets</h2>' +
             '<button class="btn btn-primary btn-small" id="legacyPetAddBtn" onclick="_legacyPetAddNew()">+ Add Pet</button>' +
         '</div>' +
@@ -1073,7 +1067,6 @@ async function loadLegacyNotifyPage() {
 
     page.innerHTML =
         '<div class="page-header">' +
-            '<button class="btn btn-secondary btn-small" onclick="location.hash=\'#legacy\'">&#8592; My Legacy</button>' +
             '<h2>📞 People to Notify</h2>' +
             '<div class="legacy-notify-header-btns">' +
                 '<button class="btn btn-secondary btn-small" id="legacyNotifyFromContactsBtn" onclick="_legacyNotifyShowPicker()">+ From Contacts</button>' +
@@ -1453,7 +1446,6 @@ async function loadLegacyLettersPage() {
 
     page.innerHTML =
         '<div class="page-header">' +
-            '<button class="btn btn-secondary btn-small" onclick="location.hash=\'#legacy\'">&#8592; My Legacy</button>' +
             '<h2>✉️ Letters</h2>' +
             '<button class="btn btn-primary btn-small" id="legacyLetterAddBtn" onclick="_legacyLetterAddNew()">+ Add Letter</button>' +
         '</div>' +
@@ -1528,9 +1520,11 @@ async function loadLegacyLetterDetailPage(id) {
     page.dataset.letterId = id;
     _legacyLetterCreatedAt = null;
 
+    var crumb = document.getElementById('breadcrumbBar');
+    if (crumb) crumb.innerHTML = '<a href="#life">Life</a><span class="separator">&rsaquo;</span><a href="#legacy">My Legacy</a><span class="separator">&rsaquo;</span><a href="#legacy/letters">Letters</a><span class="separator">&rsaquo;</span><span>Letter</span>';
+
     page.innerHTML =
         '<div class="page-header">' +
-            '<button class="btn btn-secondary btn-small" onclick="location.hash=\'#legacy/letters\'">&#8592; Letters</button>' +
             '<h2>✉️ Letter</h2>' +
             '<button class="btn btn-secondary btn-small" onclick="_legacyLetterPrint()">🖨️ Print</button>' +
         '</div>' +
@@ -1692,7 +1686,6 @@ async function loadLegacyMessagePage() {
 
     page.innerHTML =
         '<div class="page-header">' +
-            '<button class="btn btn-secondary btn-small" onclick="location.hash=\'#legacy\'">&#8592; My Legacy</button>' +
             '<h2>💬 Final Message</h2>' +
         '</div>' +
         '<div class="legacy-section">' +
@@ -3832,7 +3825,6 @@ function _legacyLoadStub(pageId, title, sectionKey) {
 
     page.innerHTML =
         '<div class="page-header">' +
-            '<button class="btn btn-secondary btn-small" onclick="location.hash=\'#legacy\'">&#8592; My Legacy</button>' +
             '<h2>' + icon + ' ' + title + '</h2>' +
         '</div>' +
         '<div class="legacy-stub">' +

@@ -904,7 +904,7 @@ End-of-life information hub — private information for the user's loved ones if
 | `#legacy/letters` | Letters to People — list + per-letter detail | ✅ Built |
 | `#legacy/service` | Funeral / Memorial Service Wishes — type, location, officiant, music, wishes | ✅ Built |
 | `#legacy/social` | Social Media & Digital Memorial Preferences 🔒 | Stub |
-| `#legacy/accounts` | Financial & Account Access 🔒 | Stub |
+| `#legacy/accounts` | Financial Accounts hub → Accounts, Loans, Bills, Insurance, Financial Plan 🔒 | ✅ Built (Plan stub) |
 | `#legacy/documents` | Documents — online (URL) + physical, drag-to-reorder, accordion expand | ✅ Built |
 | `#legacy/household` | Practical Household Instructions | Stub |
 | `#legacy/pets` | Pets — accordion cards, inline editing | ✅ Built |
@@ -938,15 +938,58 @@ End-of-life information hub — private information for the user's loved ones if
 - **Duplicate prevention**: adding a contact who is already in the list shows an alert instead of creating a duplicate.
 - **Firestore**: `legacyNotify` collection — `contactId` (nullable), `name`, `phone`, `email`, `address`, `howDoIKnowThem`, `createdAt`. Contact-linked docs store only `contactId` and `createdAt`; all other fields are empty strings or absent.
 
+**Financial Accounts section** (`#legacy/accounts` and sub-tabs 🔒): Full-featured hub gated by the Legacy Passphrase. Organized into 5 tabs via a card hub page:
+
+| Route | Tab | Status |
+|-------|-----|--------|
+| `#legacy/accounts` | Hub — 5 card tiles | ✅ Built |
+| `#legacy/accounts/accounts` | Accounts — reads from `investments/{personId}/accounts` | ✅ Built |
+| `#legacy/accounts/loans` | Loans — mortgages, car loans, credit cards, other debt | ✅ Built |
+| `#legacy/accounts/bills` | Bills — recurring expenses, auto-pay items | ✅ Built |
+| `#legacy/accounts/insurance` | Insurance — life/health/other policies | ✅ Built |
+| `#legacy/accounts/plan` | Financial Plan — big-picture instructions | Stub |
+
+All Financial Accounts sub-tabs share:
+- **Person switcher** — filters data to a specific enrolled person (IDs from `settings/investments.enrolledPersonIds`); person filter persists across tab navigations (`_legacyFinPersonFilter`)
+- **Passphrase gate** — `_legacyRequireUnlock(callback)` prompts for passphrase once per session; encrypted fields use AES-GCM via `legacy-crypto.js`
+- **Accordion list** — collapsed card shows key at-a-glance fields; expanded shows more; Edit/Archive buttons inside expanded card
+- **Drag-to-reorder** — SortableJS handle (⠿); `sortOrder` batch-written on `onEnd`
+- **Soft delete** — `archived: true`; Show Archived checkbox reveals archived items
+
+**Loans tab** (`#legacy/accounts/loans`, `#legacy/accounts/loans/add`, `#legacy/accounts/loans/edit/:id`):
+- **Collapsed card**: loan type badge (amber) · lender · balance · auto-pay badge (green Auto / yellow Manual)
+- **Expanded card**: loan type, lender, balance, monthly payment, interest rate, payoff date, months left (calculated), est. remaining (months × payment, calculated), loan start date, account number, whose name, how paid, what to do upon my death, notes
+- **Edit-only fields** (not shown in expanded card): URL, username (encrypted), password (encrypted)
+- **Loan types** (combo — free-text or pick): Auto, Mortgage, Student, Personal, Credit Card, Medical, Business, Furniture, Other
+- **How Paid**: Automatic (linked with badge) / Manual
+- **Firestore**: `legacyFinancial/{personId}/loans` — fields: `loanType`, `lender`, `balance`, `monthlyPayment`, `interestRate`, `payoffDate`, `startDate`, `accountNumber`, `whoseName`, `howPaid`, `whatToDo`, `notes`, `url`, `usernameEnc`, `passwordEnc`, `sortOrder`, `archived`, `createdAt`
+
+**Bills tab** (`#legacy/accounts/bills`, `#legacy/accounts/bills/add`, `#legacy/accounts/bills/edit/:id`):
+- **Collapsed card**: category badge (teal) · payee · amount · frequency · due date
+- **Expanded card**: category, payee, estimated amount, frequency, due date (free-form text: "15th", "March each year"), whose name, payment method, what credit card (if CC), notes
+- **Edit-only fields**: URL, username (encrypted), password (encrypted), account number, address
+- **Categories** (combo — free-text or pick): Mortgage/Rent, Utilities, Insurance, Subscriptions, Phone, Internet, Car Payment, Medical, Other
+- **Frequencies**: Monthly, Quarterly, Annually, Weekly, Bi-weekly, Bi-monthly, As Needed
+- **Firestore**: `legacyFinancial/{personId}/bills` — fields: `category`, `payee`, `estimatedAmount`, `frequency`, `dueDate`, `whoseName`, `paymentMethod`, `creditCard`, `notes`, `url`, `accountNumber`, `address`, `usernameEnc`, `passwordEnc`, `sortOrder`, `archived`, `createdAt`
+
+**Insurance tab** (`#legacy/accounts/insurance`, `#legacy/accounts/insurance/add`, `#legacy/accounts/insurance/edit/:id`):
+- **Collapsed card**: policy type badge (purple) · company name · coverage amount
+- **Expanded card**: policy type, company name, policy number, coverage amount, beneficiary, agent name, agent phone, claims phone, where paper policy is, premium amount, premium frequency, what to do upon my death
+- **Edit-only fields**: URL, username (encrypted), password (encrypted)
+- **Policy types** (combo — free-text or pick): Term Life, Whole Life, Universal Life, Group / Employer, Other
+- **Firestore**: `legacyFinancial/{personId}/insurance` — fields: `policyType`, `company`, `policyNumber`, `coverageAmount`, `beneficiary`, `agentName`, `agentPhone`, `claimsPhone`, `paperPolicyLocation`, `premium`, `premiumFrequency`, `whatToDo`, `url`, `usernameEnc`, `passwordEnc`, `sortOrder`, `archived`, `createdAt`
+
 **Passphrase encryption** (🔒 sections): Financial Accounts and Social Media require a **Legacy Passphrase** before displaying content. This passphrase encrypts sensitive fields (passwords, account numbers, SSNs, PINs) using AES-GCM 256-bit via the browser Web Crypto API. Key derivation uses PBKDF2 with a random salt stored in `legacyMeta/crypto`. The passphrase is **never stored** — only the salt is in Firestore. Once entered, the session stays unlocked until the browser tab is closed. Implemented in `legacy-crypto.js`.
 
 **Firestore collections**:
 - `legacyMeta` — docs keyed by section (e.g. `obituary`, `burial`); `crypto` doc holds `pbkdf2Salt` and `verifyToken` ✅ active
 - `legacyLetters` — `contactId`, `recipientName`, `title`, `instructions`, `body`, `createdAt`, `updatedAt` ✅ active
-- `legacyAccounts` — financial and digital account entries (encrypted fields — planned)
 - `legacyDocuments` — `isOnline`, `docType`, `title`, `whyMatters`, `url`, `whereIsIt`, `sortOrder`, `createdAt` ✅ active
 - `legacyNotify` — `contactId` (nullable), `name`, `phone`, `email`, `address`, `howDoIKnowThem`, `createdAt` ✅ active
 - `legacyPets` — `name`, `instructions`, `createdAt` ✅ active
+- `legacyFinancial/{personId}/loans` — loan records (see Loans tab above) ✅ active
+- `legacyFinancial/{personId}/bills` — bill records (see Bills tab above) ✅ active
+- `legacyFinancial/{personId}/insurance` — insurance policy records (see Insurance tab above) ✅ active
 
 ### Life Calendar (`lifecalendar.js`)
 

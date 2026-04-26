@@ -2163,6 +2163,142 @@ See `screen:legacy-letters` above for full details on the letter form.
 
 ---
 
+## screen:legacy-accounts
+
+### Quick Help
+- Hub for all financial information your loved ones will need: Accounts, Loans, Bills, Insurance
+- Each tile links to a separate list — all protected by your Legacy Passphrase
+- Use the person switcher at the top of each tab to filter by enrolled person
+
+### Details
+
+**What Financial Accounts is:** A secure, organized record of every financial obligation and asset your family needs to manage after you're gone — loan payoffs, recurring bills, insurance policies, and existing investment accounts. Everything in one encrypted place.
+
+**Person switcher:** All sub-tabs (Loans, Bills, Insurance) share a person filter. Select the person whose records you want to view or edit. The selection persists as you move between tabs.
+
+**Passphrase:** All content here is encrypted and requires your Legacy Passphrase to view. This is the same passphrase used across all encrypted Legacy sections. Once entered it stays unlocked for the browser session.
+
+**Tabs:**
+- **Accounts** — reads from the Investments section; shows financial accounts (bank, retirement, brokerage) linked to each enrolled person
+- **Loans** — mortgages, car loans, credit cards, personal loans, and other debts
+- **Bills** — recurring expenses and auto-pay items your family will need to continue or cancel
+- **Insurance** — life, health, and other insurance policies with claim contact info
+- **Financial Plan** — big-picture written instructions *(coming soon)*
+
+---
+
+## screen:legacy-financial-loans
+
+### Quick Help
+- Track every loan and debt: mortgage, car, credit cards, student loans, personal loans
+- Collapsed cards show lender, balance, and payment method at a glance
+- Tap a card to expand and see full details; tap Edit to view or change encrypted fields
+- Archive paid-off loans instead of deleting them
+
+### Details
+
+**Card display (collapsed):** Loan type badge · lender · current balance · auto-pay badge (green Auto / yellow Manual).
+
+**Card display (expanded):** All fields plus calculated **Months Left** (based on payoff date) and **Est. Remaining** (months × monthly payment). These are estimates — not stored, recalculated each time.
+
+**Fields:** Loan type (combo — pick or type your own), lender, current balance, monthly payment, interest rate, payoff date, loan start date, account number, whose name the loan is in, how it's paid (Automatic / Manual), what to do upon my death (free text), notes.
+
+**Edit-only fields (not shown in expanded card):** Website URL, username (encrypted), password (encrypted). These are visible only in the Edit form after unlocking.
+
+**Archive vs. Delete:** When a loan is paid off, use Archive to hide it from the main list. Archived loans can be restored. Use "Show Archived" to reveal them.
+
+**Reorder:** Drag the ⠿ handle to set the display order. Prioritize the most important loans at the top.
+
+---
+
+## screen:legacy-loans-form
+
+### Quick Help
+- Fill in as much or as little as you know — all fields are optional except type and lender
+- Sensitive fields (username, password) are encrypted automatically when saved
+- Cancel returns to the loans list without saving
+
+### Details
+
+All fields are optional. Fill in what's relevant. The form collects the same fields as described in `screen:legacy-financial-loans`. Loan type is a combo box — pick from the list or type a custom type. Payoff date drives the calculated Months Left on the card. Username and password are encrypted with your Legacy Passphrase before being stored in Firestore.
+
+---
+
+## screen:legacy-financial-bills
+
+### Quick Help
+- Track every recurring expense your family will need to manage: utilities, subscriptions, insurance, mortgage
+- Collapsed cards show category, payee, amount, and when it's due
+- Tap a card to expand and see full details; tap Edit to view or change encrypted fields
+- Archive cancelled or closed bills instead of deleting them
+
+### Details
+
+**Card display (collapsed):** Category badge (teal) · payee · estimated amount · frequency · due date.
+
+**Card display (expanded):** All non-sensitive fields — category, payee, amount, frequency, due date, whose name, payment method, what credit card (if applicable), notes.
+
+**Edit-only fields (not shown in expanded card):** Website URL, username (encrypted), password (encrypted), account number, address. Visible only in the Edit form.
+
+**Due date:** Free-form text — type whatever makes sense: "15th", "1st of month", "March each year", "quarterly in January". No date picker; flexibility is intentional.
+
+**Categories:** Mortgage/Rent, Utilities, Insurance, Subscriptions, Phone, Internet, Car Payment, Medical, Other — or type your own.
+
+**Frequencies:** Monthly, Quarterly, Annually, Weekly, Bi-weekly, Bi-monthly, As Needed.
+
+**Archive vs. Delete:** Archive a bill when it's cancelled or no longer relevant. The record is preserved for reference.
+
+---
+
+## screen:legacy-bills-form
+
+### Quick Help
+- Fill in as much or as little as you know — all fields are optional
+- Due date is free-form text: type "15th", "March", or whatever describes the billing cycle
+- Sensitive fields (username, password) are encrypted automatically when saved
+
+### Details
+
+All fields are optional. Due date is intentionally free-form — type any text that describes when the bill is due. Category is a combo box (pick or type your own). Username and password fields are encrypted with your Legacy Passphrase before being stored. Account number and address are stored in plain text in Firestore.
+
+---
+
+## screen:legacy-financial-insurance
+
+### Quick Help
+- Track life insurance, health insurance, and any other policies your family needs to know about
+- Collapsed cards show policy type, company, and coverage amount
+- Tap a card to expand and see claim contact info and instructions; tap Edit for login credentials
+
+### Details
+
+**Card display (collapsed):** Policy type badge (purple) · company name · coverage amount.
+
+**Card display (expanded):** Policy type, company, policy number, beneficiary, agent name, agent phone, claims phone number, where the paper policy is located, premium amount, premium frequency, and what to do upon my death (your instructions for filing or handling the policy).
+
+**Edit-only fields (not shown in expanded card):** Website URL, username (encrypted), password (encrypted). Visible only in the Edit form after unlocking.
+
+**Policy types:** Term Life, Whole Life, Universal Life, Group / Employer, Other — or type your own.
+
+**What to do upon my death:** Plain text field — use this to tell your family exactly what steps to take: who to call, what forms to file, where to send the death certificate, etc.
+
+**Archive vs. Delete:** Archive lapsed or cancelled policies instead of deleting them.
+
+---
+
+## screen:legacy-insurance-form
+
+### Quick Help
+- Fill in as much or as little as you know — all fields are optional
+- "What to do upon my death" is the most important field — give your family clear next steps
+- Sensitive fields (username, password) are encrypted automatically when saved
+
+### Details
+
+All fields are optional. Policy type is a combo box (pick or type your own). Premium frequency uses the same options as Bills (Monthly, Quarterly, Annually, etc.). Username and password are encrypted with your Legacy Passphrase before being stored in Firestore. The "What to do" field is plain text — no length limit.
+
+---
+
 ## screen:lifecalendar
 
 ### Quick Help

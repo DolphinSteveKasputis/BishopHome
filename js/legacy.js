@@ -1768,7 +1768,7 @@ function loadLegacyAccountsPage() {
         var cards = [
             { icon: '💼', label: 'Accounts',       desc: 'Bank, retirement, brokerage, and other assets.',      route: '#legacy/accounts/accounts',  built: true  },
             { icon: '🏦', label: 'Loans',           desc: 'Mortgage, car loans, credit cards, and other debts.', route: '#legacy/accounts/loans',     built: true  },
-            { icon: '📄', label: 'Bills',           desc: 'Recurring expenses and auto-pay items.',              route: '#legacy/accounts/bills',     built: false },
+            { icon: '📄', label: 'Bills',           desc: 'Recurring expenses and auto-pay items.',              route: '#legacy/accounts/bills',     built: true  },
             { icon: '🛡️', label: 'Insurance',      desc: 'Life insurance policies and how to file a claim.',    route: '#legacy/accounts/insurance', built: false },
             { icon: '📋', label: 'Financial Plan',  desc: 'Your big-picture instructions for your loved ones.', route: '#legacy/accounts/plan',      built: false }
         ];
@@ -2692,11 +2692,500 @@ function _loanGv(id) {
 }
 
 // ============================================================
-// Legacy Financial — Stub sub-pages (Bills, Insurance, Plan)
+// Legacy Financial — Bills
 // ============================================================
-function loadLegacyFinancialBillsPage() {
-    _legacyRequireUnlock(function() { _legacyFinStub('page-legacy-financial-bills', 'Bills', '📄'); });
+
+// ---------- Constants ----------
+
+var BILL_CATEGORIES = [
+    'Utilities', 'Insurance', 'Subscriptions', 'Phone / Internet',
+    'Medical', 'Mortgage / Rent', 'Car / Transportation', 'Credit Card', 'Other'
+];
+
+var BILL_FREQUENCIES = ['', 'Monthly', 'Annual', 'Quarterly', 'Semi-Annual', 'Other'];
+
+// ---------- Module State ----------
+
+var _billBills        = [];
+var _billExpandedIds  = {};
+var _billShowArchived = false;
+var _billFormEditId   = null;
+var _billFormDraft    = null;
+
+// ---------- Firestore Path ----------
+
+function _billCol() {
+    return userCol('legacyFinancial').doc(_legacyFinPersonFilter).collection('bills');
 }
+
+// ---------- Page Loader ----------
+
+function loadLegacyFinancialBillsPage() {
+    _legacyRequireUnlock(function() { _billLoadAndRender(); });
+}
+
+async function _billLoadAndRender() {
+    var crumb = document.getElementById('breadcrumbBar');
+    if (crumb) {
+        crumb.innerHTML =
+            '<a href="#life">Life</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#legacy">My Legacy</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#legacy/accounts">Financial Accounts</a><span class="separator">&rsaquo;</span>' +
+            '<span>Bills</span>';
+    }
+    await _loanLoadPeople();
+    await _billLoadBills();
+    _billRenderPage();
+}
+
+async function _billLoadBills() {
+    _billExpandedIds = {};
+    var snap = await _billCol().orderBy('sortOrder').get();
+    _billBills = [];
+    snap.forEach(function(doc) {
+        _billBills.push(Object.assign({ id: doc.id }, doc.data()));
+    });
+}
+
+// ---------- Page Render ----------
+
+function _billRenderPage() {
+    var page = document.getElementById('page-legacy-financial-bills');
+    if (!page) return;
+
+    var personOpts = '<option value="self"' + (_legacyFinPersonFilter === 'self' ? ' selected' : '') + '>Me</option>';
+    _legacyFinPeople.forEach(function(p) {
+        personOpts += '<option value="' + escapeHtml(p.id) + '"' +
+            (_legacyFinPersonFilter === p.id ? ' selected' : '') + '>' +
+            escapeHtml(p.name) + '</option>';
+    });
+
+    page.innerHTML =
+        '<div class="page-header"><h2>📄 Bills</h2></div>' +
+        '<div class="invest-person-row">' +
+            '<label class="invest-person-label">Person:</label>' +
+            '<select id="billPersonSel" onchange="_billOnPersonChange()">' + personOpts + '</select>' +
+        '</div>' +
+        '<div class="invest-toolbar">' +
+            '<button class="btn btn-primary" onclick="window.location.hash=\'#legacy/accounts/bills/add\'">+ Add Bill</button>' +
+            '<label class="loan-archived-toggle">' +
+                '<input type="checkbox" id="billShowArchivedChk"' + (_billShowArchived ? ' checked' : '') +
+                    ' onchange="_billToggleShowArchived()"> Show Archived' +
+            '</label>' +
+        '</div>' +
+        '<div id="billList"></div>';
+
+    _billRenderList();
+}
+
+function _billRenderList() {
+    var container = document.getElementById('billList');
+    if (!container) return;
+
+    var list = _billBills.filter(function(b) { return _billShowArchived || !b.archived; });
+
+    if (list.length === 0) {
+        container.innerHTML = '<div class="empty-state">No bills yet. Add one above.</div>';
+        return;
+    }
+
+    var html = '<div id="billSortableList">';
+    list.forEach(function(bill) { html += _billCardHtml(bill); });
+    html += '</div>';
+    container.innerHTML = html;
+
+    if (window.Sortable) {
+        Sortable.create(document.getElementById('billSortableList'), {
+            handle: '.invest-drag-handle',
+            animation: 150,
+            onEnd: function(evt) { _billOnReorder(evt); }
+        });
+    }
+}
+
+// ---------- Card HTML ----------
+
+function _billCardHtml(bill) {
+    var isExpanded = !!_billExpandedIds[bill.id];
+    var payBadge   = _loanPaymentBadge(bill.howItsPaid);
+
+    // Collapsed header meta — only filled fields
+    var meta = '';
+    if (bill.estimatedAmount) meta += '<span class="loan-header-hint"> $' + escapeHtml(String(bill.estimatedAmount));
+    if (bill.estimatedAmount && bill.frequency) meta += '/' + _billFreqShort(bill.frequency);
+    if (bill.estimatedAmount) meta += '</span>';
+    if (payBadge) meta += '<span class="loan-pay-badge loan-pay-badge--' + payBadge.type + '">' + escapeHtml(payBadge.label) + '</span>';
+    if (bill.whichCard) meta += '<span class="loan-header-hint"> ' + escapeHtml(bill.whichCard) + '</span>';
+    if (bill.dueDate) meta += '<span class="loan-header-hint"> Due: ' + escapeHtml(bill.dueDate) + '</span>';
+    if (bill.inWhoseName) meta += '<span class="loan-header-hint"> (' + escapeHtml(bill.inWhoseName) + ')</span>';
+
+    var header =
+        '<div class="invest-card-header" onclick="_billToggle(\'' + bill.id + '\')">' +
+            '<span class="invest-drag-handle" onclick="event.stopPropagation()">⠿</span>' +
+            '<span class="bill-cat-badge">' + escapeHtml(bill.category || 'Bill') + '</span>' +
+            '<span class="invest-card-title">' + escapeHtml(bill.name || '(untitled)') + meta + '</span>' +
+            (bill.archived ? '<span class="invest-archived-badge">Archived</span>' : '') +
+            '<span class="invest-chevron">' + (isExpanded ? '▾' : '›') + '</span>' +
+        '</div>';
+
+    var body = '';
+    if (isExpanded) {
+        body = '<div class="invest-card-body">';
+
+        if (bill.inWhoseName)    body += _billRow('In Whose Name',  escapeHtml(bill.inWhoseName));
+        if (bill.estimatedAmount) body += _billRow('Est. Amount',   '$' + escapeHtml(String(bill.estimatedAmount)));
+        if (bill.frequency)      body += _billRow('Frequency',      escapeHtml(bill.frequency));
+        if (bill.howItsPaid)     body += _billRow('How Paid',       escapeHtml(bill.howItsPaid));
+        if (bill.whichCard)      body += _billRow('Which Card / Account', escapeHtml(bill.whichCard));
+        if (bill.dueDate)        body += _billRow('Due Date',       escapeHtml(bill.dueDate));
+        if (bill.phone)          body += _billRow('Phone', '<a href="tel:' + escapeHtml(bill.phone) + '">' + escapeHtml(bill.phone) + '</a>');
+        if (bill.whatToDo)       body += _billRow('Upon My Death',  '<span style="white-space:pre-wrap">' + escapeHtml(bill.whatToDo) + '</span>');
+        if (bill.notes)          body += _billRow('Notes',          '<span style="white-space:pre-wrap">' + escapeHtml(bill.notes)    + '</span>');
+
+        body +=
+            '<div class="invest-card-actions">' +
+                '<button class="btn btn-secondary btn-small" onclick="event.stopPropagation();window.location.hash=\'#legacy/accounts/bills/edit/' + bill.id + '\'">Edit</button>' +
+                (bill.archived
+                    ? '<button class="btn btn-secondary btn-small" onclick="event.stopPropagation();_billRestore(\'' + bill.id + '\')">Restore</button>'
+                    : '<button class="btn btn-secondary btn-small" onclick="event.stopPropagation();_billArchive(\'' + bill.id + '\')">Archive</button>') +
+            '</div>' +
+        '</div>';
+    }
+
+    return '<div class="invest-card' +
+        (bill.archived ? ' invest-card--archived' : '') +
+        (isExpanded    ? ' invest-card--expanded'  : '') +
+        '" data-id="' + bill.id + '">' + header + body + '</div>';
+}
+
+function _billRow(label, valueHtml) {
+    return '<div class="invest-detail-row">' +
+        '<span class="invest-detail-label">' + escapeHtml(label) + '</span>' +
+        '<span class="invest-detail-value">' + valueHtml + '</span>' +
+        '</div>';
+}
+
+function _billFreqShort(freq) {
+    var map = { 'Monthly': 'mo', 'Annual': 'yr', 'Quarterly': 'qtr', 'Semi-Annual': 'semi', 'Other': '' };
+    return map[freq] || freq.toLowerCase();
+}
+
+// ---------- Card Interactions ----------
+
+function _billToggle(id) {
+    _billExpandedIds[id] = !_billExpandedIds[id];
+    _billRenderList();
+}
+
+async function _billArchive(id) {
+    if (!confirm('Archive this bill? It will be hidden from the main list. You can restore it anytime.')) return;
+    await _billCol().doc(id).update({ archived: true });
+    delete _billExpandedIds[id];
+    await _billLoadBills();
+    _billRenderList();
+}
+
+async function _billRestore(id) {
+    await _billCol().doc(id).update({ archived: false });
+    await _billLoadBills();
+    _billRenderList();
+}
+
+function _billToggleShowArchived() {
+    var chk = document.getElementById('billShowArchivedChk');
+    _billShowArchived = chk ? chk.checked : false;
+    _billRenderList();
+}
+
+async function _billOnPersonChange() {
+    var sel = document.getElementById('billPersonSel');
+    if (sel) _legacyFinPersonFilter = sel.value || 'self';
+    await _billLoadBills();
+    _billRenderList();
+}
+
+async function _billOnReorder(evt) {
+    if (evt.oldIndex === evt.newIndex) return;
+    var list = _billBills.filter(function(b) { return _billShowArchived || !b.archived; });
+    var moved = list.splice(evt.oldIndex, 1)[0];
+    list.splice(evt.newIndex, 0, moved);
+
+    var batch = firebase.firestore().batch();
+    list.forEach(function(bill, i) {
+        batch.update(_billCol().doc(bill.id), { sortOrder: i });
+    });
+    await batch.commit();
+    await _billLoadBills();
+}
+
+// ---------- Add / Edit Form Page ----------
+
+async function loadLegacyBillsFormPage(id) {
+    _billFormEditId = id || null;
+    var isNew = !id;
+    var bill  = id ? _billBills.find(function(b) { return b.id === id; }) : null;
+
+    if (id && !bill) {
+        await _loanLoadPeople();
+        await _billLoadBills();
+        bill = _billBills.find(function(b) { return b.id === id; });
+    }
+
+    var crumb = document.getElementById('breadcrumbBar');
+    if (crumb) {
+        crumb.innerHTML =
+            '<a href="#life">Life</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#legacy">My Legacy</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#legacy/accounts">Financial Accounts</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#legacy/accounts/bills">Bills</a><span class="separator">&rsaquo;</span>' +
+            '<span>' + (isNew ? 'Add Bill' : 'Edit Bill') + '</span>';
+    }
+    document.getElementById('headerTitle').innerHTML =
+        '<a href="#main" class="home-link">' + escapeHtml(window.appName || 'My Life') + '</a>';
+
+    var catDatalist = BILL_CATEGORIES.map(function(c) {
+        return '<option value="' + escapeHtml(c) + '">';
+    }).join('');
+
+    var freqOpts = BILL_FREQUENCIES.map(function(f) {
+        return '<option value="' + escapeHtml(f) + '">' + escapeHtml(f || '— Select —') + '</option>';
+    }).join('');
+
+    var howPaidOpts = LOAN_HOW_PAID.map(function(v) {
+        return '<option value="' + escapeHtml(v) + '">' + escapeHtml(v || '— Select —') + '</option>';
+    }).join('');
+
+    var page = document.getElementById('page-legacy-bills-form');
+    if (!page) return;
+
+    page.innerHTML =
+        '<datalist id="billCatList">' + catDatalist + '</datalist>' +
+        '<div class="page-header"><h2>' + (isNew ? '+ Add Bill' : 'Edit Bill') + '</h2></div>' +
+        '<div class="invest-form">' +
+
+            '<div class="form-group">' +
+                '<label>Name *</label>' +
+                '<input type="text" id="billFormName" placeholder="e.g. Xcel Energy, Netflix, Home Mortgage">' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>Category</label>' +
+                '<input type="text" id="billFormCategory" list="billCatList" placeholder="e.g. Utilities, Insurance">' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>In Whose Name</label>' +
+                '<input type="text" id="billFormWhoseName" placeholder="e.g. Steve, Karen, Joint">' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>Estimated Amount ($)</label>' +
+                '<input type="number" id="billFormAmount" placeholder="e.g. 180.00" step="0.01" min="0">' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>Frequency</label>' +
+                '<select id="billFormFrequency">' + freqOpts + '</select>' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>How It\'s Paid</label>' +
+                '<select id="billFormHowPaid">' + howPaidOpts + '</select>' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>Which Card / Account</label>' +
+                '<input type="text" id="billFormWhichCard" placeholder="e.g. Chase Visa ending 4321">' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>Due Date</label>' +
+                '<input type="text" id="billFormDueDate" placeholder="e.g. 15th, March each year, 1st of month">' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>Address</label>' +
+                '<textarea id="billFormAddress" rows="2" placeholder="Where to send a check if needed"></textarea>' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>Phone</label>' +
+                '<input type="tel" id="billFormPhone" placeholder="Customer service number">' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>URL</label>' +
+                '<input type="url" id="billFormUrl" placeholder="https://...">' +
+            '</div>' +
+
+            '<div class="invest-form-sensitive-section">' +
+                '<div class="invest-modal-sensitive-header">Sensitive Fields</div>' +
+                '<div id="billFormSensitiveContent"></div>' +
+            '</div>' +
+
+            '<div class="form-group">' +
+                '<label>What to Do Upon My Death</label>' +
+                '<textarea id="billFormWhatToDo" rows="4"' +
+                    ' placeholder="e.g. Cancel this subscription. Call 800-xxx-xxxx to cancel."></textarea>' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>Notes</label>' +
+                '<textarea id="billFormNotes" rows="3"></textarea>' +
+            '</div>' +
+
+            '<div class="invest-form-actions">' +
+                '<button class="btn btn-primary" onclick="_billSaveForm()">Save</button>' +
+                '<button class="btn btn-secondary" onclick="_billCancelForm()">Cancel</button>' +
+            '</div>' +
+        '</div>';
+
+    var d = _billFormDraft;
+    _billVal('billFormName',      d ? d.name         : (bill ? bill.name         || '' : ''));
+    _billVal('billFormCategory',  d ? d.category     : (bill ? bill.category     || '' : ''));
+    _billVal('billFormWhoseName', d ? d.inWhoseName  : (bill ? bill.inWhoseName  || '' : ''));
+    _billVal('billFormAmount',    d ? d.estimatedAmount : (bill ? bill.estimatedAmount || '' : ''));
+    _billVal('billFormFrequency', d ? d.frequency    : (bill ? bill.frequency    || '' : ''));
+    _billVal('billFormHowPaid',   d ? d.howItsPaid   : (bill ? bill.howItsPaid   || '' : ''));
+    _billVal('billFormWhichCard', d ? d.whichCard    : (bill ? bill.whichCard    || '' : ''));
+    _billVal('billFormDueDate',   d ? d.dueDate      : (bill ? bill.dueDate      || '' : ''));
+    _billVal('billFormAddress',   d ? d.address      : (bill ? bill.address      || '' : ''));
+    _billVal('billFormPhone',     d ? d.phone        : (bill ? bill.phone        || '' : ''));
+    _billVal('billFormUrl',       d ? d.url          : (bill ? bill.url          || '' : ''));
+    _billVal('billFormWhatToDo',  d ? d.whatToDo     : (bill ? bill.whatToDo     || '' : ''));
+    _billVal('billFormNotes',     d ? d.notes        : (bill ? bill.notes        || '' : ''));
+    _billFormDraft = null;
+
+    await _billRenderSensitiveFields(bill);
+}
+
+async function _billRenderSensitiveFields(bill) {
+    var container = document.getElementById('billFormSensitiveContent');
+    if (!container) return;
+
+    if (!legacyIsUnlocked()) {
+        container.innerHTML =
+            '<div class="invest-modal-lock">' +
+                '<span>Enter your Legacy passphrase to edit Account Number, Username, and Password.</span>' +
+                '<button class="btn btn-secondary" onclick="_billUnlockForForm()">🔓 Unlock Sensitive Fields</button>' +
+            '</div>';
+        return;
+    }
+
+    var acctNum = '', uname = '', pwd = '';
+    if (bill) {
+        try {
+            if (bill.accountNumberEnc) acctNum = await legacyDecrypt(bill.accountNumberEnc) || '';
+            if (bill.usernameEnc)      uname   = await legacyDecrypt(bill.usernameEnc)      || '';
+            if (bill.passwordEnc)      pwd     = await legacyDecrypt(bill.passwordEnc)      || '';
+        } catch (e) { console.error('Bill form decrypt error', e); }
+    }
+
+    container.innerHTML =
+        '<div class="form-group">' +
+            '<label>Account Number</label>' +
+            '<input type="text" id="billFormAcctNum" autocomplete="off" placeholder="Account number">' +
+        '</div>' +
+        '<div class="form-group">' +
+            '<label>Username</label>' +
+            '<input type="text" id="billFormUsername" autocomplete="off" placeholder="Login username">' +
+        '</div>' +
+        '<div class="form-group">' +
+            '<label>Password</label>' +
+            '<input type="text" id="billFormPassword" autocomplete="off" placeholder="Login password">' +
+        '</div>';
+
+    _billVal('billFormAcctNum',  acctNum);
+    _billVal('billFormUsername', uname);
+    _billVal('billFormPassword', pwd);
+}
+
+function _billUnlockForForm() {
+    _billFormDraft = {
+        name:            _billGv('billFormName'),
+        category:        _billGv('billFormCategory'),
+        inWhoseName:     _billGv('billFormWhoseName'),
+        estimatedAmount: _billGv('billFormAmount'),
+        frequency:       _billGv('billFormFrequency'),
+        howItsPaid:      _billGv('billFormHowPaid'),
+        whichCard:       _billGv('billFormWhichCard'),
+        dueDate:         _billGv('billFormDueDate'),
+        address:         _billGv('billFormAddress'),
+        phone:           _billGv('billFormPhone'),
+        url:             _billGv('billFormUrl'),
+        whatToDo:        _billGv('billFormWhatToDo'),
+        notes:           _billGv('billFormNotes')
+    };
+    _legacyRequireUnlock(function() { loadLegacyBillsFormPage(_billFormEditId); });
+}
+
+async function _billSaveForm() {
+    var name = (_billGv('billFormName') || '').trim();
+    if (!name) { alert('Please enter a name for this bill.'); return; }
+
+    var id    = _billFormEditId;
+    var isNew = !id;
+
+    var data = {
+        name:            name,
+        category:        (_billGv('billFormCategory')   || '').trim(),
+        inWhoseName:     (_billGv('billFormWhoseName')  || '').trim(),
+        estimatedAmount: (_billGv('billFormAmount')     || '').trim(),
+        frequency:       (_billGv('billFormFrequency')  || ''),
+        howItsPaid:      (_billGv('billFormHowPaid')    || ''),
+        whichCard:       (_billGv('billFormWhichCard')  || '').trim(),
+        dueDate:         (_billGv('billFormDueDate')    || '').trim(),
+        address:         (_billGv('billFormAddress')    || '').trim(),
+        phone:           (_billGv('billFormPhone')      || '').trim(),
+        url:             (_billGv('billFormUrl')        || '').trim(),
+        whatToDo:        (_billGv('billFormWhatToDo')   || '').trim(),
+        notes:           (_billGv('billFormNotes')      || '').trim()
+    };
+
+    if (legacyIsUnlocked() && document.getElementById('billFormAcctNum')) {
+        var existing    = id ? _billBills.find(function(b) { return b.id === id; }) : null;
+        var acctNumVal  = (_billGv('billFormAcctNum')  || '').trim();
+        var usernameVal = (_billGv('billFormUsername') || '').trim();
+        var passwordVal = (_billGv('billFormPassword') || '').trim();
+
+        if (acctNumVal) {
+            data.accountNumberEnc = await legacyEncrypt(acctNumVal);
+        } else if (existing && existing.accountNumberEnc) {
+            data.accountNumberEnc = firebase.firestore.FieldValue.delete();
+        }
+        if (usernameVal) {
+            data.usernameEnc = await legacyEncrypt(usernameVal);
+        } else if (existing && existing.usernameEnc) {
+            data.usernameEnc = firebase.firestore.FieldValue.delete();
+        }
+        if (passwordVal) {
+            data.passwordEnc = await legacyEncrypt(passwordVal);
+        } else if (existing && existing.passwordEnc) {
+            data.passwordEnc = firebase.firestore.FieldValue.delete();
+        }
+    }
+
+    if (isNew) {
+        data.sortOrder = _billBills.filter(function(b) { return !b.archived; }).length;
+        data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        await _billCol().add(data);
+    } else {
+        await _billCol().doc(id).update(data);
+    }
+
+    _billFormEditId = null;
+    _billFormDraft  = null;
+    window.location.hash = '#legacy/accounts/bills';
+}
+
+function _billCancelForm() {
+    _billFormEditId = null;
+    _billFormDraft  = null;
+    window.location.hash = '#legacy/accounts/bills';
+}
+
+function _billVal(id, value) {
+    var el = document.getElementById(id);
+    if (el) el.value = value !== undefined ? value : '';
+}
+
+function _billGv(id) {
+    var el = document.getElementById(id);
+    return el ? el.value : '';
+}
+
+// ============================================================
+// Legacy Financial — Stub sub-pages (Insurance, Plan)
+// ============================================================
 function loadLegacyFinancialInsurancePage() {
     _legacyRequireUnlock(function() { _legacyFinStub('page-legacy-financial-insurance', 'Insurance', '🛡️'); });
 }

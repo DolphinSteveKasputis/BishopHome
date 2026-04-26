@@ -14075,6 +14075,20 @@ a.legacy-fin-card:hover {
 }
 
 /* "Show Archived" checkbox label in the loans toolbar */
+/* Bill category badge — teal */
+.bill-cat-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
+    background: #e0f2f1;
+    color: #00695c;
+    margin-right: 6px;
+}
+
 .loan-archived-toggle {
     display: flex;
     align-items: center;

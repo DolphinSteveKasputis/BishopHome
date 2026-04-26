@@ -636,7 +636,7 @@ var BACKUP_DATA_COLLECTIONS = [
  */
 var PERSON_SCOPED_COLLECTIONS = {
     'investments':     ['accounts'],
-    'legacyFinancial': ['loans']   // add 'bills', 'insurance', 'plan' as those tabs are built
+    'legacyFinancial': ['loans', 'bills']   // add 'insurance', 'plan' as those tabs are built
 };
 
 /**

@@ -1769,7 +1769,7 @@ function loadLegacyAccountsPage() {
             { icon: '💼', label: 'Accounts',       desc: 'Bank, retirement, brokerage, and other assets.',      route: '#legacy/accounts/accounts',  built: true  },
             { icon: '🏦', label: 'Loans',           desc: 'Mortgage, car loans, credit cards, and other debts.', route: '#legacy/accounts/loans',     built: true  },
             { icon: '📄', label: 'Bills',           desc: 'Recurring expenses and auto-pay items.',              route: '#legacy/accounts/bills',     built: true  },
-            { icon: '🛡️', label: 'Insurance',      desc: 'Life insurance policies and how to file a claim.',    route: '#legacy/accounts/insurance', built: false },
+            { icon: '🛡️', label: 'Insurance',      desc: 'Life insurance policies and how to file a claim.',    route: '#legacy/accounts/insurance', built: true  },
             { icon: '📋', label: 'Financial Plan',  desc: 'Your big-picture instructions for your loved ones.', route: '#legacy/accounts/plan',      built: false }
         ];
 
@@ -3184,11 +3184,489 @@ function _billGv(id) {
 }
 
 // ============================================================
-// Legacy Financial — Stub sub-pages (Insurance, Plan)
+// Legacy Financial — Insurance
 // ============================================================
-function loadLegacyFinancialInsurancePage() {
-    _legacyRequireUnlock(function() { _legacyFinStub('page-legacy-financial-insurance', 'Insurance', '🛡️'); });
+
+// ---------- Constants ----------
+
+var INSURANCE_POLICY_TYPES = [
+    'Term Life', 'Whole Life', 'Universal Life', 'Group / Employer', 'Other'
+];
+
+// ---------- Module State ----------
+
+var _insurPolicies      = [];
+var _insurExpandedIds   = {};
+var _insurShowArchived  = false;
+var _insurFormEditId    = null;
+var _insurFormDraft     = null;
+
+// ---------- Firestore Path ----------
+
+function _insurCol() {
+    return userCol('legacyFinancial').doc(_legacyFinPersonFilter).collection('insurance');
 }
+
+// ---------- Page Loader ----------
+
+function loadLegacyFinancialInsurancePage() {
+    _legacyRequireUnlock(function() { _insurLoadAndRender(); });
+}
+
+async function _insurLoadAndRender() {
+    var crumb = document.getElementById('breadcrumbBar');
+    if (crumb) {
+        crumb.innerHTML =
+            '<a href="#life">Life</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#legacy">My Legacy</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#legacy/accounts">Financial Accounts</a><span class="separator">&rsaquo;</span>' +
+            '<span>Insurance</span>';
+    }
+    await _loanLoadPeople();
+    await _insurLoadPolicies();
+    _insurRenderPage();
+}
+
+async function _insurLoadPolicies() {
+    _insurExpandedIds = {};
+    var snap = await _insurCol().orderBy('sortOrder').get();
+    _insurPolicies = [];
+    snap.forEach(function(doc) {
+        _insurPolicies.push(Object.assign({ id: doc.id }, doc.data()));
+    });
+}
+
+// ---------- Page Render ----------
+
+function _insurRenderPage() {
+    var page = document.getElementById('page-legacy-financial-insurance');
+    if (!page) return;
+
+    var personOpts = '<option value="self"' + (_legacyFinPersonFilter === 'self' ? ' selected' : '') + '>Me</option>';
+    _legacyFinPeople.forEach(function(p) {
+        personOpts += '<option value="' + escapeHtml(p.id) + '"' +
+            (_legacyFinPersonFilter === p.id ? ' selected' : '') + '>' +
+            escapeHtml(p.name) + '</option>';
+    });
+
+    page.innerHTML =
+        '<div class="page-header"><h2>🛡️ Insurance</h2></div>' +
+        '<div class="invest-person-row">' +
+            '<label class="invest-person-label">Person:</label>' +
+            '<select id="insurPersonSel" onchange="_insurOnPersonChange()">' + personOpts + '</select>' +
+        '</div>' +
+        '<div class="invest-toolbar">' +
+            '<button class="btn btn-primary" onclick="window.location.hash=\'#legacy/accounts/insurance/add\'">+ Add Policy</button>' +
+            '<label class="loan-archived-toggle">' +
+                '<input type="checkbox" id="insurShowArchivedChk"' + (_insurShowArchived ? ' checked' : '') +
+                    ' onchange="_insurToggleShowArchived()"> Show Archived' +
+            '</label>' +
+        '</div>' +
+        '<div id="insurList"></div>';
+
+    _insurRenderList();
+}
+
+function _insurRenderList() {
+    var container = document.getElementById('insurList');
+    if (!container) return;
+
+    var list = _insurPolicies.filter(function(p) { return _insurShowArchived || !p.archived; });
+
+    if (list.length === 0) {
+        container.innerHTML = '<div class="empty-state">No policies yet. Add one above.</div>';
+        return;
+    }
+
+    var html = '<div id="insurSortableList">';
+    list.forEach(function(policy) { html += _insurCardHtml(policy); });
+    html += '</div>';
+    container.innerHTML = html;
+
+    if (window.Sortable) {
+        Sortable.create(document.getElementById('insurSortableList'), {
+            handle: '.invest-drag-handle',
+            animation: 150,
+            onEnd: function(evt) { _insurOnReorder(evt); }
+        });
+    }
+}
+
+// ---------- Card HTML ----------
+
+function _insurCardHtml(policy) {
+    var isExpanded = !!_insurExpandedIds[policy.id];
+
+    // Collapsed header
+    var meta = escapeHtml(policy.companyName || '(untitled)');
+    if (policy.coverageAmount) meta += '<span class="loan-header-hint"> ' + escapeHtml(policy.coverageAmount) + '</span>';
+
+    var header =
+        '<div class="invest-card-header" onclick="_insurToggle(\'' + policy.id + '\')">' +
+            '<span class="invest-drag-handle" onclick="event.stopPropagation()">⠿</span>' +
+            '<span class="insur-type-badge">' + escapeHtml(policy.policyType || 'Policy') + '</span>' +
+            '<span class="invest-card-title">' + meta + '</span>' +
+            (policy.archived ? '<span class="invest-archived-badge">Archived</span>' : '') +
+            '<span class="invest-chevron">' + (isExpanded ? '▾' : '›') + '</span>' +
+        '</div>';
+
+    var body = '';
+    if (isExpanded) {
+        body = '<div class="invest-card-body">';
+
+        if (policy.policyNumber)    body += _insurRow('Policy #',         escapeHtml(policy.policyNumber));
+        if (policy.coverageAmount)  body += _insurRow('Coverage Amount',  escapeHtml(policy.coverageAmount));
+        if (policy.beneficiary)     body += _insurRow('Beneficiary',      escapeHtml(policy.beneficiary));
+        if (policy.agentName)       body += _insurRow('Agent',            escapeHtml(policy.agentName));
+        if (policy.agentPhone)      body += _insurRow('Agent Phone', '<a href="tel:' + escapeHtml(policy.agentPhone) + '">' + escapeHtml(policy.agentPhone) + '</a>');
+        if (policy.phone)           body += _insurRow('Claims Phone', '<a href="tel:' + escapeHtml(policy.phone) + '">' + escapeHtml(policy.phone) + '</a>');
+        if (policy.paperLocation)   body += _insurRow('Paper Policy',     escapeHtml(policy.paperLocation));
+        if (policy.premiumAmount || policy.premiumFrequency) {
+            var prem = '';
+            if (policy.premiumAmount)    prem += '$' + escapeHtml(String(policy.premiumAmount));
+            if (policy.premiumFrequency) prem += (prem ? ' · ' : '') + escapeHtml(policy.premiumFrequency);
+            body += _insurRow('Premium', prem);
+        }
+        if (policy.whatToDo)        body += _insurRow('How to File / What to Do', '<span style="white-space:pre-wrap">' + escapeHtml(policy.whatToDo) + '</span>');
+        if (policy.notes)           body += _insurRow('Notes', '<span style="white-space:pre-wrap">' + escapeHtml(policy.notes) + '</span>');
+
+        body +=
+            '<div class="invest-card-actions">' +
+                '<button class="btn btn-secondary btn-small" onclick="event.stopPropagation();window.location.hash=\'#legacy/accounts/insurance/edit/' + policy.id + '\'">Edit</button>' +
+                (policy.archived
+                    ? '<button class="btn btn-secondary btn-small" onclick="event.stopPropagation();_insurRestore(\'' + policy.id + '\')">Restore</button>'
+                    : '<button class="btn btn-secondary btn-small" onclick="event.stopPropagation();_insurArchive(\'' + policy.id + '\')">Archive</button>') +
+            '</div>' +
+        '</div>';
+    }
+
+    return '<div class="invest-card' +
+        (policy.archived ? ' invest-card--archived' : '') +
+        (isExpanded      ? ' invest-card--expanded'  : '') +
+        '" data-id="' + policy.id + '">' + header + body + '</div>';
+}
+
+function _insurRow(label, valueHtml) {
+    return '<div class="invest-detail-row">' +
+        '<span class="invest-detail-label">' + escapeHtml(label) + '</span>' +
+        '<span class="invest-detail-value">' + valueHtml + '</span>' +
+        '</div>';
+}
+
+// ---------- Card Interactions ----------
+
+function _insurToggle(id) {
+    _insurExpandedIds[id] = !_insurExpandedIds[id];
+    _insurRenderList();
+}
+
+async function _insurArchive(id) {
+    if (!confirm('Archive this policy? It will be hidden from the main list. You can restore it anytime.')) return;
+    await _insurCol().doc(id).update({ archived: true });
+    delete _insurExpandedIds[id];
+    await _insurLoadPolicies();
+    _insurRenderList();
+}
+
+async function _insurRestore(id) {
+    await _insurCol().doc(id).update({ archived: false });
+    await _insurLoadPolicies();
+    _insurRenderList();
+}
+
+function _insurToggleShowArchived() {
+    var chk = document.getElementById('insurShowArchivedChk');
+    _insurShowArchived = chk ? chk.checked : false;
+    _insurRenderList();
+}
+
+async function _insurOnPersonChange() {
+    var sel = document.getElementById('insurPersonSel');
+    if (sel) _legacyFinPersonFilter = sel.value || 'self';
+    await _insurLoadPolicies();
+    _insurRenderList();
+}
+
+async function _insurOnReorder(evt) {
+    if (evt.oldIndex === evt.newIndex) return;
+    var list = _insurPolicies.filter(function(p) { return _insurShowArchived || !p.archived; });
+    var moved = list.splice(evt.oldIndex, 1)[0];
+    list.splice(evt.newIndex, 0, moved);
+
+    var batch = firebase.firestore().batch();
+    list.forEach(function(policy, i) {
+        batch.update(_insurCol().doc(policy.id), { sortOrder: i });
+    });
+    await batch.commit();
+    await _insurLoadPolicies();
+}
+
+// ---------- Add / Edit Form Page ----------
+
+async function loadLegacyInsuranceFormPage(id) {
+    _insurFormEditId = id || null;
+    var isNew   = !id;
+    var policy  = id ? _insurPolicies.find(function(p) { return p.id === id; }) : null;
+
+    if (id && !policy) {
+        await _loanLoadPeople();
+        await _insurLoadPolicies();
+        policy = _insurPolicies.find(function(p) { return p.id === id; });
+    }
+
+    var crumb = document.getElementById('breadcrumbBar');
+    if (crumb) {
+        crumb.innerHTML =
+            '<a href="#life">Life</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#legacy">My Legacy</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#legacy/accounts">Financial Accounts</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#legacy/accounts/insurance">Insurance</a><span class="separator">&rsaquo;</span>' +
+            '<span>' + (isNew ? 'Add Policy' : 'Edit Policy') + '</span>';
+    }
+    document.getElementById('headerTitle').innerHTML =
+        '<a href="#main" class="home-link">' + escapeHtml(window.appName || 'My Life') + '</a>';
+
+    var typeDatalist = INSURANCE_POLICY_TYPES.map(function(t) {
+        return '<option value="' + escapeHtml(t) + '">';
+    }).join('');
+
+    var freqOpts = BILL_FREQUENCIES.map(function(f) {
+        return '<option value="' + escapeHtml(f) + '">' + escapeHtml(f || '— Select —') + '</option>';
+    }).join('');
+
+    var page = document.getElementById('page-legacy-insurance-form');
+    if (!page) return;
+
+    page.innerHTML =
+        '<datalist id="insurTypeList">' + typeDatalist + '</datalist>' +
+        '<div class="page-header"><h2>' + (isNew ? '+ Add Policy' : 'Edit Policy') + '</h2></div>' +
+        '<div class="invest-form">' +
+
+            '<div class="form-group">' +
+                '<label>Company Name *</label>' +
+                '<input type="text" id="insurFormCompany" placeholder="e.g. Northwestern Mutual, MetLife">' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>Policy Type</label>' +
+                '<input type="text" id="insurFormType" list="insurTypeList" placeholder="e.g. Term Life, Whole Life">' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>Policy Number</label>' +
+                '<input type="text" id="insurFormPolicyNum" placeholder="Policy number">' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>Coverage Amount</label>' +
+                '<input type="text" id="insurFormCoverage" placeholder="e.g. $500,000">' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>Beneficiary(ies)</label>' +
+                '<input type="text" id="insurFormBeneficiary" placeholder="Who gets paid, and in what split">' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>Agent Name</label>' +
+                '<input type="text" id="insurFormAgentName" placeholder="Your personal insurance agent">' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>Agent Phone</label>' +
+                '<input type="tel" id="insurFormAgentPhone" placeholder="Agent direct line">' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>Claims Phone</label>' +
+                '<input type="tel" id="insurFormPhone" placeholder="General claims department">' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>Where Is the Paper Policy</label>' +
+                '<input type="text" id="insurFormPaperLocation" placeholder="e.g. Filing cabinet, folder labeled Insurance">' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>Premium Amount ($)</label>' +
+                '<input type="number" id="insurFormPremiumAmount" placeholder="e.g. 120.00" step="0.01" min="0">' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>Premium Frequency</label>' +
+                '<select id="insurFormPremiumFreq">' + freqOpts + '</select>' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>Address</label>' +
+                '<textarea id="insurFormAddress" rows="2" placeholder="Mailing address"></textarea>' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>URL</label>' +
+                '<input type="url" id="insurFormUrl" placeholder="https://...">' +
+            '</div>' +
+
+            '<div class="invest-form-sensitive-section">' +
+                '<div class="invest-modal-sensitive-header">Sensitive Fields</div>' +
+                '<div id="insurFormSensitiveContent"></div>' +
+            '</div>' +
+
+            '<div class="form-group">' +
+                '<label>How to File a Claim / What to Do</label>' +
+                '<textarea id="insurFormWhatToDo" rows="5"' +
+                    ' placeholder="e.g. Call agent first. Then call claims at 800-xxx-xxxx. Have policy number ready. Expect 2–4 weeks for payout."></textarea>' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>Notes</label>' +
+                '<textarea id="insurFormNotes" rows="3"></textarea>' +
+            '</div>' +
+
+            '<div class="invest-form-actions">' +
+                '<button class="btn btn-primary" onclick="_insurSaveForm()">Save</button>' +
+                '<button class="btn btn-secondary" onclick="_insurCancelForm()">Cancel</button>' +
+            '</div>' +
+        '</div>';
+
+    var d = _insurFormDraft;
+    _insurVal('insurFormCompany',       d ? d.companyName      : (policy ? policy.companyName      || '' : ''));
+    _insurVal('insurFormType',          d ? d.policyType       : (policy ? policy.policyType       || '' : ''));
+    _insurVal('insurFormPolicyNum',     d ? d.policyNumber     : (policy ? policy.policyNumber     || '' : ''));
+    _insurVal('insurFormCoverage',      d ? d.coverageAmount   : (policy ? policy.coverageAmount   || '' : ''));
+    _insurVal('insurFormBeneficiary',   d ? d.beneficiary      : (policy ? policy.beneficiary      || '' : ''));
+    _insurVal('insurFormAgentName',     d ? d.agentName        : (policy ? policy.agentName        || '' : ''));
+    _insurVal('insurFormAgentPhone',    d ? d.agentPhone       : (policy ? policy.agentPhone       || '' : ''));
+    _insurVal('insurFormPhone',         d ? d.phone            : (policy ? policy.phone            || '' : ''));
+    _insurVal('insurFormPaperLocation', d ? d.paperLocation    : (policy ? policy.paperLocation    || '' : ''));
+    _insurVal('insurFormPremiumAmount', d ? d.premiumAmount    : (policy ? policy.premiumAmount    || '' : ''));
+    _insurVal('insurFormPremiumFreq',   d ? d.premiumFrequency : (policy ? policy.premiumFrequency || '' : ''));
+    _insurVal('insurFormAddress',       d ? d.address          : (policy ? policy.address          || '' : ''));
+    _insurVal('insurFormUrl',           d ? d.url              : (policy ? policy.url              || '' : ''));
+    _insurVal('insurFormWhatToDo',      d ? d.whatToDo         : (policy ? policy.whatToDo         || '' : ''));
+    _insurVal('insurFormNotes',         d ? d.notes            : (policy ? policy.notes            || '' : ''));
+    _insurFormDraft = null;
+
+    await _insurRenderSensitiveFields(policy);
+}
+
+async function _insurRenderSensitiveFields(policy) {
+    var container = document.getElementById('insurFormSensitiveContent');
+    if (!container) return;
+
+    if (!legacyIsUnlocked()) {
+        container.innerHTML =
+            '<div class="invest-modal-lock">' +
+                '<span>Enter your Legacy passphrase to edit Username and Password.</span>' +
+                '<button class="btn btn-secondary" onclick="_insurUnlockForForm()">🔓 Unlock Sensitive Fields</button>' +
+            '</div>';
+        return;
+    }
+
+    var uname = '', pwd = '';
+    if (policy) {
+        try {
+            if (policy.usernameEnc) uname = await legacyDecrypt(policy.usernameEnc) || '';
+            if (policy.passwordEnc) pwd   = await legacyDecrypt(policy.passwordEnc) || '';
+        } catch (e) { console.error('Insurance form decrypt error', e); }
+    }
+
+    container.innerHTML =
+        '<div class="form-group">' +
+            '<label>Username</label>' +
+            '<input type="text" id="insurFormUsername" autocomplete="off" placeholder="Online portal username">' +
+        '</div>' +
+        '<div class="form-group">' +
+            '<label>Password</label>' +
+            '<input type="text" id="insurFormPassword" autocomplete="off" placeholder="Online portal password">' +
+        '</div>';
+
+    _insurVal('insurFormUsername', uname);
+    _insurVal('insurFormPassword', pwd);
+}
+
+function _insurUnlockForForm() {
+    _insurFormDraft = {
+        companyName:      _insurGv('insurFormCompany'),
+        policyType:       _insurGv('insurFormType'),
+        policyNumber:     _insurGv('insurFormPolicyNum'),
+        coverageAmount:   _insurGv('insurFormCoverage'),
+        beneficiary:      _insurGv('insurFormBeneficiary'),
+        agentName:        _insurGv('insurFormAgentName'),
+        agentPhone:       _insurGv('insurFormAgentPhone'),
+        phone:            _insurGv('insurFormPhone'),
+        paperLocation:    _insurGv('insurFormPaperLocation'),
+        premiumAmount:    _insurGv('insurFormPremiumAmount'),
+        premiumFrequency: _insurGv('insurFormPremiumFreq'),
+        address:          _insurGv('insurFormAddress'),
+        url:              _insurGv('insurFormUrl'),
+        whatToDo:         _insurGv('insurFormWhatToDo'),
+        notes:            _insurGv('insurFormNotes')
+    };
+    _legacyRequireUnlock(function() { loadLegacyInsuranceFormPage(_insurFormEditId); });
+}
+
+async function _insurSaveForm() {
+    var companyName = (_insurGv('insurFormCompany') || '').trim();
+    if (!companyName) { alert('Please enter the insurance company name.'); return; }
+
+    var id    = _insurFormEditId;
+    var isNew = !id;
+
+    var data = {
+        companyName:      companyName,
+        policyType:       (_insurGv('insurFormType')          || '').trim(),
+        policyNumber:     (_insurGv('insurFormPolicyNum')     || '').trim(),
+        coverageAmount:   (_insurGv('insurFormCoverage')      || '').trim(),
+        beneficiary:      (_insurGv('insurFormBeneficiary')   || '').trim(),
+        agentName:        (_insurGv('insurFormAgentName')     || '').trim(),
+        agentPhone:       (_insurGv('insurFormAgentPhone')    || '').trim(),
+        phone:            (_insurGv('insurFormPhone')         || '').trim(),
+        paperLocation:    (_insurGv('insurFormPaperLocation') || '').trim(),
+        premiumAmount:    (_insurGv('insurFormPremiumAmount') || '').trim(),
+        premiumFrequency: (_insurGv('insurFormPremiumFreq')   || ''),
+        address:          (_insurGv('insurFormAddress')       || '').trim(),
+        url:              (_insurGv('insurFormUrl')           || '').trim(),
+        whatToDo:         (_insurGv('insurFormWhatToDo')      || '').trim(),
+        notes:            (_insurGv('insurFormNotes')         || '').trim()
+    };
+
+    if (legacyIsUnlocked() && document.getElementById('insurFormUsername')) {
+        var existing    = id ? _insurPolicies.find(function(p) { return p.id === id; }) : null;
+        var usernameVal = (_insurGv('insurFormUsername') || '').trim();
+        var passwordVal = (_insurGv('insurFormPassword') || '').trim();
+
+        if (usernameVal) {
+            data.usernameEnc = await legacyEncrypt(usernameVal);
+        } else if (existing && existing.usernameEnc) {
+            data.usernameEnc = firebase.firestore.FieldValue.delete();
+        }
+        if (passwordVal) {
+            data.passwordEnc = await legacyEncrypt(passwordVal);
+        } else if (existing && existing.passwordEnc) {
+            data.passwordEnc = firebase.firestore.FieldValue.delete();
+        }
+    }
+
+    if (isNew) {
+        data.sortOrder = _insurPolicies.filter(function(p) { return !p.archived; }).length;
+        data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        await _insurCol().add(data);
+    } else {
+        await _insurCol().doc(id).update(data);
+    }
+
+    _insurFormEditId = null;
+    _insurFormDraft  = null;
+    window.location.hash = '#legacy/accounts/insurance';
+}
+
+function _insurCancelForm() {
+    _insurFormEditId = null;
+    _insurFormDraft  = null;
+    window.location.hash = '#legacy/accounts/insurance';
+}
+
+function _insurVal(id, value) {
+    var el = document.getElementById(id);
+    if (el) el.value = value !== undefined ? value : '';
+}
+
+function _insurGv(id) {
+    var el = document.getElementById(id);
+    return el ? el.value : '';
+}
+
+// ============================================================
+// Legacy Financial — Stub sub-pages (Plan)
+// ============================================================
 function loadLegacyFinancialPlanPage() {
     _legacyRequireUnlock(function() { _legacyFinStub('page-legacy-financial-plan', 'Financial Plan', '📋'); });
 }

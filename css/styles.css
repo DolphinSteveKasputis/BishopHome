@@ -14089,6 +14089,19 @@ a.legacy-fin-card:hover {
     margin-right: 6px;
 }
 
+.insur-type-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
+    background: #f3e5f5;
+    color: #7b1fa2;
+    margin-right: 6px;
+}
+
 .loan-archived-toggle {
     display: flex;
     align-items: center;

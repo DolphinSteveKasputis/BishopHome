@@ -170,7 +170,7 @@ const ALL_PAGES = [
     'life-projects', 'life-project',
     'legacy', 'legacy-burial', 'legacy-service', 'legacy-obituary', 'legacy-social',
     'legacy-accounts', 'legacy-financial-accounts', 'legacy-financial-loans', 'legacy-loans-form',
-    'legacy-financial-bills', 'legacy-bills-form', 'legacy-financial-insurance', 'legacy-financial-plan',
+    'legacy-financial-bills', 'legacy-bills-form', 'legacy-financial-insurance', 'legacy-insurance-form', 'legacy-financial-plan',
     'legacy-documents', 'legacy-household',
     'legacy-pets', 'legacy-notify', 'legacy-letters', 'legacy-letter', 'legacy-intro', 'legacy-message',
     'top10list-create', 'top10list-edit',
@@ -210,7 +210,7 @@ const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'jo
                      'life-projects', 'life-project',
                      'legacy', 'legacy-burial', 'legacy-service', 'legacy-obituary', 'legacy-social',
                      'legacy-accounts', 'legacy-financial-accounts', 'legacy-financial-loans', 'legacy-loans-form',
-                     'legacy-financial-bills', 'legacy-bills-form', 'legacy-financial-insurance', 'legacy-financial-plan',
+                     'legacy-financial-bills', 'legacy-bills-form', 'legacy-financial-insurance', 'legacy-insurance-form', 'legacy-financial-plan',
                      'legacy-documents', 'legacy-household',
                      'legacy-pets', 'legacy-notify', 'legacy-letters', 'legacy-letter', 'legacy-message',
                      'private', 'private-bookmarks', 'private-documents', 'private-photos', 'private-photos-gallery',
@@ -743,6 +743,12 @@ function handleRoute() {
     } else if (page === 'legacy' && id === 'accounts' && parts[2] === 'bills') {
         showPage('legacy-financial-bills');
         loadLegacyFinancialBillsPage();
+    } else if (page === 'legacy' && id === 'accounts' && parts[2] === 'insurance' && parts[3] === 'add') {
+        showPage('legacy-insurance-form');
+        loadLegacyInsuranceFormPage(null);
+    } else if (page === 'legacy' && id === 'accounts' && parts[2] === 'insurance' && parts[3] === 'edit' && parts[4]) {
+        showPage('legacy-insurance-form');
+        loadLegacyInsuranceFormPage(parts[4]);
     } else if (page === 'legacy' && id === 'accounts' && parts[2] === 'insurance') {
         showPage('legacy-financial-insurance');
         loadLegacyFinancialInsurancePage();

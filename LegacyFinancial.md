@@ -79,100 +79,220 @@ HSA, 529 College Savings, CD, Money Market, Other
 ### 2. Loans (Liabilities)
 
 Everything you owe:
-- Mortgage
-- Car loans
-- Credit cards (note: credit cards also show up in Bills since they're a payment method)
-- Student loans
-- Home equity line / HELOC
-- Personal loans
+- Mortgage, car loans, credit cards, student loans, HELOC, personal loans, furniture loans, etc.
 
-**Per loan fields:**
+**Collapsed card (list view) — show only filled-in fields, skip blanks:**
+```
+[⠿]  [Car Loan]  Nissan Rogue — Nissan Motor Acceptance   $389/mo  [Auto Pay]  [▾]
+```
+- Drag handle · Type badge · Nickname · em-dash · Lender · monthly payment (if set) · payment method badge (if set) · expand chevron
+- Payoff date shown if set: `Payoff: Jun 2028`
+- Whose name shown if set: `(Karen)`
+- Payment method badge: "Auto Pay" (for either auto-pay type) or "Pay Manually" (for ebill/paper) — small muted badge
+- Archived loans: muted styling + "Archived" badge; hidden by default, shown via "Show Archived" checkbox toggle
+
+**Expanded card — all fields:**
+
 | Field | Encrypted? | Notes |
 |-------|-----------|-------|
-| Nickname | No | e.g. "Chase Visa", "Toyota RAV4 Loan" |
-| Loan type | No | dropdown |
-| Lender / institution | No | |
-| Account number | Yes | |
-| Approximate balance | No | rough ballpark, not live — just context |
-| URL | No | online account |
-| Username | Yes | |
-| Password | Yes | |
-| Monthly payment | No | approx amount |
-| Auto-pay? | No | yes/no |
-| What to do | No | pay off, refinance, contact lender, etc. |
-| Notes | No | |
-| sortOrder | No | |
+| Nickname | No | e.g. "Nissan Rogue", "Home Mortgage" |
+| Loan type | No | **Combo dropdown** — predefined list + free-text for custom types |
+| Lender (formal name) | No | e.g. "Nissan Motor Acceptance Corp" |
+| In whose name | No | e.g. "Steve", "Karen", "Joint" |
+| Payment address | No | where to send a check |
+| Phone | No | lender customer service |
+| Monthly payment | No | exact or approximate |
+| Interest rate | No | % APR |
+| How it's paid | No | dropdown (see options below) |
+| Payoff date | No | estimated if no extra payments |
+| Months left | — | **Calculated read-only**: whole months from today → payoff date (0 if past) |
+| Estimated remaining | — | **Calculated read-only**: months left × monthly payment. Tooltip: "Includes principal + interest. Not an exact payoff quote — call the lender for that." |
+| Loan start date | No | optional — when the loan originated |
+| Account number | Yes | encrypted |
+| URL | No | plain text |
+| Username | Yes | encrypted |
+| Password | Yes | encrypted |
+| What to do upon my death | No | textarea — instructions for loved one |
+| Notes | No | anything else |
+| sortOrder | No | drag to reorder |
 
-**Loan types:** Mortgage, Home Equity / HELOC, Car Loan, Credit Card,
-Student Loan, Personal Loan, Business Loan, Other
+**Loan type combo dropdown — predefined options (user can also type a custom value):**
+Mortgage, Home Equity / HELOC, Car Loan, Credit Card, Student Loan, Personal Loan, Business Loan, Furniture, Other
+
+**How it's paid — dropdown:**
+- Auto Pay – Bank
+- Auto Pay – Credit Card
+- Ebill – Pay Manually
+- Paper Bill – Pay Manually
+- Other
+
+**Calculated fields logic (client-side, not stored):**
+- `monthsLeft`: count whole calendar months from today through payoff date. If payoff date is in the past or not set: show "—".
+- `estimatedRemaining`: `monthsLeft × monthlyPayment`. If either is missing: show "—".
+- Tooltip on "Estimated remaining": *"Includes principal + interest. Not an exact payoff quote — call the lender for that."*
+
+**Add/Edit:** Full-screen form page (`#legacy/accounts/loans/add`, `#legacy/accounts/loans/edit/:id`) — not a modal. Same reason as Investments: passphrase prompt would go invisible behind a modal.
+
+**Delete/Archive:** Soft delete only — `archived: true`. No hard delete. "Show Archived" checkbox below the "+ Add Loan" button. Archived cards show an "Archived" badge and a "Restore" button instead of "Archive".
+
+**Person switcher:** Shares `_legacyFinPersonFilter` state already in legacy.js. No new state variable.
+
+**Encrypted field display in expanded card:** `••••••` placeholder with individual Reveal buttons (same pattern as Accounts). Session is already unlocked by the time user is on this page.
+
+**Badge color:** Amber/orange — visually distinguishes liabilities from assets.
+
+**Firestore:** `legacyFinancial/{personId}/loans/{loanId}`
+
+Fields: `nickname`, `loanType`, `lender`, `inWhoseName`, `paymentAddress`, `phone`, `monthlyPayment`, `interestRate`, `howItsPaid`, `startDate`, `payoffDate`, `accountNumberEnc`, `url`, `usernameEnc`, `passwordEnc`, `whatToDo`, `notes`, `archived`, `sortOrder`, `createdAt`
+
+Encrypted fields: `accountNumberEnc`, `usernameEnc`, `passwordEnc` (stored as `{ ciphertext, iv }` objects). URL is plain text.
 
 ---
 
 ### 3. Bills (Recurring Expenses)
 
-Everything that needs to be paid regularly. The goal: loved one knows what's coming
-and who to call to cancel/transfer/continue each one.
+Everything that needs to be paid regularly. The goal: loved one knows what's coming,
+how much it costs, how it's being paid, and what to do with each one.
 
-**Payment methods to track:** Bank auto-draft, Credit card auto-charge, Paper bill (mail),
-Online manual pay, Payroll deduction
+**Collapsed card (list view) — show only filled-in fields, skip blanks:**
+```
+[⠿]  [Utilities]  Xcel Energy   $180/mo  [Auto Pay]  Due: 15th  [▾]
+```
+- Drag handle · Category badge · Name · amount · payment badge · due day · expand chevron
 
 **Per bill fields:**
 | Field | Encrypted? | Notes |
 |-------|-----------|-------|
-| Name | No | e.g. "Xcel Energy", "Netflix", "Home Depot credit card" |
-| Category | No | dropdown (see below) |
-| Payment method | No | dropdown |
-| Which card/account | No | free text — "Chase Visa ending 4321" |
-| Approx monthly amount | No | rough ballpark |
-| Due day | No | day of month (1–31), optional |
+| Name | No | e.g. "Xcel Energy", "Netflix", "Home Mortgage" |
+| Category | No | **Combo dropdown** — predefined list + free-text |
+| In whose name | No | e.g. "Steve", "Karen", "Joint" |
+| Estimated amount | No | rough cost per billing cycle |
+| Frequency | No | dropdown — Monthly, Annual, Quarterly, Other |
+| Address | No | where to send a check if needed |
 | Phone | No | customer service |
-| URL | No | account login or info page |
-| Notes | No | account number hint, what to do (cancel, transfer, auto-renew) |
-| sortOrder | No | |
+| Account number | Yes | encrypted |
+| How it's paid | No | same dropdown as Loans |
+| Which card / account | No | plain text — e.g. "Chase Visa ending 4321" |
+| Due date | No | free-form text — e.g. "15th", "March each year", "1st of month" |
+| URL | No | account login page |
+| Username | Yes | encrypted |
+| Password | Yes | encrypted |
+| What to do upon my death | No | textarea — cancel, transfer, keep paying, etc. |
+| Notes | No | anything else |
+| sortOrder | No | drag to reorder |
 
-**Bill categories:** Mortgage/Rent, Utilities, Insurance, Subscriptions,
-Phone/Internet, Car/Transportation, Medical, Credit Cards, Other
+**Category combo dropdown — predefined options (user can also type a custom value):**
+Utilities, Insurance, Subscriptions, Phone / Internet, Medical, Mortgage / Rent,
+Car / Transportation, Credit Card, Other
+
+**Frequency dropdown:**
+Monthly, Annual, Quarterly, Semi-Annual, Other
+
+**How it's paid — same dropdown as Loans:**
+Auto Pay – Bank, Auto Pay – Credit Card, Ebill – Pay Manually, Paper Bill – Pay Manually, Other
+
+**Collapsed card** — name, category badge, key at-a-glance info (filled fields only):
+```
+[⠿]  [Utilities]  Xcel Energy   $180/mo · Monthly  [Auto Pay]  Chase Visa 4321  Due: 15th  [▾]
+```
+
+**Expanded accordion** — shows operational info a loved one needs without opening Edit:
+- In whose name, estimated amount, frequency, how it's paid, which card/account, due date, phone, what to do upon my death, notes
+- Edit + Archive buttons
+
+**NOT shown in expanded card — only accessible via Edit:**
+URL, username, password, account number, address
+(Sensitive/logistical details — loved one doesn't need them at a glance; they'd open Edit to find them)
+
+**Encrypted fields:** `accountNumberEnc`, `usernameEnc`, `passwordEnc`
+
+**Add/Edit:** Full-screen form page (`#legacy/accounts/bills/add`, `/edit/:id`) — not a modal.
+
+**Delete/Archive:** Same as Loans — soft delete, "Show Archived" checkbox.
+
+**Person switcher:** Shares `_legacyFinPersonFilter` state, same as Loans.
+
+**Firestore:** `legacyFinancial/{personId}/bills/{billId}`
+
+Fields: `name`, `category`, `inWhoseName`, `estimatedAmount`, `frequency`, `address`, `phone`, `accountNumberEnc`, `howItsPaid`, `whichCard`, `dueDate`, `url`, `usernameEnc`, `passwordEnc`, `whatToDo`, `notes`, `archived`, `sortOrder`, `createdAt`
+
+**Backup:** Add `'bills'` to `PERSON_SCOPED_COLLECTIONS['legacyFinancial']` in `settings.js` — same commit as the feature.
 
 ---
 
 ### 4. Life Insurance
 
-Separate enough from bank accounts to warrant its own sub-section within Financial.
-(Not a separate Legacy landing tile — it belongs in the financial picture.)
+**Collapsed card:** policy type badge, company name, coverage amount
+**Expanded card:** policy number, beneficiary, agent name + phone, where paper policy is, claims phone, premium + frequency, what to do — URL/username/password/address are Edit-only
 
 **Per policy fields:**
 | Field | Encrypted? | Notes |
 |-------|-----------|-------|
-| Insurer name | No | e.g. "Northwestern Mutual" |
-| Policy type | No | Term, Whole, Universal, Group (through employer), Other |
-| Policy number | Yes | |
-| Coverage amount | No | death benefit |
+| Company name | No | e.g. "Northwestern Mutual" |
+| Policy type | No | combo dropdown |
+| Policy number | No | shown in expanded card — needed for phone calls |
+| Coverage amount | No | death benefit, e.g. "$500,000" |
 | Beneficiary(ies) | No | who gets paid |
-| Insurer phone | No | claims department |
-| URL | No | login or claims page |
-| Username | Yes | |
-| Password | Yes | |
-| Where is the paper policy | No | filing cabinet, safe, with agent |
-| Agent name / phone | No | your insurance agent |
-| Notes | No | how to file a claim, timing, etc. |
+| Agent name | No | your personal insurance agent |
+| Agent phone | No | agent direct line |
+| Phone | No | general claims department |
+| Address | No | mailing address — Edit-only |
+| Where is the paper policy | No | e.g. "Filing cabinet, folder labeled Insurance" |
+| Premium amount | No | e.g. "$120" |
+| Premium frequency | No | same dropdown as Bills |
+| URL | No | online portal — Edit-only |
+| Username | Yes | encrypted — Edit-only |
+| Password | Yes | encrypted — Edit-only |
+| What to do / how to file a claim | No | textarea |
+| Notes | No | anything else |
 | sortOrder | No | |
+
+**Policy type combo dropdown:** Term Life, Whole Life, Universal Life, Group / Employer, Other
+
+**Firestore:** `legacyFinancial/{personId}/insurance/{policyId}`
+
+Fields: `companyName`, `policyType`, `policyNumber`, `coverageAmount`, `beneficiary`, `agentName`, `agentPhone`, `phone`, `address`, `paperLocation`, `premiumAmount`, `premiumFrequency`, `url`, `usernameEnc`, `passwordEnc`, `whatToDo`, `notes`, `archived`, `sortOrder`, `createdAt`
+
+**Backup:** Add `'insurance'` to `PERSON_SCOPED_COLLECTIONS['legacyFinancial']` — same commit as feature.
 
 ---
 
 ### 5. Financial Plan (Narrative)
 
-A free-form letter / set of instructions written directly to the loved one.
-The "executive summary" — the human context behind all the accounts and numbers.
+**Context (from user discussion, 2026-04-26):**
 
-Could include:
-- Overview of financial situation ("We're in good shape. Here's the big picture.")
-- Priority order ("First: call the life insurance company. Second: don't sell the investments.")
-- Who to call for help (financial advisor, accountant, attorney)
-- Important context (e.g. "The Roth accounts grow tax-free — don't touch them for 10 years if you can")
-- What to do with the house, cars, investments
-- Timeline ("The mortgage auto-pays for 30 days — don't panic, you have time")
+The Legacy section serves a sequenced purpose for a surviving loved one:
+- **Days 1–3:** Burial, service, obituary, who to call/notify — handled by the main Legacy hub (Read Me First, Final Message, Burial, Service, Notify)
+- **Week 2:** Household Instructions (coming) — knowledge handoff on maintaining the house/yard; can point to the Bishop app itself
+- **Week 2–4:** Bills, loans, insurance claims — handled by the Financial Accounts sub-tabs
+- **Ongoing:** The Documents tab covers where the will is; contacts/advisors can be referenced via existing writing (Read Me First, Final Message, People to Notify, Letters)
 
-**Fields:** Single large textarea (rows=20), saves to the person's top-level doc as `financialPlan`.
+The **Financial Plan** tab is the strategic big-picture layer that sits above all the individual account/loan/bill records. Each account already has a "what to do" field for tactical per-account instructions. What's missing is the executive summary — the human narrative that gives context to all those individual records.
+
+**Life-stage awareness:** Financial planning means different things at different life stages. A 30-something with a young family has very different priorities than a 60-something near retirement. The plan must work for both. Single large textarea doesn't solve this well — people don't know what to write without prompts.
+
+**Rename decision:** "Financial Accounts" → "Financial" — the current name implies investments-only. Rename the hub tile and hub page to "Financial" to better represent its true scope (accounts, loans, bills, insurance, plan).
+
+**Design decision — prompted sections:**
+Rather than one blank textarea, use a small set of predefined sections each with a guiding prompt. The prompt tells the user what to write; the loved one can scan sections to find what they need. Sections auto-save on blur. Voice-to-text (🎙️) button on the larger sections.
+
+**Sections:**
+
+| # | Section Title | Guiding prompt shown to user |
+|---|--------------|------------------------------|
+| 1 | The Big Picture | What does the loved one need to know about the overall financial situation? Are you in good shape? Any major concerns or complications? |
+| 2 | First Things — What to Do | In the first few weeks, what should they focus on? What auto-pays? What will stop? Who should they call before making any decisions? |
+| 3 | Key People to Call | Financial advisor, accountant, attorney, mortgage servicer, HR department? Names, firms, why to call them. (Can also reference Contacts or People to Notify.) |
+| 4 | Investments & Retirement | What should they know about the investment accounts? What to do — or not do — with them? Any tax or rollover guidance? |
+| 5 | My Wishes for the Money | How do you want the money used? House: sell or keep? Kids/grandkids? Charitable giving? Big picture intent. |
+| 6 | Anything Else | Open free-form text for whatever doesn't fit above. |
+
+**Firestore:** Sections stored as fields on the person's top-level `legacyFinancial/{personId}` doc:
+`planBigPicture`, `planFirstThings`, `planKeyPeople`, `planInvestments`, `planWishes`, `planOther`
+
+**Person-scoped:** Yes — same person switcher as other tabs. A plan exists per enrolled person.
+
+**Encryption:** No — this is narrative text, not credentials. Plain Firestore storage under the passphrase gate (gate is already active for the whole Financial section).
 
 ---
 

@@ -18,7 +18,7 @@ var LEGACY_SECTIONS = [
     { key: 'service',   icon: '🕊️',  label: 'Service Wishes',         route: '#legacy/service'   },
     { key: 'obituary',  icon: '📜',  label: 'My Obituary',            route: '#legacy/obituary'  },
     { key: 'social',    icon: '📱',  label: 'Social Media',           route: '#legacy/social',   gated: true, stub: true },
-    { key: 'accounts',  icon: '💰',  label: 'Financial Accounts',     route: '#legacy/accounts', gated: true },
+    { key: 'accounts',  icon: '💰',  label: 'Financial',              route: '#legacy/accounts', gated: true },
     { key: 'documents', icon: '📁',  label: 'Documents',              route: '#legacy/documents' },
     { key: 'household', icon: '🏠',  label: 'Household Instructions', route: '#legacy/household', stub: true },
     { key: 'pets',      icon: '🐾',  label: 'Pets',                   route: '#legacy/pets'      },
@@ -1755,7 +1755,7 @@ function loadLegacyAccountsPage() {
             crumb.innerHTML =
                 '<a href="#life">Life</a><span class="separator">&rsaquo;</span>' +
                 '<a href="#legacy">My Legacy</a><span class="separator">&rsaquo;</span>' +
-                '<span>Financial Accounts</span>';
+                '<span>Financial</span>';
         }
 
         var cards = [
@@ -1763,12 +1763,12 @@ function loadLegacyAccountsPage() {
             { icon: '🏦', label: 'Loans',           desc: 'Mortgage, car loans, credit cards, and other debts.', route: '#legacy/accounts/loans',     built: true  },
             { icon: '📄', label: 'Bills',           desc: 'Recurring expenses and auto-pay items.',              route: '#legacy/accounts/bills',     built: true  },
             { icon: '🛡️', label: 'Insurance',      desc: 'Life insurance policies and how to file a claim.',    route: '#legacy/accounts/insurance', built: true  },
-            { icon: '📋', label: 'Financial Plan',  desc: 'Your big-picture instructions for your loved ones.', route: '#legacy/accounts/plan',      built: false }
+            { icon: '📋', label: 'Financial Plan',  desc: 'Your big-picture instructions for your loved ones.', route: '#legacy/accounts/plan',      built: true  }
         ];
 
         page.innerHTML =
             '<div class="page-header">' +
-                '<h2>💰 Financial Accounts</h2>' +
+                '<h2>💰 Financial</h2>' +
             '</div>' +
             '<div class="legacy-fin-hub" id="legacyFinHub"></div>';
 
@@ -1816,7 +1816,7 @@ async function _legacyFinLoadAndRender() {
         crumb.innerHTML =
             '<a href="#life">Life</a><span class="separator">&rsaquo;</span>' +
             '<a href="#legacy">My Legacy</a><span class="separator">&rsaquo;</span>' +
-            '<a href="#legacy/accounts">Financial Accounts</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#legacy/accounts">Financial</a><span class="separator">&rsaquo;</span>' +
             '<span>Accounts</span>';
     }
     await _legacyFinLoadAll();
@@ -2102,7 +2102,7 @@ async function _loanLoadAndRender() {
         crumb.innerHTML =
             '<a href="#life">Life</a><span class="separator">&rsaquo;</span>' +
             '<a href="#legacy">My Legacy</a><span class="separator">&rsaquo;</span>' +
-            '<a href="#legacy/accounts">Financial Accounts</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#legacy/accounts">Financial</a><span class="separator">&rsaquo;</span>' +
             '<span>Loans</span>';
     }
     await _loanLoadPeople();
@@ -2434,7 +2434,7 @@ async function loadLegacyLoansFormPage(id) {
         crumb.innerHTML =
             '<a href="#life">Life</a><span class="separator">&rsaquo;</span>' +
             '<a href="#legacy">My Legacy</a><span class="separator">&rsaquo;</span>' +
-            '<a href="#legacy/accounts">Financial Accounts</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#legacy/accounts">Financial</a><span class="separator">&rsaquo;</span>' +
             '<a href="#legacy/accounts/loans">Loans</a><span class="separator">&rsaquo;</span>' +
             '<span>' + (isNew ? 'Add Loan' : 'Edit Loan') + '</span>';
     }
@@ -2723,7 +2723,7 @@ async function _billLoadAndRender() {
         crumb.innerHTML =
             '<a href="#life">Life</a><span class="separator">&rsaquo;</span>' +
             '<a href="#legacy">My Legacy</a><span class="separator">&rsaquo;</span>' +
-            '<a href="#legacy/accounts">Financial Accounts</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#legacy/accounts">Financial</a><span class="separator">&rsaquo;</span>' +
             '<span>Bills</span>';
     }
     await _loanLoadPeople();
@@ -2929,7 +2929,7 @@ async function loadLegacyBillsFormPage(id) {
         crumb.innerHTML =
             '<a href="#life">Life</a><span class="separator">&rsaquo;</span>' +
             '<a href="#legacy">My Legacy</a><span class="separator">&rsaquo;</span>' +
-            '<a href="#legacy/accounts">Financial Accounts</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#legacy/accounts">Financial</a><span class="separator">&rsaquo;</span>' +
             '<a href="#legacy/accounts/bills">Bills</a><span class="separator">&rsaquo;</span>' +
             '<span>' + (isNew ? 'Add Bill' : 'Edit Bill') + '</span>';
     }
@@ -3212,7 +3212,7 @@ async function _insurLoadAndRender() {
         crumb.innerHTML =
             '<a href="#life">Life</a><span class="separator">&rsaquo;</span>' +
             '<a href="#legacy">My Legacy</a><span class="separator">&rsaquo;</span>' +
-            '<a href="#legacy/accounts">Financial Accounts</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#legacy/accounts">Financial</a><span class="separator">&rsaquo;</span>' +
             '<span>Insurance</span>';
     }
     await _loanLoadPeople();
@@ -3412,7 +3412,7 @@ async function loadLegacyInsuranceFormPage(id) {
         crumb.innerHTML =
             '<a href="#life">Life</a><span class="separator">&rsaquo;</span>' +
             '<a href="#legacy">My Legacy</a><span class="separator">&rsaquo;</span>' +
-            '<a href="#legacy/accounts">Financial Accounts</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#legacy/accounts">Financial</a><span class="separator">&rsaquo;</span>' +
             '<a href="#legacy/accounts/insurance">Insurance</a><span class="separator">&rsaquo;</span>' +
             '<span>' + (isNew ? 'Add Policy' : 'Edit Policy') + '</span>';
     }
@@ -3658,10 +3658,177 @@ function _insurGv(id) {
 }
 
 // ============================================================
-// Legacy Financial — Stub sub-pages (Plan)
+// Legacy Financial — Financial Plan
+// Narrative sections written by the user as a guide for loved ones.
+// Stored as fields on the top-level legacyFinancial/{personId} doc.
+// No encryption — narrative text, not credentials.
 // ============================================================
+
+var _planPersonFilter = 'self';
+var _planPeople       = [];
+var _planSaveTimers   = {};  // debounce timers keyed by field id
+
+var PLAN_SECTIONS = [
+    {
+        id:     'planBigPicture',
+        label:  'The Big Picture',
+        prompt: 'What should your loved one know about your overall financial situation? Are things in good shape? Any major complications or concerns they should know upfront?',
+        rows:   8,
+        voice:  true
+    },
+    {
+        id:     'planFirstThings',
+        label:  'First Things — What to Do',
+        prompt: 'In the first week or two, what should they focus on? What bills auto-pay and can wait? What will stop if no one acts? Who should they call before making any big decisions?',
+        rows:   8,
+        voice:  true
+    },
+    {
+        id:     'planKeyPeople',
+        label:  'Key People to Call',
+        prompt: 'Financial advisor, accountant, attorney, mortgage servicer, HR/benefits office? Name, firm, phone, and why to call them. You can also add them to Contacts or People to Notify.',
+        rows:   6,
+        voice:  false
+    },
+    {
+        id:     'planInvestments',
+        label:  'Investments & Retirement',
+        prompt: 'What should they know about the investment and retirement accounts? Anything they should or should NOT do with them? Tax implications, rollover guidance, time horizon?',
+        rows:   6,
+        voice:  false
+    },
+    {
+        id:     'planWishes',
+        label:  'My Wishes for the Money',
+        prompt: 'How do you want the money used? Keep the house or sell it? Help the kids or grandkids? Charitable giving? Your big-picture intent, in your own words.',
+        rows:   6,
+        voice:  true
+    },
+    {
+        id:     'planOther',
+        label:  'Anything Else',
+        prompt: 'Whatever doesn\'t fit above — anything you want them to know.',
+        rows:   5,
+        voice:  true
+    }
+];
+
 function loadLegacyFinancialPlanPage() {
-    _legacyRequireUnlock(function() { _legacyFinStub('page-legacy-financial-plan', 'Financial Plan', '📋'); });
+    _legacyRequireUnlock(function() { _planLoadAndRender(); });
+}
+
+async function _planLoadAndRender() {
+    var page = document.getElementById('page-legacy-financial-plan');
+    if (!page) return;
+
+    var crumb = document.getElementById('breadcrumbBar');
+    if (crumb) crumb.innerHTML =
+        '<a href="#life">Life</a><span class="separator">&rsaquo;</span>' +
+        '<a href="#legacy">My Legacy</a><span class="separator">&rsaquo;</span>' +
+        '<a href="#legacy/accounts">Financial</a><span class="separator">&rsaquo;</span>' +
+        '<span>Financial Plan</span>';
+
+    // Load people list (reuse loan loader)
+    await _loanLoadPeople();
+    _planPeople = _legacyFinPeople;
+    _planPersonFilter = _legacyFinPersonFilter;
+
+    // Build person switcher HTML
+    var personOptions = '<option value="self"' + (_planPersonFilter === 'self' ? ' selected' : '') + '>Me</option>';
+    _planPeople.forEach(function(p) {
+        personOptions += '<option value="' + escapeHtml(p.id) + '"' +
+            (_planPersonFilter === p.id ? ' selected' : '') + '>' + escapeHtml(p.name) + '</option>';
+    });
+
+    // Build section HTML
+    var sectionsHtml = PLAN_SECTIONS.map(function(s) {
+        var voiceHtml = s.voice
+            ? '<div class="legacy-ai-row" style="margin-bottom:6px;">' +
+              '<button class="btn btn-secondary btn-small" id="planVoiceBtn_' + s.id + '">🎙️ Speak</button>' +
+              '<span class="legacy-ai-status" id="planVoiceStatus_' + s.id + '"></span>' +
+              '</div>'
+            : '';
+        return '<div class="plan-section">' +
+            '<label class="plan-section-label" for="planField_' + s.id + '">' + escapeHtml(s.label) + '</label>' +
+            '<p class="plan-section-prompt">' + escapeHtml(s.prompt) + '</p>' +
+            voiceHtml +
+            '<textarea id="planField_' + s.id + '" class="form-control plan-textarea" rows="' + s.rows + '" ' +
+                'placeholder="Write here…" ' +
+                'onblur="_planSaveField(\'' + s.id + '\')">' +
+            '</textarea>' +
+            '<div class="plan-save-status" id="planSaveStatus_' + s.id + '"></div>' +
+        '</div>';
+    }).join('');
+
+    page.innerHTML =
+        '<div class="page-header">' +
+            '<h2>📋 Financial Plan</h2>' +
+        '</div>' +
+        '<div class="invest-person-row">' +
+            '<label class="invest-person-label">Person:</label>' +
+            '<select class="invest-person-select" id="planPersonSelect" onchange="_planOnPersonChange(this.value)">' +
+                personOptions +
+            '</select>' +
+        '</div>' +
+        '<p class="plan-intro">Write this in your own words, as if speaking directly to your loved one. Fill in as much or as little as you want — each section saves automatically when you click away.</p>' +
+        '<div class="plan-sections">' + sectionsHtml + '</div>';
+
+    // Load saved values
+    await _planLoadValues();
+
+    // Wire voice-to-text buttons
+    PLAN_SECTIONS.forEach(function(s) {
+        if (!s.voice) return;
+        var btnId = 'planVoiceBtn_' + s.id;
+        var fieldId = 'planField_' + s.id;
+        if (typeof initVoiceToText === 'function') {
+            initVoiceToText(fieldId, btnId);
+        } else {
+            var btn = document.getElementById(btnId);
+            if (btn) btn.style.display = 'none';
+        }
+    });
+}
+
+async function _planLoadValues() {
+    try {
+        var doc = await userCol('legacyFinancial').doc(_planPersonFilter).get();
+        var data = doc.exists ? doc.data() : {};
+        PLAN_SECTIONS.forEach(function(s) {
+            var el = document.getElementById('planField_' + s.id);
+            if (el) el.value = data[s.id] || '';
+        });
+    } catch (e) {
+        console.error('Financial Plan load error:', e);
+    }
+}
+
+async function _planSaveField(fieldId) {
+    var el = document.getElementById('planField_' + fieldId);
+    var statusEl = document.getElementById('planSaveStatus_' + fieldId);
+    if (!el) return;
+
+    var value = el.value;
+    if (statusEl) statusEl.textContent = 'Saving…';
+
+    try {
+        var update = {};
+        update[fieldId] = value;
+        await userCol('legacyFinancial').doc(_planPersonFilter).set(update, { merge: true });
+        if (statusEl) {
+            statusEl.textContent = 'Saved';
+            setTimeout(function() { if (statusEl) statusEl.textContent = ''; }, 2000);
+        }
+    } catch (e) {
+        console.error('Financial Plan save error:', e);
+        if (statusEl) statusEl.textContent = 'Save failed';
+    }
+}
+
+async function _planOnPersonChange(personId) {
+    _planPersonFilter = personId;
+    _legacyFinPersonFilter = personId;
+    await _planLoadValues();
 }
 
 function _legacyFinStub(pageId, title, icon) {
@@ -3673,7 +3840,7 @@ function _legacyFinStub(pageId, title, icon) {
         crumb.innerHTML =
             '<a href="#life">Life</a><span class="separator">&rsaquo;</span>' +
             '<a href="#legacy">My Legacy</a><span class="separator">&rsaquo;</span>' +
-            '<a href="#legacy/accounts">Financial Accounts</a><span class="separator">&rsaquo;</span>' +
+            '<a href="#legacy/accounts">Financial</a><span class="separator">&rsaquo;</span>' +
             '<span>' + escapeHtml(title) + '</span>';
     }
 

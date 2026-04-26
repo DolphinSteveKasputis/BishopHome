@@ -904,7 +904,7 @@ End-of-life information hub — private information for the user's loved ones if
 | `#legacy/letters` | Letters to People — list + per-letter detail | ✅ Built |
 | `#legacy/service` | Funeral / Memorial Service Wishes — type, location, officiant, music, wishes | ✅ Built |
 | `#legacy/social` | Social Media & Digital Memorial Preferences 🔒 | Stub |
-| `#legacy/accounts` | Financial Accounts hub → Accounts, Loans, Bills, Insurance, Financial Plan 🔒 | ✅ Built (Plan stub) |
+| `#legacy/accounts` | Financial hub → Accounts, Loans, Bills, Insurance, Financial Plan 🔒 | ✅ Built |
 | `#legacy/documents` | Documents — online (URL) + physical, drag-to-reorder, accordion expand | ✅ Built |
 | `#legacy/household` | Practical Household Instructions | Stub |
 | `#legacy/pets` | Pets — accordion cards, inline editing | ✅ Built |
@@ -947,7 +947,7 @@ End-of-life information hub — private information for the user's loved ones if
 | `#legacy/accounts/loans` | Loans — mortgages, car loans, credit cards, other debt | ✅ Built |
 | `#legacy/accounts/bills` | Bills — recurring expenses, auto-pay items | ✅ Built |
 | `#legacy/accounts/insurance` | Insurance — life/health/other policies | ✅ Built |
-| `#legacy/accounts/plan` | Financial Plan — big-picture instructions | Stub |
+| `#legacy/accounts/plan` | Financial Plan — 6 prompted narrative sections, auto-save per field | ✅ Built |
 
 All Financial Accounts sub-tabs share:
 - **Person switcher** — filters data to a specific enrolled person (IDs from `settings/investments.enrolledPersonIds`); person filter persists across tab navigations (`_legacyFinPersonFilter`)
@@ -979,7 +979,27 @@ All Financial Accounts sub-tabs share:
 - **Policy types** (combo — free-text or pick): Term Life, Whole Life, Universal Life, Group / Employer, Other
 - **Firestore**: `legacyFinancial/{personId}/insurance` — fields: `policyType`, `company`, `policyNumber`, `coverageAmount`, `beneficiary`, `agentName`, `agentPhone`, `claimsPhone`, `paperPolicyLocation`, `premium`, `premiumFrequency`, `whatToDo`, `url`, `usernameEnc`, `passwordEnc`, `sortOrder`, `archived`, `createdAt`
 
-**Passphrase encryption** (🔒 sections): Financial Accounts and Social Media require a **Legacy Passphrase** before displaying content. This passphrase encrypts sensitive fields (passwords, account numbers, SSNs, PINs) using AES-GCM 256-bit via the browser Web Crypto API. Key derivation uses PBKDF2 with a random salt stored in `legacyMeta/crypto`. The passphrase is **never stored** — only the salt is in Firestore. Once entered, the session stays unlocked until the browser tab is closed. Implemented in `legacy-crypto.js`.
+**Financial Plan tab** (`#legacy/accounts/plan`):
+- Six predefined prompted sections, each a labeled textarea with a guiding prompt beneath the label and an auto-save-on-blur behavior
+- 🎙️ Speak (voice-to-text) button on 4 of the 6 sections (Big Picture, First Things, Wishes, Anything Else)
+- Saved status indicator per field ("Saving…" → "Saved" fades after 2s)
+- Person-scoped: same person switcher as other tabs; switching person reloads all field values
+- Not encrypted — narrative text, not credentials; still behind the passphrase gate
+
+| Section | Field key | Voice |
+|---------|-----------|-------|
+| The Big Picture | `planBigPicture` | ✅ |
+| First Things — What to Do | `planFirstThings` | ✅ |
+| Key People to Call | `planKeyPeople` | — |
+| Investments & Retirement | `planInvestments` | — |
+| My Wishes for the Money | `planWishes` | ✅ |
+| Anything Else | `planOther` | ✅ |
+
+Stored as fields on `legacyFinancial/{personId}` (merged via `set({…}, {merge:true})`).
+
+**Hub rename:** "Financial Accounts" → "Financial" — tile label on the My Legacy hub and hub page title updated to reflect the full scope of the section (not just accounts).
+
+**Passphrase encryption** (🔒 sections): Financial and Social Media require a **Legacy Passphrase** before displaying content. This passphrase encrypts sensitive fields (passwords, account numbers, SSNs, PINs) using AES-GCM 256-bit via the browser Web Crypto API. Key derivation uses PBKDF2 with a random salt stored in `legacyMeta/crypto`. The passphrase is **never stored** — only the salt is in Firestore. Once entered, the session stays unlocked until the browser tab is closed. Implemented in `legacy-crypto.js`.
 
 **Firestore collections**:
 - `legacyMeta` — docs keyed by section (e.g. `obituary`, `burial`); `crypto` doc holds `pbkdf2Salt` and `verifyToken` ✅ active
@@ -990,6 +1010,7 @@ All Financial Accounts sub-tabs share:
 - `legacyFinancial/{personId}/loans` — loan records (see Loans tab above) ✅ active
 - `legacyFinancial/{personId}/bills` — bill records (see Bills tab above) ✅ active
 - `legacyFinancial/{personId}/insurance` — insurance policy records (see Insurance tab above) ✅ active
+- `legacyFinancial/{personId}` (top-level doc) — Financial Plan fields: `planBigPicture`, `planFirstThings`, `planKeyPeople`, `planInvestments`, `planWishes`, `planOther` ✅ active
 
 ### Life Calendar (`lifecalendar.js`)
 

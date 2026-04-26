@@ -14089,6 +14089,57 @@ a.legacy-fin-card:hover {
     margin-right: 6px;
 }
 
+/* ── Financial Plan ─────────────────────────────────────── */
+.plan-intro {
+    font-size: 0.9rem;
+    color: #555;
+    margin: 0 0 20px;
+    line-height: 1.5;
+}
+
+.plan-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.plan-section {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 16px;
+}
+
+.plan-section-label {
+    display: block;
+    font-weight: 700;
+    font-size: 1rem;
+    color: #2e7d32;
+    margin-bottom: 4px;
+}
+
+.plan-section-prompt {
+    font-size: 0.82rem;
+    color: #777;
+    margin: 0 0 10px;
+    line-height: 1.45;
+    font-style: italic;
+}
+
+.plan-textarea {
+    width: 100%;
+    resize: vertical;
+    box-sizing: border-box;
+}
+
+.plan-save-status {
+    font-size: 0.78rem;
+    color: #888;
+    min-height: 16px;
+    margin-top: 4px;
+    text-align: right;
+}
+
 .insur-type-badge {
     display: inline-block;
     padding: 2px 8px;

@@ -2299,6 +2299,35 @@ All fields are optional. Policy type is a combo box (pick or type your own). Pre
 
 ---
 
+## screen:legacy-financial-plan
+
+### Quick Help
+- Six prompted sections — write as much or as little as you want in each one
+- Each section saves automatically when you click away
+- Use 🎙️ Speak to dictate instead of type — works great for longer thoughts
+- Switch the person at the top to write a plan for a spouse or other enrolled person
+
+### Details
+
+**What it's for:** The big-picture narrative that ties all your financial records together. Each account, loan, and bill already has its own "What to do" field for tactical instructions. This plan is the strategic layer — the human context your loved one needs to understand the full picture and know where to start.
+
+**Sections:**
+
+- **The Big Picture** — Overall situation. Are things in good shape? Any complications upfront?
+- **First Things — What to Do** — Week 1–2 priorities. What auto-pays and can wait? What stops? Who to call before any big decisions?
+- **Key People to Call** — Financial advisor, accountant, attorney, HR/benefits. Name, firm, phone, why to call. Can also reference Contacts or People to Notify.
+- **Investments & Retirement** — What to do (or not do) with investment accounts. Tax implications, rollover guidance, time horizon.
+- **My Wishes for the Money** — Keep the house or sell? Help kids/grandkids? Charitable giving? Your intent, in your own words.
+- **Anything Else** — Whatever doesn't fit above.
+
+**Tips:**
+- Fill in sections in whatever order makes sense — they are independent.
+- Leave sections blank if they don't apply to your situation.
+- The prompts under each label are guides — ignore them and write freely if you prefer.
+- This plan is not encrypted (it is narrative, not credentials), but it is still behind your Legacy Passphrase.
+
+---
+
 ## screen:lifecalendar
 
 ### Quick Help

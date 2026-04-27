@@ -1818,7 +1818,79 @@ function _investCashDirty() {
     if (btn) { btn.disabled = false; btn.textContent = 'Save'; }
 }
 
-// ---------- Ticker → Company Name Auto-fetch ----------
+// ---------- Ticker → Company Name Lookup (shared) ----------
+// Tries: 1) Finnhub profile  2) Finnhub search  3) LLM fallback.
+// Returns the name string, or null if all sources fail.
+async function _investLookupCompanyName(ticker, finnhubApiKey) {
+    var name = null;
+
+    // 1. Finnhub stock profile (works for equities)
+    if (finnhubApiKey) {
+        try {
+            var resp = await fetch(
+                'https://finnhub.io/api/v1/stock/profile2?symbol=' + encodeURIComponent(ticker) +
+                '&token=' + encodeURIComponent(finnhubApiKey)
+            );
+            var json = await resp.json();
+            if (json && json.name) name = json.name;
+        } catch (e) { console.warn('Finnhub profile lookup failed', e); }
+    }
+
+    // 2. Finnhub symbol search (catches ETFs, mutual funds, etc.)
+    if (!name && finnhubApiKey) {
+        try {
+            var sresp = await fetch(
+                'https://finnhub.io/api/v1/search?q=' + encodeURIComponent(ticker) +
+                '&token=' + encodeURIComponent(finnhubApiKey)
+            );
+            var sdata = await sresp.json();
+            if (sdata && sdata.result) {
+                var match = sdata.result.find(function(r) {
+                    return (r.symbol || '').toUpperCase()        === ticker ||
+                           (r.displaySymbol || '').toUpperCase() === ticker;
+                });
+                if (match && match.description) name = match.description;
+            }
+        } catch (e) { console.warn('Finnhub search lookup failed', e); }
+    }
+
+    // 3. LLM fallback — ask the configured AI for the fund name
+    if (!name) {
+        try {
+            var llmDoc = await userCol('settings').doc('llm').get();
+            if (llmDoc.exists) {
+                var cfg      = llmDoc.data();
+                var provider = cfg.provider || 'openai';
+                var llmKey   = cfg.apiKey   || '';
+                var llmModel = cfg.model    || (provider === 'grok' ? 'grok-3' : 'gpt-4o');
+                var epUrl    = provider === 'grok'
+                    ? 'https://api.x.ai/v1/chat/completions'
+                    : 'https://api.openai.com/v1/chat/completions';
+
+                var llmResp = await fetch(epUrl, {
+                    method : 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + llmKey },
+                    body   : JSON.stringify({
+                        model   : llmModel,
+                        messages: [
+                            { role: 'system', content: 'You are a financial data assistant. Reply with only the requested data — no explanation, no punctuation, no extra words.' },
+                            { role: 'user',   content: 'What is the full company or fund name for the ticker symbol ' + ticker + '? Reply with just the name.' }
+                        ],
+                        max_completion_tokens: 40
+                    })
+                });
+                if (llmResp.ok) {
+                    var llmData = await llmResp.json();
+                    var llmName = (llmData.choices[0].message.content || '').trim();
+                    if (llmName) name = llmName;
+                }
+            }
+        } catch (e) { console.warn('LLM company name fallback failed', e); }
+    }
+
+    return name;
+}
+
 // Called onblur of the ticker field in the holding modal.
 // Only fills in the company name if the field is currently empty.
 async function _investAutoFillCompanyName() {
@@ -1829,75 +1901,11 @@ async function _investAutoFillCompanyName() {
     if (!ticker || companyEl.value.trim()) return;
 
     var apiKey = await _investGetFinnhubKey();
-    if (!apiKey) return;
 
     var prevPlaceholder = companyEl.placeholder;
     companyEl.placeholder = 'Looking up…';
     try {
-        var name = null;
-
-        // 1. Try Finnhub stock profile (equities)
-        try {
-            var resp = await fetch(
-                'https://finnhub.io/api/v1/stock/profile2?symbol=' + encodeURIComponent(ticker) +
-                '&token=' + encodeURIComponent(apiKey)
-            );
-            var json = await resp.json();
-            if (json && json.name) name = json.name;
-        } catch (e) { console.warn('Finnhub profile lookup failed', e); }
-
-        // 2. Finnhub symbol search (catches ETFs, funds, etc.)
-        if (!name) {
-            try {
-                var sresp = await fetch(
-                    'https://finnhub.io/api/v1/search?q=' + encodeURIComponent(ticker) +
-                    '&token=' + encodeURIComponent(apiKey)
-                );
-                var sdata = await sresp.json();
-                if (sdata && sdata.result) {
-                    var match = sdata.result.find(function(r) {
-                        return (r.symbol || '').toUpperCase()        === ticker ||
-                               (r.displaySymbol || '').toUpperCase() === ticker;
-                    });
-                    if (match && match.description) name = match.description;
-                }
-            } catch (e) { console.warn('Finnhub search lookup failed', e); }
-        }
-
-        // 3. LLM fallback — ask the configured AI for the fund name
-        if (!name) {
-            try {
-                var llmDoc = await userCol('settings').doc('llm').get();
-                if (llmDoc.exists) {
-                    var cfg      = llmDoc.data();
-                    var provider = cfg.provider || 'openai';
-                    var llmKey   = cfg.apiKey   || '';
-                    var llmModel = cfg.model    || (provider === 'grok' ? 'grok-3' : 'gpt-4o');
-                    var epUrl    = provider === 'grok'
-                        ? 'https://api.x.ai/v1/chat/completions'
-                        : 'https://api.openai.com/v1/chat/completions';
-
-                    var llmResp = await fetch(epUrl, {
-                        method : 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + llmKey },
-                        body   : JSON.stringify({
-                            model   : llmModel,
-                            messages: [
-                                { role: 'system', content: 'You are a financial data assistant. Reply with only the requested data — no explanation, no punctuation, no extra words.' },
-                                { role: 'user',   content: 'What is the full company or fund name for the ticker symbol ' + ticker + '? Reply with just the name.' }
-                            ],
-                            max_completion_tokens: 40
-                        })
-                    });
-                    if (llmResp.ok) {
-                        var llmData = await llmResp.json();
-                        var llmName = (llmData.choices[0].message.content || '').trim();
-                        if (llmName) name = llmName;
-                    }
-                }
-            } catch (e) { console.warn('LLM company name fallback failed', e); }
-        }
-
+        var name = await _investLookupCompanyName(ticker, apiKey);
         if (name) companyEl.value = name;
     } finally {
         companyEl.placeholder = prevPlaceholder;

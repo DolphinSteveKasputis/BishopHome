@@ -67,9 +67,11 @@ var _investPersonFilter = 'self';   // 'self' or a people doc ID
 var _investPeople       = [];       // [{id, name}] enrolled contacts
 var _investAccounts     = [];       // account docs for the current person (may include joint from self)
 var _investShowArchived = false;
-var _investExpandedIds  = {};       // {accountId: bool}
-var _investRevealedIds  = {};       // {accountId: bool} — sensitive fields decrypted & shown
-var _investDecryptCache = {};       // {accountId: {accountNumber, username, password}}
+var _investExpandedIds      = {};    // {accountId: bool}
+var _investRevealedIds      = {};    // {accountId: bool} — sensitive fields decrypted & shown
+var _investDecryptCache     = {};    // {accountId: {accountNumber, username, password}}
+var _investCardTotalsCache  = {};    // {accountId: totalValue} — current value for investment accounts in accordion
+var _investRetireConfigOpen = false; // whether the retire widget config (RoR / after-tax) is visible
 var _investHubGroupId       = null;  // selected group on the hub landing page
 var _investActiveGroupId    = null;  // shared: last group selected on any invest page (persists across pages)
 
@@ -119,9 +121,16 @@ async function loadInvestmentsPage() {
     _investGroupSwitchHandler = function(gid) {
         _investActiveGroupId = gid;
         _investHubGroupId    = gid;
+        localStorage.setItem('investActiveGroupId', gid);
         _investRenderHubBody(gid);
     };
 
+    if (!_investActiveGroupId) {
+        var _storedGid = localStorage.getItem('investActiveGroupId');
+        if (_storedGid && _investGroups.find(function(g) { return g.id === _storedGid; })) {
+            _investActiveGroupId = _storedGid;
+        }
+    }
     if (!_investHubGroupId && _investActiveGroupId) _investHubGroupId = _investActiveGroupId;
     _investHubGroupId = _investRenderGroupSwitcher('investHubGroupSwitcher', _investHubGroupId);
     await _investRenderHubBody(_investHubGroupId);
@@ -503,11 +512,22 @@ function _investCardHtml(acct) {
                 '</div>';
         }
 
-        // Cash balance
-        if (acct.cashBalance !== undefined && acct.cashBalance !== null && acct.cashBalance !== '') {
+        // Value display: investment accounts show "Current Value" (sum of holdings); bank accounts show "Cash Balance"
+        var isCashAcct = _INVEST_CASH_TYPES.indexOf(acct.accountType || '') >= 0;
+        if (isCashAcct) {
+            if (acct.cashBalance !== undefined && acct.cashBalance !== null && acct.cashBalance !== '') {
+                body += '<div class="invest-detail-row">' +
+                    '<span class="invest-detail-label">Cash Balance</span>' +
+                    '<span class="invest-detail-value">$' + parseFloat(acct.cashBalance || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</span>' +
+                    '</div>';
+            }
+        } else {
+            var cachedTotal = _investCardTotalsCache[acct.id];
             body += '<div class="invest-detail-row">' +
-                '<span class="invest-detail-label">Cash Balance</span>' +
-                '<span class="invest-detail-value">$' + parseFloat(acct.cashBalance || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</span>' +
+                '<span class="invest-detail-label">Current Value</span>' +
+                '<span class="invest-detail-value">' +
+                    (cachedTotal !== undefined ? _investFmtCurrency(cachedTotal) : 'Loading…') +
+                '</span>' +
                 '</div>';
         }
 
@@ -598,11 +618,25 @@ function _investCardHtml(acct) {
 
 // ---------- Card Interactions ----------
 
-function _investToggleCard(id) {
+async function _investToggleCard(id) {
     _investExpandedIds[id] = !_investExpandedIds[id];
     if (!_investExpandedIds[id]) {
         delete _investRevealedIds[id];
         delete _investDecryptCache[id];
+    } else {
+        // For investment accounts, load holdings total if not yet cached
+        var acct = _investAccounts.find(function(a) { return a.id === id; });
+        if (acct && _INVEST_CASH_TYPES.indexOf(acct.accountType || '') < 0
+                 && _investCardTotalsCache[id] === undefined) {
+            var ns = acct._ns || _investPersonFilter;
+            var snap = await _investHoldingCol(ns, id).get();
+            var total = 0;
+            snap.forEach(function(doc) {
+                var h = doc.data();
+                if (h.shares != null && h.lastPrice != null) total += h.shares * h.lastPrice;
+            });
+            _investCardTotalsCache[id] = total;
+        }
     }
     _investRenderList();
 }
@@ -1110,6 +1144,14 @@ async function _investLoadConfig() {
     } catch (e) { console.error('Error loading investmentConfig', e); }
 }
 
+function _investToggleRetireConfig() {
+    _investRetireConfigOpen = !_investRetireConfigOpen;
+    var cfg = document.getElementById('investRetireConfig');
+    if (cfg) cfg.style.display = _investRetireConfigOpen ? '' : 'none';
+    var btn = document.getElementById('investRetireGearBtn');
+    if (btn) btn.classList.toggle('invest-retire-gear--active', _investRetireConfigOpen);
+}
+
 async function _investSaveConfig() {
     var rorRaw = ((document.getElementById('investConfigRoR')      || {}).value || '').trim();
     var atpRaw = ((document.getElementById('investConfigAfterTax') || {}).value || '').trim();
@@ -1574,11 +1616,21 @@ function _investRenderAccountDetail(acct) {
 
     var totals = _investComputeAccountTotals(_investCurrentHoldings, acct.cashBalance);
 
+    // Gain/loss across all holdings that have cost basis
+    var totalGain = null;
+    _investCurrentHoldings.forEach(function(h) {
+        if (h.costBasis != null && h.lastPrice != null && h.shares != null) {
+            if (totalGain === null) totalGain = 0;
+            totalGain += (h.lastPrice - h.costBasis) * h.shares;
+        }
+    });
+
     // Header
     var html =
         '<div class="page-header">' +
             '<h2>' + escapeHtml(acct.nickname || 'Account') + '</h2>' +
             '<div class="page-header-actions">' +
+                (acct.url ? '<a class="btn btn-secondary btn-small" href="' + escapeHtml(acct.url) + '" target="_blank" rel="noopener" title="Visit site">🔗</a>' : '') +
                 '<a class="btn btn-secondary" href="#investments/accounts/edit/' + acct.id + '">Edit Account</a>' +
             '</div>' +
         '</div>' +
@@ -1605,7 +1657,15 @@ function _investRenderAccountDetail(acct) {
                   '<div class="invest-total-row">' +
                     '<span class="invest-total-sublabel">Cash Balance</span>' +
                     '<span class="invest-total-subvalue">' + _investFmtCurrency(totals.cash) + '</span>' +
-                  '</div>'
+                  '</div>' +
+                  (totalGain !== null
+                    ? '<div class="invest-total-row">' +
+                        '<span class="invest-total-sublabel">Gain / Loss</span>' +
+                        '<span class="invest-total-subvalue ' + (totalGain >= 0 ? 'invest-total-gain' : 'invest-total-loss') + '">' +
+                            (totalGain >= 0 ? '+' : '−') + _investFmtCurrency(Math.abs(totalGain)) +
+                        '</span>' +
+                      '</div>'
+                    : '')
                 : '') +
         '</div>';
 
@@ -2147,6 +2207,7 @@ async function loadInvestmentsSnapshotsPage() {
     _investGroupSwitchHandler = function(gid) {
         _investActiveGroupId    = gid;
         _investSnapshotsGroupId = gid;
+        localStorage.setItem('investActiveGroupId', gid);
         _investRenderSnapshotsPage();
     };
 
@@ -2398,6 +2459,7 @@ async function loadInvestmentsSummaryPage() {
     _investGroupSwitchHandler = function(gid) {
         _investActiveGroupId  = gid;
         _investSummaryGroupId = gid;
+        localStorage.setItem('investActiveGroupId', gid);
         _investRenderSummaryPage();
     };
 
@@ -2510,7 +2572,10 @@ async function _investRenderSummaryPage() {
 
         // Retirement widget
         '<div class="invest-summary-retire">' +
-            '<div class="invest-summary-retire-title">If I retired today</div>' +
+            '<div class="invest-summary-retire-title">' +
+                'If I retired today' +
+                '<button class="invest-retire-gear" id="investRetireGearBtn" onclick="_investToggleRetireConfig()" title="Settings">⚙</button>' +
+            '</div>' +
             '<div class="invest-summary-retire-amounts">' +
                 '<div class="invest-summary-retire-stat">' +
                     '<span class="invest-summary-retire-label">Annual</span>' +
@@ -2521,7 +2586,8 @@ async function _investRenderSummaryPage() {
                     '<span class="invest-summary-retire-val">' + _investFmtCurrency(monthly) + '</span>' +
                 '</div>' +
             '</div>' +
-            '<div class="invest-summary-retire-config">' +
+            '<div class="invest-summary-retire-config" id="investRetireConfig"' +
+                    ' style="' + (_investRetireConfigOpen ? '' : 'display:none') + '">' +
                 '<div class="invest-summary-retire-config-row">' +
                     '<label>Return Rate</label>' +
                     '<input type="number" id="investConfigRoR" class="invest-config-input"' +
@@ -2647,7 +2713,8 @@ function _investSummaryAccountRow(acct) {
         '</div>' +
         '<div class="invest-summary-acct-right">' +
             '<div class="invest-summary-acct-value">' + _investFmtCurrency(t.total) + '</div>' +
-            '<button class="iht-btn invest-summary-acct-edit" title="Edit account"' +
+            (acct.url ? '<a class="iht-btn invest-summary-acct-url" href="' + escapeHtml(acct.url) + '" target="_blank" rel="noopener" title="Visit site">🔗</a>' : '') +
+            '<button class="iht-btn invest-summary-acct-edit" title="View holdings"' +
                 ' onclick="_investEditFromSummary(\'' + escapeHtml(acct._ns) + '\',\'' + acct.id + '\')">✏</button>' +
         '</div>' +
     '</div>';

@@ -14429,6 +14429,8 @@ a.invest-hub-card:hover {
 }
 .invest-holdings-table tfoot tr.iht-foot-row { border-top: 2px solid #e0e0e0; background: #fafafa; }
 .iht-foot { font-weight: 700; color: #333; }
+.iht-foot-row .iht-gain { color: #2e7d32; }
+.iht-foot-row .iht-loss { color: #c62828; }
 
 /* Update prices bar */
 .invest-update-prices-bar {
@@ -14801,7 +14803,33 @@ a.invest-hub-card:hover {
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
+.invest-retire-gear {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.95rem;
+    opacity: 0.45;
+    padding: 0 2px;
+    line-height: 1;
+    color: #2e7d32;
+}
+.invest-retire-gear:hover,
+.invest-retire-gear--active { opacity: 1; }
+/* Gain/loss in account totals card */
+.invest-total-gain { color: #2e7d32; font-weight: 600; }
+.invest-total-loss { color: #c62828; font-weight: 600; }
+/* URL link icon on summary account rows */
+.invest-summary-acct-url {
+    text-decoration: none;
+    opacity: 0.4;
+    font-size: 0.82rem;
+    padding: 1px 3px;
+}
+.invest-summary-acct-url:hover { opacity: 1; }
 .invest-summary-retire-amounts {
     display: flex;
     gap: 24px;

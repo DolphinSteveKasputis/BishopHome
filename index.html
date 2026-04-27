@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=601">
+    <link rel="stylesheet" href="css/styles.css?v=602">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -7035,7 +7035,8 @@ service firebase.storage {
                 </div>
                 <div class="form-group">
                     <label>Cost Basis / Share ($)</label>
-                    <input type="number" id="investHoldingCostBasis" placeholder="0.00" min="0" step="0.01">
+                    <input type="text" inputmode="decimal" id="investHoldingCostBasis" placeholder="$0.00"
+                        onfocus="_investUnfmtCashField(this)" onblur="_investFmtCashField(this)">
                 </div>
                 <div class="modal-buttons">
                     <button class="btn btn-primary" onclick="_investSaveHolding()">Save</button>
@@ -10492,9 +10493,9 @@ export default {
     <script src="js/legacy-crypto.js?v=2"></script>
     <script src="js/legacy.js?v=28"></script>
     <script src="js/credentials.js?v=583"></script>
-    <script src="js/investments.js?v=601"></script>
+    <script src="js/investments.js?v=602"></script>
     <script src="js/private.js?v=579"></script>
-    <script src="js/app.js?v=601"></script>
+    <script src="js/app.js?v=602"></script>
 
 </body>
 </html>

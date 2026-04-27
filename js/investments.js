@@ -1683,7 +1683,12 @@ function _investOpenHoldingModal(holdingId) {
     _investVal('investHoldingTicker',    h ? h.ticker      || '' : '');
     _investVal('investHoldingCompany',   h ? h.companyName || '' : '');
     _investVal('investHoldingShares',    h ? h.shares    != null ? h.shares    : '' : '');
-    _investVal('investHoldingCostBasis', h ? h.costBasis != null ? h.costBasis : '' : '');
+    var cbEl = document.getElementById('investHoldingCostBasis');
+    var cbVal = h && h.costBasis != null ? h.costBasis : '';
+    if (cbEl) {
+        cbEl.value = cbVal;
+        if (cbVal !== '') _investFmtCashField(cbEl);
+    }
 
     openModal('investHoldingModal');
     var tickerEl = document.getElementById('investHoldingTicker');
@@ -1694,7 +1699,7 @@ async function _investSaveHolding() {
     var ticker         = ((document.getElementById('investHoldingTicker')    || {}).value || '').trim().toUpperCase();
     var companyName    = ((document.getElementById('investHoldingCompany')   || {}).value || '').trim();
     var sharesRaw      = ((document.getElementById('investHoldingShares')    || {}).value || '').trim();
-    var costBasisRaw   = ((document.getElementById('investHoldingCostBasis') || {}).value || '').trim();
+    var costBasisRaw   = ((document.getElementById('investHoldingCostBasis') || {}).value || '').trim().replace(/[^0-9.]/g, '');
 
     if (!ticker)      { alert('Please enter a ticker symbol.'); return; }
     if (!companyName) { alert('Please enter a company or fund name.'); return; }

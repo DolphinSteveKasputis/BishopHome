@@ -1453,29 +1453,43 @@ async function _investFetchPrice(ticker, apiKey) {
                    '&token=' + encodeURIComponent(apiKey);
         var resp = await fetch(url);
         if (resp.status === 401) throw new Error('invalid key');
-        if (!resp.ok)            throw new Error('HTTP ' + resp.status);
+        if (!resp.ok)            throw new Error('Finnhub HTTP ' + resp.status);
         var data = await resp.json();
         if (data.error)          throw new Error(data.error);
-        // c = current price; pc = previous close (used when market closed)
         var price = (data.c && data.c > 0) ? data.c : (data.pc && data.pc > 0 ? data.pc : 0);
         if (price > 0) return price;
-        // price is 0 — likely a mutual fund; fall through to Yahoo
+        console.log('[prices] Finnhub returned 0 for ' + ticker + ' — trying Yahoo');
     } catch (e) {
-        if (e.message === 'invalid key') throw e; // auth failure — don't try Yahoo
-        // Finnhub threw for another reason — fall through to Yahoo
+        if (e.message === 'invalid key') throw e;
+        console.log('[prices] Finnhub error for ' + ticker + ': ' + e.message + ' — trying Yahoo');
     }
 
-    // --- Yahoo Finance fallback (mutual funds + anything Finnhub misses) ---
-    var yUrl  = 'https://query1.finance.yahoo.com/v8/finance/chart/' +
-                encodeURIComponent(ticker) + '?interval=1d&range=1d';
-    var yResp = await fetch(yUrl);
-    if (!yResp.ok) throw new Error('HTTP ' + yResp.status);
-    var yData  = await yResp.json();
-    var yPrice = yData  && yData.chart  && yData.chart.result &&
-                 yData.chart.result[0]  && yData.chart.result[0].meta &&
-                 yData.chart.result[0].meta.regularMarketPrice;
-    if (!yPrice || yPrice <= 0) throw new Error('no price found');
-    return yPrice;
+    // --- Yahoo Finance fallback (v7 quote endpoint) ---
+    try {
+        var y7Url  = 'https://query2.finance.yahoo.com/v7/finance/quote?symbols=' +
+                     encodeURIComponent(ticker) + '&fields=regularMarketPrice';
+        var y7Resp = await fetch(y7Url);
+        if (!y7Resp.ok) throw new Error('Yahoo v7 HTTP ' + y7Resp.status);
+        var y7Data  = await y7Resp.json();
+        var y7Price = y7Data && y7Data.quoteResponse && y7Data.quoteResponse.result &&
+                      y7Data.quoteResponse.result[0] && y7Data.quoteResponse.result[0].regularMarketPrice;
+        if (y7Price && y7Price > 0) return y7Price;
+        console.log('[prices] Yahoo v7 returned no price for ' + ticker + ' — trying v8 chart');
+    } catch (e) {
+        console.log('[prices] Yahoo v7 error for ' + ticker + ': ' + e.message + ' — trying v8 chart');
+    }
+
+    // --- Yahoo Finance v8 chart fallback ---
+    var y8Url  = 'https://query1.finance.yahoo.com/v8/finance/chart/' +
+                 encodeURIComponent(ticker) + '?interval=1d&range=1d';
+    var y8Resp = await fetch(y8Url);
+    if (!y8Resp.ok) throw new Error('Yahoo v8 HTTP ' + y8Resp.status);
+    var y8Data  = await y8Resp.json();
+    var y8Price = y8Data && y8Data.chart && y8Data.chart.result &&
+                  y8Data.chart.result[0] && y8Data.chart.result[0].meta &&
+                  y8Data.chart.result[0].meta.regularMarketPrice;
+    if (!y8Price || y8Price <= 0) throw new Error('no price from Finnhub or Yahoo');
+    return y8Price;
 }
 
 // Update prices for all holdings in the currently displayed account.
@@ -1499,9 +1513,10 @@ async function _investUpdateAccountPrices() {
 
     var ns     = _investCurrentAccountNs;
     var aid    = _investCurrentAccountId;
-    var failed = [];
+    var failed    = [];
+    var failedMsg = {};
 
-    // Deduplicate tickers so we only call Finnhub once per unique symbol
+    // Deduplicate tickers so we only call APIs once per unique symbol
     var priceMap = {};
     _investCurrentHoldings.forEach(function(h) {
         if (h.ticker) priceMap[h.ticker] = null;
@@ -1512,6 +1527,8 @@ async function _investUpdateAccountPrices() {
             priceMap[ticker] = await _investFetchPrice(ticker, apiKey);
         } catch (e) {
             failed.push(ticker);
+            failedMsg[ticker] = e.message;
+            console.log('[prices] Final failure for ' + ticker + ': ' + e.message);
         }
     }
 
@@ -1543,7 +1560,7 @@ async function _investUpdateAccountPrices() {
     if (btn) { btn.disabled = false; btn.textContent = '\ud83d\udce1 Update Prices'; }
     if (status) {
         if (failed.length > 0) {
-            status.textContent = 'Updated \u2014 ' + failed.length + ' failed: ' + failed.join(', ');
+            status.textContent = 'Updated \u2014 failed: ' + failed.map(function(t) { return t + ' (' + (failedMsg[t] || '?') + ')'; }).join(', ');
             status.style.color = '#c62828';
         } else {
             status.textContent = '\u2713 Updated just now';

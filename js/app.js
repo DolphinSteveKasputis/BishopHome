@@ -177,7 +177,7 @@ const ALL_PAGES = [
     'memory-create', 'memory-edit',
     'view', 'view-history', 'views-categories',
     'credentials-add', 'credentials-edit', 'credentials-categories',
-    'investments', 'investments-accounts', 'investments-account', 'investments-groups', 'investments-form', 'investments-summary',
+    'investments', 'investments-accounts', 'investments-account', 'investments-groups', 'investments-form', 'investments-summary', 'investments-snapshots',
     'help'
 ];
 
@@ -215,7 +215,7 @@ const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'jo
                      'legacy-pets', 'legacy-notify', 'legacy-letters', 'legacy-letter', 'legacy-message',
                      'private', 'private-bookmarks', 'private-documents', 'private-photos', 'private-photos-gallery',
                      'credentials', 'credentials-add', 'credentials-edit', 'credentials-categories',
-                     'investments', 'investments-accounts', 'investments-account', 'investments-groups', 'investments-form', 'investments-summary'];
+                     'investments', 'investments-accounts', 'investments-account', 'investments-groups', 'investments-form', 'investments-summary', 'investments-snapshots'];
 
 /** Tracks which nav context is currently active ('yard', 'house', or 'life'). */
 var currentNavContext = 'yard';
@@ -786,6 +786,9 @@ function handleRoute() {
         showPage('legacy');
         loadLegacyPage();
     // ---------- Investments routes ----------
+    } else if (page === 'investments' && id === 'snapshots') {
+        showPage('investments-snapshots');
+        loadInvestmentsSnapshotsPage();
     } else if (page === 'investments' && id === 'summary') {
         showPage('investments-summary');
         loadInvestmentsSummaryPage();

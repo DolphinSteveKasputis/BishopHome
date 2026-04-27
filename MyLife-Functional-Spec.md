@@ -1135,7 +1135,7 @@ Person-scoped financial account tracker. The **canonical storage** for financial
 Tile labeled **Investments** (📈), always visible on the Life landing page → navigates to `#investments` hub.
 
 ### Hub (`#investments`)
-Three cards: **Accounts** → `#investments/accounts`; **Summary** → `#investments/summary`; **Snapshots** (coming soon).
+Three cards: **Accounts** → `#investments/accounts`; **Summary** → `#investments/summary`; **Snapshots** → `#investments/snapshots`.
 
 ### Person Switcher (Accounts page)
 - Dropdown at top: **Me** (personId = `'self'`) + enrolled contacts
@@ -1204,6 +1204,25 @@ Stored in `userCol('investmentGroups')`. Fields: `name`, `personIds[]` (always i
 ### Finnhub API Key
 Stored in `userCol('settings').doc('investments').finnhubApiKey`. Configured in Settings → General Settings → Investments (Finnhub) accordion. Help modal walks through free account signup at finnhub.io, copying the key from the dashboard, and testing it with a live AAPL quote. The module caches the key in `_investFinnhubApiKey`; saving a new key in Settings calls `_investInvalidateFinnhubKey()` to force a re-read.
 
+### Historical Snapshots (`#investments/snapshots`)
+Point-in-time portfolio recordings used to compute period performance on the Summary page.
+
+**Capture flow**: Tap **+ Capture** → modal opens with type selector (filtered to the current group's configured `snapshotFrequencies`) + optional notes field → tap **Capture** → app calls `_investLoadGroupAccounts()` and `_investComputeGroupTotals()` for current values → saves to `investmentSnapshots` collection → checks and updates ATH → closes modal → re-renders page.
+
+**Snapshot doc fields**: `groupId`, `type` (daily/weekly/monthly/yearly), `date` (YYYY-MM-DD), `netWorth`, `invested`, `perAccount` (map: accountId → total value), `perCategory` (roth/preTax/brokerage/cash/invCash), `notes` (nullable), `createdAt`.
+
+**Snapshot list**: Grouped by type (Yearly → Monthly → Weekly → Daily), most recent first within each group. Each row shows date, notes (if any), Net Worth, and Invested. Tap to expand → shows category breakdown table (reuses `.invest-summary-cat-row` styles) + Delete button.
+
+**All-Time Highs**: One ATH per snapshot type stored in `investmentConfig/main` as `allTimeHighDaily`, `allTimeHighWeekly`, `allTimeHighMonthly`, `allTimeHighYearly` — each `{value, date}`. Updated automatically on each capture via `_investCheckAndUpdateATH()` using a targeted `set({merge:true})`. Shown as orange cards at the top of the page.
+
+**Delete**: Confirm dialog → removes doc from Firestore → re-renders page. Note: deleting a snapshot used as a period baseline causes the corresponding period row on Summary to revert to "—".
+
+**Firestore query**: All snapshots loaded with `.orderBy('date','desc')` (single-field index, no composite needed); groupId filtering done client-side.
+
+**investmentSnapshots collection**: Added to `BACKUP_DATA_COLLECTIONS` in settings.js.
+
+**Group switcher**: Same pattern as Summary page — `_investGroupSwitchHandler` set to re-render on change.
+
 ### Portfolio Summary (`#investments/summary`)
 Dashboard page showing totals for the selected group.
 
@@ -1236,6 +1255,7 @@ Dashboard page showing totals for the selected group.
 | `#investments/account/:ns/:id` | Account detail (holdings + cash balance) |
 | `#investments/groups` | Manage groups |
 | `#investments/summary` | Portfolio summary dashboard |
+| `#investments/snapshots` | Historical snapshots — capture, browse, delete |
 
 ---
 

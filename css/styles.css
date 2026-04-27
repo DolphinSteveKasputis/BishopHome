@@ -14273,6 +14273,143 @@ a.invest-hub-card:hover {
 }
 
 /* ============================================================
+   INVESTMENTS — HISTORICAL SNAPSHOTS PAGE
+   ============================================================ */
+
+.invest-snap-group-freqs {
+    font-size: 0.8rem;
+    color: #666;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+/* All-Time Highs row */
+.invest-snap-ath-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+}
+.invest-snap-ath-item {
+    background: #fff3e0;
+    border: 1px solid #ffe0b2;
+    border-radius: 8px;
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 110px;
+}
+.invest-snap-ath-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #e65100;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.invest-snap-ath-value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #bf360c;
+}
+.invest-snap-ath-date {
+    font-size: 0.72rem;
+    color: #888;
+}
+
+/* Snapshot type section */
+.invest-snap-type-section {
+    margin-bottom: 20px;
+}
+.invest-snap-type-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+}
+
+/* Snapshot row */
+.invest-snap-row {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    overflow: hidden;
+}
+.invest-snap-row-main {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 14px;
+    cursor: pointer;
+    user-select: none;
+}
+.invest-snap-row-main:hover { background: #fafafa; }
+.invest-snap-row-left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+.invest-snap-date {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #222;
+}
+.invest-snap-notes {
+    font-size: 0.78rem;
+    color: #888;
+    font-style: italic;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.invest-snap-row-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    white-space: nowrap;
+}
+.invest-snap-networth {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #1a237e;
+}
+.invest-snap-invested {
+    font-size: 0.75rem;
+    color: #666;
+}
+.invest-snap-chevron {
+    font-size: 1.1rem;
+    color: #bbb;
+    flex-shrink: 0;
+}
+
+/* Expanded detail */
+.invest-snap-detail {
+    border-top: 1px solid #f0f0f0;
+    padding: 0 14px 12px;
+}
+.invest-snap-detail-cats {
+    margin-top: 10px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    overflow: hidden;
+}
+.invest-snap-detail-actions {
+    margin-top: 10px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* ============================================================
    INVESTMENTS — PORTFOLIO SUMMARY PAGE
    ============================================================ */
 

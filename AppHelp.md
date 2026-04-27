@@ -1792,6 +1792,33 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 
 ---
 
+## screen:investments-snapshots
+
+### Quick Help
+- Records a point-in-time snapshot of your portfolio — Net Worth, Invested, and per-category breakdown
+- Tap **+ Capture** to record a new snapshot; choose Daily, Weekly, Monthly, or Yearly
+- Tap any snapshot row to expand the full category breakdown
+- **All-Time Highs** show the highest Net Worth ever recorded for each snapshot type
+- Snapshots are used by the Summary page to compute period performance (Day/Week/Month/YTD gains)
+
+### Details
+
+**Capturing a snapshot**: Tap **+ Capture** → select type (only types configured for the current group appear) → optionally add notes → tap **Capture**. The app loads current account values, computes Net Worth and category totals, then saves to Firestore. This may take a few seconds while it reads all accounts and holdings.
+
+**Snapshot types**: Daily, Weekly, Monthly, Yearly — configured per group in Manage Groups. The "Me" group defaults to all four. A kids' or secondary group might only track Yearly.
+
+**Best practice**: Tap **Update All Prices** on the Summary page first, then come here to capture a snapshot. This ensures the snapshot reflects current market prices rather than stale cached values.
+
+**Expanded view**: Tap a snapshot row to see the full category breakdown (Roth, Pre-Tax, Brokerage, Cash, Uninvested Cash) with values and % of Net Worth at that moment.
+
+**All-Time Highs**: Updated automatically whenever a new snapshot exceeds the previous ATH for that type. Shown in the orange cards at the top. Each type (Daily/Weekly/Monthly/Yearly) tracks its own high-water mark.
+
+**Deleting a snapshot**: Expand the row → tap **Delete** → confirm. Deleting a snapshot that was used as a period baseline will cause that period's gain/loss on the Summary page to show "—" again until a new snapshot of that type is captured.
+
+**Group switcher**: If more than one group exists, a dropdown appears to switch between groups. Each group has its own snapshot history.
+
+---
+
 ## screen:investments-summary
 
 ### Quick Help

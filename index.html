@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=593">
+    <link rel="stylesheet" href="css/styles.css?v=594">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -6953,6 +6953,33 @@ service firebase.storage {
             <!-- Populated by loadInvestmentsSummaryPage() in investments.js -->
         </section>
 
+        <!-- Page: Historical Snapshots (#investments/snapshots) -->
+        <section class="page hidden" id="page-investments-snapshots">
+            <!-- Populated by loadInvestmentsSnapshotsPage() in investments.js -->
+        </section>
+
+        <!-- Modal: Capture Snapshot -->
+        <div class="modal-overlay" id="investSnapModal">
+            <div class="modal">
+                <h3>Capture Snapshot</h3>
+                <div class="form-group">
+                    <label>Type</label>
+                    <select id="investSnapType">
+                        <!-- Populated by _investOpenSnapModal() -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Notes <span class="field-optional">(optional)</span></label>
+                    <textarea id="investSnapNotes" rows="2" placeholder="e.g. Year-end review, market high"></textarea>
+                </div>
+                <div id="investSnapStatus" class="invest-prices-note"></div>
+                <div class="modal-actions">
+                    <button class="btn btn-primary" id="investSnapSaveBtn" onclick="_investCaptureSnapshot()">Capture</button>
+                    <button class="btn btn-secondary" onclick="closeModal('investSnapModal')">Cancel</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Modal: Add/Edit Group (Investments) -->
         <div class="modal-overlay" id="investGroupModal">
             <div class="modal">
@@ -10455,9 +10482,9 @@ export default {
     <script src="js/legacy-crypto.js?v=2"></script>
     <script src="js/legacy.js?v=28"></script>
     <script src="js/credentials.js?v=583"></script>
-    <script src="js/investments.js?v=593"></script>
+    <script src="js/investments.js?v=594"></script>
     <script src="js/private.js?v=579"></script>
-    <script src="js/app.js?v=593"></script>
+    <script src="js/app.js?v=594"></script>
 
 </body>
 </html>

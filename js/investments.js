@@ -115,14 +115,14 @@ async function loadInvestmentsPage() {
                 '</div>' +
                 '<span class="invest-hub-arrow">›</span>' +
             '</a>' +
-            '<div class="invest-hub-card invest-hub-card--soon">' +
+            '<a class="invest-hub-card" href="#investments/snapshots">' +
                 '<span class="invest-hub-icon">📷</span>' +
                 '<div class="invest-hub-text">' +
                     '<div class="invest-hub-title">Snapshots</div>' +
-                    '<div class="invest-hub-desc">Historical portfolio snapshots over time</div>' +
+                    '<div class="invest-hub-desc">Capture and browse historical portfolio values</div>' +
                 '</div>' +
-                '<span class="invest-hub-badge">Coming soon</span>' +
-            '</div>' +
+                '<span class="invest-hub-arrow">›</span>' +
+            '</a>' +
         '</div>';
 }
 
@@ -1546,6 +1546,263 @@ function _investComputeAccountTotals(holdings, cashBalance) {
 function _investFmtCurrency(val) {
     if (val == null || isNaN(val)) return '—';
     return '$' + parseFloat(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// ============================================================
+// HISTORICAL SNAPSHOTS PAGE  (#investments/snapshots)
+// ============================================================
+
+// ---------- Snapshot State ----------
+
+var _investSnapshotsGroupId = null;
+
+function _investSnapshotCol() {
+    return userCol('investmentSnapshots');
+}
+
+async function loadInvestmentsSnapshotsPage() {
+    document.getElementById('breadcrumbBar').innerHTML =
+        '<a href="#investments">Investments</a><span class="separator">&rsaquo;</span><span>Snapshots</span>';
+    document.getElementById('headerTitle').innerHTML =
+        '<a href="#main" class="home-link">' + escapeHtml(window.appName || 'My Life') + '</a>';
+
+    await Promise.all([_investLoadGroups(), _investLoadConfig(), _investLoadAll()]);
+
+    _investGroupSwitchHandler = function(gid) {
+        _investSnapshotsGroupId = gid;
+        _investRenderSnapshotsPage();
+    };
+
+    if (!_investSnapshotsGroupId && _investGroups.length > 0) {
+        _investSnapshotsGroupId = _investGroups[0].id;
+    }
+
+    await _investRenderSnapshotsPage();
+}
+
+async function _investLoadSnapshots(groupId) {
+    // Single-field orderBy (auto-indexed); filter by groupId client-side to avoid composite index
+    var snap = await _investSnapshotCol().orderBy('date', 'desc').get();
+    var list = [];
+    snap.forEach(function(doc) {
+        var data = doc.data();
+        if (data.groupId === groupId) {
+            list.push(Object.assign({ id: doc.id }, data));
+        }
+    });
+    return list;
+}
+
+async function _investRenderSnapshotsPage() {
+    var page = document.getElementById('page-investments-snapshots');
+    if (!page) return;
+    page.innerHTML = '<div class="invest-summary-loading">Loading…</div>';
+
+    var group = _investGroups.find(function(g) { return g.id === _investSnapshotsGroupId; })
+             || (_investGroups[0] || null);
+    if (!group) {
+        page.innerHTML = '<div class="empty-state">No groups found.</div>';
+        return;
+    }
+
+    var snapshots = await _investLoadSnapshots(group.id);
+
+    // Group switcher
+    var switcherHtml = '';
+    if (_investGroups.length > 1) {
+        var opts = _investGroups.map(function(g) {
+            return '<option value="' + escapeHtml(g.id) + '"' +
+                (g.id === group.id ? ' selected' : '') + '>' + escapeHtml(g.name) + '</option>';
+        }).join('');
+        switcherHtml =
+            '<div class="invest-group-switcher">' +
+                '<label class="invest-group-switcher-label">Group:</label>' +
+                '<select id="investGroupSelect" onchange="_investOnGroupSwitch(this.value)">' + opts + '</select>' +
+            '</div>';
+    }
+
+    // Group's configured frequencies
+    var freqBadges = (group.snapshotFrequencies || []).map(function(f) {
+        return '<span class="invest-freq-badge">' + f.charAt(0).toUpperCase() + f.slice(1) + '</span>';
+    }).join(' ');
+
+    // All-Time Highs
+    var athTypes  = ['daily', 'weekly', 'monthly', 'yearly'];
+    var athItems  = athTypes.filter(function(t) {
+        return !!_investConfig['allTimeHigh' + t.charAt(0).toUpperCase() + t.slice(1)];
+    });
+    var athHtml   = '';
+    if (athItems.length > 0) {
+        athHtml = '<div class="invest-snap-ath-row">';
+        athItems.forEach(function(t) {
+            var key = 'allTimeHigh' + t.charAt(0).toUpperCase() + t.slice(1);
+            var ath = _investConfig[key];
+            athHtml +=
+                '<div class="invest-snap-ath-item">' +
+                    '<span class="invest-snap-ath-label">' + t.charAt(0).toUpperCase() + t.slice(1) + ' ATH</span>' +
+                    '<span class="invest-snap-ath-value">' + _investFmtCurrency(ath.value) + '</span>' +
+                    '<span class="invest-snap-ath-date">' + escapeHtml(ath.date) + '</span>' +
+                '</div>';
+        });
+        athHtml += '</div>';
+    }
+
+    // Snapshot list grouped by type
+    var typeOrder = ['yearly', 'monthly', 'weekly', 'daily'];
+    var grouped   = {};
+    typeOrder.forEach(function(t) { grouped[t] = []; });
+    snapshots.forEach(function(s) { if (grouped[s.type]) grouped[s.type].push(s); });
+
+    var listHtml = '';
+    typeOrder.forEach(function(type) {
+        if (grouped[type].length === 0) return;
+        var label = type.charAt(0).toUpperCase() + type.slice(1);
+        listHtml += '<div class="invest-snap-type-section"><div class="invest-snap-type-title">' + label + '</div>';
+        grouped[type].forEach(function(s) { listHtml += _investSnapshotRowHtml(s); });
+        listHtml += '</div>';
+    });
+    if (snapshots.length === 0) {
+        listHtml = '<div class="empty-state">No snapshots yet — tap "+ Capture" to record your first.</div>';
+    }
+
+    page.innerHTML =
+        '<div class="page-header">' +
+            '<h2>📷 Snapshots</h2>' +
+            '<div class="page-header-actions">' +
+                '<button class="btn btn-primary" onclick="_investOpenSnapModal()">+ Capture</button>' +
+            '</div>' +
+        '</div>' +
+        (switcherHtml ? '<div class="invest-summary-switcher-row">' + switcherHtml + '</div>' : '') +
+        '<div class="invest-snap-group-freqs">Tracking: ' + freqBadges + '</div>' +
+        (athHtml ? '<div class="invest-summary-section-title">All-Time Highs</div>' + athHtml : '') +
+        '<div class="invest-summary-section-title">History</div>' +
+        '<div class="invest-snap-list">' + listHtml + '</div>';
+}
+
+function _investSnapshotRowHtml(s) {
+    var perCat = s.perCategory || {};
+    var catRows =
+        _investCategoryRow('Roth',            perCat.roth,      s.netWorth, 'invest-badge--roth') +
+        _investCategoryRow('Pre-Tax',         perCat.preTax,    s.netWorth, 'invest-badge--pretax') +
+        _investCategoryRow('Brokerage',       perCat.brokerage, s.netWorth, 'invest-badge--brokerage') +
+        _investCategoryRow('Cash',            perCat.cash,      s.netWorth, 'invest-badge--cash') +
+        _investCategoryRow('Uninvested Cash', perCat.invCash,   s.netWorth, 'invest-badge--other');
+
+    return '<div class="invest-snap-row" id="snapRow-' + s.id + '">' +
+        '<div class="invest-snap-row-main" onclick="_investToggleSnapDetail(\'' + s.id + '\')">' +
+            '<div class="invest-snap-row-left">' +
+                '<span class="invest-snap-date">' + escapeHtml(s.date || '—') + '</span>' +
+                (s.notes ? '<span class="invest-snap-notes">' + escapeHtml(s.notes) + '</span>' : '') +
+            '</div>' +
+            '<div class="invest-snap-row-right">' +
+                '<span class="invest-snap-networth">' + _investFmtCurrency(s.netWorth) + '</span>' +
+                '<span class="invest-snap-invested">Invested: ' + _investFmtCurrency(s.invested) + '</span>' +
+            '</div>' +
+            '<span class="invest-snap-chevron">›</span>' +
+        '</div>' +
+        '<div class="invest-snap-detail hidden" id="snapDetail-' + s.id + '">' +
+            '<div class="invest-snap-detail-cats">' + catRows + '</div>' +
+            '<div class="invest-snap-detail-actions">' +
+                '<button class="btn btn-danger btn-small" onclick="_investDeleteSnapshot(\'' + s.id + '\')">Delete</button>' +
+            '</div>' +
+        '</div>' +
+    '</div>';
+}
+
+function _investToggleSnapDetail(snapId) {
+    var detail  = document.getElementById('snapDetail-' + snapId);
+    var row     = document.getElementById('snapRow-' + snapId);
+    var chevron = row ? row.querySelector('.invest-snap-chevron') : null;
+    if (!detail) return;
+    detail.classList.toggle('hidden');
+    if (chevron) chevron.textContent = detail.classList.contains('hidden') ? '›' : '⌄';
+}
+
+async function _investDeleteSnapshot(snapId) {
+    if (!confirm('Delete this snapshot? This cannot be undone.')) return;
+    await _investSnapshotCol().doc(snapId).delete();
+    await _investRenderSnapshotsPage();
+}
+
+// ---------- Capture Snapshot ----------
+
+function _investOpenSnapModal() {
+    var group = _investGroups.find(function(g) { return g.id === _investSnapshotsGroupId; })
+             || (_investGroups[0] || null);
+    if (!group) return;
+
+    var freqs = group.snapshotFrequencies || ['daily', 'weekly', 'monthly', 'yearly'];
+    document.getElementById('investSnapType').innerHTML = freqs.map(function(f) {
+        return '<option value="' + escapeHtml(f) + '">' + f.charAt(0).toUpperCase() + f.slice(1) + '</option>';
+    }).join('');
+    document.getElementById('investSnapNotes').value  = '';
+    document.getElementById('investSnapStatus').textContent = '';
+
+    openModal('investSnapModal');
+}
+
+async function _investCaptureSnapshot() {
+    var typeEl   = document.getElementById('investSnapType');
+    var notesEl  = document.getElementById('investSnapNotes');
+    var statusEl = document.getElementById('investSnapStatus');
+    var saveBtn  = document.getElementById('investSnapSaveBtn');
+
+    var type  = typeEl  ? typeEl.value.trim()  : '';
+    var notes = notesEl ? notesEl.value.trim() : '';
+
+    if (!type) { alert('Please select a snapshot type.'); return; }
+
+    var group = _investGroups.find(function(g) { return g.id === _investSnapshotsGroupId; });
+    if (!group) return;
+
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Computing…'; }
+    if (statusEl) { statusEl.textContent = 'Loading current account values…'; statusEl.style.color = '#555'; }
+
+    var accounts = await _investLoadGroupAccounts(group);
+    var cats     = _investComputeGroupTotals(accounts);
+
+    // perAccount: map of accountId → current total value
+    var perAccount = {};
+    accounts.forEach(function(acct) {
+        perAccount[acct.id] = (acct._totals || {}).total || 0;
+    });
+
+    var date = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
+    await _investSnapshotCol().add({
+        groupId:     group.id,
+        type:        type,
+        date:        date,
+        netWorth:    cats.netWorth,
+        invested:    cats.invested,
+        perAccount:  perAccount,
+        perCategory: {
+            roth:      cats.roth,
+            preTax:    cats.preTax,
+            brokerage: cats.brokerage,
+            cash:      cats.cash,
+            invCash:   cats.invCash
+        },
+        notes:       notes || null,
+        createdAt:   firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    await _investCheckAndUpdateATH(type, cats.netWorth, date);
+
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Capture'; }
+    closeModal('investSnapModal');
+    await _investRenderSnapshotsPage();
+}
+
+async function _investCheckAndUpdateATH(type, netWorth, date) {
+    var key     = 'allTimeHigh' + type.charAt(0).toUpperCase() + type.slice(1);
+    var current = _investConfig[key];
+    if (!current || netWorth > (current.value || 0)) {
+        _investConfig[key] = { value: netWorth, date: date };
+        var patch = {};
+        patch[key] = { value: netWorth, date: date };
+        await _investConfigCol().doc('main').set(patch, { merge: true });
+    }
 }
 
 // ============================================================

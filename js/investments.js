@@ -729,7 +729,8 @@ async function _investRemovePerson(contactId) {
 
 var _investFormEditId   = null;  // null = add mode; account ID = edit mode
 var _investFormDraft    = null;  // basic field values preserved across passphrase unlock
-var _investFormReturnTo = null;  // 'summary' or null (defaults back to Accounts list)
+var _investFormReturnTo    = null;  // 'summary' or null (defaults back to Accounts list)
+var _investAccountReturnTo = null;  // 'summary' or null (defaults back to Accounts list)
 
 async function loadInvestmentsFormPage(id) {
     _investFormEditId = id || null;
@@ -1542,9 +1543,12 @@ async function loadInvestmentsAccountPage(ns, accountId) {
         _investCurrentHoldings.push(Object.assign({ id: doc.id }, doc.data()));
     });
 
+    var returnHref  = _investAccountReturnTo === 'summary' ? '#investments/summary' : '#investments/accounts';
+    var returnLabel = _investAccountReturnTo === 'summary' ? 'Summary'              : 'Accounts';
+    _investAccountReturnTo = null;
     document.getElementById('breadcrumbBar').innerHTML =
         '<a href="#investments">Investments</a><span class="separator">&rsaquo;</span>' +
-        '<a href="#investments/accounts">Accounts</a><span class="separator">&rsaquo;</span>' +
+        '<a href="' + returnHref + '">' + returnLabel + '</a><span class="separator">&rsaquo;</span>' +
         '<span>' + escapeHtml(acct.nickname || 'Account') + '</span>';
     document.getElementById('headerTitle').innerHTML =
         '<a href="#main" class="home-link">' + escapeHtml(window.appName || 'My Life') + '</a>';
@@ -2629,6 +2633,7 @@ function _investPerfRowLive(label, snapshotType, baseline, currentNetWorth) {
 }
 
 function _investEditFromSummary(ns, id) {
+    _investAccountReturnTo = 'summary';
     window.location.hash = '#investments/account/' + encodeURIComponent(ns) + '/' + id;
 }
 

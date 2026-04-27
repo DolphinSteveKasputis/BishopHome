@@ -1446,53 +1446,49 @@ async function _investGetFinnhubKey() {
 
 // Fetch the current price for a single ticker from Finnhub.
 // Returns numeric price (current if market open, previous close if closed), or throws on error.
-async function _investFetchPrice(ticker, apiKey) {
-    // --- Finnhub (stocks + ETFs) ---
-    try {
-        var url  = 'https://finnhub.io/api/v1/quote?symbol=' + encodeURIComponent(ticker) +
-                   '&token=' + encodeURIComponent(apiKey);
-        var resp = await fetch(url);
-        if (resp.status === 401) throw new Error('invalid key');
-        if (!resp.ok)            throw new Error('Finnhub HTTP ' + resp.status);
-        var data = await resp.json();
-        if (data.error)          throw new Error(data.error);
-        var price = (data.c && data.c > 0) ? data.c : (data.pc && data.pc > 0 ? data.pc : 0);
-        if (price > 0) return price;
-        console.log('[prices] Finnhub returned 0 for ' + ticker + ' — trying Yahoo');
-    } catch (e) {
-        if (e.message === 'invalid key') throw e;
-        console.log('[prices] Finnhub error for ' + ticker + ': ' + e.message + ' — trying Yahoo');
-    }
+// Try Finnhub for one ticker. Returns price (number) or null; throws only on invalid key.
+async function _investFetchPriceFinnhub(ticker, apiKey) {
+    var url  = 'https://finnhub.io/api/v1/quote?symbol=' + encodeURIComponent(ticker) +
+               '&token=' + encodeURIComponent(apiKey);
+    var resp = await fetch(url);
+    if (resp.status === 401) throw new Error('invalid key');
+    if (!resp.ok) { console.log('[prices] Finnhub ' + resp.status + ' for ' + ticker); return null; }
+    var data = await resp.json();
+    if (data.error) { console.log('[prices] Finnhub error for ' + ticker + ': ' + data.error); return null; }
+    var price = (data.c && data.c > 0) ? data.c : (data.pc && data.pc > 0 ? data.pc : null);
+    return price;
+}
 
-    // --- Yahoo Finance via CORS proxies ---
-    // GitHub Pages blocks direct Yahoo requests; route through a proxy that adds CORS headers
-    var yahooTarget = 'https://query1.finance.yahoo.com/v8/finance/chart/' +
-                      encodeURIComponent(ticker) + '?interval=1d&range=1d';
-
+// Batch Yahoo Finance lookup for multiple tickers via CORS proxy.
+// Returns { ticker: price } for tickers that resolved; missing entries = not found.
+async function _investFetchYahooBatch(tickers) {
+    if (!tickers.length) return {};
+    var yahooTarget = 'https://query1.finance.yahoo.com/v7/finance/quote?symbols=' +
+                      tickers.map(encodeURIComponent).join('%2C') +
+                      '&fields=regularMarketPrice';
     var proxies = [
         'https://api.allorigins.win/raw?url=' + encodeURIComponent(yahooTarget),
         'https://corsproxy.io/?' + encodeURIComponent(yahooTarget),
         'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(yahooTarget)
     ];
-
     for (var i = 0; i < proxies.length; i++) {
         try {
-            var pResp = await fetch(proxies[i]);
-            if (!pResp.ok) throw new Error('HTTP ' + pResp.status);
-            var pData  = await pResp.json();
-            var pPrice = pData && pData.chart && pData.chart.result &&
-                         pData.chart.result[0] && pData.chart.result[0].meta &&
-                         pData.chart.result[0].meta.regularMarketPrice;
-            if (pPrice && pPrice > 0) {
-                console.log('[prices] Got ' + ticker + ' = ' + pPrice + ' via proxy ' + i);
-                return pPrice;
-            }
-            console.log('[prices] Proxy ' + i + ' returned no price for ' + ticker);
+            var resp = await fetch(proxies[i]);
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            var data    = await resp.json();
+            var results = data && data.quoteResponse && data.quoteResponse.result;
+            if (!results || !results.length) throw new Error('empty response');
+            var map = {};
+            results.forEach(function(r) {
+                if (r.symbol && r.regularMarketPrice > 0) map[r.symbol] = r.regularMarketPrice;
+            });
+            console.log('[prices] Yahoo batch proxy ' + i + ' resolved:', map);
+            return map;
         } catch (e) {
-            console.log('[prices] Proxy ' + i + ' error for ' + ticker + ': ' + e.message);
+            console.log('[prices] Yahoo batch proxy ' + i + ' failed: ' + e.message);
         }
     }
-    throw new Error('no price from Finnhub or any proxy');
+    return {};
 }
 
 // Update prices for all holdings in the currently displayed account.
@@ -1519,20 +1515,37 @@ async function _investUpdateAccountPrices() {
     var failed    = [];
     var failedMsg = {};
 
-    // Deduplicate tickers so we only call APIs once per unique symbol
+    // Deduplicate tickers
     var priceMap = {};
     _investCurrentHoldings.forEach(function(h) {
         if (h.ticker) priceMap[h.ticker] = null;
     });
 
+    // Phase 1: Finnhub for all tickers
+    var needYahoo = [];
     for (var ticker in priceMap) {
         try {
-            priceMap[ticker] = await _investFetchPrice(ticker, apiKey);
+            var p = await _investFetchPriceFinnhub(ticker, apiKey);
+            if (p && p > 0) { priceMap[ticker] = p; }
+            else             { needYahoo.push(ticker); }
         } catch (e) {
-            failed.push(ticker);
-            failedMsg[ticker] = e.message;
-            console.log('[prices] Final failure for ' + ticker + ': ' + e.message);
+            if (e.message === 'invalid key') {
+                if (status) { status.textContent = 'Invalid Finnhub API key'; status.style.color = '#c62828'; }
+                btn.disabled = false; btn.textContent = '📡 Update Prices';
+                return;
+            }
+            needYahoo.push(ticker);
         }
+    }
+
+    // Phase 2: one batched Yahoo request for everything Finnhub missed
+    if (needYahoo.length > 0) {
+        console.log('[prices] Yahoo batch for: ' + needYahoo.join(', '));
+        var yahooMap = await _investFetchYahooBatch(needYahoo);
+        needYahoo.forEach(function(t) {
+            if (yahooMap[t]) { priceMap[t] = yahooMap[t]; }
+            else             { failed.push(t); failedMsg[t] = 'not found in Finnhub or Yahoo'; }
+        });
     }
 
     // Batch-write updated prices to Firestore

@@ -772,7 +772,7 @@ async function loadInvestmentsFormPage(id) {
         '<div class="invest-form">' +
             '<div class="form-group">' +
                 '<label>Account Type *</label>' +
-                '<select id="investFormType">' + typeOpts + '</select>' +
+                '<select id="investFormType" onchange="_investFormTypeChange()">' + typeOpts + '</select>' +
             '</div>' +
             '<div class="form-group">' +
                 '<label>Nickname *</label>' +
@@ -801,7 +801,7 @@ async function loadInvestmentsFormPage(id) {
                 '<label>Last 4 Digits</label>' +
                 '<input type="text" id="investFormLast4" placeholder="1234" maxlength="4">' +
             '</div>' +
-            '<div class="form-group">' +
+            '<div class="form-group" id="investFormCashBalanceGroup">' +
                 '<label>Cash Balance ($)</label>' +
                 '<input type="text" inputmode="decimal" id="investFormCashBalance" placeholder="$0.00"' +
                     ' onfocus="_investUnfmtCashField(this)" onblur="_investFmtCashField(this)">' +
@@ -853,9 +853,10 @@ async function loadInvestmentsFormPage(id) {
 
     _investFormDraft = null; // consumed
 
-    // Format the cash balance field with $ on initial render
+    // Format the cash balance field with $ on initial render, and show/hide based on type
     var cashEl = document.getElementById('investFormCashBalance');
     if (cashEl && cashEl.value !== '') _investFmtCashField(cashEl);
+    _investFormTypeChange();
 
     await _investRenderSensitiveFields(acct);
 }
@@ -1005,6 +1006,15 @@ async function _investSaveForm() {
     _investFormDraft    = null;
     _investFormReturnTo = null;
     window.location.hash = dest;
+}
+
+function _investFormTypeChange() {
+    var type  = (document.getElementById('investFormType') || {}).value || '';
+    var group = document.getElementById('investFormCashBalanceGroup');
+    if (!group) return;
+    // Cash balance only applies to bank/cash accounts; investment accounts manage it via the holdings table
+    var isCash = _INVEST_CASH_TYPES.indexOf(type) >= 0 || type === 'other' || type === '';
+    group.style.display = isCash ? '' : 'none';
 }
 
 function _investCancelForm() {

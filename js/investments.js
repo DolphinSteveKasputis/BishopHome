@@ -2629,9 +2629,7 @@ function _investPerfRowLive(label, snapshotType, baseline, currentNetWorth) {
 }
 
 function _investEditFromSummary(ns, id) {
-    _investFormReturnTo = 'summary';
-    if (ns && ns !== _investPersonFilter) _investPersonFilter = ns;
-    window.location.hash = '#investments/accounts/edit/' + id;
+    window.location.hash = '#investments/account/' + encodeURIComponent(ns) + '/' + id;
 }
 
 function _investSummaryAccountRow(acct) {

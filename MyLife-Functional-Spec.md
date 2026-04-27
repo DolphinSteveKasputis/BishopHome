@@ -1220,9 +1220,11 @@ Stored in `userCol('investmentGroups')`. Fields: `name`, `personIds[]` (always i
 
 **Auto-create**: On every visit to the hub (`loadInvestmentsPage()`), `_investEnsureMeGroup()` checks whether any group doc exists; if not, creates the Me group with all four frequencies.
 
-**Manage Groups page**: Lists all groups as cards (name, people, frequency badges). **+ Add Group** and **Edit** open `investGroupModal` (name field + people checkboxes + frequency checkboxes). Me (always included, disabled). Non-default groups have a **Delete** button. Default group cannot be deleted.
+**Manage Groups page**: Lists all groups as cards (name, people, frequency badges). **+ Add Group** and **Edit** open `investGroupModal` (name field + people checkboxes + frequency checkboxes). Me is an optional checkbox (not always-included); non-default groups have a **Delete** button. Default group cannot be deleted.
 
 **Group switcher** (`_investRenderGroupSwitcher(containerId, selectedGroupId)`): Renders a labeled `<select>` into the given container element. Hidden (empty) when only one group exists. The `<select>` fires `_investOnGroupSwitch(groupId)`, which delegates to `_investGroupSwitchHandler` — a module-level variable set by each page that embeds the switcher.
+
+**Group persistence across pages** (`_investActiveGroupId`): Shared module-level var. When a group is selected on any page (Hub, Summary, Snapshots), both the page-specific group var and `_investActiveGroupId` are updated. Child pages (Summary, Snapshots) initialize their group from `_investActiveGroupId` if their own page-level var is null, so the group selected on the Hub carries over automatically.
 
 **Joint account rule**: Joint accounts only contribute to a group's totals when ALL parties of the joint account are members of that group.
 

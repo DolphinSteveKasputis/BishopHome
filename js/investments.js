@@ -70,7 +70,8 @@ var _investShowArchived = false;
 var _investExpandedIds  = {};       // {accountId: bool}
 var _investRevealedIds  = {};       // {accountId: bool} — sensitive fields decrypted & shown
 var _investDecryptCache = {};       // {accountId: {accountNumber, username, password}}
-var _investHubGroupId   = null;     // selected group on the hub landing page
+var _investHubGroupId       = null;  // selected group on the hub landing page
+var _investActiveGroupId    = null;  // shared: last group selected on any invest page (persists across pages)
 
 // ---------- Firestore Path ----------
 
@@ -116,10 +117,12 @@ async function loadInvestmentsPage() {
     await _investLoadConfig();
 
     _investGroupSwitchHandler = function(gid) {
-        _investHubGroupId = gid;
+        _investActiveGroupId = gid;
+        _investHubGroupId    = gid;
         _investRenderHubBody(gid);
     };
 
+    if (!_investHubGroupId && _investActiveGroupId) _investHubGroupId = _investActiveGroupId;
     _investHubGroupId = _investRenderGroupSwitcher('investHubGroupSwitcher', _investHubGroupId);
     await _investRenderHubBody(_investHubGroupId);
 }
@@ -2007,12 +2010,13 @@ async function loadInvestmentsSnapshotsPage() {
     await Promise.all([_investLoadGroups(), _investLoadConfig(), _investLoadAll()]);
 
     _investGroupSwitchHandler = function(gid) {
+        _investActiveGroupId    = gid;
         _investSnapshotsGroupId = gid;
         _investRenderSnapshotsPage();
     };
 
-    if (!_investSnapshotsGroupId && _investGroups.length > 0) {
-        _investSnapshotsGroupId = _investGroups[0].id;
+    if (!_investSnapshotsGroupId) {
+        _investSnapshotsGroupId = _investActiveGroupId || (_investGroups.length > 0 ? _investGroups[0].id : null);
     }
 
     await _investRenderSnapshotsPage();
@@ -2257,12 +2261,13 @@ async function loadInvestmentsSummaryPage() {
 
     // Each time the group switcher changes, re-render this page
     _investGroupSwitchHandler = function(gid) {
+        _investActiveGroupId  = gid;
         _investSummaryGroupId = gid;
         _investRenderSummaryPage();
     };
 
-    if (!_investSummaryGroupId && _investGroups.length > 0) {
-        _investSummaryGroupId = _investGroups[0].id;
+    if (!_investSummaryGroupId) {
+        _investSummaryGroupId = _investActiveGroupId || (_investGroups.length > 0 ? _investGroups[0].id : null);
     }
 
     await _investRenderSummaryPage();

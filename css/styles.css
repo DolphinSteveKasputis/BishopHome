@@ -14157,11 +14157,14 @@ a.invest-hub-card:hover {
     gap: 12px;
     padding: 4px 0;
 }
-.invest-checkbox-label {
+.invest-checkbox-label,
+.form-group .invest-checkbox-label {
     display: flex;
+    flex-direction: row;
     align-items: center;
     gap: 6px;
     font-size: 0.9rem;
+    font-weight: normal;
     cursor: pointer;
 }
 

@@ -1464,7 +1464,7 @@ async function _investFetchPriceFinnhub(ticker, apiKey) {
 async function _investFetchYahooBatch(tickers) {
     if (!tickers.length) return {};
     var yahooTarget = 'https://query1.finance.yahoo.com/v7/finance/quote?symbols=' +
-                      tickers.map(encodeURIComponent).join('%2C') +
+                      tickers.join(',') +
                       '&fields=regularMarketPrice';
     var proxies = [
         'https://api.allorigins.win/raw?url=' + encodeURIComponent(yahooTarget),

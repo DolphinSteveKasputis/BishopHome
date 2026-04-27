@@ -33,8 +33,8 @@ var _INVEST_BROKERAGE_TYPES  = ['brokerage-individual', 'brokerage-joint'];
 var _INVEST_TAX_ADV_TYPES    = ['hsa', '529'];
 
 // Tax-category buckets used by portfolio summary grouping
-var _INVEST_ROTH_TYPES   = ['roth-ira', 'roth-401k'];
-var _INVEST_PRETAX_TYPES = ['traditional-ira', 'traditional-401k', 'self-directed-401k', '403b', 'hsa', '529'];
+var _INVEST_ROTH_TYPES   = ['roth-ira', 'roth-401k', 'hsa'];
+var _INVEST_PRETAX_TYPES = ['traditional-ira', 'traditional-401k', 'self-directed-401k', '403b', '529'];
 var _INVEST_BROKER_TYPES = ['brokerage-individual', 'brokerage-joint'];
 var _INVEST_CASH_TYPES   = ['checking', 'savings', 'money-market', 'cd'];
 
@@ -107,14 +107,14 @@ async function loadInvestmentsPage() {
                 '</div>' +
                 '<span class="invest-hub-arrow">›</span>' +
             '</a>' +
-            '<div class="invest-hub-card invest-hub-card--soon">' +
+            '<a class="invest-hub-card" href="#investments/summary">' +
                 '<span class="invest-hub-icon">📊</span>' +
                 '<div class="invest-hub-text">' +
                     '<div class="invest-hub-title">Summary</div>' +
-                    '<div class="invest-hub-desc">Portfolio overview — Day / Week / Month / YTD gains</div>' +
+                    '<div class="invest-hub-desc">Net worth, category breakdown, and retirement estimate</div>' +
                 '</div>' +
-                '<span class="invest-hub-badge">Coming soon</span>' +
-            '</div>' +
+                '<span class="invest-hub-arrow">›</span>' +
+            '</a>' +
             '<div class="invest-hub-card invest-hub-card--soon">' +
                 '<span class="invest-hub-icon">📷</span>' +
                 '<div class="invest-hub-text">' +
@@ -897,6 +897,40 @@ function _investVal(id, value) {
 var _investGroups      = [];    // [{id, name, personIds, snapshotFrequencies, isDefault}]
 var _investGroupEditId = null;  // null = add mode; group doc ID = edit mode
 
+// ---------- Investment Config State ----------
+
+var _investConfig         = { projectedRoR: 0.06, afterTaxPct: 0.82 };
+var _investSummaryGroupId = null;  // selected group on the summary page
+
+function _investConfigCol() {
+    return userCol('investmentConfig');
+}
+
+async function _investLoadConfig() {
+    try {
+        var doc = await _investConfigCol().doc('main').get();
+        if (doc.exists) {
+            _investConfig = Object.assign({ projectedRoR: 0.06, afterTaxPct: 0.82 }, doc.data());
+        } else {
+            // Auto-create with defaults
+            await _investConfigCol().doc('main').set({ projectedRoR: 0.06, afterTaxPct: 0.82 });
+        }
+    } catch (e) { console.error('Error loading investmentConfig', e); }
+}
+
+async function _investSaveConfig() {
+    var rorRaw = ((document.getElementById('investConfigRoR')      || {}).value || '').trim();
+    var atpRaw = ((document.getElementById('investConfigAfterTax') || {}).value || '').trim();
+    var ror    = parseFloat(rorRaw);
+    var atp    = parseFloat(atpRaw);
+    if (isNaN(ror) || ror <= 0 || ror > 1) { alert('Enter a decimal rate (e.g. 0.06 for 6%).'); return; }
+    if (isNaN(atp) || atp <= 0 || atp > 1) { alert('Enter a decimal fraction (e.g. 0.82 for 82%).'); return; }
+    _investConfig.projectedRoR = ror;
+    _investConfig.afterTaxPct  = atp;
+    await _investConfigCol().doc('main').set(_investConfig);
+    await _investRenderSummaryPage();
+}
+
 function _investGroupCol() {
     return userCol('investmentGroups');
 }
@@ -1104,8 +1138,13 @@ function _investRenderGroupSwitcher(containerId, selectedGroupId) {
     return selectedGroupId || (_investGroups[0] ? _investGroups[0].id : null);
 }
 
-// Placeholder — overridden by each page that uses the switcher
-function _investOnGroupSwitch(groupId) {}
+// Set by each page that uses the group switcher; called when the dropdown changes
+var _investGroupSwitchHandler = null;
+function _investOnGroupSwitch(groupId) {
+    if (typeof _investGroupSwitchHandler === 'function') {
+        _investGroupSwitchHandler(groupId);
+    }
+}
 
 // ============================================================
 // FINNHUB PRICE FETCHING
@@ -1507,4 +1546,350 @@ function _investComputeAccountTotals(holdings, cashBalance) {
 function _investFmtCurrency(val) {
     if (val == null || isNaN(val)) return '—';
     return '$' + parseFloat(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// ============================================================
+// PORTFOLIO SUMMARY PAGE  (#investments/summary)
+// ============================================================
+
+async function loadInvestmentsSummaryPage() {
+    document.getElementById('breadcrumbBar').innerHTML =
+        '<a href="#investments">Investments</a><span class="separator">&rsaquo;</span><span>Summary</span>';
+    document.getElementById('headerTitle').innerHTML =
+        '<a href="#main" class="home-link">' + escapeHtml(window.appName || 'My Life') + '</a>';
+
+    await Promise.all([_investLoadGroups(), _investLoadConfig(), _investLoadAll()]);
+
+    // Each time the group switcher changes, re-render this page
+    _investGroupSwitchHandler = function(gid) {
+        _investSummaryGroupId = gid;
+        _investRenderSummaryPage();
+    };
+
+    if (!_investSummaryGroupId && _investGroups.length > 0) {
+        _investSummaryGroupId = _investGroups[0].id;
+    }
+
+    await _investRenderSummaryPage();
+}
+
+async function _investRenderSummaryPage() {
+    var page = document.getElementById('page-investments-summary');
+    if (!page) return;
+
+    page.innerHTML = '<div class="invest-summary-loading">Loading…</div>';
+
+    var group = _investGroups.find(function(g) { return g.id === _investSummaryGroupId; })
+             || (_investGroups[0] || null);
+
+    if (!group) {
+        page.innerHTML = '<div class="empty-state">No groups found. <a href="#investments/groups">Create a group</a>.</div>';
+        return;
+    }
+
+    var accounts = await _investLoadGroupAccounts(group);
+    var cats     = _investComputeGroupTotals(accounts);
+    var ror      = _investConfig.projectedRoR || 0.06;
+    var atp      = _investConfig.afterTaxPct  || 0.82;
+    var annual   = cats.invested * ror * atp;
+    var monthly  = annual / 12;
+
+    // Group switcher (only shown when >1 group exists)
+    var switcherHtml = '';
+    if (_investGroups.length > 1) {
+        var opts = _investGroups.map(function(g) {
+            return '<option value="' + escapeHtml(g.id) + '"' +
+                (g.id === group.id ? ' selected' : '') + '>' + escapeHtml(g.name) + '</option>';
+        }).join('');
+        switcherHtml =
+            '<div class="invest-group-switcher">' +
+                '<label class="invest-group-switcher-label">Group:</label>' +
+                '<select id="investGroupSelect" onchange="_investOnGroupSwitch(this.value)">' + opts + '</select>' +
+            '</div>';
+    }
+
+    // Per-account breakdown grouped by person
+    var personIds    = group.personIds || ['self'];
+    var breakdownHtml = '';
+    personIds.forEach(function(pid) {
+        var personAccts = accounts.filter(function(a) { return a._ns === pid && !a._joint; });
+        if (personAccts.length === 0) return;
+        var pName = pid === 'self' ? 'Me'
+                  : ((_investPeople.find(function(p) { return p.id === pid; }) || {}).name || pid);
+        breakdownHtml +=
+            '<div class="invest-summary-person-section">' +
+                '<div class="invest-summary-person-name">' + escapeHtml(pName) + '</div>';
+        personAccts.forEach(function(a) { breakdownHtml += _investSummaryAccountRow(a); });
+        breakdownHtml += '</div>';
+    });
+    var jointAccts = accounts.filter(function(a) { return !!a._joint; });
+    if (jointAccts.length > 0) {
+        breakdownHtml +=
+            '<div class="invest-summary-person-section">' +
+                '<div class="invest-summary-person-name">Joint Accounts</div>';
+        jointAccts.forEach(function(a) { breakdownHtml += _investSummaryAccountRow(a); });
+        breakdownHtml += '</div>';
+    }
+
+    var html =
+        '<div class="page-header">' +
+            '<h2>📊 Portfolio Summary</h2>' +
+            '<div class="page-header-actions">' +
+                '<button class="btn btn-secondary" id="investUpdateAllBtn" onclick="_investUpdateAllPrices()">📡 Update All Prices</button>' +
+            '</div>' +
+        '</div>' +
+        (switcherHtml ? '<div class="invest-summary-switcher-row">' + switcherHtml + '</div>' : '') +
+        '<div class="invest-prices-note" id="investSummaryPricesStatus"></div>' +
+
+        // Hero cards
+        '<div class="invest-summary-heroes">' +
+            '<div class="invest-summary-hero">' +
+                '<div class="invest-summary-hero-label">Net Worth</div>' +
+                '<div class="invest-summary-hero-value">' + _investFmtCurrency(cats.netWorth) + '</div>' +
+            '</div>' +
+            '<div class="invest-summary-hero">' +
+                '<div class="invest-summary-hero-label">Invested</div>' +
+                '<div class="invest-summary-hero-value">' + _investFmtCurrency(cats.invested) + '</div>' +
+            '</div>' +
+        '</div>' +
+
+        // Retirement widget
+        '<div class="invest-summary-retire">' +
+            '<div class="invest-summary-retire-title">If I retired today</div>' +
+            '<div class="invest-summary-retire-amounts">' +
+                '<div class="invest-summary-retire-stat">' +
+                    '<span class="invest-summary-retire-label">Annual</span>' +
+                    '<span class="invest-summary-retire-val">' + _investFmtCurrency(annual) + '</span>' +
+                '</div>' +
+                '<div class="invest-summary-retire-stat">' +
+                    '<span class="invest-summary-retire-label">Monthly</span>' +
+                    '<span class="invest-summary-retire-val">' + _investFmtCurrency(monthly) + '</span>' +
+                '</div>' +
+            '</div>' +
+            '<div class="invest-summary-retire-config">' +
+                '<div class="invest-summary-retire-config-row">' +
+                    '<label>Return Rate</label>' +
+                    '<input type="number" id="investConfigRoR" class="invest-config-input"' +
+                        ' step="0.001" min="0.001" max="1" placeholder="0.06"' +
+                        ' value="' + ror + '">' +
+                '</div>' +
+                '<div class="invest-summary-retire-config-row">' +
+                    '<label>After-Tax %</label>' +
+                    '<input type="number" id="investConfigAfterTax" class="invest-config-input"' +
+                        ' step="0.01" min="0.01" max="1" placeholder="0.82"' +
+                        ' value="' + atp + '">' +
+                '</div>' +
+                '<button class="btn btn-secondary btn-small" onclick="_investSaveConfig()">Recalculate</button>' +
+            '</div>' +
+        '</div>' +
+
+        // Category breakdown
+        '<div class="invest-summary-section-title">Category Breakdown</div>' +
+        '<div class="invest-summary-categories">' +
+            _investCategoryRow('Roth',            cats.roth,      cats.netWorth, 'invest-badge--roth') +
+            _investCategoryRow('Pre-Tax',         cats.preTax,    cats.netWorth, 'invest-badge--pretax') +
+            _investCategoryRow('Brokerage',       cats.brokerage, cats.netWorth, 'invest-badge--brokerage') +
+            _investCategoryRow('Cash',            cats.cash,      cats.netWorth, 'invest-badge--cash') +
+            _investCategoryRow('Uninvested Cash', cats.invCash,   cats.netWorth, 'invest-badge--other') +
+            '<div class="invest-summary-cat-row invest-summary-cat-total">' +
+                '<div class="invest-summary-cat-label">Net Worth</div>' +
+                '<div class="invest-summary-cat-value">' + _investFmtCurrency(cats.netWorth) + '</div>' +
+                '<div class="invest-summary-cat-pct"></div>' +
+            '</div>' +
+        '</div>' +
+
+        // Period performance (values wired in Phase 7 once snapshots exist)
+        '<div class="invest-summary-section-title">Period Performance</div>' +
+        '<div class="invest-summary-perf">' +
+            _investPerfRow('1 Week') +
+            _investPerfRow('1 Month') +
+            _investPerfRow('3 Months') +
+            _investPerfRow('YTD') +
+            _investPerfRow('1 Year') +
+        '</div>' +
+
+        // Per-account breakdown
+        '<div class="invest-summary-section-title">Accounts</div>' +
+        '<div class="invest-summary-accounts">' + breakdownHtml + '</div>';
+
+    page.innerHTML = html;
+}
+
+// ---------- Summary Helpers ----------
+
+function _investCategoryRow(label, value, total, badgeCls) {
+    var pct = (total > 0) ? (value / total * 100).toFixed(1) + '%' : '—';
+    return '<div class="invest-summary-cat-row">' +
+        '<div class="invest-summary-cat-label">' +
+            '<span class="invest-type-badge ' + escapeHtml(badgeCls) + '">' + escapeHtml(label) + '</span>' +
+        '</div>' +
+        '<div class="invest-summary-cat-value">' + _investFmtCurrency(value) + '</div>' +
+        '<div class="invest-summary-cat-pct">' + escapeHtml(pct) + '</div>' +
+    '</div>';
+}
+
+function _investPerfRow(label) {
+    return '<div class="invest-summary-perf-row">' +
+        '<span class="invest-summary-perf-label">' + escapeHtml(label) + '</span>' +
+        '<span class="invest-summary-perf-value">—</span>' +
+    '</div>';
+}
+
+function _investSummaryAccountRow(acct) {
+    var taxInfo = _investTaxCategoryInfo(acct.accountType || '');
+    var t       = acct._totals || { total: 0 };
+    return '<div class="invest-summary-acct-row">' +
+        '<div class="invest-summary-acct-info">' +
+            '<span class="invest-summary-acct-name">' + escapeHtml(acct.nickname || '(untitled)') + '</span>' +
+            '<span class="invest-type-badge ' + escapeHtml(taxInfo.cls) + '">' + escapeHtml(taxInfo.label) + '</span>' +
+        '</div>' +
+        '<div class="invest-summary-acct-value">' + _investFmtCurrency(t.total) + '</div>' +
+    '</div>';
+}
+
+// ---------- Load Accounts + Holdings for a Group ----------
+
+async function _investLoadGroupAccounts(group) {
+    var personIds   = (group && group.personIds) ? group.personIds : ['self'];
+    var allAccounts = [];
+
+    // Personal (non-joint) accounts for each person in the group
+    for (var i = 0; i < personIds.length; i++) {
+        var ns   = personIds[i];
+        var snap = await userCol('investments').doc(ns).collection('accounts').get();
+        snap.forEach(function(doc) {
+            var data = doc.data();
+            if (!data.archived && data.ownerType !== 'joint') {
+                allAccounts.push(Object.assign({ id: doc.id, _ns: ns }, data));
+            }
+        });
+    }
+
+    // Joint accounts (stored under 'self') — only included when ALL parties are in the group
+    if (personIds.indexOf('self') >= 0) {
+        var selfSnap = await userCol('investments').doc('self').collection('accounts').get();
+        selfSnap.forEach(function(doc) {
+            var data = doc.data();
+            if (data.ownerType === 'joint' && !data.archived && data.primaryContactId) {
+                var alreadyIn      = allAccounts.find(function(a) { return a.id === doc.id; });
+                var coOwnerInGroup = personIds.indexOf(data.primaryContactId) >= 0;
+                if (!alreadyIn && coOwnerInGroup) {
+                    allAccounts.push(Object.assign({ id: doc.id, _ns: 'self', _joint: true }, data));
+                }
+            }
+        });
+    }
+
+    // Load holdings for each account and attach computed totals
+    for (var j = 0; j < allAccounts.length; j++) {
+        var acct     = allAccounts[j];
+        var holdSnap = await _investHoldingCol(acct._ns, acct.id).get();
+        acct._holdings = [];
+        holdSnap.forEach(function(hdoc) {
+            acct._holdings.push(Object.assign({ id: hdoc.id }, hdoc.data()));
+        });
+        acct._totals = _investComputeAccountTotals(acct._holdings, acct.cashBalance);
+    }
+
+    return allAccounts;
+}
+
+// ---------- Category Totals ----------
+
+function _investComputeGroupTotals(accounts) {
+    var t = { roth: 0, preTax: 0, brokerage: 0, cash: 0, invCash: 0 };
+
+    accounts.forEach(function(acct) {
+        var type   = acct.accountType || '';
+        var isCash = _INVEST_CASH_TYPES.indexOf(type) >= 0;
+        var totals = acct._totals || { holdings: 0, cash: 0, total: 0 };
+
+        if (isCash) {
+            t.cash += totals.total;
+        } else {
+            if      (_INVEST_ROTH_TYPES.indexOf(type)   >= 0) t.roth      += totals.holdings;
+            else if (_INVEST_PRETAX_TYPES.indexOf(type) >= 0) t.preTax    += totals.holdings;
+            else if (_INVEST_BROKER_TYPES.indexOf(type) >= 0) t.brokerage += totals.holdings;
+            t.invCash += totals.cash;
+        }
+    });
+
+    t.netWorth = t.roth + t.preTax + t.brokerage + t.cash + t.invCash;
+    t.invested = t.netWorth - t.invCash;
+    return t;
+}
+
+// ---------- Update All Prices ----------
+
+async function _investUpdateAllPrices() {
+    var btn    = document.getElementById('investUpdateAllBtn');
+    var status = document.getElementById('investSummaryPricesStatus');
+    if (!btn) return;
+
+    var apiKey = await _investGetFinnhubKey();
+    if (!apiKey) {
+        if (status) {
+            status.textContent = 'Finnhub API key not configured — add it in Settings → General Settings';
+            status.style.color = '#c62828';
+        }
+        return;
+    }
+
+    var group = _investGroups.find(function(g) { return g.id === _investSummaryGroupId; });
+    if (!group) return;
+
+    btn.disabled    = true;
+    btn.textContent = '⏳ Updating…';
+    if (status) { status.textContent = ''; }
+
+    var accounts = await _investLoadGroupAccounts(group);
+
+    // Deduplicate tickers across all accounts
+    var priceMap = {};
+    accounts.forEach(function(acct) {
+        (acct._holdings || []).forEach(function(h) {
+            if (h.ticker) priceMap[h.ticker] = null;
+        });
+    });
+
+    var failed = [];
+    for (var ticker in priceMap) {
+        try {
+            priceMap[ticker] = await _investFetchPrice(ticker, apiKey);
+        } catch (e) {
+            failed.push(ticker);
+        }
+    }
+
+    // Batch-write updated prices
+    var now   = new Date().toISOString();
+    var batch = firebase.firestore().batch();
+    accounts.forEach(function(acct) {
+        (acct._holdings || []).forEach(function(h) {
+            if (h.ticker && priceMap[h.ticker] != null) {
+                batch.update(_investHoldingCol(acct._ns, acct.id).doc(h.id), {
+                    lastPrice:     priceMap[h.ticker],
+                    lastPriceDate: now
+                });
+            }
+        });
+    });
+    await batch.commit();
+
+    // Re-render the page (will reload fresh holdings from Firestore)
+    await _investRenderSummaryPage();
+
+    // Restore button and status after re-render replaced the DOM
+    btn    = document.getElementById('investUpdateAllBtn');
+    status = document.getElementById('investSummaryPricesStatus');
+    if (btn) { btn.disabled = false; btn.textContent = '📡 Update All Prices'; }
+    if (status) {
+        if (failed.length > 0) {
+            status.textContent = 'Updated — ' + failed.length + ' failed: ' + failed.join(', ');
+            status.style.color = '#c62828';
+        } else {
+            status.textContent = '✓ Updated just now';
+            status.style.color = '#2e7d32';
+        }
+    }
 }

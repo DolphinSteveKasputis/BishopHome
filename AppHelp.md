@@ -1792,6 +1792,36 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 
 ---
 
+## screen:investments-summary
+
+### Quick Help
+- Shows **Net Worth** and **Invested** totals across all accounts in the selected group
+- **If I retired today**: estimated annual and monthly income based on your return rate and after-tax percentage
+- **Category Breakdown**: Roth, Pre-Tax, Brokerage, Cash, and Uninvested Cash totals with % of Net Worth
+- **Period Performance**: placeholders for future snapshot-based gains (wired in a later phase)
+- **📡 Update All Prices**: fetches live Finnhub prices for every holding across all accounts in the group
+
+### Details
+
+**Net Worth vs Invested**: Net Worth = Roth + Pre-Tax + Brokerage + Cash + Uninvested Cash. Invested = Net Worth − Uninvested Cash (i.e., includes bank Cash but excludes idle cash sitting in brokerage/investment accounts).
+
+**Tax categories**:
+- **Roth** (green): Roth IRA, Roth 401k, HSA — holds market value of holdings
+- **Pre-Tax** (orange): Traditional IRA, Traditional 401k, Self-directed 401k, 403b, 529 — holds market value of holdings
+- **Brokerage** (purple): Brokerage Individual, Brokerage Joint — holds market value of holdings
+- **Cash** (blue): Checking, Savings, Money Market, CD — the account's full balance
+- **Uninvested Cash**: cash balance stored on non-bank investment accounts (e.g. cash sweep in a Roth IRA)
+
+**Retirement widget**: Computed as `Invested × Return Rate × After-Tax %`. Edit **Return Rate** (e.g. 0.06 = 6%) and **After-Tax %** (e.g. 0.82 = 82%) inline, then tap **Recalculate** to update and save. Values are stored in `investmentConfig/main` and persist across sessions.
+
+**Group switcher**: If more than one group exists, a dropdown appears at the top to switch between groups. Joint accounts are only included in a group's totals when ALL parties of the joint account are members of that group.
+
+**📡 Update All Prices**: Collects all unique ticker symbols across every account in the current group, fetches live prices from Finnhub (requires API key in Settings → General Settings → Investments), and batch-writes the updated prices to all matching holdings. Reports any tickers that failed. Requires a Finnhub API key.
+
+**Per-account breakdown**: Lists every account in the group, grouped by person, showing the account name, tax category badge, and total value. Joint accounts appear in a separate "Joint Accounts" section at the bottom.
+
+---
+
 ## screen:private
 
 ### Quick Help

@@ -690,7 +690,7 @@ var BACKUP_DATA_COLLECTIONS = [
     'credentials', 'credentialCategories',
 
     // Investments (person-scoped — subcollections handled via PERSON_SCOPED_COLLECTIONS)
-    'investments',
+    'investments', 'investmentGroups', 'investmentConfig',
 
     // Legacy Financial (person-scoped — subcollections handled via PERSON_SCOPED_COLLECTIONS)
     'legacyFinancial',

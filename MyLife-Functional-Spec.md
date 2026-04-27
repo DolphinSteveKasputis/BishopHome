@@ -1135,7 +1135,7 @@ Person-scoped financial account tracker. The **canonical storage** for financial
 Tile labeled **Investments** (📈), always visible on the Life landing page → navigates to `#investments` hub.
 
 ### Hub (`#investments`)
-Three cards: **Accounts** (active) → `#investments/accounts`; **Summary** (coming soon); **Snapshots** (coming soon).
+Three cards: **Accounts** → `#investments/accounts`; **Summary** → `#investments/summary`; **Snapshots** (coming soon).
 
 ### Person Switcher (Accounts page)
 - Dropdown at top: **Me** (personId = `'self'`) + enrolled contacts
@@ -1155,8 +1155,8 @@ Each account is a doc in `investments/{personId}/accounts/`.
 **Expanded card** shows: Type, Owner (Personal or "Joint with [Name]"), Cash Balance (if set), URL (clickable), Login Notes, Beneficiary, Sensitive box (Account Number, Username, Password), and **[Edit]** / **[Archive]** (or **[Restore]** if archived).
 
 **Tax category badge** (derived from account type):
-- Roth (green): Roth IRA, Roth 401k
-- Pre-Tax (orange): Traditional IRA, Traditional 401k, Self-directed 401k, 403b, HSA, 529
+- Roth (green): Roth IRA, Roth 401k, HSA
+- Pre-Tax (orange): Traditional IRA, Traditional 401k, Self-directed 401k, 403b, 529
 - Brokerage (purple): Brokerage Individual, Brokerage Joint
 - Cash (blue): Checking, Savings, Money Market, CD
 - Other (gray): all other types
@@ -1197,12 +1197,34 @@ Stored in `userCol('investmentGroups')`. Fields: `name`, `personIds[]` (always i
 
 **Manage Groups page**: Lists all groups as cards (name, people, frequency badges). **+ Add Group** and **Edit** open `investGroupModal` (name field + people checkboxes + frequency checkboxes). Me (always included, disabled). Non-default groups have a **Delete** button. Default group cannot be deleted.
 
-**Group switcher** (`_investRenderGroupSwitcher(containerId, selectedGroupId)`): Renders a labeled `<select>` into the given container element. Hidden (empty) when only one group exists. The `<select>` fires `_investOnGroupSwitch(groupId)` — a stub overridden by each consuming page.
+**Group switcher** (`_investRenderGroupSwitcher(containerId, selectedGroupId)`): Renders a labeled `<select>` into the given container element. Hidden (empty) when only one group exists. The `<select>` fires `_investOnGroupSwitch(groupId)`, which delegates to `_investGroupSwitchHandler` — a module-level variable set by each page that embeds the switcher.
 
 **Joint account rule**: Joint accounts only contribute to a group's totals when ALL parties of the joint account are members of that group.
 
 ### Finnhub API Key
 Stored in `userCol('settings').doc('investments').finnhubApiKey`. Configured in Settings → General Settings → Investments (Finnhub) accordion. Help modal walks through free account signup at finnhub.io, copying the key from the dashboard, and testing it with a live AAPL quote. The module caches the key in `_investFinnhubApiKey`; saving a new key in Settings calls `_investInvalidateFinnhubKey()` to force a re-read.
+
+### Portfolio Summary (`#investments/summary`)
+Dashboard page showing totals for the selected group.
+
+**Hero row**: Net Worth card + Invested card (two columns).
+
+**If I retired today widget**: Green card showing estimated Annual and Monthly income. Formula: `Invested × projectedRoR × afterTaxPct`. Inline fields let the user edit Return Rate and After-Tax % and tap **Recalculate** to save and re-render. Config stored in `userCol('investmentConfig').doc('main')` (auto-created with defaults `projectedRoR: 0.06`, `afterTaxPct: 0.82`).
+
+**Category Breakdown table** (rows: Roth, Pre-Tax, Brokerage, Cash, Uninvested Cash, Net Worth total): value + % of Net Worth.
+- Roth/Pre-Tax/Brokerage buckets = holdings market value only (shares × lastPrice) from accounts of that type
+- Cash bucket = total balance of bank accounts (checking/savings/money market/CD)
+- Uninvested Cash = sum of `cashBalance` on non-bank investment accounts
+
+**Period Performance**: Five rows (1 Week, 1 Month, 3 Months, YTD, 1 Year) — show "—" until wired to snapshots in Phase 7.
+
+**Accounts section**: Per-person groups listing each account's name, tax category badge, and total value. Joint accounts appear in a separate "Joint Accounts" section.
+
+**📡 Update All Prices**: Collects all unique tickers across every account in the group, fetches prices from Finnhub, batch-writes updated `lastPrice` + `lastPriceDate` to all holdings, then re-renders. Reports failed tickers. Requires Finnhub API key.
+
+**Group switcher**: Shown at top when >1 group exists; switching re-renders the page for the new group. Sets `_investGroupSwitchHandler` to re-render on change.
+
+**investmentConfig collection**: `userCol('investmentConfig')`, single doc `'main'`, fields: `projectedRoR` (number), `afterTaxPct` (number). Auto-created on first summary page load if absent. Included in backup.
 
 ### Routes
 | Hash | Page |
@@ -1213,6 +1235,7 @@ Stored in `userCol('settings').doc('investments').finnhubApiKey`. Configured in 
 | `#investments/accounts/edit/:id` | Edit account form |
 | `#investments/account/:ns/:id` | Account detail (holdings + cash balance) |
 | `#investments/groups` | Manage groups |
+| `#investments/summary` | Portfolio summary dashboard |
 
 ---
 

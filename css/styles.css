@@ -14273,6 +14273,223 @@ a.invest-hub-card:hover {
 }
 
 /* ============================================================
+   INVESTMENTS — PORTFOLIO SUMMARY PAGE
+   ============================================================ */
+
+.invest-summary-loading {
+    padding: 32px;
+    text-align: center;
+    color: #888;
+}
+.invest-summary-switcher-row {
+    margin-bottom: 4px;
+}
+
+/* Hero cards: Net Worth / Invested */
+.invest-summary-heroes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+.invest-summary-hero {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+}
+.invest-summary-hero-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+}
+.invest-summary-hero-value {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #1a237e;
+}
+@media (max-width: 480px) {
+    .invest-summary-hero-value { font-size: 1.1rem; }
+}
+
+/* Retirement widget */
+.invest-summary-retire {
+    background: #e8f5e9;
+    border: 1px solid #c8e6c9;
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+.invest-summary-retire-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #2e7d32;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 10px;
+}
+.invest-summary-retire-amounts {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 14px;
+}
+.invest-summary-retire-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.invest-summary-retire-label {
+    font-size: 0.75rem;
+    color: #555;
+    font-weight: 600;
+}
+.invest-summary-retire-val {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #1b5e20;
+}
+.invest-summary-retire-config {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    border-top: 1px solid #c8e6c9;
+    padding-top: 10px;
+}
+.invest-summary-retire-config-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.82rem;
+    color: #555;
+}
+.invest-config-input {
+    width: 72px;
+    padding: 4px 6px;
+    border: 1px solid #aed581;
+    border-radius: 4px;
+    font-size: 0.82rem;
+    background: #fff;
+}
+
+/* Section title */
+.invest-summary-section-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 20px 0 8px;
+}
+
+/* Category breakdown table */
+.invest-summary-categories {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+.invest-summary-cat-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 12px;
+    align-items: center;
+    padding: 9px 14px;
+    border-bottom: 1px solid #f5f5f5;
+}
+.invest-summary-cat-row:last-child { border-bottom: none; }
+.invest-summary-cat-total {
+    background: #f5f5f5;
+    font-weight: 700;
+}
+.invest-summary-cat-label {
+    font-size: 0.88rem;
+}
+.invest-summary-cat-value {
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-align: right;
+    white-space: nowrap;
+}
+.invest-summary-cat-pct {
+    font-size: 0.78rem;
+    color: #888;
+    text-align: right;
+    min-width: 44px;
+}
+
+/* Period performance rows */
+.invest-summary-perf {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+.invest-summary-perf-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 9px 14px;
+    border-bottom: 1px solid #f5f5f5;
+    font-size: 0.88rem;
+}
+.invest-summary-perf-row:last-child { border-bottom: none; }
+.invest-summary-perf-label { color: #444; }
+.invest-summary-perf-value { color: #aaa; font-style: italic; }
+
+/* Per-account breakdown */
+.invest-summary-accounts {
+    margin-bottom: 24px;
+}
+.invest-summary-person-section {
+    margin-bottom: 16px;
+}
+.invest-summary-person-name {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+}
+.invest-summary-acct-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 7px;
+    padding: 10px 14px;
+    margin-bottom: 6px;
+    gap: 12px;
+}
+.invest-summary-acct-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+}
+.invest-summary-acct-name {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #222;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.invest-summary-acct-value {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #1a237e;
+    white-space: nowrap;
+}
+
+/* ============================================================
    LEGACY FINANCIAL HUB & ACCOUNTS SUB-PAGE
    ============================================================ */
 

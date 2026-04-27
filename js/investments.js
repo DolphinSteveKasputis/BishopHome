@@ -1555,8 +1555,10 @@ function _investRenderAccountDetail(acct) {
                     ' placeholder="$0.00"' +
                     ' value="' + escapeHtml(cashFmtVal) + '"' +
                     ' onfocus="_investUnfmtCashField(this)"' +
-                    ' onblur="_investFmtCashField(this)">' +
-                '<button class="btn btn-primary btn-small" onclick="_investSaveCashBalance()">Save</button>' +
+                    ' onblur="_investFmtCashField(this)"' +
+                    ' oninput="_investCashDirty()">' +
+                '<button class="btn btn-primary btn-small" id="investCashSaveBtn"' +
+                    ' onclick="_investSaveCashBalance()" disabled>Save</button>' +
             '</div>' +
         '</div>';
 
@@ -1763,6 +1765,8 @@ async function _investSaveCashBalance() {
     if (raw !== '' && isNaN(val)) { alert('Please enter a valid dollar amount.'); return; }
 
     _investCurrentAccountCashBal = val || 0;
+    var btn = document.getElementById('investCashSaveBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Saved'; }
     var update = (val !== null) ? { cashBalance: val } : { cashBalance: firebase.firestore.FieldValue.delete() };
     await userCol('investments').doc(ns).collection('accounts').doc(aid).update(update);
 
@@ -1803,6 +1807,10 @@ function _investFmtCashField(el) {
 function _investUnfmtCashField(el) {
     var num = parseFloat((el.value || '').replace(/[^0-9.]/g, ''));
     el.value = !isNaN(num) ? num : '';
+}
+function _investCashDirty() {
+    var btn = document.getElementById('investCashSaveBtn');
+    if (btn) { btn.disabled = false; btn.textContent = 'Save'; }
 }
 
 // ---------- Ticker → Company Name Auto-fetch ----------

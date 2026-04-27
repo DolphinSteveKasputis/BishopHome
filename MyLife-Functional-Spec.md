@@ -1211,7 +1211,7 @@ Account Type (required), Nickname (required), Owner radio (Personal / Joint), Jo
 
 **Holdings modal fields**: Ticker (auto-uppercased), Company/Fund Name, Shares (decimal).
 
-**Update Prices button**: Fetches live prices from Finnhub for all holdings in this account (deduplicated — one call per unique ticker). Requires `finnhubApiKey` in `settings/investments`. Button shows spinner + "Updating…" while in flight; on completion shows "✓ Updated just now" or lists failed tickers. If key is missing, shows a message directing the user to Settings. Prices stored as `lastPrice` (number) + `lastPriceDate` (ISO string) on each holding doc.
+**Update Prices button**: Fetches live prices for all holdings in this account using the two-phase approach (Finnhub → Yahoo Finance proxy fallback, see "Price Fetching Architecture"). Deduplicated — one fetch per unique ticker even if it appears multiple times. Button shows spinner + "Updating…" while in flight; on completion shows "✓ Updated just now" or lists failed tickers. If key is missing, shows a message directing the user to Settings. Prices stored as `lastPrice` (number) + `lastPriceDate` (ISO string) on each holding doc.
 
 **Bank/cash accounts**: No holdings section shown; only the cash balance editor.
 
@@ -1233,22 +1233,75 @@ Stored in `userCol('investmentGroups')`. Fields: `name`, `personIds[]` (always i
 ### Finnhub API Key
 Stored in `userCol('settings').doc('investments').finnhubApiKey`. Configured in Settings → General Settings → Investments (Finnhub) accordion. Help modal walks through free account signup at finnhub.io, copying the key from the dashboard, and testing it with a live AAPL quote. The module caches the key in `_investFinnhubApiKey`; saving a new key in Settings calls `_investInvalidateFinnhubKey()` to force a re-read.
 
+### Price Fetching Architecture
+
+**Two-phase price fetch** — used by both "Update Prices" (account detail) and "Update All Prices" (summary page):
+
+**Phase 1 — Finnhub** (`_investFetchPriceFinnhub(ticker, apiKey)`):
+- Calls `https://finnhub.io/api/v1/quote?symbol=TICKER&token=KEY`
+- Returns `data.c` (current price) or `data.pc` (previous close) if `c` is 0
+- Returns `null` (not throws) for non-403 HTTP errors or when the API returns no data
+- Throws only on HTTP 401 (invalid API key) — caller aborts immediately
+- **Limitation**: Finnhub free tier returns HTTP 403 for mutual funds (FXAIX, VTTHX, etc.) — treated as `null`, not an error
+
+**Phase 2 — Yahoo Finance via CORS proxy** (`_investFetchYahooBatch(tickers)`):
+- Called for any ticker where Finnhub returned `null`
+- Fetches per-ticker using `https://query1.finance.yahoo.com/v8/finance/chart/TICKER?interval=1d&range=1d`
+- **CORS problem**: Yahoo Finance blocks direct browser requests from GitHub Pages domains. All calls must be routed through a CORS proxy.
+- Three proxies tried in order per ticker:
+  1. `https://api.allorigins.win/raw?url=...` — most reliable
+  2. `https://corsproxy.io/?...` — secondary
+  3. `https://api.codetabs.com/v1/proxy?quest=...` — tertiary
+- **Rate limit mitigation**: 800ms delay between per-ticker calls to avoid proxy rate limiting (allorigins.win rejects rapid successive requests)
+- Price extracted from `data.chart.result[0].meta.regularMarketPrice`
+
+**Why Yahoo v8/chart instead of v7/quote?**
+The v7/quote endpoint accepts multiple symbols in one call but returns empty results for mutual funds. The v8/chart endpoint is per-ticker but returns data for both stocks and mutual funds. The per-ticker approach with delay is the only reliable path.
+
+**Why not use the AI/LLM API as a fallback?**
+ChatGPT on the web can look up real-time stock prices because it has browsing tools. The raw `/v1/chat/completions` API used by this app is the language model only — it has a training data cutoff (months to years old) and no internet access. Prices returned by the LLM API would be stale and unreliable. This approach was implemented, confirmed stale, and removed. Finnhub + Yahoo is the correct solution.
+
+**Deduplication in Update All Prices**:
+`_investUpdateAllPrices()` collects all unique tickers across every account in the group before fetching — if FXAIX appears in 4 accounts, it fetches once and writes to all 4 holdings. This reduces API calls and avoids proxy rate limits.
+
+**What was tried and failed (decision log)**:
+- Yahoo Finance direct (no proxy): blocked by CORS for all GitHub Pages domains
+- Yahoo v7/quote batch endpoint: returns empty for mutual funds even when proxy works
+- Double-encoding bug: `encodeURIComponent(yahooTarget)` where `yahooTarget` already contained a comma resulted in `%252C` — Yahoo returned empty. Fixed by keeping tickers as plain `ticker` (no encoding in the target URL, encoding only in the proxy wrapper URL).
+- LLM API fallback: implemented and removed — training data cutoff makes prices useless for financial tracking
+- Rapid successive proxy calls (no delay): allorigins.win rate-limits; FXAIX would succeed, VTTHX immediately after would fail. Fixed with 800ms delay.
+
 ### Stock Rollup (`#investments/stocks`)
 Cross-account ticker concentration analysis. Loads ALL accounts for ALL enrolled persons (no group filter).
 
 **Data loading**: `_investLoadAllAccountsForStocks()` — reads enrolled person IDs from `settings/investments`, loads accounts for every namespace ('self' + each enrolled ID), then loads holdings for each account. Uses `_investPeople` module state (pre-populated by `_investLoadAll()`).
 
-**Aggregation**: `_investAggregateByTicker(accounts)` — iterates all investment-account holdings, groups by ticker symbol, sums shares and value. Also sums `_totals.holdings` across all non-cash accounts to produce `totalInvested` (the denominator for concentration %). Bank/cash accounts are excluded. Returns `{ tickers[], totalInvested }`.
+**Aggregation**: `_investAggregateByTicker(accounts)` — iterates all investment-account holdings, groups by ticker symbol, sums shares and value. Also sums `_totals.holdings` across all non-cash accounts to produce `totalInvested` and `overallNetWorth` (includes cash accounts). Bank/cash accounts are excluded from ticker aggregation. Returns `{ tickers[], totalInvested, overallNetWorth }`.
 
-**Ticker row fields**: ticker symbol, company name, total shares (summed across all accounts), last price (most recent non-null `lastPrice` across holdings), total value (shares × price, summed), concentration % (totalValue ÷ totalInvested × 100).
+Per-ticker aggregated fields:
+- `totalShares` — sum of shares across all holdings of this ticker
+- `lastPrice` — most recent non-null `lastPrice` across holdings
+- `totalValue` — totalShares × lastPrice
+- `totalCostBasisAmount` — sum of `shares × costBasis` per holding (for weighted average)
+- `hasCostBasis` — false if any holding is missing a costBasis
+- `weightedAvgCost` — `totalCostBasisAmount / totalShares` (computed after aggregation, only when `hasCostBasis`)
+- `accounts[]` — per-account breakdown: `{ ns, id, name, ownerLabel, shares, costBasis, lastPrice, value, accountTotal }`
 
-**Concentration badges**: `invest-conc-ok` (<10%, gray), `invest-conc-warn` (10–14.9%, orange), `invest-conc-high` (≥15%, red).
+**Grid layout** (`_investStocksRowHtml`): 9-column CSS grid (`.ist-row`) with columns: chevron · Symbol · Qty · Price · Cost · Gain $ · Gain % · Value · % NW. Main ticker rows (`.ist-main-row`) show aggregated totals. Gain columns are green (`.ist-gain`) or red (`.ist-loss`). Dashes when cost basis or price is missing.
 
-**Expand/collapse**: Clicking a row toggles `_investStocksExpandIds[ticker]` and shows/hides a detail section listing each account that holds that ticker (account name prefixed with owner name for non-self accounts, shares, value).
+**% NW**: Each ticker's total value as a percentage of `overallNetWorth` (all accounts, including cash). This is "% of your overall net worth", not just % of invested assets.
+
+**Concentration badges**: `invest-conc-ok` (<10%, gray), `invest-conc-warn` (10–14.9%, orange), `invest-conc-high` (≥15%, red). Applied to the % NW cell.
+
+**Expand/collapse**: Clicking a row toggles `_investStocksExpandIds[ticker]` and shows/hides per-account sub-rows (`.ist-sub-row`). Each sub-row shows: account name (clickable link) · shares · price · cost · gain $ · gain % · value · % of that account.
+
+**Clickable account names**: Sub-row account names are `<a>` links that call `_investStocksNavToAccount(ns, id)`, which sets `_investAccountReturnTo = 'stocks'` then navigates to `#investments/account/:ns/:id`. The account detail breadcrumb detects `'stocks'` return and shows "← Stock Rollup" pointing to `#investments/stocks`.
 
 **Sort**: `_investStocksSort` module var — `'value'` (totalValue desc, default) or `'ticker'` (A–Z). Sort buttons re-render the page.
 
 **DOM ID safety**: Tickers like `BRK.B` have periods replaced with underscores for element IDs (`stocksDetail-BRK_B`); the toggle function maps back using `ticker.replace(/\./g, '_')`.
+
+**CSS classes**: `.ist-table-wrap`, `.ist-row` (9-col grid), `.ist-header-row`, `.ist-cell`, `.ist-cell-sym`, `.ist-cell-num`, `.ist-cell-chev`, `.ist-main-row`, `.ist-sub-row`, `.ist-detail`, `.ist-sub-label`, `.ist-val`, `.ist-gain`, `.ist-loss`, `.ist-dim`, `.ist-pct-acct`, `.ist-acct-link`.
 
 **Hub card**: Added as 4th card on `#investments` hub.
 
@@ -1291,7 +1344,7 @@ Dashboard page showing totals for the selected group.
 
 **Accounts section**: Per-person groups listing each account's name, tax category badge, and total value. Joint accounts appear in a separate "Joint Accounts" section.
 
-**📡 Update All Prices**: Collects all unique tickers across every account in the group, fetches prices from Finnhub, batch-writes updated `lastPrice` + `lastPriceDate` to all holdings, then re-renders. Reports failed tickers. Requires Finnhub API key.
+**📡 Update All Prices**: Collects all **unique** tickers across every account in the group (deduplicated — FXAIX in 4 accounts = 1 fetch), then runs the two-phase price fetch (Finnhub → Yahoo Finance proxy fallback). Batch-writes updated `lastPrice` + `lastPriceDate` to all matching holdings, then re-renders. Reports any tickers that failed both sources. See "Price Fetching Architecture" section for full detail. Requires Finnhub API key.
 
 **Group switcher**: Shown at top when >1 group exists; switching re-renders the page for the new group. Sets `_investGroupSwitchHandler` to re-render on change.
 

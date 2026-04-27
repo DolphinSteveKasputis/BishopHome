@@ -1794,7 +1794,16 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 
 **Total Value**: Σ(shares × last price) + cash balance. Holdings without a fetched price contribute $0 until **📡 Update Prices** is tapped.
 
-**📡 Update Prices**: Fetches live prices from Finnhub for all holdings. Requires a Finnhub API key in Settings. Shows "✓ Updated just now" on success or lists failed tickers. Prices persist in Firestore across sessions.
+**📡 Update Prices**: Fetches the latest price for every holding in this account. Works in two phases:
+
+1. **Finnhub** (free API): Tried first for all tickers. Works great for stocks and ETFs. Mutual funds (FXAIX, VTTHX, etc.) are not supported on the free Finnhub tier — those tickers are passed to Phase 2.
+2. **Yahoo Finance via proxy**: For any ticker Finnhub couldn't price, the app routes through a free CORS proxy (allorigins.win) to fetch from Yahoo Finance. This handles mutual funds that Finnhub misses. Multiple proxy fallbacks are tried in sequence.
+
+If a ticker still fails both sources, it's listed by name in the failure message — you'll need to update it manually.
+
+**Why not just ask the AI (like ChatGPT)?** When you chat with ChatGPT on the web, it has browsing tools that fetch live data. The raw AI API used by this app is just the language model — it has a training data cutoff and no internet access. Its "prices" would be months or years out of date. That's why we use Finnhub + Yahoo instead.
+
+Requires a Finnhub API key in Settings. Prices persist in Firestore across sessions.
 
 **Edit Account**: Tap **Edit Account** in the header to change account type, nickname, owner, or other fields.
 
@@ -1813,11 +1822,13 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 
 **What's included**: Every holding with a ticker symbol across all your investment accounts and all enrolled people (Me + any enrolled contacts). Bank/cash accounts have no holdings and are excluded.
 
-**Concentration %**: Each ticker's total value divided by total holdings value across all investment accounts. This is a quick sanity check — if one stock is >15% of your portfolio, that's significant concentration risk.
+**Grid columns**: Symbol · Qty (total shares) · Price (last fetched) · Cost (weighted average cost basis) · Gain $ · Gain % · Value · % Net Worth. Green = gain, red = loss. Dashes (—) appear where cost basis or price is missing.
 
-**Expanding a row**: Tap any ticker row to see the breakdown by account — which account holds it, how many shares, and the value in that account. Co-owned accounts show the owner name before the account name.
+**% Net Worth**: Each ticker's total value as a percentage of your overall net worth (all accounts combined). Concentration badges highlight risk: orange ≥10%, red ≥15%.
 
-**Prices**: Uses the last fetched price stored on each holding (`lastPrice`). Tap **📡 Update All Prices** on the Summary page first to make sure prices are current before reviewing concentration.
+**Expanding a row**: Tap any ticker row to see a per-account breakdown — each account that holds the ticker, with its own shares, price, cost, gain, value, and % of that account's total. Account names are clickable and navigate directly to the holdings page for that account. A breadcrumb at the top of the holdings page takes you back to **Stock Rollup**.
+
+**Prices**: Uses the last fetched price stored on each holding. Tap **📡 Update All Prices** on the Summary page first to make sure prices are current before reviewing the rollup.
 
 **Sort by Value**: Highest-value tickers at the top — shows your largest positions first.
 
@@ -1877,7 +1888,14 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 
 **Group switcher**: If more than one group exists, a dropdown appears at the top to switch between groups. Joint accounts are only included in a group's totals when ALL parties of the joint account are members of that group.
 
-**📡 Update All Prices**: Collects all unique ticker symbols across every account in the current group, fetches live prices from Finnhub (requires API key in Settings → General Settings → Investments), and batch-writes the updated prices to all matching holdings. Reports any tickers that failed. Requires a Finnhub API key.
+**📡 Update All Prices**: Refreshes prices for every holding across all accounts in the group — including stocks, ETFs, and mutual funds. Works in two phases:
+
+1. **Finnhub** (first): Fast and reliable for stocks and ETFs. Mutual funds are not supported on the free tier.
+2. **Yahoo Finance via proxy** (fallback): Any ticker Finnhub couldn't price is sent to Yahoo Finance through a free CORS proxy. This handles mutual funds like FXAIX and VTTHX.
+
+Tickers are **deduplicated** before fetching — if FXAIX appears in four different accounts, it's only fetched once, then the updated price is written to all matching holdings. This makes the update faster and avoids hitting rate limits on the proxy.
+
+Reports any tickers that still failed both sources. Requires a Finnhub API key in Settings.
 
 **Period Performance**: Four rows — Day, Week, Month, YTD. Each row shows the gain or loss in dollars and percentage versus the most recent snapshot of the matching type (Daily/Weekly/Monthly/Yearly). Rows show "No [type] snapshot yet" until at least one snapshot of that type has been captured on the Snapshots page. Green = gain, red = loss.
 

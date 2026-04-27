@@ -14285,63 +14285,77 @@ a.invest-hub-card:hover {
 }
 
 /* Holdings list */
-.invest-holdings-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+/* Holdings compact table */
+.invest-holdings-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
     margin-bottom: 16px;
-}
-.invest-holding-row {
-    background: #fff;
     border: 1px solid #e8e8e8;
     border-radius: 8px;
-    padding: 12px 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
 }
-.invest-holding-main {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-    flex-wrap: wrap;
+.invest-holdings-table {
+    width: 100%;
+    min-width: 580px;
+    border-collapse: collapse;
+    font-size: 0.83rem;
 }
-.invest-holding-ticker {
-    font-size: 1rem;
-    font-weight: 700;
-    color: #1565c0;
-    font-family: monospace;
+.invest-holdings-table thead tr {
+    background: #f5f5f5;
+    border-bottom: 2px solid #e0e0e0;
 }
-.invest-holding-name {
-    font-size: 0.85rem;
-    color: #555;
-}
-.invest-holding-stats {
-    display: flex;
-    gap: 18px;
-    flex-wrap: wrap;
-}
-.invest-holding-stat {
-    display: flex;
-    flex-direction: column;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: #333;
-}
-.invest-holding-stat-label {
+.invest-holdings-table th {
+    padding: 7px 10px;
+    text-align: right;
     font-size: 0.68rem;
-    font-weight: 400;
-    color: #999;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    margin-bottom: 1px;
+    color: #888;
+    white-space: nowrap;
 }
-.invest-holding-actions {
-    display: flex;
-    gap: 8px;
-    padding-top: 6px;
-    border-top: 1px solid #f0f0f0;
+.invest-holdings-table th.iht-col-symbol { text-align: left; }
+.invest-holdings-table td {
+    padding: 7px 10px;
+    text-align: right;
+    border-bottom: 1px solid #f2f2f2;
+    white-space: nowrap;
+    vertical-align: middle;
 }
+.invest-holdings-table tbody tr:last-child td { border-bottom: none; }
+.invest-holdings-table td.iht-symbol-cell { text-align: left; }
+.invest-holdings-table td.iht-actions-cell { text-align: center; padding: 4px 6px; }
+.iht-ticker {
+    font-weight: 700;
+    font-family: monospace;
+    color: #1565c0;
+    display: block;
+    font-size: 0.88rem;
+}
+.iht-name {
+    font-size: 0.7rem;
+    color: #999;
+    display: block;
+    max-width: 130px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.iht-gain { color: #2e7d32; font-weight: 600; }
+.iht-loss { color: #c62828; font-weight: 600; }
+.iht-dim  { color: #ccc; }
+.iht-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 3px 6px;
+    font-size: 0.88rem;
+    color: #999;
+    border-radius: 4px;
+    line-height: 1;
+}
+.iht-btn:hover { background: #f0f0f0; color: #333; }
+.iht-btn-del:hover { background: #ffeaea; color: #c62828; }
+.invest-holdings-table tfoot tr.iht-foot-row { border-top: 2px solid #e0e0e0; background: #fafafa; }
+.iht-foot { font-weight: 700; color: #333; }
 
 /* Update prices bar */
 .invest-update-prices-bar {

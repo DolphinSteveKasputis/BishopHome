@@ -1770,29 +1770,33 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 ## screen:investments-account
 
 ### Quick Help
-- Shows all holdings for one account — ticker, shares, last known price, and current value
+- Shows all holdings for one account in a compact table — ticker, shares, price, cost basis, gain/loss, value, and % of account
 - **Total Value** = sum of all holdings × last price + cash balance
-- Tap **+ Add Holding** to add a stock or mutual fund position (ticker, name, shares)
-- Update the **Cash / Uninvested Balance** and tap Save to record uninvested cash in this account
+- Tap **+ Add Holding** to add a stock or mutual fund position
+- The cash balance field formats as **$X,XXX.XX** on blur — click it to edit the raw number, click away to reformat
 - For bank accounts (Checking/Savings/Money Market/CD): only the balance field is shown — no holdings
 
 ### Details
 
-**Holdings**: Each holding shows ticker symbol, company/fund name, shares, last fetched price, and computed value. Price shows "—" until **📡 Update Prices** is tapped.
+**Holdings table**: One row per holding. Columns: Symbol/Name · Qty · Price · Cost/sh · Gain $ · Gain % · Value · % Acct · ✏🗑 actions. Table scrolls horizontally on narrow screens. A totals row at the bottom shows aggregate value and total gain (when all holdings have a cost basis).
 
-**Adding a holding**: Tap **+ Add Holding** → enter ticker (auto-uppercased), company/fund name, and number of shares. Shares can be a decimal (e.g. 10.352 for fractional shares).
+**Gain $ / Gain %**: Calculated as (last price − cost basis) × shares and (last price − cost basis) / cost basis. Shows "—" if no cost basis is set or no price has been fetched.
 
-**Editing a holding**: Tap **Edit** on any holding row to update ticker, name, or shares.
+**% Acct**: Each holding's current value as a percentage of the full account total (holdings + cash balance).
 
-**Deleting a holding**: Tap **Delete** on any holding row. Confirmation required. This removes the holding from Firestore permanently.
+**Adding a holding**: Tap **+ Add Holding** → enter the ticker symbol. Tab off the ticker field and the company/fund name is looked up automatically from Finnhub (only fills in if the name field is empty and a Finnhub key is configured). Enter shares and optionally cost basis per share.
 
-**Cash Balance**: The editable field at the top (labeled "Account Balance" for bank accounts, "Uninvested Cash Balance" for investment accounts). Enter the amount and tap **Save**. This value is included in the account total and will roll up to the portfolio summary.
+**Editing a holding**: Tap ✏ on any row to update ticker, name, shares, or cost basis.
 
-**Total Value**: Computed as Σ(shares × last price) + cash balance. Holdings without a fetched price contribute $0 to the total until prices are updated.
+**Deleting a holding**: Tap 🗑 on any row. Confirmation required.
 
-**📡 Update Prices**: Fetches live prices from Finnhub for all holdings in this account. Requires a Finnhub API key in Settings → General Settings → Investments (Finnhub). Shows a spinner while fetching, then "✓ Updated just now" on success or lists any tickers that failed. If no key is configured, a message links you to Settings. Prices are cached in Firestore — the last known value persists across sessions.
+**Cash Balance**: Labeled "Account Balance" for bank accounts, "Uninvested Cash Balance" for investment accounts. Displays formatted as $X,XXX.XX — click to edit, click away to reformat. Included in the account total and portfolio summary.
 
-**Edit Account**: Tap the **Edit Account** button in the header to change account type, nickname, owner, or other fields.
+**Total Value**: Σ(shares × last price) + cash balance. Holdings without a fetched price contribute $0 until **📡 Update Prices** is tapped.
+
+**📡 Update Prices**: Fetches live prices from Finnhub for all holdings. Requires a Finnhub API key in Settings. Shows "✓ Updated just now" on success or lists failed tickers. Prices persist in Firestore across sessions.
+
+**Edit Account**: Tap **Edit Account** in the header to change account type, nickname, owner, or other fields.
 
 ---
 

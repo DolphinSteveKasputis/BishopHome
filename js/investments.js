@@ -797,7 +797,8 @@ async function loadInvestmentsFormPage(id) {
             '</div>' +
             '<div class="form-group">' +
                 '<label>Cash Balance ($)</label>' +
-                '<input type="number" id="investFormCashBalance" placeholder="0.00" min="0" step="0.01">' +
+                '<input type="text" inputmode="decimal" id="investFormCashBalance" placeholder="$0.00"' +
+                    ' onfocus="_investUnfmtCashField(this)" onblur="_investFmtCashField(this)">' +
             '</div>' +
             '<div class="form-group">' +
                 '<label>URL</label>' +
@@ -845,6 +846,10 @@ async function loadInvestmentsFormPage(id) {
     _investVal('investFormJointContact', primaryContactId);
 
     _investFormDraft = null; // consumed
+
+    // Format the cash balance field with $ on initial render
+    var cashEl = document.getElementById('investFormCashBalance');
+    if (cashEl && cashEl.value !== '') _investFmtCashField(cashEl);
 
     await _investRenderSensitiveFields(acct);
 }
@@ -932,7 +937,7 @@ async function _investSaveForm() {
         ? ((document.getElementById('investFormJointContact') || {}).value || '')
         : '';
 
-    var cashBalanceRaw = ((document.getElementById('investFormCashBalance') || {}).value || '').trim();
+    var cashBalanceRaw = ((document.getElementById('investFormCashBalance') || {}).value || '').trim().replace(/[^0-9.]/g, '');
     var cashBalance    = cashBalanceRaw !== '' ? parseFloat(cashBalanceRaw) : null;
 
     var id    = _investFormEditId;
@@ -1429,8 +1434,9 @@ async function _investUpdateAccountPrices() {
 
 // ---------- Account Detail State ----------
 
-var _investCurrentAccountNs  = 'self';
-var _investCurrentAccountId  = null;
+var _investCurrentAccountNs      = 'self';
+var _investCurrentAccountId      = null;
+var _investCurrentAccountCashBal = null; // cache for % of account calc in holdings table
 var _investCurrentHoldings   = [];
 var _investHoldingEditId     = null;   // null = add mode; holding doc ID = edit mode
 
@@ -1464,6 +1470,7 @@ async function loadInvestmentsAccountPage(ns, accountId) {
         return;
     }
     var acct = Object.assign({ id: accountId, _ns: ns }, acctDoc.data());
+    _investCurrentAccountCashBal = acct.cashBalance != null ? parseFloat(acct.cashBalance) : 0;
 
     // Load holdings
     var holdSnap = await _investHoldingCol(ns, accountId).orderBy('ticker').get();
@@ -1536,14 +1543,19 @@ function _investRenderAccountDetail(acct) {
         '</div>';
 
     // Cash balance editor (shown for all account types, but labeled differently)
-    var cashLabel = isCash ? 'Account Balance ($)' : 'Uninvested Cash Balance ($)';
+    var cashLabel  = isCash ? 'Account Balance ($)' : 'Uninvested Cash Balance ($)';
+    var cashFmtVal = acct.cashBalance != null
+        ? '$' + parseFloat(acct.cashBalance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        : '';
     html +=
         '<div class="invest-cash-section">' +
             '<div class="invest-section-header">' + escapeHtml(cashLabel) + '</div>' +
             '<div class="invest-cash-row">' +
-                '<input type="number" id="investDetailCash" class="invest-cash-input"' +
-                    ' placeholder="0.00" min="0" step="0.01"' +
-                    ' value="' + (acct.cashBalance != null ? acct.cashBalance : '') + '">' +
+                '<input type="text" inputmode="decimal" id="investDetailCash" class="invest-cash-input"' +
+                    ' placeholder="$0.00"' +
+                    ' value="' + escapeHtml(cashFmtVal) + '"' +
+                    ' onfocus="_investUnfmtCashField(this)"' +
+                    ' onblur="_investFmtCashField(this)">' +
                 '<button class="btn btn-primary btn-small" onclick="_investSaveCashBalance()">Save</button>' +
             '</div>' +
         '</div>';
@@ -1574,30 +1586,87 @@ function _investHoldingsHtml() {
     if (_investCurrentHoldings.length === 0) {
         return '<div class="empty-state">No holdings yet. Add one above.</div>';
     }
-    var html = '<div class="invest-holdings-list">';
+
+    // Total account value (holdings + cash) used for % of account column
+    var holdingsTotal = _investCurrentHoldings.reduce(function(sum, h) {
+        return (h.lastPrice != null && h.shares != null) ? sum + h.shares * h.lastPrice : sum;
+    }, 0);
+    var accountTotal = holdingsTotal + (parseFloat(_investCurrentAccountCashBal) || 0);
+
+    var rows = '';
+    var totalValue = 0, totalGain = 0, totalGainHasBasis = true;
+
     _investCurrentHoldings.forEach(function(h) {
-        var price = (h.lastPrice != null) ? '$' + h.lastPrice.toFixed(2) : '—';
-        var value = (h.lastPrice != null && h.shares != null)
-            ? _investFmtCurrency(h.shares * h.lastPrice)
-            : '—';
-        html +=
-            '<div class="invest-holding-row">' +
-                '<div class="invest-holding-main">' +
-                    '<span class="invest-holding-ticker">' + escapeHtml(h.ticker || '') + '</span>' +
-                    '<span class="invest-holding-name">' + escapeHtml(h.companyName || '') + '</span>' +
-                '</div>' +
-                '<div class="invest-holding-stats">' +
-                    '<span class="invest-holding-stat"><span class="invest-holding-stat-label">Shares</span>' + (h.shares != null ? Number(h.shares).toLocaleString('en-US', { maximumFractionDigits: 4 }) : '—') + '</span>' +
-                    '<span class="invest-holding-stat"><span class="invest-holding-stat-label">Price</span>' + price + '</span>' +
-                    '<span class="invest-holding-stat"><span class="invest-holding-stat-label">Value</span>' + value + '</span>' +
-                '</div>' +
-                '<div class="invest-holding-actions">' +
-                    '<button class="btn btn-secondary btn-small" onclick="_investOpenHoldingModal(\'' + h.id + '\')">Edit</button>' +
-                    '<button class="btn btn-danger btn-small" onclick="_investDeleteHolding(\'' + h.id + '\')">Delete</button>' +
-                '</div>' +
-            '</div>';
+        var hasPrice  = h.lastPrice != null && h.shares != null;
+        var hasBasis  = h.costBasis != null && h.shares != null && hasPrice;
+        var value     = hasPrice ? h.shares * h.lastPrice : null;
+        var gainVal   = hasBasis ? (h.lastPrice - h.costBasis) * h.shares : null;
+        var gainPct   = (hasBasis && h.costBasis > 0) ? (h.lastPrice - h.costBasis) / h.costBasis * 100 : null;
+        var pctAcct   = (value != null && accountTotal > 0) ? value / accountTotal * 100 : null;
+
+        if (value  != null) totalValue += value;
+        if (gainVal != null) totalGain += gainVal; else totalGainHasBasis = false;
+
+        var gainCls = gainVal != null ? (gainVal >= 0 ? 'iht-gain' : 'iht-loss') : 'iht-dim';
+
+        function fmtGainCell(val, suffix) {
+            if (val == null) return '<td class="iht-dim">—</td>';
+            var sign = val >= 0 ? '+' : '−';
+            return '<td class="' + gainCls + '">' + sign + suffix(Math.abs(val)) + '</td>';
+        }
+
+        rows +=
+            '<tr>' +
+                '<td class="iht-symbol-cell">' +
+                    '<span class="iht-ticker">' + escapeHtml(h.ticker || '') + '</span>' +
+                    '<span class="iht-name">'   + escapeHtml(h.companyName || '') + '</span>' +
+                '</td>' +
+                '<td>' + (h.shares != null ? Number(h.shares).toLocaleString('en-US', { maximumFractionDigits: 4 }) : '—') + '</td>' +
+                '<td>' + (h.lastPrice != null ? '$' + h.lastPrice.toFixed(2) : '—') + '</td>' +
+                '<td>' + (h.costBasis != null ? '$' + h.costBasis.toFixed(2) : '—') + '</td>' +
+                fmtGainCell(gainVal, function(v) { return '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }) +
+                fmtGainCell(gainPct, function(v) { return v.toFixed(2) + '%'; }) +
+                '<td>' + (value != null ? _investFmtCurrency(value) : '—') + '</td>' +
+                '<td>' + (pctAcct != null ? pctAcct.toFixed(1) + '%' : '—') + '</td>' +
+                '<td class="iht-actions-cell">' +
+                    '<button class="iht-btn" title="Edit" onclick="_investOpenHoldingModal(\'' + h.id + '\')">✏</button>' +
+                    '<button class="iht-btn iht-btn-del" title="Delete" onclick="_investDeleteHolding(\'' + h.id + '\')">🗑</button>' +
+                '</td>' +
+            '</tr>';
     });
-    html += '</div>';
+
+    // Totals footer row
+    var footGain = totalGainHasBasis && _investCurrentHoldings.length > 0
+        ? '<td class="' + (totalGain >= 0 ? 'iht-gain' : 'iht-loss') + ' iht-foot">' +
+            (totalGain >= 0 ? '+' : '−') + '$' + Math.abs(totalGain).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</td>' +
+            '<td></td>'
+        : '<td></td><td></td>';
+
+    var html =
+        '<div class="invest-holdings-table-wrap">' +
+            '<table class="invest-holdings-table">' +
+                '<thead><tr>' +
+                    '<th class="iht-col-symbol">Symbol</th>' +
+                    '<th>Qty</th>' +
+                    '<th>Price</th>' +
+                    '<th>Cost/sh</th>' +
+                    '<th>Gain $</th>' +
+                    '<th>Gain %</th>' +
+                    '<th>Value</th>' +
+                    '<th>% Acct</th>' +
+                    '<th></th>' +
+                '</tr></thead>' +
+                '<tbody>' + rows + '</tbody>' +
+                '<tfoot><tr class="iht-foot-row">' +
+                    '<td class="iht-foot">Total</td>' +
+                    '<td></td><td></td><td></td>' +
+                    footGain +
+                    '<td class="iht-foot">' + _investFmtCurrency(totalValue) + '</td>' +
+                    '<td></td><td></td>' +
+                '</tr></tfoot>' +
+            '</table>' +
+        '</div>';
+
     return html;
 }
 
@@ -1609,9 +1678,10 @@ function _investOpenHoldingModal(holdingId) {
     var h = holdingId ? _investCurrentHoldings.find(function(x) { return x.id === holdingId; }) : null;
 
     document.getElementById('investHoldingModalTitle').textContent = isNew ? 'Add Holding' : 'Edit Holding';
-    _investVal('investHoldingTicker',  h ? h.ticker      || '' : '');
-    _investVal('investHoldingCompany', h ? h.companyName || '' : '');
-    _investVal('investHoldingShares',  h ? h.shares      != null ? h.shares : '' : '');
+    _investVal('investHoldingTicker',    h ? h.ticker      || '' : '');
+    _investVal('investHoldingCompany',   h ? h.companyName || '' : '');
+    _investVal('investHoldingShares',    h ? h.shares    != null ? h.shares    : '' : '');
+    _investVal('investHoldingCostBasis', h ? h.costBasis != null ? h.costBasis : '' : '');
 
     openModal('investHoldingModal');
     var tickerEl = document.getElementById('investHoldingTicker');
@@ -1619,9 +1689,10 @@ function _investOpenHoldingModal(holdingId) {
 }
 
 async function _investSaveHolding() {
-    var ticker      = ((document.getElementById('investHoldingTicker')  || {}).value || '').trim().toUpperCase();
-    var companyName = ((document.getElementById('investHoldingCompany') || {}).value || '').trim();
-    var sharesRaw   = ((document.getElementById('investHoldingShares')  || {}).value || '').trim();
+    var ticker         = ((document.getElementById('investHoldingTicker')    || {}).value || '').trim().toUpperCase();
+    var companyName    = ((document.getElementById('investHoldingCompany')   || {}).value || '').trim();
+    var sharesRaw      = ((document.getElementById('investHoldingShares')    || {}).value || '').trim();
+    var costBasisRaw   = ((document.getElementById('investHoldingCostBasis') || {}).value || '').trim();
 
     if (!ticker)      { alert('Please enter a ticker symbol.'); return; }
     if (!companyName) { alert('Please enter a company or fund name.'); return; }
@@ -1632,7 +1703,13 @@ async function _investSaveHolding() {
         return;
     }
 
-    var data = { ticker: ticker, companyName: companyName, shares: shares };
+    var costBasis = costBasisRaw !== '' ? parseFloat(costBasisRaw) : null;
+    if (costBasisRaw !== '' && (isNaN(costBasis) || costBasis < 0)) {
+        alert('Please enter a valid cost basis per share.');
+        return;
+    }
+
+    var data = { ticker: ticker, companyName: companyName, shares: shares, costBasis: costBasis };
 
     var ns  = _investCurrentAccountNs;
     var aid = _investCurrentAccountId;
@@ -1680,11 +1757,12 @@ async function _investDeleteHolding(holdingId) {
 async function _investSaveCashBalance() {
     var ns  = _investCurrentAccountNs;
     var aid = _investCurrentAccountId;
-    var raw = ((document.getElementById('investDetailCash') || {}).value || '').trim();
+    var raw = ((document.getElementById('investDetailCash') || {}).value || '').trim().replace(/[^0-9.]/g, '');
     var val = raw !== '' ? parseFloat(raw) : null;
 
     if (raw !== '' && isNaN(val)) { alert('Please enter a valid dollar amount.'); return; }
 
+    _investCurrentAccountCashBal = val || 0;
     var update = (val !== null) ? { cashBalance: val } : { cashBalance: firebase.firestore.FieldValue.delete() };
     await userCol('investments').doc(ns).collection('accounts').doc(aid).update(update);
 
@@ -1712,6 +1790,48 @@ function _investComputeAccountTotals(holdings, cashBalance) {
 function _investFmtCurrency(val) {
     if (val == null || isNaN(val)) return '—';
     return '$' + parseFloat(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// ---------- Cash Field Blur/Focus Formatting ----------
+// On blur: display "$1,234.56"; on focus: strip to raw number for editing.
+function _investFmtCashField(el) {
+    var num = parseFloat((el.value || '').replace(/[^0-9.]/g, ''));
+    if (!isNaN(num)) {
+        el.value = '$' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+}
+function _investUnfmtCashField(el) {
+    var num = parseFloat((el.value || '').replace(/[^0-9.]/g, ''));
+    el.value = !isNaN(num) ? num : '';
+}
+
+// ---------- Ticker → Company Name Auto-fetch ----------
+// Called onblur of the ticker field in the holding modal.
+// Only fills in the company name if the field is currently empty.
+async function _investAutoFillCompanyName() {
+    var tickerEl  = document.getElementById('investHoldingTicker');
+    var companyEl = document.getElementById('investHoldingCompany');
+    if (!tickerEl || !companyEl) return;
+    var ticker = (tickerEl.value || '').trim().toUpperCase();
+    if (!ticker || companyEl.value.trim()) return;
+
+    var apiKey = await _investGetFinnhubKey();
+    if (!apiKey) return;
+
+    var prevPlaceholder = companyEl.placeholder;
+    companyEl.placeholder = 'Looking up…';
+    try {
+        var resp = await fetch(
+            'https://finnhub.io/api/v1/stock/profile2?symbol=' + encodeURIComponent(ticker) +
+            '&token=' + encodeURIComponent(apiKey)
+        );
+        var json = await resp.json();
+        if (json && json.name) companyEl.value = json.name;
+    } catch (e) {
+        console.error('Company name lookup error', e);
+    } finally {
+        companyEl.placeholder = prevPlaceholder;
+    }
 }
 
 // ============================================================

@@ -1190,6 +1190,8 @@ Sensitive fields (`accountNumberEnc`, `usernameEnc`, `passwordEnc`) use AES-GCM 
 ### Add / Edit Form Fields
 Account Type (required), Nickname (required), Owner radio (Personal / Joint), Joint With contact select (shown when Joint), Institution, Last 4 Digits, Cash Balance ($), URL, Login Notes (textarea), Beneficiary, Account Number (sensitive), Username (sensitive), Password (sensitive).
 
+**Cash Balance field**: `type="text"` with `inputmode="decimal"`. On blur formats to `$X,XXX.XX`; on focus strips to raw number for editing. Save functions strip `$`/`,` before parsing.
+
 ### Account Detail (`#investments/account/:ns/:id`)
 `:ns` = person namespace (`'self'` or a contact ID); `:id` = account doc ID.
 
@@ -1197,9 +1199,15 @@ Account Type (required), Nickname (required), Owner radio (Personal / Joint), Jo
 
 **Total Value card**: Total = Σ(shares × lastPrice) + cashBalance. Also shows Holdings subtotal and Cash Balance subtotal (for non-cash accounts).
 
-**Cash Balance editor**: Inline field + Save button. For bank accounts labeled "Account Balance"; for investment accounts labeled "Uninvested Cash Balance". Writes directly to the account doc.
+**Cash Balance editor**: `type="text"` inline field + Save button. Displays formatted as `$X,XXX.XX`; click to edit raw number. For bank accounts labeled "Account Balance"; for investment accounts labeled "Uninvested Cash Balance". Writes directly to the account doc.
 
-**Holdings section** (investment accounts only): List of holdings — ticker, company name, shares, last price (or "—"), computed value (or "—"). **+ Add Holding** button opens a modal. Each row has Edit and Delete buttons. Holdings stored in `holdings` subcollection under the account doc.
+**Holdings section** (investment accounts only): Compact scrollable table — one row per holding. Columns: Symbol/Name · Qty · Price · Cost/sh · Gain $ · Gain % · Value · % Acct · ✏🗑 icon buttons. Totals footer row shows aggregate value and total gain (when all holdings have a cost basis). Holdings stored in `holdings` subcollection with fields: `ticker`, `companyName`, `shares`, `costBasis` (per share, optional), `lastPrice`, `lastPriceDate`, `createdAt`.
+
+**Gain $ / Gain %**: (lastPrice − costBasis) × shares / (costBasis × shares). Shows "—" if costBasis or lastPrice is missing.
+
+**% Acct**: holding value / (holdingsTotal + cashBalance) × 100.
+
+**Add/Edit Holding modal**: Ticker (auto-uppercased), Company/Fund Name (auto-fetched from Finnhub `/stock/profile2` on ticker blur if name is empty), Shares, Cost Basis/Share ($). Company name auto-fetch only triggers if the field is blank — never overwrites existing values.
 
 **Holdings modal fields**: Ticker (auto-uppercased), Company/Fund Name, Shares (decimal).
 

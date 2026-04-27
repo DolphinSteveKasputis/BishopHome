@@ -1792,6 +1792,8 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 
 **Cash Balance**: Labeled "Account Balance" for bank accounts, "Uninvested Cash Balance" for investment accounts. Displays formatted as $X,XXX.XX — click to edit, click away to reformat. Included in the account total and portfolio summary.
 
+**Pending Activity**: A separate row in the holdings table (labeled **PEND / Pending Activity**), always present on investment accounts. Tracks things like unsettled trades, dividends not yet credited, or any temporary cash-equivalent amount that doesn't belong in your permanent cash balance. Can be positive or negative — tap ✏ to edit inline. Rolls up into the **Uninvested Cash** category on the Summary page.
+
 **Total Value**: Σ(shares × last price) + cash balance. Holdings without a fetched price contribute $0 until **📡 Update Prices** is tapped.
 
 **📡 Update Prices**: Fetches the latest price for every holding in this account. Works in two phases:

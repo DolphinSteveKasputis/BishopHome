@@ -1602,7 +1602,8 @@ async function _investUpdateAccountPrices() {
 
 var _investCurrentAccountNs      = 'self';
 var _investCurrentAccountId      = null;
-var _investCurrentAccountCashBal = null; // cache for % of account calc in holdings table
+var _investCurrentAccountCashBal      = null; // cache for % of account calc in holdings table
+var _investCurrentAccountPendingAct   = 0;    // cache for pending activity (can be negative)
 var _investQtyEditMode           = false; // true when mass qty/cost editing is active
 var _investCurrentHoldings   = [];
 var _investHoldingEditId     = null;   // null = add mode; holding doc ID = edit mode
@@ -1637,7 +1638,8 @@ async function loadInvestmentsAccountPage(ns, accountId) {
         return;
     }
     var acct = Object.assign({ id: accountId, _ns: ns }, acctDoc.data());
-    _investCurrentAccountCashBal = acct.cashBalance != null ? parseFloat(acct.cashBalance) : 0;
+    _investCurrentAccountCashBal    = acct.cashBalance    != null ? parseFloat(acct.cashBalance)    : 0;
+    _investCurrentAccountPendingAct = acct.pendingActivity != null ? parseFloat(acct.pendingActivity) : 0;
 
     // Load holdings
     var holdSnap = await _investHoldingCol(ns, accountId).orderBy('ticker').get();
@@ -1679,7 +1681,7 @@ function _investRenderAccountDetail(acct) {
         coOwnerName = contact ? contact.name : acct.primaryContactId;
     }
 
-    var totals = _investComputeAccountTotals(_investCurrentHoldings, acct.cashBalance);
+    var totals = _investComputeAccountTotals(_investCurrentHoldings, acct.cashBalance, acct.pendingActivity);
 
     // Gain/loss across all holdings that have cost basis
     var totalGain = null;
@@ -1722,6 +1724,10 @@ function _investRenderAccountDetail(acct) {
                   '<div class="invest-total-row">' +
                     '<span class="invest-total-sublabel">Cash Balance</span>' +
                     '<span class="invest-total-subvalue">' + _investFmtCurrency(totals.cash) + '</span>' +
+                  '</div>' +
+                  '<div class="invest-total-row">' +
+                    '<span class="invest-total-sublabel">Pending Activity</span>' +
+                    '<span class="invest-total-subvalue ' + (totals.pending < 0 ? 'invest-total-loss' : '') + '">' + _investFmtPending(totals.pending) + '</span>' +
                   '</div>' +
                   (totalGain !== null
                     ? '<div class="invest-total-row">' +
@@ -1850,7 +1856,7 @@ function _investHoldingsHtml() {
     var holdingsTotal = _investCurrentHoldings.reduce(function(sum, h) {
         return (h.lastPrice != null && h.shares != null) ? sum + h.shares * h.lastPrice : sum;
     }, 0);
-    var accountTotal = holdingsTotal + (parseFloat(_investCurrentAccountCashBal) || 0);
+    var accountTotal = holdingsTotal + (parseFloat(_investCurrentAccountCashBal) || 0) + (_investCurrentAccountPendingAct || 0);
 
     var rows = '';
     var totalValue = 0, totalGain = 0, totalGainHasBasis = true;
@@ -1926,8 +1932,33 @@ function _investHoldingsHtml() {
             '</td>' +
         '</tr>';
 
-    // Totals footer row (holdings + cash)
-    var grandTotal = totalValue + cashVal;
+    // Pending Activity row — always present, editable inline, can be negative
+    var pendingVal  = _investCurrentAccountPendingAct || 0;
+    var pendingFmt  = _investFmtPending(pendingVal);
+    var pendingPct  = accountTotal > 0 ? (pendingVal / accountTotal * 100).toFixed(1) + '%' : '—';
+    var pendingCls  = pendingVal < 0 ? 'iht-loss' : '';
+    rows +=
+        '<tr id="investPendingRow">' +
+            '<td class="iht-symbol-cell">' +
+                '<div class="iht-sym-wrap">' +
+                    '<span class="iht-ticker iht-cash-ticker">PEND</span>' +
+                    '<span class="iht-name">Pending Activity</span>' +
+                '</div>' +
+            '</td>' +
+            '<td class="iht-dim">—</td>' +
+            '<td class="iht-dim">—</td>' +
+            '<td class="iht-dim">—</td>' +
+            '<td class="iht-dim">—</td>' +
+            '<td class="iht-dim">—</td>' +
+            '<td id="investPendingValueCell" class="' + pendingCls + '">' + pendingFmt + '</td>' +
+            '<td>' + pendingPct + '</td>' +
+            '<td class="iht-actions-cell">' +
+                '<button class="iht-btn" id="investPendingEditBtn" title="Edit pending activity" onclick="_investEditPendingInline()">✏</button>' +
+            '</td>' +
+        '</tr>';
+
+    // Totals footer row (holdings + cash + pending)
+    var grandTotal = totalValue + cashVal + pendingVal;
     var footGain = totalGainHasBasis && _investCurrentHoldings.length > 0
         ? '<td class="' + (totalGain >= 0 ? 'iht-gain' : 'iht-loss') + ' iht-foot">' +
             (totalGain >= 0 ? '+' : '−') + '$' + Math.abs(totalGain).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</td>' +
@@ -2127,17 +2158,71 @@ async function _investCommitCashInline() {
     _investRenderAccountDetail(Object.assign({ id: aid, _ns: ns }, acctDoc.data()));
 }
 
+// ---------- Pending Activity Inline Editing ----------
+
+function _investFmtPending(val) {
+    var n = parseFloat(val) || 0;
+    var abs = Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return (n < 0 ? '-$' : '$') + abs;
+}
+
+function _investEditPendingInline() {
+    var cell    = document.getElementById('investPendingValueCell');
+    var editBtn = document.getElementById('investPendingEditBtn');
+    if (!cell) return;
+
+    var rawVal = _investCurrentAccountPendingAct || 0;
+    cell.innerHTML =
+        '<input type="text" inputmode="decimal" id="investPendingInlineInput" class="iht-cash-inline"' +
+            ' value="' + rawVal + '"' +
+            ' onkeydown="if(event.key===\'Enter\')this.blur(); if(event.key===\'Escape\'){_investCancelPendingInline(); return;}"' +
+            ' onblur="_investCommitPendingInline()">';
+    cell.className = '';
+    if (editBtn) editBtn.style.visibility = 'hidden';
+    var inp = document.getElementById('investPendingInlineInput');
+    if (inp) inp.select();
+}
+
+function _investCancelPendingInline() {
+    var cell    = document.getElementById('investPendingValueCell');
+    var editBtn = document.getElementById('investPendingEditBtn');
+    var val     = _investCurrentAccountPendingAct || 0;
+    if (cell) { cell.innerHTML = _investFmtPending(val); cell.className = val < 0 ? 'iht-loss' : ''; }
+    if (editBtn) editBtn.style.visibility = '';
+}
+
+async function _investCommitPendingInline() {
+    var inp = document.getElementById('investPendingInlineInput');
+    if (!inp) return;
+
+    var val = parseFloat(inp.value);
+    if (isNaN(val)) val = 0;
+
+    var ns  = _investCurrentAccountNs;
+    var aid = _investCurrentAccountId;
+    _investCurrentAccountPendingAct = val;
+
+    var update = val !== 0
+        ? { pendingActivity: val }
+        : { pendingActivity: firebase.firestore.FieldValue.delete() };
+    await userCol('investments').doc(ns).collection('accounts').doc(aid).update(update);
+
+    var acctDoc = await userCol('investments').doc(ns).collection('accounts').doc(aid).get();
+    _investRenderAccountDetail(Object.assign({ id: aid, _ns: ns }, acctDoc.data()));
+}
+
 // ---------- Totals Computation ----------
 
-function _investComputeAccountTotals(holdings, cashBalance) {
+function _investComputeAccountTotals(holdings, cashBalance, pendingActivity) {
     var holdingsValue = holdings.reduce(function(sum, h) {
         if (h.lastPrice != null && h.shares != null) {
             return sum + h.shares * h.lastPrice;
         }
         return sum;
     }, 0);
-    var cash = parseFloat(cashBalance || 0) || 0;
-    return { holdings: holdingsValue, cash: cash, total: holdingsValue + cash };
+    var cash    = parseFloat(cashBalance    || 0) || 0;
+    var pending = parseFloat(pendingActivity || 0) || 0;
+    return { holdings: holdingsValue, cash: cash, pending: pending, total: holdingsValue + cash + pending };
 }
 
 // ---------- Currency Formatter ----------
@@ -2835,7 +2920,7 @@ async function _investLoadGroupAccounts(group) {
         holdSnap.forEach(function(hdoc) {
             acct._holdings.push(Object.assign({ id: hdoc.id }, hdoc.data()));
         });
-        acct._totals = _investComputeAccountTotals(acct._holdings, acct.cashBalance);
+        acct._totals = _investComputeAccountTotals(acct._holdings, acct.cashBalance, acct.pendingActivity);
     }
 
     return allAccounts;
@@ -2857,7 +2942,7 @@ function _investComputeGroupTotals(accounts) {
             if      (_INVEST_ROTH_TYPES.indexOf(type)   >= 0) t.roth      += totals.holdings;
             else if (_INVEST_PRETAX_TYPES.indexOf(type) >= 0) t.preTax    += totals.holdings;
             else if (_INVEST_BROKER_TYPES.indexOf(type) >= 0) t.brokerage += totals.holdings;
-            t.invCash += totals.cash;
+            t.invCash += totals.cash + (totals.pending || 0);
         }
     });
 
@@ -3180,7 +3265,7 @@ async function _investLoadAllAccountsForStocks() {
         holdSnap.forEach(function(hdoc) {
             acct._holdings.push(Object.assign({ id: hdoc.id }, hdoc.data()));
         });
-        acct._totals = _investComputeAccountTotals(acct._holdings, acct.cashBalance);
+        acct._totals = _investComputeAccountTotals(acct._holdings, acct.cashBalance, acct.pendingActivity);
     }
 
     return allAccounts;

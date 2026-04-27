@@ -1205,7 +1205,9 @@ Account Type (required), Nickname (required), Owner radio (Personal / Joint), Jo
 
 **Gain $ / Gain %**: (lastPrice − costBasis) × shares / (costBasis × shares). Shows "—" if costBasis or lastPrice is missing.
 
-**% Acct**: holding value / (holdingsTotal + cashBalance) × 100.
+**% Acct**: holding value / (holdingsTotal + cashBalance + pendingActivity) × 100.
+
+**Pending Activity row**: Always present in the holdings table for investment accounts. Ticker label `PEND`, name `Pending Activity`. Stored as `pendingActivity` (number, can be negative) on the account doc. Editable inline via ✏ button — `_investEditPendingInline` / `_investCommitPendingInline` / `_investCancelPendingInline`. Deletes the field (rather than storing 0) when set to zero. Rolls up into the `invCash` bucket in `_investComputeGroupTotals`. `_investFmtPending(val)` formats negative values as `-$X,XXX.XX`.
 
 **Add/Edit Holding modal**: Ticker (auto-uppercased), Company/Fund Name (auto-fetched from Finnhub `/stock/profile2` on ticker blur if name is empty), Shares, Cost Basis/Share ($). Company name auto-fetch only triggers if the field is blank — never overwrites existing values.
 

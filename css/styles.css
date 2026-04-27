@@ -13990,6 +13990,110 @@ a.invest-hub-card:hover {
 }
 
 /* ============================================================
+   INVESTMENTS — MANAGE GROUPS PAGE
+   ============================================================ */
+
+.invest-groups-desc {
+    font-size: 0.85rem;
+    color: #666;
+    margin: 0 0 16px;
+    line-height: 1.5;
+}
+.invest-groups-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 560px;
+}
+.invest-group-card {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.invest-group-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.invest-group-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #222;
+}
+.invest-group-default-badge {
+    font-size: 0.68rem;
+    font-weight: 700;
+    background: #e8f5e9;
+    color: #2e7d32;
+    border-radius: 8px;
+    padding: 2px 8px;
+}
+.invest-group-detail {
+    font-size: 0.85rem;
+    color: #555;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.invest-group-detail-label {
+    font-weight: 600;
+    color: #888;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+}
+.invest-freq-badge {
+    font-size: 0.72rem;
+    font-weight: 600;
+    background: #e3f2fd;
+    color: #1565c0;
+    border-radius: 8px;
+    padding: 2px 8px;
+}
+.invest-group-card-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+    padding-top: 8px;
+    border-top: 1px solid #f0f0f0;
+}
+
+/* Group modal people + frequency checkboxes */
+.invest-freq-checkboxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 4px 0;
+}
+.invest-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+/* Group switcher (used on Summary + Snapshots pages) */
+.invest-group-switcher {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+.invest-group-switcher-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #555;
+    white-space: nowrap;
+}
+
+/* ============================================================
    INVESTMENTS — ACCOUNT DETAIL PAGE
    ============================================================ */
 

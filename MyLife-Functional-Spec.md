@@ -1190,6 +1190,17 @@ Account Type (required), Nickname (required), Owner radio (Personal / Joint), Jo
 
 **Bank/cash accounts**: No holdings section shown; only the cash balance editor.
 
+### Groups (`#investments/groups`)
+Stored in `userCol('investmentGroups')`. Fields: `name`, `personIds[]` (always includes `'self'`), `snapshotFrequencies[]` (`daily`/`weekly`/`monthly`/`yearly`), `isDefault` (true for the auto-created Me group), `createdAt`.
+
+**Auto-create**: On every visit to the hub (`loadInvestmentsPage()`), `_investEnsureMeGroup()` checks whether any group doc exists; if not, creates the Me group with all four frequencies.
+
+**Manage Groups page**: Lists all groups as cards (name, people, frequency badges). **+ Add Group** and **Edit** open `investGroupModal` (name field + people checkboxes + frequency checkboxes). Me (always included, disabled). Non-default groups have a **Delete** button. Default group cannot be deleted.
+
+**Group switcher** (`_investRenderGroupSwitcher(containerId, selectedGroupId)`): Renders a labeled `<select>` into the given container element. Hidden (empty) when only one group exists. The `<select>` fires `_investOnGroupSwitch(groupId)` — a stub overridden by each consuming page.
+
+**Joint account rule**: Joint accounts only contribute to a group's totals when ALL parties of the joint account are members of that group.
+
 ### Finnhub API Key
 Stored in `userCol('settings').doc('investments').finnhubApiKey`. Configured in Settings → General Settings → Investments (Finnhub) accordion. Help modal walks through free account signup at finnhub.io, copying the key from the dashboard, and testing it with a live AAPL quote. The module caches the key in `_investFinnhubApiKey`; saving a new key in Settings calls `_investInvalidateFinnhubKey()` to force a re-read.
 
@@ -1201,6 +1212,7 @@ Stored in `userCol('settings').doc('investments').finnhubApiKey`. Configured in 
 | `#investments/accounts/add` | Add account form |
 | `#investments/accounts/edit/:id` | Edit account form |
 | `#investments/account/:ns/:id` | Account detail (holdings + cash balance) |
+| `#investments/groups` | Manage groups |
 
 ---
 

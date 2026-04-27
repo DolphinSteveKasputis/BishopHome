@@ -1739,6 +1739,30 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 
 ---
 
+## screen:investments-groups
+
+### Quick Help
+- Groups define which people's accounts are combined in the Portfolio Summary and Snapshots
+- The **Me** group is created automatically on your first visit and cannot be deleted
+- Add groups for households, kids' accounts, etc. — each with its own snapshot schedule
+- Joint accounts only appear in a group's summary when **all** parties of the joint are in that group
+
+### Details
+
+**Creating a group**: Tap **+ Add Group** → enter a name, check which people to include (Me is always included), and choose which snapshot frequencies apply (Daily / Weekly / Monthly / Yearly). Tap Save.
+
+**People**: Choose from your enrolled contacts (added via Accounts → Manage People). Each selected person's accounts roll up into that group's portfolio total.
+
+**Snapshot frequencies**: Controls which snapshot types are offered when you tap "Capture Snapshot" on the Snapshots page. A "Kids" group might only need Yearly; your household group likely wants all four.
+
+**Editing**: Tap **Edit** on any group card to change the name, people, or frequencies.
+
+**Deleting**: Tap **Delete** on any non-default group. This removes only the group record — no account data is affected.
+
+**Group switcher**: When more than one group exists, a dropdown appears at the top of the Summary and Snapshots pages. Hidden when only one group exists.
+
+---
+
 ## screen:investments-account
 
 ### Quick Help

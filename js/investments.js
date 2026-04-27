@@ -79,17 +79,25 @@ function _investCol() {
 
 // ---------- Hub Page Loader ----------
 
-function loadInvestmentsPage() {
+async function loadInvestmentsPage() {
     document.getElementById('breadcrumbBar').innerHTML =
         '<a href="#life">Life</a><span class="separator">&rsaquo;</span><span>Investments</span>';
     document.getElementById('headerTitle').innerHTML =
         '<a href="#main" class="home-link">' + escapeHtml(window.appName || 'My Life') + '</a>';
 
+    // Auto-create the "Me" group on first visit
+    await _investEnsureMeGroup();
+
     var page = document.getElementById('page-investments');
     if (!page) return;
 
     page.innerHTML =
-        '<div class="page-header"><h2>📈 Investments</h2></div>' +
+        '<div class="page-header">' +
+            '<h2>📈 Investments</h2>' +
+            '<div class="page-header-actions">' +
+                '<a class="btn btn-secondary btn-small" href="#investments/groups">⚙ Groups</a>' +
+            '</div>' +
+        '</div>' +
         '<div class="invest-hub">' +
             '<a class="invest-hub-card" href="#investments/accounts">' +
                 '<span class="invest-hub-icon">🏦</span>' +
@@ -881,6 +889,223 @@ function _investVal(id, value) {
     var el = document.getElementById(id);
     if (el) el.value = value !== undefined && value !== null ? value : '';
 }
+
+// ============================================================
+// GROUPS  (investmentGroups collection)
+// ============================================================
+
+var _investGroups      = [];    // [{id, name, personIds, snapshotFrequencies, isDefault}]
+var _investGroupEditId = null;  // null = add mode; group doc ID = edit mode
+
+function _investGroupCol() {
+    return userCol('investmentGroups');
+}
+
+async function _investLoadGroups() {
+    var snap = await _investGroupCol().orderBy('createdAt').get();
+    _investGroups = [];
+    snap.forEach(function(doc) {
+        _investGroups.push(Object.assign({ id: doc.id }, doc.data()));
+    });
+}
+
+// Auto-create the "Me" group on first visit if no groups exist yet.
+async function _investEnsureMeGroup() {
+    var snap = await _investGroupCol().limit(1).get();
+    if (!snap.empty) return;
+    await _investGroupCol().add({
+        name:                'Me',
+        personIds:           ['self'],
+        snapshotFrequencies: ['daily', 'weekly', 'monthly', 'yearly'],
+        isDefault:           true,
+        createdAt:           firebase.firestore.FieldValue.serverTimestamp()
+    });
+}
+
+// ---------- Manage Groups Page ----------
+
+async function loadInvestmentsGroupsPage() {
+    document.getElementById('breadcrumbBar').innerHTML =
+        '<a href="#investments">Investments</a><span class="separator">&rsaquo;</span><span>Manage Groups</span>';
+    document.getElementById('headerTitle').innerHTML =
+        '<a href="#main" class="home-link">' + escapeHtml(window.appName || 'My Life') + '</a>';
+
+    if (_investPeople.length === 0) await _investLoadAll();
+    await _investLoadGroups();
+    _investRenderGroupsPage();
+}
+
+function _investRenderGroupsPage() {
+    var page = document.getElementById('page-investments-groups');
+    if (!page) return;
+
+    var html =
+        '<div class="page-header">' +
+            '<h2>⚙ Groups</h2>' +
+            '<div class="page-header-actions">' +
+                '<button class="btn btn-primary" onclick="_investOpenGroupModal(null)">+ Add Group</button>' +
+            '</div>' +
+        '</div>' +
+        '<p class="invest-groups-desc">Groups define which people\'s accounts are combined in the Portfolio Summary and Snapshots. The <strong>Me</strong> group is created automatically and cannot be deleted.</p>' +
+        '<div class="invest-groups-list">';
+
+    if (_investGroups.length === 0) {
+        html += '<div class="empty-state">No groups yet.</div>';
+    } else {
+        _investGroups.forEach(function(g) { html += _investGroupCardHtml(g); });
+    }
+
+    html += '</div>';
+    page.innerHTML = html;
+}
+
+function _investGroupCardHtml(g) {
+    var peopleLabels = (g.personIds || []).map(function(pid) {
+        if (pid === 'self') return 'Me';
+        var p = _investPeople.find(function(p) { return p.id === pid; });
+        return p ? escapeHtml(p.name) : pid;
+    });
+
+    var freqLabels = {
+        daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly'
+    };
+    var freqs = (g.snapshotFrequencies || []).map(function(f) {
+        return '<span class="invest-freq-badge">' + (freqLabels[f] || f) + '</span>';
+    }).join('');
+
+    return '<div class="invest-group-card">' +
+        '<div class="invest-group-card-header">' +
+            '<span class="invest-group-name">' + escapeHtml(g.name) + '</span>' +
+            (g.isDefault ? '<span class="invest-group-default-badge">Default</span>' : '') +
+        '</div>' +
+        '<div class="invest-group-detail">' +
+            '<span class="invest-group-detail-label">People:</span> ' +
+            escapeHtml(peopleLabels.join(', ')) +
+        '</div>' +
+        '<div class="invest-group-detail">' +
+            '<span class="invest-group-detail-label">Snapshots:</span> ' +
+            (freqs || '<em style="color:#aaa">none selected</em>') +
+        '</div>' +
+        '<div class="invest-group-card-actions">' +
+            '<button class="btn btn-secondary btn-small" onclick="_investOpenGroupModal(\'' + g.id + '\')">Edit</button>' +
+            (!g.isDefault
+                ? '<button class="btn btn-danger btn-small" onclick="_investDeleteGroup(\'' + g.id + '\')">Delete</button>'
+                : '') +
+        '</div>' +
+    '</div>';
+}
+
+// ---------- Group Modal ----------
+
+function _investOpenGroupModal(groupId) {
+    _investGroupEditId = groupId || null;
+    var isNew = !groupId;
+    var g = groupId ? _investGroups.find(function(x) { return x.id === groupId; }) : null;
+
+    document.getElementById('investGroupModalTitle').textContent = isNew ? 'Add Group' : 'Edit Group';
+    _investVal('investGroupName', g ? g.name : '');
+
+    // Build people checkboxes (Me always checked + disabled, contacts are optional)
+    var selectedIds = g ? (g.personIds || []) : ['self'];
+    var peopleHtml =
+        '<label class="invest-checkbox-label">' +
+            '<input type="checkbox" checked disabled> Me (always included)' +
+        '</label>';
+    _investPeople.forEach(function(p) {
+        var checked = selectedIds.indexOf(p.id) >= 0;
+        peopleHtml +=
+            '<label class="invest-checkbox-label">' +
+                '<input type="checkbox" name="investGroupPerson" value="' + escapeHtml(p.id) + '"' +
+                    (checked ? ' checked' : '') + '> ' +
+                escapeHtml(p.name) +
+            '</label>';
+    });
+    document.getElementById('investGroupPeopleList').innerHTML = peopleHtml;
+
+    // Set frequency checkboxes
+    var selectedFreqs = g ? (g.snapshotFrequencies || []) : ['daily', 'weekly', 'monthly', 'yearly'];
+    document.querySelectorAll('input[name="investGroupFreq"]').forEach(function(cb) {
+        cb.checked = selectedFreqs.indexOf(cb.value) >= 0;
+    });
+
+    openModal('investGroupModal');
+    var nameEl = document.getElementById('investGroupName');
+    if (nameEl) setTimeout(function() { nameEl.focus(); }, 50);
+}
+
+async function _investSaveGroup() {
+    var name = ((document.getElementById('investGroupName') || {}).value || '').trim();
+    if (!name) { alert('Please enter a group name.'); return; }
+
+    // Collect selected people
+    var personIds = ['self'];
+    document.querySelectorAll('input[name="investGroupPerson"]:checked').forEach(function(cb) {
+        if (cb.value && personIds.indexOf(cb.value) < 0) personIds.push(cb.value);
+    });
+
+    // Collect selected frequencies
+    var freqs = [];
+    document.querySelectorAll('input[name="investGroupFreq"]:checked').forEach(function(cb) {
+        freqs.push(cb.value);
+    });
+
+    var isNew = !_investGroupEditId;
+    var data  = { name: name, personIds: personIds, snapshotFrequencies: freqs };
+
+    if (isNew) {
+        data.isDefault = false;
+        data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        await _investGroupCol().add(data);
+    } else {
+        // Preserve isDefault on the Me group
+        var existing = _investGroups.find(function(g) { return g.id === _investGroupEditId; });
+        if (existing && existing.isDefault) data.isDefault = true;
+        await _investGroupCol().doc(_investGroupEditId).update(data);
+    }
+
+    closeModal('investGroupModal');
+    await _investLoadGroups();
+    _investRenderGroupsPage();
+}
+
+async function _investDeleteGroup(groupId) {
+    var g = _investGroups.find(function(x) { return x.id === groupId; });
+    if (!g || g.isDefault) return;
+    if (!confirm('Delete group "' + (g.name || 'this group') + '"? This cannot be undone.')) return;
+    await _investGroupCol().doc(groupId).delete();
+    await _investLoadGroups();
+    _investRenderGroupsPage();
+}
+
+// ---------- Group Switcher Component ----------
+// Renders a group dropdown into containerId. Returns the active group ID.
+// Renders nothing (empty container) if only one group exists.
+function _investRenderGroupSwitcher(containerId, selectedGroupId) {
+    var container = document.getElementById(containerId);
+    if (!container) return selectedGroupId;
+
+    if (_investGroups.length <= 1) {
+        container.innerHTML = '';
+        return (_investGroups.length === 1) ? _investGroups[0].id : null;
+    }
+
+    var opts = _investGroups.map(function(g) {
+        return '<option value="' + escapeHtml(g.id) + '"' +
+            (g.id === selectedGroupId ? ' selected' : '') + '>' +
+            escapeHtml(g.name) + '</option>';
+    }).join('');
+
+    container.innerHTML =
+        '<div class="invest-group-switcher">' +
+            '<label class="invest-group-switcher-label">Group:</label>' +
+            '<select id="investGroupSelect" onchange="_investOnGroupSwitch(this.value)">' + opts + '</select>' +
+        '</div>';
+
+    return selectedGroupId || (_investGroups[0] ? _investGroups[0].id : null);
+}
+
+// Placeholder — overridden by each page that uses the switcher
+function _investOnGroupSwitch(groupId) {}
 
 // ============================================================
 // FINNHUB PRICE FETCHING

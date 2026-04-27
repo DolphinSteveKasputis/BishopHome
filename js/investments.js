@@ -1459,36 +1459,42 @@ async function _investFetchPriceFinnhub(ticker, apiKey) {
     return price;
 }
 
-// Batch Yahoo Finance lookup for multiple tickers via CORS proxy.
+// Yahoo Finance lookup via CORS proxy using v8/chart endpoint (works for mutual funds).
+// Fetches tickers sequentially with a short delay to avoid proxy rate limiting.
 // Returns { ticker: price } for tickers that resolved; missing entries = not found.
 async function _investFetchYahooBatch(tickers) {
     if (!tickers.length) return {};
-    var yahooTarget = 'https://query1.finance.yahoo.com/v7/finance/quote?symbols=' +
-                      tickers.join(',') +
-                      '&fields=regularMarketPrice';
-    var proxies = [
-        'https://api.allorigins.win/raw?url=' + encodeURIComponent(yahooTarget),
-        'https://corsproxy.io/?' + encodeURIComponent(yahooTarget),
-        'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(yahooTarget)
-    ];
-    for (var i = 0; i < proxies.length; i++) {
-        try {
-            var resp = await fetch(proxies[i]);
-            if (!resp.ok) throw new Error('HTTP ' + resp.status);
-            var data    = await resp.json();
-            var results = data && data.quoteResponse && data.quoteResponse.result;
-            if (!results || !results.length) throw new Error('empty response');
-            var map = {};
-            results.forEach(function(r) {
-                if (r.symbol && r.regularMarketPrice > 0) map[r.symbol] = r.regularMarketPrice;
-            });
-            console.log('[prices] Yahoo batch proxy ' + i + ' resolved:', map);
-            return map;
-        } catch (e) {
-            console.log('[prices] Yahoo batch proxy ' + i + ' failed: ' + e.message);
+    var map = {};
+    for (var t = 0; t < tickers.length; t++) {
+        if (t > 0) await new Promise(function(r) { setTimeout(r, 800); }); // avoid rate limit
+        var ticker     = tickers[t];
+        var yahooTarget = 'https://query1.finance.yahoo.com/v8/finance/chart/' +
+                          encodeURIComponent(ticker) + '?interval=1d&range=1d';
+        var proxies = [
+            'https://api.allorigins.win/raw?url=' + encodeURIComponent(yahooTarget),
+            'https://corsproxy.io/?' + encodeURIComponent(yahooTarget),
+            'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(yahooTarget)
+        ];
+        for (var i = 0; i < proxies.length; i++) {
+            try {
+                var resp  = await fetch(proxies[i]);
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                var data  = await resp.json();
+                var price = data && data.chart && data.chart.result &&
+                            data.chart.result[0] && data.chart.result[0].meta &&
+                            data.chart.result[0].meta.regularMarketPrice;
+                if (price && price > 0) {
+                    console.log('[prices] Yahoo ' + ticker + ' = ' + price + ' via proxy ' + i);
+                    map[ticker] = price;
+                    break;
+                }
+                throw new Error('no price in response');
+            } catch (e) {
+                console.log('[prices] Yahoo proxy ' + i + ' failed for ' + ticker + ': ' + e.message);
+            }
         }
     }
-    return {};
+    return map;
 }
 
 // LLM fallback: ask the configured LLM for prices of tickers all other sources missed.

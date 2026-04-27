@@ -1825,7 +1825,8 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 - Shows **Net Worth** and **Invested** totals across all accounts in the selected group
 - **If I retired today**: estimated annual and monthly income based on your return rate and after-tax percentage
 - **Category Breakdown**: Roth, Pre-Tax, Brokerage, Cash, and Uninvested Cash totals with % of Net Worth
-- **Period Performance**: placeholders for future snapshot-based gains (wired in a later phase)
+- **Period Performance**: Day / Week / Month / YTD gain or loss vs the most recent snapshot of each type
+- **All-Time Highs**: highest Net Worth ever recorded per snapshot type (Daily/Weekly/Monthly/Yearly)
 - **📡 Update All Prices**: fetches live Finnhub prices for every holding across all accounts in the group
 
 ### Details
@@ -1844,6 +1845,10 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 **Group switcher**: If more than one group exists, a dropdown appears at the top to switch between groups. Joint accounts are only included in a group's totals when ALL parties of the joint account are members of that group.
 
 **📡 Update All Prices**: Collects all unique ticker symbols across every account in the current group, fetches live prices from Finnhub (requires API key in Settings → General Settings → Investments), and batch-writes the updated prices to all matching holdings. Reports any tickers that failed. Requires a Finnhub API key.
+
+**Period Performance**: Four rows — Day, Week, Month, YTD. Each row shows the gain or loss in dollars and percentage versus the most recent snapshot of the matching type (Daily/Weekly/Monthly/Yearly). Rows show "No [type] snapshot yet" until at least one snapshot of that type has been captured on the Snapshots page. Green = gain, red = loss.
+
+**All-Time Highs**: Orange cards showing the highest Net Worth ever recorded per snapshot type. Automatically updated whenever a new snapshot exceeds the stored high. Only appears once at least one snapshot has been captured.
 
 **Per-account breakdown**: Lists every account in the group, grouped by person, showing the account name, tax category badge, and total value. Joint accounts appear in a separate "Joint Accounts" section at the bottom.
 

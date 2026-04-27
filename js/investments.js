@@ -1844,9 +1844,10 @@ async function _investRenderSummaryPage() {
         return;
     }
 
-    var accounts = await _investLoadGroupAccounts(group);
-    var cats     = _investComputeGroupTotals(accounts);
-    var ror      = _investConfig.projectedRoR || 0.06;
+    var accounts  = await _investLoadGroupAccounts(group);
+    var cats      = _investComputeGroupTotals(accounts);
+    var baselines = await _investLoadPeriodBaselines(group.id);
+    var ror       = _investConfig.projectedRoR || 0.06;
     var atp      = _investConfig.afterTaxPct  || 0.82;
     var annual   = cats.invested * ror * atp;
     var monthly  = annual / 12;
@@ -1886,6 +1887,25 @@ async function _investRenderSummaryPage() {
                 '<div class="invest-summary-person-name">Joint Accounts</div>';
         jointAccts.forEach(function(a) { breakdownHtml += _investSummaryAccountRow(a); });
         breakdownHtml += '</div>';
+    }
+
+    // All-Time Highs section (reuses snapshot page styles)
+    var athTypes       = ['daily', 'weekly', 'monthly', 'yearly'];
+    var athSummaryHtml = '';
+    if (athTypes.some(function(t) { return !!_investConfig['allTimeHigh' + t.charAt(0).toUpperCase() + t.slice(1)]; })) {
+        athSummaryHtml = '<div class="invest-snap-ath-row">';
+        athTypes.forEach(function(t) {
+            var key = 'allTimeHigh' + t.charAt(0).toUpperCase() + t.slice(1);
+            var ath = _investConfig[key];
+            if (!ath) return;
+            athSummaryHtml +=
+                '<div class="invest-snap-ath-item">' +
+                    '<span class="invest-snap-ath-label">' + t.charAt(0).toUpperCase() + t.slice(1) + ' ATH</span>' +
+                    '<span class="invest-snap-ath-value">' + _investFmtCurrency(ath.value) + '</span>' +
+                    '<span class="invest-snap-ath-date">' + escapeHtml(ath.date) + '</span>' +
+                '</div>';
+        });
+        athSummaryHtml += '</div>';
     }
 
     var html =
@@ -1955,14 +1975,14 @@ async function _investRenderSummaryPage() {
             '</div>' +
         '</div>' +
 
-        // Period performance (values wired in Phase 7 once snapshots exist)
+        (athSummaryHtml ? '<div class="invest-summary-section-title">All-Time Highs</div>' + athSummaryHtml : '') +
+
         '<div class="invest-summary-section-title">Period Performance</div>' +
         '<div class="invest-summary-perf">' +
-            _investPerfRow('1 Week') +
-            _investPerfRow('1 Month') +
-            _investPerfRow('3 Months') +
-            _investPerfRow('YTD') +
-            _investPerfRow('1 Year') +
+            _investPerfRowLive('Day',   'daily',   baselines.daily,   cats.netWorth) +
+            _investPerfRowLive('Week',  'weekly',  baselines.weekly,  cats.netWorth) +
+            _investPerfRowLive('Month', 'monthly', baselines.monthly, cats.netWorth) +
+            _investPerfRowLive('YTD',   'yearly',  baselines.yearly,  cats.netWorth) +
         '</div>' +
 
         // Per-account breakdown
@@ -1989,6 +2009,48 @@ function _investPerfRow(label) {
     return '<div class="invest-summary-perf-row">' +
         '<span class="invest-summary-perf-label">' + escapeHtml(label) + '</span>' +
         '<span class="invest-summary-perf-value">—</span>' +
+    '</div>';
+}
+
+// Load the most recent snapshot of each type for a group (client-side filter, no composite index needed)
+async function _investLoadPeriodBaselines(groupId) {
+    var snap = await _investSnapshotCol().orderBy('date', 'desc').limit(200).get();
+    var b    = { daily: null, weekly: null, monthly: null, yearly: null };
+    snap.forEach(function(doc) {
+        var data = doc.data();
+        if (data.groupId === groupId && b[data.type] === null) {
+            b[data.type] = Object.assign({ id: doc.id }, data);
+        }
+    });
+    return b;
+}
+
+function _investPerfRowLive(label, snapshotType, baseline, currentNetWorth) {
+    if (!baseline) {
+        return '<div class="invest-summary-perf-row">' +
+            '<span class="invest-summary-perf-label">' + escapeHtml(label) + '</span>' +
+            '<span class="invest-summary-perf-value invest-perf-dim">No ' + escapeHtml(snapshotType) + ' snapshot yet</span>' +
+        '</div>';
+    }
+
+    var diff    = currentNetWorth - (baseline.netWorth || 0);
+    var base    = baseline.netWorth || 0;
+    var pct     = (base > 0) ? (diff / base * 100) : 0;
+    var isGain  = diff >= 0;
+    var diffFmt = (isGain ? '+' : '\u2212') + '$' +
+        Math.abs(diff).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    var pctFmt  = (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%';
+    var cls     = isGain ? 'invest-perf-gain' : 'invest-perf-loss';
+
+    return '<div class="invest-summary-perf-row ' + cls + '">' +
+        '<div class="invest-summary-perf-left">' +
+            '<span class="invest-summary-perf-label">' + escapeHtml(label) + '</span>' +
+            '<span class="invest-summary-perf-baseline">vs ' + escapeHtml(baseline.date) + '</span>' +
+        '</div>' +
+        '<div class="invest-summary-perf-right">' +
+            '<span class="invest-summary-perf-diff">' + escapeHtml(diffFmt) + '</span>' +
+            '<span class="invest-summary-perf-pct">' + escapeHtml(pctFmt) + '</span>' +
+        '</div>' +
     '</div>';
 }
 

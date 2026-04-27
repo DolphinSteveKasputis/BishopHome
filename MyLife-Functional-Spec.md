@@ -1235,7 +1235,9 @@ Dashboard page showing totals for the selected group.
 - Cash bucket = total balance of bank accounts (checking/savings/money market/CD)
 - Uninvested Cash = sum of `cashBalance` on non-bank investment accounts
 
-**Period Performance**: Five rows (1 Week, 1 Month, 3 Months, YTD, 1 Year) — show "—" until wired to snapshots in Phase 7.
+**All-Time Highs**: Orange cards (reuses `.invest-snap-ath-*` styles) showing the highest Net Worth ever recorded for each snapshot type (Daily/Weekly/Monthly/Yearly), sourced from `investmentConfig` ATH fields. Only rendered when at least one ATH is recorded.
+
+**Period Performance**: Four rows — Day, Week, Month, YTD — each wired to the most recent snapshot of the corresponding type (daily/weekly/monthly/yearly) for the current group. Loaded via `_investLoadPeriodBaselines(groupId)` which queries `investmentSnapshots` ordered by `date desc`, limit 200, and takes the first of each type client-side (no composite index required). Each row shows: baseline date, Gain/Loss $ (green `+` / red `−`), and Gain/Loss %. Shows "No [type] snapshot yet" when no snapshot of that type exists.
 
 **Accounts section**: Per-person groups listing each account's name, tax category badge, and total value. Joint accounts appear in a separate "Joint Accounts" section.
 

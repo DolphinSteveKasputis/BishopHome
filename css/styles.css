@@ -14575,8 +14575,40 @@ a.invest-hub-card:hover {
     font-size: 0.88rem;
 }
 .invest-summary-perf-row:last-child { border-bottom: none; }
-.invest-summary-perf-label { color: #444; }
+.invest-summary-perf-label { color: #444; font-weight: 600; }
 .invest-summary-perf-value { color: #aaa; font-style: italic; }
+.invest-perf-dim { color: #bbb; font-style: italic; font-size: 0.8rem; }
+
+/* Live period performance row layout */
+.invest-summary-perf-left {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.invest-summary-perf-baseline {
+    font-size: 0.72rem;
+    color: #999;
+}
+.invest-summary-perf-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+}
+.invest-summary-perf-diff {
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+.invest-summary-perf-pct {
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/* Gain / loss color classes */
+.invest-perf-gain .invest-summary-perf-diff,
+.invest-perf-gain .invest-summary-perf-pct { color: #2e7d32; }
+.invest-perf-loss .invest-summary-perf-diff,
+.invest-perf-loss .invest-summary-perf-pct { color: #c62828; }
 
 /* Per-account breakdown */
 .invest-summary-accounts {

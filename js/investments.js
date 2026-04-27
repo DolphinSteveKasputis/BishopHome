@@ -1957,6 +1957,7 @@ async function _investSaveHolding() {
         await _investHoldingCol(ns, aid).add(data);
     }
 
+    var wasAdd = !_investHoldingEditId;
     closeModal('investHoldingModal');
 
     // Reload holdings and re-render
@@ -1970,6 +1971,14 @@ async function _investSaveHolding() {
     var acctDoc = await userCol('investments').doc(ns).collection('accounts').doc(aid).get();
     var acct    = Object.assign({ id: aid, _ns: ns }, acctDoc.data());
     _investRenderAccountDetail(acct);
+
+    // After an add, return focus to "+ Add Holding" so the user can press Enter to add another
+    if (wasAdd) {
+        setTimeout(function() {
+            var addBtn = document.querySelector('.iht-header-btns .btn-primary');
+            if (addBtn) addBtn.focus();
+        }, 50);
+    }
 }
 
 async function _investDeleteHolding(holdingId) {

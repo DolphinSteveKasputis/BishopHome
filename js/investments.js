@@ -1652,8 +1652,8 @@ function _investHoldingsHtml() {
                     '<th>Qty</th>' +
                     '<th>Price</th>' +
                     '<th>Cost/sh</th>' +
-                    '<th>Gain $</th>' +
-                    '<th>Gain %</th>' +
+                    '<th>Tot Gain $</th>' +
+                    '<th>Tot Gain %</th>' +
                     '<th>Value</th>' +
                     '<th>% Acct</th>' +
                     '<th></th>' +

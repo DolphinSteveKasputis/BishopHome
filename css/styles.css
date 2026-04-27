@@ -14822,14 +14822,14 @@ a.invest-hub-card:hover {
 /* Gain/loss in account totals card */
 .invest-total-gain { color: #2e7d32; font-weight: 600; }
 .invest-total-loss { color: #c62828; font-weight: 600; }
-/* URL link icon on summary account rows */
-.invest-summary-acct-url {
+/* URL link icon on summary account rows — double-class beats .iht-btn specificity */
+.iht-btn.invest-summary-acct-url {
     text-decoration: none;
-    color: #555;
+    color: #4a6fa5;
     font-size: 0.85rem;
     padding: 1px 3px;
 }
-.invest-summary-acct-url:hover { color: #1a1a1a; }
+.iht-btn.invest-summary-acct-url:hover { color: #1a3a6b; }
 .invest-summary-retire-amounts {
     display: flex;
     gap: 24px;

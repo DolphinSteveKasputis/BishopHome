@@ -952,7 +952,8 @@ async function _investSaveForm() {
 
     if (cashBalance !== null && !isNaN(cashBalance)) {
         data.cashBalance = cashBalance;
-    } else {
+    } else if (!isNew) {
+        // FieldValue.delete() is only valid in update() — for new docs just omit the field
         data.cashBalance = firebase.firestore.FieldValue.delete();
     }
 

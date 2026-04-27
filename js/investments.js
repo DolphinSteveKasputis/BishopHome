@@ -1464,24 +1464,35 @@ async function _investFetchPrice(ticker, apiKey) {
         console.log('[prices] Finnhub error for ' + ticker + ': ' + e.message + ' — trying Yahoo');
     }
 
-    // --- Yahoo Finance via CORS proxy (mutual funds blocked by CORS from GitHub Pages) ---
-    // corsproxy.io adds Access-Control-Allow-Origin headers so the browser request succeeds
+    // --- Yahoo Finance via CORS proxies ---
+    // GitHub Pages blocks direct Yahoo requests; route through a proxy that adds CORS headers
     var yahooTarget = 'https://query1.finance.yahoo.com/v8/finance/chart/' +
                       encodeURIComponent(ticker) + '?interval=1d&range=1d';
-    var proxyUrl    = 'https://corsproxy.io/?' + encodeURIComponent(yahooTarget);
-    try {
-        var yResp = await fetch(proxyUrl);
-        if (!yResp.ok) throw new Error('proxy HTTP ' + yResp.status);
-        var yData  = await yResp.json();
-        var yPrice = yData && yData.chart && yData.chart.result &&
-                     yData.chart.result[0] && yData.chart.result[0].meta &&
-                     yData.chart.result[0].meta.regularMarketPrice;
-        if (yPrice && yPrice > 0) return yPrice;
-        throw new Error('no price in Yahoo response');
-    } catch (e) {
-        console.log('[prices] Yahoo proxy error for ' + ticker + ': ' + e.message);
-        throw new Error('no price from Finnhub or Yahoo (' + e.message + ')');
+
+    var proxies = [
+        'https://api.allorigins.win/raw?url=' + encodeURIComponent(yahooTarget),
+        'https://corsproxy.io/?' + encodeURIComponent(yahooTarget),
+        'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(yahooTarget)
+    ];
+
+    for (var i = 0; i < proxies.length; i++) {
+        try {
+            var pResp = await fetch(proxies[i]);
+            if (!pResp.ok) throw new Error('HTTP ' + pResp.status);
+            var pData  = await pResp.json();
+            var pPrice = pData && pData.chart && pData.chart.result &&
+                         pData.chart.result[0] && pData.chart.result[0].meta &&
+                         pData.chart.result[0].meta.regularMarketPrice;
+            if (pPrice && pPrice > 0) {
+                console.log('[prices] Got ' + ticker + ' = ' + pPrice + ' via proxy ' + i);
+                return pPrice;
+            }
+            console.log('[prices] Proxy ' + i + ' returned no price for ' + ticker);
+        } catch (e) {
+            console.log('[prices] Proxy ' + i + ' error for ' + ticker + ': ' + e.message);
+        }
     }
+    throw new Error('no price from Finnhub or any proxy');
 }
 
 // Update prices for all holdings in the currently displayed account.

@@ -1151,7 +1151,7 @@ function _investRenderGroupsPage() {
         '<div class="page-header">' +
             '<h2>⚙ Groups</h2>' +
             '<div class="page-header-actions">' +
-                '<button class="btn btn-primary" onclick="_investOpenGroupModal(null)">+ Add Group</button>' +
+                '<a class="btn btn-primary" href="#investments/group/new">+ Add Group</a>' +
             '</div>' +
         '</div>' +
         '<p class="invest-groups-desc">Groups define which people\'s accounts are combined in the Portfolio Summary and Snapshots. The <strong>Me</strong> group is created automatically and cannot be deleted.</p>' +
@@ -1195,7 +1195,7 @@ function _investGroupCardHtml(g) {
             (freqs || '<em style="color:#aaa">none selected</em>') +
         '</div>' +
         '<div class="invest-group-card-actions">' +
-            '<button class="btn btn-secondary btn-small" onclick="_investOpenGroupModal(\'' + g.id + '\')">Edit</button>' +
+            '<a class="btn btn-secondary btn-small" href="#investments/group/edit/' + g.id + '">Edit</a>' +
             (!g.isDefault
                 ? '<button class="btn btn-danger btn-small" onclick="_investDeleteGroup(\'' + g.id + '\')">Delete</button>'
                 : '') +
@@ -1203,42 +1203,82 @@ function _investGroupCardHtml(g) {
     '</div>';
 }
 
-// ---------- Group Modal ----------
+// ---------- Add/Edit Group Page ----------
 
-function _investOpenGroupModal(groupId) {
+async function loadInvestmentsGroupEditPage(groupId) {
     _investGroupEditId = groupId || null;
     var isNew = !groupId;
+
+    if (_investPeople.length === 0) await _investLoadAll();
+    if (_investGroups.length === 0) await _investLoadGroups();
+
     var g = groupId ? _investGroups.find(function(x) { return x.id === groupId; }) : null;
+    var title = isNew ? 'Add Group' : 'Edit Group';
 
-    document.getElementById('investGroupModalTitle').textContent = isNew ? 'Add Group' : 'Edit Group';
-    _investVal('investGroupName', g ? g.name : '');
+    document.getElementById('breadcrumbBar').innerHTML =
+        '<a href="#investments">Investments</a><span class="separator">&rsaquo;</span>' +
+        '<a href="#investments/groups">Manage Groups</a><span class="separator">&rsaquo;</span>' +
+        '<span>' + title + '</span>';
+    document.getElementById('headerTitle').innerHTML =
+        '<a href="#main" class="home-link">' + escapeHtml(window.appName || 'My Life') + '</a>';
 
-    // Build people checkboxes — Me is optional, contacts are optional
+    // People checkboxes
     var selectedIds = g ? (g.personIds || []) : ['self'];
     var meChecked = selectedIds.indexOf('self') >= 0;
     var peopleHtml =
-        '<label class="invest-checkbox-label">' +
+        '<label class="ig-edit-row">' +
             '<input type="checkbox" name="investGroupPerson" value="self"' +
                 (meChecked ? ' checked' : '') + '> Me' +
         '</label>';
     _investPeople.forEach(function(p) {
         var checked = selectedIds.indexOf(p.id) >= 0;
         peopleHtml +=
-            '<label class="invest-checkbox-label">' +
+            '<label class="ig-edit-row">' +
                 '<input type="checkbox" name="investGroupPerson" value="' + escapeHtml(p.id) + '"' +
                     (checked ? ' checked' : '') + '> ' +
                 escapeHtml(p.name) +
             '</label>';
     });
-    document.getElementById('investGroupPeopleList').innerHTML = peopleHtml;
 
-    // Set frequency checkboxes
+    // Frequency checkboxes
     var selectedFreqs = g ? (g.snapshotFrequencies || []) : ['daily', 'weekly', 'monthly', 'yearly'];
-    document.querySelectorAll('input[name="investGroupFreq"]').forEach(function(cb) {
-        cb.checked = selectedFreqs.indexOf(cb.value) >= 0;
-    });
+    var freqItems = [
+        { val: 'daily', label: 'Daily' }, { val: 'weekly', label: 'Weekly' },
+        { val: 'monthly', label: 'Monthly' }, { val: 'yearly', label: 'Yearly' }
+    ];
+    var freqHtml = freqItems.map(function(f) {
+        var checked = selectedFreqs.indexOf(f.val) >= 0;
+        return '<label class="ig-edit-row">' +
+            '<input type="checkbox" name="investGroupFreq" value="' + f.val + '"' +
+                (checked ? ' checked' : '') + '> ' + f.label +
+        '</label>';
+    }).join('');
 
-    openModal('investGroupModal');
+    var page = document.getElementById('page-investments-group-edit');
+    if (!page) return;
+
+    page.innerHTML =
+        '<div class="page-header"><h2>' + escapeHtml(title) + '</h2></div>' +
+        '<div class="ig-edit-form">' +
+            '<div class="form-group">' +
+                '<label>Group Name *</label>' +
+                '<input type="text" id="investGroupName" placeholder="e.g. Our Household" value="' +
+                    escapeHtml(g ? g.name : '') + '">' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>People</label>' +
+                '<div class="ig-edit-list">' + peopleHtml + '</div>' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>Snapshot Frequencies</label>' +
+                '<div class="ig-edit-list">' + freqHtml + '</div>' +
+            '</div>' +
+            '<div class="ig-edit-actions">' +
+                '<button class="btn btn-primary" onclick="_investSaveGroup()">Save</button>' +
+                '<a class="btn btn-secondary" href="#investments/groups">Cancel</a>' +
+            '</div>' +
+        '</div>';
+
     var nameEl = document.getElementById('investGroupName');
     if (nameEl) setTimeout(function() { nameEl.focus(); }, 50);
 }
@@ -1274,9 +1314,8 @@ async function _investSaveGroup() {
         await _investGroupCol().doc(_investGroupEditId).update(data);
     }
 
-    closeModal('investGroupModal');
     await _investLoadGroups();
-    _investRenderGroupsPage();
+    window.location.hash = '#investments/groups';
 }
 
 async function _investDeleteGroup(groupId) {

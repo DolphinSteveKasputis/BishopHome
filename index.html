@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=608">
+    <link rel="stylesheet" href="css/styles.css?v=609">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -6938,6 +6938,11 @@ service firebase.storage {
             <!-- Populated by loadInvestmentsGroupsPage() in investments.js -->
         </section>
 
+        <!-- Page: Add/Edit Group (#investments/group/new, #investments/group/edit/:id) -->
+        <section class="page hidden" id="page-investments-group-edit">
+            <!-- Populated by loadInvestmentsGroupEditPage() in investments.js -->
+        </section>
+
         <!-- Page: Account Detail (#investments/account/:ns/:id) -->
         <section class="page hidden" id="page-investments-account">
             <!-- Populated by loadInvestmentsAccountPage() in investments.js -->
@@ -6981,36 +6986,6 @@ service firebase.storage {
                 <div class="modal-actions">
                     <button class="btn btn-primary" id="investSnapSaveBtn" onclick="_investCaptureSnapshot()">Capture</button>
                     <button class="btn btn-secondary" onclick="closeModal('investSnapModal')">Cancel</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Modal: Add/Edit Group (Investments) -->
-        <div class="modal-overlay" id="investGroupModal">
-            <div class="modal">
-                <h3 id="investGroupModalTitle">Add Group</h3>
-                <div class="form-group">
-                    <label>Group Name *</label>
-                    <input type="text" id="investGroupName" placeholder="e.g. Our Household">
-                </div>
-                <div class="form-group">
-                    <label>People</label>
-                    <div id="investGroupPeopleList">
-                        <!-- Populated by _investOpenGroupModal() -->
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Snapshot Frequencies</label>
-                    <div class="invest-freq-checkboxes">
-                        <label class="invest-checkbox-label"><input type="checkbox" name="investGroupFreq" value="daily"> Daily</label>
-                        <label class="invest-checkbox-label"><input type="checkbox" name="investGroupFreq" value="weekly"> Weekly</label>
-                        <label class="invest-checkbox-label"><input type="checkbox" name="investGroupFreq" value="monthly"> Monthly</label>
-                        <label class="invest-checkbox-label"><input type="checkbox" name="investGroupFreq" value="yearly"> Yearly</label>
-                    </div>
-                </div>
-                <div class="modal-buttons">
-                    <button class="btn btn-primary" onclick="_investSaveGroup()">Save</button>
-                    <button class="btn btn-secondary" onclick="closeModal('investGroupModal')">Cancel</button>
                 </div>
             </div>
         </div>
@@ -10493,9 +10468,9 @@ export default {
     <script src="js/legacy-crypto.js?v=2"></script>
     <script src="js/legacy.js?v=28"></script>
     <script src="js/credentials.js?v=583"></script>
-    <script src="js/investments.js?v=608"></script>
+    <script src="js/investments.js?v=609"></script>
     <script src="js/private.js?v=579"></script>
-    <script src="js/app.js?v=607"></script>
+    <script src="js/app.js?v=609"></script>
 
 </body>
 </html>

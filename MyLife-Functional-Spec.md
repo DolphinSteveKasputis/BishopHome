@@ -1220,7 +1220,9 @@ Stored in `userCol('investmentGroups')`. Fields: `name`, `personIds[]` (always i
 
 **Auto-create**: On every visit to the hub (`loadInvestmentsPage()`), `_investEnsureMeGroup()` checks whether any group doc exists; if not, creates the Me group with all four frequencies.
 
-**Manage Groups page**: Lists all groups as cards (name, people, frequency badges). **+ Add Group** and **Edit** open `investGroupModal` (name field + people checkboxes + frequency checkboxes). Me is an optional checkbox (not always-included); non-default groups have a **Delete** button. Default group cannot be deleted.
+**Manage Groups page**: Lists all groups as cards (name, people, frequency badges). **+ Add Group** navigates to `#investments/group/new`; **Edit** navigates to `#investments/group/edit/:id`. Both open the standalone Add/Edit Group page (`page-investments-group-edit`, loaded by `loadInvestmentsGroupEditPage`). Me is an optional checkbox (not always-included); non-default groups have a **Delete** button. Default group cannot be deleted.
+
+**Add/Edit Group page** (`#investments/group/new`, `#investments/group/edit/:id`): Standalone form with Group Name field, People checkboxes (Me + enrolled contacts), and Snapshot Frequencies checkboxes (Daily/Weekly/Monthly/Yearly). **Save** writes to Firestore then navigates to `#investments/groups`. **Cancel** navigates to `#investments/groups`.
 
 **Group switcher** (`_investRenderGroupSwitcher(containerId, selectedGroupId)`): Renders a labeled `<select>` into the given container element. Hidden (empty) when only one group exists. The `<select>` fires `_investOnGroupSwitch(groupId)`, which delegates to `_investGroupSwitchHandler` — a module-level variable set by each page that embeds the switcher.
 

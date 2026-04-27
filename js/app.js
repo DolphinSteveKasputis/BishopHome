@@ -798,6 +798,12 @@ function handleRoute() {
     } else if (page === 'investments' && id === 'groups') {
         showPage('investments-groups');
         loadInvestmentsGroupsPage();
+    } else if (page === 'investments' && id === 'group' && parts[2] === 'new') {
+        showPage('investments-group-edit');
+        loadInvestmentsGroupEditPage(null);
+    } else if (page === 'investments' && id === 'group' && parts[2] === 'edit' && parts[3]) {
+        showPage('investments-group-edit');
+        loadInvestmentsGroupEditPage(parts[3]);
     } else if (page === 'investments' && id === 'account' && parts[2] && parts[3]) {
         showPage('investments-account');
         loadInvestmentsAccountPage(parts[2], parts[3]);

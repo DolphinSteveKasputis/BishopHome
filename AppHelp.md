@@ -1753,13 +1753,13 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 
 ### Details
 
-**Creating a group**: Tap **+ Add Group** → enter a name, check which people to include (Me is optional — uncheck it to track someone else's accounts separately), and choose which snapshot frequencies apply (Daily / Weekly / Monthly / Yearly). Tap Save.
+**Creating a group**: Tap **+ Add Group** → you're taken to the Add Group page. Enter a name, check which people to include (Me is optional — uncheck it to track someone else's accounts separately), and choose which snapshot frequencies apply (Daily / Weekly / Monthly / Yearly). Tap **Save** to return to Manage Groups, or **Cancel** to go back without saving.
 
 **People**: Choose from your enrolled contacts (added via Accounts → Manage People). Each selected person's accounts roll up into that group's portfolio total. "Me" is just another checkbox — you can create a group that excludes yourself (e.g., a group just for your kids' accounts).
 
 **Snapshot frequencies**: Controls which snapshot types are offered when you tap "Capture Snapshot" on the Snapshots page. A "Kids" group might only need Yearly; your household group likely wants all four.
 
-**Editing**: Tap **Edit** on any group card to change the name, people, or frequencies.
+**Editing**: Tap **Edit** on any group card — you're taken to the Edit Group page where you can change the name, people, or frequencies. Tap **Save** or **Cancel** to return to Manage Groups.
 
 **Deleting**: Tap **Delete** on any non-default group. This removes only the group record — no account data is affected.
 

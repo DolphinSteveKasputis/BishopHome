@@ -1135,7 +1135,24 @@ Person-scoped financial account tracker. The **canonical storage** for financial
 Tile labeled **Investments** (📈), always visible on the Life landing page → navigates to `#investments` hub.
 
 ### Hub (`#investments`)
-Four cards: **Accounts** → `#investments/accounts`; **Summary** → `#investments/summary`; **Snapshots** → `#investments/snapshots`; **Stock Rollup** → `#investments/stocks`.
+Live dashboard above a static nav-card grid.
+
+**Dashboard card** (loads async after page renders):
+- **Group selector**: dropdown shown only when >1 group exists; switching re-renders the dashboard for the selected group.
+- **Heroes row**: Net Worth and Invested side-by-side in large type (computed live from holdings `lastPrice` × shares + cash balances, same as the Summary page).
+- **Day row**: gain/loss vs. the group's most recent daily snapshot (green if positive, red if negative). Shows "No daily snapshot yet" if none exists.
+- **Quick-stat row**: three cells (Week / Month / YTD) showing $ gain and % gain vs. the most recent weekly, monthly, and yearly snapshots respectively. Cells show "—" when no snapshot of that type has been captured.
+- **ATH callout**: shows the highest net-worth value recorded across all snapshot types. Displays "🏆 All-time high: $X on [date]"; upgrades to "🏆 NEW all-time high!" if the current value equals or exceeds the stored ATH.
+
+**Nav cards** (always visible below the dashboard):
+- **Accounts** → `#investments/accounts`
+- **Summary** → `#investments/summary`
+- **Stock Rollup** → `#investments/stocks`
+- **Snapshots** → `#investments/snapshots`
+- **Retirement Planner** (coming soon)
+- **Retirement Projection** (coming soon)
+
+Module state: `_investHubGroupId` persists the selected group across re-renders.
 
 ### Person Switcher (Accounts page)
 - Dropdown at top: **Me** (personId = `'self'`) + enrolled contacts

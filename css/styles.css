@@ -13845,6 +13845,92 @@ a.invest-hub-card:hover {
     flex-shrink: 0;
 }
 
+/* Hub live dashboard (Phase 9) */
+.invest-hub-dashboard {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+.invest-hub-heroes {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 10px;
+}
+.invest-hub-hero { flex: 1; }
+.invest-hub-hero-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #888;
+    margin-bottom: 2px;
+}
+.invest-hub-hero-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1a1a1a;
+}
+.invest-hub-day-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    border-top: 1px solid #efefef;
+    margin-bottom: 10px;
+}
+.invest-hub-day-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #999;
+    min-width: 38px;
+}
+.invest-hub-day-value { font-size: 0.92rem; font-weight: 600; }
+.invest-hub-gain { color: #2e7d32; }
+.invest-hub-loss { color: #c62828; }
+.invest-hub-dim  { color: #aaa; }
+.invest-hub-stats-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+.invest-hub-stat-cell {
+    flex: 1;
+    background: #f8f8f8;
+    border-radius: 8px;
+    padding: 8px 6px;
+    text-align: center;
+}
+.invest-hub-stat-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #999;
+    margin-bottom: 3px;
+}
+.invest-hub-stat-value {
+    font-size: 0.92rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+.invest-hub-stat-pct {
+    font-size: 0.72rem;
+    font-weight: 500;
+    margin-top: 1px;
+}
+.invest-hub-ath {
+    font-size: 0.8rem;
+    color: #777;
+    border-top: 1px solid #efefef;
+    padding-top: 8px;
+}
+.invest-hub-ath--new { color: #b8860b; font-weight: 700; }
+.invest-hub-ath-date { color: #aaa; }
+
 /* Account list — grouped sections */
 .invest-group-header {
     font-size: 0.72rem;

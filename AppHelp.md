@@ -1701,8 +1701,12 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 ## screen:investments
 
 ### Quick Help
-- The Investments hub links to Accounts, Summary (coming soon), and Snapshots (coming soon)
-- Tap **Accounts** to view and manage all your financial accounts
+- The Investments hub is a live dashboard — it shows your **Net Worth**, **Invested** total, and gain/loss for Day, Week, Month, and YTD (based on your most recent snapshot of each type)
+- If you have more than one group, a **Group** selector appears at the top — switch groups to see a different portfolio view
+- The **Day** row shows change vs. your most recent daily snapshot; **Week/Month/YTD** use weekly, monthly, and yearly snapshots respectively. "—" means no snapshot of that type has been captured yet
+- The **🏆 All-time high** callout shows your best net worth recorded across all snapshot types. When your current value equals or exceeds it, it displays as "NEW all-time high!"
+- Below the dashboard are nav cards linking to **Accounts**, **Summary**, **Stock Rollup**, **Snapshots**, and two coming-soon sections (Retirement Planner, Retirement Projection)
+- Tap **⚙ Groups** (top right) to create or manage portfolio groups
 
 ---
 

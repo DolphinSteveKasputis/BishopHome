@@ -70,6 +70,7 @@ var _investShowArchived = false;
 var _investExpandedIds  = {};       // {accountId: bool}
 var _investRevealedIds  = {};       // {accountId: bool} — sensitive fields decrypted & shown
 var _investDecryptCache = {};       // {accountId: {accountNumber, username, password}}
+var _investHubGroupId   = null;     // selected group on the hub landing page
 
 // ---------- Firestore Path ----------
 
@@ -79,18 +80,27 @@ function _investCol() {
 
 // ---------- Hub Page Loader ----------
 
+// Returns "+$1,234 (+1.23%)" or "−$1,234 (−1.23%)" — compact signed gain string
+function _investFmtGain(diff, pct) {
+    var sign    = diff >= 0 ? '+' : '\u2212';
+    var pctSign = pct  >= 0 ? '+' : '\u2212';
+    return sign + '$' +
+        Math.abs(diff).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) +
+        ' (' + pctSign + Math.abs(pct).toFixed(2) + '%)';
+}
+
 async function loadInvestmentsPage() {
     document.getElementById('breadcrumbBar').innerHTML =
         '<a href="#life">Life</a><span class="separator">&rsaquo;</span><span>Investments</span>';
     document.getElementById('headerTitle').innerHTML =
         '<a href="#main" class="home-link">' + escapeHtml(window.appName || 'My Life') + '</a>';
 
-    // Auto-create the "Me" group on first visit
     await _investEnsureMeGroup();
 
     var page = document.getElementById('page-investments');
     if (!page) return;
 
+    // Render chrome immediately; data fills in async
     page.innerHTML =
         '<div class="page-header">' +
             '<h2>📈 Investments</h2>' +
@@ -98,40 +108,187 @@ async function loadInvestmentsPage() {
                 '<a class="btn btn-secondary btn-small" href="#investments/groups">⚙ Groups</a>' +
             '</div>' +
         '</div>' +
-        '<div class="invest-hub">' +
-            '<a class="invest-hub-card" href="#investments/accounts">' +
-                '<span class="invest-hub-icon">🏦</span>' +
-                '<div class="invest-hub-text">' +
-                    '<div class="invest-hub-title">Accounts</div>' +
-                    '<div class="invest-hub-desc">View and manage all investment and bank accounts</div>' +
-                '</div>' +
-                '<span class="invest-hub-arrow">›</span>' +
-            '</a>' +
-            '<a class="invest-hub-card" href="#investments/summary">' +
-                '<span class="invest-hub-icon">📊</span>' +
-                '<div class="invest-hub-text">' +
-                    '<div class="invest-hub-title">Summary</div>' +
-                    '<div class="invest-hub-desc">Net worth, category breakdown, and retirement estimate</div>' +
-                '</div>' +
-                '<span class="invest-hub-arrow">›</span>' +
-            '</a>' +
-            '<a class="invest-hub-card" href="#investments/snapshots">' +
-                '<span class="invest-hub-icon">📷</span>' +
-                '<div class="invest-hub-text">' +
-                    '<div class="invest-hub-title">Snapshots</div>' +
-                    '<div class="invest-hub-desc">Capture and browse historical portfolio values</div>' +
-                '</div>' +
-                '<span class="invest-hub-arrow">›</span>' +
-            '</a>' +
-            '<a class="invest-hub-card" href="#investments/stocks">' +
-                '<span class="invest-hub-icon">📈</span>' +
-                '<div class="invest-hub-text">' +
-                    '<div class="invest-hub-title">Stock Rollup</div>' +
-                    '<div class="invest-hub-desc">All tickers across every account — concentration analysis</div>' +
-                '</div>' +
-                '<span class="invest-hub-arrow">›</span>' +
-            '</a>' +
+        '<div id="investHubGroupSwitcher"></div>' +
+        '<div id="investHubBody"><p class="muted-text">Loading…</p></div>' +
+        _investHubNavCards();
+
+    await _investLoadGroups();
+    await _investLoadConfig();
+
+    _investGroupSwitchHandler = function(gid) {
+        _investHubGroupId = gid;
+        _investRenderHubBody(gid);
+    };
+
+    _investHubGroupId = _investRenderGroupSwitcher('investHubGroupSwitcher', _investHubGroupId);
+    await _investRenderHubBody(_investHubGroupId);
+}
+
+// Loads live account totals + period baselines for the given group, then renders
+// the dashboard card into #investHubBody.
+async function _investRenderHubBody(groupId) {
+    var body = document.getElementById('investHubBody');
+    if (!body) return;
+
+    if (!groupId) {
+        body.innerHTML = '<p class="muted-text">No group selected.</p>';
+        return;
+    }
+
+    body.innerHTML = '<p class="muted-text">Loading…</p>';
+
+    try {
+        var group     = _investGroups.find(function(g) { return g.id === groupId; }) || null;
+        var accounts  = await _investLoadGroupAccounts(group);
+        var totals    = _investComputeGroupTotals(accounts);
+        var baselines = await _investLoadPeriodBaselines(groupId);
+        body.innerHTML = _investHubDashboardHtml(totals, baselines);
+    } catch (e) {
+        console.error('Hub dashboard error', e);
+        body.innerHTML = '<p class="muted-text">Error loading portfolio data.</p>';
+    }
+}
+
+// Builds the dashboard card HTML from computed totals and period baselines.
+function _investHubDashboardHtml(totals, baselines) {
+    var nw       = totals.netWorth || 0;
+    var invested = totals.invested || 0;
+
+    // Day gain/loss row
+    var dayHtml;
+    if (baselines.daily) {
+        var dayDiff = nw - (baselines.daily.netWorth || 0);
+        var dayBase = baselines.daily.netWorth || 0;
+        var dayPct  = (dayBase > 0) ? (dayDiff / dayBase * 100) : 0;
+        var dayCls  = dayDiff >= 0 ? 'invest-hub-gain' : 'invest-hub-loss';
+        dayHtml =
+            '<div class="invest-hub-day-row ' + dayCls + '">' +
+                '<span class="invest-hub-day-label">Day</span>' +
+                '<span class="invest-hub-day-value">' + escapeHtml(_investFmtGain(dayDiff, dayPct)) + '</span>' +
+            '</div>';
+    } else {
+        dayHtml =
+            '<div class="invest-hub-day-row invest-hub-dim">' +
+                '<span class="invest-hub-day-label">Day</span>' +
+                '<span class="invest-hub-day-value">No daily snapshot yet</span>' +
+            '</div>';
+    }
+
+    // Quick-stat cells (Week / Month / YTD)
+    function statCell(label, baseline) {
+        if (!baseline) {
+            return '<div class="invest-hub-stat-cell invest-hub-dim">' +
+                '<div class="invest-hub-stat-label">' + escapeHtml(label) + '</div>' +
+                '<div class="invest-hub-stat-value">—</div>' +
+            '</div>';
+        }
+        var diff    = nw - (baseline.netWorth || 0);
+        var base    = baseline.netWorth || 0;
+        var pct     = (base > 0) ? (diff / base * 100) : 0;
+        var cls     = diff >= 0 ? 'invest-hub-gain' : 'invest-hub-loss';
+        var sign    = diff >= 0 ? '+' : '\u2212';
+        var pctSign = pct  >= 0 ? '+' : '\u2212';
+        return '<div class="invest-hub-stat-cell ' + cls + '">' +
+            '<div class="invest-hub-stat-label">' + escapeHtml(label) + '</div>' +
+            '<div class="invest-hub-stat-value">' + sign + '$' +
+                Math.abs(diff).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) +
+            '</div>' +
+            '<div class="invest-hub-stat-pct">' + pctSign + Math.abs(pct).toFixed(2) + '%</div>' +
         '</div>';
+    }
+
+    var statsHtml =
+        '<div class="invest-hub-stats-row">' +
+            statCell('Week',  baselines.weekly) +
+            statCell('Month', baselines.monthly) +
+            statCell('YTD',   baselines.yearly) +
+        '</div>';
+
+    // ATH callout — pick the best (highest) ATH across all snapshot types
+    var athKeys = ['allTimeHighDaily', 'allTimeHighWeekly', 'allTimeHighMonthly', 'allTimeHighYearly'];
+    var bestAth = null;
+    athKeys.forEach(function(key) {
+        var ath = _investConfig[key];
+        if (ath && ath.value && (!bestAth || ath.value > bestAth.value)) bestAth = ath;
+    });
+    var athHtml = '';
+    if (bestAth) {
+        var isNew = nw >= bestAth.value;
+        athHtml =
+            '<div class="invest-hub-ath' + (isNew ? ' invest-hub-ath--new' : '') + '">' +
+                (isNew ? '🏆 NEW all-time high! ' : '🏆 All-time high: ') +
+                escapeHtml(_investFmtCurrency(bestAth.value)) +
+                ' <span class="invest-hub-ath-date">on ' + escapeHtml(bestAth.date || '') + '</span>' +
+            '</div>';
+    }
+
+    return '<div class="invest-hub-dashboard">' +
+        '<div class="invest-hub-heroes">' +
+            '<div class="invest-hub-hero">' +
+                '<div class="invest-hub-hero-label">Net Worth</div>' +
+                '<div class="invest-hub-hero-value">' + escapeHtml(_investFmtCurrency(nw)) + '</div>' +
+            '</div>' +
+            '<div class="invest-hub-hero">' +
+                '<div class="invest-hub-hero-label">Invested</div>' +
+                '<div class="invest-hub-hero-value">' + escapeHtml(_investFmtCurrency(invested)) + '</div>' +
+            '</div>' +
+        '</div>' +
+        dayHtml +
+        statsHtml +
+        athHtml +
+    '</div>';
+}
+
+// Returns the static nav-card grid HTML (always shown below the live dashboard).
+function _investHubNavCards() {
+    return '<div class="invest-hub">' +
+        '<a class="invest-hub-card" href="#investments/accounts">' +
+            '<span class="invest-hub-icon">🏦</span>' +
+            '<div class="invest-hub-text">' +
+                '<div class="invest-hub-title">Accounts</div>' +
+                '<div class="invest-hub-desc">View and manage all investment and bank accounts</div>' +
+            '</div>' +
+            '<span class="invest-hub-arrow">›</span>' +
+        '</a>' +
+        '<a class="invest-hub-card" href="#investments/summary">' +
+            '<span class="invest-hub-icon">📊</span>' +
+            '<div class="invest-hub-text">' +
+                '<div class="invest-hub-title">Summary</div>' +
+                '<div class="invest-hub-desc">Net worth, category breakdown, and retirement estimate</div>' +
+            '</div>' +
+            '<span class="invest-hub-arrow">›</span>' +
+        '</a>' +
+        '<a class="invest-hub-card" href="#investments/stocks">' +
+            '<span class="invest-hub-icon">📈</span>' +
+            '<div class="invest-hub-text">' +
+                '<div class="invest-hub-title">Stock Rollup</div>' +
+                '<div class="invest-hub-desc">All tickers across every account — concentration analysis</div>' +
+            '</div>' +
+            '<span class="invest-hub-arrow">›</span>' +
+        '</a>' +
+        '<a class="invest-hub-card" href="#investments/snapshots">' +
+            '<span class="invest-hub-icon">📷</span>' +
+            '<div class="invest-hub-text">' +
+                '<div class="invest-hub-title">Snapshots</div>' +
+                '<div class="invest-hub-desc">Capture and browse historical portfolio values</div>' +
+            '</div>' +
+            '<span class="invest-hub-arrow">›</span>' +
+        '</a>' +
+        '<div class="invest-hub-card invest-hub-card--soon">' +
+            '<span class="invest-hub-icon">🧮</span>' +
+            '<div class="invest-hub-text">' +
+                '<div class="invest-hub-title">Retirement Planner <span class="invest-hub-badge">Soon</span></div>' +
+                '<div class="invest-hub-desc">Contribution optimizer and tax bracket analysis</div>' +
+            '</div>' +
+        '</div>' +
+        '<div class="invest-hub-card invest-hub-card--soon">' +
+            '<span class="invest-hub-icon">📉</span>' +
+            '<div class="invest-hub-text">' +
+                '<div class="invest-hub-title">Retirement Projection <span class="invest-hub-badge">Soon</span></div>' +
+                '<div class="invest-hub-desc">Growth curves, withdrawal simulation, FIRE analysis</div>' +
+            '</div>' +
+        '</div>' +
+    '</div>';
 }
 
 // ---------- Accounts Sub-page Loader ----------

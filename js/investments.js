@@ -2899,13 +2899,34 @@ async function _investUpdateAllPrices() {
         });
     });
 
-    var failed = [];
+    var failed    = [];
+    var failedMsg = {};
+
+    // Phase 1: Finnhub for all tickers
+    var needYahoo = [];
     for (var ticker in priceMap) {
         try {
-            priceMap[ticker] = await _investFetchPrice(ticker, apiKey);
+            var p = await _investFetchPriceFinnhub(ticker, apiKey);
+            if (p && p > 0) { priceMap[ticker] = p; }
+            else             { needYahoo.push(ticker); }
         } catch (e) {
-            failed.push(ticker);
+            if (e.message === 'invalid key') {
+                if (status) { status.textContent = 'Invalid Finnhub API key'; status.style.color = '#c62828'; }
+                btn.disabled = false; btn.textContent = '📡 Update All Prices';
+                return;
+            }
+            needYahoo.push(ticker);
         }
+    }
+
+    // Phase 2: Yahoo batch for anything Finnhub missed
+    if (needYahoo.length > 0) {
+        console.log('[prices] Yahoo batch for: ' + needYahoo.join(', '));
+        var yahooMap = await _investFetchYahooBatch(needYahoo);
+        needYahoo.forEach(function(t) {
+            if (yahooMap[t]) { priceMap[t] = yahooMap[t]; }
+            else             { failed.push(t); failedMsg[t] = 'not found'; }
+        });
     }
 
     // Batch-write updated prices

@@ -598,7 +598,7 @@ function _investCardHtml(acct) {
             '<div class="invest-card-actions">' +
                 '<a class="btn btn-primary btn-small"' +
                     ' href="#investments/account/' + acctNs + '/' + acct.id + '"' +
-                    ' onclick="event.stopPropagation()">View Detail</a>' +
+                    ' onclick="event.stopPropagation()">Positions</a>' +
                 '<button class="btn btn-secondary btn-small"' +
                     ' onclick="event.stopPropagation();_investEditAccount(\'' + acct.id + '\',\'' + acctNs + '\')">Edit</button>' +
                 (acct.archived

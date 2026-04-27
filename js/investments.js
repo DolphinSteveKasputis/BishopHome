@@ -1210,11 +1210,13 @@ function _investOpenGroupModal(groupId) {
     document.getElementById('investGroupModalTitle').textContent = isNew ? 'Add Group' : 'Edit Group';
     _investVal('investGroupName', g ? g.name : '');
 
-    // Build people checkboxes (Me always checked + disabled, contacts are optional)
+    // Build people checkboxes — Me is optional, contacts are optional
     var selectedIds = g ? (g.personIds || []) : ['self'];
+    var meChecked = selectedIds.indexOf('self') >= 0;
     var peopleHtml =
         '<label class="invest-checkbox-label">' +
-            '<input type="checkbox" checked disabled> Me (always included)' +
+            '<input type="checkbox" name="investGroupPerson" value="self"' +
+                (meChecked ? ' checked' : '') + '> Me' +
         '</label>';
     _investPeople.forEach(function(p) {
         var checked = selectedIds.indexOf(p.id) >= 0;
@@ -1242,11 +1244,12 @@ async function _investSaveGroup() {
     var name = ((document.getElementById('investGroupName') || {}).value || '').trim();
     if (!name) { alert('Please enter a group name.'); return; }
 
-    // Collect selected people
-    var personIds = ['self'];
+    // Collect selected people (Me / self is now an optional checkbox like any other)
+    var personIds = [];
     document.querySelectorAll('input[name="investGroupPerson"]:checked').forEach(function(cb) {
         if (cb.value && personIds.indexOf(cb.value) < 0) personIds.push(cb.value);
     });
+    if (personIds.length === 0) { alert('Please select at least one person for this group.'); return; }
 
     // Collect selected frequencies
     var freqs = [];

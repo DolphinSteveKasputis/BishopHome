@@ -14825,8 +14825,8 @@ a.invest-hub-card:hover {
 /* URL link icon on summary account rows */
 .iht-btn.invest-summary-acct-url {
     text-decoration: none;
-    color: #4a6fa5 !important;
-    font-size: 0.85rem;
+    color: #1565c0 !important;
+    font-size: 1rem;
     padding: 1px 3px;
 }
 .iht-btn.invest-summary-acct-url:hover { color: #1a3a6b !important; }

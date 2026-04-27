@@ -2713,7 +2713,7 @@ function _investSummaryAccountRow(acct) {
         '</div>' +
         '<div class="invest-summary-acct-right">' +
             '<div class="invest-summary-acct-value">' + _investFmtCurrency(t.total) + '</div>' +
-            (acct.url ? '<a class="iht-btn invest-summary-acct-url" href="' + escapeHtml(acct.url) + '" target="_blank" rel="noopener" title="Visit site">🔗</a>' : '') +
+            (acct.url ? '<a class="iht-btn invest-summary-acct-url" href="' + escapeHtml(acct.url) + '" target="_blank" rel="noopener" title="Visit site">↗</a>' : '') +
             '<button class="iht-btn invest-summary-acct-edit" title="View holdings"' +
                 ' onclick="_investEditFromSummary(\'' + escapeHtml(acct._ns) + '\',\'' + acct.id + '\')">✏️</button>' +
         '</div>' +

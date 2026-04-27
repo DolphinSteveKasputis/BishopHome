@@ -1447,16 +1447,35 @@ async function _investGetFinnhubKey() {
 // Fetch the current price for a single ticker from Finnhub.
 // Returns numeric price (current if market open, previous close if closed), or throws on error.
 async function _investFetchPrice(ticker, apiKey) {
-    var url  = 'https://finnhub.io/api/v1/quote?symbol=' + encodeURIComponent(ticker) +
-               '&token=' + encodeURIComponent(apiKey);
-    var resp = await fetch(url);
-    if (resp.status === 401) throw new Error('invalid key');
-    if (!resp.ok)            throw new Error('HTTP ' + resp.status);
-    var data = await resp.json();
-    if (data.error)          throw new Error(data.error);
-    // c = current price; falls back to pc (previous close) when market is closed (c === 0)
-    var price = (data.c && data.c > 0) ? data.c : (data.pc || 0);
-    return price;
+    // --- Finnhub (stocks + ETFs) ---
+    try {
+        var url  = 'https://finnhub.io/api/v1/quote?symbol=' + encodeURIComponent(ticker) +
+                   '&token=' + encodeURIComponent(apiKey);
+        var resp = await fetch(url);
+        if (resp.status === 401) throw new Error('invalid key');
+        if (!resp.ok)            throw new Error('HTTP ' + resp.status);
+        var data = await resp.json();
+        if (data.error)          throw new Error(data.error);
+        // c = current price; pc = previous close (used when market closed)
+        var price = (data.c && data.c > 0) ? data.c : (data.pc && data.pc > 0 ? data.pc : 0);
+        if (price > 0) return price;
+        // price is 0 — likely a mutual fund; fall through to Yahoo
+    } catch (e) {
+        if (e.message === 'invalid key') throw e; // auth failure — don't try Yahoo
+        // Finnhub threw for another reason — fall through to Yahoo
+    }
+
+    // --- Yahoo Finance fallback (mutual funds + anything Finnhub misses) ---
+    var yUrl  = 'https://query1.finance.yahoo.com/v8/finance/chart/' +
+                encodeURIComponent(ticker) + '?interval=1d&range=1d';
+    var yResp = await fetch(yUrl);
+    if (!yResp.ok) throw new Error('HTTP ' + yResp.status);
+    var yData  = await yResp.json();
+    var yPrice = yData  && yData.chart  && yData.chart.result &&
+                 yData.chart.result[0]  && yData.chart.result[0].meta &&
+                 yData.chart.result[0].meta.regularMarketPrice;
+    if (!yPrice || yPrice <= 0) throw new Error('no price found');
+    return yPrice;
 }
 
 // Update prices for all holdings in the currently displayed account.

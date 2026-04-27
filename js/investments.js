@@ -1493,53 +1493,6 @@ async function _investFetchYahooBatch(tickers) {
 
 // LLM fallback: ask the configured LLM for prices of tickers all other sources missed.
 // Returns { ticker: price } map. LLM prices are from training data, not real-time.
-async function _investFetchPriceLLM(tickers) {
-    if (!tickers.length) return {};
-    var doc = await userCol('settings').doc('llm').get();
-    if (!doc.exists) throw new Error('LLM not configured');
-    var cfg      = doc.data();
-    var provider = cfg.provider || 'openai';
-    var apiKey   = cfg.apiKey   || '';
-    var model    = cfg.model    || '';
-    var ENDPOINTS = {
-        openai: { url: 'https://api.openai.com/v1/chat/completions', model: 'gpt-4o'    },
-        grok:   { url: 'https://api.x.ai/v1/chat/completions',       model: 'grok-3'    }
-    };
-    var ep = ENDPOINTS[provider] || ENDPOINTS.openai;
-
-    var systemPrompt =
-        'You are a financial data assistant. The user will give you a list of stock or mutual fund tickers. ' +
-        'Return ONLY a JSON object with this exact structure — no markdown, no explanation:\n' +
-        '{"prices":{"TICKER1":price1,"TICKER2":price2}}\n' +
-        'Use your best knowledge of recent prices. Omit any ticker you have no data for.';
-
-    var userMsg = 'What are the most recent prices you know for these tickers: ' + tickers.join(', ') + '?';
-
-    var res = await fetch(ep.url, {
-        method : 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
-        body   : JSON.stringify({
-            model   : model || ep.model,
-            messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user',   content: userMsg      }
-            ],
-            max_completion_tokens: 200
-        })
-    });
-    if (!res.ok) throw new Error('LLM HTTP ' + res.status);
-    var data = await res.json();
-    var raw  = (data.choices[0].message.content || '').trim()
-                   .replace(/^```json\s*/i, '').replace(/```$/,'');
-    var parsed = JSON.parse(raw);
-    var map = {};
-    var prices = parsed.prices || {};
-    Object.keys(prices).forEach(function(t) {
-        if (prices[t] > 0) map[t] = prices[t];
-    });
-    console.log('[prices] LLM returned:', map);
-    return map;
-}
 
 // Update prices for all holdings in the currently displayed account.
 async function _investUpdateAccountPrices() {
@@ -1589,29 +1542,13 @@ async function _investUpdateAccountPrices() {
     }
 
     // Phase 2: one batched Yahoo request for everything Finnhub missed
-    var needLLM = [];
     if (needYahoo.length > 0) {
         console.log('[prices] Yahoo batch for: ' + needYahoo.join(', '));
         var yahooMap = await _investFetchYahooBatch(needYahoo);
         needYahoo.forEach(function(t) {
             if (yahooMap[t]) { priceMap[t] = yahooMap[t]; }
-            else             { needLLM.push(t); }
+            else             { failed.push(t); failedMsg[t] = 'not found in Finnhub or Yahoo'; }
         });
-    }
-
-    // Phase 3: LLM fallback for anything Yahoo also missed
-    if (needLLM.length > 0) {
-        console.log('[prices] LLM fallback for: ' + needLLM.join(', '));
-        try {
-            var llmMap = await _investFetchPriceLLM(needLLM);
-            needLLM.forEach(function(t) {
-                if (llmMap[t]) { priceMap[t] = llmMap[t]; }
-                else           { failed.push(t); failedMsg[t] = 'not found in Finnhub, Yahoo, or LLM'; }
-            });
-        } catch (e) {
-            console.log('[prices] LLM fallback error: ' + e.message);
-            needLLM.forEach(function(t) { failed.push(t); failedMsg[t] = 'LLM: ' + e.message; });
-        }
     }
 
     // Batch-write updated prices to Firestore

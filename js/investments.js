@@ -1542,27 +1542,28 @@ function _investRenderAccountDetail(acct) {
                 : '') +
         '</div>';
 
-    // Cash balance editor (shown for all account types, but labeled differently)
-    var cashLabel  = isCash ? 'Account Balance ($)' : 'Uninvested Cash Balance ($)';
-    var cashFmtVal = acct.cashBalance != null
-        ? '$' + parseFloat(acct.cashBalance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-        : '';
-    html +=
-        '<div class="invest-cash-section">' +
-            '<div class="invest-section-header">' + escapeHtml(cashLabel) + '</div>' +
-            '<div class="invest-cash-row">' +
-                '<input type="text" inputmode="decimal" id="investDetailCash" class="invest-cash-input"' +
-                    ' placeholder="$0.00"' +
-                    ' value="' + escapeHtml(cashFmtVal) + '"' +
-                    ' onfocus="_investUnfmtCashField(this)"' +
-                    ' onblur="_investFmtCashField(this)"' +
-                    ' oninput="_investCashDirty()">' +
-                '<button class="btn btn-primary btn-small" id="investCashSaveBtn"' +
-                    ' onclick="_investSaveCashBalance()" disabled>Save</button>' +
-            '</div>' +
-        '</div>';
+    // Bank/cash accounts: keep the simple balance editor
+    if (isCash) {
+        var cashFmtVal = acct.cashBalance != null
+            ? '$' + parseFloat(acct.cashBalance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+            : '';
+        html +=
+            '<div class="invest-cash-section">' +
+                '<div class="invest-section-header">Account Balance ($)</div>' +
+                '<div class="invest-cash-row">' +
+                    '<input type="text" inputmode="decimal" id="investDetailCash" class="invest-cash-input"' +
+                        ' placeholder="$0.00"' +
+                        ' value="' + escapeHtml(cashFmtVal) + '"' +
+                        ' onfocus="_investUnfmtCashField(this)"' +
+                        ' onblur="_investFmtCashField(this)"' +
+                        ' oninput="_investCashDirty()">' +
+                    '<button class="btn btn-primary btn-small" id="investCashSaveBtn"' +
+                        ' onclick="_investSaveCashBalance()" disabled>Save</button>' +
+                '</div>' +
+            '</div>';
+    }
 
-    // Holdings section — only for non-cash accounts
+    // Holdings section — only for non-cash accounts; cash row is inside the table
     if (!isCash) {
         html +=
             '<div class="invest-section-header-row">' +
@@ -1637,7 +1638,30 @@ function _investHoldingsHtml() {
             '</tr>';
     });
 
-    // Totals footer row
+    // Cash row — always present, editable inline
+    var cashVal  = parseFloat(_investCurrentAccountCashBal) || 0;
+    var cashFmt  = _investFmtCurrency(cashVal);
+    var cashPct  = accountTotal > 0 ? (cashVal / accountTotal * 100).toFixed(1) + '%' : '—';
+    rows +=
+        '<tr id="investCashRow">' +
+            '<td class="iht-symbol-cell">' +
+                '<span class="iht-ticker iht-cash-ticker">CASH</span>' +
+                '<span class="iht-name">Uninvested Cash</span>' +
+            '</td>' +
+            '<td class="iht-dim">—</td>' +
+            '<td class="iht-dim">—</td>' +
+            '<td class="iht-dim">—</td>' +
+            '<td class="iht-dim">—</td>' +
+            '<td class="iht-dim">—</td>' +
+            '<td id="investCashValueCell">' + cashFmt + '</td>' +
+            '<td>' + cashPct + '</td>' +
+            '<td class="iht-actions-cell">' +
+                '<button class="iht-btn" id="investCashEditBtn" title="Edit cash balance" onclick="_investEditCashInline()">✏</button>' +
+            '</td>' +
+        '</tr>';
+
+    // Totals footer row (holdings + cash)
+    var grandTotal = totalValue + cashVal;
     var footGain = totalGainHasBasis && _investCurrentHoldings.length > 0
         ? '<td class="' + (totalGain >= 0 ? 'iht-gain' : 'iht-loss') + ' iht-foot">' +
             (totalGain >= 0 ? '+' : '−') + '$' + Math.abs(totalGain).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</td>' +
@@ -1663,7 +1687,7 @@ function _investHoldingsHtml() {
                     '<td class="iht-foot">Total</td>' +
                     '<td></td><td></td><td></td>' +
                     footGain +
-                    '<td class="iht-foot">' + _investFmtCurrency(totalValue) + '</td>' +
+                    '<td class="iht-foot">' + _investFmtCurrency(grandTotal) + '</td>' +
                     '<td></td><td></td>' +
                 '</tr></tfoot>' +
             '</table>' +
@@ -1779,6 +1803,53 @@ async function _investSaveCashBalance() {
     var acctDoc = await userCol('investments').doc(ns).collection('accounts').doc(aid).get();
     var acct    = Object.assign({ id: aid, _ns: ns }, acctDoc.data());
     _investRenderAccountDetail(acct);
+}
+
+// ---------- Inline Cash Editing (in holdings table) ----------
+
+function _investEditCashInline() {
+    var cell    = document.getElementById('investCashValueCell');
+    var editBtn = document.getElementById('investCashEditBtn');
+    if (!cell) return;
+
+    var rawVal = parseFloat(_investCurrentAccountCashBal) || 0;
+    cell.innerHTML =
+        '<input type="text" inputmode="decimal" id="investCashInlineInput" class="iht-cash-inline"' +
+            ' value="' + rawVal + '"' +
+            ' onkeydown="if(event.key===\'Enter\')this.blur(); if(event.key===\'Escape\'){_investCancelCashInline(); return;}"' +
+            ' onblur="_investCommitCashInline()">';
+    if (editBtn) editBtn.style.visibility = 'hidden';
+    var inp = document.getElementById('investCashInlineInput');
+    if (inp) inp.select();
+}
+
+function _investCancelCashInline() {
+    var cell    = document.getElementById('investCashValueCell');
+    var editBtn = document.getElementById('investCashEditBtn');
+    if (cell) cell.innerHTML = _investFmtCurrency(parseFloat(_investCurrentAccountCashBal) || 0);
+    if (editBtn) editBtn.style.visibility = '';
+}
+
+async function _investCommitCashInline() {
+    var inp = document.getElementById('investCashInlineInput');
+    if (!inp) return; // already committed (blur can fire twice)
+
+    var raw = (inp.value || '').replace(/[^0-9.]/g, '');
+    var val = raw !== '' ? parseFloat(raw) : 0;
+    if (isNaN(val)) val = 0;
+
+    var ns  = _investCurrentAccountNs;
+    var aid = _investCurrentAccountId;
+    _investCurrentAccountCashBal = val;
+
+    var update = val > 0
+        ? { cashBalance: val }
+        : { cashBalance: firebase.firestore.FieldValue.delete() };
+    await userCol('investments').doc(ns).collection('accounts').doc(aid).update(update);
+
+    // Re-render to update totals card and % acct column
+    var acctDoc = await userCol('investments').doc(ns).collection('accounts').doc(aid).get();
+    _investRenderAccountDetail(Object.assign({ id: aid, _ns: ns }, acctDoc.data()));
 }
 
 // ---------- Totals Computation ----------

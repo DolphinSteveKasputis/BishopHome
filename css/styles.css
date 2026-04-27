@@ -14354,6 +14354,15 @@ a.invest-hub-card:hover {
 }
 .iht-btn:hover { background: #f0f0f0; color: #333; }
 .iht-btn-del:hover { background: #ffeaea; color: #c62828; }
+.iht-cash-ticker { color: #888 !important; }
+.iht-cash-inline {
+    width: 90px;
+    padding: 2px 5px;
+    font-size: 0.83rem;
+    border: 1px solid #1565c0;
+    border-radius: 4px;
+    text-align: right;
+}
 .invest-holdings-table tfoot tr.iht-foot-row { border-top: 2px solid #e0e0e0; background: #fafafa; }
 .iht-foot { font-weight: 700; color: #333; }
 

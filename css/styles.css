@@ -14319,6 +14319,28 @@ a.invest-hub-card:hover {
     padding-bottom: 0;
     margin-bottom: 0;
 }
+.iht-header-btns {
+    display: flex;
+    gap: 6px;
+}
+/* Compact number inputs for mass qty/cost editing */
+.iht-qty-input,
+.iht-cost-input {
+    width: 72px;
+    padding: 3px 5px;
+    font-size: 0.82rem;
+    border: 1px solid #b0bec5;
+    border-radius: 4px;
+    text-align: right;
+    -moz-appearance: textfield;
+}
+.iht-qty-input::-webkit-outer-spin-button,
+.iht-qty-input::-webkit-inner-spin-button,
+.iht-cost-input::-webkit-outer-spin-button,
+.iht-cost-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
 
 /* Holdings list */
 /* Holdings compact table */

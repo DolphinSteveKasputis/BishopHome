@@ -1482,6 +1482,7 @@ async function _investUpdateAccountPrices() {
 var _investCurrentAccountNs      = 'self';
 var _investCurrentAccountId      = null;
 var _investCurrentAccountCashBal = null; // cache for % of account calc in holdings table
+var _investQtyEditMode           = false; // true when mass qty/cost editing is active
 var _investCurrentHoldings   = [];
 var _investHoldingEditId     = null;   // null = add mode; holding doc ID = edit mode
 
@@ -1611,9 +1612,9 @@ function _investRenderAccountDetail(acct) {
     // Holdings section — only for non-cash accounts; cash row is inside the table
     if (!isCash) {
         html +=
-            '<div class="invest-section-header-row">' +
+            '<div class="invest-section-header-row" id="investHoldingsHeaderRow">' +
                 '<div class="invest-section-header">Holdings</div>' +
-                '<button class="btn btn-primary btn-small" onclick="_investOpenHoldingModal(null)">+ Add Holding</button>' +
+                _investHoldingsHeaderBtns() +
             '</div>' +
             '<div id="investHoldingsList">' + _investHoldingsHtml() + '</div>';
     }
@@ -1628,6 +1629,70 @@ function _investRenderAccountDetail(acct) {
     }
 
     page.innerHTML = html;
+}
+
+function _investHoldingsHeaderBtns() {
+    if (_investQtyEditMode) {
+        return '<div class="iht-header-btns">' +
+            '<button class="btn btn-primary btn-small" onclick="_investSaveQtyEdits()">Save Qty</button>' +
+            '<button class="btn btn-secondary btn-small" onclick="_investCancelQtyEdit()">Cancel</button>' +
+        '</div>';
+    }
+    return '<div class="iht-header-btns">' +
+        '<button class="btn btn-secondary btn-small" onclick="_investToggleQtyEdit()">Edit Qty</button>' +
+        '<button class="btn btn-primary btn-small" onclick="_investOpenHoldingModal(null)">+ Add Holding</button>' +
+    '</div>';
+}
+
+function _investToggleQtyEdit() {
+    _investQtyEditMode = true;
+    _investRefreshHoldingsUI();
+}
+
+function _investCancelQtyEdit() {
+    _investQtyEditMode = false;
+    _investRefreshHoldingsUI();
+}
+
+function _investRefreshHoldingsUI() {
+    var hdr = document.getElementById('investHoldingsHeaderRow');
+    if (hdr) hdr.innerHTML = '<div class="invest-section-header">Holdings</div>' + _investHoldingsHeaderBtns();
+    var list = document.getElementById('investHoldingsList');
+    if (list) list.innerHTML = _investHoldingsHtml();
+}
+
+async function _investSaveQtyEdits() {
+    var btn = document.querySelector('.iht-header-btns .btn-primary');
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+
+    var ns  = _investCurrentNs;
+    var aid = _investCurrentAccountId;
+    var writes = [];
+
+    document.querySelectorAll('.iht-qty-input').forEach(function(input) {
+        var id  = input.dataset.id;
+        var qty = parseFloat(input.value);
+        if (!id || isNaN(qty) || qty < 0) return;
+        // also read the matching cost/sh input
+        var costEl = document.querySelector('.iht-cost-input[data-id="' + id + '"]');
+        var cost   = costEl ? parseFloat(costEl.value) : NaN;
+        var update = { shares: qty };
+        if (!isNaN(cost) && cost >= 0) update.costBasis = cost;
+        writes.push(userCol('investments').doc(ns).collection('accounts').doc(aid)
+            .collection('holdings').doc(id).update(update));
+        // patch local cache so re-render is correct
+        var h = _investCurrentHoldings.find(function(x) { return x.id === id; });
+        if (h) { h.shares = qty; if (!isNaN(cost) && cost >= 0) h.costBasis = cost; }
+    });
+
+    try {
+        await Promise.all(writes);
+    } catch(e) {
+        alert('Save failed: ' + (e.message || e));
+    }
+
+    _investQtyEditMode = false;
+    _investRefreshHoldingsUI();
 }
 
 function _investHoldingsHtml() {
@@ -1671,16 +1736,22 @@ function _investHoldingsHtml() {
                         (h.companyName ? '<span class="iht-name">' + escapeHtml(h.companyName) + '</span>' : '') +
                     '</div>' +
                 '</td>' +
-                '<td>' + (h.shares != null ? Number(h.shares).toLocaleString('en-US', { maximumFractionDigits: 4 }) : '—') + '</td>' +
+                (_investQtyEditMode
+                    ? '<td><input class="iht-qty-input" type="number" data-id="' + h.id + '" value="' + (h.shares != null ? h.shares : '') + '" step="any" min="0"></td>'
+                    : '<td>' + (h.shares != null ? Number(h.shares).toLocaleString('en-US', { maximumFractionDigits: 4 }) : '—') + '</td>') +
                 '<td>' + (h.lastPrice != null ? '$' + h.lastPrice.toFixed(2) : '—') + '</td>' +
-                '<td>' + (h.costBasis != null ? '$' + h.costBasis.toFixed(2) : '—') + '</td>' +
-                fmtGainCell(gainVal, function(v) { return '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }) +
-                fmtGainCell(gainPct, function(v) { return v.toFixed(2) + '%'; }) +
+                (_investQtyEditMode
+                    ? '<td><input class="iht-cost-input" type="number" data-id="' + h.id + '" value="' + (h.costBasis != null ? h.costBasis : '') + '" step="any" min="0"></td>'
+                    : '<td>' + (h.costBasis != null ? '$' + h.costBasis.toFixed(2) : '—') + '</td>') +
+                (_investQtyEditMode
+                    ? '<td class="iht-dim">—</td><td class="iht-dim">—</td>'
+                    : fmtGainCell(gainVal, function(v) { return '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }) +
+                      fmtGainCell(gainPct, function(v) { return v.toFixed(2) + '%'; })) +
                 '<td>' + (value != null ? _investFmtCurrency(value) : '—') + '</td>' +
                 '<td>' + (pctAcct != null ? pctAcct.toFixed(1) + '%' : '—') + '</td>' +
                 '<td class="iht-actions-cell">' +
-                    '<button class="iht-btn" title="Edit" onclick="_investOpenHoldingModal(\'' + h.id + '\')">✏</button>' +
-                    '<button class="iht-btn iht-btn-del" title="Delete" onclick="_investDeleteHolding(\'' + h.id + '\')">🗑</button>' +
+                    (!_investQtyEditMode ? '<button class="iht-btn" title="Edit" onclick="_investOpenHoldingModal(\'' + h.id + '\')">✏</button>' : '') +
+                    (!_investQtyEditMode ? '<button class="iht-btn iht-btn-del" title="Delete" onclick="_investDeleteHolding(\'' + h.id + '\')">🗑</button>' : '') +
                 '</td>' +
             '</tr>';
     });

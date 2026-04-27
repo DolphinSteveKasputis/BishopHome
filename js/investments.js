@@ -1750,7 +1750,7 @@ async function _investSaveQtyEdits() {
     var btn = document.querySelector('.iht-header-btns .btn-primary');
     if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
 
-    var ns  = _investCurrentNs;
+    var ns  = _investCurrentAccountNs;
     var aid = _investCurrentAccountId;
     var writes = [];
 

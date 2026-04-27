@@ -14563,6 +14563,8 @@ a.invest-hub-card:hover {
 .ist-loss { color: #c62828; font-weight: 600; }
 .ist-dim  { color: #bbb; }
 .ist-pct-acct { color: #555; }
+.ist-acct-link { color: #2c3e8c; text-decoration: none; font-weight: 600; }
+.ist-acct-link:hover { text-decoration: underline; }
 
 /* Concentration color coding (shared with old rollup) */
 .invest-stocks-pct {

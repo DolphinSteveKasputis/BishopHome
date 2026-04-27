@@ -1585,8 +1585,12 @@ async function loadInvestmentsAccountPage(ns, accountId) {
         _investCurrentHoldings.push(Object.assign({ id: doc.id }, doc.data()));
     });
 
-    var returnHref  = _investAccountReturnTo === 'summary' ? '#investments/summary' : '#investments/accounts';
-    var returnLabel = _investAccountReturnTo === 'summary' ? 'Summary'              : 'Accounts';
+    var returnHref  = _investAccountReturnTo === 'summary' ? '#investments/summary'
+                    : _investAccountReturnTo === 'stocks'  ? '#investments/stocks'
+                    : '#investments/accounts';
+    var returnLabel = _investAccountReturnTo === 'summary' ? 'Summary'
+                    : _investAccountReturnTo === 'stocks'  ? 'Stock Rollup'
+                    : 'Accounts';
     _investAccountReturnTo = null;
     document.getElementById('breadcrumbBar').innerHTML =
         '<a href="#investments">Investments</a><span class="separator">&rsaquo;</span>' +
@@ -2990,7 +2994,11 @@ function _investStocksRowHtml(t, overallNW) {
         var label    = escapeHtml((a.ownerName !== 'Me' ? a.ownerName + ' \u2014 ' : '') + a.nickname);
 
         return '<div class="ist-row ist-sub-row">' +
-            '<div class="ist-cell ist-cell-sym ist-sub-label">' + label + '</div>' +
+            '<div class="ist-cell ist-cell-sym ist-sub-label">' +
+                '<a class="ist-acct-link" href="#investments/account/' + encodeURIComponent(a.ns) + '/' + a.id +
+                    '" onclick="_investStocksNavToAccount(\'' + escapeHtml(a.ns) + '\',\'' + a.id + '\');event.stopPropagation()">' +
+                    label + '</a>' +
+            '</div>' +
             '<div class="ist-cell ist-cell-num">' + fmtShares(a.shares) + '</div>' +
             '<div class="ist-cell ist-cell-num ist-dim">' + fmtPx(price) + '</div>' +
             '<div class="ist-cell ist-cell-num">' + fmtPx(a.costBasis) + '</div>' +
@@ -3042,6 +3050,11 @@ function _investToggleStocksRow(ticker) {
         var chev = mainRow.querySelector('.ist-cell-chev');
         if (chev) chev.textContent = isExp ? '\u2304' : '\u203a';
     }
+}
+
+function _investStocksNavToAccount(ns, id) {
+    _investAccountReturnTo = 'stocks';
+    window.location.hash = '#investments/account/' + encodeURIComponent(ns) + '/' + id;
 }
 
 function _investSetStocksSort(sort) {

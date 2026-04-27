@@ -14822,14 +14822,14 @@ a.invest-hub-card:hover {
 /* Gain/loss in account totals card */
 .invest-total-gain { color: #2e7d32; font-weight: 600; }
 .invest-total-loss { color: #c62828; font-weight: 600; }
-/* URL link icon on summary account rows — double-class beats .iht-btn specificity */
+/* URL link icon on summary account rows */
 .iht-btn.invest-summary-acct-url {
     text-decoration: none;
-    color: #4a6fa5;
+    color: #4a6fa5 !important;
     font-size: 0.85rem;
     padding: 1px 3px;
 }
-.iht-btn.invest-summary-acct-url:hover { color: #1a3a6b; }
+.iht-btn.invest-summary-acct-url:hover { color: #1a3a6b !important; }
 .invest-summary-retire-amounts {
     display: flex;
     gap: 24px;
@@ -15024,12 +15024,12 @@ a.invest-hub-card:hover {
     color: #1a237e;
     white-space: nowrap;
 }
-.invest-summary-acct-edit {
-    opacity: 0.4;
-    font-size: 0.75rem;
+.iht-btn.invest-summary-acct-edit {
+    color: #e65100 !important;
+    font-size: 0.85rem;
     padding: 1px 3px;
 }
-.invest-summary-acct-edit:hover { opacity: 1; }
+.iht-btn.invest-summary-acct-edit:hover { color: #bf360c !important; }
 
 /* ============================================================
    LEGACY FINANCIAL HUB & ACCOUNTS SUB-PAGE

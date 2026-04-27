@@ -1125,48 +1125,61 @@ Same form as Add, pre-filled. Credential value shown **unmasked** in the form. O
 
 ## Part 8c: Investments
 
-**Plan document**: `LegacyFinancial.md`
+**Plan document**: `InvestmentPlan.md`
 
 **JS file**: `js/investments.js`
 
-Person-scoped financial account tracker. The **canonical storage** for financial accounts — the Legacy Financial Accounts tab reads from these same records rather than duplicating them.
+Person-scoped financial account tracker. The **canonical storage** for financial accounts — the Legacy Financial Accounts tab reads from these same records rather than duplicating them. The Investments section is structured as a hub with sub-pages.
 
 ### Life Page Tile
-Tile labeled **Investments** (📈), always visible on the Life landing page.
+Tile labeled **Investments** (📈), always visible on the Life landing page → navigates to `#investments` hub.
 
-### Person Switcher
-- Dropdown at top of page: **Me** (personId = `'self'`) + enrolled contacts
-- **Manage ▾** button → dropdown → **Manage People** → modal to add/remove contacts from the `people` collection
+### Hub (`#investments`)
+Three cards: **Accounts** (active) → `#investments/accounts`; **Summary** (coming soon); **Snapshots** (coming soon).
+
+### Person Switcher (Accounts page)
+- Dropdown at top: **Me** (personId = `'self'`) + enrolled contacts
+- **Manage ▾** → **Manage People** → modal to add/remove contacts from the `people` collection
 - Enrolled IDs stored in `settings/investments.enrolledPersonIds[]`
 - Changing person reloads the account list
 
-### Accounts
+### Accounts (`#investments/accounts`)
 Each account is a doc in `investments/{personId}/accounts/`.
 
-**Collapsed card**: drag handle (⠿) · account type badge (color-coded) · Nickname — Institution · ····last4 · expand chevron
+**Account list grouping**:
+- When viewing "Me": **My Accounts** group (non-joint) + **Joint Accounts** group (ownerType=joint)
+- When viewing a contact: **[Name]'s Accounts** group (their namespace) + **Joint Accounts** group (self-namespace docs where ownerType=joint AND primaryContactId=contactId, loaded client-side)
 
-**Expanded card** shows: URL (clickable), Login Notes, Beneficiary, a **Sensitive** box (Account Number, Username, Password), and **[Edit]** / **[Archive]** (or **[Restore]** if archived).
+**Collapsed card**: drag handle (⠿, personal accounts only) · tax category badge · Nickname — Institution · ····last4 · [Joint] badge (if joint and shown in contact view) · expand chevron
 
-**Type badge colors**: bank types (Checking/Savings/Money Market/CD) = blue; retirement types (Roth IRA/Traditional IRA/401k variants/403b) = green; brokerage types (Individual/Joint) = purple; tax-advantaged (HSA/529) = orange; Other = gray.
+**Expanded card** shows: Type, Owner (Personal or "Joint with [Name]"), Cash Balance (if set), URL (clickable), Login Notes, Beneficiary, Sensitive box (Account Number, Username, Password), and **[Edit]** / **[Archive]** (or **[Restore]** if archived).
 
-**Archive vs. delete**: accounts are never hard-deleted. Archive sets `archived: true`; archived accounts are hidden by default, revealed via **Show Archived** toggle. Legacy Financial will never see archived accounts.
+**Tax category badge** (derived from account type):
+- Roth (green): Roth IRA, Roth 401k
+- Pre-Tax (orange): Traditional IRA, Traditional 401k, Self-directed 401k, 403b, HSA, 529
+- Brokerage (purple): Brokerage Individual, Brokerage Joint
+- Cash (blue): Checking, Savings, Money Market, CD
+- Other (gray): all other types
 
-**Drag-to-reorder**: SortableJS on the visible list; saves `sortOrder` to Firestore via batch write.
+**Joint accounts**: stored under 'self' namespace with `ownerType='joint'` + `primaryContactId`. Appear in both "Me" view (Joint Accounts group) and the co-owner's contact view (loaded via second client-side query of self namespace).
+
+**Archive vs. delete**: accounts are never hard-deleted. `archived: true` hides from default list; **Show Archived** toggle reveals them. Legacy Financial shows only active accounts.
+
+**Drag-to-reorder**: SortableJS on personal (non-joint, self-namespace) accounts only; saves `sortOrder` via batch write.
 
 ### Encryption
-Sensitive fields (`accountNumberEnc`, `usernameEnc`, `passwordEnc`) use AES-GCM via `legacy-crypto.js` — the same passphrase and session key shared with the Legacy section. Entering the passphrase in either feature unlocks both for the session.
+Sensitive fields (`accountNumberEnc`, `usernameEnc`, `passwordEnc`) use AES-GCM via `legacy-crypto.js` — same passphrase and session key shared with Legacy section.
 
-**In the card (reveal)**: if passphrase not in memory → single "🔓 Reveal Sensitive Info" button triggers passphrase prompt, then decrypts. If passphrase already in memory → "🔓 Reveal All" button decrypts immediately. Revealed values stay visible until the card collapses.
-
-**In the modal (edit)**: if passphrase not in memory → sensitive fields are hidden behind a "🔓 Unlock to Edit Sensitive Fields" button. Once unlocked, fields decrypt and become editable. On save, non-empty values are re-encrypted with the session key; an empty field clears the encrypted value in Firestore.
-
-### Add / Edit Modal Fields
-Account Type (required), Nickname (required), Institution, Last 4 Digits (4 chars max), URL, Login Notes (3-row textarea), Beneficiary / Joint Owner, Account Number (sensitive), Username (sensitive), Password (sensitive).
+### Add / Edit Form Fields
+Account Type (required), Nickname (required), Owner radio (Personal / Joint), Joint With contact select (shown when Joint), Institution, Last 4 Digits, Cash Balance ($), URL, Login Notes (textarea), Beneficiary, Account Number (sensitive), Username (sensitive), Password (sensitive).
 
 ### Routes
 | Hash | Page |
 |---|---|
-| `#investments` | Investments page (person switcher + account list) |
+| `#investments` | Investments hub |
+| `#investments/accounts` | Account list (person switcher + grouped cards) |
+| `#investments/accounts/add` | Add account form |
+| `#investments/accounts/edit/:id` | Edit account form |
 
 ---
 

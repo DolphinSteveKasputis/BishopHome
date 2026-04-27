@@ -26,16 +26,24 @@ var INVEST_ACCOUNT_TYPES = [
     { value: 'other',                label: 'Other' }
 ];
 
+// Legacy type groupings — still used by Legacy Financial badge coloring
 var _INVEST_BANK_TYPES       = ['checking', 'savings', 'money-market', 'cd'];
 var _INVEST_RETIREMENT_TYPES = ['roth-ira', 'traditional-ira', 'roth-401k', 'traditional-401k', 'self-directed-401k', '403b'];
 var _INVEST_BROKERAGE_TYPES  = ['brokerage-individual', 'brokerage-joint'];
 var _INVEST_TAX_ADV_TYPES    = ['hsa', '529'];
+
+// Tax-category buckets used by portfolio summary grouping
+var _INVEST_ROTH_TYPES   = ['roth-ira', 'roth-401k'];
+var _INVEST_PRETAX_TYPES = ['traditional-ira', 'traditional-401k', 'self-directed-401k', '403b', 'hsa', '529'];
+var _INVEST_BROKER_TYPES = ['brokerage-individual', 'brokerage-joint'];
+var _INVEST_CASH_TYPES   = ['checking', 'savings', 'money-market', 'cd'];
 
 function _investTypeLabel(value) {
     var t = INVEST_ACCOUNT_TYPES.find(function(t) { return t.value === value; });
     return (t && t.value) ? t.label : 'Account';
 }
 
+// Legacy badge class — used by Legacy Financial account cards
 function _investBadgeClass(type) {
     if (_INVEST_BANK_TYPES.indexOf(type) >= 0)       return 'invest-badge--bank';
     if (_INVEST_RETIREMENT_TYPES.indexOf(type) >= 0) return 'invest-badge--retirement';
@@ -44,11 +52,20 @@ function _investBadgeClass(type) {
     return 'invest-badge--other';
 }
 
+// Tax category badge — used by Investments account cards and portfolio summary
+function _investTaxCategoryInfo(type) {
+    if (_INVEST_ROTH_TYPES.indexOf(type) >= 0)    return { label: 'Roth',      cls: 'invest-badge--roth' };
+    if (_INVEST_PRETAX_TYPES.indexOf(type) >= 0)  return { label: 'Pre-Tax',   cls: 'invest-badge--pretax' };
+    if (_INVEST_BROKER_TYPES.indexOf(type) >= 0)  return { label: 'Brokerage', cls: 'invest-badge--brokerage' };
+    if (_INVEST_CASH_TYPES.indexOf(type) >= 0)    return { label: 'Cash',      cls: 'invest-badge--cash' };
+    return { label: 'Other', cls: 'invest-badge--other' };
+}
+
 // ---------- Module State ----------
 
 var _investPersonFilter = 'self';   // 'self' or a people doc ID
 var _investPeople       = [];       // [{id, name}] enrolled contacts
-var _investAccounts     = [];       // account docs for the current person
+var _investAccounts     = [];       // account docs for the current person (may include joint from self)
 var _investShowArchived = false;
 var _investExpandedIds  = {};       // {accountId: bool}
 var _investRevealedIds  = {};       // {accountId: bool} — sensitive fields decrypted & shown
@@ -60,11 +77,52 @@ function _investCol() {
     return userCol('investments').doc(_investPersonFilter).collection('accounts');
 }
 
-// ---------- Page Loader ----------
+// ---------- Hub Page Loader ----------
 
-async function loadInvestmentsPage() {
+function loadInvestmentsPage() {
     document.getElementById('breadcrumbBar').innerHTML =
         '<a href="#life">Life</a><span class="separator">&rsaquo;</span><span>Investments</span>';
+    document.getElementById('headerTitle').innerHTML =
+        '<a href="#main" class="home-link">' + escapeHtml(window.appName || 'My Life') + '</a>';
+
+    var page = document.getElementById('page-investments');
+    if (!page) return;
+
+    page.innerHTML =
+        '<div class="page-header"><h2>📈 Investments</h2></div>' +
+        '<div class="invest-hub">' +
+            '<a class="invest-hub-card" href="#investments/accounts">' +
+                '<span class="invest-hub-icon">🏦</span>' +
+                '<div class="invest-hub-text">' +
+                    '<div class="invest-hub-title">Accounts</div>' +
+                    '<div class="invest-hub-desc">View and manage all investment and bank accounts</div>' +
+                '</div>' +
+                '<span class="invest-hub-arrow">›</span>' +
+            '</a>' +
+            '<div class="invest-hub-card invest-hub-card--soon">' +
+                '<span class="invest-hub-icon">📊</span>' +
+                '<div class="invest-hub-text">' +
+                    '<div class="invest-hub-title">Summary</div>' +
+                    '<div class="invest-hub-desc">Portfolio overview — Day / Week / Month / YTD gains</div>' +
+                '</div>' +
+                '<span class="invest-hub-badge">Coming soon</span>' +
+            '</div>' +
+            '<div class="invest-hub-card invest-hub-card--soon">' +
+                '<span class="invest-hub-icon">📷</span>' +
+                '<div class="invest-hub-text">' +
+                    '<div class="invest-hub-title">Snapshots</div>' +
+                    '<div class="invest-hub-desc">Historical portfolio snapshots over time</div>' +
+                '</div>' +
+                '<span class="invest-hub-badge">Coming soon</span>' +
+            '</div>' +
+        '</div>';
+}
+
+// ---------- Accounts Sub-page Loader ----------
+
+async function loadInvestmentsAccountsPage() {
+    document.getElementById('breadcrumbBar').innerHTML =
+        '<a href="#investments">Investments</a><span class="separator">&rsaquo;</span><span>Accounts</span>';
     document.getElementById('headerTitle').innerHTML =
         '<a href="#main" class="home-link">' + escapeHtml(window.appName || 'My Life') + '</a>';
     await _investLoadAll();
@@ -95,17 +153,30 @@ async function _investLoadAccounts() {
     _investExpandedIds = {};
     _investRevealedIds = {};
     _investDecryptCache = {};
+
     var snap = await _investCol().orderBy('sortOrder').get();
     _investAccounts = [];
     snap.forEach(function(doc) {
-        _investAccounts.push(Object.assign({ id: doc.id }, doc.data()));
+        _investAccounts.push(Object.assign({ id: doc.id, _ns: _investPersonFilter }, doc.data()));
     });
+
+    // When viewing a contact, also pull joint accounts stored under 'self' that list them as co-owner.
+    // These are loaded client-side to avoid needing a composite Firestore index.
+    if (_investPersonFilter !== 'self') {
+        var selfSnap = await userCol('investments').doc('self').collection('accounts').get();
+        selfSnap.forEach(function(doc) {
+            var data = doc.data();
+            if (data.ownerType === 'joint' && data.primaryContactId === _investPersonFilter) {
+                _investAccounts.push(Object.assign({ id: doc.id, _ns: 'self', _joint: true }, data));
+            }
+        });
+    }
 }
 
-// ---------- Page Render ----------
+// ---------- Accounts Page Render ----------
 
 function _investRenderPage() {
-    var page = document.getElementById('page-investments');
+    var page = document.getElementById('page-investments-accounts');
     if (!page) return;
 
     var personOpts = '<option value="self"' + (_investPersonFilter === 'self' ? ' selected' : '') + '>Me</option>';
@@ -117,7 +188,7 @@ function _investRenderPage() {
 
     page.innerHTML =
         '<div class="page-header">' +
-            '<h2>📈 Investments</h2>' +
+            '<h2>🏦 Accounts</h2>' +
             '<div class="page-header-actions">' +
                 '<div class="invest-manage-wrap">' +
                     '<button class="btn btn-secondary" onclick="_investToggleManageMenu(event)">Manage ▾</button>' +
@@ -132,7 +203,7 @@ function _investRenderPage() {
             '<select id="investPersonSel" onchange="_investOnPersonChange()">' + personOpts + '</select>' +
         '</div>' +
         '<div class="invest-toolbar">' +
-            '<button class="btn btn-primary" onclick="window.location.hash=\'#investments/add\'">+ Add Account</button>' +
+            '<button class="btn btn-primary" onclick="window.location.hash=\'#investments/accounts/add\'">+ Add Account</button>' +
             '<button class="btn btn-secondary" id="investShowArchivedBtn" onclick="_investToggleArchived()">' +
                 (_investShowArchived ? 'Hide Archived' : 'Show Archived') +
             '</button>' +
@@ -155,13 +226,49 @@ function _investRenderList() {
         return;
     }
 
-    var html = '<div id="investSortableList">';
-    list.forEach(function(acct) { html += _investCardHtml(acct); });
-    html += '</div>';
+    var html = '';
+
+    if (_investPersonFilter === 'self') {
+        var myAccounts    = list.filter(function(a) { return a.ownerType !== 'joint'; });
+        var jointAccounts = list.filter(function(a) { return a.ownerType === 'joint'; });
+
+        if (myAccounts.length > 0) {
+            html += '<div class="invest-group-header">My Accounts</div>' +
+                    '<div id="investSortableList" class="invest-card-group">';
+            myAccounts.forEach(function(a) { html += _investCardHtml(a); });
+            html += '</div>';
+        }
+        if (jointAccounts.length > 0) {
+            html += '<div class="invest-group-header">Joint Accounts</div>' +
+                    '<div class="invest-card-group">';
+            jointAccounts.forEach(function(a) { html += _investCardHtml(a); });
+            html += '</div>';
+        }
+    } else {
+        var personName    = (_investPeople.find(function(p) { return p.id === _investPersonFilter; }) || {}).name || 'Accounts';
+        var ownAccounts   = list.filter(function(a) { return !a._joint; });
+        var jointAccounts = list.filter(function(a) { return !!a._joint; });
+
+        if (ownAccounts.length > 0) {
+            html += '<div class="invest-group-header">' + escapeHtml(personName) + '\'s Accounts</div>' +
+                    '<div class="invest-card-group">';
+            ownAccounts.forEach(function(a) { html += _investCardHtml(a); });
+            html += '</div>';
+        }
+        if (jointAccounts.length > 0) {
+            html += '<div class="invest-group-header">Joint Accounts</div>' +
+                    '<div class="invest-card-group">';
+            jointAccounts.forEach(function(a) { html += _investCardHtml(a); });
+            html += '</div>';
+        }
+    }
+
     container.innerHTML = html;
 
-    if (window.Sortable) {
-        Sortable.create(document.getElementById('investSortableList'), {
+    // Only "My Accounts" (non-joint, self namespace) is drag-reorderable
+    var sortableEl = document.getElementById('investSortableList');
+    if (sortableEl && window.Sortable) {
+        Sortable.create(sortableEl, {
             handle: '.invest-drag-handle',
             animation: 150,
             onEnd: function(evt) { _investOnReorder(evt); }
@@ -171,20 +278,23 @@ function _investRenderList() {
 
 function _investCardHtml(acct) {
     var isExpanded = !!_investExpandedIds[acct.id];
-    var badgeClass = _investBadgeClass(acct.accountType || '');
+    var taxInfo    = _investTaxCategoryInfo(acct.accountType || '');
     var typeLabel  = _investTypeLabel(acct.accountType || '');
+    var isJoint    = !!acct._joint;       // came from self namespace via second-query
+    var isDraggable = (_investPersonFilter === 'self') && (acct.ownerType !== 'joint') && !isJoint;
 
     var titleParts = [escapeHtml(acct.nickname || '(untitled)')];
     if (acct.institution) titleParts.push(escapeHtml(acct.institution));
 
     var header =
         '<div class="invest-card-header" onclick="_investToggleCard(\'' + acct.id + '\')">' +
-            '<span class="invest-drag-handle" onclick="event.stopPropagation()">⠿</span>' +
-            '<span class="invest-type-badge ' + escapeHtml(badgeClass) + '">' + escapeHtml(typeLabel) + '</span>' +
+            (isDraggable ? '<span class="invest-drag-handle" onclick="event.stopPropagation()">⠿</span>' : '') +
+            '<span class="invest-type-badge ' + escapeHtml(taxInfo.cls) + '">' + escapeHtml(taxInfo.label) + '</span>' +
             '<span class="invest-card-title">' + titleParts.join(' — ') +
                 (acct.last4 ? '<span class="invest-last4"> ····' + escapeHtml(acct.last4) + '</span>' : '') +
             '</span>' +
             (acct.archived ? '<span class="invest-archived-badge">Closed</span>' : '') +
+            (isJoint ? '<span class="invest-joint-badge">Joint</span>' : '') +
             '<span class="invest-chevron">' + (isExpanded ? '▾' : '›') + '</span>' +
         '</div>';
 
@@ -195,6 +305,35 @@ function _investCardHtml(acct) {
         var hasEnc     = acct.accountNumberEnc || acct.usernameEnc || acct.passwordEnc;
 
         body = '<div class="invest-card-body">';
+
+        // Account type detail row
+        body += '<div class="invest-detail-row">' +
+            '<span class="invest-detail-label">Type</span>' +
+            '<span class="invest-detail-value">' + escapeHtml(typeLabel) + '</span>' +
+            '</div>';
+
+        // Owner info
+        if (acct.ownerType === 'joint') {
+            var coOwnerName = '';
+            if (acct.primaryContactId) {
+                var contact = _investPeople.find(function(p) { return p.id === acct.primaryContactId; });
+                coOwnerName = contact ? contact.name : acct.primaryContactId;
+            }
+            body += '<div class="invest-detail-row">' +
+                '<span class="invest-detail-label">Owner</span>' +
+                '<span class="invest-detail-value">Joint' +
+                    (coOwnerName ? ' with ' + escapeHtml(coOwnerName) : '') +
+                '</span>' +
+                '</div>';
+        }
+
+        // Cash balance
+        if (acct.cashBalance !== undefined && acct.cashBalance !== null && acct.cashBalance !== '') {
+            body += '<div class="invest-detail-row">' +
+                '<span class="invest-detail-label">Cash Balance</span>' +
+                '<span class="invest-detail-value">$' + parseFloat(acct.cashBalance || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</span>' +
+                '</div>';
+        }
 
         if (acct.url) {
             body += '<div class="invest-detail-row">' +
@@ -218,7 +357,6 @@ function _investCardHtml(acct) {
         if (hasEnc) {
             body += '<div class="invest-sensitive-box">';
             if (!legacyIsUnlocked()) {
-                // Not unlocked at all — show a single unlock button
                 body +=
                     '<div class="invest-sensitive-lock">' +
                         '<span>Sensitive fields are encrypted.</span>' +
@@ -227,7 +365,6 @@ function _investCardHtml(acct) {
                             '🔓 Reveal Sensitive Info</button>' +
                     '</div>';
             } else {
-                // Passphrase is in memory — show reveal/hide toggle
                 if (!isRevealed) {
                     body += '<button class="btn btn-secondary btn-small invest-reveal-btn"' +
                         ' onclick="event.stopPropagation();_investRevealAccount(\'' + acct.id + '\')">' +
@@ -263,7 +400,7 @@ function _investCardHtml(acct) {
         body +=
             '<div class="invest-card-actions">' +
                 '<button class="btn btn-secondary btn-small"' +
-                    ' onclick="event.stopPropagation();window.location.hash=\'#investments/edit/' + acct.id + '\'">Edit</button>' +
+                    ' onclick="event.stopPropagation();_investEditAccount(\'' + acct.id + '\',\'' + escapeHtml(acct._ns || _investPersonFilter) + '\')">Edit</button>' +
                 (acct.archived
                     ? '<button class="btn btn-secondary btn-small"' +
                         ' onclick="event.stopPropagation();_investRestore(\'' + acct.id + '\')">Restore</button>'
@@ -306,9 +443,9 @@ async function _investRevealAccount(id) {
     } catch (e) {
         console.error('Investments decrypt error', e);
     }
-    _investDecryptCache[id]  = cache;
-    _investRevealedIds[id]   = true;
-    _investExpandedIds[id]   = true;
+    _investDecryptCache[id] = cache;
+    _investRevealedIds[id]  = true;
+    _investExpandedIds[id]  = true;
     _investRenderList();
 }
 
@@ -316,6 +453,14 @@ function _investHideAccount(id) {
     delete _investRevealedIds[id];
     delete _investDecryptCache[id];
     _investRenderList();
+}
+
+// Navigate to edit form, switching person filter to the account's actual namespace first
+function _investEditAccount(id, ns) {
+    if (ns && ns !== _investPersonFilter) {
+        _investPersonFilter = ns;
+    }
+    window.location.hash = '#investments/accounts/edit/' + id;
 }
 
 // ---------- Person Switcher ----------
@@ -388,7 +533,6 @@ async function _investAddPerson(contactId, contactName) {
     var ids = _investPeople.map(function(p) { return p.id; });
     await userCol('settings').doc('investments').set({ enrolledPersonIds: ids }, { merge: true });
     _investRenderPeopleModal();
-    // Return focus to the search input so the user can add another person immediately
     var searchInput = document.getElementById('investPeoplePicker_search');
     if (searchInput) searchInput.focus();
 }
@@ -419,6 +563,7 @@ async function loadInvestmentsFormPage(id) {
 
     document.getElementById('breadcrumbBar').innerHTML =
         '<a href="#investments">Investments</a><span class="separator">&rsaquo;</span>' +
+        '<a href="#investments/accounts">Accounts</a><span class="separator">&rsaquo;</span>' +
         '<span>' + (isNew ? 'Add Account' : 'Edit Account') + '</span>';
     document.getElementById('headerTitle').innerHTML =
         '<a href="#main" class="home-link">' + escapeHtml(window.appName || 'My Life') + '</a>';
@@ -426,6 +571,12 @@ async function loadInvestmentsFormPage(id) {
     var typeOpts = '';
     INVEST_ACCOUNT_TYPES.forEach(function(t) {
         typeOpts += '<option value="' + escapeHtml(t.value) + '">' + escapeHtml(t.label) + '</option>';
+    });
+
+    // Build joint-contact options from enrolled people
+    var jointOpts = '<option value="">— Select person —</option>';
+    _investPeople.forEach(function(p) {
+        jointOpts += '<option value="' + escapeHtml(p.id) + '">' + escapeHtml(p.name) + '</option>';
     });
 
     var page = document.getElementById('page-investments-form');
@@ -445,12 +596,31 @@ async function loadInvestmentsFormPage(id) {
                 '<input type="text" id="investFormNickname" placeholder="e.g. Fidelity Roth IRA">' +
             '</div>' +
             '<div class="form-group">' +
+                '<label>Owner</label>' +
+                '<div class="invest-owner-radios">' +
+                    '<label class="invest-radio-label">' +
+                        '<input type="radio" name="investOwnerType" value="personal" onchange="_investToggleJointField()"> Personal' +
+                    '</label>' +
+                    '<label class="invest-radio-label">' +
+                        '<input type="radio" name="investOwnerType" value="joint" onchange="_investToggleJointField()"> Joint' +
+                    '</label>' +
+                '</div>' +
+            '</div>' +
+            '<div class="form-group" id="investFormJointWrap" style="display:none">' +
+                '<label>Joint With</label>' +
+                '<select id="investFormJointContact">' + jointOpts + '</select>' +
+            '</div>' +
+            '<div class="form-group">' +
                 '<label>Institution</label>' +
                 '<input type="text" id="investFormInstitution" placeholder="e.g. Fidelity Investments">' +
             '</div>' +
             '<div class="form-group">' +
                 '<label>Last 4 Digits</label>' +
                 '<input type="text" id="investFormLast4" placeholder="1234" maxlength="4">' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>Cash Balance ($)</label>' +
+                '<input type="number" id="investFormCashBalance" placeholder="0.00" min="0" step="0.01">' +
             '</div>' +
             '<div class="form-group">' +
                 '<label>URL</label>' +
@@ -462,9 +632,9 @@ async function loadInvestmentsFormPage(id) {
                     ' placeholder="2FA method, authenticator app, etc."></textarea>' +
             '</div>' +
             '<div class="form-group">' +
-                '<label>Beneficiary / Joint Owner</label>' +
+                '<label>Beneficiary</label>' +
                 '<input type="text" id="investFormBeneficiary"' +
-                    ' placeholder="Who inherits or is on the account">' +
+                    ' placeholder="Who inherits this account">' +
             '</div>' +
             '<div class="invest-form-sensitive-section">' +
                 '<div class="invest-modal-sensitive-header">Sensitive Fields</div>' +
@@ -476,18 +646,38 @@ async function loadInvestmentsFormPage(id) {
             '</div>' +
         '</div>';
 
-    // Populate basic fields — use preserved draft values if returning from passphrase prompt
+    // Populate fields — use preserved draft values if returning from passphrase prompt
     var d = _investFormDraft;
-    _investVal('investFormType',        d ? d.accountType : (acct ? acct.accountType  || '' : ''));
-    _investVal('investFormNickname',    d ? d.nickname    : (acct ? acct.nickname     || '' : ''));
-    _investVal('investFormInstitution', d ? d.institution : (acct ? acct.institution  || '' : ''));
-    _investVal('investFormLast4',       d ? d.last4       : (acct ? acct.last4        || '' : ''));
-    _investVal('investFormUrl',         d ? d.url         : (acct ? acct.url          || '' : ''));
-    _investVal('investFormLoginNotes',  d ? d.loginNotes  : (acct ? acct.loginNotes   || '' : ''));
-    _investVal('investFormBeneficiary', d ? d.beneficiary : (acct ? acct.beneficiary  || '' : ''));
+    _investVal('investFormType',        d ? d.accountType   : (acct ? acct.accountType  || '' : ''));
+    _investVal('investFormNickname',    d ? d.nickname      : (acct ? acct.nickname     || '' : ''));
+    _investVal('investFormInstitution', d ? d.institution   : (acct ? acct.institution  || '' : ''));
+    _investVal('investFormLast4',       d ? d.last4         : (acct ? acct.last4        || '' : ''));
+    _investVal('investFormCashBalance', d ? d.cashBalance   : (acct ? acct.cashBalance  != null ? acct.cashBalance : '' : ''));
+    _investVal('investFormUrl',         d ? d.url           : (acct ? acct.url          || '' : ''));
+    _investVal('investFormLoginNotes',  d ? d.loginNotes    : (acct ? acct.loginNotes   || '' : ''));
+    _investVal('investFormBeneficiary', d ? d.beneficiary   : (acct ? acct.beneficiary  || '' : ''));
+
+    // Set owner type radio
+    var ownerType = d ? d.ownerType : (acct ? acct.ownerType || 'personal' : 'personal');
+    var radios = document.querySelectorAll('input[name="investOwnerType"]');
+    radios.forEach(function(r) { r.checked = (r.value === ownerType); });
+    _investToggleJointField();
+
+    // Set joint contact select
+    var primaryContactId = d ? d.primaryContactId : (acct ? acct.primaryContactId || '' : '');
+    _investVal('investFormJointContact', primaryContactId);
+
     _investFormDraft = null; // consumed
 
     await _investRenderSensitiveFields(acct);
+}
+
+function _investToggleJointField() {
+    var selectedRadio = document.querySelector('input[name="investOwnerType"]:checked');
+    var wrap = document.getElementById('investFormJointWrap');
+    if (wrap) {
+        wrap.style.display = (selectedRadio && selectedRadio.value === 'joint') ? '' : 'none';
+    }
 }
 
 async function _investRenderSensitiveFields(acct) {
@@ -534,14 +724,18 @@ async function _investRenderSensitiveFields(acct) {
 
 function _investUnlockForForm() {
     // Capture what the user has typed so it survives the page re-render after unlock
+    var selectedRadio = document.querySelector('input[name="investOwnerType"]:checked');
     _investFormDraft = {
-        accountType: (document.getElementById('investFormType')        || {}).value || '',
-        nickname:    (document.getElementById('investFormNickname')    || {}).value || '',
-        institution: (document.getElementById('investFormInstitution') || {}).value || '',
-        last4:       (document.getElementById('investFormLast4')       || {}).value || '',
-        url:         (document.getElementById('investFormUrl')         || {}).value || '',
-        loginNotes:  (document.getElementById('investFormLoginNotes')  || {}).value || '',
-        beneficiary: (document.getElementById('investFormBeneficiary') || {}).value || ''
+        accountType:      (document.getElementById('investFormType')         || {}).value || '',
+        nickname:         (document.getElementById('investFormNickname')     || {}).value || '',
+        ownerType:        selectedRadio ? selectedRadio.value : 'personal',
+        primaryContactId: (document.getElementById('investFormJointContact') || {}).value || '',
+        institution:      (document.getElementById('investFormInstitution')  || {}).value || '',
+        last4:            (document.getElementById('investFormLast4')        || {}).value || '',
+        cashBalance:      (document.getElementById('investFormCashBalance')  || {}).value || '',
+        url:              (document.getElementById('investFormUrl')          || {}).value || '',
+        loginNotes:       (document.getElementById('investFormLoginNotes')   || {}).value || '',
+        beneficiary:      (document.getElementById('investFormBeneficiary')  || {}).value || ''
     };
     _legacyRequireUnlock(function() {
         loadInvestmentsFormPage(_investFormEditId);
@@ -555,18 +749,35 @@ async function _investSaveForm() {
     if (!accountType) { alert('Please select an account type.'); return; }
     if (!nickname)    { alert('Please enter a nickname.'); return; }
 
+    var selectedRadio    = document.querySelector('input[name="investOwnerType"]:checked');
+    var ownerType        = selectedRadio ? selectedRadio.value : 'personal';
+    var primaryContactId = ownerType === 'joint'
+        ? ((document.getElementById('investFormJointContact') || {}).value || '')
+        : '';
+
+    var cashBalanceRaw = ((document.getElementById('investFormCashBalance') || {}).value || '').trim();
+    var cashBalance    = cashBalanceRaw !== '' ? parseFloat(cashBalanceRaw) : null;
+
     var id    = _investFormEditId;
     var isNew = !id;
 
     var data = {
-        accountType:  accountType,
-        nickname:     nickname,
-        institution:  ((document.getElementById('investFormInstitution') || {}).value || '').trim(),
-        last4:        ((document.getElementById('investFormLast4')       || {}).value || '').replace(/\D/g, '').slice(0, 4),
-        url:          ((document.getElementById('investFormUrl')         || {}).value || '').trim(),
-        loginNotes:   ((document.getElementById('investFormLoginNotes')  || {}).value || '').trim(),
-        beneficiary:  ((document.getElementById('investFormBeneficiary') || {}).value || '').trim()
+        accountType:      accountType,
+        nickname:         nickname,
+        ownerType:        ownerType,
+        primaryContactId: primaryContactId,
+        institution:      ((document.getElementById('investFormInstitution') || {}).value || '').trim(),
+        last4:            ((document.getElementById('investFormLast4')       || {}).value || '').replace(/\D/g, '').slice(0, 4),
+        url:              ((document.getElementById('investFormUrl')         || {}).value || '').trim(),
+        loginNotes:       ((document.getElementById('investFormLoginNotes')  || {}).value || '').trim(),
+        beneficiary:      ((document.getElementById('investFormBeneficiary') || {}).value || '').trim()
     };
+
+    if (cashBalance !== null && !isNaN(cashBalance)) {
+        data.cashBalance = cashBalance;
+    } else {
+        data.cashBalance = firebase.firestore.FieldValue.delete();
+    }
 
     // Encrypt sensitive fields only if passphrase is unlocked and fields are rendered
     if (legacyIsUnlocked() && document.getElementById('investFormAcctNum')) {
@@ -602,13 +813,13 @@ async function _investSaveForm() {
 
     _investFormEditId = null;
     _investFormDraft  = null;
-    window.location.hash = '#investments';
+    window.location.hash = '#investments/accounts';
 }
 
 function _investCancelForm() {
     _investFormEditId = null;
     _investFormDraft  = null;
-    window.location.hash = '#investments';
+    window.location.hash = '#investments/accounts';
 }
 
 // ---------- Archive / Restore ----------
@@ -631,7 +842,8 @@ async function _investRestore(id) {
 
 async function _investOnReorder(evt) {
     if (evt.oldIndex === evt.newIndex) return;
-    var list = _investAccounts.filter(function(a) { return _investShowArchived || !a.archived; });
+    // Only reorder personal (non-joint) accounts in self namespace
+    var list = _investAccounts.filter(function(a) { return (!a.archived) && (!a._joint) && (a.ownerType !== 'joint'); });
     var moved = list.splice(evt.oldIndex, 1)[0];
     list.splice(evt.newIndex, 0, moved);
 
@@ -641,7 +853,6 @@ async function _investOnReorder(evt) {
     });
     await batch.commit();
     await _investLoadAccounts();
-    // No full re-render needed — DOM is already correct
 }
 
 // ---------- Show/Hide Archived ----------
@@ -664,5 +875,5 @@ function _investAutoLast4(value) {
 
 function _investVal(id, value) {
     var el = document.getElementById(id);
-    if (el) el.value = value !== undefined ? value : '';
+    if (el) el.value = value !== undefined && value !== null ? value : '';
 }

@@ -1701,27 +1701,41 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 ## screen:investments
 
 ### Quick Help
-- Investments tracks your financial accounts (bank, retirement, brokerage, HSA, etc.) — one card per account
+- The Investments hub links to Accounts, Summary (coming soon), and Snapshots (coming soon)
+- Tap **Accounts** to view and manage all your financial accounts
+
+---
+
+## screen:investments-accounts
+
+### Quick Help
+- Tracks financial accounts (bank, retirement, brokerage, HSA, etc.) — one card per account
+- Badge shows tax category: green = Roth · orange = Pre-Tax · purple = Brokerage · blue = Cash · gray = Other
 - Sensitive fields (account number, username, password) are encrypted and require your Legacy passphrase to reveal
-- Use the **Person** dropdown to switch between your accounts and those of other people you track
+- Use the **Person** dropdown to switch between your accounts and those of people you track
+- Joint accounts appear under both the owner ("Me") and the co-owner's view
 - Accounts are never deleted — **Archive** hides a closed account; use **Show Archived** to see it again
-- Drag the ⠿ handle to reorder accounts
+- Drag the ⠿ handle to reorder personal accounts
 
 ### Details
 
-**Person switcher**: Defaults to "Me". Add family members or others via **Manage → Manage People** (picks from your Contacts list). Each person's accounts are stored independently under their own person ID.
+**Person switcher**: Defaults to "Me". Add family members or others via **Manage → Manage People** (picks from your Contacts list). Each person's accounts are stored independently. Changing the person reloads the list.
 
-**Account type badges**: Color-coded by category — blue = bank (Checking/Savings/Money Market/CD), green = retirement (IRA/401k/403b), purple = brokerage, orange = tax-advantaged (HSA/529), gray = Other.
+**Tax category badges**: Derived automatically from account type — green (Roth) = Roth IRA/Roth 401k; orange (Pre-Tax) = Traditional IRA/401k/403b/HSA/529; purple (Brokerage) = Individual/Joint brokerage; blue (Cash) = Checking/Savings/Money Market/CD; gray (Other) = other types.
 
-**Adding an account**: Tap **+ Add Account**. Account Type and Nickname are required. Last 4 Digits (optional) shows as ····1234 in the card header for quick identification.
+**Owner field**: Choose **Personal** (default) or **Joint**. Joint accounts are stored under "Me" but appear in the co-owner's account list too. Select the co-owner from enrolled people when choosing Joint.
 
-**Sensitive fields**: Account Number, Username, and Password are encrypted with your Legacy passphrase. In the **Add/Edit modal**, tap "🔓 Unlock to Edit Sensitive Fields" to enter your passphrase and enable those fields. On the **expanded card**, tap "🔓 Reveal All" to decrypt and view them in place.
+**Cash Balance**: Optional field for uninvested cash sitting inside an account (e.g. settlement fund in a brokerage). Used in the portfolio summary to separate investable cash from invested assets.
 
-**Passphrase**: Same passphrase as the Legacy (My Legacy) section. Entering it in either place unlocks both for the session. The passphrase is never stored — it must be re-entered each browser session.
+**Adding an account**: Tap **+ Add Account**. Account Type and Nickname are required. Last 4 Digits (optional) shows as ····1234 in the card header.
 
-**Archive**: Use Archive (not Delete) to close an account. Archived accounts can be restored at any time. Legacy Financial will only show active (non-archived) accounts.
+**Sensitive fields**: Account Number, Username, and Password are encrypted with your Legacy passphrase. Tap "🔓 Unlock Sensitive Fields" in the form, or "🔓 Reveal All" on an expanded card.
 
-**Reordering**: Drag the ⠿ handle on any card to change the order. Order is saved immediately.
+**Passphrase**: Same passphrase as the Legacy section. Unlocking in either feature unlocks both for the session. Never stored — must be re-entered each browser session.
+
+**Archive**: Use Archive (not Delete) to close an account. Archived accounts can be restored. Legacy Financial shows only active accounts.
+
+**Reordering**: Drag the ⠿ handle on personal (non-joint) accounts to reorder. Order is saved immediately.
 
 ---
 

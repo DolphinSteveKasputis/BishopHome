@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=588">
+    <link rel="stylesheet" href="css/styles.css?v=589">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -6899,12 +6899,17 @@ service firebase.storage {
              INVESTMENTS PAGES — #investments
              ═══════════════════════════════════════════════════════════ -->
 
-        <!-- Page: Investments (#investments) -->
+        <!-- Page: Investments hub (#investments) -->
         <section class="page hidden" id="page-investments">
             <!-- Populated by loadInvestmentsPage() in investments.js -->
         </section>
 
-        <!-- Page: Add/Edit Account (#investments/add, #investments/edit/:id) -->
+        <!-- Page: Accounts list (#investments/accounts) -->
+        <section class="page hidden" id="page-investments-accounts">
+            <!-- Populated by loadInvestmentsAccountsPage() in investments.js -->
+        </section>
+
+        <!-- Page: Add/Edit Account (#investments/accounts/add, #investments/accounts/edit/:id) -->
         <section class="page hidden" id="page-investments-form">
             <!-- Populated by loadInvestmentsFormPage() in investments.js -->
         </section>
@@ -10309,11 +10314,11 @@ export default {
     <script src="js/views.js?v=556"></script>
     <script src="js/help.js?v=536"></script>
     <script src="js/legacy-crypto.js?v=2"></script>
-    <script src="js/legacy.js?v=27"></script>
+    <script src="js/legacy.js?v=28"></script>
     <script src="js/credentials.js?v=583"></script>
-    <script src="js/investments.js?v=5"></script>
+    <script src="js/investments.js?v=589"></script>
     <script src="js/private.js?v=579"></script>
-    <script src="js/app.js?v=586"></script>
+    <script src="js/app.js?v=589"></script>
 
 </body>
 </html>

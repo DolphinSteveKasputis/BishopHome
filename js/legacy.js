@@ -1885,7 +1885,7 @@ function _legacyFinRenderList() {
     if (active.length === 0) {
         container.innerHTML =
             '<div class="empty-state">No accounts found. ' +
-            '<a href="#investments">Add them in Investments →</a></div>';
+            '<a href="#investments/accounts">Add them in Investments →</a></div>';
         return;
     }
 
@@ -1990,7 +1990,7 @@ function _legacyFinCardHtml(acct) {
 
         body +=
             '<div class="invest-card-actions">' +
-                '<a href="#investments/edit/' + acct.id + '" class="btn btn-secondary btn-small"' +
+                '<a href="#investments/accounts/edit/' + acct.id + '" class="btn btn-secondary btn-small"' +
                     ' onclick="event.stopPropagation()">Edit in Investments →</a>' +
             '</div>' +
         '</div>';

@@ -727,8 +727,9 @@ async function _investRemovePerson(contactId) {
 
 // ---------- Add / Edit Form Page ----------
 
-var _investFormEditId = null;  // null = add mode; account ID = edit mode
-var _investFormDraft  = null;  // basic field values preserved across passphrase unlock
+var _investFormEditId   = null;  // null = add mode; account ID = edit mode
+var _investFormDraft    = null;  // basic field values preserved across passphrase unlock
+var _investFormReturnTo = null;  // 'summary' or null (defaults back to Accounts list)
 
 async function loadInvestmentsFormPage(id) {
     _investFormEditId = id || null;
@@ -741,9 +742,11 @@ async function loadInvestmentsFormPage(id) {
         acct = _investAccounts.find(function(a) { return a.id === id; });
     }
 
+    var returnHref  = _investFormReturnTo === 'summary' ? '#investments/summary' : '#investments/accounts';
+    var returnLabel = _investFormReturnTo === 'summary' ? 'Summary'              : 'Accounts';
     document.getElementById('breadcrumbBar').innerHTML =
         '<a href="#investments">Investments</a><span class="separator">&rsaquo;</span>' +
-        '<a href="#investments/accounts">Accounts</a><span class="separator">&rsaquo;</span>' +
+        '<a href="' + returnHref + '">' + returnLabel + '</a><span class="separator">&rsaquo;</span>' +
         '<span>' + (isNew ? 'Add Account' : 'Edit Account') + '</span>';
     document.getElementById('headerTitle').innerHTML =
         '<a href="#main" class="home-link">' + escapeHtml(window.appName || 'My Life') + '</a>';
@@ -997,15 +1000,19 @@ async function _investSaveForm() {
         await _investCol().doc(id).update(data);
     }
 
-    _investFormEditId = null;
-    _investFormDraft  = null;
-    window.location.hash = '#investments/accounts';
+    var dest = _investFormReturnTo === 'summary' ? '#investments/summary' : '#investments/accounts';
+    _investFormEditId   = null;
+    _investFormDraft    = null;
+    _investFormReturnTo = null;
+    window.location.hash = dest;
 }
 
 function _investCancelForm() {
-    _investFormEditId = null;
-    _investFormDraft  = null;
-    window.location.hash = '#investments/accounts';
+    var dest = _investFormReturnTo === 'summary' ? '#investments/summary' : '#investments/accounts';
+    _investFormEditId   = null;
+    _investFormDraft    = null;
+    _investFormReturnTo = null;
+    window.location.hash = dest;
 }
 
 // ---------- Archive / Restore ----------
@@ -2611,6 +2618,12 @@ function _investPerfRowLive(label, snapshotType, baseline, currentNetWorth) {
     '</div>';
 }
 
+function _investEditFromSummary(ns, id) {
+    _investFormReturnTo = 'summary';
+    if (ns && ns !== _investPersonFilter) _investPersonFilter = ns;
+    window.location.hash = '#investments/accounts/edit/' + id;
+}
+
 function _investSummaryAccountRow(acct) {
     var taxInfo = _investTaxCategoryInfo(acct.accountType || '');
     var t       = acct._totals || { total: 0 };
@@ -2619,7 +2632,11 @@ function _investSummaryAccountRow(acct) {
             '<span class="invest-summary-acct-name">' + escapeHtml(acct.nickname || '(untitled)') + '</span>' +
             '<span class="invest-type-badge ' + escapeHtml(taxInfo.cls) + '">' + escapeHtml(taxInfo.label) + '</span>' +
         '</div>' +
-        '<div class="invest-summary-acct-value">' + _investFmtCurrency(t.total) + '</div>' +
+        '<div class="invest-summary-acct-right">' +
+            '<div class="invest-summary-acct-value">' + _investFmtCurrency(t.total) + '</div>' +
+            '<button class="iht-btn invest-summary-acct-edit" title="Edit account"' +
+                ' onclick="_investEditFromSummary(\'' + escapeHtml(acct._ns) + '\',\'' + acct.id + '\')">✏</button>' +
+        '</div>' +
     '</div>';
 }
 

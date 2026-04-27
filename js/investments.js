@@ -1834,12 +1834,28 @@ async function _investAutoFillCompanyName() {
     var prevPlaceholder = companyEl.placeholder;
     companyEl.placeholder = 'Looking up…';
     try {
+        // Try stock profile first (works for equities)
         var resp = await fetch(
             'https://finnhub.io/api/v1/stock/profile2?symbol=' + encodeURIComponent(ticker) +
             '&token=' + encodeURIComponent(apiKey)
         );
         var json = await resp.json();
-        if (json && json.name) companyEl.value = json.name;
+        if (json && json.name) {
+            companyEl.value = json.name;
+            return;
+        }
+        // Fallback: symbol search (catches ETFs, mutual funds, etc.)
+        var sresp = await fetch(
+            'https://finnhub.io/api/v1/search?q=' + encodeURIComponent(ticker) +
+            '&token=' + encodeURIComponent(apiKey)
+        );
+        var sdata = await sresp.json();
+        if (sdata && sdata.result) {
+            var match = sdata.result.find(function(r) {
+                return r.symbol === ticker || r.displaySymbol === ticker;
+            });
+            if (match && match.description) companyEl.value = match.description;
+        }
     } catch (e) {
         console.error('Company name lookup error', e);
     } finally {

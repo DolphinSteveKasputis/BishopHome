@@ -2939,14 +2939,17 @@ function _investComputeGroupTotals(accounts) {
         if (isCash) {
             t.cash += totals.total;
         } else {
-            if      (_INVEST_ROTH_TYPES.indexOf(type)   >= 0) t.roth      += totals.holdings;
-            else if (_INVEST_PRETAX_TYPES.indexOf(type) >= 0) t.preTax    += totals.holdings;
-            else if (_INVEST_BROKER_TYPES.indexOf(type) >= 0) t.brokerage += totals.holdings;
+            // Category buckets include the full account total (holdings + cash + pending)
+            if      (_INVEST_ROTH_TYPES.indexOf(type)   >= 0) t.roth      += totals.total;
+            else if (_INVEST_PRETAX_TYPES.indexOf(type) >= 0) t.preTax    += totals.total;
+            else if (_INVEST_BROKER_TYPES.indexOf(type) >= 0) t.brokerage += totals.total;
+            // invCash tracked separately so the Uninvested Cash row shows what portion is idle
             t.invCash += totals.cash + (totals.pending || 0);
         }
     });
 
-    t.netWorth = t.roth + t.preTax + t.brokerage + t.cash + t.invCash;
+    // invCash is already inside roth/preTax/brokerage — don't add it again to netWorth
+    t.netWorth = t.roth + t.preTax + t.brokerage + t.cash;
     t.invested = t.netWorth - t.invCash;
     return t;
 }

@@ -1880,11 +1880,11 @@ Requires a Finnhub API key in Settings. Prices persist in Firestore across sessi
 **Net Worth vs Invested**: Net Worth = Roth + Pre-Tax + Brokerage + Cash + Uninvested Cash. Invested = Net Worth − Uninvested Cash (i.e., includes bank Cash but excludes idle cash sitting in brokerage/investment accounts).
 
 **Tax categories**:
-- **Roth** (green): Roth IRA, Roth 401k, HSA — holds market value of holdings
-- **Pre-Tax** (orange): Traditional IRA, Traditional 401k, Self-directed 401k, 403b, 529 — holds market value of holdings
-- **Brokerage** (purple): Brokerage Individual, Brokerage Joint — holds market value of holdings
+- **Roth** (green): Roth IRA, Roth 401k, HSA — full account total (holdings + uninvested cash + pending activity)
+- **Pre-Tax** (orange): Traditional IRA, Traditional 401k, Self-directed 401k, 403b, 529 — full account total
+- **Brokerage** (purple): Brokerage Individual, Brokerage Joint — full account total
 - **Cash** (blue): Checking, Savings, Money Market, CD — the account's full balance
-- **Uninvested Cash**: cash balance stored on non-bank investment accounts (e.g. cash sweep in a Roth IRA)
+- **Uninvested Cash**: informational row only — shows the combined idle cash and pending activity sitting inside your Roth/Pre-Tax/Brokerage accounts. Already included in those category totals above; **not** added to Net Worth a second time.
 
 **Retirement widget**: Computed as `Invested × Return Rate × After-Tax %`. Edit **Return Rate** (e.g. 0.06 = 6%) and **After-Tax %** (e.g. 0.82 = 82%) inline, then tap **Recalculate** to update and save. Values are stored in `investmentConfig/main` and persist across sessions.
 

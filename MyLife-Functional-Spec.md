@@ -1336,9 +1336,11 @@ Dashboard page showing totals for the selected group.
 **If I retired today widget**: Green card showing estimated Annual and Monthly income. Formula: `Invested × projectedRoR × afterTaxPct`. Inline fields let the user edit Return Rate and After-Tax % and tap **Recalculate** to save and re-render. Config stored in `userCol('investmentConfig').doc('main')` (auto-created with defaults `projectedRoR: 0.06`, `afterTaxPct: 0.82`).
 
 **Category Breakdown table** (rows: Roth, Pre-Tax, Brokerage, Cash, Uninvested Cash, Net Worth total): value + % of Net Worth.
-- Roth/Pre-Tax/Brokerage buckets = holdings market value only (shares × lastPrice) from accounts of that type
+- Roth/Pre-Tax/Brokerage buckets = **full account total** (holdings + cashBalance + pendingActivity) for accounts of that type
 - Cash bucket = total balance of bank accounts (checking/savings/money market/CD)
-- Uninvested Cash = sum of `cashBalance` on non-bank investment accounts
+- Uninvested Cash = informational display only — sum of `cashBalance + pendingActivity` across all non-bank investment accounts; already baked into the category rows above, **not** added to Net Worth
+- `t.netWorth = t.roth + t.preTax + t.brokerage + t.cash` (no `+ t.invCash`)
+- `t.invested = t.netWorth - t.invCash` (how much is in actual positions vs. sitting idle)
 
 **All-Time Highs**: Orange cards (reuses `.invest-snap-ath-*` styles) showing the highest Net Worth ever recorded for each snapshot type (Daily/Weekly/Monthly/Yearly), sourced from `investmentConfig` ATH fields. Only rendered when at least one ATH is recorded.
 

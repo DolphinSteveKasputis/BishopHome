@@ -1630,7 +1630,7 @@ function _investRenderAccountDetail(acct) {
         '<div class="page-header">' +
             '<h2>' + escapeHtml(acct.nickname || 'Account') + '</h2>' +
             '<div class="page-header-actions">' +
-                (acct.url ? '<a class="btn btn-secondary btn-small" href="' + escapeHtml(acct.url) + '" target="_blank" rel="noopener" title="Visit site">🔗</a>' : '') +
+                (acct.url ? '<a class="btn btn-secondary btn-small invest-holdings-url-btn" href="' + escapeHtml(acct.url) + '" target="_blank" rel="noopener" title="Visit site">↗ Visit Site</a>' : '') +
                 '<a class="btn btn-secondary" href="#investments/accounts/edit/' + acct.id + '">Edit Account</a>' +
             '</div>' +
         '</div>' +

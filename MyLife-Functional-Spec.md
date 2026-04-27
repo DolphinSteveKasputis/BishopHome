@@ -1135,7 +1135,7 @@ Person-scoped financial account tracker. The **canonical storage** for financial
 Tile labeled **Investments** (📈), always visible on the Life landing page → navigates to `#investments` hub.
 
 ### Hub (`#investments`)
-Three cards: **Accounts** → `#investments/accounts`; **Summary** → `#investments/summary`; **Snapshots** → `#investments/snapshots`.
+Four cards: **Accounts** → `#investments/accounts`; **Summary** → `#investments/summary`; **Snapshots** → `#investments/snapshots`; **Stock Rollup** → `#investments/stocks`.
 
 ### Person Switcher (Accounts page)
 - Dropdown at top: **Me** (personId = `'self'`) + enrolled contacts
@@ -1204,6 +1204,27 @@ Stored in `userCol('investmentGroups')`. Fields: `name`, `personIds[]` (always i
 ### Finnhub API Key
 Stored in `userCol('settings').doc('investments').finnhubApiKey`. Configured in Settings → General Settings → Investments (Finnhub) accordion. Help modal walks through free account signup at finnhub.io, copying the key from the dashboard, and testing it with a live AAPL quote. The module caches the key in `_investFinnhubApiKey`; saving a new key in Settings calls `_investInvalidateFinnhubKey()` to force a re-read.
 
+### Stock Rollup (`#investments/stocks`)
+Cross-account ticker concentration analysis. Loads ALL accounts for ALL enrolled persons (no group filter).
+
+**Data loading**: `_investLoadAllAccountsForStocks()` — reads enrolled person IDs from `settings/investments`, loads accounts for every namespace ('self' + each enrolled ID), then loads holdings for each account. Uses `_investPeople` module state (pre-populated by `_investLoadAll()`).
+
+**Aggregation**: `_investAggregateByTicker(accounts)` — iterates all investment-account holdings, groups by ticker symbol, sums shares and value. Also sums `_totals.holdings` across all non-cash accounts to produce `totalInvested` (the denominator for concentration %). Bank/cash accounts are excluded. Returns `{ tickers[], totalInvested }`.
+
+**Ticker row fields**: ticker symbol, company name, total shares (summed across all accounts), last price (most recent non-null `lastPrice` across holdings), total value (shares × price, summed), concentration % (totalValue ÷ totalInvested × 100).
+
+**Concentration badges**: `invest-conc-ok` (<10%, gray), `invest-conc-warn` (10–14.9%, orange), `invest-conc-high` (≥15%, red).
+
+**Expand/collapse**: Clicking a row toggles `_investStocksExpandIds[ticker]` and shows/hides a detail section listing each account that holds that ticker (account name prefixed with owner name for non-self accounts, shares, value).
+
+**Sort**: `_investStocksSort` module var — `'value'` (totalValue desc, default) or `'ticker'` (A–Z). Sort buttons re-render the page.
+
+**DOM ID safety**: Tickers like `BRK.B` have periods replaced with underscores for element IDs (`stocksDetail-BRK_B`); the toggle function maps back using `ticker.replace(/\./g, '_')`.
+
+**Hub card**: Added as 4th card on `#investments` hub.
+
+**Routes**: `#investments/stocks` → `page-investments-stocks` → `loadInvestmentsStocksPage()`.
+
 ### Historical Snapshots (`#investments/snapshots`)
 Point-in-time portfolio recordings used to compute period performance on the Summary page.
 
@@ -1258,6 +1279,7 @@ Dashboard page showing totals for the selected group.
 | `#investments/groups` | Manage groups |
 | `#investments/summary` | Portfolio summary dashboard |
 | `#investments/snapshots` | Historical snapshots — capture, browse, delete |
+| `#investments/stocks` | Stock rollup — all tickers aggregated, concentration analysis |
 
 ---
 

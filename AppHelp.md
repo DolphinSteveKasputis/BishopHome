@@ -1792,6 +1792,31 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 
 ---
 
+## screen:investments-stocks
+
+### Quick Help
+- Shows every unique ticker held across ALL your investment accounts, aggregated by symbol
+- Each row shows total shares, last known price, total value, and concentration % of your holdings
+- **Concentration warnings**: orange badge ≥10%, red badge ≥15% — flags over-concentration in one stock
+- Tap any row to expand and see which accounts hold that ticker and how many shares each
+- Sort by **Value** (default) or **Ticker** (A–Z) using the buttons at the top
+
+### Details
+
+**What's included**: Every holding with a ticker symbol across all your investment accounts and all enrolled people (Me + any enrolled contacts). Bank/cash accounts have no holdings and are excluded.
+
+**Concentration %**: Each ticker's total value divided by total holdings value across all investment accounts. This is a quick sanity check — if one stock is >15% of your portfolio, that's significant concentration risk.
+
+**Expanding a row**: Tap any ticker row to see the breakdown by account — which account holds it, how many shares, and the value in that account. Co-owned accounts show the owner name before the account name.
+
+**Prices**: Uses the last fetched price stored on each holding (`lastPrice`). Tap **📡 Update All Prices** on the Summary page first to make sure prices are current before reviewing concentration.
+
+**Sort by Value**: Highest-value tickers at the top — shows your largest positions first.
+
+**Sort by Ticker**: Alphabetical A–Z — useful for quickly finding a specific symbol.
+
+---
+
 ## screen:investments-snapshots
 
 ### Quick Help

@@ -14273,6 +14273,166 @@ a.invest-hub-card:hover {
 }
 
 /* ============================================================
+   INVESTMENTS — STOCK ROLLUP PAGE
+   ============================================================ */
+
+/* Summary stats bar */
+.invest-stocks-summary {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 14px;
+}
+.invest-stocks-summary-stat {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 10px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+}
+.invest-stocks-summary-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.invest-stocks-summary-val {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #1a237e;
+}
+
+/* Sort bar */
+.invest-stocks-sort-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+.invest-stocks-sort-label {
+    font-size: 0.82rem;
+    color: #666;
+    font-weight: 600;
+}
+
+/* Table container */
+.invest-stocks-table {
+    margin-bottom: 24px;
+}
+
+/* Individual ticker row */
+.invest-stocks-row {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    overflow: hidden;
+}
+.invest-stocks-row-main {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 14px;
+    cursor: pointer;
+    user-select: none;
+}
+.invest-stocks-row-main:hover { background: #fafafa; }
+
+.invest-stocks-row-left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+.invest-stocks-ticker {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #111;
+}
+.invest-stocks-name {
+    font-size: 0.78rem;
+    color: #777;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.invest-stocks-row-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 3px;
+    white-space: nowrap;
+}
+.invest-stocks-value {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #1a237e;
+}
+.invest-stocks-pct {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+/* Concentration color coding */
+.invest-conc-ok   { color: #555; background: #f5f5f5; }
+.invest-conc-warn { color: #e65100; background: #fff3e0; }
+.invest-conc-high { color: #b71c1c; background: #ffebee; }
+
+/* Expanded detail section */
+.invest-stocks-detail {
+    border-top: 1px solid #f0f0f0;
+    padding: 10px 14px 12px;
+}
+.invest-stocks-detail-stats {
+    font-size: 0.8rem;
+    color: #888;
+    margin-bottom: 8px;
+}
+
+/* Per-account rows inside expanded detail */
+.invest-stocks-acct-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+    border-bottom: 1px solid #f5f5f5;
+    gap: 10px;
+}
+.invest-stocks-acct-row:last-child { border-bottom: none; }
+.invest-stocks-acct-name {
+    font-size: 0.83rem;
+    color: #333;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.invest-stocks-acct-right {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    white-space: nowrap;
+}
+.invest-stocks-acct-shares {
+    font-size: 0.8rem;
+    color: #777;
+}
+.invest-stocks-acct-value {
+    font-size: 0.83rem;
+    font-weight: 600;
+    color: #222;
+    min-width: 70px;
+    text-align: right;
+}
+
+/* ============================================================
    INVESTMENTS — HISTORICAL SNAPSHOTS PAGE
    ============================================================ */
 

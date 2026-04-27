@@ -123,6 +123,14 @@ async function loadInvestmentsPage() {
                 '</div>' +
                 '<span class="invest-hub-arrow">›</span>' +
             '</a>' +
+            '<a class="invest-hub-card" href="#investments/stocks">' +
+                '<span class="invest-hub-icon">📈</span>' +
+                '<div class="invest-hub-text">' +
+                    '<div class="invest-hub-title">Stock Rollup</div>' +
+                    '<div class="invest-hub-desc">All tickers across every account — concentration analysis</div>' +
+                '</div>' +
+                '<span class="invest-hub-arrow">›</span>' +
+            '</a>' +
         '</div>';
 }
 
@@ -2211,4 +2219,216 @@ async function _investUpdateAllPrices() {
             status.style.color = '#2e7d32';
         }
     }
+}
+
+// ============================================================
+// STOCK ROLLUP PAGE  (#investments/stocks)
+// ============================================================
+
+var _investStocksSort      = 'value';   // 'value' | 'ticker'
+var _investStocksExpandIds = {};         // { ticker: bool } — which rows are expanded
+
+async function loadInvestmentsStocksPage() {
+    document.getElementById('breadcrumbBar').innerHTML =
+        '<a href="#investments">Investments</a><span class="separator">&rsaquo;</span><span>Stock Rollup</span>';
+    document.getElementById('headerTitle').innerHTML =
+        '<a href="#main" class="home-link">' + escapeHtml(window.appName || 'My Life') + '</a>';
+
+    if (_investPeople.length === 0) await _investLoadAll();
+
+    await _investRenderStocksPage();
+}
+
+async function _investRenderStocksPage() {
+    var page = document.getElementById('page-investments-stocks');
+    if (!page) return;
+    page.innerHTML = '<div class="invest-summary-loading">Loading…</div>';
+
+    var accounts = await _investLoadAllAccountsForStocks();
+    var result   = _investAggregateByTicker(accounts);
+    var tickers  = result.tickers;
+    var invested = result.totalInvested;
+
+    // Sort
+    if (_investStocksSort === 'ticker') {
+        tickers.sort(function(a, b) { return a.ticker.localeCompare(b.ticker); });
+    } else {
+        tickers.sort(function(a, b) { return b.totalValue - a.totalValue; });
+    }
+
+    var totalHeld = tickers.reduce(function(s, t) { return s + t.totalValue; }, 0);
+
+    var sortBtns =
+        '<div class="invest-stocks-sort-bar">' +
+            '<span class="invest-stocks-sort-label">Sort:</span>' +
+            '<button class="btn btn-small ' + (_investStocksSort === 'value'  ? 'btn-primary' : 'btn-secondary') +
+                '" onclick="_investSetStocksSort(\'value\')">Value</button>' +
+            '<button class="btn btn-small ' + (_investStocksSort === 'ticker' ? 'btn-primary' : 'btn-secondary') +
+                '" onclick="_investSetStocksSort(\'ticker\')">Ticker</button>' +
+        '</div>';
+
+    var rowsHtml = tickers.length > 0
+        ? tickers.map(function(t) { return _investStocksRowHtml(t, invested); }).join('')
+        : '<div class="empty-state">No holdings with tickers found. Add holdings to your investment accounts first.</div>';
+
+    page.innerHTML =
+        '<div class="page-header"><h2>📈 Stock Rollup</h2></div>' +
+        '<div class="invest-stocks-summary">' +
+            '<div class="invest-stocks-summary-stat">' +
+                '<span class="invest-stocks-summary-label">Unique Tickers</span>' +
+                '<span class="invest-stocks-summary-val">' + tickers.length + '</span>' +
+            '</div>' +
+            '<div class="invest-stocks-summary-stat">' +
+                '<span class="invest-stocks-summary-label">Holdings Value</span>' +
+                '<span class="invest-stocks-summary-val">' + _investFmtCurrency(totalHeld) + '</span>' +
+            '</div>' +
+        '</div>' +
+        sortBtns +
+        '<div class="invest-stocks-table">' + rowsHtml + '</div>';
+}
+
+function _investStocksRowHtml(t, totalInvested) {
+    var pct     = (totalInvested > 0 && t.totalValue > 0) ? (t.totalValue / totalInvested * 100) : 0;
+    var pctStr  = pct > 0 ? pct.toFixed(1) + '%' : '—';
+    var concCls = pct >= 15 ? 'invest-conc-high' : (pct >= 10 ? 'invest-conc-warn' : 'invest-conc-ok');
+    var isExp   = !!_investStocksExpandIds[t.ticker];
+
+    var priceStr  = t.lastPrice != null ? '$' + t.lastPrice.toFixed(2) : '—';
+    var sharesStr = t.totalShares
+        ? Number(t.totalShares).toLocaleString('en-US', { maximumFractionDigits: 4 })
+        : '—';
+
+    var acctRows = t.accounts.map(function(a) {
+        return '<div class="invest-stocks-acct-row">' +
+            '<span class="invest-stocks-acct-name">' +
+                escapeHtml((a.ownerName !== 'Me' ? a.ownerName + ' \u2014 ' : '') + a.nickname) +
+            '</span>' +
+            '<span class="invest-stocks-acct-right">' +
+                '<span class="invest-stocks-acct-shares">' +
+                    (a.shares != null
+                        ? Number(a.shares).toLocaleString('en-US', { maximumFractionDigits: 4 }) + ' sh'
+                        : '—') +
+                '</span>' +
+                '<span class="invest-stocks-acct-value">' + _investFmtCurrency(a.value) + '</span>' +
+            '</span>' +
+        '</div>';
+    }).join('');
+
+    var safeId = t.ticker.replace(/\./g, '_');  // BRK.B → BRK_B for safe DOM IDs
+
+    return '<div class="invest-stocks-row">' +
+        '<div class="invest-stocks-row-main" onclick="_investToggleStocksRow(\'' + escapeHtml(t.ticker) + '\')">' +
+            '<div class="invest-stocks-row-left">' +
+                '<span class="invest-stocks-ticker">' + escapeHtml(t.ticker) + '</span>' +
+                '<span class="invest-stocks-name">' + escapeHtml(t.companyName) + '</span>' +
+            '</div>' +
+            '<div class="invest-stocks-row-right">' +
+                '<span class="invest-stocks-value">' + _investFmtCurrency(t.totalValue) + '</span>' +
+                '<span class="invest-stocks-pct ' + concCls + '">' + escapeHtml(pctStr) + '</span>' +
+            '</div>' +
+            '<span class="invest-snap-chevron">' + (isExp ? '\u2304' : '\u203a') + '</span>' +
+        '</div>' +
+        '<div class="invest-stocks-detail' + (isExp ? '' : ' hidden') + '" id="stocksDetail-' + escapeHtml(safeId) + '">' +
+            '<div class="invest-stocks-detail-stats">' +
+                escapeHtml(sharesStr + ' total shares @ ' + priceStr) +
+            '</div>' +
+            acctRows +
+        '</div>' +
+    '</div>';
+}
+
+function _investToggleStocksRow(ticker) {
+    _investStocksExpandIds[ticker] = !_investStocksExpandIds[ticker];
+    var safeId  = ticker.replace(/\./g, '_');
+    var detail  = document.getElementById('stocksDetail-' + safeId);
+    if (!detail) return;
+    var row     = detail.parentElement;
+    var chevron = row ? row.querySelector('.invest-snap-chevron') : null;
+    detail.classList.toggle('hidden', !_investStocksExpandIds[ticker]);
+    if (chevron) chevron.textContent = _investStocksExpandIds[ticker] ? '\u2304' : '\u203a';
+}
+
+function _investSetStocksSort(sort) {
+    _investStocksSort = sort;
+    _investRenderStocksPage();
+}
+
+// ---------- Load All Accounts Across All Persons ----------
+
+async function _investLoadAllAccountsForStocks() {
+    // _investPeople already loaded by loadInvestmentsStocksPage()
+    var allNs       = ['self'].concat(_investPeople.map(function(p) { return p.id; }));
+    var personNames = { self: 'Me' };
+    _investPeople.forEach(function(p) { personNames[p.id] = p.name; });
+
+    var allAccounts = [];
+    for (var i = 0; i < allNs.length; i++) {
+        var ns   = allNs[i];
+        var snap = await userCol('investments').doc(ns).collection('accounts').get();
+        snap.forEach(function(doc) {
+            var data = doc.data();
+            if (!data.archived) {
+                allAccounts.push(Object.assign({ id: doc.id, _ns: ns, _ownerName: personNames[ns] || ns }, data));
+            }
+        });
+    }
+
+    for (var j = 0; j < allAccounts.length; j++) {
+        var acct     = allAccounts[j];
+        var holdSnap = await _investHoldingCol(acct._ns, acct.id).get();
+        acct._holdings = [];
+        holdSnap.forEach(function(hdoc) {
+            acct._holdings.push(Object.assign({ id: hdoc.id }, hdoc.data()));
+        });
+        acct._totals = _investComputeAccountTotals(acct._holdings, acct.cashBalance);
+    }
+
+    return allAccounts;
+}
+
+// ---------- Ticker Aggregation ----------
+
+function _investAggregateByTicker(accounts) {
+    var tickerMap     = {};
+    var totalInvested = 0;
+
+    accounts.forEach(function(acct) {
+        var isCash = _INVEST_CASH_TYPES.indexOf(acct.accountType || '') >= 0;
+        if (!isCash) totalInvested += (acct._totals || {}).holdings || 0;
+
+        (acct._holdings || []).forEach(function(h) {
+            if (!h.ticker) return;
+            var shares = h.shares  != null ? h.shares    : 0;
+            var price  = h.lastPrice != null ? h.lastPrice : null;
+            var value  = (price != null && shares) ? shares * price : 0;
+
+            if (!tickerMap[h.ticker]) {
+                tickerMap[h.ticker] = {
+                    ticker:       h.ticker,
+                    companyName:  h.companyName || '',
+                    lastPrice:    price,
+                    lastPriceDate: h.lastPriceDate || null,
+                    totalShares:  0,
+                    totalValue:   0,
+                    accounts:     []
+                };
+            }
+            var entry = tickerMap[h.ticker];
+            entry.totalShares += shares;
+            entry.totalValue  += value;
+            if (price != null) entry.lastPrice = price;  // keep most recent non-null price
+
+            entry.accounts.push({
+                id:        acct.id,
+                ns:        acct._ns,
+                nickname:  acct.nickname || '(untitled)',
+                ownerName: acct._ownerName || 'Me',
+                shares:    h.shares,
+                value:     value
+            });
+        });
+    });
+
+    var tickers = Object.keys(tickerMap).map(function(k) { return tickerMap[k]; });
+    return { tickers: tickers, totalInvested: totalInvested };
 }

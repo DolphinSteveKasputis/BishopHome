@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=595">
+    <link rel="stylesheet" href="css/styles.css?v=596">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -6953,6 +6953,11 @@ service firebase.storage {
             <!-- Populated by loadInvestmentsSummaryPage() in investments.js -->
         </section>
 
+        <!-- Page: Stock Rollup (#investments/stocks) -->
+        <section class="page hidden" id="page-investments-stocks">
+            <!-- Populated by loadInvestmentsStocksPage() in investments.js -->
+        </section>
+
         <!-- Page: Historical Snapshots (#investments/snapshots) -->
         <section class="page hidden" id="page-investments-snapshots">
             <!-- Populated by loadInvestmentsSnapshotsPage() in investments.js -->
@@ -10482,9 +10487,9 @@ export default {
     <script src="js/legacy-crypto.js?v=2"></script>
     <script src="js/legacy.js?v=28"></script>
     <script src="js/credentials.js?v=583"></script>
-    <script src="js/investments.js?v=595"></script>
+    <script src="js/investments.js?v=596"></script>
     <script src="js/private.js?v=579"></script>
-    <script src="js/app.js?v=595"></script>
+    <script src="js/app.js?v=596"></script>
 
 </body>
 </html>

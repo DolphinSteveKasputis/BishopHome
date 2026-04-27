@@ -2890,10 +2890,10 @@ async function _investRenderStocksPage() {
     if (!page) return;
     page.innerHTML = '<div class="invest-summary-loading">Loading…</div>';
 
-    var accounts = await _investLoadAllAccountsForStocks();
-    var result   = _investAggregateByTicker(accounts);
-    var tickers  = result.tickers;
-    var invested = result.totalInvested;
+    var accounts      = await _investLoadAllAccountsForStocks();
+    var result        = _investAggregateByTicker(accounts);
+    var tickers       = result.tickers;
+    var overallNW     = result.overallNetWorth;
 
     // Sort
     if (_investStocksSort === 'ticker') {
@@ -2913,9 +2913,25 @@ async function _investRenderStocksPage() {
                 '" onclick="_investSetStocksSort(\'ticker\')">Ticker</button>' +
         '</div>';
 
-    var rowsHtml = tickers.length > 0
-        ? tickers.map(function(t) { return _investStocksRowHtml(t, invested); }).join('')
-        : '<div class="empty-state">No holdings with tickers found. Add holdings to your investment accounts first.</div>';
+    var tableHtml;
+    if (tickers.length === 0) {
+        tableHtml = '<div class="empty-state">No holdings with tickers found. Add holdings to your investment accounts first.</div>';
+    } else {
+        var headerRow =
+            '<div class="ist-row ist-header-row">' +
+                '<div class="ist-cell ist-cell-sym">SYMBOL</div>' +
+                '<div class="ist-cell ist-cell-num">QTY</div>' +
+                '<div class="ist-cell ist-cell-num">PRICE</div>' +
+                '<div class="ist-cell ist-cell-num">COST/SH</div>' +
+                '<div class="ist-cell ist-cell-num">TOT GAIN $</div>' +
+                '<div class="ist-cell ist-cell-num">TOT GAIN %</div>' +
+                '<div class="ist-cell ist-cell-num">VALUE</div>' +
+                '<div class="ist-cell ist-cell-num">% NW</div>' +
+                '<div class="ist-cell ist-cell-chev"></div>' +
+            '</div>';
+        var rows = tickers.map(function(t) { return _investStocksRowHtml(t, overallNW); }).join('');
+        tableHtml = '<div class="ist-table-wrap">' + headerRow + rows + '</div>';
+    }
 
     page.innerHTML =
         '<div class="page-header"><h2>📈 Stock Rollup</h2></div>' +
@@ -2930,68 +2946,102 @@ async function _investRenderStocksPage() {
             '</div>' +
         '</div>' +
         sortBtns +
-        '<div class="invest-stocks-table">' + rowsHtml + '</div>';
+        tableHtml;
 }
 
-function _investStocksRowHtml(t, totalInvested) {
-    var pct     = (totalInvested > 0 && t.totalValue > 0) ? (t.totalValue / totalInvested * 100) : 0;
-    var pctStr  = pct > 0 ? pct.toFixed(1) + '%' : '—';
-    var concCls = pct >= 15 ? 'invest-conc-high' : (pct >= 10 ? 'invest-conc-warn' : 'invest-conc-ok');
+function _investStocksRowHtml(t, overallNW) {
     var isExp   = !!_investStocksExpandIds[t.ticker];
+    var safeId  = t.ticker.replace(/\./g, '_');
 
-    var priceStr  = t.lastPrice != null ? '$' + t.lastPrice.toFixed(2) : '—';
-    var sharesStr = t.totalShares
-        ? Number(t.totalShares).toLocaleString('en-US', { maximumFractionDigits: 4 })
-        : '—';
+    var price   = t.lastPrice;
+    var wavg    = t.weightedAvgCost;
+    var gain    = (price != null && wavg != null && t.totalShares > 0)
+                  ? (price - wavg) * t.totalShares : null;
+    var gainPct = (gain != null && wavg != null && wavg !== 0)
+                  ? (price - wavg) / wavg * 100 : null;
+    var pctNW   = (overallNW > 0 && t.totalValue > 0) ? t.totalValue / overallNW * 100 : 0;
+    var concCls = pctNW >= 15 ? 'invest-conc-high' : (pctNW >= 10 ? 'invest-conc-warn' : 'invest-conc-ok');
 
-    var acctRows = t.accounts.map(function(a) {
-        return '<div class="invest-stocks-acct-row">' +
-            '<span class="invest-stocks-acct-name">' +
-                escapeHtml((a.ownerName !== 'Me' ? a.ownerName + ' \u2014 ' : '') + a.nickname) +
-            '</span>' +
-            '<span class="invest-stocks-acct-right">' +
-                '<span class="invest-stocks-acct-shares">' +
-                    (a.shares != null
-                        ? Number(a.shares).toLocaleString('en-US', { maximumFractionDigits: 4 }) + ' sh'
-                        : '—') +
-                '</span>' +
-                '<span class="invest-stocks-acct-value">' + _investFmtCurrency(a.value) + '</span>' +
-            '</span>' +
+    // --- shared format helpers ---
+    function fmtShares(s) {
+        return s != null ? Number(s).toLocaleString('en-US', { maximumFractionDigits: 4 }) : '—';
+    }
+    function fmtPx(p) { return p != null ? '$' + Number(p).toFixed(2) : '—'; }
+    function fmtGainAmt(g) {
+        if (g == null) return '<span class="ist-dim">—</span>';
+        var cls  = g >= 0 ? 'ist-gain' : 'ist-loss';
+        var sign = g >= 0 ? '+' : '\u2212';
+        return '<span class="' + cls + '">' + sign + _investFmtCurrency(Math.abs(g)).replace('$','$') + '</span>';
+    }
+    function fmtGainPct(p) {
+        if (p == null) return '<span class="ist-dim">—</span>';
+        var cls  = p >= 0 ? 'ist-gain' : 'ist-loss';
+        var sign = p >= 0 ? '+' : '\u2212';
+        return '<span class="' + cls + '">' + sign + Math.abs(p).toFixed(2) + '%</span>';
+    }
+
+    // --- sub-rows (one per account holding this ticker) ---
+    var subRows = t.accounts.map(function(a) {
+        var aGain    = (price != null && a.costBasis != null && a.shares != null)
+                       ? (price - a.costBasis) * a.shares : null;
+        var aGainPct = (aGain != null && a.costBasis != null && a.costBasis !== 0)
+                       ? (price - a.costBasis) / a.costBasis * 100 : null;
+        var aPct     = (a.accountTotal > 0 && a.value > 0) ? a.value / a.accountTotal * 100 : null;
+        var label    = escapeHtml((a.ownerName !== 'Me' ? a.ownerName + ' \u2014 ' : '') + a.nickname);
+
+        return '<div class="ist-row ist-sub-row">' +
+            '<div class="ist-cell ist-cell-sym ist-sub-label">' + label + '</div>' +
+            '<div class="ist-cell ist-cell-num">' + fmtShares(a.shares) + '</div>' +
+            '<div class="ist-cell ist-cell-num ist-dim">' + fmtPx(price) + '</div>' +
+            '<div class="ist-cell ist-cell-num">' + fmtPx(a.costBasis) + '</div>' +
+            '<div class="ist-cell ist-cell-num">' + fmtGainAmt(aGain) + '</div>' +
+            '<div class="ist-cell ist-cell-num">' + fmtGainPct(aGainPct) + '</div>' +
+            '<div class="ist-cell ist-cell-num ist-val">' + _investFmtCurrency(a.value) + '</div>' +
+            '<div class="ist-cell ist-cell-num">' +
+                (aPct != null ? '<span class="ist-pct-acct">' + aPct.toFixed(1) + '%</span>' : '<span class="ist-dim">—</span>') +
+            '</div>' +
+            '<div class="ist-cell ist-cell-chev"></div>' +
         '</div>';
     }).join('');
 
-    var safeId = t.ticker.replace(/\./g, '_');  // BRK.B → BRK_B for safe DOM IDs
-
-    return '<div class="invest-stocks-row">' +
-        '<div class="invest-stocks-row-main" onclick="_investToggleStocksRow(\'' + escapeHtml(t.ticker) + '\')">' +
-            '<div class="invest-stocks-row-left">' +
-                '<span class="invest-stocks-ticker">' + escapeHtml(t.ticker) + '</span>' +
-                '<span class="invest-stocks-name">' + escapeHtml(t.companyName) + '</span>' +
+    // --- main (collapsed) row ---
+    return '<div class="ist-row-wrap">' +
+        '<div class="ist-row ist-main-row" onclick="_investToggleStocksRow(\'' + escapeHtml(t.ticker) + '\')">' +
+            '<div class="ist-cell ist-cell-sym">' +
+                '<div class="iht-sym-wrap">' +
+                    '<span class="iht-ticker">' + escapeHtml(t.ticker) + '</span>' +
+                    '<span class="iht-name">' + escapeHtml(t.companyName) + '</span>' +
+                '</div>' +
             '</div>' +
-            '<div class="invest-stocks-row-right">' +
-                '<span class="invest-stocks-value">' + _investFmtCurrency(t.totalValue) + '</span>' +
-                '<span class="invest-stocks-pct ' + concCls + '">' + escapeHtml(pctStr) + '</span>' +
+            '<div class="ist-cell ist-cell-num">' + fmtShares(t.totalShares) + '</div>' +
+            '<div class="ist-cell ist-cell-num">' + fmtPx(price) + '</div>' +
+            '<div class="ist-cell ist-cell-num">' + fmtPx(wavg) + '</div>' +
+            '<div class="ist-cell ist-cell-num">' + fmtGainAmt(gain) + '</div>' +
+            '<div class="ist-cell ist-cell-num">' + fmtGainPct(gainPct) + '</div>' +
+            '<div class="ist-cell ist-cell-num ist-val">' + _investFmtCurrency(t.totalValue) + '</div>' +
+            '<div class="ist-cell ist-cell-num">' +
+                '<span class="invest-stocks-pct ' + concCls + '">' + pctNW.toFixed(1) + '%</span>' +
             '</div>' +
-            '<span class="invest-snap-chevron">' + (isExp ? '\u2304' : '\u203a') + '</span>' +
+            '<div class="ist-cell ist-cell-chev">' + (isExp ? '\u2304' : '\u203a') + '</div>' +
         '</div>' +
-        '<div class="invest-stocks-detail' + (isExp ? '' : ' hidden') + '" id="stocksDetail-' + escapeHtml(safeId) + '">' +
-            '<div class="invest-stocks-detail-stats">' +
-                escapeHtml(sharesStr + ' total shares @ ' + priceStr) +
-            '</div>' +
-            acctRows +
+        '<div class="ist-detail' + (isExp ? '' : ' hidden') + '" id="stocksDetail-' + escapeHtml(safeId) + '">' +
+            subRows +
         '</div>' +
     '</div>';
 }
 
 function _investToggleStocksRow(ticker) {
     _investStocksExpandIds[ticker] = !_investStocksExpandIds[ticker];
-    var safeId  = ticker.replace(/\./g, '_');
-    var detail  = document.getElementById('stocksDetail-' + safeId);
+    var isExp  = _investStocksExpandIds[ticker];
+    var safeId = ticker.replace(/\./g, '_');
+    var detail = document.getElementById('stocksDetail-' + safeId);
     if (!detail) return;
-    var row     = detail.parentElement;
-    var chevron = row ? row.querySelector('.invest-snap-chevron') : null;
-    detail.classList.toggle('hidden', !_investStocksExpandIds[ticker]);
-    if (chevron) chevron.textContent = _investStocksExpandIds[ticker] ? '\u2304' : '\u203a';
+    detail.classList.toggle('hidden', !isExp);
+    var mainRow = detail.previousElementSibling;
+    if (mainRow) {
+        var chev = mainRow.querySelector('.ist-cell-chev');
+        if (chev) chev.textContent = isExp ? '\u2304' : '\u203a';
+    }
 }
 
 function _investSetStocksSort(sort) {
@@ -3035,46 +3085,68 @@ async function _investLoadAllAccountsForStocks() {
 // ---------- Ticker Aggregation ----------
 
 function _investAggregateByTicker(accounts) {
-    var tickerMap     = {};
-    var totalInvested = 0;
+    var tickerMap      = {};
+    var totalInvested  = 0;
+    var overallNetWorth = 0;
 
     accounts.forEach(function(acct) {
         var isCash = _INVEST_CASH_TYPES.indexOf(acct.accountType || '') >= 0;
         if (!isCash) totalInvested += (acct._totals || {}).holdings || 0;
+        overallNetWorth += (acct._totals || {}).total || 0;
+
+        var acctTotal = (acct._totals || {}).total || 0;
 
         (acct._holdings || []).forEach(function(h) {
             if (!h.ticker) return;
-            var shares = h.shares  != null ? h.shares    : 0;
-            var price  = h.lastPrice != null ? h.lastPrice : null;
-            var value  = (price != null && shares) ? shares * price : 0;
+            var shares    = h.shares    != null ? h.shares    : 0;
+            var price     = h.lastPrice != null ? h.lastPrice : null;
+            var costBasis = h.costBasis != null ? h.costBasis : null;
+            var value     = (price != null && shares) ? shares * price : 0;
 
             if (!tickerMap[h.ticker]) {
                 tickerMap[h.ticker] = {
-                    ticker:       h.ticker,
-                    companyName:  h.companyName || '',
-                    lastPrice:    price,
-                    lastPriceDate: h.lastPriceDate || null,
-                    totalShares:  0,
-                    totalValue:   0,
-                    accounts:     []
+                    ticker:               h.ticker,
+                    companyName:          h.companyName || '',
+                    lastPrice:            price,
+                    lastPriceDate:        h.lastPriceDate || null,
+                    totalShares:          0,
+                    totalValue:           0,
+                    totalCostBasisAmount: 0,   // sum of (shares × costBasis) for weighted avg
+                    hasCostBasis:         true, // false if any holding is missing costBasis
+                    accounts:             []
                 };
             }
             var entry = tickerMap[h.ticker];
             entry.totalShares += shares;
             entry.totalValue  += value;
-            if (price != null) entry.lastPrice = price;  // keep most recent non-null price
+            if (price != null) entry.lastPrice = price;
+            if (costBasis != null) {
+                entry.totalCostBasisAmount += shares * costBasis;
+            } else {
+                entry.hasCostBasis = false;
+            }
 
             entry.accounts.push({
-                id:        acct.id,
-                ns:        acct._ns,
-                nickname:  acct.nickname || '(untitled)',
-                ownerName: acct._ownerName || 'Me',
-                shares:    h.shares,
-                value:     value
+                id:           acct.id,
+                ns:           acct._ns,
+                nickname:     acct.nickname || '(untitled)',
+                ownerName:    acct._ownerName || 'Me',
+                shares:       h.shares,
+                costBasis:    costBasis,
+                value:        value,
+                accountTotal: acctTotal
             });
         });
     });
 
-    var tickers = Object.keys(tickerMap).map(function(k) { return tickerMap[k]; });
-    return { tickers: tickers, totalInvested: totalInvested };
+    var tickers = Object.keys(tickerMap).map(function(k) {
+        var t = tickerMap[k];
+        // Weighted avg cost per share across all accounts holding this ticker
+        t.weightedAvgCost = (t.hasCostBasis && t.totalShares > 0)
+            ? t.totalCostBasisAmount / t.totalShares
+            : null;
+        return t;
+    });
+
+    return { tickers: tickers, totalInvested: totalInvested, overallNetWorth: overallNetWorth };
 }

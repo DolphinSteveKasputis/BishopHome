@@ -14493,119 +14493,87 @@ a.invest-hub-card:hover {
     font-weight: 600;
 }
 
-/* Table container */
-.invest-stocks-table {
+/* ── Stock Rollup grid table ── */
+.ist-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid #e8e8e8;
+    border-radius: 8px;
     margin-bottom: 24px;
 }
-
-/* Individual ticker row */
-.invest-stocks-row {
-    background: #fff;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    margin-bottom: 6px;
-    overflow: hidden;
+/* 9-column grid: symbol | qty | price | cost/sh | gain$ | gain% | value | %nw | chevron */
+.ist-row {
+    display: grid;
+    grid-template-columns: 2.4fr 0.85fr 0.85fr 0.85fr 1.15fr 0.9fr 1.05fr 0.75fr 26px;
+    min-width: 720px;
 }
-.invest-stocks-row-main {
+.ist-header-row {
+    background: #f5f5f5;
+    border-bottom: 2px solid #e0e0e0;
+}
+.ist-header-row .ist-cell {
+    padding: 5px 10px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #888;
+    white-space: nowrap;
+}
+.ist-cell {
+    padding: 7px 10px;
+    white-space: nowrap;
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 11px 14px;
+    font-size: 0.83rem;
+}
+.ist-cell-sym  { justify-content: flex-start; }
+.ist-cell-num  { justify-content: flex-end; text-align: right; }
+.ist-cell-chev { justify-content: center; color: #aaa; font-size: 1.1rem; }
+
+/* Main (summary) rows */
+.ist-main-row {
     cursor: pointer;
     user-select: none;
+    border-bottom: 1px solid #f0f0f0;
+    background: #fff;
 }
-.invest-stocks-row-main:hover { background: #fafafa; }
+.ist-main-row:hover { background: #fafafa; }
+.ist-row-wrap:last-child > .ist-main-row { border-bottom: none; }
 
-.invest-stocks-row-left {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
+/* Sub-rows (per account) */
+.ist-sub-row {
+    background: #f7f8fc;
+    border-bottom: 1px solid #eeeff5;
+    font-size: 0.81rem;
 }
-.invest-stocks-ticker {
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: #111;
-}
-.invest-stocks-name {
-    font-size: 0.78rem;
-    color: #777;
+.ist-sub-row:last-child { border-bottom: none; }
+.ist-detail { border-top: 1px solid #e0e4f0; }
+.ist-sub-label {
+    padding-left: 22px;
+    color: #444;
+    font-weight: 500;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
 }
-.invest-stocks-row-right {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 3px;
-    white-space: nowrap;
-}
-.invest-stocks-value {
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: #1a237e;
-}
+
+/* Value / gain coloring */
+.ist-val  { font-weight: 600; color: #1a237e; }
+.ist-gain { color: #2e7d32; font-weight: 600; }
+.ist-loss { color: #c62828; font-weight: 600; }
+.ist-dim  { color: #bbb; }
+.ist-pct-acct { color: #555; }
+
+/* Concentration color coding (shared with old rollup) */
 .invest-stocks-pct {
     font-size: 0.75rem;
     font-weight: 700;
     padding: 2px 6px;
     border-radius: 4px;
 }
-
-/* Concentration color coding */
 .invest-conc-ok   { color: #555; background: #f5f5f5; }
 .invest-conc-warn { color: #e65100; background: #fff3e0; }
 .invest-conc-high { color: #b71c1c; background: #ffebee; }
-
-/* Expanded detail section */
-.invest-stocks-detail {
-    border-top: 1px solid #f0f0f0;
-    padding: 10px 14px 12px;
-}
-.invest-stocks-detail-stats {
-    font-size: 0.8rem;
-    color: #888;
-    margin-bottom: 8px;
-}
-
-/* Per-account rows inside expanded detail */
-.invest-stocks-acct-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 5px 0;
-    border-bottom: 1px solid #f5f5f5;
-    gap: 10px;
-}
-.invest-stocks-acct-row:last-child { border-bottom: none; }
-.invest-stocks-acct-name {
-    font-size: 0.83rem;
-    color: #333;
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-.invest-stocks-acct-right {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    white-space: nowrap;
-}
-.invest-stocks-acct-shares {
-    font-size: 0.8rem;
-    color: #777;
-}
-.invest-stocks-acct-value {
-    font-size: 0.83rem;
-    font-weight: 600;
-    color: #222;
-    min-width: 70px;
-    text-align: right;
-}
 
 /* ============================================================
    INVESTMENTS — HISTORICAL SNAPSHOTS PAGE

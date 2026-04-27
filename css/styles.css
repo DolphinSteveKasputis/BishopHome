@@ -14825,11 +14825,11 @@ a.invest-hub-card:hover {
 /* URL link icon on summary account rows */
 .invest-summary-acct-url {
     text-decoration: none;
-    opacity: 0.75;
+    color: #555;
     font-size: 0.85rem;
     padding: 1px 3px;
 }
-.invest-summary-acct-url:hover { opacity: 1; }
+.invest-summary-acct-url:hover { color: #1a1a1a; }
 .invest-summary-retire-amounts {
     display: flex;
     gap: 24px;

@@ -1739,6 +1739,33 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 
 ---
 
+## screen:investments-account
+
+### Quick Help
+- Shows all holdings for one account — ticker, shares, last known price, and current value
+- **Total Value** = sum of all holdings × last price + cash balance
+- Tap **+ Add Holding** to add a stock or mutual fund position (ticker, name, shares)
+- Update the **Cash / Uninvested Balance** and tap Save to record uninvested cash in this account
+- For bank accounts (Checking/Savings/Money Market/CD): only the balance field is shown — no holdings
+
+### Details
+
+**Holdings**: Each holding shows ticker symbol, company/fund name, shares, last fetched price, and computed value. Price shows "—" until prices are fetched (Phase 3: Update Prices button).
+
+**Adding a holding**: Tap **+ Add Holding** → enter ticker (auto-uppercased), company/fund name, and number of shares. Shares can be a decimal (e.g. 10.352 for fractional shares).
+
+**Editing a holding**: Tap **Edit** on any holding row to update ticker, name, or shares.
+
+**Deleting a holding**: Tap **Delete** on any holding row. Confirmation required. This removes the holding from Firestore permanently.
+
+**Cash Balance**: The editable field at the top (labeled "Account Balance" for bank accounts, "Uninvested Cash Balance" for investment accounts). Enter the amount and tap **Save**. This value is included in the account total and will roll up to the portfolio summary.
+
+**Total Value**: Computed as Σ(shares × last price) + cash balance. Holdings without a fetched price contribute $0 to the total until prices are updated.
+
+**Edit Account**: Tap the **Edit Account** button in the header to change account type, nickname, owner, or other fields.
+
+---
+
 ## screen:private
 
 ### Quick Help

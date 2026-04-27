@@ -1173,6 +1173,23 @@ Sensitive fields (`accountNumberEnc`, `usernameEnc`, `passwordEnc`) use AES-GCM 
 ### Add / Edit Form Fields
 Account Type (required), Nickname (required), Owner radio (Personal / Joint), Joint With contact select (shown when Joint), Institution, Last 4 Digits, Cash Balance ($), URL, Login Notes (textarea), Beneficiary, Account Number (sensitive), Username (sensitive), Password (sensitive).
 
+### Account Detail (`#investments/account/:ns/:id`)
+`:ns` = person namespace (`'self'` or a contact ID); `:id` = account doc ID.
+
+**Header**: Nickname, Edit Account button, institution, tax category badge, account type label, joint co-owner (if applicable).
+
+**Total Value card**: Total = Σ(shares × lastPrice) + cashBalance. Also shows Holdings subtotal and Cash Balance subtotal (for non-cash accounts).
+
+**Cash Balance editor**: Inline field + Save button. For bank accounts labeled "Account Balance"; for investment accounts labeled "Uninvested Cash Balance". Writes directly to the account doc.
+
+**Holdings section** (investment accounts only): List of holdings — ticker, company name, shares, last price (or "—"), computed value (or "—"). **+ Add Holding** button opens a modal. Each row has Edit and Delete buttons. Holdings stored in `holdings` subcollection under the account doc.
+
+**Holdings modal fields**: Ticker (auto-uppercased), Company/Fund Name, Shares (decimal).
+
+**Update Prices button**: Disabled placeholder — wired in Phase 3.
+
+**Bank/cash accounts**: No holdings section shown; only the cash balance editor.
+
 ### Routes
 | Hash | Page |
 |---|---|
@@ -1180,6 +1197,7 @@ Account Type (required), Nickname (required), Owner radio (Personal / Joint), Jo
 | `#investments/accounts` | Account list (person switcher + grouped cards) |
 | `#investments/accounts/add` | Add account form |
 | `#investments/accounts/edit/:id` | Edit account form |
+| `#investments/account/:ns/:id` | Account detail (holdings + cash balance) |
 
 ---
 

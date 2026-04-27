@@ -397,10 +397,14 @@ function _investCardHtml(acct) {
             body += '</div>';
         }
 
+        var acctNs = escapeHtml(acct._ns || _investPersonFilter);
         body +=
             '<div class="invest-card-actions">' +
+                '<a class="btn btn-primary btn-small"' +
+                    ' href="#investments/account/' + acctNs + '/' + acct.id + '"' +
+                    ' onclick="event.stopPropagation()">View Detail</a>' +
                 '<button class="btn btn-secondary btn-small"' +
-                    ' onclick="event.stopPropagation();_investEditAccount(\'' + acct.id + '\',\'' + escapeHtml(acct._ns || _investPersonFilter) + '\')">Edit</button>' +
+                    ' onclick="event.stopPropagation();_investEditAccount(\'' + acct.id + '\',\'' + acctNs + '\')">Edit</button>' +
                 (acct.archived
                     ? '<button class="btn btn-secondary btn-small"' +
                         ' onclick="event.stopPropagation();_investRestore(\'' + acct.id + '\')">Restore</button>'
@@ -876,4 +880,295 @@ function _investAutoLast4(value) {
 function _investVal(id, value) {
     var el = document.getElementById(id);
     if (el) el.value = value !== undefined && value !== null ? value : '';
+}
+
+// ============================================================
+// ACCOUNT DETAIL PAGE  (#investments/account/:ns/:id)
+// ============================================================
+
+// ---------- Account Detail State ----------
+
+var _investCurrentAccountNs  = 'self';
+var _investCurrentAccountId  = null;
+var _investCurrentHoldings   = [];
+var _investHoldingEditId     = null;   // null = add mode; holding doc ID = edit mode
+
+// ---------- Firestore Path for Holdings ----------
+
+function _investHoldingCol(ns, accountId) {
+    return userCol('investments').doc(ns).collection('accounts').doc(accountId).collection('holdings');
+}
+
+// ---------- Account Detail Page Loader ----------
+
+async function loadInvestmentsAccountPage(ns, accountId) {
+    _investCurrentAccountNs = ns || 'self';
+    _investCurrentAccountId = accountId;
+
+    // Ensure person context matches this account's namespace
+    if (_investPersonFilter !== ns) {
+        _investPersonFilter = ns;
+    }
+
+    // Load people list (needed to show co-owner name) and the account doc
+    if (_investPeople.length === 0) {
+        await _investLoadAll();
+    }
+
+    var acctDoc = await userCol('investments').doc(ns).collection('accounts').doc(accountId).get();
+    if (!acctDoc.exists) {
+        document.getElementById('page-investments-account').innerHTML =
+            '<div class="page-header"><h2>Account Not Found</h2></div>' +
+            '<p><a href="#investments/accounts">← Back to Accounts</a></p>';
+        return;
+    }
+    var acct = Object.assign({ id: accountId, _ns: ns }, acctDoc.data());
+
+    // Load holdings
+    var holdSnap = await _investHoldingCol(ns, accountId).orderBy('ticker').get();
+    _investCurrentHoldings = [];
+    holdSnap.forEach(function(doc) {
+        _investCurrentHoldings.push(Object.assign({ id: doc.id }, doc.data()));
+    });
+
+    document.getElementById('breadcrumbBar').innerHTML =
+        '<a href="#investments">Investments</a><span class="separator">&rsaquo;</span>' +
+        '<a href="#investments/accounts">Accounts</a><span class="separator">&rsaquo;</span>' +
+        '<span>' + escapeHtml(acct.nickname || 'Account') + '</span>';
+    document.getElementById('headerTitle').innerHTML =
+        '<a href="#main" class="home-link">' + escapeHtml(window.appName || 'My Life') + '</a>';
+
+    _investRenderAccountDetail(acct);
+}
+
+// ---------- Account Detail Render ----------
+
+function _investRenderAccountDetail(acct) {
+    var page = document.getElementById('page-investments-account');
+    if (!page) return;
+
+    var taxInfo   = _investTaxCategoryInfo(acct.accountType || '');
+    var typeLabel = _investTypeLabel(acct.accountType || '');
+    var isCash    = _INVEST_CASH_TYPES.indexOf(acct.accountType || '') >= 0;
+
+    var coOwnerName = '';
+    if (acct.ownerType === 'joint' && acct.primaryContactId) {
+        var contact = _investPeople.find(function(p) { return p.id === acct.primaryContactId; });
+        coOwnerName = contact ? contact.name : acct.primaryContactId;
+    }
+
+    var totals = _investComputeAccountTotals(_investCurrentHoldings, acct.cashBalance);
+
+    // Header
+    var html =
+        '<div class="page-header">' +
+            '<h2>' + escapeHtml(acct.nickname || 'Account') + '</h2>' +
+            '<div class="page-header-actions">' +
+                '<a class="btn btn-secondary" href="#investments/accounts/edit/' + acct.id + '">Edit Account</a>' +
+            '</div>' +
+        '</div>' +
+        '<div class="invest-acct-meta">' +
+            (acct.institution ? '<span class="invest-acct-institution">' + escapeHtml(acct.institution) + '</span>' : '') +
+            '<span class="invest-type-badge ' + escapeHtml(taxInfo.cls) + '">' + escapeHtml(taxInfo.label) + '</span>' +
+            '<span class="invest-acct-type-label">' + escapeHtml(typeLabel) + '</span>' +
+        '</div>' +
+        (acct.ownerType === 'joint' && coOwnerName
+            ? '<div class="invest-acct-owner">Joint with ' + escapeHtml(coOwnerName) + '</div>'
+            : '') +
+
+        // Totals card
+        '<div class="invest-totals-card">' +
+            '<div class="invest-total-main">' +
+                '<span class="invest-total-label">Total Value</span>' +
+                '<span class="invest-total-value">' + _investFmtCurrency(totals.total) + '</span>' +
+            '</div>' +
+            (!isCash
+                ? '<div class="invest-total-row">' +
+                    '<span class="invest-total-sublabel">Holdings</span>' +
+                    '<span class="invest-total-subvalue">' + _investFmtCurrency(totals.holdings) + '</span>' +
+                  '</div>' +
+                  '<div class="invest-total-row">' +
+                    '<span class="invest-total-sublabel">Cash Balance</span>' +
+                    '<span class="invest-total-subvalue">' + _investFmtCurrency(totals.cash) + '</span>' +
+                  '</div>'
+                : '') +
+        '</div>';
+
+    // Cash balance editor (shown for all account types, but labeled differently)
+    var cashLabel = isCash ? 'Account Balance ($)' : 'Uninvested Cash Balance ($)';
+    html +=
+        '<div class="invest-cash-section">' +
+            '<div class="invest-section-header">' + escapeHtml(cashLabel) + '</div>' +
+            '<div class="invest-cash-row">' +
+                '<input type="number" id="investDetailCash" class="invest-cash-input"' +
+                    ' placeholder="0.00" min="0" step="0.01"' +
+                    ' value="' + (acct.cashBalance != null ? acct.cashBalance : '') + '">' +
+                '<button class="btn btn-primary btn-small" onclick="_investSaveCashBalance()">Save</button>' +
+            '</div>' +
+        '</div>';
+
+    // Holdings section — only for non-cash accounts
+    if (!isCash) {
+        html +=
+            '<div class="invest-section-header-row">' +
+                '<div class="invest-section-header">Holdings</div>' +
+                '<button class="btn btn-primary btn-small" onclick="_investOpenHoldingModal(null)">+ Add Holding</button>' +
+            '</div>' +
+            '<div id="investHoldingsList">' + _investHoldingsHtml() + '</div>';
+    }
+
+    // Update Prices placeholder (Phase 3)
+    if (!isCash) {
+        html +=
+            '<div class="invest-update-prices-bar">' +
+                '<button class="btn btn-secondary" disabled title="Coming in Phase 3">📡 Update Prices</button>' +
+                '<span class="invest-prices-note">Price fetching coming soon</span>' +
+            '</div>';
+    }
+
+    page.innerHTML = html;
+}
+
+function _investHoldingsHtml() {
+    if (_investCurrentHoldings.length === 0) {
+        return '<div class="empty-state">No holdings yet. Add one above.</div>';
+    }
+    var html = '<div class="invest-holdings-list">';
+    _investCurrentHoldings.forEach(function(h) {
+        var price = (h.lastPrice != null) ? '$' + h.lastPrice.toFixed(2) : '—';
+        var value = (h.lastPrice != null && h.shares != null)
+            ? _investFmtCurrency(h.shares * h.lastPrice)
+            : '—';
+        html +=
+            '<div class="invest-holding-row">' +
+                '<div class="invest-holding-main">' +
+                    '<span class="invest-holding-ticker">' + escapeHtml(h.ticker || '') + '</span>' +
+                    '<span class="invest-holding-name">' + escapeHtml(h.companyName || '') + '</span>' +
+                '</div>' +
+                '<div class="invest-holding-stats">' +
+                    '<span class="invest-holding-stat"><span class="invest-holding-stat-label">Shares</span>' + (h.shares != null ? Number(h.shares).toLocaleString('en-US', { maximumFractionDigits: 4 }) : '—') + '</span>' +
+                    '<span class="invest-holding-stat"><span class="invest-holding-stat-label">Price</span>' + price + '</span>' +
+                    '<span class="invest-holding-stat"><span class="invest-holding-stat-label">Value</span>' + value + '</span>' +
+                '</div>' +
+                '<div class="invest-holding-actions">' +
+                    '<button class="btn btn-secondary btn-small" onclick="_investOpenHoldingModal(\'' + h.id + '\')">Edit</button>' +
+                    '<button class="btn btn-danger btn-small" onclick="_investDeleteHolding(\'' + h.id + '\')">Delete</button>' +
+                '</div>' +
+            '</div>';
+    });
+    html += '</div>';
+    return html;
+}
+
+// ---------- Holding Modal ----------
+
+function _investOpenHoldingModal(holdingId) {
+    _investHoldingEditId = holdingId || null;
+    var isNew = !holdingId;
+    var h = holdingId ? _investCurrentHoldings.find(function(x) { return x.id === holdingId; }) : null;
+
+    document.getElementById('investHoldingModalTitle').textContent = isNew ? 'Add Holding' : 'Edit Holding';
+    _investVal('investHoldingTicker',  h ? h.ticker      || '' : '');
+    _investVal('investHoldingCompany', h ? h.companyName || '' : '');
+    _investVal('investHoldingShares',  h ? h.shares      != null ? h.shares : '' : '');
+
+    openModal('investHoldingModal');
+    var tickerEl = document.getElementById('investHoldingTicker');
+    if (tickerEl) setTimeout(function() { tickerEl.focus(); }, 50);
+}
+
+async function _investSaveHolding() {
+    var ticker      = ((document.getElementById('investHoldingTicker')  || {}).value || '').trim().toUpperCase();
+    var companyName = ((document.getElementById('investHoldingCompany') || {}).value || '').trim();
+    var sharesRaw   = ((document.getElementById('investHoldingShares')  || {}).value || '').trim();
+
+    if (!ticker)      { alert('Please enter a ticker symbol.'); return; }
+    if (!companyName) { alert('Please enter a company or fund name.'); return; }
+
+    var shares = sharesRaw !== '' ? parseFloat(sharesRaw) : null;
+    if (sharesRaw !== '' && (isNaN(shares) || shares < 0)) {
+        alert('Please enter a valid number of shares.');
+        return;
+    }
+
+    var data = { ticker: ticker, companyName: companyName, shares: shares };
+
+    var ns  = _investCurrentAccountNs;
+    var aid = _investCurrentAccountId;
+
+    if (_investHoldingEditId) {
+        await _investHoldingCol(ns, aid).doc(_investHoldingEditId).update(data);
+    } else {
+        data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        await _investHoldingCol(ns, aid).add(data);
+    }
+
+    closeModal('investHoldingModal');
+
+    // Reload holdings and re-render
+    var holdSnap = await _investHoldingCol(ns, aid).orderBy('ticker').get();
+    _investCurrentHoldings = [];
+    holdSnap.forEach(function(doc) {
+        _investCurrentHoldings.push(Object.assign({ id: doc.id }, doc.data()));
+    });
+
+    // Refresh the holdings list and totals in-place
+    var acctDoc = await userCol('investments').doc(ns).collection('accounts').doc(aid).get();
+    var acct    = Object.assign({ id: aid, _ns: ns }, acctDoc.data());
+    _investRenderAccountDetail(acct);
+}
+
+async function _investDeleteHolding(holdingId) {
+    if (!confirm('Delete this holding? This cannot be undone.')) return;
+    var ns  = _investCurrentAccountNs;
+    var aid = _investCurrentAccountId;
+    await _investHoldingCol(ns, aid).doc(holdingId).delete();
+    _investCurrentHoldings = _investCurrentHoldings.filter(function(h) { return h.id !== holdingId; });
+
+    var holdingsList = document.getElementById('investHoldingsList');
+    if (holdingsList) holdingsList.innerHTML = _investHoldingsHtml();
+
+    // Re-render to update totals
+    var acctDoc = await userCol('investments').doc(ns).collection('accounts').doc(aid).get();
+    var acct    = Object.assign({ id: aid, _ns: ns }, acctDoc.data());
+    _investRenderAccountDetail(acct);
+}
+
+// ---------- Cash Balance Save ----------
+
+async function _investSaveCashBalance() {
+    var ns  = _investCurrentAccountNs;
+    var aid = _investCurrentAccountId;
+    var raw = ((document.getElementById('investDetailCash') || {}).value || '').trim();
+    var val = raw !== '' ? parseFloat(raw) : null;
+
+    if (raw !== '' && isNaN(val)) { alert('Please enter a valid dollar amount.'); return; }
+
+    var update = (val !== null) ? { cashBalance: val } : { cashBalance: firebase.firestore.FieldValue.delete() };
+    await userCol('investments').doc(ns).collection('accounts').doc(aid).update(update);
+
+    // Re-render with updated account
+    var acctDoc = await userCol('investments').doc(ns).collection('accounts').doc(aid).get();
+    var acct    = Object.assign({ id: aid, _ns: ns }, acctDoc.data());
+    _investRenderAccountDetail(acct);
+}
+
+// ---------- Totals Computation ----------
+
+function _investComputeAccountTotals(holdings, cashBalance) {
+    var holdingsValue = holdings.reduce(function(sum, h) {
+        if (h.lastPrice != null && h.shares != null) {
+            return sum + h.shares * h.lastPrice;
+        }
+        return sum;
+    }, 0);
+    var cash = parseFloat(cashBalance || 0) || 0;
+    return { holdings: holdingsValue, cash: cash, total: holdingsValue + cash };
+}
+
+// ---------- Currency Formatter ----------
+
+function _investFmtCurrency(val) {
+    if (val == null || isNaN(val)) return '—';
+    return '$' + parseFloat(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }

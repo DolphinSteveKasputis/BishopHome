@@ -13990,6 +13990,185 @@ a.invest-hub-card:hover {
 }
 
 /* ============================================================
+   INVESTMENTS — ACCOUNT DETAIL PAGE
+   ============================================================ */
+
+.invest-acct-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+}
+.invest-acct-institution {
+    font-size: 0.9rem;
+    color: #555;
+    font-weight: 500;
+}
+.invest-acct-type-label {
+    font-size: 0.8rem;
+    color: #888;
+}
+.invest-acct-owner {
+    font-size: 0.85rem;
+    color: #3949ab;
+    margin-bottom: 12px;
+}
+
+/* Totals card */
+.invest-totals-card {
+    background: #f0f7ff;
+    border: 1px solid #c5ddf8;
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin: 14px 0;
+}
+.invest-total-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+}
+.invest-total-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #1565c0;
+}
+.invest-total-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #1565c0;
+}
+.invest-total-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: #555;
+    padding: 2px 0;
+    border-top: 1px solid #d0e8ff;
+}
+.invest-total-sublabel { color: #777; }
+.invest-total-subvalue { font-weight: 600; }
+
+/* Cash balance editor */
+.invest-cash-section {
+    margin-bottom: 20px;
+}
+.invest-cash-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 6px;
+}
+.invest-cash-input {
+    flex: 1;
+    max-width: 200px;
+    padding: 8px 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.95rem;
+}
+
+/* Section header row (Holdings header + Add button) */
+.invest-section-header {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #888;
+    padding: 12px 0 5px;
+    border-bottom: 1px solid #e8e8e8;
+    margin-bottom: 6px;
+}
+.invest-section-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+.invest-section-header-row .invest-section-header {
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 0;
+}
+
+/* Holdings list */
+.invest-holdings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+.invest-holding-row {
+    background: #fff;
+    border: 1px solid #e8e8e8;
+    border-radius: 8px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.invest-holding-main {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.invest-holding-ticker {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1565c0;
+    font-family: monospace;
+}
+.invest-holding-name {
+    font-size: 0.85rem;
+    color: #555;
+}
+.invest-holding-stats {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+.invest-holding-stat {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #333;
+}
+.invest-holding-stat-label {
+    font-size: 0.68rem;
+    font-weight: 400;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 1px;
+}
+.invest-holding-actions {
+    display: flex;
+    gap: 8px;
+    padding-top: 6px;
+    border-top: 1px solid #f0f0f0;
+}
+
+/* Update prices bar */
+.invest-update-prices-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 0;
+    border-top: 1px solid #eee;
+    margin-top: 8px;
+}
+.invest-prices-note {
+    font-size: 0.8rem;
+    color: #aaa;
+    font-style: italic;
+}
+
+/* ============================================================
    LEGACY FINANCIAL HUB & ACCOUNTS SUB-PAGE
    ============================================================ */
 

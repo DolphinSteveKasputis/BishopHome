@@ -14340,7 +14340,7 @@ a.invest-hub-card:hover {
     border-bottom: 2px solid #e0e0e0;
 }
 .invest-holdings-table th {
-    padding: 7px 10px;
+    padding: 5px 10px;
     text-align: right;
     font-size: 0.68rem;
     font-weight: 700;
@@ -14351,7 +14351,7 @@ a.invest-hub-card:hover {
 }
 .invest-holdings-table th.iht-col-symbol { text-align: left; }
 .invest-holdings-table td {
-    padding: 7px 10px;
+    padding: 5px 10px;
     text-align: right;
     border-bottom: 1px solid #f2f2f2;
     white-space: nowrap;
@@ -14360,20 +14360,26 @@ a.invest-hub-card:hover {
 .invest-holdings-table tbody tr:last-child td { border-bottom: none; }
 .invest-holdings-table td.iht-symbol-cell { text-align: left; }
 .invest-holdings-table td.iht-actions-cell { text-align: center; padding: 4px 6px; }
+.iht-sym-wrap {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    min-width: 0;
+}
 .iht-ticker {
     font-weight: 700;
     font-family: monospace;
     color: #1565c0;
-    display: block;
     font-size: 0.88rem;
+    flex-shrink: 0;
 }
 .iht-name {
-    font-size: 0.7rem;
+    font-size: 0.72rem;
     color: #999;
-    display: block;
-    max-width: 130px;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 150px;
 }
 .iht-gain { color: #2e7d32; font-weight: 600; }
 .iht-loss { color: #c62828; font-weight: 600; }

@@ -1666,8 +1666,10 @@ function _investHoldingsHtml() {
         rows +=
             '<tr>' +
                 '<td class="iht-symbol-cell">' +
-                    '<span class="iht-ticker">' + escapeHtml(h.ticker || '') + '</span>' +
-                    '<span class="iht-name">'   + escapeHtml(h.companyName || '') + '</span>' +
+                    '<div class="iht-sym-wrap">' +
+                        '<span class="iht-ticker">' + escapeHtml(h.ticker || '') + '</span>' +
+                        (h.companyName ? '<span class="iht-name">' + escapeHtml(h.companyName) + '</span>' : '') +
+                    '</div>' +
                 '</td>' +
                 '<td>' + (h.shares != null ? Number(h.shares).toLocaleString('en-US', { maximumFractionDigits: 4 }) : '—') + '</td>' +
                 '<td>' + (h.lastPrice != null ? '$' + h.lastPrice.toFixed(2) : '—') + '</td>' +
@@ -1690,8 +1692,10 @@ function _investHoldingsHtml() {
     rows +=
         '<tr id="investCashRow">' +
             '<td class="iht-symbol-cell">' +
-                '<span class="iht-ticker iht-cash-ticker">CASH</span>' +
-                '<span class="iht-name">Uninvested Cash</span>' +
+                '<div class="iht-sym-wrap">' +
+                    '<span class="iht-ticker iht-cash-ticker">CASH</span>' +
+                    '<span class="iht-name">Uninvested Cash</span>' +
+                '</div>' +
             '</td>' +
             '<td class="iht-dim">—</td>' +
             '<td class="iht-dim">—</td>' +

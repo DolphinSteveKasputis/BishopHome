@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=590">
+    <link rel="stylesheet" href="css/styles.css?v=591">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -970,6 +970,30 @@
                     <div class="settings-save-row" style="margin-top:8px;">
                         <a href="#sb-issues" class="btn btn-secondary btn-sm">🐛 View QuickLog Issues</a>
                     </div>
+                </div>
+            </div>
+
+            <!-- Investments (Finnhub) -->
+            <div class="settings-card accordion-card">
+                <button class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>Investments (Finnhub)</span><span class="accordion-chevron">&#9658;</span>
+                </button>
+                <div class="accordion-body">
+                    <p class="accordion-desc">Live stock prices use the <strong>Finnhub API</strong> (free). Tap <strong>Help</strong> for step-by-step setup instructions.</p>
+                    <div class="form-group">
+                        <label for="finnhubApiKey">Finnhub API Key</label>
+                        <div class="api-key-row">
+                            <input type="password" id="finnhubApiKey" placeholder="Paste your Finnhub API key here" class="api-key-input">
+                            <button type="button" class="btn btn-secondary btn-sm" id="finnhubApiKeyToggle">Show</button>
+                            <button type="button" class="btn btn-secondary btn-sm" id="finnhubHelpBtn">Help</button>
+                        </div>
+                    </div>
+                    <div class="settings-save-row">
+                        <button class="btn btn-primary" id="finnhubSaveBtn">Save</button>
+                        <button class="btn btn-secondary" id="finnhubTestBtn">Test</button>
+                        <span class="settings-saved-msg hidden" id="finnhubSavedMsg">&#10003; Saved</span>
+                    </div>
+                    <div class="hidden settings-test-result" id="finnhubTestResult"></div>
                 </div>
             </div>
 
@@ -9719,6 +9743,52 @@ service firebase.storage {
         </div>
     </div>
 
+    <!-- ========== FINNHUB SETUP HELP MODAL ========== -->
+    <div class="modal-overlay" id="finnhubHelpModal">
+        <div class="modal modal-wide">
+            <h3>How to Get a Finnhub API Key (Free)</h3>
+            <div class="fsq-help-body">
+                <p>Finnhub is a financial data provider that offers a generous free tier — 60 API calls per minute, more than enough for this app. You need a free account to get an API key.</p>
+
+                <h4>Step 1 — Create a free Finnhub account</h4>
+                <ol>
+                    <li>Go to <strong>finnhub.io</strong> in your browser</li>
+                    <li>Click <strong>Get free API key</strong> (or <strong>Sign up</strong>)</li>
+                    <li>Enter your email address and choose a password</li>
+                    <li>Verify your email if prompted</li>
+                </ol>
+
+                <h4>Step 2 — Copy your API key</h4>
+                <ol>
+                    <li>After signing in, your API key is shown right on the <strong>dashboard homepage</strong></li>
+                    <li>It looks like a long string of letters and numbers (e.g. <code>ct5abc123xyz...</code>)</li>
+                    <li>Click the key to select it, then copy it</li>
+                </ol>
+
+                <h4>Step 3 — Paste and save in Bishop</h4>
+                <ol>
+                    <li>Paste the key into the <strong>Finnhub API Key</strong> field in Settings</li>
+                    <li>Tap <strong>Save</strong></li>
+                    <li>Tap <strong>Test</strong> to confirm it works — you should see a live AAPL price</li>
+                </ol>
+
+                <h4>What the free plan covers</h4>
+                <ul>
+                    <li>Real-time US stock prices (NYSE, NASDAQ)</li>
+                    <li>Mutual fund prices (FXAIX, RDFTX, etc.)</li>
+                    <li>60 API calls per minute — plenty for manual price updates</li>
+                    <li>No credit card required</li>
+                </ul>
+
+                <h4>After setup</h4>
+                <p>Go to <strong>Investments → Accounts → [any account] → View Detail</strong> and tap <strong>📡 Update Prices</strong> to fetch live prices for all holdings in that account.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('finnhubHelpModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ========== PLACE ADD/EDIT MODAL ========== -->
     <div class="modal-overlay" id="placeModal">
         <div class="modal">
@@ -10308,7 +10378,7 @@ export default {
     <script src="js/gps.js?v=350"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="js/gcal.js?v=6"></script>
-    <script src="js/settings.js?v=582"></script>
+    <script src="js/settings.js?v=591"></script>
     <script src="js/devnotes.js?v=376"></script>
     <script src="js/house.js?v=537"></script>
     <script src="js/floorplan.js?v=398"></script>
@@ -10345,9 +10415,9 @@ export default {
     <script src="js/legacy-crypto.js?v=2"></script>
     <script src="js/legacy.js?v=28"></script>
     <script src="js/credentials.js?v=583"></script>
-    <script src="js/investments.js?v=590"></script>
+    <script src="js/investments.js?v=591"></script>
     <script src="js/private.js?v=579"></script>
-    <script src="js/app.js?v=590"></script>
+    <script src="js/app.js?v=591"></script>
 
 </body>
 </html>

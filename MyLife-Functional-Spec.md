@@ -1186,9 +1186,12 @@ Account Type (required), Nickname (required), Owner radio (Personal / Joint), Jo
 
 **Holdings modal fields**: Ticker (auto-uppercased), Company/Fund Name, Shares (decimal).
 
-**Update Prices button**: Disabled placeholder — wired in Phase 3.
+**Update Prices button**: Fetches live prices from Finnhub for all holdings in this account (deduplicated — one call per unique ticker). Requires `finnhubApiKey` in `settings/investments`. Button shows spinner + "Updating…" while in flight; on completion shows "✓ Updated just now" or lists failed tickers. If key is missing, shows a message directing the user to Settings. Prices stored as `lastPrice` (number) + `lastPriceDate` (ISO string) on each holding doc.
 
 **Bank/cash accounts**: No holdings section shown; only the cash balance editor.
+
+### Finnhub API Key
+Stored in `userCol('settings').doc('investments').finnhubApiKey`. Configured in Settings → General Settings → Investments (Finnhub) accordion. Help modal walks through free account signup at finnhub.io, copying the key from the dashboard, and testing it with a live AAPL quote. The module caches the key in `_investFinnhubApiKey`; saving a new key in Settings calls `_investInvalidateFinnhubKey()` to force a re-read.
 
 ### Routes
 | Hash | Page |

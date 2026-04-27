@@ -260,8 +260,78 @@ async function loadSettingsGeneralPage() {
     }
 
     loadLlmSettings();
+    loadFinnhubSettings();
     loadFoursquareSettings();
     loadGcalSettings();
+}
+
+// ---------- Finnhub Settings ----------
+
+async function loadFinnhubSettings() {
+    try {
+        var doc = await userCol('settings').doc('investments').get();
+        if (doc.exists && doc.data().finnhubApiKey) {
+            document.getElementById('finnhubApiKey').value = doc.data().finnhubApiKey;
+        }
+    } catch (e) {
+        console.error('Error loading Finnhub settings:', e);
+    }
+}
+
+async function saveFinnhubKey() {
+    var key     = (document.getElementById('finnhubApiKey').value || '').trim();
+    var saveBtn = document.getElementById('finnhubSaveBtn');
+    var savedMsg= document.getElementById('finnhubSavedMsg');
+
+    saveBtn.disabled    = true;
+    saveBtn.textContent = 'Saving\u2026';
+    savedMsg.classList.add('hidden');
+
+    await userCol('settings').doc('investments').set({ finnhubApiKey: key }, { merge: true });
+
+    // Invalidate the cached key in the investments module so the next Update Prices re-reads it
+    if (typeof _investInvalidateFinnhubKey === 'function') _investInvalidateFinnhubKey();
+
+    saveBtn.disabled    = false;
+    saveBtn.textContent = 'Save';
+    savedMsg.classList.remove('hidden');
+    setTimeout(function() { savedMsg.classList.add('hidden'); }, 2000);
+}
+
+async function testFinnhubKey() {
+    var key      = (document.getElementById('finnhubApiKey').value || '').trim();
+    var btn      = document.getElementById('finnhubTestBtn');
+    var resultEl = document.getElementById('finnhubTestResult');
+
+    if (!key) { alert('Please enter your Finnhub API key first.'); return; }
+
+    btn.disabled    = true;
+    btn.textContent = 'Testing\u2026';
+    resultEl.classList.remove('hidden');
+    resultEl.textContent = 'Calling Finnhub\u2026';
+    resultEl.style.color = '#555';
+
+    try {
+        var resp = await fetch('https://finnhub.io/api/v1/quote?symbol=AAPL&token=' + encodeURIComponent(key));
+        var data = await resp.json();
+        if (resp.status === 401 || data.error) {
+            resultEl.textContent = '\u2717 Invalid API key. Check that you copied it correctly from finnhub.io.';
+            resultEl.style.color = '#c62828';
+        } else if (data.c && data.c > 0) {
+            resultEl.textContent = '\u2713 Key works! AAPL current price: $' + data.c.toFixed(2);
+            resultEl.style.color = '#2e7d32';
+        } else {
+            // Market closed — c is 0, use previous close
+            resultEl.textContent = '\u2713 Key works! (Market closed — AAPL previous close: $' + (data.pc || 0).toFixed(2) + ')';
+            resultEl.style.color = '#2e7d32';
+        }
+    } catch (e) {
+        resultEl.textContent = '\u2717 Error: ' + e.message;
+        resultEl.style.color = '#c62828';
+    }
+
+    btn.disabled    = false;
+    btn.textContent = 'Test';
 }
 
 /**
@@ -1456,6 +1526,14 @@ document.getElementById('settingsSaveBtn').addEventListener('click', saveSetting
 document.getElementById('backupBtn').addEventListener('click', runBackup);
 document.getElementById('llmSaveBtn').addEventListener('click', saveLlmSettings);
 document.getElementById('llmProvider').addEventListener('change', updateLlmModelVisibility);
+document.getElementById('finnhubSaveBtn').addEventListener('click', saveFinnhubKey);
+document.getElementById('finnhubTestBtn').addEventListener('click', testFinnhubKey);
+document.getElementById('finnhubHelpBtn').addEventListener('click', function() { openModal('finnhubHelpModal'); });
+document.getElementById('finnhubApiKeyToggle').addEventListener('click', function() {
+    var input = document.getElementById('finnhubApiKey');
+    if (input.type === 'password') { input.type = 'text';     this.textContent = 'Hide'; }
+    else                           { input.type = 'password'; this.textContent = 'Show'; }
+});
 document.getElementById('foursquareSaveBtn').addEventListener('click', saveFoursquareKey);
 document.getElementById('foursquareTestBtn').addEventListener('click', testFoursquareKey);
 document.getElementById('foursquareHelpBtn').addEventListener('click', function() {

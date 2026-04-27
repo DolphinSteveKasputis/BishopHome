@@ -1750,7 +1750,7 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 
 ### Details
 
-**Holdings**: Each holding shows ticker symbol, company/fund name, shares, last fetched price, and computed value. Price shows "—" until prices are fetched (Phase 3: Update Prices button).
+**Holdings**: Each holding shows ticker symbol, company/fund name, shares, last fetched price, and computed value. Price shows "—" until **📡 Update Prices** is tapped.
 
 **Adding a holding**: Tap **+ Add Holding** → enter ticker (auto-uppercased), company/fund name, and number of shares. Shares can be a decimal (e.g. 10.352 for fractional shares).
 
@@ -1761,6 +1761,8 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 **Cash Balance**: The editable field at the top (labeled "Account Balance" for bank accounts, "Uninvested Cash Balance" for investment accounts). Enter the amount and tap **Save**. This value is included in the account total and will roll up to the portfolio summary.
 
 **Total Value**: Computed as Σ(shares × last price) + cash balance. Holdings without a fetched price contribute $0 to the total until prices are updated.
+
+**📡 Update Prices**: Fetches live prices from Finnhub for all holdings in this account. Requires a Finnhub API key in Settings → General Settings → Investments (Finnhub). Shows a spinner while fetching, then "✓ Updated just now" on success or lists any tickers that failed. If no key is configured, a message links you to Settings. Prices are cached in Firestore — the last known value persists across sessions.
 
 **Edit Account**: Tap the **Edit Account** button in the header to change account type, nickname, owner, or other fields.
 

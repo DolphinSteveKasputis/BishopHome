@@ -883,6 +883,117 @@ function _investVal(id, value) {
 }
 
 // ============================================================
+// FINNHUB PRICE FETCHING
+// ============================================================
+
+var _investFinnhubApiKey = null;  // null = not yet loaded from Firestore
+
+// Called by settings.js after the user saves a new key, so the next fetch re-reads it
+function _investInvalidateFinnhubKey() {
+    _investFinnhubApiKey = null;
+}
+
+async function _investGetFinnhubKey() {
+    if (_investFinnhubApiKey !== null) return _investFinnhubApiKey;
+    try {
+        var doc = await userCol('settings').doc('investments').get();
+        _investFinnhubApiKey = (doc.exists && doc.data().finnhubApiKey) ? doc.data().finnhubApiKey : '';
+    } catch (e) {
+        _investFinnhubApiKey = '';
+    }
+    return _investFinnhubApiKey;
+}
+
+// Fetch the current price for a single ticker from Finnhub.
+// Returns numeric price (current if market open, previous close if closed), or throws on error.
+async function _investFetchPrice(ticker, apiKey) {
+    var url  = 'https://finnhub.io/api/v1/quote?symbol=' + encodeURIComponent(ticker) +
+               '&token=' + encodeURIComponent(apiKey);
+    var resp = await fetch(url);
+    if (resp.status === 401) throw new Error('invalid key');
+    if (!resp.ok)            throw new Error('HTTP ' + resp.status);
+    var data = await resp.json();
+    if (data.error)          throw new Error(data.error);
+    // c = current price; falls back to pc (previous close) when market is closed (c === 0)
+    var price = (data.c && data.c > 0) ? data.c : (data.pc || 0);
+    return price;
+}
+
+// Update prices for all holdings in the currently displayed account.
+async function _investUpdateAccountPrices() {
+    var btn    = document.getElementById('investUpdatePricesBtn');
+    var status = document.getElementById('investPricesStatus');
+    if (!btn) return;
+
+    var apiKey = await _investGetFinnhubKey();
+    if (!apiKey) {
+        if (status) {
+            status.textContent = 'Finnhub API key not configured — add it in Settings \u2192 General Settings';
+            status.style.color = '#c62828';
+        }
+        return;
+    }
+
+    btn.disabled    = true;
+    btn.textContent = '\u23f3 Updating\u2026';
+    if (status) { status.textContent = ''; }
+
+    var ns     = _investCurrentAccountNs;
+    var aid    = _investCurrentAccountId;
+    var failed = [];
+
+    // Deduplicate tickers so we only call Finnhub once per unique symbol
+    var priceMap = {};
+    _investCurrentHoldings.forEach(function(h) {
+        if (h.ticker) priceMap[h.ticker] = null;
+    });
+
+    for (var ticker in priceMap) {
+        try {
+            priceMap[ticker] = await _investFetchPrice(ticker, apiKey);
+        } catch (e) {
+            failed.push(ticker);
+        }
+    }
+
+    // Batch-write updated prices to Firestore
+    var now   = new Date().toISOString();
+    var batch = firebase.firestore().batch();
+    _investCurrentHoldings.forEach(function(h) {
+        if (h.ticker && priceMap[h.ticker] != null) {
+            batch.update(_investHoldingCol(ns, aid).doc(h.id), {
+                lastPrice:     priceMap[h.ticker],
+                lastPriceDate: now
+            });
+        }
+    });
+    await batch.commit();
+
+    // Reload holdings and re-render the full detail page
+    var holdSnap = await _investHoldingCol(ns, aid).orderBy('ticker').get();
+    _investCurrentHoldings = [];
+    holdSnap.forEach(function(doc) {
+        _investCurrentHoldings.push(Object.assign({ id: doc.id }, doc.data()));
+    });
+    var acctDoc = await userCol('investments').doc(ns).collection('accounts').doc(aid).get();
+    _investRenderAccountDetail(Object.assign({ id: aid, _ns: ns }, acctDoc.data()));
+
+    // Update button and status after re-render (elements were replaced)
+    btn    = document.getElementById('investUpdatePricesBtn');
+    status = document.getElementById('investPricesStatus');
+    if (btn) { btn.disabled = false; btn.textContent = '\ud83d\udce1 Update Prices'; }
+    if (status) {
+        if (failed.length > 0) {
+            status.textContent = 'Updated \u2014 ' + failed.length + ' failed: ' + failed.join(', ');
+            status.style.color = '#c62828';
+        } else {
+            status.textContent = '\u2713 Updated just now';
+            status.style.color = '#2e7d32';
+        }
+    }
+}
+
+// ============================================================
 // ACCOUNT DETAIL PAGE  (#investments/account/:ns/:id)
 // ============================================================
 
@@ -1017,12 +1128,12 @@ function _investRenderAccountDetail(acct) {
             '<div id="investHoldingsList">' + _investHoldingsHtml() + '</div>';
     }
 
-    // Update Prices placeholder (Phase 3)
+    // Update Prices bar (active for investment accounts)
     if (!isCash) {
         html +=
             '<div class="invest-update-prices-bar">' +
-                '<button class="btn btn-secondary" disabled title="Coming in Phase 3">📡 Update Prices</button>' +
-                '<span class="invest-prices-note">Price fetching coming soon</span>' +
+                '<button class="btn btn-secondary" id="investUpdatePricesBtn" onclick="_investUpdateAccountPrices()">\ud83d\udce1 Update Prices</button>' +
+                '<span class="invest-prices-note" id="investPricesStatus"></span>' +
             '</div>';
     }
 

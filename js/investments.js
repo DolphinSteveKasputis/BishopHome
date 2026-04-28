@@ -2612,10 +2612,37 @@ function _investSnapshotRowHtml(s) {
         '</div>' +
         '<div class="invest-snap-detail hidden" id="snapDetail-' + s.id + '">' +
             '<div class="invest-snap-detail-cats">' + catRows + '</div>' +
+            _investSnapAccountsHtml(s.perAccount) +
             '<div class="invest-snap-detail-actions">' +
                 '<button class="btn btn-danger btn-small" onclick="_investDeleteSnapshot(\'' + s.id + '\')">Delete</button>' +
             '</div>' +
         '</div>' +
+    '</div>';
+}
+
+function _investSnapAccountsHtml(perAccount) {
+    if (!perAccount || Object.keys(perAccount).length === 0) return '';
+    // Support old format (id → number) and new format (id → object)
+    var entries = Object.values(perAccount).map(function(v) {
+        return (typeof v === 'object' && v !== null) ? v : { name: null, type: '', total: v };
+    });
+    // Skip old-format snapshots with no names
+    var hasNames = entries.some(function(e) { return e.name; });
+    if (!hasNames) return '';
+    entries.sort(function(a, b) { return (b.total || 0) - (a.total || 0); });
+    var rows = entries.map(function(e) {
+        var typeLabel = e.type ? INVEST_ACCOUNT_TYPES.find(function(t) { return t.value === e.type; }) : null;
+        var typeTxt   = typeLabel ? typeLabel.label : (e.type || '');
+        return '<div class="invest-snap-acct-row">' +
+            '<div class="invest-snap-acct-name">' + escapeHtml(e.name || 'Account') +
+                (typeTxt ? '<span class="invest-snap-acct-type">' + escapeHtml(typeTxt) + '</span>' : '') +
+            '</div>' +
+            '<div class="invest-snap-acct-total">' + _investFmtCurrency(e.total || 0) + '</div>' +
+        '</div>';
+    }).join('');
+    return '<div class="invest-snap-detail-accounts">' +
+        '<div class="invest-snap-acct-header">Accounts</div>' +
+        rows +
     '</div>';
 }
 
@@ -2671,10 +2698,19 @@ async function _investCaptureSnapshot() {
     var accounts = await _investLoadGroupAccounts(group);
     var cats     = _investComputeGroupTotals(accounts);
 
-    // perAccount: map of accountId → current total value
+    // perAccount: map of accountId → { name, type, personId, holdings, cash, pending, total }
     var perAccount = {};
     accounts.forEach(function(acct) {
-        perAccount[acct.id] = (acct._totals || {}).total || 0;
+        var t = acct._totals || {};
+        perAccount[acct.id] = {
+            name:     acct.name        || 'Unknown',
+            type:     acct.accountType || '',
+            personId: acct.personId    || '',
+            holdings: t.holdings || 0,
+            cash:     t.cash     || 0,
+            pending:  t.pending  || 0,
+            total:    t.total    || 0
+        };
     });
 
     var date = new Date().toISOString().split('T')[0]; // YYYY-MM-DD

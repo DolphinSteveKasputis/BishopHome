@@ -1251,10 +1251,10 @@ Stored in `userCol('settings').doc('investments').finnhubApiKey`. Configured in 
 - Fetches per-ticker using `https://query1.finance.yahoo.com/v8/finance/chart/TICKER?interval=1d&range=1d`
 - **CORS problem**: Yahoo Finance blocks direct browser requests from GitHub Pages domains. All calls must be routed through a CORS proxy.
 - Three proxies tried in order per ticker:
-  1. `https://api.allorigins.win/raw?url=...` — most reliable
+  1. `https://api.allorigins.win/raw?url=...` — most reliable; retried once after 1200ms if the first attempt fails (handles cold rate-limit rejection on the first ticker in a batch)
   2. `https://corsproxy.io/?...` — secondary
   3. `https://api.codetabs.com/v1/proxy?quest=...` — tertiary
-- **Rate limit mitigation**: 800ms delay between per-ticker calls to avoid proxy rate limiting (allorigins.win rejects rapid successive requests)
+- **Rate limit mitigation**: 800ms delay between per-ticker calls; proxy 0 gets one automatic retry with a 1200ms pause before falling through to proxy 1
 - Price extracted from `data.chart.result[0].meta.regularMarketPrice`
 
 **Why Yahoo v8/chart instead of v7/quote?**

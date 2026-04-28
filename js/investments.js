@@ -1476,22 +1476,29 @@ async function _investFetchYahooBatch(tickers) {
             'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(yahooTarget)
         ];
         for (var i = 0; i < proxies.length; i++) {
-            try {
-                var resp  = await fetch(proxies[i]);
-                if (!resp.ok) throw new Error('HTTP ' + resp.status);
-                var data  = await resp.json();
-                var price = data && data.chart && data.chart.result &&
-                            data.chart.result[0] && data.chart.result[0].meta &&
-                            data.chart.result[0].meta.regularMarketPrice;
-                if (price && price > 0) {
-                    console.log('[prices] Yahoo ' + ticker + ' = ' + price + ' via proxy ' + i);
-                    map[ticker] = price;
-                    break;
+            var attempts = (i === 0) ? 2 : 1; // retry proxy 0 once after a delay (cold rate-limit recovery)
+            var success  = false;
+            for (var attempt = 0; attempt < attempts && !success; attempt++) {
+                if (attempt > 0) await new Promise(function(r) { setTimeout(r, 1200); });
+                try {
+                    var resp  = await fetch(proxies[i]);
+                    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                    var data  = await resp.json();
+                    var price = data && data.chart && data.chart.result &&
+                                data.chart.result[0] && data.chart.result[0].meta &&
+                                data.chart.result[0].meta.regularMarketPrice;
+                    if (price && price > 0) {
+                        console.log('[prices] Yahoo ' + ticker + ' = ' + price + ' via proxy ' + i + (attempt > 0 ? ' (retry)' : ''));
+                        map[ticker] = price;
+                        success = true;
+                    } else {
+                        throw new Error('no price in response');
+                    }
+                } catch (e) {
+                    console.log('[prices] Yahoo proxy ' + i + ' attempt ' + attempt + ' failed for ' + ticker + ': ' + e.message);
                 }
-                throw new Error('no price in response');
-            } catch (e) {
-                console.log('[prices] Yahoo proxy ' + i + ' failed for ' + ticker + ': ' + e.message);
             }
+            if (success) break;
         }
     }
     return map;

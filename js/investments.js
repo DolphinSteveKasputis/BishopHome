@@ -2881,7 +2881,7 @@ async function _investRenderSummaryPage() {
         // Retirement widget
         '<div class="invest-summary-retire">' +
             '<div class="invest-summary-retire-title">' +
-                'If I retired today' +
+                'If I retired today (after est. taxes)' +
                 '<button class="invest-retire-gear" id="investRetireGearBtn" onclick="_investToggleRetireConfig()" title="Settings">⚙</button>' +
             '</div>' +
             '<div class="invest-summary-retire-amounts">' +

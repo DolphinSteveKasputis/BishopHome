@@ -1190,6 +1190,10 @@ Sensitive fields (`accountNumberEnc`, `usernameEnc`, `passwordEnc`) use AES-GCM 
 ### Add / Edit Form Fields
 Account Type (required), Nickname (required), Owner radio (Personal / Joint), Joint With contact select (shown when Joint), Institution, Last 4 Digits, Cash Balance ($), URL, Login Notes (textarea), Beneficiary, Account Number (sensitive), Username (sensitive), Password (sensitive).
 
+**Account Holder field**: First field on the form. `<select id="investFormPersonNs">` populated with "Me" (`value="self"`) + each enrolled contact. Disabled (single option) when no contacts are enrolled. On add: defaults to `_investFormOriginalNs` (set from `_investPersonFilter` at page load). On edit: defaults to the account's current namespace. Preserved in `_investFormDraft.personNs` across passphrase unlock re-renders.
+
+**Owner change / migration**: If the selected namespace differs from `_investFormOriginalNs` on save: creates a new account doc in the target namespace, batch-copies all holdings (preserving doc IDs), batch-deletes old holdings, deletes the old account doc, then sets `_investPersonFilter` to the new namespace so the Accounts list returns to the correct person.
+
 **Cash Balance field**: `type="text"` with `inputmode="decimal"`. On blur formats to `$X,XXX.XX`; on focus strips to raw number for editing. Save functions strip `$`/`,` before parsing.
 
 ### Account Detail (`#investments/account/:ns/:id`)

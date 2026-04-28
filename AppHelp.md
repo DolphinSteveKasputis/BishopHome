@@ -1784,6 +1784,8 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 
 **% Acct**: Each holding's current value as a percentage of the full account total (holdings + cash balance).
 
+**Account Holder dropdown**: The first field on the Add/Edit Account form. Shows "Me" plus any enrolled contacts. Defaults to whoever was selected on the Accounts screen when adding, or the actual owner when editing. You can change it to correct a mistake — if you change the owner on an existing account, all holdings are migrated to the new owner's namespace automatically.
+
 **Adding a holding**: Tap **+ Add Holding** → enter the ticker symbol. Tab off the ticker field and the company/fund name is looked up automatically from Finnhub (only fills in if the name field is empty and a Finnhub key is configured). Enter shares and optionally cost basis per share.
 
 **Editing a holding**: Tap ✏ on any row to update ticker, name, shares, or cost basis.

@@ -761,10 +761,11 @@ async function _investRemovePerson(contactId) {
 
 // ---------- Add / Edit Form Page ----------
 
-var _investFormEditId   = null;  // null = add mode; account ID = edit mode
-var _investFormDraft    = null;  // basic field values preserved across passphrase unlock
+var _investFormEditId      = null;  // null = add mode; account ID = edit mode
+var _investFormDraft       = null;  // basic field values preserved across passphrase unlock
 var _investFormReturnTo    = null;  // 'summary' or null (defaults back to Accounts list)
-var _investAccountReturnTo = null;  // 'summary' or null (defaults back to Accounts list)
+var _investAccountReturnTo = null;  // 'summary' or 'stocks' or null (defaults back to Accounts list)
+var _investFormOriginalNs  = 'self'; // namespace the account was loaded from (for migration on owner change)
 
 async function loadInvestmentsFormPage(id) {
     _investFormEditId = id || null;
@@ -776,6 +777,9 @@ async function loadInvestmentsFormPage(id) {
         await _investLoadAll();
         acct = _investAccounts.find(function(a) { return a.id === id; });
     }
+
+    // Record original namespace so save can detect an owner change
+    _investFormOriginalNs = _investPersonFilter || 'self';
 
     var returnHref  = _investFormReturnTo === 'summary' ? '#investments/summary' : '#investments/accounts';
     var returnLabel = _investFormReturnTo === 'summary' ? 'Summary'              : 'Accounts';
@@ -800,11 +804,22 @@ async function loadInvestmentsFormPage(id) {
     var page = document.getElementById('page-investments-form');
     if (!page) return;
 
+    // Build person dropdown — Me + each enrolled contact
+    var personOpts = '<option value="self">Me</option>';
+    _investPeople.forEach(function(p) {
+        personOpts += '<option value="' + escapeHtml(p.id) + '">' + escapeHtml(p.name) + '</option>';
+    });
+    var personDisabled = _investPeople.length === 0 ? ' disabled' : '';
+
     page.innerHTML =
         '<div class="page-header">' +
             '<h2>' + (isNew ? 'Add Account' : 'Edit Account') + '</h2>' +
         '</div>' +
         '<div class="invest-form">' +
+            '<div class="form-group">' +
+                '<label>Account Holder</label>' +
+                '<select id="investFormPersonNs"' + personDisabled + '>' + personOpts + '</select>' +
+            '</div>' +
             '<div class="form-group">' +
                 '<label>Account Type *</label>' +
                 '<select id="investFormType" onchange="_investFormTypeChange()">' + typeOpts + '</select>' +
@@ -867,6 +882,9 @@ async function loadInvestmentsFormPage(id) {
 
     // Populate fields — use preserved draft values if returning from passphrase prompt
     var d = _investFormDraft;
+    // Set person dropdown — draft wins, then original ns, then current filter
+    _investVal('investFormPersonNs', d ? d.personNs : _investFormOriginalNs);
+
     _investVal('investFormType',        d ? d.accountType   : (acct ? acct.accountType  || '' : ''));
     _investVal('investFormNickname',    d ? d.nickname      : (acct ? acct.nickname     || '' : ''));
     _investVal('investFormInstitution', d ? d.institution   : (acct ? acct.institution  || '' : ''));
@@ -950,6 +968,7 @@ function _investUnlockForForm() {
     // Capture what the user has typed so it survives the page re-render after unlock
     var selectedRadio = document.querySelector('input[name="investOwnerType"]:checked');
     _investFormDraft = {
+        personNs:         (document.getElementById('investFormPersonNs')     || {}).value || _investFormOriginalNs,
         accountType:      (document.getElementById('investFormType')         || {}).value || '',
         nickname:         (document.getElementById('investFormNickname')     || {}).value || '',
         ownerType:        selectedRadio ? selectedRadio.value : 'personal',
@@ -982,6 +1001,7 @@ async function _investSaveForm() {
     var cashBalanceRaw = ((document.getElementById('investFormCashBalance') || {}).value || '').trim().replace(/[^0-9.]/g, '');
     var cashBalance    = cashBalanceRaw !== '' ? parseFloat(cashBalanceRaw) : null;
 
+    var selectedNs = (document.getElementById('investFormPersonNs') || {}).value || _investFormOriginalNs;
     var id    = _investFormEditId;
     var isNew = !id;
 
@@ -1028,12 +1048,34 @@ async function _investSaveForm() {
         }
     }
 
+    var targetCol = userCol('investments').doc(selectedNs).collection('accounts');
+
     if (isNew) {
         data.sortOrder = _investAccounts.filter(function(a) { return !a.archived; }).length;
         data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-        await _investCol().add(data);
+        await targetCol.add(data);
+    } else if (selectedNs !== _investFormOriginalNs) {
+        // Owner changed — migrate account + all holdings to new namespace
+        var newRef    = targetCol.doc();
+        var oldAcctRef = userCol('investments').doc(_investFormOriginalNs).collection('accounts').doc(id);
+        data.sortOrder = 0;
+        data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        await newRef.set(data);
+
+        // Copy then delete holdings in batches
+        var holdSnap = await oldAcctRef.collection('holdings').get();
+        if (!holdSnap.empty) {
+            var batch = firebase.firestore().batch();
+            holdSnap.forEach(function(hdoc) {
+                batch.set(newRef.collection('holdings').doc(hdoc.id), hdoc.data());
+                batch.delete(hdoc.ref);
+            });
+            await batch.commit();
+        }
+        await oldAcctRef.delete();
+        _investPersonFilter = selectedNs; // show the new owner on return
     } else {
-        await _investCol().doc(id).update(data);
+        await userCol('investments').doc(selectedNs).collection('accounts').doc(id).update(data);
     }
 
     var dest = _investFormReturnTo === 'summary' ? '#investments/summary' : '#investments/accounts';

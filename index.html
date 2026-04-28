@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=645">
+    <link rel="stylesheet" href="css/styles.css?v=646">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -9886,7 +9886,9 @@ service firebase.storage {
                 </ol>
 
                 <h4>Worker Code — paste this in full</h4>
-                <pre class="fsq-help-code">export default {
+                <div class="fsq-help-code-wrap">
+                    <button class="btn btn-secondary btn-small fsq-copy-btn" onclick="investCopyWorkerCode(this)">Copy Code</button>
+                    <pre class="fsq-help-code" id="investYahooWorkerCode">export default {
   async fetch(request, env) {
     const cors = {
       'Access-Control-Allow-Origin': '*',
@@ -9915,6 +9917,7 @@ service firebase.storage {
     }
   }
 };</pre>
+                </div>
 
                 <h4>Part C — Copy the Worker URL and save it here</h4>
                 <ol>
@@ -10542,7 +10545,7 @@ export default {
     <script src="js/gps.js?v=350"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="js/gcal.js?v=6"></script>
-    <script src="js/settings.js?v=645"></script>
+    <script src="js/settings.js?v=646"></script>
     <script src="js/devnotes.js?v=376"></script>
     <script src="js/house.js?v=537"></script>
     <script src="js/floorplan.js?v=398"></script>
@@ -10579,7 +10582,7 @@ export default {
     <script src="js/legacy-crypto.js?v=2"></script>
     <script src="js/legacy.js?v=28"></script>
     <script src="js/credentials.js?v=583"></script>
-    <script src="js/investments.js?v=645"></script>
+    <script src="js/investments.js?v=646"></script>
     <script src="js/private.js?v=579"></script>
     <script src="js/app.js?v=609"></script>
 

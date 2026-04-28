@@ -454,6 +454,17 @@ function fsqCopyWorkerCode(btn) {
     });
 }
 
+function investCopyWorkerCode(btn) {
+    var code = document.getElementById('investYahooWorkerCode').textContent;
+    navigator.clipboard.writeText(code).then(function() {
+        var orig = btn.textContent;
+        btn.textContent = '✓ Copied!';
+        setTimeout(function() { btn.textContent = orig; }, 2000);
+    }).catch(function() {
+        alert('Copy failed — please select the code manually and copy it.');
+    });
+}
+
 /**
  * Save settings to Firestore using merge so other future fields are preserved.
  */

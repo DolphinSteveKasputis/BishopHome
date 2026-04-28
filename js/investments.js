@@ -2761,7 +2761,7 @@ async function _investRenderSummaryPage() {
     var baselines = await _investLoadPeriodBaselines(group.id);
     var ror       = _investConfig.projectedRoR || 0.06;
     var atp      = _investConfig.afterTaxPct  || 0.82;
-    var annual   = cats.invested * ror * atp;
+    var annual   = cats.netWorth * ror * atp;
     var monthly  = annual / 12;
 
     // Group switcher (only shown when >1 group exists)

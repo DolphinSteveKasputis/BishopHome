@@ -1236,7 +1236,14 @@ Stored in `userCol('investmentGroups')`. Fields: `name`, `personIds[]` (always i
 
 **Joint account rule**: Joint accounts only contribute to a group's totals when ALL parties of the joint account are members of that group.
 
-### Finnhub API Key
+### Finnhub API Key + Yahoo Worker URL
+Stored in `userCol('settings').doc('investments')`: `finnhubApiKey` and `yahooWorkerUrl`.
+Both configured in Settings → General Settings → Investments accordion.
+`_investInvalidateYahooWorkerUrl()` called by settings.js after saving, same pattern as Finnhub key.
+
+The **Yahoo Worker** is a Cloudflare Worker the user deploys once. It accepts `?ticker=SYMBOL`, fetches `https://query1.finance.yahoo.com/v8/finance/chart/SYMBOL` server-side (no CORS), and returns the JSON with `Access-Control-Allow-Origin: *`. Help modal (`yahooWorkerHelpModal`) includes full setup instructions and the complete Worker code to paste.
+
+### Finnhub API Key (legacy heading — see above)
 Stored in `userCol('settings').doc('investments').finnhubApiKey`. Configured in Settings → General Settings → Investments (Finnhub) accordion. Help modal walks through free account signup at finnhub.io, copying the key from the dashboard, and testing it with a live AAPL quote. The module caches the key in `_investFinnhubApiKey`; saving a new key in Settings calls `_investInvalidateFinnhubKey()` to force a re-read.
 
 ### Price Fetching Architecture
@@ -1250,15 +1257,16 @@ Stored in `userCol('settings').doc('investments').finnhubApiKey`. Configured in 
 - Throws only on HTTP 401 (invalid API key) — caller aborts immediately
 - **Limitation**: Finnhub free tier returns HTTP 403 for mutual funds (FXAIX, VTTHX, etc.) — treated as `null`, not an error
 
-**Phase 2 — Yahoo Finance via CORS proxy** (`_investFetchYahooBatch(tickers)`):
+**Phase 2 — Yahoo Finance** (`_investFetchYahooBatch(tickers)`):
 - Called for any ticker where Finnhub returned `null`
 - Fetches per-ticker using `https://query1.finance.yahoo.com/v8/finance/chart/TICKER?interval=1d&range=1d`
-- **CORS problem**: Yahoo Finance blocks direct browser requests from GitHub Pages domains. All calls must be routed through a CORS proxy.
-- Three proxies tried in order per ticker:
-  1. `https://api.allorigins.win/raw?url=...` — most reliable; retried once after 1200ms if the first attempt fails (handles cold rate-limit rejection on the first ticker in a batch)
+- **CORS problem**: Yahoo Finance blocks direct browser requests from GitHub Pages domains.
+- **If `yahooWorkerUrl` is configured** (Cloudflare Worker): fetches directly via `workerUrl?ticker=TICKER` — no delays, no proxy chain needed. The Worker runs server-side, so CORS is not an issue.
+- **If not configured** (fallback): routes through a chain of free public CORS proxies with retry logic:
+  1. `https://api.allorigins.win/raw?url=...` — most reliable; retried once after 1200ms (handles cold rate-limit on first ticker)
   2. `https://corsproxy.io/?...` — secondary
   3. `https://api.codetabs.com/v1/proxy?quest=...` — tertiary
-- **Rate limit mitigation**: 800ms delay between per-ticker calls; proxy 0 gets one automatic retry with a 1200ms pause before falling through to proxy 1
+  - 800ms delay between per-ticker calls in the proxy path
 - Price extracted from `data.chart.result[0].meta.regularMarketPrice`
 
 **Why Yahoo v8/chart instead of v7/quote?**
@@ -1310,6 +1318,8 @@ Per-ticker aggregated fields:
 
 **CSS classes**: `.ist-table-wrap`, `.ist-row` (9-col grid), `.ist-header-row`, `.ist-cell`, `.ist-cell-sym`, `.ist-cell-num`, `.ist-cell-chev`, `.ist-main-row`, `.ist-sub-row`, `.ist-detail`, `.ist-sub-label`, `.ist-val`, `.ist-gain`, `.ist-loss`, `.ist-dim`, `.ist-pct-acct`, `.ist-acct-link`.
 
+**📡 Update All Prices button**: In the page header (top right). Calls `_investUpdateStocksAllPrices()` — loads all accounts for ALL enrolled people via `_investLoadAllAccountsForStocks()` (not group-filtered), runs the two-phase Finnhub → Yahoo fetch, batch-writes results, re-renders the page, then shows `_investShowPriceResultModal`.
+
 **Hub card**: Added as 4th card on `#investments` hub.
 
 **Routes**: `#investments/stocks` → `page-investments-stocks` → `loadInvestmentsStocksPage()`.
@@ -1353,7 +1363,7 @@ Dashboard page showing totals for the selected group.
 
 **Accounts section**: Per-person groups listing each account's name, tax category badge, and total value. Joint accounts appear in a separate "Joint Accounts" section.
 
-**📡 Update All Prices**: Collects all **unique** tickers across every account in the group (deduplicated — FXAIX in 4 accounts = 1 fetch), then runs the two-phase price fetch (Finnhub → Yahoo Finance proxy fallback). Batch-writes updated `lastPrice` + `lastPriceDate` to all matching holdings, then re-renders. Reports any tickers that failed both sources. See "Price Fetching Architecture" section for full detail. Requires Finnhub API key.
+**📡 Update All Prices**: Collects all **unique** tickers across every account in the group (deduplicated — FXAIX in 4 accounts = 1 fetch), then runs the two-phase price fetch (Finnhub → Yahoo/Worker fallback). Batch-writes updated `lastPrice` + `lastPriceDate` to all matching holdings, re-renders, then shows `_investShowPriceResultModal`. If failures occur and no Worker URL is configured, the modal includes a tip linking to Settings. Requires Finnhub API key.
 
 **Group switcher**: Shown at top when >1 group exists; switching re-renders the page for the new group. Sets `_investGroupSwitchHandler` to re-render on change.
 

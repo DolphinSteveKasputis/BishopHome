@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=640">
+    <link rel="stylesheet" href="css/styles.css?v=645">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -994,6 +994,23 @@
                         <span class="settings-saved-msg hidden" id="finnhubSavedMsg">&#10003; Saved</span>
                     </div>
                     <div class="hidden settings-test-result" id="finnhubTestResult"></div>
+
+                    <hr class="settings-section-divider">
+
+                    <p class="accordion-desc"><strong>Yahoo Finance Proxy (Optional)</strong> — Stocks and ETFs are fetched via Finnhub. Mutual funds and some other instruments require Yahoo Finance, which cannot be called directly from a browser due to CORS restrictions. A free Cloudflare Worker solves this reliably. Tap <strong>Help</strong> for full setup instructions.</p>
+                    <div class="form-group">
+                        <label for="yahooWorkerUrl">Cloudflare Worker URL</label>
+                        <div class="api-key-row">
+                            <input type="url" id="yahooWorkerUrl" placeholder="https://your-worker.your-name.workers.dev" class="api-key-input">
+                            <button type="button" class="btn btn-secondary btn-sm" id="yahooWorkerHelpBtn">Help</button>
+                        </div>
+                    </div>
+                    <div class="settings-save-row">
+                        <button class="btn btn-primary" id="yahooWorkerSaveBtn">Save</button>
+                        <button class="btn btn-secondary" id="yahooWorkerTestBtn">Test</button>
+                        <span class="settings-saved-msg hidden" id="yahooWorkerSavedMsg">&#10003; Saved</span>
+                    </div>
+                    <div class="hidden settings-test-result" id="yahooWorkerTestResult"></div>
                 </div>
             </div>
 
@@ -9842,6 +9859,100 @@ service firebase.storage {
         </div>
     </div>
 
+    <!-- ========== YAHOO WORKER HELP MODAL ========== -->
+    <div class="modal-overlay" id="yahooWorkerHelpModal">
+        <div class="modal modal-wide">
+            <h3>How to Set Up a Yahoo Finance Proxy (Free)</h3>
+            <div class="fsq-help-body">
+                <p>Mutual fund prices (and some other instruments) require Yahoo Finance. Yahoo blocks direct browser requests from this app due to CORS restrictions — but a free <strong>Cloudflare Worker</strong> acts as a middleman that fetches Yahoo on your behalf and hands the price back. Once set up, it works reliably with no rate-limiting issues.</p>
+
+                <h4>Part A — Create a Cloudflare Account</h4>
+                <p><em>Skip to Part B if you already have a Cloudflare account (e.g. from setting up the Foursquare integration).</em></p>
+                <ol>
+                    <li>Go to <strong>cloudflare.com</strong> and click <strong>Sign Up</strong></li>
+                    <li>Enter your email and choose a password — no credit card needed</li>
+                    <li>Verify your email address</li>
+                </ol>
+
+                <h4>Part B — Create the Worker</h4>
+                <ol>
+                    <li>Log in at <strong>dash.cloudflare.com</strong></li>
+                    <li>In the left sidebar, click <strong>Workers &amp; Pages</strong></li>
+                    <li>Click <strong>Create</strong>, then <strong>Create Worker</strong></li>
+                    <li>Give it any name (e.g. <code>yahoo-price-proxy</code>) and click <strong>Deploy</strong></li>
+                    <li>On the next screen, click <strong>Edit Code</strong></li>
+                    <li>Select all the existing code and <strong>replace it</strong> with the code below</li>
+                    <li>Click <strong>Deploy</strong> (top right)</li>
+                </ol>
+
+                <h4>Worker Code — paste this in full</h4>
+                <pre class="fsq-help-code">export default {
+  async fetch(request, env) {
+    const cors = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    };
+    if (request.method === 'OPTIONS')
+      return new Response(null, { headers: cors });
+
+    const ticker = new URL(request.url).searchParams.get('ticker');
+    if (!ticker)
+      return new Response(JSON.stringify({ error: 'Missing ticker' }),
+        { status: 400, headers: { ...cors, 'Content-Type': 'application/json' } });
+
+    const url = 'https://query1.finance.yahoo.com/v8/finance/chart/'
+              + encodeURIComponent(ticker) + '?interval=1d&range=1d';
+    try {
+      const resp = await fetch(url, {
+        headers: { 'User-Agent': 'Mozilla/5.0' }
+      });
+      const data = await resp.json();
+      return new Response(JSON.stringify(data),
+        { status: resp.status, headers: { ...cors, 'Content-Type': 'application/json' } });
+    } catch (e) {
+      return new Response(JSON.stringify({ error: e.message }),
+        { status: 500, headers: { ...cors, 'Content-Type': 'application/json' } });
+    }
+  }
+};</pre>
+
+                <h4>Part C — Copy the Worker URL and save it here</h4>
+                <ol>
+                    <li>After deploying, Cloudflare shows your Worker URL — it looks like:<br>
+                        <code>https://yahoo-price-proxy.your-name.workers.dev</code></li>
+                    <li>Copy that URL</li>
+                    <li>Paste it into the <strong>Cloudflare Worker URL</strong> field in Settings</li>
+                    <li>Click <strong>Save</strong></li>
+                    <li>Click <strong>Test</strong> — you should see a live AAPL price confirming it works</li>
+                </ol>
+
+                <h4>Free tier limits</h4>
+                <ul>
+                    <li>100,000 requests per day — far more than you'll ever use for price updates</li>
+                    <li>No credit card required</li>
+                    <li>Workers run globally on Cloudflare's edge network — fast and reliable</li>
+                </ul>
+
+                <h4>After setup</h4>
+                <p>Once the Worker URL is saved, the app uses it automatically whenever Finnhub can't provide a price. The free public proxy fallbacks are still used if the Worker is not configured.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('yahooWorkerHelpModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== PRICE UPDATE RESULTS MODAL ========== -->
+    <div class="modal-overlay" id="investPriceResultModal">
+        <div class="modal">
+            <h3>Price Update Results</h3>
+            <div id="investPriceResultBody"></div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('investPriceResultModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ========== PLACE ADD/EDIT MODAL ========== -->
     <div class="modal-overlay" id="placeModal">
         <div class="modal">
@@ -10431,7 +10542,7 @@ export default {
     <script src="js/gps.js?v=350"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="js/gcal.js?v=6"></script>
-    <script src="js/settings.js?v=591"></script>
+    <script src="js/settings.js?v=645"></script>
     <script src="js/devnotes.js?v=376"></script>
     <script src="js/house.js?v=537"></script>
     <script src="js/floorplan.js?v=398"></script>
@@ -10468,7 +10579,7 @@ export default {
     <script src="js/legacy-crypto.js?v=2"></script>
     <script src="js/legacy.js?v=28"></script>
     <script src="js/credentials.js?v=583"></script>
-    <script src="js/investments.js?v=644"></script>
+    <script src="js/investments.js?v=645"></script>
     <script src="js/private.js?v=579"></script>
     <script src="js/app.js?v=609"></script>
 

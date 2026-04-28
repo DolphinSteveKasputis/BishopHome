@@ -1800,10 +1800,10 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 
 **📡 Update Prices**: Fetches the latest price for every holding in this account. Works in two phases:
 
-1. **Finnhub** (free API): Tried first for all tickers. Works great for stocks and ETFs. Mutual funds (FXAIX, VTTHX, etc.) are not supported on the free Finnhub tier — those tickers are passed to Phase 2.
-2. **Yahoo Finance via proxy**: For any ticker Finnhub couldn't price, the app routes through a free CORS proxy (allorigins.win) to fetch from Yahoo Finance. This handles mutual funds that Finnhub misses. Multiple proxy fallbacks are tried in sequence.
+1. **Finnhub** (free API): Tried first for all tickers. Works great for stocks and ETFs. Mutual funds (FXAIX, RDFTX, etc.) are not supported on the free Finnhub tier — those tickers are passed to Phase 2.
+2. **Yahoo Finance**: For any ticker Finnhub couldn't price. If a **Cloudflare Worker proxy** is configured in Settings → General Settings → Investments, it's used directly (reliable, no rate-limiting). Otherwise the app tries a chain of free public CORS proxies — these work most of the time but can be inconsistent.
 
-If a ticker still fails both sources, it's listed by name in the failure message — you'll need to update it manually.
+If a ticker still fails both sources, it's shown inline with a link to Settings where you can set up the Cloudflare Worker for more reliable fetching.
 
 **Why not just ask the AI (like ChatGPT)?** When you chat with ChatGPT on the web, it has browsing tools that fetch live data. The raw AI API used by this app is just the language model — it has a training data cutoff and no internet access. Its "prices" would be months or years out of date. That's why we use Finnhub + Yahoo instead.
 
@@ -1832,7 +1832,7 @@ Requires a Finnhub API key in Settings. Prices persist in Firestore across sessi
 
 **Expanding a row**: Tap any ticker row to see a per-account breakdown — each account that holds the ticker, with its own shares, price, cost, gain, value, and % of that account's total. Account names are clickable and navigate directly to the holdings page for that account. A breadcrumb at the top of the holdings page takes you back to **Stock Rollup**.
 
-**Prices**: Uses the last fetched price stored on each holding. Tap **📡 Update All Prices** on the Summary page first to make sure prices are current before reviewing the rollup.
+**Prices**: Uses the last fetched price stored on each holding. Tap **📡 Update All Prices** (top right of this page, or on the Summary page) to refresh prices across all accounts before reviewing the rollup. The Stock Rollup button updates all enrolled people's accounts — not just the current group.
 
 **Sort by Value**: Highest-value tickers at the top — shows your largest positions first.
 
@@ -1895,11 +1895,11 @@ Requires a Finnhub API key in Settings. Prices persist in Firestore across sessi
 **📡 Update All Prices**: Refreshes prices for every holding across all accounts in the group — including stocks, ETFs, and mutual funds. Works in two phases:
 
 1. **Finnhub** (first): Fast and reliable for stocks and ETFs. Mutual funds are not supported on the free tier.
-2. **Yahoo Finance via proxy** (fallback): Any ticker Finnhub couldn't price is sent to Yahoo Finance through a free CORS proxy. This handles mutual funds like FXAIX and VTTHX.
+2. **Yahoo Finance** (fallback): Any ticker Finnhub couldn't price. Uses a Cloudflare Worker proxy if configured in Settings (recommended for mutual funds), otherwise falls back to free public CORS proxies.
 
-Tickers are **deduplicated** before fetching — if FXAIX appears in four different accounts, it's only fetched once, then the updated price is written to all matching holdings. This makes the update faster and avoids hitting rate limits on the proxy.
+Tickers are **deduplicated** before fetching — if FXAIX appears in four different accounts, it's only fetched once, then the updated price is written to all matching holdings.
 
-Reports any tickers that still failed both sources. Requires a Finnhub API key in Settings.
+Results are shown in a popup after the update completes. If any tickers failed and no Cloudflare Worker is configured, the popup includes a tip linking to Settings. Requires a Finnhub API key in Settings.
 
 **Period Performance**: Four rows — Day, Week, Month, YTD. Each row shows the gain or loss in dollars and percentage versus the most recent snapshot of the matching type (Daily/Weekly/Monthly/Yearly). Rows show "No [type] snapshot yet" until at least one snapshot of that type has been captured on the Snapshots page. Green = gain, red = loss.
 

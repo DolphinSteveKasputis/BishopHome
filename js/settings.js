@@ -261,6 +261,7 @@ async function loadSettingsGeneralPage() {
 
     loadLlmSettings();
     loadFinnhubSettings();
+    loadYahooWorkerSettings();
     loadFoursquareSettings();
     loadGcalSettings();
 }
@@ -332,6 +333,69 @@ async function testFinnhubKey() {
 
     btn.disabled    = false;
     btn.textContent = 'Test';
+}
+
+// ---------- Yahoo Worker Settings ----------
+
+async function loadYahooWorkerSettings() {
+    try {
+        var doc = await userCol('settings').doc('investments').get();
+        if (doc.exists && doc.data().yahooWorkerUrl) {
+            document.getElementById('yahooWorkerUrl').value = doc.data().yahooWorkerUrl;
+        }
+    } catch (e) {
+        console.error('Error loading Yahoo Worker settings:', e);
+    }
+}
+
+async function saveYahooWorkerUrl() {
+    var url     = (document.getElementById('yahooWorkerUrl').value || '').trim();
+    var saveBtn = document.getElementById('yahooWorkerSaveBtn');
+    var savedMsg= document.getElementById('yahooWorkerSavedMsg');
+
+    saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
+    savedMsg.classList.add('hidden');
+
+    await userCol('settings').doc('investments').set({ yahooWorkerUrl: url }, { merge: true });
+
+    if (typeof _investInvalidateYahooWorkerUrl === 'function') _investInvalidateYahooWorkerUrl();
+
+    saveBtn.disabled = false; saveBtn.textContent = 'Save';
+    savedMsg.classList.remove('hidden');
+    setTimeout(function() { savedMsg.classList.add('hidden'); }, 2000);
+}
+
+async function testYahooWorkerUrl() {
+    var url       = (document.getElementById('yahooWorkerUrl').value || '').trim();
+    var btn       = document.getElementById('yahooWorkerTestBtn');
+    var resultEl  = document.getElementById('yahooWorkerTestResult');
+
+    if (!url) { alert('Please enter your Worker URL first.'); return; }
+
+    btn.disabled = true; btn.textContent = 'Testing…';
+    resultEl.classList.remove('hidden');
+    resultEl.textContent = 'Calling Worker…';
+    resultEl.style.color = '#555';
+
+    try {
+        var resp = await fetch(url.replace(/\/$/, '') + '?ticker=AAPL');
+        var data = await resp.json();
+        var price = data && data.chart && data.chart.result &&
+                    data.chart.result[0] && data.chart.result[0].meta &&
+                    data.chart.result[0].meta.regularMarketPrice;
+        if (price && price > 0) {
+            resultEl.textContent = '✓ Worker works! AAPL: $' + price.toFixed(2);
+            resultEl.style.color = '#2e7d32';
+        } else {
+            resultEl.textContent = '✗ Worker returned no price. Check the Worker code.';
+            resultEl.style.color = '#c62828';
+        }
+    } catch (e) {
+        resultEl.textContent = '✗ Error: ' + e.message;
+        resultEl.style.color = '#c62828';
+    }
+
+    btn.disabled = false; btn.textContent = 'Test';
 }
 
 /**
@@ -1529,6 +1593,9 @@ document.getElementById('llmProvider').addEventListener('change', updateLlmModel
 document.getElementById('finnhubSaveBtn').addEventListener('click', saveFinnhubKey);
 document.getElementById('finnhubTestBtn').addEventListener('click', testFinnhubKey);
 document.getElementById('finnhubHelpBtn').addEventListener('click', function() { openModal('finnhubHelpModal'); });
+document.getElementById('yahooWorkerSaveBtn').addEventListener('click', saveYahooWorkerUrl);
+document.getElementById('yahooWorkerTestBtn').addEventListener('click', testYahooWorkerUrl);
+document.getElementById('yahooWorkerHelpBtn').addEventListener('click', function() { openModal('yahooWorkerHelpModal'); });
 document.getElementById('finnhubApiKeyToggle').addEventListener('click', function() {
     var input = document.getElementById('finnhubApiKey');
     if (input.type === 'password') { input.type = 'text';     this.textContent = 'Hide'; }

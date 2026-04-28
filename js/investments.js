@@ -1469,12 +1469,11 @@ function _investOnGroupSwitch(groupId) {
 // FINNHUB PRICE FETCHING
 // ============================================================
 
-var _investFinnhubApiKey = null;  // null = not yet loaded from Firestore
+var _investFinnhubApiKey  = null;  // null = not yet loaded from Firestore
+var _investYahooWorkerUrl = null;  // null = not yet loaded; '' = not configured
 
-// Called by settings.js after the user saves a new key, so the next fetch re-reads it
-function _investInvalidateFinnhubKey() {
-    _investFinnhubApiKey = null;
-}
+function _investInvalidateFinnhubKey() { _investFinnhubApiKey  = null; }
+function _investInvalidateYahooWorkerUrl() { _investYahooWorkerUrl = null; }
 
 async function _investGetFinnhubKey() {
     if (_investFinnhubApiKey !== null) return _investFinnhubApiKey;
@@ -1485,6 +1484,17 @@ async function _investGetFinnhubKey() {
         _investFinnhubApiKey = '';
     }
     return _investFinnhubApiKey;
+}
+
+async function _investGetYahooWorkerUrl() {
+    if (_investYahooWorkerUrl !== null) return _investYahooWorkerUrl;
+    try {
+        var doc = await userCol('settings').doc('investments').get();
+        _investYahooWorkerUrl = (doc.exists && doc.data().yahooWorkerUrl) ? doc.data().yahooWorkerUrl.trim() : '';
+    } catch (e) {
+        _investYahooWorkerUrl = '';
+    }
+    return _investYahooWorkerUrl;
 }
 
 // Fetch the current price for a single ticker from Finnhub.
@@ -1502,53 +1512,104 @@ async function _investFetchPriceFinnhub(ticker, apiKey) {
     return price;
 }
 
-// Yahoo Finance lookup via CORS proxy using v8/chart endpoint (works for mutual funds).
-// Fetches tickers sequentially with a short delay to avoid proxy rate limiting.
+// Yahoo Finance price lookup for tickers Finnhub missed.
+// If a Cloudflare Worker URL is configured in Settings, uses it directly (reliable, no CORS issues).
+// Otherwise falls back to a chain of free public CORS proxies with retry logic.
 // Returns { ticker: price } for tickers that resolved; missing entries = not found.
 async function _investFetchYahooBatch(tickers) {
     if (!tickers.length) return {};
     var map = {};
-    for (var t = 0; t < tickers.length; t++) {
-        if (t > 0) await new Promise(function(r) { setTimeout(r, 800); }); // avoid rate limit
-        var ticker     = tickers[t];
-        var yahooTarget = 'https://query1.finance.yahoo.com/v8/finance/chart/' +
-                          encodeURIComponent(ticker) + '?interval=1d&range=1d';
-        var proxies = [
-            'https://api.allorigins.win/raw?url=' + encodeURIComponent(yahooTarget),
-            'https://corsproxy.io/?' + encodeURIComponent(yahooTarget),
-            'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(yahooTarget)
-        ];
-        for (var i = 0; i < proxies.length; i++) {
-            var attempts = (i === 0) ? 2 : 1; // retry proxy 0 once after a delay (cold rate-limit recovery)
-            var success  = false;
-            for (var attempt = 0; attempt < attempts && !success; attempt++) {
-                if (attempt > 0) await new Promise(function(r) { setTimeout(r, 1200); });
-                try {
-                    var resp  = await fetch(proxies[i]);
-                    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-                    var data  = await resp.json();
-                    var price = data && data.chart && data.chart.result &&
-                                data.chart.result[0] && data.chart.result[0].meta &&
-                                data.chart.result[0].meta.regularMarketPrice;
-                    if (price && price > 0) {
-                        console.log('[prices] Yahoo ' + ticker + ' = ' + price + ' via proxy ' + i + (attempt > 0 ? ' (retry)' : ''));
-                        map[ticker] = price;
-                        success = true;
-                    } else {
-                        throw new Error('no price in response');
-                    }
-                } catch (e) {
-                    console.log('[prices] Yahoo proxy ' + i + ' attempt ' + attempt + ' failed for ' + ticker + ': ' + e.message);
+    var workerUrl = await _investGetYahooWorkerUrl();
+
+    if (workerUrl) {
+        // Cloudflare Worker path — no delays needed, no proxy chain
+        var base = workerUrl.replace(/\/$/, '');
+        for (var ti = 0; ti < tickers.length; ti++) {
+            var ticker = tickers[ti];
+            try {
+                var resp  = await fetch(base + '?ticker=' + encodeURIComponent(ticker));
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                var data  = await resp.json();
+                var price = data && data.chart && data.chart.result &&
+                            data.chart.result[0] && data.chart.result[0].meta &&
+                            data.chart.result[0].meta.regularMarketPrice;
+                if (price && price > 0) {
+                    console.log('[prices] Worker ' + ticker + ' = ' + price);
+                    map[ticker] = price;
+                } else {
+                    throw new Error('no price in response');
                 }
+            } catch (e) {
+                console.log('[prices] Worker failed for ' + ticker + ': ' + e.message);
             }
-            if (success) break;
+        }
+    } else {
+        // Free CORS proxy chain — sequential with delays to avoid rate limiting
+        for (var ti = 0; ti < tickers.length; ti++) {
+            if (ti > 0) await new Promise(function(r) { setTimeout(r, 800); });
+            var ticker      = tickers[ti];
+            var yahooTarget = 'https://query1.finance.yahoo.com/v8/finance/chart/' +
+                              encodeURIComponent(ticker) + '?interval=1d&range=1d';
+            var proxies = [
+                'https://api.allorigins.win/raw?url=' + encodeURIComponent(yahooTarget),
+                'https://corsproxy.io/?' + encodeURIComponent(yahooTarget),
+                'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(yahooTarget)
+            ];
+            for (var i = 0; i < proxies.length; i++) {
+                var attempts = (i === 0) ? 2 : 1; // retry proxy 0 once after a delay (cold rate-limit recovery)
+                var success  = false;
+                for (var attempt = 0; attempt < attempts && !success; attempt++) {
+                    if (attempt > 0) await new Promise(function(r) { setTimeout(r, 1200); });
+                    try {
+                        var resp  = await fetch(proxies[i]);
+                        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                        var data  = await resp.json();
+                        var price = data && data.chart && data.chart.result &&
+                                    data.chart.result[0] && data.chart.result[0].meta &&
+                                    data.chart.result[0].meta.regularMarketPrice;
+                        if (price && price > 0) {
+                            console.log('[prices] Yahoo ' + ticker + ' = ' + price + ' via proxy ' + i + (attempt > 0 ? ' (retry)' : ''));
+                            map[ticker] = price;
+                            success = true;
+                        } else {
+                            throw new Error('no price in response');
+                        }
+                    } catch (e) {
+                        console.log('[prices] Yahoo proxy ' + i + ' attempt ' + attempt + ' failed for ' + ticker + ': ' + e.message);
+                    }
+                }
+                if (success) break;
+            }
         }
     }
     return map;
 }
 
-// LLM fallback: ask the configured LLM for prices of tickers all other sources missed.
-// Returns { ticker: price } map. LLM prices are from training data, not real-time.
+// Show a modal with price update results. Auto-closes after 2s if all succeeded.
+function _investShowPriceResultModal(updatedCount, failed, failedMsg, workerUrl) {
+    var body = document.getElementById('investPriceResultBody');
+    if (!body) return;
+    var html = '';
+    if (failed.length === 0) {
+        html = '<p class="invest-price-ok">✓ All ' + updatedCount + ' price' + (updatedCount !== 1 ? 's' : '') + ' updated successfully.</p>';
+        body.innerHTML = html;
+        openModal('investPriceResultModal');
+        setTimeout(function() { closeModal('investPriceResultModal'); }, 2000);
+    } else {
+        html += '<p><strong>' + updatedCount + '</strong> updated · <strong>' + failed.length + '</strong> failed</p>';
+        html += '<ul class="invest-price-fail-list">';
+        failed.forEach(function(t) {
+            html += '<li><strong>' + escapeHtml(t) + '</strong> — ' + escapeHtml(failedMsg[t] || 'not found') + '</li>';
+        });
+        html += '</ul>';
+        if (!workerUrl) {
+            html += '<div class="invest-price-tip">💡 Having consistent failures? Set up a <strong>Cloudflare Worker proxy</strong> ' +
+                    'in <strong>Settings → General Settings → Investments</strong> for reliable mutual fund price fetching.</div>';
+        }
+        body.innerHTML = html;
+        openModal('investPriceResultModal');
+    }
+}
 
 // Update prices for all holdings in the currently displayed account.
 async function _investUpdateAccountPrices() {
@@ -1635,7 +1696,9 @@ async function _investUpdateAccountPrices() {
     if (btn) { btn.disabled = false; btn.textContent = '\ud83d\udce1 Update Prices'; }
     if (status) {
         if (failed.length > 0) {
-            status.textContent = 'Updated \u2014 failed: ' + failed.map(function(t) { return t + ' (' + (failedMsg[t] || '?') + ')'; }).join(', ');
+            var workerUrl = await _investGetYahooWorkerUrl();
+            status.innerHTML = 'Updated \u2014 failed: ' + failed.map(function(t) { return '<strong>' + escapeHtml(t) + '</strong>'; }).join(', ') +
+                (!workerUrl ? ' &nbsp;<a href="#settings-general" class="invest-price-tip-link">Set up Cloudflare proxy?</a>' : '');
             status.style.color = '#c62828';
         } else {
             status.textContent = '\u2713 Updated just now';
@@ -3085,19 +3148,11 @@ async function _investUpdateAllPrices() {
     // Re-render the page (will reload fresh holdings from Firestore)
     await _investRenderSummaryPage();
 
-    // Restore button and status after re-render replaced the DOM
-    btn    = document.getElementById('investUpdateAllBtn');
-    status = document.getElementById('investSummaryPricesStatus');
+    btn = document.getElementById('investUpdateAllBtn');
     if (btn) { btn.disabled = false; btn.textContent = '📡 Update All Prices'; }
-    if (status) {
-        if (failed.length > 0) {
-            status.textContent = 'Updated — ' + failed.length + ' failed: ' + failed.join(', ');
-            status.style.color = '#c62828';
-        } else {
-            status.textContent = '✓ Updated just now';
-            status.style.color = '#2e7d32';
-        }
-    }
+
+    var updatedCount = Object.keys(priceMap).filter(function(t) { return priceMap[t] != null; }).length;
+    _investShowPriceResultModal(updatedCount, failed, failedMsg, await _investGetYahooWorkerUrl());
 }
 
 // ============================================================
@@ -3167,7 +3222,12 @@ async function _investRenderStocksPage() {
     }
 
     page.innerHTML =
-        '<div class="page-header"><h2>📈 Stock Rollup</h2></div>' +
+        '<div class="page-header">' +
+            '<h2>📈 Stock Rollup</h2>' +
+            '<div class="page-header-actions">' +
+                '<button class="btn btn-secondary btn-small" id="investStocksUpdateBtn" onclick="_investUpdateStocksAllPrices()">📡 Update All Prices</button>' +
+            '</div>' +
+        '</div>' +
         '<div class="invest-stocks-summary">' +
             '<div class="invest-stocks-summary-stat">' +
                 '<span class="invest-stocks-summary-label">Unique Tickers</span>' +
@@ -3180,6 +3240,62 @@ async function _investRenderStocksPage() {
         '</div>' +
         sortBtns +
         tableHtml;
+}
+
+async function _investUpdateStocksAllPrices() {
+    var btn = document.getElementById('investStocksUpdateBtn');
+    if (!btn) return;
+
+    var apiKey = await _investGetFinnhubKey();
+    if (!apiKey) { alert('Finnhub API key not configured — add it in Settings → General Settings'); return; }
+
+    btn.disabled = true; btn.textContent = '⏳ Updating…';
+
+    var accounts = await _investLoadAllAccountsForStocks();
+    var priceMap = {};
+    accounts.forEach(function(acct) {
+        (acct._holdings || []).forEach(function(h) { if (h.ticker) priceMap[h.ticker] = null; });
+    });
+
+    var failed = {}, failedList = [];
+
+    var needYahoo = [];
+    for (var ticker in priceMap) {
+        try {
+            var p = await _investFetchPriceFinnhub(ticker, apiKey);
+            if (p && p > 0) { priceMap[ticker] = p; }
+            else             { needYahoo.push(ticker); }
+        } catch (e) {
+            if (e.message === 'invalid key') { alert('Invalid Finnhub API key'); btn.disabled = false; btn.textContent = '📡 Update All Prices'; return; }
+            needYahoo.push(ticker);
+        }
+    }
+    if (needYahoo.length > 0) {
+        var yahooMap = await _investFetchYahooBatch(needYahoo);
+        needYahoo.forEach(function(t) {
+            if (yahooMap[t]) { priceMap[t] = yahooMap[t]; }
+            else             { failedList.push(t); failed[t] = 'not found in Finnhub or Yahoo'; }
+        });
+    }
+
+    var now = new Date().toISOString();
+    var batch = firebase.firestore().batch();
+    accounts.forEach(function(acct) {
+        (acct._holdings || []).forEach(function(h) {
+            if (h.ticker && priceMap[h.ticker] != null) {
+                batch.update(_investHoldingCol(acct._ns, acct.id).doc(h.id), { lastPrice: priceMap[h.ticker], lastPriceDate: now });
+            }
+        });
+    });
+    await batch.commit();
+
+    var updatedCount = Object.keys(priceMap).filter(function(t) { return priceMap[t] != null; }).length;
+    await _investRenderStocksPage();
+
+    btn = document.getElementById('investStocksUpdateBtn');
+    if (btn) { btn.disabled = false; btn.textContent = '📡 Update All Prices'; }
+
+    _investShowPriceResultModal(updatedCount, failedList, failed, await _investGetYahooWorkerUrl());
 }
 
 function _investStocksRowHtml(t, overallNW) {

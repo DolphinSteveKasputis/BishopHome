@@ -14750,10 +14750,22 @@ a.invest-hub-card:hover {
     border-radius: 4px;
     padding: 1px 5px;
 }
+.invest-snap-acct-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
 .invest-snap-acct-total {
     font-weight: 600;
     color: #1a1a1a;
 }
+.invest-snap-acct-link {
+    font-size: 1rem;
+    text-decoration: none;
+    opacity: 0.6;
+    line-height: 1;
+}
+.invest-snap-acct-link:hover { opacity: 1; }
 .invest-snap-detail-actions {
     margin-top: 10px;
     display: flex;

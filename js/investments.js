@@ -15,6 +15,7 @@ var INVEST_ACCOUNT_TYPES = [
     { value: 'cd',                   label: 'CD' },
     { value: 'roth-ira',             label: 'Roth IRA' },
     { value: 'traditional-ira',      label: 'Traditional IRA' },
+    { value: 'rollover-ira',         label: 'Rollover IRA' },
     { value: 'roth-401k',            label: 'Roth 401k' },
     { value: 'traditional-401k',     label: 'Traditional 401k' },
     { value: 'self-directed-401k',   label: 'Self-directed 401k' },
@@ -34,7 +35,7 @@ var _INVEST_TAX_ADV_TYPES    = ['hsa', '529'];
 
 // Tax-category buckets used by portfolio summary grouping
 var _INVEST_ROTH_TYPES   = ['roth-ira', 'roth-401k', 'hsa'];
-var _INVEST_PRETAX_TYPES = ['traditional-ira', 'traditional-401k', 'self-directed-401k', '403b', '529'];
+var _INVEST_PRETAX_TYPES = ['traditional-ira', 'rollover-ira', 'traditional-401k', 'self-directed-401k', '403b', '529'];
 var _INVEST_BROKER_TYPES = ['brokerage-individual', 'brokerage-joint'];
 var _INVEST_CASH_TYPES   = ['checking', 'savings', 'money-market', 'cd'];
 

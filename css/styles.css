@@ -15839,3 +15839,33 @@ a.legacy-fin-card:hover {
     .nm-col-notes { display: none; }
     .nm-col-amount { flex: 0 0 75px; }
 }
+
+/* ===========================================================================
+   BUDGET ACCORDION
+   =========================================================================== */
+
+.budget-category-header--toggle {
+    cursor: pointer;
+    user-select: none;
+}
+.budget-category-header--toggle:hover {
+    background: #ececec;
+}
+.budget-nonmonthly-cat .budget-category-header--toggle:hover {
+    background: #ead5f5;
+}
+
+.budget-cat-toggle {
+    font-size: 0.7rem;
+    color: #888;
+    flex-shrink: 0;
+    width: 14px;
+    text-align: center;
+}
+
+/* Hide body when collapsed */
+.budget-category--collapsed .budget-item-rows,
+.budget-category--collapsed .budget-add-item-btn,
+.budget-category--collapsed .budget-nonmonthly-desc {
+    display: none;
+}

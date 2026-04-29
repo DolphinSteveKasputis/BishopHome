@@ -10,6 +10,7 @@ var _budgetOriginalIds = null; // {categories: Set, lineItems: Set, incomeItems:
 var _budgetDirty       = false;
 var _budgetDefaultId   = null; // from settings doc
 var _budgetDragSrcId   = null; // drag-and-drop source item localId
+var _budgetCollapsed   = {};   // localId → true/false — accordion collapse state
 
 // Non-monthly sub-screen state
 var _nmBudgetId = null;
@@ -214,36 +215,13 @@ function _budgetRender(page) {
         '</div>' +
     '</div>';
 
-    // — Expense categories
-    html += '<div class="budget-categories" id="budgetCategories">';
-    _budgetDraft.categories.forEach(function(cat) {
-        html += _budgetCategoryHtml(cat, totals);
-    });
-    html += '</div>';
+    // — Summary (top, above categories)
+    html += _budgetSummaryHtml(totals);
 
-    // — Non-Monthly Reserve auto-category (always present, read-only)
-    var activeNmCount = (_budgetDraft.nonMonthlyItems || []).filter(function(i) { return i.isActive !== false; }).length;
-    var totalNmCount  = (_budgetDraft.nonMonthlyItems || []).length;
-    html += '<div class="budget-category budget-nonmonthly-cat">' +
-        '<div class="budget-category-header">' +
-            '<span class="budget-category-name">💼 Non-Monthly Reserve</span>' +
-            '<span class="budget-category-subtotal" id="nmReserveSubtotal">' + _budgetFmt(totals.nonMonthlyReserve) + '/mo</span>' +
-            '<button class="btn btn-secondary btn-small" onclick="_budgetGoToNonMonthly()">Manage</button>' +
-        '</div>' +
-        '<div class="budget-nonmonthly-desc" id="nmReserveDesc">' +
-            (totalNmCount === 0
-                ? '<span class="muted-text">No non-monthly items yet. Tap Manage to add them.</span>'
-                : activeNmCount + ' of ' + totalNmCount + ' items active &middot; ' +
-                  _budgetFmt(totals.nonMonthlyReserve * 12) + ' annual &divide; 12') +
-        '</div>' +
-    '</div>';
-
-    // — Add Category button
+    // — Add Category button + picker (below summary)
     html += '<div class="budget-add-category-wrap">' +
         '<button class="btn btn-secondary btn-small" onclick="_budgetShowAddCategory()">+ Add Category</button>' +
     '</div>';
-
-    // — Add-category quick-picks panel (hidden by default)
     html += '<div class="budget-category-picker hidden" id="budgetCategoryPicker">' +
         '<div class="budget-picker-label">Quick-pick:</div>' +
         '<div class="budget-picker-chips">';
@@ -255,6 +233,32 @@ function _budgetRender(page) {
             '<input type="text" id="budgetCustomCatName" placeholder="Or type a custom name…" onkeydown="if(event.key===\'Enter\') _budgetAddCategoryCustom()">' +
             '<button class="btn btn-primary btn-small" onclick="_budgetAddCategoryCustom()">Add</button>' +
             '<button class="btn btn-secondary btn-small" onclick="_budgetHideAddCategory()">Cancel</button>' +
+        '</div>' +
+    '</div>';
+
+    // — Expense categories (collapsible accordions)
+    html += '<div class="budget-categories" id="budgetCategories">';
+    _budgetDraft.categories.forEach(function(cat) {
+        html += _budgetCategoryHtml(cat, totals);
+    });
+    html += '</div>';
+
+    // — Non-Monthly Reserve auto-category (collapsible, read-only)
+    var nmCollapsed   = !!_budgetCollapsed['__nonmonthly__'];
+    var activeNmCount = (_budgetDraft.nonMonthlyItems || []).filter(function(i) { return i.isActive !== false; }).length;
+    var totalNmCount  = (_budgetDraft.nonMonthlyItems || []).length;
+    html += '<div class="budget-category budget-nonmonthly-cat' + (nmCollapsed ? ' budget-category--collapsed' : '') + '" data-cat-id="__nonmonthly__">' +
+        '<div class="budget-category-header budget-category-header--toggle" onclick="_budgetToggleCategory(\'__nonmonthly__\')">' +
+            '<span class="budget-cat-toggle">' + (nmCollapsed ? '▶' : '▼') + '</span>' +
+            '<span class="budget-category-name">💼 Non-Monthly Reserve</span>' +
+            '<span class="budget-category-subtotal" id="nmReserveSubtotal">' + _budgetFmt(totals.nonMonthlyReserve) + '/mo</span>' +
+            '<button class="btn btn-secondary btn-small" onclick="event.stopPropagation(); _budgetGoToNonMonthly()">Manage</button>' +
+        '</div>' +
+        '<div class="budget-nonmonthly-desc" id="nmReserveDesc">' +
+            (totalNmCount === 0
+                ? '<span class="muted-text">No non-monthly items yet. Tap Manage to add them.</span>'
+                : activeNmCount + ' of ' + totalNmCount + ' items active &middot; ' +
+                  _budgetFmt(totals.nonMonthlyReserve * 12) + ' annual &divide; 12') +
         '</div>' +
     '</div>';
 
@@ -273,9 +277,6 @@ function _budgetRender(page) {
     html += '</div>' +
         '<button class="budget-add-item-btn" onclick="_budgetAddIncomeItem()">+ Add Income Line</button>' +
     '</div>';
-
-    // — Summary
-    html += _budgetSummaryHtml(totals);
 
     // — Action buttons
     html += '<div class="budget-actions">' +
@@ -314,14 +315,16 @@ function _budgetDropdownHtml() {
 }
 
 function _budgetCategoryHtml(cat, totals) {
-    var subtotal = totals.byCat[cat.localId] || 0;
-    var items    = _budgetDraft.lineItems.filter(function(i) { return i.categoryId === cat.localId; });
+    var subtotal   = totals.byCat[cat.localId] || 0;
+    var items      = _budgetDraft.lineItems.filter(function(i) { return i.categoryId === cat.localId; });
+    var collapsed  = !!_budgetCollapsed[cat.localId];
 
-    var html = '<div class="budget-category" data-cat-id="' + cat.localId + '">' +
-        '<div class="budget-category-header">' +
+    var html = '<div class="budget-category' + (collapsed ? ' budget-category--collapsed' : '') + '" data-cat-id="' + cat.localId + '">' +
+        '<div class="budget-category-header budget-category-header--toggle" onclick="_budgetToggleCategory(\'' + cat.localId + '\')">' +
+            '<span class="budget-cat-toggle">' + (collapsed ? '▶' : '▼') + '</span>' +
             '<span class="budget-category-name">' + escapeHtml(cat.name) + '</span>' +
             '<span class="budget-category-subtotal">' + _budgetFmt(subtotal) + '</span>' +
-            '<button class="btn-icon" onclick="_budgetDeleteCategory(\'' + cat.localId + '\', ' + JSON.stringify(cat.name) + ')" title="Delete category">🗑</button>' +
+            '<button class="btn-icon" onclick="event.stopPropagation(); _budgetDeleteCategory(\'' + cat.localId + '\', ' + JSON.stringify(cat.name) + ')" title="Delete category">🗑</button>' +
         '</div>' +
         '<div class="budget-item-rows" data-cat-id="' + cat.localId + '" id="budgetCatRows_' + cat.localId + '">';
 
@@ -334,6 +337,15 @@ function _budgetCategoryHtml(cat, totals) {
     '</div>';
 
     return html;
+}
+
+function _budgetToggleCategory(localId) {
+    _budgetCollapsed[localId] = !_budgetCollapsed[localId];
+    var catEl  = document.querySelector('.budget-category[data-cat-id="' + localId + '"]');
+    if (!catEl) return;
+    catEl.classList.toggle('budget-category--collapsed', _budgetCollapsed[localId]);
+    var icon = catEl.querySelector('.budget-cat-toggle');
+    if (icon) icon.textContent = _budgetCollapsed[localId] ? '▶' : '▼';
 }
 
 function _budgetLineItemRowHtml(item) {

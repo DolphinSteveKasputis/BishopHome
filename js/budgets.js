@@ -11,6 +11,7 @@ var _budgetDirty       = false;
 var _budgetDefaultId   = null; // from settings doc
 var _budgetDragSrcId   = null; // drag-and-drop source item localId
 var _budgetCollapsed   = {};   // localId → true/false — accordion collapse state
+var _budgetNoteOpen    = {};   // lineItem localId → true/false — note row open state
 
 // Non-monthly sub-screen state
 var _nmBudgetId = null;
@@ -352,17 +353,43 @@ function _budgetToggleCategory(localId) {
     if (icon) icon.textContent = _budgetCollapsed[localId] ? '▶' : '▼';
 }
 
+// Toggle the note row on a line item open/closed
+function _budgetToggleNote(localId) {
+    _budgetNoteOpen[localId] = !_budgetNoteOpen[localId];
+    var wrap    = document.querySelector('.budget-item-wrap[data-item-id="' + localId + '"]');
+    if (!wrap) return;
+    var noteRow = wrap.querySelector('.budget-note-row');
+    if (noteRow) {
+        noteRow.classList.toggle('budget-note-row--hidden', !_budgetNoteOpen[localId]);
+        // Focus the input when opening
+        if (_budgetNoteOpen[localId]) {
+            var inp = noteRow.querySelector('.budget-note-input');
+            if (inp) inp.focus();
+        }
+    }
+}
+
 function _budgetLineItemRowHtml(item) {
-    return '<div class="budget-item-row" data-item-id="' + item.localId + '" draggable="true">' +
-        '<span class="budget-drag-handle" title="Drag to reorder">⠿</span>' +
-        '<input class="budget-item-name" type="text" value="' + escapeHtml(item.name || '') + '" placeholder="Item name"' +
-            ' onchange="_budgetLineItemChanged(\'' + item.localId + '\', \'name\', this.value)">' +
-        '<span class="budget-item-dollar">$</span>' +
-        '<input class="budget-item-amount" type="number" min="0" step="1" value="' + (item.amount || '') + '" placeholder="0"' +
-            ' oninput="_budgetLineItemChanged(\'' + item.localId + '\', \'amount\', this.value)">' +
-        '<input class="budget-item-due" type="number" min="1" max="31" value="' + (item.estDueDay || '') + '" placeholder="Day"' +
-            ' oninput="_budgetLineItemChanged(\'' + item.localId + '\', \'estDueDay\', this.value)" title="Est. due day of month">' +
-        '<button class="btn-icon budget-item-delete" onclick="_budgetDeleteLineItem(\'' + item.localId + '\')" title="Delete item">🗑</button>' +
+    var hasNote  = !!(item.note && item.note.trim());
+    var noteOpen = !!_budgetNoteOpen[item.localId];
+    var noteIconClass = 'budget-note-icon' + (hasNote ? ' budget-note-icon--has-note' : '');
+    return '<div class="budget-item-wrap" data-item-id="' + item.localId + '">' +
+        '<div class="budget-item-row" draggable="true" data-item-id="' + item.localId + '">' +
+            '<span class="budget-drag-handle" title="Drag to reorder">⠿</span>' +
+            '<input class="budget-item-name" type="text" value="' + escapeHtml(item.name || '') + '" placeholder="Item name"' +
+                ' onchange="_budgetLineItemChanged(\'' + item.localId + '\', \'name\', this.value)">' +
+            '<span class="budget-item-dollar">$</span>' +
+            '<input class="budget-item-amount" type="number" min="0" step="1" value="' + (item.amount || '') + '" placeholder="0"' +
+                ' oninput="_budgetLineItemChanged(\'' + item.localId + '\', \'amount\', this.value)">' +
+            '<input class="budget-item-due" type="number" min="1" max="31" value="' + (item.estDueDay || '') + '" placeholder="Day"' +
+                ' oninput="_budgetLineItemChanged(\'' + item.localId + '\', \'estDueDay\', this.value)" title="Est. due day of month">' +
+            '<button class="btn-icon ' + noteIconClass + '" onclick="_budgetToggleNote(\'' + item.localId + '\')" title="' + (hasNote ? 'Has note — click to view/edit' : 'Add note') + '">💬</button>' +
+            '<button class="btn-icon budget-item-delete" onclick="_budgetDeleteLineItem(\'' + item.localId + '\')" title="Delete item">🗑</button>' +
+        '</div>' +
+        '<div class="budget-note-row' + (noteOpen ? '' : ' budget-note-row--hidden') + '">' +
+            '<input class="budget-note-input" type="text" value="' + escapeHtml(item.note || '') + '" placeholder="Add a note…"' +
+                ' oninput="_budgetLineItemChanged(\'' + item.localId + '\', \'note\', this.value)">' +
+        '</div>' +
     '</div>';
 }
 
@@ -799,6 +826,18 @@ function _budgetLineItemChanged(localId, field, value) {
     }
     _budgetMarkDirty();
     if (field === 'amount') _budgetRefreshSummary();
+    // Refresh the note icon so it lights up/dims as user types
+    if (field === 'note') {
+        var wrap = document.querySelector('.budget-item-wrap[data-item-id="' + localId + '"]');
+        if (wrap) {
+            var btn = wrap.querySelector('.budget-note-icon');
+            if (btn) {
+                var hasNote = !!(value && value.trim());
+                btn.classList.toggle('budget-note-icon--has-note', hasNote);
+                btn.title = hasNote ? 'Has note — click to view/edit' : 'Add note';
+            }
+        }
+    }
 }
 
 function _budgetDeleteLineItem(localId) {

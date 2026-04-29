@@ -1936,6 +1936,7 @@ Results are shown in a popup after the update completes. If any tickers failed a
 - Within a category, tap **+ Add Item** — a new row appears with Name, Amount ($), and Est. Due Day fields
 - The due day is for your reference only — it does not trigger any reminders
 - Drag the ⠿ handle to reorder items within a category
+- Tap the 💬 icon on any item to toggle a note field — the icon is blue when a note exists, gray when empty
 
 ### Income Section
 - Always at the bottom — add as many lines as you want (one monthly take-home, individual paychecks, side income, etc.)

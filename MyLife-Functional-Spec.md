@@ -1548,7 +1548,7 @@ Each budget has three data layers stored as Firestore subcollections:
 
 **Categories** — expense groupings (e.g., Household, Vehicles). Pre-populated quick-picks: Household, Vehicles, Loans, Other, Personal. User can add custom names. Each category shows a subtotal. Categories can be deleted (with items — confirmation required).
 
-**Line items** — within each category: Name, Amount (whole dollars), Est. Due Day (display only). Always-visible input rows. Drag handle (⠿) to reorder within a category.
+**Line items** — within each category: Name, Amount (whole dollars), Est. Due Day (display only). Always-visible input rows. Drag handle (⠿) to reorder within a category. 💬 note icon on each row: gray = no note, blue = note exists; tap to toggle an inline note field below the row.
 
 **Income section** — always at the bottom of the page. Free-form lines: Name + Amount. Drag-to-reorder. Shows a running Total Income.
 
@@ -1573,7 +1573,7 @@ Lists all archived budgets. Each row: name, **Restore** (unarchive) and **Delete
 |---|---|
 | `budgets` | `name`, `isArchived`, `createdAt`, `updatedAt` |
 | `budgets/{id}/categories` | `name`, `sortOrder` |
-| `budgets/{id}/lineItems` | `categoryId`, `name`, `amount`, `estDueDay`, `sortOrder` |
+| `budgets/{id}/lineItems` | `categoryId`, `name`, `amount`, `estDueDay`, `note`, `sortOrder` |
 | `budgets/{id}/incomeItems` | `name`, `amount`, `sortOrder` |
 | `settings/app` | `defaultBudgetId` |
 

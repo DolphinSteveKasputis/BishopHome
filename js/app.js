@@ -146,7 +146,8 @@ const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'h
                          'legacy',
                          'private', 'private-bookmarks', 'private-documents', 'private-photos', 'private-photos-gallery',
                          'credentials',
-                         'thoughts', 'top10lists', 'memories', 'views'];
+                         'thoughts', 'top10lists', 'memories', 'views',
+                         'budget', 'budget-archive'];
 
 /**
  * All pages that can be shown (includes detail pages not in the nav).
@@ -178,6 +179,7 @@ const ALL_PAGES = [
     'view', 'view-history', 'views-categories',
     'credentials-add', 'credentials-edit', 'credentials-categories',
     'investments', 'investments-accounts', 'investments-account', 'investments-groups', 'investments-form', 'investments-summary', 'investments-snapshots', 'investments-stocks',
+    'budget', 'budget-archive',
     'help'
 ];
 
@@ -215,7 +217,8 @@ const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'jo
                      'legacy-pets', 'legacy-notify', 'legacy-letters', 'legacy-letter', 'legacy-message',
                      'private', 'private-bookmarks', 'private-documents', 'private-photos', 'private-photos-gallery',
                      'credentials', 'credentials-add', 'credentials-edit', 'credentials-categories',
-                     'investments', 'investments-accounts', 'investments-account', 'investments-groups', 'investments-form', 'investments-summary', 'investments-snapshots', 'investments-stocks'];
+                     'investments', 'investments-accounts', 'investments-account', 'investments-groups', 'investments-form', 'investments-summary', 'investments-snapshots', 'investments-stocks',
+                     'budget', 'budget-archive'];
 
 /** Tracks which nav context is currently active ('yard', 'house', or 'life'). */
 var currentNavContext = 'yard';
@@ -785,6 +788,13 @@ function handleRoute() {
     } else if (page === 'legacy') {
         showPage('legacy');
         loadLegacyPage();
+    // ---------- Budget routes ----------
+    } else if (page === 'budget' && id === 'archive') {
+        showPage('budget-archive');
+        loadBudgetArchivePage();
+    } else if (page === 'budget') {
+        showPage('budget');
+        loadBudgetPage();
     // ---------- Investments routes ----------
     } else if (page === 'investments' && id === 'stocks') {
         showPage('investments-stocks');

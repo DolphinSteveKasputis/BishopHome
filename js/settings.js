@@ -764,6 +764,9 @@ var BACKUP_DATA_COLLECTIONS = [
     // Credentials
     'credentials', 'credentialCategories',
 
+    // Budgets (subcollections handled via BUDGET_SUBCOLLECTIONS)
+    'budgets',
+
     // Investments (person-scoped — subcollections handled via PERSON_SCOPED_COLLECTIONS)
     'investments', 'investmentGroups', 'investmentConfig', 'investmentSnapshots',
 
@@ -797,6 +800,9 @@ function backupTimestamp() {
            pad(now.getMinutes());
 }
 
+// Subcollections nested under each budgets document
+var BUDGET_SUBCOLLECTIONS = ['categories', 'lineItems', 'incomeItems'];
+
 // Subcollections nested under each lifeProjects document
 var LP_SUBCOLLECTIONS = [
     'bookingPhotos', 'bookings', 'days', 'packingItems',
@@ -823,6 +829,24 @@ async function backupReadCollections(collectionNames) {
             var data = backupSerialize(raw);
             entries.push({ id: doc.id, data: data });
         });
+        // For budgets, read each budget's subcollections
+        if (name === 'budgets') {
+            for (var j = 0; j < entries.length; j++) {
+                var entry = entries[j];
+                entry.subcollections = {};
+                for (var s = 0; s < BUDGET_SUBCOLLECTIONS.length; s++) {
+                    var subName = BUDGET_SUBCOLLECTIONS[s];
+                    var subSnap = await userCol('budgets').doc(entry.id).collection(subName).get();
+                    entry.subcollections[subName] = [];
+                    subSnap.forEach(function(sdoc) {
+                        entry.subcollections[subName].push({
+                            id: sdoc.id,
+                            data: backupSerialize(sdoc.data())
+                        });
+                    });
+                }
+            }
+        }
         // For lifeProjects, read each project's subcollections
         if (name === 'lifeProjects') {
             for (var j = 0; j < entries.length; j++) {
@@ -1046,6 +1070,22 @@ async function restoreDeleteCollection(colName) {
     if (snap.empty) return;
     var docs = snap.docs;
     // Delete subcollections before parent docs to avoid orphans
+    if (colName === 'budgets') {
+        for (var p = 0; p < docs.length; p++) {
+            for (var s = 0; s < BUDGET_SUBCOLLECTIONS.length; s++) {
+                var subSnap = await userCol('budgets').doc(docs[p].id).collection(BUDGET_SUBCOLLECTIONS[s]).get();
+                if (!subSnap.empty) {
+                    var si = 0;
+                    while (si < subSnap.docs.length) {
+                        var batch = db.batch();
+                        subSnap.docs.slice(si, si + 400).forEach(function(sd) { batch.delete(sd.ref); });
+                        await batch.commit();
+                        si += 400;
+                    }
+                }
+            }
+        }
+    }
     if (colName === 'lifeProjects') {
         for (var p = 0; p < docs.length; p++) {
             for (var s = 0; s < LP_SUBCOLLECTIONS.length; s++) {
@@ -1108,8 +1148,8 @@ async function restoreWriteCollection(colName, docs) {
         await batch.commit();
         i += 400;
     }
-    // Write subcollections for lifeProjects and person-scoped collections
-    var needsSubcollections = colName === 'lifeProjects' || !!PERSON_SCOPED_COLLECTIONS[colName];
+    // Write subcollections for budgets, lifeProjects, and person-scoped collections
+    var needsSubcollections = colName === 'budgets' || colName === 'lifeProjects' || !!PERSON_SCOPED_COLLECTIONS[colName];
     if (needsSubcollections) {
         for (var p = 0; p < docs.length; p++) {
             var entry = docs[p];

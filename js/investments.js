@@ -95,7 +95,7 @@ function _investFmtGain(diff, pct) {
 
 async function loadInvestmentsPage() {
     document.getElementById('breadcrumbBar').innerHTML =
-        '<a href="#life">Life</a><span class="separator">&rsaquo;</span><span>Investments</span>';
+        '<a href="#life">Life</a><span class="separator">&rsaquo;</span><span>Financial</span>';
     document.getElementById('headerTitle').innerHTML =
         '<a href="#main" class="home-link">' + escapeHtml(window.appName || 'My Life') + '</a>';
 
@@ -284,6 +284,14 @@ function _investHubNavCards() {
             '<div class="invest-hub-text">' +
                 '<div class="invest-hub-title">Snapshots</div>' +
                 '<div class="invest-hub-desc">Capture and browse historical portfolio values</div>' +
+            '</div>' +
+            '<span class="invest-hub-arrow">›</span>' +
+        '</a>' +
+        '<a class="invest-hub-card" href="#budget">' +
+            '<span class="invest-hub-icon">💰</span>' +
+            '<div class="invest-hub-text">' +
+                '<div class="invest-hub-title">Budgets</div>' +
+                '<div class="invest-hub-desc">Create and manage monthly budgets by lifestyle scenario</div>' +
             '</div>' +
             '<span class="invest-hub-arrow">›</span>' +
         '</a>' +

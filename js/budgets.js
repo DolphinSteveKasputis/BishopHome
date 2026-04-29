@@ -1,0 +1,1027 @@
+'use strict';
+
+// ---------------------------------------------------------------------------
+// Budgets — monthly budget planner with multiple scenarios
+// ---------------------------------------------------------------------------
+// State
+var _budgetList        = [];   // all non-archived budget docs {id, name, isDefault}
+var _budgetDraft       = null; // working copy: {id, name, categories[], lineItems[], incomeItems[]}
+var _budgetOriginalIds = null; // {categories: Set, lineItems: Set, incomeItems: Set} — ids present in Firestore at load time
+var _budgetDirty       = false;
+var _budgetDefaultId   = null; // from settings doc
+var _budgetDragSrcId   = null; // drag-and-drop source item localId
+
+// Pre-populated category quick-picks
+var BUDGET_CATEGORY_PRESETS = ['Household', 'Vehicles', 'Loans', 'Other', 'Personal'];
+
+// ---------------------------------------------------------------------------
+// Entry points
+// ---------------------------------------------------------------------------
+
+async function loadBudgetPage() {
+    document.getElementById('breadcrumbBar').innerHTML =
+        '<a href="#life">Life</a>' +
+        '<span class="separator">&rsaquo;</span>' +
+        '<a href="#investments">Financial</a>' +
+        '<span class="separator">&rsaquo;</span>' +
+        '<span>Budgets</span>';
+    document.getElementById('headerTitle').innerHTML =
+        '<a href="#main" class="home-link">' + escapeHtml(window.appName || 'My Life') + '</a>';
+
+    var page = document.getElementById('page-budget');
+    if (!page) return;
+    page.innerHTML = '<p class="muted-text" style="padding:16px">Loading…</p>';
+
+    await _budgetLoadMeta();
+
+    if (_budgetList.length === 0) {
+        _budgetRenderEmpty(page);
+        return;
+    }
+
+    // Load the default budget (or first in list if no default)
+    var targetId = _budgetDefaultId || _budgetList[0].id;
+    await _budgetLoadData(targetId);
+    _budgetRender(page);
+}
+
+async function loadBudgetArchivePage() {
+    document.getElementById('breadcrumbBar').innerHTML =
+        '<a href="#life">Life</a>' +
+        '<span class="separator">&rsaquo;</span>' +
+        '<a href="#investments">Financial</a>' +
+        '<span class="separator">&rsaquo;</span>' +
+        '<a href="#budget">Budgets</a>' +
+        '<span class="separator">&rsaquo;</span>' +
+        '<span>Archives</span>';
+    document.getElementById('headerTitle').innerHTML =
+        '<a href="#main" class="home-link">' + escapeHtml(window.appName || 'My Life') + '</a>';
+
+    var page = document.getElementById('page-budget-archive');
+    if (!page) return;
+    page.innerHTML = '<p class="muted-text" style="padding:16px">Loading…</p>';
+
+    var snap = await userCol('budgets').where('isArchived', '==', true).get();
+    var archived = [];
+    snap.forEach(function(doc) {
+        archived.push(Object.assign({ id: doc.id }, doc.data()));
+    });
+    archived.sort(function(a, b) { return (a.name || '').localeCompare(b.name || ''); });
+
+    var html = '<div class="page-header">' +
+        '<h2>📦 Budget Archives</h2>' +
+        '<div class="page-header-actions">' +
+            '<a class="btn btn-secondary btn-small" href="#budget">‹ Back to Budgets</a>' +
+        '</div>' +
+    '</div>';
+
+    if (archived.length === 0) {
+        html += '<p class="muted-text" style="padding:0 16px">No archived budgets.</p>';
+    } else {
+        html += '<div class="budget-archive-list">';
+        archived.forEach(function(b) {
+            html += '<div class="budget-archive-row">' +
+                '<span class="budget-archive-name">' + escapeHtml(b.name) + '</span>' +
+                '<div class="budget-archive-actions">' +
+                    '<button class="btn btn-secondary btn-small" onclick="_budgetUnarchive(\'' + b.id + '\')">Restore</button>' +
+                    '<button class="btn btn-danger btn-small" onclick="_budgetDeleteConfirm(\'' + b.id + '\', ' + JSON.stringify(b.name) + ', true)">Delete</button>' +
+                '</div>' +
+            '</div>';
+        });
+        html += '</div>';
+    }
+
+    page.innerHTML = html;
+}
+
+// ---------------------------------------------------------------------------
+// Data loading
+// ---------------------------------------------------------------------------
+
+async function _budgetLoadMeta() {
+    // Load settings for defaultBudgetId
+    try {
+        var settingsDoc = await userCol('settings').doc('llm').get();
+        // defaultBudgetId lives in 'app' settings doc
+    } catch(e) {}
+    var appSettings = await userCol('settings').doc('app').get();
+    _budgetDefaultId = appSettings.exists ? (appSettings.data().defaultBudgetId || null) : null;
+
+    // Load all non-archived budgets
+    var snap = await userCol('budgets').where('isArchived', '==', false).get();
+    _budgetList = [];
+    snap.forEach(function(doc) {
+        _budgetList.push(Object.assign({ id: doc.id }, doc.data()));
+    });
+    // Default first; then alphabetical
+    _budgetList.sort(function(a, b) {
+        if (a.id === _budgetDefaultId) return -1;
+        if (b.id === _budgetDefaultId) return 1;
+        return (a.name || '').localeCompare(b.name || '');
+    });
+}
+
+async function _budgetLoadData(budgetId) {
+    var budgetDoc = await userCol('budgets').doc(budgetId).get();
+    if (!budgetDoc.exists) return;
+
+    var data = budgetDoc.data();
+    _budgetDraft = {
+        id:         budgetId,
+        name:       data.name || '',
+        isArchived: data.isArchived || false,
+        categories:  [],
+        lineItems:   [],
+        incomeItems: []
+    };
+
+    _budgetOriginalIds = {
+        categories:  new Set(),
+        lineItems:   new Set(),
+        incomeItems: new Set()
+    };
+
+    var ref = userCol('budgets').doc(budgetId);
+
+    var [catSnap, itemSnap, incSnap] = await Promise.all([
+        ref.collection('categories').orderBy('sortOrder').get(),
+        ref.collection('lineItems').orderBy('sortOrder').get(),
+        ref.collection('incomeItems').orderBy('sortOrder').get()
+    ]);
+
+    catSnap.forEach(function(doc) {
+        _budgetDraft.categories.push(Object.assign({ firestoreId: doc.id, localId: doc.id }, doc.data()));
+        _budgetOriginalIds.categories.add(doc.id);
+    });
+    itemSnap.forEach(function(doc) {
+        _budgetDraft.lineItems.push(Object.assign({ firestoreId: doc.id, localId: doc.id }, doc.data()));
+        _budgetOriginalIds.lineItems.add(doc.id);
+    });
+    incSnap.forEach(function(doc) {
+        _budgetDraft.incomeItems.push(Object.assign({ firestoreId: doc.id, localId: doc.id }, doc.data()));
+        _budgetOriginalIds.incomeItems.add(doc.id);
+    });
+
+    _budgetDirty = false;
+}
+
+// ---------------------------------------------------------------------------
+// Rendering
+// ---------------------------------------------------------------------------
+
+function _budgetRenderEmpty(page) {
+    page.innerHTML =
+        '<div class="page-header">' +
+            '<h2>💰 Budgets</h2>' +
+        '</div>' +
+        '<div class="budget-empty">' +
+            '<p class="muted-text">No budgets yet. Create your first budget to get started.</p>' +
+            '<button class="btn btn-primary" onclick="_budgetStartCreate()">+ Create Budget</button>' +
+        '</div>';
+}
+
+function _budgetRender(page) {
+    if (!_budgetDraft) return;
+
+    var isDefault = _budgetDraft.id === _budgetDefaultId;
+    var totals    = _budgetCalcTotals();
+
+    var html = '<div class="budget-page">';
+
+    // — Header row: dropdown + archive link
+    html += '<div class="budget-header">' +
+        '<div class="budget-selector-wrap">' +
+            _budgetDropdownHtml() +
+        '</div>' +
+        '<a class="btn btn-secondary btn-small" href="#budget/archive">📦 Archives</a>' +
+    '</div>';
+
+    // — Budget name + default badge
+    html += '<div class="budget-title-row">' +
+        '<div class="budget-name-display">' +
+            '<span class="budget-name-text" id="budgetNameDisplay">' + escapeHtml(_budgetDraft.name) + '</span>' +
+            (isDefault ? '<span class="budget-default-badge">Default Budget</span>' : '') +
+            '<button class="btn-icon budget-rename-btn" onclick="_budgetStartRename()" title="Rename">✏️</button>' +
+        '</div>' +
+    '</div>';
+
+    // — Expense categories
+    html += '<div class="budget-categories" id="budgetCategories">';
+    _budgetDraft.categories.forEach(function(cat) {
+        html += _budgetCategoryHtml(cat, totals);
+    });
+    html += '</div>';
+
+    // — Add Category button
+    html += '<div class="budget-add-category-wrap">' +
+        '<button class="btn btn-secondary btn-small" onclick="_budgetShowAddCategory()">+ Add Category</button>' +
+    '</div>';
+
+    // — Add-category quick-picks panel (hidden by default)
+    html += '<div class="budget-category-picker hidden" id="budgetCategoryPicker">' +
+        '<div class="budget-picker-label">Quick-pick:</div>' +
+        '<div class="budget-picker-chips">';
+    BUDGET_CATEGORY_PRESETS.forEach(function(name) {
+        html += '<button class="budget-chip" onclick="_budgetAddCategory(\'' + escapeHtml(name) + '\')">' + escapeHtml(name) + '</button>';
+    });
+    html += '</div>' +
+        '<div class="budget-picker-custom">' +
+            '<input type="text" id="budgetCustomCatName" placeholder="Or type a custom name…" onkeydown="if(event.key===\'Enter\') _budgetAddCategoryCustom()">' +
+            '<button class="btn btn-primary btn-small" onclick="_budgetAddCategoryCustom()">Add</button>' +
+            '<button class="btn btn-secondary btn-small" onclick="_budgetHideAddCategory()">Cancel</button>' +
+        '</div>' +
+    '</div>';
+
+    // — Income section
+    html += '<div class="budget-income-section">' +
+        '<div class="budget-section-header">' +
+            '<span class="budget-section-title">Income</span>' +
+            '<span class="budget-section-subtotal">Total: <strong>' + _budgetFmt(totals.totalIncome) + '</strong></span>' +
+        '</div>' +
+        '<div class="budget-item-rows" id="budgetIncomeRows">';
+
+    _budgetDraft.incomeItems.forEach(function(item) {
+        html += _budgetIncomeRowHtml(item);
+    });
+
+    html += '</div>' +
+        '<button class="budget-add-item-btn" onclick="_budgetAddIncomeItem()">+ Add Income Line</button>' +
+    '</div>';
+
+    // — Summary
+    html += _budgetSummaryHtml(totals);
+
+    // — Action buttons
+    html += '<div class="budget-actions">' +
+        '<div class="budget-actions-primary">' +
+            '<button class="btn btn-primary" onclick="_budgetSave()" id="budgetSaveBtn">Save</button>' +
+            '<button class="btn btn-secondary" onclick="_budgetDiscardConfirm()">Discard Changes</button>' +
+        '</div>' +
+        '<div class="budget-actions-secondary">' +
+            (!isDefault ? '<button class="btn btn-secondary btn-small" onclick="_budgetSetDefault(\'' + _budgetDraft.id + '\')">Use as Default</button>' : '') +
+            '<button class="btn btn-secondary btn-small" onclick="_budgetArchiveConfirm()">Archive</button>' +
+            '<button class="btn btn-danger btn-small" onclick="_budgetDeleteConfirm(\'' + _budgetDraft.id + '\', ' + JSON.stringify(_budgetDraft.name) + ', false)">Delete</button>' +
+        '</div>' +
+    '</div>';
+
+    html += '</div>'; // .budget-page
+
+    page.innerHTML = html;
+
+    // Wire drag-to-reorder on all category row containers and income rows
+    _budgetDraft.categories.forEach(function(cat) {
+        _budgetWireItemDrag(document.getElementById('budgetCatRows_' + cat.localId));
+    });
+    _budgetWireIncomeDrag();
+}
+
+function _budgetDropdownHtml() {
+    var html = '<select class="budget-dropdown" onchange="_budgetDropdownChanged(this.value)">';
+    _budgetList.forEach(function(b) {
+        var label = b.name + (b.id === _budgetDefaultId ? ' ★' : '');
+        html += '<option value="' + b.id + '"' + (b.id === (_budgetDraft && _budgetDraft.id) ? ' selected' : '') + '>' +
+            escapeHtml(label) + '</option>';
+    });
+    html += '<option value="__new__">+ Add New Budget</option>';
+    html += '</select>';
+    return html;
+}
+
+function _budgetCategoryHtml(cat, totals) {
+    var subtotal = totals.byCat[cat.localId] || 0;
+    var items    = _budgetDraft.lineItems.filter(function(i) { return i.categoryId === cat.localId; });
+
+    var html = '<div class="budget-category" data-cat-id="' + cat.localId + '">' +
+        '<div class="budget-category-header">' +
+            '<span class="budget-category-name">' + escapeHtml(cat.name) + '</span>' +
+            '<span class="budget-category-subtotal">' + _budgetFmt(subtotal) + '</span>' +
+            '<button class="btn-icon" onclick="_budgetDeleteCategory(\'' + cat.localId + '\', ' + JSON.stringify(cat.name) + ')" title="Delete category">🗑</button>' +
+        '</div>' +
+        '<div class="budget-item-rows" data-cat-id="' + cat.localId + '" id="budgetCatRows_' + cat.localId + '">';
+
+    items.forEach(function(item) {
+        html += _budgetLineItemRowHtml(item);
+    });
+
+    html += '</div>' +
+        '<button class="budget-add-item-btn" onclick="_budgetAddLineItem(\'' + cat.localId + '\')">+ Add Item</button>' +
+    '</div>';
+
+    return html;
+}
+
+function _budgetLineItemRowHtml(item) {
+    return '<div class="budget-item-row" data-item-id="' + item.localId + '" draggable="true">' +
+        '<span class="budget-drag-handle" title="Drag to reorder">⠿</span>' +
+        '<input class="budget-item-name" type="text" value="' + escapeHtml(item.name || '') + '" placeholder="Item name"' +
+            ' onchange="_budgetLineItemChanged(\'' + item.localId + '\', \'name\', this.value)">' +
+        '<span class="budget-item-dollar">$</span>' +
+        '<input class="budget-item-amount" type="number" min="0" step="1" value="' + (item.amount || '') + '" placeholder="0"' +
+            ' oninput="_budgetLineItemChanged(\'' + item.localId + '\', \'amount\', this.value)">' +
+        '<input class="budget-item-due" type="number" min="1" max="31" value="' + (item.estDueDay || '') + '" placeholder="Day"' +
+            ' oninput="_budgetLineItemChanged(\'' + item.localId + '\', \'estDueDay\', this.value)" title="Est. due day of month">' +
+        '<button class="btn-icon budget-item-delete" onclick="_budgetDeleteLineItem(\'' + item.localId + '\')" title="Delete item">🗑</button>' +
+    '</div>';
+}
+
+function _budgetIncomeRowHtml(item) {
+    return '<div class="budget-item-row" data-income-id="' + item.localId + '" draggable="true">' +
+        '<span class="budget-drag-handle" title="Drag to reorder">⠿</span>' +
+        '<input class="budget-item-name" type="text" value="' + escapeHtml(item.name || '') + '" placeholder="Income source"' +
+            ' onchange="_budgetIncomeChanged(\'' + item.localId + '\', \'name\', this.value)">' +
+        '<span class="budget-item-dollar">$</span>' +
+        '<input class="budget-item-amount" type="number" min="0" step="1" value="' + (item.amount || '') + '" placeholder="0"' +
+            ' oninput="_budgetIncomeChanged(\'' + item.localId + '\', \'amount\', this.value)">' +
+        '<button class="btn-icon budget-item-delete" onclick="_budgetDeleteIncomeItem(\'' + item.localId + '\')" title="Delete">🗑</button>' +
+    '</div>';
+}
+
+function _budgetSummaryHtml(totals) {
+    var leftover   = totals.totalIncome - totals.totalExpenses;
+    var leftClass  = leftover >= 0 ? 'budget-leftover--positive' : 'budget-leftover--negative';
+    var visibleCats = _budgetDraft.categories.filter(function(c) {
+        return (totals.byCat[c.localId] || 0) > 0;
+    });
+
+    var html = '<div class="budget-summary">' +
+        '<div class="budget-summary-title">Summary</div>';
+
+    visibleCats.forEach(function(cat) {
+        html += '<div class="budget-summary-row">' +
+            '<span>' + escapeHtml(cat.name) + '</span>' +
+            '<span>' + _budgetFmt(totals.byCat[cat.localId]) + '</span>' +
+        '</div>';
+    });
+
+    html += '<div class="budget-summary-row budget-summary-total">' +
+        '<span>Total Expenses</span>' +
+        '<span>' + _budgetFmt(totals.totalExpenses) + '</span>' +
+    '</div>' +
+    '<div class="budget-summary-row budget-summary-total">' +
+        '<span>Total Income</span>' +
+        '<span>' + _budgetFmt(totals.totalIncome) + '</span>' +
+    '</div>' +
+    '<div class="budget-summary-row budget-summary-leftover ' + leftClass + '">' +
+        '<span>Leftover</span>' +
+        '<span>' + _budgetFmt(leftover) + '</span>' +
+    '</div>' +
+    '</div>';
+
+    return html;
+}
+
+// ---------------------------------------------------------------------------
+// Totals calculation
+// ---------------------------------------------------------------------------
+
+function _budgetCalcTotals() {
+    var byCat = {};
+    _budgetDraft.categories.forEach(function(c) { byCat[c.localId] = 0; });
+    _budgetDraft.lineItems.forEach(function(item) {
+        byCat[item.categoryId] = (byCat[item.categoryId] || 0) + (parseFloat(item.amount) || 0);
+    });
+    var totalExpenses = Object.values(byCat).reduce(function(s, v) { return s + v; }, 0);
+    var totalIncome   = _budgetDraft.incomeItems.reduce(function(s, i) { return s + (parseFloat(i.amount) || 0); }, 0);
+    return { byCat: byCat, totalExpenses: totalExpenses, totalIncome: totalIncome };
+}
+
+function _budgetFmt(n) {
+    n = Math.round(n || 0);
+    return '$' + n.toLocaleString();
+}
+
+// ---------------------------------------------------------------------------
+// Dirty-state helpers
+// ---------------------------------------------------------------------------
+
+function _budgetMarkDirty() {
+    _budgetDirty = true;
+}
+
+function _budgetCheckUnsaved(callback) {
+    if (!_budgetDirty) { callback(); return; }
+    if (confirm('You have unsaved changes. Discard them and continue?')) {
+        _budgetDirty = false;
+        callback();
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Dropdown / navigation
+// ---------------------------------------------------------------------------
+
+function _budgetDropdownChanged(val) {
+    if (val === '__new__') {
+        // Reset dropdown visual back to current budget before opening dialog
+        var sel = document.querySelector('.budget-dropdown');
+        if (sel && _budgetDraft) sel.value = _budgetDraft.id;
+        _budgetCheckUnsaved(function() { _budgetStartCreate(); });
+        return;
+    }
+    if (val === (_budgetDraft && _budgetDraft.id)) return;
+    _budgetCheckUnsaved(async function() {
+        await _budgetLoadData(val);
+        _budgetRender(document.getElementById('page-budget'));
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Create / copy budget
+// ---------------------------------------------------------------------------
+
+function _budgetStartCreate() {
+    var name = prompt('Budget name:');
+    if (name === null) return; // cancelled
+    name = name.trim();
+    if (!name) { alert('Budget name cannot be blank.'); return; }
+
+    // Offer copy-from if there are existing budgets
+    var copyFromId = null;
+    if (_budgetList.length > 0) {
+        var opts = _budgetList.map(function(b, i) { return (i + 1) + '. ' + b.name; }).join('\n');
+        var choice = prompt('Copy from an existing budget? Enter a number, or leave blank to start fresh:\n\n' + opts);
+        if (choice !== null && choice.trim() !== '') {
+            var idx = parseInt(choice.trim(), 10) - 1;
+            if (idx >= 0 && idx < _budgetList.length) {
+                copyFromId = _budgetList[idx].id;
+            }
+        }
+    }
+
+    _budgetCreateNew(name, copyFromId);
+}
+
+async function _budgetCreateNew(name, copyFromId) {
+    var page = document.getElementById('page-budget');
+    page.innerHTML = '<p class="muted-text" style="padding:16px">Creating budget…</p>';
+
+    try {
+        var newDoc = await userCol('budgets').add({
+            name:       name,
+            isArchived: false,
+            createdAt:  firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt:  firebase.firestore.FieldValue.serverTimestamp()
+        });
+        var newId = newDoc.id;
+
+        // If this is the very first budget, make it default automatically
+        if (_budgetList.length === 0) {
+            await userCol('settings').doc('app').set({ defaultBudgetId: newId }, { merge: true });
+            _budgetDefaultId = newId;
+        }
+
+        // Copy subcollections from source budget if requested
+        if (copyFromId) {
+            await _budgetCopyFrom(copyFromId, newId);
+        }
+
+        // Reload meta and navigate to new budget
+        await _budgetLoadMeta();
+        await _budgetLoadData(newId);
+        _budgetRender(page);
+    } catch(e) {
+        console.error('Error creating budget:', e);
+        page.innerHTML = '<p class="muted-text" style="padding:16px">Error creating budget. Please try again.</p>';
+    }
+}
+
+async function _budgetCopyFrom(srcId, destId) {
+    var srcRef  = userCol('budgets').doc(srcId);
+    var destRef = userCol('budgets').doc(destId);
+
+    var [catSnap, itemSnap, incSnap] = await Promise.all([
+        srcRef.collection('categories').orderBy('sortOrder').get(),
+        srcRef.collection('lineItems').orderBy('sortOrder').get(),
+        srcRef.collection('incomeItems').orderBy('sortOrder').get()
+    ]);
+
+    // Build a map of old category ID → new category ID for lineItem rewiring
+    var catIdMap = {};
+    var catBatch = db.batch();
+    catSnap.forEach(function(doc) {
+        var newRef = destRef.collection('categories').doc();
+        catIdMap[doc.id] = newRef.id;
+        catBatch.set(newRef, doc.data());
+    });
+    await catBatch.commit();
+
+    var itemBatch = db.batch();
+    itemSnap.forEach(function(doc) {
+        var d = doc.data();
+        d.categoryId = catIdMap[d.categoryId] || d.categoryId;
+        itemBatch.set(destRef.collection('lineItems').doc(), d);
+    });
+    await itemBatch.commit();
+
+    var incBatch = db.batch();
+    incSnap.forEach(function(doc) {
+        incBatch.set(destRef.collection('incomeItems').doc(), doc.data());
+    });
+    await incBatch.commit();
+}
+
+// ---------------------------------------------------------------------------
+// Rename
+// ---------------------------------------------------------------------------
+
+function _budgetStartRename() {
+    var current = _budgetDraft ? _budgetDraft.name : '';
+    var name = prompt('Budget name:', current);
+    if (name === null) return;
+    name = name.trim();
+    if (!name) { alert('Budget name cannot be blank.'); return; }
+    _budgetDraft.name = name;
+    _budgetMarkDirty();
+    // Update display
+    var el = document.getElementById('budgetNameDisplay');
+    if (el) el.textContent = name;
+    // Update dropdown option
+    var opt = document.querySelector('.budget-dropdown option[value="' + _budgetDraft.id + '"]');
+    if (opt) opt.textContent = name + (_budgetDraft.id === _budgetDefaultId ? ' ★' : '');
+}
+
+// ---------------------------------------------------------------------------
+// Set Default
+// ---------------------------------------------------------------------------
+
+async function _budgetSetDefault(budgetId) {
+    await userCol('settings').doc('app').set({ defaultBudgetId: budgetId }, { merge: true });
+    _budgetDefaultId = budgetId;
+    await _budgetLoadMeta();
+    _budgetRender(document.getElementById('page-budget'));
+}
+
+// ---------------------------------------------------------------------------
+// Archive
+// ---------------------------------------------------------------------------
+
+function _budgetArchiveConfirm() {
+    if (_budgetDraft.id === _budgetDefaultId) {
+        alert('This is your default budget. Please set another budget as default before archiving this one.');
+        return;
+    }
+    if (!confirm('Archive this budget?\n\nIt will be removed from your active list but can be restored from Archives at any time.')) return;
+    _budgetArchive(_budgetDraft.id);
+}
+
+async function _budgetArchive(budgetId) {
+    await userCol('budgets').doc(budgetId).update({
+        isArchived: true,
+        updatedAt:  firebase.firestore.FieldValue.serverTimestamp()
+    });
+    await _budgetLoadMeta();
+    var page = document.getElementById('page-budget');
+    if (_budgetList.length === 0) {
+        _budgetDraft  = null;
+        _budgetDirty  = false;
+        _budgetRenderEmpty(page);
+    } else {
+        var nextId = _budgetDefaultId || _budgetList[0].id;
+        await _budgetLoadData(nextId);
+        _budgetRender(page);
+    }
+}
+
+async function _budgetUnarchive(budgetId) {
+    await userCol('budgets').doc(budgetId).update({
+        isArchived: false,
+        updatedAt:  firebase.firestore.FieldValue.serverTimestamp()
+    });
+    loadBudgetArchivePage();
+}
+
+// ---------------------------------------------------------------------------
+// Delete
+// ---------------------------------------------------------------------------
+
+function _budgetDeleteConfirm(budgetId, budgetName, fromArchive) {
+    if (!confirm('Delete "' + budgetName + '"?\n\nThis cannot be undone.')) return;
+    _budgetDelete(budgetId, fromArchive);
+}
+
+async function _budgetDelete(budgetId, fromArchive) {
+    // Delete all subcollections first, then the budget doc
+    var ref = userCol('budgets').doc(budgetId);
+    var subs = ['categories', 'lineItems', 'incomeItems'];
+    for (var s = 0; s < subs.length; s++) {
+        var snap = await ref.collection(subs[s]).get();
+        if (!snap.empty) {
+            var batch = db.batch();
+            snap.docs.forEach(function(d) { batch.delete(d.ref); });
+            await batch.commit();
+        }
+    }
+    await ref.delete();
+
+    // If this was the default, clear it
+    if (budgetId === _budgetDefaultId) {
+        await userCol('settings').doc('app').set({ defaultBudgetId: null }, { merge: true });
+        _budgetDefaultId = null;
+    }
+
+    if (fromArchive) {
+        loadBudgetArchivePage();
+        return;
+    }
+
+    await _budgetLoadMeta();
+    var page = document.getElementById('page-budget');
+    if (_budgetList.length === 0) {
+        _budgetDraft = null;
+        _budgetDirty = false;
+        _budgetRenderEmpty(page);
+    } else {
+        var nextId = _budgetDefaultId || _budgetList[0].id;
+        await _budgetLoadData(nextId);
+        _budgetRender(page);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Categories
+// ---------------------------------------------------------------------------
+
+function _budgetShowAddCategory() {
+    document.getElementById('budgetCategoryPicker').classList.remove('hidden');
+}
+
+function _budgetHideAddCategory() {
+    document.getElementById('budgetCategoryPicker').classList.add('hidden');
+    var inp = document.getElementById('budgetCustomCatName');
+    if (inp) inp.value = '';
+}
+
+function _budgetAddCategory(name) {
+    _budgetHideAddCategory();
+    _budgetInsertCategory(name);
+}
+
+function _budgetAddCategoryCustom() {
+    var inp  = document.getElementById('budgetCustomCatName');
+    var name = inp ? inp.value.trim() : '';
+    if (!name) { alert('Please enter a category name.'); return; }
+    _budgetHideAddCategory();
+    _budgetInsertCategory(name);
+}
+
+function _budgetInsertCategory(name) {
+    var localId = 'cat_' + Date.now();
+    var sortOrder = _budgetDraft.categories.length;
+    _budgetDraft.categories.push({ localId: localId, firestoreId: null, name: name, sortOrder: sortOrder });
+    _budgetMarkDirty();
+
+    // Append category HTML without full re-render
+    var container = document.getElementById('budgetCategories');
+    if (container) {
+        var totals = _budgetCalcTotals();
+        var div = document.createElement('div');
+        div.innerHTML = _budgetCategoryHtml(_budgetDraft.categories[_budgetDraft.categories.length - 1], totals);
+        container.appendChild(div.firstChild);
+    }
+    _budgetRefreshSummary();
+}
+
+function _budgetDeleteCategory(localId, name) {
+    var itemCount = _budgetDraft.lineItems.filter(function(i) { return i.categoryId === localId; }).length;
+    var msg = itemCount > 0
+        ? 'Delete "' + name + '" and its ' + itemCount + ' item' + (itemCount === 1 ? '' : 's') + '? This cannot be undone.'
+        : 'Delete "' + name + '"? This cannot be undone.';
+    if (!confirm(msg)) return;
+
+    _budgetDraft.categories = _budgetDraft.categories.filter(function(c) { return c.localId !== localId; });
+    _budgetDraft.lineItems  = _budgetDraft.lineItems.filter(function(i) { return i.categoryId !== localId; });
+    _budgetMarkDirty();
+
+    var el = document.querySelector('[data-cat-id="' + localId + '"].budget-category');
+    if (el) el.remove();
+    _budgetRefreshSummary();
+}
+
+// ---------------------------------------------------------------------------
+// Line items
+// ---------------------------------------------------------------------------
+
+function _budgetAddLineItem(catLocalId) {
+    var localId = 'item_' + Date.now();
+    var existing = _budgetDraft.lineItems.filter(function(i) { return i.categoryId === catLocalId; });
+    _budgetDraft.lineItems.push({
+        localId:     localId,
+        firestoreId: null,
+        categoryId:  catLocalId,
+        name:        '',
+        amount:      '',
+        estDueDay:   '',
+        sortOrder:   existing.length
+    });
+    _budgetMarkDirty();
+
+    var rowsEl = document.getElementById('budgetCatRows_' + catLocalId);
+    if (rowsEl) {
+        var div = document.createElement('div');
+        div.innerHTML = _budgetLineItemRowHtml(_budgetDraft.lineItems[_budgetDraft.lineItems.length - 1]);
+        rowsEl.appendChild(div.firstChild);
+        _budgetWireItemDrag(rowsEl);
+        // Focus the name input of the new row
+        var input = rowsEl.lastElementChild && rowsEl.lastElementChild.querySelector('.budget-item-name');
+        if (input) input.focus();
+    }
+}
+
+function _budgetLineItemChanged(localId, field, value) {
+    var item = _budgetDraft.lineItems.find(function(i) { return i.localId === localId; });
+    if (!item) return;
+    if (field === 'amount' || field === 'estDueDay') {
+        item[field] = value === '' ? '' : parseInt(value, 10) || 0;
+    } else {
+        item[field] = value;
+    }
+    _budgetMarkDirty();
+    if (field === 'amount') _budgetRefreshSummary();
+}
+
+function _budgetDeleteLineItem(localId) {
+    if (!confirm('Delete this item?')) return;
+    var item = _budgetDraft.lineItems.find(function(i) { return i.localId === localId; });
+    _budgetDraft.lineItems = _budgetDraft.lineItems.filter(function(i) { return i.localId !== localId; });
+    _budgetMarkDirty();
+    var el = document.querySelector('[data-item-id="' + localId + '"]');
+    if (el) el.remove();
+    _budgetRefreshSummary();
+    // Update category subtotal display
+    if (item) _budgetRefreshCategorySubtotal(item.categoryId);
+}
+
+function _budgetRefreshCategorySubtotal(catLocalId) {
+    var totals   = _budgetCalcTotals();
+    var subtotal = totals.byCat[catLocalId] || 0;
+    var catEl    = document.querySelector('[data-cat-id="' + catLocalId + '"].budget-category');
+    if (catEl) {
+        var subtotalEl = catEl.querySelector('.budget-category-subtotal');
+        if (subtotalEl) subtotalEl.textContent = _budgetFmt(subtotal);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Income items
+// ---------------------------------------------------------------------------
+
+function _budgetAddIncomeItem() {
+    var localId = 'inc_' + Date.now();
+    _budgetDraft.incomeItems.push({
+        localId:     localId,
+        firestoreId: null,
+        name:        '',
+        amount:      '',
+        sortOrder:   _budgetDraft.incomeItems.length
+    });
+    _budgetMarkDirty();
+
+    var rowsEl = document.getElementById('budgetIncomeRows');
+    if (rowsEl) {
+        var div = document.createElement('div');
+        div.innerHTML = _budgetIncomeRowHtml(_budgetDraft.incomeItems[_budgetDraft.incomeItems.length - 1]);
+        rowsEl.appendChild(div.firstChild);
+        _budgetWireIncomeDrag();
+        var input = rowsEl.lastElementChild && rowsEl.lastElementChild.querySelector('.budget-item-name');
+        if (input) input.focus();
+    }
+}
+
+function _budgetIncomeChanged(localId, field, value) {
+    var item = _budgetDraft.incomeItems.find(function(i) { return i.localId === localId; });
+    if (!item) return;
+    item[field] = (field === 'amount') ? (value === '' ? '' : parseInt(value, 10) || 0) : value;
+    _budgetMarkDirty();
+    if (field === 'amount') _budgetRefreshSummary();
+}
+
+function _budgetDeleteIncomeItem(localId) {
+    if (!confirm('Delete this income line?')) return;
+    _budgetDraft.incomeItems = _budgetDraft.incomeItems.filter(function(i) { return i.localId !== localId; });
+    _budgetMarkDirty();
+    var el = document.querySelector('[data-income-id="' + localId + '"]');
+    if (el) el.remove();
+    _budgetRefreshSummary();
+}
+
+// ---------------------------------------------------------------------------
+// Summary refresh (partial re-render, no full page rebuild)
+// ---------------------------------------------------------------------------
+
+function _budgetRefreshSummary() {
+    var totals  = _budgetCalcTotals();
+    var summary = document.querySelector('.budget-summary');
+    if (summary) summary.outerHTML = _budgetSummaryHtml(totals);
+
+    // Refresh income total line
+    var incTotalEl = document.querySelector('.budget-income-section .budget-section-subtotal strong');
+    if (incTotalEl) incTotalEl.textContent = _budgetFmt(totals.totalIncome);
+
+    // Refresh each visible category subtotal
+    _budgetDraft.categories.forEach(function(cat) {
+        _budgetRefreshCategorySubtotal(cat.localId);
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Save / Discard
+// ---------------------------------------------------------------------------
+
+async function _budgetSave() {
+    if (!_budgetDraft) return;
+
+    var saveBtn = document.getElementById('budgetSaveBtn');
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
+
+    try {
+        var budgetRef = userCol('budgets').doc(_budgetDraft.id);
+
+        // Update the budget doc itself (name, updatedAt)
+        await budgetRef.update({
+            name:      _budgetDraft.name,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        // Upsert categories
+        var newCatIds = new Set();
+        for (var ci = 0; ci < _budgetDraft.categories.length; ci++) {
+            var cat = _budgetDraft.categories[ci];
+            cat.sortOrder = ci;
+            if (cat.firestoreId) {
+                await budgetRef.collection('categories').doc(cat.firestoreId).set({
+                    name: cat.name, sortOrder: cat.sortOrder
+                });
+                newCatIds.add(cat.firestoreId);
+            } else {
+                var newRef = await budgetRef.collection('categories').add({
+                    name: cat.name, sortOrder: cat.sortOrder
+                });
+                cat.firestoreId = newRef.id;
+                cat.localId     = newRef.id;
+                newCatIds.add(newRef.id);
+                _budgetOriginalIds.categories.add(newRef.id);
+            }
+        }
+        // Delete removed categories
+        _budgetOriginalIds.categories.forEach(async function(fid) {
+            if (!newCatIds.has(fid)) {
+                await budgetRef.collection('categories').doc(fid).delete();
+            }
+        });
+        _budgetOriginalIds.categories = newCatIds;
+
+        // Upsert line items
+        var newItemIds = new Set();
+        for (var ii = 0; ii < _budgetDraft.lineItems.length; ii++) {
+            var item = _budgetDraft.lineItems[ii];
+            item.sortOrder = ii;
+            // Resolve localId → firestoreId for categoryId
+            var cat2 = _budgetDraft.categories.find(function(c) { return c.localId === item.categoryId; });
+            var fsrCatId = cat2 ? cat2.firestoreId : item.categoryId;
+            var payload  = { categoryId: fsrCatId, name: item.name, amount: parseFloat(item.amount) || 0, estDueDay: item.estDueDay || null, sortOrder: item.sortOrder };
+            if (item.firestoreId) {
+                await budgetRef.collection('lineItems').doc(item.firestoreId).set(payload);
+                newItemIds.add(item.firestoreId);
+            } else {
+                var newIRef = await budgetRef.collection('lineItems').add(payload);
+                item.firestoreId = newIRef.id;
+                newItemIds.add(newIRef.id);
+                _budgetOriginalIds.lineItems.add(newIRef.id);
+            }
+        }
+        _budgetOriginalIds.lineItems.forEach(async function(fid) {
+            if (!newItemIds.has(fid)) await budgetRef.collection('lineItems').doc(fid).delete();
+        });
+        _budgetOriginalIds.lineItems = newItemIds;
+
+        // Upsert income items
+        var newIncIds = new Set();
+        for (var ini = 0; ini < _budgetDraft.incomeItems.length; ini++) {
+            var inc = _budgetDraft.incomeItems[ini];
+            inc.sortOrder = ini;
+            var incPayload = { name: inc.name, amount: parseFloat(inc.amount) || 0, sortOrder: inc.sortOrder };
+            if (inc.firestoreId) {
+                await budgetRef.collection('incomeItems').doc(inc.firestoreId).set(incPayload);
+                newIncIds.add(inc.firestoreId);
+            } else {
+                var newIncRef = await budgetRef.collection('incomeItems').add(incPayload);
+                inc.firestoreId = newIncRef.id;
+                newIncIds.add(newIncRef.id);
+                _budgetOriginalIds.incomeItems.add(newIncRef.id);
+            }
+        }
+        _budgetOriginalIds.incomeItems.forEach(async function(fid) {
+            if (!newIncIds.has(fid)) await budgetRef.collection('incomeItems').doc(fid).delete();
+        });
+        _budgetOriginalIds.incomeItems = newIncIds;
+
+        _budgetDirty = false;
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save'; }
+
+        // Update budget list name in case it was renamed
+        var listEntry = _budgetList.find(function(b) { return b.id === _budgetDraft.id; });
+        if (listEntry) listEntry.name = _budgetDraft.name;
+
+    } catch(e) {
+        console.error('Budget save error:', e);
+        alert('Error saving budget. Please try again.');
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save'; }
+    }
+}
+
+function _budgetDiscardConfirm() {
+    if (!_budgetDirty) return;
+    if (!confirm('Discard all unsaved changes?')) return;
+    _budgetDirty = false;
+    _budgetLoadData(_budgetDraft.id).then(function() {
+        _budgetRender(document.getElementById('page-budget'));
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Drag-to-reorder (line items within a category, and income items)
+// ---------------------------------------------------------------------------
+
+function _budgetWireItemDrag(rowsEl) {
+    if (!rowsEl) return;
+    rowsEl.querySelectorAll('.budget-item-row').forEach(function(row) {
+        row.ondragstart  = _budgetDragStart;
+        row.ondragover   = _budgetDragOver;
+        row.ondrop       = _budgetDropItem;
+        row.ondragend    = _budgetDragEnd;
+    });
+}
+
+function _budgetWireIncomeDrag() {
+    var rowsEl = document.getElementById('budgetIncomeRows');
+    if (!rowsEl) return;
+    rowsEl.querySelectorAll('.budget-item-row').forEach(function(row) {
+        row.ondragstart  = _budgetDragStart;
+        row.ondragover   = _budgetDragOver;
+        row.ondrop       = _budgetDropIncome;
+        row.ondragend    = _budgetDragEnd;
+    });
+}
+
+function _budgetDragStart(e) {
+    var row = e.currentTarget;
+    _budgetDragSrcId = row.dataset.itemId || row.dataset.incomeId;
+    row.classList.add('budget-dragging');
+    e.dataTransfer.effectAllowed = 'move';
+}
+
+function _budgetDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+}
+
+function _budgetDragEnd(e) {
+    e.currentTarget.classList.remove('budget-dragging');
+    document.querySelectorAll('.budget-item-row').forEach(function(r) { r.classList.remove('budget-drag-over'); });
+}
+
+function _budgetDropItem(e) {
+    e.preventDefault();
+    var targetRow  = e.currentTarget;
+    var targetId   = targetRow.dataset.itemId;
+    if (!targetId || targetId === _budgetDragSrcId) return;
+
+    var srcIdx  = _budgetDraft.lineItems.findIndex(function(i) { return i.localId === _budgetDragSrcId; });
+    var tgtIdx  = _budgetDraft.lineItems.findIndex(function(i) { return i.localId === targetId; });
+    if (srcIdx < 0 || tgtIdx < 0) return;
+
+    var moved = _budgetDraft.lineItems.splice(srcIdx, 1)[0];
+    _budgetDraft.lineItems.splice(tgtIdx, 0, moved);
+    _budgetMarkDirty();
+
+    // Re-render just this category's rows
+    var catLocalId = moved.categoryId;
+    var rowsEl = document.getElementById('budgetCatRows_' + catLocalId);
+    if (rowsEl) {
+        var items = _budgetDraft.lineItems.filter(function(i) { return i.categoryId === catLocalId; });
+        rowsEl.innerHTML = items.map(_budgetLineItemRowHtml).join('');
+        _budgetWireItemDrag(rowsEl);
+    }
+}
+
+function _budgetDropIncome(e) {
+    e.preventDefault();
+    var targetRow = e.currentTarget;
+    var targetId  = targetRow.dataset.incomeId;
+    if (!targetId || targetId === _budgetDragSrcId) return;
+
+    var srcIdx = _budgetDraft.incomeItems.findIndex(function(i) { return i.localId === _budgetDragSrcId; });
+    var tgtIdx = _budgetDraft.incomeItems.findIndex(function(i) { return i.localId === targetId; });
+    if (srcIdx < 0 || tgtIdx < 0) return;
+
+    var moved = _budgetDraft.incomeItems.splice(srcIdx, 1)[0];
+    _budgetDraft.incomeItems.splice(tgtIdx, 0, moved);
+    _budgetMarkDirty();
+
+    var rowsEl = document.getElementById('budgetIncomeRows');
+    if (rowsEl) {
+        rowsEl.innerHTML = _budgetDraft.incomeItems.map(_budgetIncomeRowHtml).join('');
+        _budgetWireIncomeDrag();
+    }
+}
+

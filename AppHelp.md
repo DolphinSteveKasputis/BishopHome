@@ -1701,11 +1701,11 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 ## screen:investments
 
 ### Quick Help
-- The Investments hub is a live dashboard — it shows your **Net Worth**, **Invested** total, and gain/loss for Day, Week, Month, and YTD (based on your most recent snapshot of each type)
+- The **Financial** hub (formerly "Investments") is a live dashboard — it shows your **Net Worth**, **Invested** total, and gain/loss for Day, Week, Month, and YTD (based on your most recent snapshot of each type)
 - If you have more than one group, a **Group** selector appears at the top — switch groups to see a different portfolio view
 - The **Day** row shows change vs. your most recent daily snapshot; **Week/Month/YTD** use weekly, monthly, and yearly snapshots respectively. "—" means no snapshot of that type has been captured yet
 - The **🏆 All-time high** callout shows your best net worth recorded across all snapshot types. When your current value equals or exceeds it, it displays as "NEW all-time high!"
-- Below the dashboard are nav cards linking to **Accounts**, **Summary**, **Stock Rollup**, **Snapshots**, and two coming-soon sections (Retirement Planner, Retirement Projection)
+- Below the dashboard are nav cards linking to **Accounts**, **Summary**, **Stock Rollup**, **Snapshots**, **Budgets**, and two coming-soon sections
 - Tap **⚙ Groups** (top right) to create or manage portfolio groups
 
 ---
@@ -1906,6 +1906,38 @@ Results are shown in a popup after the update completes. If any tickers failed a
 **All-Time Highs**: Orange cards showing the highest Net Worth ever recorded per snapshot type. Automatically updated whenever a new snapshot exceeds the stored high. Only appears once at least one snapshot has been captured.
 
 **Per-account breakdown**: Lists every account in the group, grouped by person, showing the account name, tax category badge, and total value. Joint accounts appear in a separate "Joint Accounts" section at the bottom.
+
+---
+
+## screen:budget
+
+### Quick Help
+- The **Budgets** page opens directly to your **default budget** — the one you use day-to-day
+- Use the **dropdown** at the top to switch between your saved budgets or create a new one
+- All edits are held in memory until you tap **Save** — you can freely adjust numbers to run "what if" scenarios without committing anything
+- Tap **Discard Changes** to revert everything back to the last saved state
+- The **Summary** section at the bottom shows each category subtotal, total income, and leftover (green = surplus, red = deficit) — it updates live as you type
+
+### Managing Budgets
+- **Add New Budget**: select from the dropdown → name dialog appears → optionally copy from an existing budget → lands on the new budget page
+- **Rename**: tap the ✏️ icon next to the budget name
+- **Use as Default**: tap the button on any non-default budget — the default budget shows a "Default Budget" badge instead
+- **Archive**: removes the budget from the dropdown but keeps it intact — restore it anytime from the Archives page
+- **Delete**: permanently removes the budget and all its data — cannot be undone
+
+### Adding Categories & Items
+- Tap **+ Add Category** to pick from quick-picks (Household, Vehicles, Loans, Other, Personal) or type a custom name
+- Within a category, tap **+ Add Item** — a new row appears with Name, Amount ($), and Est. Due Day fields
+- The due day is for your reference only — it does not trigger any reminders
+- Drag the ⠿ handle to reorder items within a category
+
+### Income Section
+- Always at the bottom — add as many lines as you want (one monthly take-home, individual paychecks, side income, etc.)
+- Drag the ⠿ handle to reorder income lines
+
+### Archives
+- Tap **📦 Archives** (top right of the budget page) to view all archived budgets
+- From there you can **Restore** a budget back to the active list or **Delete** it permanently
 
 ---
 

@@ -1132,7 +1132,7 @@ Same form as Add, pre-filled. Credential value shown **unmasked** in the form. O
 Person-scoped financial account tracker. The **canonical storage** for financial accounts — the Legacy Financial Accounts tab reads from these same records rather than duplicating them. The Investments section is structured as a hub with sub-pages.
 
 ### Life Page Tile
-Tile labeled **Investments** (📈), always visible on the Life landing page → navigates to `#investments` hub.
+Tile labeled **Financial** (📈), always visible on the Life landing page → navigates to `#investments` hub.
 
 ### Hub (`#investments`)
 Live dashboard above a static nav-card grid.
@@ -1519,6 +1519,65 @@ All files encrypted before upload. Storage never sees plaintext.
 **Firestore backup:** `BACKUP_DATA_COLLECTIONS` in `settings.js` includes all five private collections (`privateVault`, `privateBookmarks`, `privateDocuments`, `privatePhotoAlbums`, `privatePhotos`) — exported as ciphertext in the main JSON backup for Firestore disaster recovery.
 
 **Key functions:** `privateOpenBackupModal()`, `privateExportBackup()`, `privateSanitizeFilename()`, `_backupDecryptBuffer(combined, key)`, `_backupBmHtml(nodeId, nodeMap, childMap, indent)` — all in `js/private.js`.
+
+---
+
+## Part 8d: Budgets
+
+**Plan document**: `BudgetPlan.md`
+
+**JS file**: `js/budgets.js`
+
+Monthly budget planner supporting multiple named budget scenarios. Accessible from the Financial hub (`#investments`) via the **Budgets** nav card → `#budget`.
+
+### Life Page Tile
+Same **Financial** tile (📈) as Investments → Financial hub → **Budgets** card.
+
+### Hub card
+Card labeled **Budgets** (💰) in `_investHubNavCards()` → links to `#budget`.
+
+### Budget Landing Page (`#budget`)
+Loads directly to the **default budget** (no list screen). If no budgets exist, shows an empty state with a "Create Budget" prompt.
+
+**Dropdown selector** at top: lists all non-archived budgets (default first, marked ★). Includes a "+ Add New Budget" option. Switching with unsaved changes prompts: *"You have unsaved changes. Discard them and continue?"*
+
+**Budget name row**: displays current budget name, a "Default Budget" badge if applicable, and a rename (✏️) button.
+
+### Budget Structure
+Each budget has three data layers stored as Firestore subcollections:
+
+**Categories** — expense groupings (e.g., Household, Vehicles). Pre-populated quick-picks: Household, Vehicles, Loans, Other, Personal. User can add custom names. Each category shows a subtotal. Categories can be deleted (with items — confirmation required).
+
+**Line items** — within each category: Name, Amount (whole dollars), Est. Due Day (display only). Always-visible input rows. Drag handle (⠿) to reorder within a category.
+
+**Income section** — always at the bottom of the page. Free-form lines: Name + Amount. Drag-to-reorder. Shows a running Total Income.
+
+**Summary section** — below income. Shows only categories with subtotal > $0, Total Expenses, Total Income, and Leftover (green if positive, red if negative).
+
+### Save / Discard Model
+All edits are held in memory until **Save** is clicked — nothing writes to Firestore until then. **Discard Changes** reverts to last saved state (confirmation required if dirty). Navigating away or switching budgets with unsaved changes shows a warning dialog.
+
+### Budget Actions
+- **Use as Default** — visible on non-default budgets; promotes to default (stored in `userCol('settings').doc('app').defaultBudgetId`)
+- **Archive** — soft confirm; moves budget off dropdown. Blocked if it is the current default.
+- **Delete** — hard confirm "cannot be undone"; deletes doc + all subcollections. Allowed on any budget including last one (clears `defaultBudgetId`).
+
+### Create / Copy Budget
+"+ Add New Budget" in dropdown → name dialog (non-blank required) → optional "Copy From" (numbered list of existing budgets) → new budget created in Firestore, navigated to immediately. First budget created is automatically set as default.
+
+### Archive Page (`#budget/archive`)
+Lists all archived budgets. Each row: name, **Restore** (unarchive) and **Delete** buttons.
+
+### Firestore Data Model
+| Collection / Subcollection | Key fields |
+|---|---|
+| `budgets` | `name`, `isArchived`, `createdAt`, `updatedAt` |
+| `budgets/{id}/categories` | `name`, `sortOrder` |
+| `budgets/{id}/lineItems` | `categoryId`, `name`, `amount`, `estDueDay`, `sortOrder` |
+| `budgets/{id}/incomeItems` | `name`, `amount`, `sortOrder` |
+| `settings/app` | `defaultBudgetId` |
+
+Subcollections included in Firestore backup via `BUDGET_SUBCOLLECTIONS` in `settings.js`.
 
 ---
 

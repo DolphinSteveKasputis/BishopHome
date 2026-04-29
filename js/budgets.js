@@ -881,10 +881,12 @@ function _budgetRefreshSummary() {
     }
 }
 
-function _budgetGoToNonMonthly() {
-    _budgetCheckUnsaved(function() {
-        window.location.hash = '#budget/nonmonthly/' + _budgetDraft.id;
-    });
+async function _budgetGoToNonMonthly() {
+    if (_budgetDirty) {
+        if (!confirm('You have unsaved changes. Save before continuing?')) return;
+        await _budgetSave();
+    }
+    window.location.hash = '#budget/nonmonthly/' + _budgetDraft.id;
 }
 
 // ---------------------------------------------------------------------------

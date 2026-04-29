@@ -156,9 +156,13 @@ async function _budgetLoadData(budgetId) {
         ref.collection('nonMonthlyItems').orderBy('sortOrder').get()
     ]);
 
+    // Reset collapse state — all categories start collapsed by default
+    _budgetCollapsed = { '__nonmonthly__': true };
+
     catSnap.forEach(function(doc) {
         _budgetDraft.categories.push(Object.assign({ firestoreId: doc.id, localId: doc.id }, doc.data()));
         _budgetOriginalIds.categories.add(doc.id);
+        _budgetCollapsed[doc.id] = true; // collapsed by default
     });
     itemSnap.forEach(function(doc) {
         _budgetDraft.lineItems.push(Object.assign({ firestoreId: doc.id, localId: doc.id }, doc.data()));
@@ -725,6 +729,7 @@ function _budgetInsertCategory(name) {
     var localId = 'cat_' + Date.now();
     var sortOrder = _budgetDraft.categories.length;
     _budgetDraft.categories.push({ localId: localId, firestoreId: null, name: name, sortOrder: sortOrder });
+    _budgetCollapsed[localId] = true; // new categories start collapsed
     _budgetMarkDirty();
 
     // Append category HTML without full re-render

@@ -1603,8 +1603,10 @@ function _investShowPriceResultModal(updatedCount, failed, failedMsg, workerUrl)
         });
         html += '</ul>';
         if (!workerUrl) {
-            html += '<div class="invest-price-tip">💡 Having consistent failures? Set up a <strong>Cloudflare Worker proxy</strong> ' +
-                    'in <strong>Settings → General Settings → Investments</strong> for reliable mutual fund price fetching.</div>';
+            html += '<div class="invest-price-tip">💡 Failures are often caused by a network firewall or security tool ' +
+                    '(e.g. ZScaler on a work machine) blocking the public proxy calls. Setting up a ' +
+                    '<strong>Cloudflare Worker proxy</strong> in <strong>Settings → General Settings → Investments</strong> ' +
+                    'bypasses this and gives reliable prices for stocks and mutual funds.</div>';
         }
         body.innerHTML = html;
         openModal('investPriceResultModal');

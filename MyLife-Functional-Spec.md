@@ -1579,6 +1579,24 @@ Lists all archived budgets. Each row: name, **Restore** (unarchive) and **Delete
 
 Subcollections included in Firestore backup via `BUDGET_SUBCOLLECTIONS` in `settings.js`.
 
+### Phase 2: Non-Monthly Expenses
+
+**Sub-screen**: `#budget/nonmonthly/:budgetId` → `loadBudgetNonMonthlyPage(budgetId)`
+
+A per-budget list of non-monthly expenses (annual, quarterly, etc.). Each item has a name, flat annual amount, optional notes, and an **active** checkbox. Only active items count toward the monthly reserve. Auto-saves every change directly to Firestore — no Save button.
+
+**Monthly Reserve** = `sum(active item amounts) ÷ 12`, rounded to whole dollar.
+
+**Non-Monthly Reserve auto-category** on the main budget page:
+- Always present, read-only, cannot be deleted (visually distinct — purple header)
+- Shows computed `/mo` reserve and a "Manage" button navigating to the sub-screen
+- Navigating while main budget has unsaved changes triggers the unsaved-changes warning
+- Reserve counted in Total Expenses and shown as a row in the Summary section (hidden if $0)
+
+**Sub-screen layout**: reserve summary bar (total/mo, active count, annual ÷ 12) → column headers → item rows → "+ Add Item" button.
+
+**Subcollection**: `budgets/{id}/nonMonthlyItems` — fields: `name`, `amount`, `notes`, `isActive`, `sortOrder`, `createdAt`. Included in `BUDGET_SUBCOLLECTIONS` backup. Copied when using Copy Budget.
+
 ---
 
 ## Part 9: Places & Check-In

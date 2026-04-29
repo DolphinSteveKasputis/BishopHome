@@ -801,7 +801,7 @@ function backupTimestamp() {
 }
 
 // Subcollections nested under each budgets document
-var BUDGET_SUBCOLLECTIONS = ['categories', 'lineItems', 'incomeItems'];
+var BUDGET_SUBCOLLECTIONS = ['categories', 'lineItems', 'incomeItems', 'nonMonthlyItems'];
 
 // Subcollections nested under each lifeProjects document
 var LP_SUBCOLLECTIONS = [

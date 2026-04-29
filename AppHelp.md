@@ -1918,6 +1918,12 @@ Results are shown in a popup after the update completes. If any tickers failed a
 - Tap **Discard Changes** to revert everything back to the last saved state
 - The **Summary** section at the bottom shows each category subtotal, total income, and leftover (green = surplus, red = deficit) — it updates live as you type
 
+### Non-Monthly Reserve
+- Every budget has a **Non-Monthly Reserve** section (purple header) — it's read-only and cannot be deleted
+- It shows your computed monthly reserve: the sum of all active non-monthly items divided by 12
+- Tap **Manage** to open the Non-Monthly Expenses screen where you add, edit, and toggle items
+- The reserve counts toward your Total Expenses and appears in the Summary section
+
 ### Managing Budgets
 - **Add New Budget**: select from the dropdown → name dialog appears → optionally copy from an existing budget → lands on the new budget page
 - **Rename**: tap the ✏️ icon next to the budget name
@@ -1938,6 +1944,28 @@ Results are shown in a popup after the update completes. If any tickers failed a
 ### Archives
 - Tap **📦 Archives** (top right of the budget page) to view all archived budgets
 - From there you can **Restore** a budget back to the active list or **Delete** it permanently
+
+---
+
+## screen:budget-nonmonthly
+
+### Quick Help
+- This screen lists all non-monthly expenses tied to the current budget — things like car registration, HOA dues, holiday spending, or any annual/irregular cost
+- **Check the box** next to an item to include it in the monthly reserve; **uncheck** to exclude it without deleting it — great for "what-if" scenarios
+- The **Monthly Reserve** bar at the top updates live as you toggle items or change amounts
+- All changes **save automatically** — there is no Save button on this screen
+- Tap **‹ Back to Budget** to return to the main budget page, which will reflect the updated reserve
+
+### Adding & Editing Items
+- Tap **+ Add Item** to append a new row — the name field is focused automatically
+- Fill in: **Name**, **Annual $** (the total for the year — use Notes to explain frequency), and optional **Notes**
+- Click or tap away from a field to save it
+- To delete an item, tap the 🗑 icon and confirm — this cannot be undone
+
+### How the Reserve Works
+- Monthly Reserve = sum of all **active** item annual amounts ÷ 12
+- Example: car registration $240 + HOA $600 + holiday $1,200 = $2,040 annual → $170/mo reserve
+- This figure flows back to the main budget page as the **Non-Monthly Reserve** category and counts toward Total Expenses
 
 ---
 

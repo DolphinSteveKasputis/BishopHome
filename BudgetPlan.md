@@ -286,6 +286,117 @@ Household, Vehicles, Loans, Other, Personal
 ---
 
 ## Out of Scope for Phase 1
-- One-time / annual items → Phase 2
+- One-time / annual items → Phase 2 (below)
 - Budget comparison → likely never
 - Calendar integration from due days → FutureEnhancements.md
+
+---
+
+## Phase 2: Non-Monthly Expenses
+
+### Core Concept
+A budget can have a list of **non-monthly expenses** — annual, semi-annual, quarterly, or one-time costs (e.g., car registration, HOA dues, holiday spending, insurance annual premium, vacation fund). The user enters each item with a name, amount, and optional notes. Only **active** items count toward the sum. The system sums active amounts and divides by 12 to produce a **monthly reserve** figure that feeds into the budget.
+
+### Navigation
+- Accessed from the main budget page via a button/link on the Non-Monthly Reserve auto-category
+- Dedicated sub-screen: `#budget/nonmonthly/:budgetId`
+- Breadcrumb navigates back to the main budget page
+
+### Non-Monthly Item Fields
+- **Active** (checkbox): checked = counts toward reserve, unchecked = excluded. Defaults to checked on creation. Allows "what-if" toggling without deleting items.
+- **Name**: free-form (e.g., "Car Registration", "HOA Annual Dues", "Holiday Budget")
+- **Amount**: flat annual total in whole dollars (user does their own frequency math; use Notes to explain)
+- **Notes**: optional free-form (e.g., "due in March, billed quarterly × 4")
+
+### Monthly Reserve Calculation
+`Monthly Reserve = sum(active item amounts) ÷ 12` (rounded to whole dollar)
+
+Inactive items are excluded from the sum. Toggling active/inactive updates the reserve live.
+
+### Sorting
+Add-order only. `sortOrder` field included for potential future drag-to-reorder, but not implemented in Phase 2.
+
+### Auto-Category on Main Budget Page
+- A **"Non-Monthly Reserve"** category is always present on every budget
+- It is **read-only** and **cannot be deleted**
+- Its subtotal is auto-populated from the monthly reserve calculation (not a manually editable line item)
+- By default it shows **$0** until non-monthly items are added
+- It includes a **"Manage →"** link that navigates to the non-monthly sub-screen
+- The reserve **counts toward Total Expenses** in the summary (same as any other category)
+- The reserve also appears as its own row in the Summary section
+
+### Copy Budget
+When copying a budget, non-monthly items are copied over (with their active state preserved).
+
+### Firestore
+New subcollection: `budgets/{id}/nonMonthlyItems`
+| Field | Type | Notes |
+|---|---|---|
+| name | string | |
+| amount | number | Whole dollars — flat annual total |
+| notes | string | Optional |
+| isActive | boolean | true = counts toward reserve |
+| sortOrder | number | Add-order; reserved for future reorder |
+| createdAt | timestamp | |
+
+---
+
+## Phase 2 Build Checklist (resume from first unchecked item)
+
+### Step 1 — Routing & HTML
+- [ ] Add `'budget-nonmonthly'` to ALL_PAGES and LIFE_PAGES in app.js
+- [ ] Add `#budget/nonmonthly/:id` route handler in app.js
+- [ ] Add `<section id="page-budget-nonmonthly">` in index.html
+- [ ] Bump budgets.js and app.js script tags to v=653
+
+### Step 2 — budgets.js: draft + totals
+- [ ] Add `_nmItems`, `_nmBudgetId` state vars
+- [ ] Add `nonMonthlyItems: []` to `_budgetDraft` in `_budgetLoadData()`
+- [ ] Load `nonMonthlyItems` subcollection in `_budgetLoadData()` (4th query)
+- [ ] Add `nonMonthlyReserve` to `_budgetCalcTotals()` — active items sum ÷ 12, rounded; add to `totalExpenses`
+
+### Step 3 — budgets.js: main page rendering
+- [ ] Add `_budgetGoToNonMonthly()` helper (checks unsaved, then navigates)
+- [ ] Add Non-Monthly Reserve auto-category block in `_budgetRender()` (after user categories, before Add Category button)
+- [ ] Add Non-Monthly Reserve row to `_budgetSummaryHtml()` (shown if reserve > $0, above Total Expenses)
+- [ ] Update `_budgetRefreshSummary()` to also refresh the auto-category subtotal display
+
+### Step 4 — budgets.js: copy & delete
+- [ ] Update `_budgetCopyFrom()` to copy `nonMonthlyItems` subcollection
+- [ ] Update `_budgetDelete()` to include `'nonMonthlyItems'` in subs array
+
+### Step 5 — budgets.js: non-monthly sub-screen
+- [ ] `loadBudgetNonMonthlyPage(budgetId)` — entry point, sets breadcrumb, loads items, renders
+- [ ] `_nmRender(page)` — renders full sub-screen: reserve header, item list, add button
+- [ ] `_nmItemRowHtml(item)` — checkbox, name, amount, notes, delete button
+- [ ] `_nmCalcReserve()` — sum active amounts ÷ 12
+- [ ] `_nmRefreshReserve()` — updates the reserve display without full re-render
+- [ ] `_nmAddItem()` — creates new Firestore doc, appends row, focuses name input
+- [ ] `_nmToggleActive(itemId, checked)` — auto-saves `isActive` immediately
+- [ ] `_nmFieldChanged(itemId, field, value)` — auto-saves on blur
+- [ ] `_nmDeleteItem(itemId)` — confirm, delete Firestore doc, remove row, refresh reserve
+
+### Step 6 — Backup
+- [ ] Add `'nonMonthlyItems'` to `BUDGET_SUBCOLLECTIONS` in settings.js
+
+### Step 7 — CSS
+- [ ] Non-monthly auto-category styles (distinct read-only header)
+- [ ] Non-monthly sub-screen styles (item rows with checkbox, name, amount, notes)
+- [ ] Reserve summary bar styles on sub-screen
+
+### Step 8 — Pre-commit
+- [ ] Update `MyLife-Functional-Spec.md` (Phase 2 Non-Monthly section)
+- [ ] Update `AppHelp.md` (`## screen:budget-nonmonthly` + update `## screen:budget`)
+- [ ] Bump `CACHE_NAME` in sw.js → `bishop-v188`
+- [ ] Bump `?v=` on changed files in index.html to v=653
+
+### Step 9 — Commit & push
+- [ ] `git add` + `git commit` + notify + `git push`
+
+---
+
+## Decisions — Phase 2
+
+1. **Sub-screen save model**: Auto-save — each toggle or field edit writes to Firestore immediately. No Save button on the sub-screen.
+2. **Entry point label**: "Manage" button on the Non-Monthly Reserve auto-category header.
+3. **Navigating away from main budget page**: The existing unsaved-changes warning fires when the user navigates to the non-monthly sub-screen while the main budget has dirty state. User must Save or Discard before leaving.

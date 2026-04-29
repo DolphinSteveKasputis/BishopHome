@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=652">
+    <link rel="stylesheet" href="css/styles.css?v=653">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -6999,6 +6999,11 @@ service firebase.storage {
             <!-- Populated by loadBudgetArchivePage() in budgets.js -->
         </section>
 
+        <!-- Page: Non-Monthly Expenses (#budget/nonmonthly/:id) -->
+        <section class="page hidden" id="page-budget-nonmonthly">
+            <!-- Populated by loadBudgetNonMonthlyPage() in budgets.js -->
+        </section>
+
         <!-- Modal: Capture Snapshot -->
         <div class="modal-overlay" id="investSnapModal">
             <div class="modal">
@@ -10559,7 +10564,7 @@ export default {
     <script src="js/gps.js?v=350"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="js/gcal.js?v=6"></script>
-    <script src="js/settings.js?v=652"></script>
+    <script src="js/settings.js?v=653"></script>
     <script src="js/devnotes.js?v=376"></script>
     <script src="js/house.js?v=537"></script>
     <script src="js/floorplan.js?v=398"></script>
@@ -10597,9 +10602,9 @@ export default {
     <script src="js/legacy.js?v=28"></script>
     <script src="js/credentials.js?v=583"></script>
     <script src="js/investments.js?v=652"></script>
-    <script src="js/budgets.js?v=652"></script>
+    <script src="js/budgets.js?v=653"></script>
     <script src="js/private.js?v=579"></script>
-    <script src="js/app.js?v=652"></script>
+    <script src="js/app.js?v=653"></script>
 
 </body>
 </html>

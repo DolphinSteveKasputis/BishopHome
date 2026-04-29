@@ -147,7 +147,7 @@ const TOP_LEVEL_PAGES = ['home', 'weeds', 'calendar', 'chemicals', 'actions', 'h
                          'private', 'private-bookmarks', 'private-documents', 'private-photos', 'private-photos-gallery',
                          'credentials',
                          'thoughts', 'top10lists', 'memories', 'views',
-                         'budget', 'budget-archive'];
+                         'budget', 'budget-archive', 'budget-nonmonthly'];
 
 /**
  * All pages that can be shown (includes detail pages not in the nav).
@@ -179,7 +179,7 @@ const ALL_PAGES = [
     'view', 'view-history', 'views-categories',
     'credentials-add', 'credentials-edit', 'credentials-categories',
     'investments', 'investments-accounts', 'investments-account', 'investments-groups', 'investments-form', 'investments-summary', 'investments-snapshots', 'investments-stocks',
-    'budget', 'budget-archive',
+    'budget', 'budget-archive', 'budget-nonmonthly',
     'help'
 ];
 
@@ -218,7 +218,7 @@ const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'jo
                      'private', 'private-bookmarks', 'private-documents', 'private-photos', 'private-photos-gallery',
                      'credentials', 'credentials-add', 'credentials-edit', 'credentials-categories',
                      'investments', 'investments-accounts', 'investments-account', 'investments-groups', 'investments-form', 'investments-summary', 'investments-snapshots', 'investments-stocks',
-                     'budget', 'budget-archive'];
+                     'budget', 'budget-archive', 'budget-nonmonthly'];
 
 /** Tracks which nav context is currently active ('yard', 'house', or 'life'). */
 var currentNavContext = 'yard';
@@ -789,6 +789,9 @@ function handleRoute() {
         showPage('legacy');
         loadLegacyPage();
     // ---------- Budget routes ----------
+    } else if (page === 'budget' && id === 'nonmonthly' && parts[2]) {
+        showPage('budget-nonmonthly');
+        loadBudgetNonMonthlyPage(parts[2]);
     } else if (page === 'budget' && id === 'archive') {
         showPage('budget-archive');
         loadBudgetArchivePage();

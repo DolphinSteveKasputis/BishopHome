@@ -11,6 +11,10 @@ var _budgetDirty       = false;
 var _budgetDefaultId   = null; // from settings doc
 var _budgetDragSrcId   = null; // drag-and-drop source item localId
 
+// Non-monthly sub-screen state
+var _nmBudgetId = null;
+var _nmItems    = [];
+
 // Pre-populated category quick-picks
 var BUDGET_CATEGORY_PRESETS = ['Household', 'Vehicles', 'Loans', 'Other', 'Personal'];
 
@@ -127,12 +131,13 @@ async function _budgetLoadData(budgetId) {
 
     var data = budgetDoc.data();
     _budgetDraft = {
-        id:         budgetId,
-        name:       data.name || '',
-        isArchived: data.isArchived || false,
-        categories:  [],
-        lineItems:   [],
-        incomeItems: []
+        id:              budgetId,
+        name:            data.name || '',
+        isArchived:      data.isArchived || false,
+        categories:      [],
+        lineItems:       [],
+        incomeItems:     [],
+        nonMonthlyItems: []
     };
 
     _budgetOriginalIds = {
@@ -143,10 +148,11 @@ async function _budgetLoadData(budgetId) {
 
     var ref = userCol('budgets').doc(budgetId);
 
-    var [catSnap, itemSnap, incSnap] = await Promise.all([
+    var [catSnap, itemSnap, incSnap, nmSnap] = await Promise.all([
         ref.collection('categories').orderBy('sortOrder').get(),
         ref.collection('lineItems').orderBy('sortOrder').get(),
-        ref.collection('incomeItems').orderBy('sortOrder').get()
+        ref.collection('incomeItems').orderBy('sortOrder').get(),
+        ref.collection('nonMonthlyItems').orderBy('sortOrder').get()
     ]);
 
     catSnap.forEach(function(doc) {
@@ -160,6 +166,9 @@ async function _budgetLoadData(budgetId) {
     incSnap.forEach(function(doc) {
         _budgetDraft.incomeItems.push(Object.assign({ firestoreId: doc.id, localId: doc.id }, doc.data()));
         _budgetOriginalIds.incomeItems.add(doc.id);
+    });
+    nmSnap.forEach(function(doc) {
+        _budgetDraft.nonMonthlyItems.push(Object.assign({ id: doc.id }, doc.data()));
     });
 
     _budgetDirty = false;
@@ -211,6 +220,23 @@ function _budgetRender(page) {
         html += _budgetCategoryHtml(cat, totals);
     });
     html += '</div>';
+
+    // — Non-Monthly Reserve auto-category (always present, read-only)
+    var activeNmCount = (_budgetDraft.nonMonthlyItems || []).filter(function(i) { return i.isActive !== false; }).length;
+    var totalNmCount  = (_budgetDraft.nonMonthlyItems || []).length;
+    html += '<div class="budget-category budget-nonmonthly-cat">' +
+        '<div class="budget-category-header">' +
+            '<span class="budget-category-name">💼 Non-Monthly Reserve</span>' +
+            '<span class="budget-category-subtotal" id="nmReserveSubtotal">' + _budgetFmt(totals.nonMonthlyReserve) + '/mo</span>' +
+            '<button class="btn btn-secondary btn-small" onclick="_budgetGoToNonMonthly()">Manage</button>' +
+        '</div>' +
+        '<div class="budget-nonmonthly-desc" id="nmReserveDesc">' +
+            (totalNmCount === 0
+                ? '<span class="muted-text">No non-monthly items yet. Tap Manage to add them.</span>'
+                : activeNmCount + ' of ' + totalNmCount + ' items active &middot; ' +
+                  _budgetFmt(totals.nonMonthlyReserve * 12) + ' annual &divide; 12') +
+        '</div>' +
+    '</div>';
 
     // — Add Category button
     html += '<div class="budget-add-category-wrap">' +
@@ -353,6 +379,13 @@ function _budgetSummaryHtml(totals) {
         '</div>';
     });
 
+    if (totals.nonMonthlyReserve > 0) {
+        html += '<div class="budget-summary-row">' +
+            '<span>💼 Non-Monthly Reserve</span>' +
+            '<span>' + _budgetFmt(totals.nonMonthlyReserve) + '</span>' +
+        '</div>';
+    }
+
     html += '<div class="budget-summary-row budget-summary-total">' +
         '<span>Total Expenses</span>' +
         '<span>' + _budgetFmt(totals.totalExpenses) + '</span>' +
@@ -380,9 +413,14 @@ function _budgetCalcTotals() {
     _budgetDraft.lineItems.forEach(function(item) {
         byCat[item.categoryId] = (byCat[item.categoryId] || 0) + (parseFloat(item.amount) || 0);
     });
-    var totalExpenses = Object.values(byCat).reduce(function(s, v) { return s + v; }, 0);
+    var nonMonthlyReserve = Math.round(
+        (_budgetDraft.nonMonthlyItems || [])
+            .filter(function(i) { return i.isActive !== false; })
+            .reduce(function(s, i) { return s + (parseFloat(i.amount) || 0); }, 0) / 12
+    );
+    var totalExpenses = Object.values(byCat).reduce(function(s, v) { return s + v; }, 0) + nonMonthlyReserve;
     var totalIncome   = _budgetDraft.incomeItems.reduce(function(s, i) { return s + (parseFloat(i.amount) || 0); }, 0);
-    return { byCat: byCat, totalExpenses: totalExpenses, totalIncome: totalIncome };
+    return { byCat: byCat, nonMonthlyReserve: nonMonthlyReserve, totalExpenses: totalExpenses, totalIncome: totalIncome };
 }
 
 function _budgetFmt(n) {
@@ -518,6 +556,13 @@ async function _budgetCopyFrom(srcId, destId) {
         incBatch.set(destRef.collection('incomeItems').doc(), doc.data());
     });
     await incBatch.commit();
+
+    var nmSnap = await srcRef.collection('nonMonthlyItems').orderBy('sortOrder').get();
+    var nmBatch = db.batch();
+    nmSnap.forEach(function(doc) {
+        nmBatch.set(destRef.collection('nonMonthlyItems').doc(), doc.data());
+    });
+    await nmBatch.commit();
 }
 
 // ---------------------------------------------------------------------------
@@ -602,7 +647,7 @@ function _budgetDeleteConfirm(budgetId, budgetName, fromArchive) {
 async function _budgetDelete(budgetId, fromArchive) {
     // Delete all subcollections first, then the budget doc
     var ref = userCol('budgets').doc(budgetId);
-    var subs = ['categories', 'lineItems', 'incomeItems'];
+    var subs = ['categories', 'lineItems', 'incomeItems', 'nonMonthlyItems'];
     for (var s = 0; s < subs.length; s++) {
         var snap = await ref.collection(subs[s]).get();
         if (!snap.empty) {
@@ -821,6 +866,25 @@ function _budgetRefreshSummary() {
     _budgetDraft.categories.forEach(function(cat) {
         _budgetRefreshCategorySubtotal(cat.localId);
     });
+
+    // Refresh non-monthly reserve display
+    var nmSubtotal = document.getElementById('nmReserveSubtotal');
+    if (nmSubtotal) nmSubtotal.textContent = _budgetFmt(totals.nonMonthlyReserve) + '/mo';
+    var nmDesc = document.getElementById('nmReserveDesc');
+    if (nmDesc) {
+        var activeNmCount = (_budgetDraft.nonMonthlyItems || []).filter(function(i) { return i.isActive !== false; }).length;
+        var totalNmCount  = (_budgetDraft.nonMonthlyItems || []).length;
+        nmDesc.innerHTML = totalNmCount === 0
+            ? '<span class="muted-text">No non-monthly items yet. Tap Manage to add them.</span>'
+            : activeNmCount + ' of ' + totalNmCount + ' items active &middot; ' +
+              _budgetFmt(totals.nonMonthlyReserve * 12) + ' annual &divide; 12';
+    }
+}
+
+function _budgetGoToNonMonthly() {
+    _budgetCheckUnsaved(function() {
+        window.location.hash = '#budget/nonmonthly/' + _budgetDraft.id;
+    });
 }
 
 // ---------------------------------------------------------------------------
@@ -1025,3 +1089,210 @@ function _budgetDropIncome(e) {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Non-Monthly Expenses sub-screen  (#budget/nonmonthly/:id)
+// Auto-saves every change directly to Firestore — no Save button.
+// ---------------------------------------------------------------------------
+
+async function loadBudgetNonMonthlyPage(budgetId) {
+    _nmBudgetId = budgetId;
+    _nmItems    = [];
+
+    // Load the budget name for the breadcrumb
+    var budgetDoc = await userCol('budgets').doc(budgetId).get();
+    var budgetName = budgetDoc.exists ? (budgetDoc.data().name || 'Budget') : 'Budget';
+
+    document.getElementById('breadcrumbBar').innerHTML =
+        '<a href="#life">Life</a>' +
+        '<span class="separator">&rsaquo;</span>' +
+        '<a href="#investments">Financial</a>' +
+        '<span class="separator">&rsaquo;</span>' +
+        '<a href="#budget">Budgets</a>' +
+        '<span class="separator">&rsaquo;</span>' +
+        '<a href="#budget" onclick="void(0)">' + escapeHtml(budgetName) + '</a>' +
+        '<span class="separator">&rsaquo;</span>' +
+        '<span>Non-Monthly</span>';
+    document.getElementById('headerTitle').innerHTML =
+        '<a href="#main" class="home-link">' + escapeHtml(window.appName || 'My Life') + '</a>';
+
+    var page = document.getElementById('page-budget-nonmonthly');
+    if (!page) return;
+    page.innerHTML = '<p class="muted-text" style="padding:16px">Loading…</p>';
+
+    var snap = await userCol('budgets').doc(budgetId).collection('nonMonthlyItems')
+        .orderBy('sortOrder').get();
+    snap.forEach(function(doc) {
+        _nmItems.push(Object.assign({ id: doc.id }, doc.data()));
+    });
+
+    _nmRender(page);
+}
+
+function _nmRender(page) {
+    var reserve = _nmCalcReserve();
+    var activeCount = _nmItems.filter(function(i) { return i.isActive !== false; }).length;
+    var annualTotal = _nmItems
+        .filter(function(i) { return i.isActive !== false; })
+        .reduce(function(s, i) { return s + (parseFloat(i.amount) || 0); }, 0);
+
+    var html = '<div class="page-header">' +
+        '<h2>💼 Non-Monthly Expenses</h2>' +
+        '<div class="page-header-actions">' +
+            '<a class="btn btn-secondary btn-small" href="#budget">‹ Back to Budget</a>' +
+        '</div>' +
+    '</div>';
+
+    // Reserve summary bar
+    html += '<div class="nm-reserve-bar" id="nmReserveBar">' +
+        '<div class="nm-reserve-main">' +
+            '<span class="nm-reserve-label">Monthly Reserve</span>' +
+            '<span class="nm-reserve-amount" id="nmReserveAmount">' + _budgetFmt(reserve) + '<span class="nm-reserve-per">/mo</span></span>' +
+        '</div>' +
+        '<div class="nm-reserve-detail" id="nmReserveDetail">' +
+            (activeCount > 0
+                ? _budgetFmt(annualTotal) + ' annual &divide; 12 &nbsp;&middot;&nbsp; ' + activeCount + ' active item' + (activeCount === 1 ? '' : 's')
+                : 'No active items') +
+        '</div>' +
+    '</div>';
+
+    // Column headers
+    html += '<div class="nm-col-headers">' +
+        '<span class="nm-col-active">Active</span>' +
+        '<span class="nm-col-name">Name</span>' +
+        '<span class="nm-col-amount">Annual $</span>' +
+        '<span class="nm-col-notes">Notes</span>' +
+        '<span class="nm-col-del"></span>' +
+    '</div>';
+
+    // Item list
+    html += '<div class="nm-item-list" id="nmItemList">';
+    _nmItems.forEach(function(item) {
+        html += _nmItemRowHtml(item);
+    });
+    html += '</div>';
+
+    // Add button
+    html += '<div class="nm-add-wrap">' +
+        '<button class="btn btn-secondary" onclick="_nmAddItem()">+ Add Item</button>' +
+    '</div>';
+
+    page.innerHTML = html;
+}
+
+function _nmItemRowHtml(item) {
+    var isActive = item.isActive !== false;
+    return '<div class="nm-item-row' + (isActive ? '' : ' nm-item-inactive') + '" data-nm-id="' + item.id + '">' +
+        '<span class="nm-col-active">' +
+            '<input type="checkbox" class="nm-checkbox"' + (isActive ? ' checked' : '') +
+                ' onchange="_nmToggleActive(\'' + item.id + '\', this.checked)">' +
+        '</span>' +
+        '<span class="nm-col-name">' +
+            '<input type="text" class="nm-input-name" value="' + escapeHtml(item.name || '') + '" placeholder="Item name"' +
+                ' onblur="_nmFieldChanged(\'' + item.id + '\', \'name\', this.value)">' +
+        '</span>' +
+        '<span class="nm-col-amount">' +
+            '<input type="number" class="nm-input-amount" min="0" step="1" value="' + (item.amount || '') + '" placeholder="0"' +
+                ' onblur="_nmFieldChanged(\'' + item.id + '\', \'amount\', this.value)">' +
+        '</span>' +
+        '<span class="nm-col-notes">' +
+            '<input type="text" class="nm-input-notes" value="' + escapeHtml(item.notes || '') + '" placeholder="Optional notes"' +
+                ' onblur="_nmFieldChanged(\'' + item.id + '\', \'notes\', this.value)">' +
+        '</span>' +
+        '<span class="nm-col-del">' +
+            '<button class="btn-icon budget-item-delete" onclick="_nmDeleteItem(\'' + item.id + '\')" title="Delete">🗑</button>' +
+        '</span>' +
+    '</div>';
+}
+
+function _nmCalcReserve() {
+    return Math.round(
+        _nmItems
+            .filter(function(i) { return i.isActive !== false; })
+            .reduce(function(s, i) { return s + (parseFloat(i.amount) || 0); }, 0) / 12
+    );
+}
+
+function _nmRefreshReserve() {
+    var reserve     = _nmCalcReserve();
+    var activeCount = _nmItems.filter(function(i) { return i.isActive !== false; }).length;
+    var annualTotal = _nmItems
+        .filter(function(i) { return i.isActive !== false; })
+        .reduce(function(s, i) { return s + (parseFloat(i.amount) || 0); }, 0);
+
+    var amountEl = document.getElementById('nmReserveAmount');
+    if (amountEl) amountEl.innerHTML = _budgetFmt(reserve) + '<span class="nm-reserve-per">/mo</span>';
+
+    var detailEl = document.getElementById('nmReserveDetail');
+    if (detailEl) detailEl.innerHTML = activeCount > 0
+        ? _budgetFmt(annualTotal) + ' annual &divide; 12 &nbsp;&middot;&nbsp; ' + activeCount + ' active item' + (activeCount === 1 ? '' : 's')
+        : 'No active items';
+}
+
+async function _nmAddItem() {
+    var sortOrder = _nmItems.length;
+    var newDoc = await userCol('budgets').doc(_nmBudgetId).collection('nonMonthlyItems').add({
+        name:      '',
+        amount:    0,
+        notes:     '',
+        isActive:  true,
+        sortOrder: sortOrder,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    var newItem = { id: newDoc.id, name: '', amount: 0, notes: '', isActive: true, sortOrder: sortOrder };
+    _nmItems.push(newItem);
+
+    var list = document.getElementById('nmItemList');
+    if (list) {
+        var div = document.createElement('div');
+        div.innerHTML = _nmItemRowHtml(newItem);
+        list.appendChild(div.firstChild);
+        // Focus the name input of the new row
+        var newRow = list.lastElementChild;
+        var nameInput = newRow && newRow.querySelector('.nm-input-name');
+        if (nameInput) nameInput.focus();
+    }
+}
+
+async function _nmToggleActive(itemId, checked) {
+    var item = _nmItems.find(function(i) { return i.id === itemId; });
+    if (!item) return;
+    item.isActive = checked;
+
+    // Update row styling
+    var row = document.querySelector('[data-nm-id="' + itemId + '"]');
+    if (row) {
+        row.classList.toggle('nm-item-inactive', !checked);
+    }
+
+    _nmRefreshReserve();
+
+    await userCol('budgets').doc(_nmBudgetId).collection('nonMonthlyItems').doc(itemId).update({
+        isActive: checked
+    });
+}
+
+async function _nmFieldChanged(itemId, field, value) {
+    var item = _nmItems.find(function(i) { return i.id === itemId; });
+    if (!item) return;
+
+    var parsed = field === 'amount' ? (parseInt(value, 10) || 0) : value;
+    if (item[field] === parsed) return; // no change
+    item[field] = parsed;
+
+    if (field === 'amount') _nmRefreshReserve();
+
+    var update = {};
+    update[field] = parsed;
+    await userCol('budgets').doc(_nmBudgetId).collection('nonMonthlyItems').doc(itemId).update(update);
+}
+
+async function _nmDeleteItem(itemId) {
+    if (!confirm('Delete this item? This cannot be undone.')) return;
+
+    _nmItems = _nmItems.filter(function(i) { return i.id !== itemId; });
+    var row = document.querySelector('[data-nm-id="' + itemId + '"]');
+    if (row) row.remove();
+    _nmRefreshReserve();
+
+    await userCol('budgets').doc(_nmBudgetId).collection('nonMonthlyItems').doc(itemId).delete();
+}

@@ -3702,9 +3702,17 @@ async function loadInvestmentsSsBenefitsPage() {
     document.getElementById('headerTitle').innerHTML =
         '<a href="#main" class="home-link">' + escapeHtml(window.appName || 'My Life') + '</a>';
 
-    await _ssBenefitsLoadPeople();
-    await _ssBenefitsLoadSnapshots();
-    _ssBenefitsRenderListPage();
+    var page = document.getElementById('page-investments-ss-benefits');
+    if (page) page.innerHTML = '<p class="muted-text">Loading…</p>';
+
+    try {
+        await _ssBenefitsLoadPeople();
+        await _ssBenefitsLoadSnapshots();
+        _ssBenefitsRenderListPage();
+    } catch (err) {
+        console.error('SS Benefits load error:', err);
+        if (page) page.innerHTML = '<p class="empty-state">Error loading SS Benefits: ' + escapeHtml(String(err)) + '</p>';
+    }
 }
 
 function _ssBenefitsRenderListPage() {

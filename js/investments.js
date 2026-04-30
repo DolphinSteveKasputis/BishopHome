@@ -3676,13 +3676,22 @@ async function _ssBenefitsLoadPeople() {
 
 async function _ssBenefitsLoadSnapshots() {
     _ssBenefitsSnapshots = [];
-    var snap = await _ssBenefitsCol()
-        .where('personId', '==', _ssBenefitsPersonFilter)
-        .orderBy('asOfDate', 'desc')
-        .get();
+    // Load all docs then filter/sort client-side — avoids composite index requirement.
+    // Volume is negligible (a handful of snapshots total).
+    var snap = await _ssBenefitsCol().get();
+    var docs = [];
     snap.forEach(function(doc) {
-        _ssBenefitsSnapshots.push(Object.assign({ id: doc.id }, doc.data()));
+        var data = doc.data();
+        if (data.personId === _ssBenefitsPersonFilter) {
+            docs.push(Object.assign({ id: doc.id }, data));
+        }
     });
+    docs.sort(function(a, b) {
+        if ((a.asOfDate || '') > (b.asOfDate || '')) return -1;
+        if ((a.asOfDate || '') < (b.asOfDate || '')) return 1;
+        return 0;
+    });
+    _ssBenefitsSnapshots = docs;
 }
 
 // ---------- SS Benefits List Page ----------

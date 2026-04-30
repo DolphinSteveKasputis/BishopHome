@@ -155,7 +155,7 @@ async function _investRenderHubBody(groupId) {
         var accounts  = await _investLoadGroupAccounts(group);
         var totals    = _investComputeGroupTotals(accounts);
         var baselines = await _investLoadPeriodBaselines(groupId);
-        body.innerHTML = _investHubDashboardHtml(totals, baselines);
+        body.innerHTML = _investHubDashboardHtml(totals, baselines, groupId);
     } catch (e) {
         console.error('Hub dashboard error', e);
         body.innerHTML = '<p class="muted-text">Error loading portfolio data.</p>';
@@ -163,7 +163,7 @@ async function _investRenderHubBody(groupId) {
 }
 
 // Builds the dashboard card HTML from computed totals and period baselines.
-function _investHubDashboardHtml(totals, baselines) {
+function _investHubDashboardHtml(totals, baselines, groupId) {
     var nw       = totals.netWorth || 0;
     var invested = totals.invested || 0;
 
@@ -217,11 +217,10 @@ function _investHubDashboardHtml(totals, baselines) {
             statCell('YTD',   baselines.yearly) +
         '</div>';
 
-    // ATH callout — pick the best (highest) ATH across all snapshot types
-    var athKeys = ['allTimeHighDaily', 'allTimeHighWeekly', 'allTimeHighMonthly', 'allTimeHighYearly'];
+    // ATH callout — pick the best (highest) ATH across all snapshot types for this group
     var bestAth = null;
-    athKeys.forEach(function(key) {
-        var ath = _investConfig[key];
+    ['daily', 'weekly', 'monthly', 'yearly'].forEach(function(t) {
+        var ath = groupId ? _investConfig[_investAthKey(t, groupId)] : null;
         if (ath && ath.value && (!bestAth || ath.value > bestAth.value)) bestAth = ath;
     });
     var athHtml = '';
@@ -2546,17 +2545,16 @@ async function _investRenderSnapshotsPage() {
         return '<span class="invest-freq-badge">' + f.charAt(0).toUpperCase() + f.slice(1) + '</span>';
     }).join(' ');
 
-    // All-Time Highs
+    // All-Time Highs — group-scoped so each group tracks its own ATH
     var athTypes  = ['daily', 'weekly', 'monthly', 'yearly'];
     var athItems  = athTypes.filter(function(t) {
-        return !!_investConfig['allTimeHigh' + t.charAt(0).toUpperCase() + t.slice(1)];
+        return !!_investConfig[_investAthKey(t, group.id)];
     });
     var athHtml   = '';
     if (athItems.length > 0) {
         athHtml = '<div class="invest-snap-ath-row">';
         athItems.forEach(function(t) {
-            var key = 'allTimeHigh' + t.charAt(0).toUpperCase() + t.slice(1);
-            var ath = _investConfig[key];
+            var ath = _investConfig[_investAthKey(t, group.id)];
             athHtml +=
                 '<div class="invest-snap-ath-item">' +
                     '<span class="invest-snap-ath-label">' + t.charAt(0).toUpperCase() + t.slice(1) + ' ATH</span>' +
@@ -2749,15 +2747,21 @@ async function _investCaptureSnapshot() {
         createdAt:   firebase.firestore.FieldValue.serverTimestamp()
     });
 
-    await _investCheckAndUpdateATH(type, cats.netWorth, date);
+    await _investCheckAndUpdateATH(type, cats.netWorth, date, group.id);
 
     if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Capture'; }
     closeModal('investSnapModal');
     await _investRenderSnapshotsPage();
 }
 
-async function _investCheckAndUpdateATH(type, netWorth, date) {
-    var key     = 'allTimeHigh' + type.charAt(0).toUpperCase() + type.slice(1);
+// ATH keys are group-scoped: allTimeHighDaily_<groupId> etc.
+// This prevents one group's ATH from bleeding into another group's display.
+function _investAthKey(type, groupId) {
+    return 'allTimeHigh' + type.charAt(0).toUpperCase() + type.slice(1) + '_' + groupId;
+}
+
+async function _investCheckAndUpdateATH(type, netWorth, date, groupId) {
+    var key     = _investAthKey(type, groupId);
     var current = _investConfig[key];
     if (!current || netWorth > (current.value || 0)) {
         _investConfig[key] = { value: netWorth, date: date };
@@ -2853,15 +2857,14 @@ async function _investRenderSummaryPage() {
         breakdownHtml += '</div>';
     }
 
-    // All-Time Highs section (reuses snapshot page styles)
-    // Also computes a "% from Daily ATH" card using the last daily snapshot as the reference value.
+    // All-Time Highs section — group-scoped so each group tracks its own ATH.
+    // Also computes a "% from Daily ATH" card using current live net worth.
     var athTypes       = ['daily', 'weekly', 'monthly', 'yearly'];
     var athSummaryHtml = '';
-    if (athTypes.some(function(t) { return !!_investConfig['allTimeHigh' + t.charAt(0).toUpperCase() + t.slice(1)]; })) {
+    if (athTypes.some(function(t) { return !!_investConfig[_investAthKey(t, group.id)]; })) {
         athSummaryHtml = '<div class="invest-snap-ath-row">';
         athTypes.forEach(function(t) {
-            var key = 'allTimeHigh' + t.charAt(0).toUpperCase() + t.slice(1);
-            var ath = _investConfig[key];
+            var ath = _investConfig[_investAthKey(t, group.id)];
             if (!ath) return;
             athSummaryHtml +=
                 '<div class="invest-snap-ath-item">' +

@@ -1333,7 +1333,7 @@ Point-in-time portfolio recordings used to compute period performance on the Sum
 
 **Snapshot list**: Grouped by type (Yearly → Monthly → Weekly → Daily), most recent first within each group. Each row shows date, notes (if any), Net Worth, and Invested. Tap to expand → shows category breakdown table (reuses `.invest-summary-cat-row` styles) + Delete button.
 
-**All-Time Highs**: One ATH per snapshot type stored in `investmentConfig/main` as `allTimeHighDaily`, `allTimeHighWeekly`, `allTimeHighMonthly`, `allTimeHighYearly` — each `{value, date}`. Updated automatically on each capture via `_investCheckAndUpdateATH()` using a targeted `set({merge:true})`. Shown as orange cards at the top of the page.
+**All-Time Highs**: One ATH per snapshot type per group, stored in `investmentConfig/main` as `allTimeHighDaily_<groupId>`, `allTimeHighWeekly_<groupId>`, etc. — each `{value, date}`. Updated automatically on each capture via `_investCheckAndUpdateATH(type, netWorth, date, groupId)` using a targeted `set({merge:true})`. Group-scoped so capturing a snapshot for one group never affects another group's ATH display. Shown as orange cards at the top of the page.
 
 **Delete**: Confirm dialog → removes doc from Firestore → re-renders page. Note: deleting a snapshot used as a period baseline causes the corresponding period row on Summary to revert to "—".
 

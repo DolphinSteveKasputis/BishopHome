@@ -1149,6 +1149,8 @@ Live dashboard above a static nav-card grid.
 - **Summary** → `#investments/summary`
 - **Stock Rollup** → `#investments/stocks`
 - **Snapshots** → `#investments/snapshots`
+- **Budgets** → `#budget`
+- **SS Benefits** → `#investments/ss-benefits`
 - **Retirement Planner** (coming soon)
 - **Retirement Projection** (coming soon)
 
@@ -1381,6 +1383,34 @@ Dashboard page showing totals for the selected group.
 | `#investments/summary` | Portfolio summary dashboard |
 | `#investments/snapshots` | Historical snapshots — capture, browse, delete |
 | `#investments/stocks` | Stock rollup — all tickers aggregated, concentration analysis |
+| `#investments/ss-benefits` | SS Benefits list — snapshots per person |
+| `#investments/ss-benefits/new` | Create new SS Benefits snapshot |
+| `#investments/ss-benefits/edit/:id` | Edit existing SS Benefits snapshot |
+
+---
+
+### SS Benefits (`#investments/ss-benefits`)
+
+Tracks projected Social Security monthly benefit amounts by claiming age for any enrolled person.
+
+**Purpose**: Each year (after visiting SSA.gov), the user records a dated snapshot of benefit projections. The most recent snapshot per person feeds the Retirement Planner; older snapshots are kept for historical comparison.
+
+**List page** (`page-investments-ss-benefits`, loaded by `loadInvestmentsSsBenefitsPage()`):
+- Person dropdown (same enrolled people as Accounts, loaded from `settings/investments.enrolledPersonIds`).
+- Snapshot cards sorted newest-first. Most recent card has a purple "Most Recent" badge and a thicker purple border; older cards are labeled "Historical — not used in planning."
+- Each card shows: as-of date, age range summary, full age/amount table, **Update Current** (most recent) or **Edit** (historical) button, **Delete** button.
+- **Delete**: if deleting the most recent snapshot, warns user that the previous one will become the active planning snapshot.
+
+**Form page** (`page-investments-ss-form`, loaded by `loadInvestmentsSsFormPage(snapshotId)`):
+- **Create New** (snapshotId = null): pre-fills ages AND amounts from the most recent existing snapshot; as-of date defaults to today. Person picker shown.
+- **Edit** (snapshotId provided): pre-fills from the snapshot being edited; person picker hidden (locked to that snapshot's person).
+- Entry rows: age label + dollar input + ✕ delete button; sorted by age ascending.
+- **+ Add Age**: dropdown of ages 62–70 not already in the form; tap button to append a new row.
+- **Save**: validates date and at least one entry exist; reads all input values from DOM; upserts to `ssBenefits` collection.
+
+**Firestore collection**: `userCol('ssBenefits')` — docs with fields: `personId`, `asOfDate` (ISO date string), `entries[]` (`{age, monthly}`), `createdAt`, `updatedAt`. Queried by `personId` ordered by `asOfDate desc`. Added to `BACKUP_DATA_COLLECTIONS` in settings.js.
+
+**Module state**: `_ssBenefitsPersonFilter`, `_ssBenefitsPeople[]`, `_ssBenefitsSnapshots[]`, `_ssBenefitsFormEntries[]`, `_ssBenefitsFormEditId`, `_ssBenefitsFormIsNew`.
 
 ---
 

@@ -294,6 +294,14 @@ function _investHubNavCards() {
             '</div>' +
             '<span class="invest-hub-arrow">›</span>' +
         '</a>' +
+        '<a class="invest-hub-card" href="#investments/ss-benefits">' +
+            '<span class="invest-hub-icon">🏛️</span>' +
+            '<div class="invest-hub-text">' +
+                '<div class="invest-hub-title">SS Benefits</div>' +
+                '<div class="invest-hub-desc">Track projected Social Security benefits by age for each person</div>' +
+            '</div>' +
+            '<span class="invest-hub-arrow">›</span>' +
+        '</a>' +
         '<div class="invest-hub-card invest-hub-card--soon">' +
             '<span class="invest-hub-icon">🧮</span>' +
             '<div class="invest-hub-text">' +
@@ -3621,4 +3629,397 @@ function _investAggregateByTicker(accounts) {
     });
 
     return { tickers: tickers, totalInvested: totalInvested, overallNetWorth: overallNetWorth };
+}
+
+// ============================================================
+// SOCIAL SECURITY BENEFITS  (#investments/ss-benefits)
+// Per-person annual snapshots of SSA.gov projected benefits.
+// Each snapshot: asOfDate + array of {age, monthly} entries.
+// Only the most recent snapshot per person is used for planning.
+// ============================================================
+
+// ---------- SS Benefits Module State ----------
+
+var _ssBenefitsPersonFilter = 'self';  // 'self' or contact ID
+var _ssBenefitsPeople       = [];      // [{id, name}] — same enrolled list as accounts
+var _ssBenefitsSnapshots    = [];      // snapshot docs for current person, ordered newest-first
+
+// SS claiming ages offered in the dropdown (SSA's full range)
+var _SS_AGES = [62, 63, 64, 65, 66, 67, 68, 69, 70];
+
+// ---------- Firestore Helper ----------
+
+function _ssBenefitsCol() {
+    return userCol('ssBenefits');
+}
+
+// ---------- People Loading ----------
+
+async function _ssBenefitsLoadPeople() {
+    var settingsDoc = await userCol('settings').doc('investments').get();
+    _ssBenefitsPeople = [];
+    if (settingsDoc.exists) {
+        var enrolledIds = (settingsDoc.data().enrolledPersonIds || []).filter(Boolean);
+        var fetches = enrolledIds.map(function(pid) {
+            return userCol('people').doc(pid).get().then(function(d) {
+                return d.exists ? { id: pid, name: d.data().name || pid } : null;
+            });
+        });
+        var results = await Promise.all(fetches);
+        _ssBenefitsPeople = results.filter(Boolean).sort(function(a, b) {
+            return a.name.localeCompare(b.name);
+        });
+    }
+}
+
+// ---------- Snapshots Loading ----------
+
+async function _ssBenefitsLoadSnapshots() {
+    _ssBenefitsSnapshots = [];
+    var snap = await _ssBenefitsCol()
+        .where('personId', '==', _ssBenefitsPersonFilter)
+        .orderBy('asOfDate', 'desc')
+        .get();
+    snap.forEach(function(doc) {
+        _ssBenefitsSnapshots.push(Object.assign({ id: doc.id }, doc.data()));
+    });
+}
+
+// ---------- SS Benefits List Page ----------
+
+async function loadInvestmentsSsBenefitsPage() {
+    document.getElementById('breadcrumbBar').innerHTML =
+        '<a href="#investments">Financial</a><span class="separator">&rsaquo;</span><span>SS Benefits</span>';
+    document.getElementById('headerTitle').innerHTML =
+        '<a href="#main" class="home-link">' + escapeHtml(window.appName || 'My Life') + '</a>';
+
+    await _ssBenefitsLoadPeople();
+    await _ssBenefitsLoadSnapshots();
+    _ssBenefitsRenderListPage();
+}
+
+function _ssBenefitsRenderListPage() {
+    var page = document.getElementById('page-investments-ss-benefits');
+    if (!page) return;
+
+    // Person switcher options
+    var personOpts = '<option value="self"' + (_ssBenefitsPersonFilter === 'self' ? ' selected' : '') + '>Me</option>';
+    _ssBenefitsPeople.forEach(function(p) {
+        personOpts += '<option value="' + escapeHtml(p.id) + '"' +
+            (_ssBenefitsPersonFilter === p.id ? ' selected' : '') + '>' +
+            escapeHtml(p.name) + '</option>';
+    });
+
+    var personLabel = _ssBenefitsPersonFilter === 'self'
+        ? 'Me'
+        : ((_ssBenefitsPeople.find(function(p) { return p.id === _ssBenefitsPersonFilter; }) || {}).name || 'Person');
+
+    // Build snapshot list HTML
+    var listHtml = '';
+    if (_ssBenefitsSnapshots.length === 0) {
+        listHtml = '<p class="empty-state">No snapshots recorded for ' + escapeHtml(personLabel) + ' yet.<br>' +
+            'Log into SSA.gov and tap <strong>+ Create Snapshot</strong> to record projected benefits.</p>';
+    } else {
+        _ssBenefitsSnapshots.forEach(function(snap, idx) {
+            var isMostRecent = idx === 0;
+            var entries      = snap.entries || [];
+            var ages         = entries.map(function(e) { return e.age; }).sort(function(a, b) { return a - b; });
+            var ageRange     = ages.length === 0 ? 'No ages'
+                : ages.length === 1 ? 'Age ' + ages[0]
+                : 'Ages ' + ages[0] + '–' + ages[ages.length - 1];
+
+            var dateStr = snap.asOfDate
+                ? new Date(snap.asOfDate + 'T12:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+                : '(no date)';
+
+            var rowsHtml = '';
+            entries.slice().sort(function(a, b) { return a.age - b.age; }).forEach(function(e) {
+                rowsHtml +=
+                    '<tr>' +
+                        '<td>Age ' + escapeHtml(String(e.age)) + '</td>' +
+                        '<td>' + _investFmtCurrency(e.monthly || 0) + ' / mo</td>' +
+                    '</tr>';
+            });
+
+            listHtml +=
+                '<div class="ss-snapshot-card' + (isMostRecent ? ' ss-snapshot-card--current' : '') + '">' +
+                    '<div class="ss-snapshot-header">' +
+                        '<div class="ss-snapshot-meta">' +
+                            '<span class="ss-snapshot-date">' + escapeHtml(dateStr) + '</span>' +
+                            (isMostRecent ? '<span class="ss-snapshot-badge">Most Recent</span>' : '<span class="ss-snapshot-historical">Historical — not used in planning</span>') +
+                        '</div>' +
+                        '<div class="ss-snapshot-summary">' + escapeHtml(ageRange) + ' &mdash; ' + entries.length + ' age' + (entries.length === 1 ? '' : 's') + ' recorded</div>' +
+                    '</div>' +
+                    (rowsHtml ? '<table class="ss-snapshot-table"><tbody>' + rowsHtml + '</tbody></table>' : '') +
+                    '<div class="ss-snapshot-actions">' +
+                        (isMostRecent
+                            ? '<a class="btn btn-secondary btn-small" href="#investments/ss-benefits/edit/' + encodeURIComponent(snap.id) + '">Update Current</a>'
+                            : '<a class="btn btn-secondary btn-small" href="#investments/ss-benefits/edit/' + encodeURIComponent(snap.id) + '">Edit</a>') +
+                        '<button class="btn btn-danger btn-small" onclick="_ssBenefitsDeleteSnapshot(\'' + escapeHtml(snap.id) + '\',' + isMostRecent + ')">Delete</button>' +
+                    '</div>' +
+                '</div>';
+        });
+    }
+
+    page.innerHTML =
+        '<div class="page-header">' +
+            '<h2>📋 SS Benefits</h2>' +
+            '<div class="page-header-actions">' +
+                '<a class="btn btn-primary" href="#investments/ss-benefits/new">+ Create Snapshot</a>' +
+            '</div>' +
+        '</div>' +
+        '<div class="invest-person-bar">' +
+            '<label for="ssBenefitsPersonSelect">Person:</label>' +
+            '<select id="ssBenefitsPersonSelect" onchange="_ssBenefitsSwitchPerson(this.value)">' +
+                personOpts +
+            '</select>' +
+        '</div>' +
+        '<div id="ssBenefitsListBody">' + listHtml + '</div>';
+}
+
+function _ssBenefitsSwitchPerson(personId) {
+    _ssBenefitsPersonFilter = personId;
+    _ssBenefitsLoadSnapshots().then(_ssBenefitsRenderListPage);
+}
+
+async function _ssBenefitsDeleteSnapshot(snapshotId, isMostRecent) {
+    var msg = isMostRecent
+        ? 'Delete this snapshot? It is the most recent one — the previous snapshot (if any) will become the one used for planning.'
+        : 'Delete this historical snapshot?';
+    if (!confirm(msg)) return;
+    await _ssBenefitsCol().doc(snapshotId).delete();
+    await _ssBenefitsLoadSnapshots();
+    _ssBenefitsRenderListPage();
+}
+
+// ---------- SS Benefits Form Page ----------
+
+var _ssBenefitsFormEntries = [];  // [{age, monthly}] being edited in the form
+var _ssBenefitsFormEditId  = null; // null = create new, string = editing existing snapshot ID
+var _ssBenefitsFormIsNew   = true; // true = "Create New Snapshot", false = "Update Current"
+
+async function loadInvestmentsSsFormPage(snapshotId) {
+    _ssBenefitsFormEditId = snapshotId || null;
+    _ssBenefitsFormIsNew  = !snapshotId;
+
+    document.getElementById('breadcrumbBar').innerHTML =
+        '<a href="#investments">Financial</a><span class="separator">&rsaquo;</span>' +
+        '<a href="#investments/ss-benefits">SS Benefits</a><span class="separator">&rsaquo;</span>' +
+        '<span>' + (_ssBenefitsFormIsNew ? 'Create Snapshot' : 'Edit Snapshot') + '</span>';
+    document.getElementById('headerTitle').innerHTML =
+        '<a href="#main" class="home-link">' + escapeHtml(window.appName || 'My Life') + '</a>';
+
+    await _ssBenefitsLoadPeople();
+
+    // Determine starting entries:
+    // - Edit mode: load the snapshot being edited
+    // - Create mode: clone the most recent snapshot (ages + amounts) if one exists; else blank
+    var asOfDate = _investTodayIso();
+
+    if (snapshotId) {
+        // Editing an existing snapshot
+        var doc = await _ssBenefitsCol().doc(snapshotId).get();
+        if (doc.exists) {
+            var data = doc.data();
+            asOfDate = data.asOfDate || asOfDate;
+            _ssBenefitsFormEntries = (data.entries || []).slice().sort(function(a, b) { return a.age - b.age; });
+            _ssBenefitsPersonFilter = data.personId || 'self';
+        } else {
+            _ssBenefitsFormEntries = [];
+        }
+    } else {
+        // Creating new — pre-fill from most recent snapshot for current person
+        await _ssBenefitsLoadSnapshots();
+        if (_ssBenefitsSnapshots.length > 0) {
+            _ssBenefitsFormEntries = (_ssBenefitsSnapshots[0].entries || [])
+                .slice()
+                .sort(function(a, b) { return a.age - b.age; })
+                .map(function(e) { return { age: e.age, monthly: e.monthly }; });
+        } else {
+            _ssBenefitsFormEntries = [];
+        }
+    }
+
+    _ssBenefitsRenderFormPage(asOfDate);
+}
+
+function _ssBenefitsRenderFormPage(asOfDate) {
+    var page = document.getElementById('page-investments-ss-form');
+    if (!page) return;
+
+    // Person switcher (only shown when creating new — editing locks to the snapshot's person)
+    var personPickerHtml = '';
+    if (_ssBenefitsFormIsNew) {
+        var personOpts = '<option value="self"' + (_ssBenefitsPersonFilter === 'self' ? ' selected' : '') + '>Me</option>';
+        _ssBenefitsPeople.forEach(function(p) {
+            personOpts += '<option value="' + escapeHtml(p.id) + '"' +
+                (_ssBenefitsPersonFilter === p.id ? ' selected' : '') + '>' +
+                escapeHtml(p.name) + '</option>';
+        });
+        personPickerHtml =
+            '<div class="form-group">' +
+                '<label>Person</label>' +
+                '<select id="ssFormPerson" onchange="_ssBenefitsPersonFilter=this.value">' + personOpts + '</select>' +
+            '</div>';
+    }
+
+    // Age rows
+    var rowsHtml = _ssBenefitsRenderEntryRows();
+
+    // Available ages for the "+ Add Age" dropdown (exclude already-added ages)
+    var usedAges = _ssBenefitsFormEntries.map(function(e) { return e.age; });
+    var availAges = _SS_AGES.filter(function(a) { return usedAges.indexOf(a) < 0; });
+    var addAgeOpts = '<option value="">— Select age —</option>';
+    availAges.forEach(function(a) {
+        addAgeOpts += '<option value="' + a + '">' + a + '</option>';
+    });
+
+    var title = _ssBenefitsFormIsNew ? 'Create New Snapshot' : 'Update Snapshot';
+
+    page.innerHTML =
+        '<div class="page-header"><h2>' + escapeHtml(title) + '</h2></div>' +
+        '<div class="form-body">' +
+            personPickerHtml +
+            '<div class="form-group">' +
+                '<label for="ssFormDate">As-of Date</label>' +
+                '<input type="date" id="ssFormDate" value="' + escapeHtml(asOfDate) + '">' +
+                '<div class="form-hint">Date you pulled these numbers from SSA.gov</div>' +
+            '</div>' +
+            '<div class="form-section-label">Monthly Benefit by Age</div>' +
+            '<div id="ssFormRows">' + rowsHtml + '</div>' +
+            '<div class="ss-add-age-row">' +
+                '<select id="ssAddAgeSelect">' + addAgeOpts + '</select>' +
+                '<button class="btn btn-secondary btn-small" onclick="_ssBenefitsAddAgeRow()">+ Add Age</button>' +
+            '</div>' +
+            '<div class="form-actions">' +
+                '<button class="btn btn-primary" onclick="_ssBenefitsSaveSnapshot()">Save</button>' +
+                '<a class="btn btn-secondary" href="#investments/ss-benefits">Cancel</a>' +
+            '</div>' +
+        '</div>';
+}
+
+function _ssBenefitsRenderEntryRows() {
+    if (_ssBenefitsFormEntries.length === 0) {
+        return '<p class="muted-text">No ages added yet. Use "+ Add Age" below to add claiming ages.</p>';
+    }
+    var html = '<div class="ss-entry-rows">';
+    _ssBenefitsFormEntries.forEach(function(entry, idx) {
+        html +=
+            '<div class="ss-entry-row" data-idx="' + idx + '">' +
+                '<span class="ss-entry-age">Age ' + escapeHtml(String(entry.age)) + '</span>' +
+                '<div class="ss-entry-amount">' +
+                    '<span class="ss-entry-dollar">$</span>' +
+                    '<input type="number" class="ss-entry-input" min="0" step="1" ' +
+                        'value="' + escapeHtml(String(entry.monthly || '')) + '" ' +
+                        'placeholder="0" ' +
+                        'oninput="_ssBenefitsUpdateEntry(' + idx + ', this.value)">' +
+                    '<span class="ss-entry-label">/ mo</span>' +
+                '</div>' +
+                '<button class="ss-entry-delete" onclick="_ssBenefitsRemoveEntry(' + idx + ')" title="Remove">✕</button>' +
+            '</div>';
+    });
+    html += '</div>';
+    return html;
+}
+
+function _ssBenefitsUpdateEntry(idx, val) {
+    if (_ssBenefitsFormEntries[idx]) {
+        _ssBenefitsFormEntries[idx].monthly = parseFloat(val) || 0;
+    }
+}
+
+function _ssBenefitsAddAgeRow() {
+    var sel = document.getElementById('ssAddAgeSelect');
+    if (!sel || !sel.value) return;
+    var age = parseInt(sel.value, 10);
+    if (isNaN(age)) return;
+
+    _ssBenefitsFormEntries.push({ age: age, monthly: 0 });
+    _ssBenefitsFormEntries.sort(function(a, b) { return a.age - b.age; });
+
+    // Re-render rows and the age dropdown
+    document.getElementById('ssFormRows').innerHTML = _ssBenefitsRenderEntryRows();
+    var usedAges  = _ssBenefitsFormEntries.map(function(e) { return e.age; });
+    var availAges = _SS_AGES.filter(function(a) { return usedAges.indexOf(a) < 0; });
+    var opts = '<option value="">— Select age —</option>';
+    availAges.forEach(function(a) { opts += '<option value="' + a + '">' + a + '</option>'; });
+    sel.innerHTML = opts;
+    sel.value = '';
+}
+
+function _ssBenefitsRemoveEntry(idx) {
+    var removedAge = _ssBenefitsFormEntries[idx] ? _ssBenefitsFormEntries[idx].age : null;
+    _ssBenefitsFormEntries.splice(idx, 1);
+    document.getElementById('ssFormRows').innerHTML = _ssBenefitsRenderEntryRows();
+
+    // Add the removed age back to the "Add Age" dropdown
+    if (removedAge !== null) {
+        var sel = document.getElementById('ssAddAgeSelect');
+        if (sel) {
+            var opt = document.createElement('option');
+            opt.value       = removedAge;
+            opt.textContent = String(removedAge);
+            // Insert in numeric order
+            var inserted = false;
+            for (var i = 1; i < sel.options.length; i++) {
+                if (parseInt(sel.options[i].value, 10) > removedAge) {
+                    sel.insertBefore(opt, sel.options[i]);
+                    inserted = true;
+                    break;
+                }
+            }
+            if (!inserted) sel.appendChild(opt);
+        }
+    }
+}
+
+async function _ssBenefitsSaveSnapshot() {
+    var dateEl = document.getElementById('ssFormDate');
+    var asOfDate = dateEl ? dateEl.value.trim() : '';
+    if (!asOfDate) {
+        alert('Please enter an as-of date.');
+        return;
+    }
+    if (_ssBenefitsFormEntries.length === 0) {
+        alert('Please add at least one age/amount row before saving.');
+        return;
+    }
+
+    // Read latest values from DOM inputs (in case oninput didn't fire for all)
+    var rows = document.querySelectorAll('.ss-entry-row');
+    rows.forEach(function(row) {
+        var idx   = parseInt(row.dataset.idx, 10);
+        var input = row.querySelector('.ss-entry-input');
+        if (!isNaN(idx) && _ssBenefitsFormEntries[idx] !== undefined && input) {
+            _ssBenefitsFormEntries[idx].monthly = parseFloat(input.value) || 0;
+        }
+    });
+
+    var personId = _ssBenefitsFormIsNew
+        ? (_ssBenefitsPersonFilter || 'self')
+        : ((_ssBenefitsSnapshots.find(function(s) { return s.id === _ssBenefitsFormEditId; }) || {}).personId || _ssBenefitsPersonFilter);
+
+    var payload = {
+        personId:  personId,
+        asOfDate:  asOfDate,
+        entries:   _ssBenefitsFormEntries.map(function(e) { return { age: e.age, monthly: e.monthly }; }),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    if (_ssBenefitsFormEditId) {
+        await _ssBenefitsCol().doc(_ssBenefitsFormEditId).update(payload);
+    } else {
+        payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        await _ssBenefitsCol().add(payload);
+    }
+
+    window.location.hash = '#investments/ss-benefits';
+}
+
+// Helper: today as YYYY-MM-DD
+function _investTodayIso() {
+    var d = new Date();
+    return d.getFullYear() + '-' +
+        String(d.getMonth() + 1).padStart(2, '0') + '-' +
+        String(d.getDate()).padStart(2, '0');
 }

@@ -179,6 +179,7 @@ const ALL_PAGES = [
     'view', 'view-history', 'views-categories',
     'credentials-add', 'credentials-edit', 'credentials-categories',
     'investments', 'investments-accounts', 'investments-account', 'investments-groups', 'investments-form', 'investments-summary', 'investments-snapshots', 'investments-stocks',
+    'investments-ss-benefits', 'investments-ss-form',
     'budget', 'budget-archive', 'budget-nonmonthly',
     'help'
 ];
@@ -218,6 +219,7 @@ const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'jo
                      'private', 'private-bookmarks', 'private-documents', 'private-photos', 'private-photos-gallery',
                      'credentials', 'credentials-add', 'credentials-edit', 'credentials-categories',
                      'investments', 'investments-accounts', 'investments-account', 'investments-groups', 'investments-form', 'investments-summary', 'investments-snapshots', 'investments-stocks',
+                     'investments-ss-benefits', 'investments-ss-form',
                      'budget', 'budget-archive', 'budget-nonmonthly'];
 
 /** Tracks which nav context is currently active ('yard', 'house', or 'life'). */
@@ -799,6 +801,15 @@ function handleRoute() {
         showPage('budget');
         loadBudgetPage();
     // ---------- Investments routes ----------
+    } else if (page === 'investments' && id === 'ss-benefits' && parts[2] === 'new') {
+        showPage('investments-ss-form');
+        loadInvestmentsSsFormPage(null);
+    } else if (page === 'investments' && id === 'ss-benefits' && parts[2] === 'edit' && parts[3]) {
+        showPage('investments-ss-form');
+        loadInvestmentsSsFormPage(decodeURIComponent(parts[3]));
+    } else if (page === 'investments' && id === 'ss-benefits') {
+        showPage('investments-ss-benefits');
+        loadInvestmentsSsBenefitsPage();
     } else if (page === 'investments' && id === 'stocks') {
         showPage('investments-stocks');
         loadInvestmentsStocksPage();

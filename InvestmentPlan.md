@@ -222,16 +222,58 @@ Cross-account concentration analysis.
 
 ---
 
+### Screen 6.5: Social Security Benefits *(standalone sub-section)*
+Dedicated data-entry and history screen for SS projected benefit numbers.
+
+**Purpose:** Each year (typically around Jan 1), the user logs into SSA.gov and pulls the latest projected monthly benefit at each claiming age. Those numbers are recorded here as a dated snapshot. The planner always uses the most recent snapshot — older ones are kept for comparison only.
+
+**Navigation:** Own card on the Financial hub (same tier as Accounts, Summary, Snapshots, etc.) AND linked via a "Manage SS Benefits →" button from within the Retirement Planner. It is data-entry infrastructure, not just a planner detail screen.
+
+**Person picker:**
+- SS benefits can be tracked for **any person tracked in the app** — "self" = Steve, plus any contact/person (Connie, kids, anyone)
+- Same person-switcher pattern as Accounts: "self" or a contact person ID
+- Each person has their own independent history of SS snapshots
+
+**Snapshot concept:**
+- A "snapshot" = a dated record of SS benefit projections for one person
+- `asOfDate`: the date the SSA.gov numbers were pulled (e.g. `2026-01-01`) — always year-based, typically Jan 1
+- Each snapshot contains N age/amount rows — user defines which ages they care about per snapshot
+- Ages available in dropdown: 62 through 70 (whole numbers only — SSA only provides whole-year estimates)
+- A snapshot can have any subset: e.g. just {65, 70} or all of {62, 63, 64, 65, 66, 67, 68, 69, 70}
+- No global configuration of "which ages to show" — the ages in each snapshot are whatever the user added rows for
+
+**Two distinct actions — "Create New Snapshot" vs "Update Current Snapshot":**
+- **Create New Snapshot**: pre-fills all age rows AND amounts from the previous snapshot (convenient baseline — just update the numbers that changed). `asOfDate` defaults to today. Each pre-filled row can be deleted before saving. Can also add new age rows with "+ Add Age". Save → becomes the new "most recent" snapshot used by the planner. If no previous snapshot exists, starts blank.
+- **Update Current Snapshot**: opens the existing most recent snapshot for editing. All rows are pre-filled. Allows changing amounts, adding forgotten ages, removing rows, or correcting the as-of date. Saves in-place — does not create a new record. Intended for users who don't care about year-over-year history and just keep one current set of numbers.
+- Older snapshots (not the most recent) are editable via the same "Update" action, but a note clarifies they are not used in planning.
+- Can delete any snapshot. If deleting the most recent, the previous one becomes the new "most recent" used by the planner (with a confirmation warning noting this).
+
+**Snapshot list view (per person):**
+- Most recent first
+- Each snapshot card shows: as-of date, number of ages recorded, the age range (e.g. "Ages 62–70")
+- Expand a snapshot to see the full age/amount table
+- "Most Recent" badge on the newest snapshot — this is the one used for planning
+- Older snapshots: read-only view; a note: "Historical — not used in planning"
+
+**Planning rule:**
+- The Retirement Planner ONLY uses the most recent snapshot for each person
+- There is no way to select an older snapshot for planning — the UI does not offer it
+- If no snapshot exists for a person, the planner shows a prompt to add one
+
+---
+
 ### Screen 7: Retirement Planner *(mirrors Proj Needed)*
 The "can I retire at 62?" calculator. Fully interactive.
 
 **Content:**
 
 **Section A — Social Security Benefits**
-- Steve's SS monthly income by age: 62, 63, 64, 65, 67 (entered manually from SSA.gov)
-- Connie's SS monthly income by age: same
-- Combined total at each age
-- Selected retirement age → selected SS amount
+- Pulls from the most recent SS Benefits snapshot for each person tracked
+- Shows a summary table: each tracked person → their benefit at each recorded age
+- Combined household total at each age (sum of all tracked persons' benefits)
+- "Manage SS Benefits →" link/button jumps to Screen 6.5
+- Combined household SS uses **only people in the currently selected investment Group** — consistent with how the rest of the planner works
+- Selected retirement age → selected SS amount (auto-looked-up from the snapshot for that age; flagged as "not recorded" if the exact age isn't in the snapshot — no interpolation)
 
 **Section B — Income Needs**
 - Current take-home (after tax, per year)
@@ -358,10 +400,25 @@ userCol('investmentScenarios')/      ← NEW collection
                   ssMonthlyConnie, currentIncome, lifestylePct,
                   inflationRate, investmentRoR, notes }
 
+userCol('ssBenefits')/               ← NEW collection — Social Security projected benefits
+  {snapshotId}: {
+    personId,        // 'self' or contact ID (Connie, a kid, etc.)
+    asOfDate,        // ISO date string, e.g. "2026-01-01"
+    entries: [       // array of age/amount pairs — user defines which ages
+      { age: 62, monthly: 2100 },
+      { age: 65, monthly: 2450 },
+      ...
+    ],
+    notes,           // optional free-text
+    createdAt
+  }
+  // Queries: orderBy asOfDate desc, filtered by personId
+  // Most recent per person = used by planner; older = historical/read-only
+
 userCol('investmentRetirementConfig')/  ← NEW — single doc 'main'
-  main: { ssSteve{age→monthly}, ssConnie{age→monthly},
-          currentIncome, inflationRate, investmentRoR,
+  main: { currentIncome, inflationRate, investmentRoR,
           targetRetirementAge, desiredLifestylePct }
+  // SS data moved out — now lives in ssBenefits collection with full history
 
 userCol('investmentRetirementRows')/    ← NEW collection
   {rowId}: { year, steveAge, status (full/part/retired), salary,
@@ -564,3 +621,21 @@ Each phase is a complete, testable chunk. Build in order — later phases depend
 ## Still to Discuss
 
 - **Drawdown section:** Auto-calculated year-by-year table with per-row overrides, saveable as named scenarios. Design TBD — revisit after Phase 1 is working.
+
+---
+
+## Resolved Decisions — SS Benefits (Screen 6.5)
+
+| Question | Decision |
+|----------|----------|
+| Hub card placement | Own card on Financial hub + "Manage SS Benefits →" link inside the Retirement Planner |
+| Who can be tracked | Any person tracked in the app ("self" + any contact) |
+| As-of date default | Today's date (the day the snapshot is taken) |
+| Combined SS in planner | Only people in the active investment Group |
+| Editing the current snapshot | Allowed freely — no warning needed. Two explicit actions: "Create New Snapshot" vs "Update Current Snapshot" |
+| Age range | Dropdown covers 62–70 (whole numbers, SSA's full range). User picks whichever ages they want per snapshot. |
+| Create New Snapshot pre-fill | Pre-fills both ages AND amounts from the previous snapshot. User updates changed amounts, deletes unwanted rows. Starts blank if no prior snapshot exists. |
+
+## Open Questions — SS Benefits (Screen 6.5)
+
+*(none — all decisions resolved. Ready to build.)*

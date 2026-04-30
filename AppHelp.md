@@ -1705,7 +1705,7 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 - If you have more than one group, a **Group** selector appears at the top — switch groups to see a different portfolio view
 - The **Day** row shows change vs. your most recent daily snapshot; **Week/Month/YTD** use weekly, monthly, and yearly snapshots respectively. "—" means no snapshot of that type has been captured yet
 - The **🏆 All-time high** callout shows your best net worth recorded across all snapshot types. When your current value equals or exceeds it, it displays as "NEW all-time high!"
-- Below the dashboard are nav cards linking to **Accounts**, **Summary**, **Stock Rollup**, **Snapshots**, **Budgets**, and two coming-soon sections
+- Below the dashboard are nav cards linking to **Accounts**, **Summary**, **Stock Rollup**, **Snapshots**, **Budgets**, **SS Benefits**, and two coming-soon sections
 - Tap **⚙ Groups** (top right) to create or manage portfolio groups
 
 ---
@@ -1864,6 +1864,42 @@ Requires a Finnhub API key in Settings. Prices persist in Firestore across sessi
 **Deleting a snapshot**: Expand the row → tap **Delete** → confirm. Deleting a snapshot that was used as a period baseline will cause that period's gain/loss on the Summary page to show "—" again until a new snapshot of that type is captured.
 
 **Group switcher**: If more than one group exists, a dropdown appears to switch between groups. Each group has its own snapshot history.
+
+---
+
+## screen:investments-ss-benefits
+
+### Quick Help
+- Tracks **projected Social Security monthly benefits** by claiming age for each person you follow
+- Each year (after visiting SSA.gov), tap **+ Create Snapshot** to record the updated numbers
+- The **Most Recent** snapshot for each person is the one used by the Retirement Planner — older snapshots are kept for historical comparison only
+- Use the **Person** dropdown to view and manage snapshots for different people (you, your spouse, kids, etc.)
+
+### Details
+
+**Snapshots**: Each snapshot has an "as-of date" (the day you pulled the numbers from SSA.gov) and a list of claiming ages with their projected monthly benefit amounts. You choose which ages to record — the available range is 62 through 70.
+
+**Create New Snapshot**: Pre-fills from the previous snapshot (same ages and amounts as a starting baseline). Update the numbers that changed, delete ages you no longer need, add new ones. The as-of date defaults to today.
+
+**Update Current Snapshot**: Edits the most recent snapshot in-place without creating a new record. For users who don't need year-over-year history — just keep one current set of numbers.
+
+**Historical snapshots**: Any snapshot that isn't the most recent is labeled "Historical — not used in planning." You can still view and edit them, but they do not feed the Retirement Planner.
+
+**Deleting snapshots**: If you delete the most recent snapshot, the previous one automatically becomes the "most recent" used by the planner. A confirmation prompt warns you of this.
+
+**Enrolled people**: The person dropdown shows the same people enrolled in the Investments section. Manage enrolled people via **Accounts → Manage People**.
+
+---
+
+## screen:investments-ss-form
+
+### Quick Help
+- **Create New Snapshot**: Records a fresh set of SS projections for a person. Pre-populated from the prior snapshot (ages + amounts) so you only need to update changed numbers.
+- **Update Snapshot**: Edits an existing snapshot in-place — change amounts, add ages, or remove ages you no longer track.
+- Pick an age from the **age dropdown** and tap **+ Add Age** to add a row; tap **✕** on any row to remove it.
+- Ages available: 62 through 70 (SSA's full claiming range).
+- **As-of Date** defaults to today — the day you're entering the numbers.
+- Tap **Save** when done; the list page shows the updated snapshot immediately.
 
 ---
 

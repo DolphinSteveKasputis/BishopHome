@@ -15955,3 +15955,161 @@ a.legacy-fin-card:hover {
     border-bottom-color: #6a5acd;
     color: #333;
 }
+
+/* =====================================================
+   SS Benefits — #investments/ss-benefits
+   ===================================================== */
+
+.ss-snapshot-card {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    margin-bottom: 14px;
+    overflow: hidden;
+}
+.ss-snapshot-card--current {
+    border-color: #6a5acd;
+    border-width: 2px;
+}
+.ss-snapshot-header {
+    padding: 12px 14px 8px;
+    border-bottom: 1px solid #f0f0f0;
+}
+.ss-snapshot-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+}
+.ss-snapshot-date {
+    font-weight: 600;
+    font-size: 0.97rem;
+    color: #222;
+}
+.ss-snapshot-badge {
+    background: #6a5acd;
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 12px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+.ss-snapshot-historical {
+    font-size: 0.78rem;
+    color: #999;
+    font-style: italic;
+}
+.ss-snapshot-summary {
+    font-size: 0.82rem;
+    color: #666;
+}
+.ss-snapshot-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+}
+.ss-snapshot-table td {
+    padding: 6px 14px;
+    border-bottom: 1px solid #f5f5f5;
+    color: #333;
+}
+.ss-snapshot-table tr:last-child td { border-bottom: none; }
+.ss-snapshot-table td:last-child {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: #2e7d32;
+    font-weight: 500;
+}
+.ss-snapshot-actions {
+    display: flex;
+    gap: 8px;
+    padding: 10px 14px;
+    border-top: 1px solid #f0f0f0;
+    background: #fafafa;
+}
+
+/* Form — entry rows */
+.ss-entry-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+.ss-entry-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #f8f8f8;
+    border: 1px solid #e8e8e8;
+    border-radius: 6px;
+    padding: 8px 12px;
+}
+.ss-entry-age {
+    min-width: 56px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #444;
+}
+.ss-entry-amount {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+}
+.ss-entry-dollar {
+    color: #666;
+    font-size: 0.9rem;
+}
+.ss-entry-input {
+    width: 100px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 0.9rem;
+    text-align: right;
+}
+.ss-entry-label {
+    color: #888;
+    font-size: 0.82rem;
+    white-space: nowrap;
+}
+.ss-entry-delete {
+    background: none;
+    border: none;
+    color: #c62828;
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: auto;
+}
+.ss-entry-delete:hover { background: #ffebee; }
+
+/* "+ Add Age" row */
+.ss-add-age-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 6px 0 18px;
+}
+.ss-add-age-row select {
+    flex: 1;
+    max-width: 180px;
+}
+
+/* Form section label */
+.form-section-label {
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6a5acd;
+    margin: 18px 0 10px;
+}
+
+@media (max-width: 480px) {
+    .ss-snapshot-meta { flex-wrap: wrap; }
+    .ss-entry-input { width: 80px; }
+}

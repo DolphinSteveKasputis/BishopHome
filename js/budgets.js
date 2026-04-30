@@ -451,9 +451,14 @@ function _budgetSummaryHtml(totals) {
 // ---------------------------------------------------------------------------
 
 function _budgetCalcTotals() {
+    // Build a Set of valid category localIds so orphaned line items
+    // (whose category was deleted) are excluded from all totals.
+    var validCatIds = new Set(_budgetDraft.categories.map(function(c) { return c.localId; }));
+
     var byCat = {};
     _budgetDraft.categories.forEach(function(c) { byCat[c.localId] = 0; });
     _budgetDraft.lineItems.forEach(function(item) {
+        if (!validCatIds.has(item.categoryId)) return; // skip orphaned items
         byCat[item.categoryId] = (byCat[item.categoryId] || 0) + (parseFloat(item.amount) || 0);
     });
     var nonMonthlyReserve = Math.round(
@@ -461,7 +466,8 @@ function _budgetCalcTotals() {
             .filter(function(i) { return i.isActive !== false; })
             .reduce(function(s, i) { return s + (parseFloat(i.amount) || 0); }, 0) / 12
     );
-    var totalExpenses = Object.values(byCat).reduce(function(s, v) { return s + v; }, 0) + nonMonthlyReserve;
+    // Only sum categories that actually exist — prevents deleted-category amounts from inflating the total
+    var totalExpenses = _budgetDraft.categories.reduce(function(s, c) { return s + (byCat[c.localId] || 0); }, 0) + nonMonthlyReserve;
     var totalIncome   = _budgetDraft.incomeItems.reduce(function(s, i) { return s + (parseFloat(i.amount) || 0); }, 0);
     return { byCat: byCat, nonMonthlyReserve: nonMonthlyReserve, totalExpenses: totalExpenses, totalIncome: totalIncome };
 }

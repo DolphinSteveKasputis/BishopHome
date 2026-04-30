@@ -11,8 +11,9 @@ var _budgetDirty       = false;
 var _budgetDefaultId   = null; // from settings doc
 var _budgetDragSrcId    = null; // drag-and-drop source item localId
 var _budgetDragSrcCatId = null; // source item's categoryId (for cross-category detection)
-var _budgetCollapsed   = {};   // localId → true/false — accordion collapse state
-var _budgetNoteOpen    = {};   // lineItem localId → true/false — note row open state
+var _budgetCollapsed        = {};    // localId → true/false — accordion collapse state
+var _budgetNoteOpen         = {};    // lineItem localId → true/false — note row open state
+var _budgetIncomeCollapsed  = true;  // income section collapsed by default
 
 // Non-monthly sub-screen state
 var _nmBudgetId = null;
@@ -158,8 +159,9 @@ async function _budgetLoadData(budgetId) {
         ref.collection('nonMonthlyItems').orderBy('sortOrder').get()
     ]);
 
-    // Reset collapse state — all categories start collapsed by default
-    _budgetCollapsed = { '__nonmonthly__': true };
+    // Reset collapse state — all categories and income start collapsed by default
+    _budgetCollapsed       = { '__nonmonthly__': true };
+    _budgetIncomeCollapsed = true;
 
     catSnap.forEach(function(doc) {
         _budgetDraft.categories.push(Object.assign({ firestoreId: doc.id, localId: doc.id }, doc.data()));
@@ -268,11 +270,12 @@ function _budgetRender(page) {
         '</div>' +
     '</div>';
 
-    // — Income section
-    html += '<div class="budget-income-section">' +
-        '<div class="budget-section-header">' +
+    // — Income section (collapsible accordion)
+    html += '<div class="budget-income-section' + (_budgetIncomeCollapsed ? ' budget-income--collapsed' : '') + '">' +
+        '<div class="budget-section-header budget-section-header--toggle" onclick="_budgetToggleIncome()">' +
+            '<span class="budget-cat-toggle">' + (_budgetIncomeCollapsed ? '▶' : '▼') + '</span>' +
             '<span class="budget-section-title">Income</span>' +
-            '<span class="budget-section-subtotal">Total: <strong>' + _budgetFmt(totals.totalIncome) + '</strong></span>' +
+            '<span class="budget-section-subtotal" id="budgetIncomeTotalDisplay">Total: <strong>' + _budgetFmt(totals.totalIncome) + '</strong></span>' +
         '</div>' +
         '<div class="budget-item-rows" id="budgetIncomeRows">';
 
@@ -354,6 +357,16 @@ function _budgetToggleCategory(localId) {
     catEl.classList.toggle('budget-category--collapsed', _budgetCollapsed[localId]);
     var icon = catEl.querySelector('.budget-cat-toggle');
     if (icon) icon.textContent = _budgetCollapsed[localId] ? '▶' : '▼';
+}
+
+// Toggle the income section accordion
+function _budgetToggleIncome() {
+    _budgetIncomeCollapsed = !_budgetIncomeCollapsed;
+    var sec  = document.querySelector('.budget-income-section');
+    if (!sec) return;
+    sec.classList.toggle('budget-income--collapsed', _budgetIncomeCollapsed);
+    var icon = sec.querySelector('.budget-section-header--toggle .budget-cat-toggle');
+    if (icon) icon.textContent = _budgetIncomeCollapsed ? '▶' : '▼';
 }
 
 // Toggle the note row on a line item open/closed

@@ -15890,8 +15890,19 @@ a.legacy-fin-card:hover {
 /* Hide body when collapsed */
 .budget-category--collapsed .budget-item-rows,
 .budget-category--collapsed .budget-add-item-btn,
-.budget-category--collapsed .budget-nonmonthly-desc {
+.budget-category--collapsed .budget-nonmonthly-desc,
+.budget-income--collapsed .budget-item-rows,
+.budget-income--collapsed .budget-add-item-btn {
     display: none;
+}
+
+.budget-section-header--toggle {
+    cursor: pointer;
+    user-select: none;
+}
+.budget-section-header--toggle:hover {
+    background: #ececec;
+    border-radius: 6px;
 }
 
 /* Cross-category drag-over highlight */

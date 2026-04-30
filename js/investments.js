@@ -315,7 +315,7 @@ function _investHubNavCards() {
 
 async function loadInvestmentsAccountsPage() {
     document.getElementById('breadcrumbBar').innerHTML =
-        '<a href="#investments">Investments</a><span class="separator">&rsaquo;</span><span>Accounts</span>';
+        '<a href="#investments">Financial</a><span class="separator">&rsaquo;</span><span>Accounts</span>';
     document.getElementById('headerTitle').innerHTML =
         '<a href="#main" class="home-link">' + escapeHtml(window.appName || 'My Life') + '</a>';
     await _investLoadAll();
@@ -792,7 +792,7 @@ async function loadInvestmentsFormPage(id) {
     var returnHref  = _investFormReturnTo === 'summary' ? '#investments/summary' : '#investments/accounts';
     var returnLabel = _investFormReturnTo === 'summary' ? 'Summary'              : 'Accounts';
     document.getElementById('breadcrumbBar').innerHTML =
-        '<a href="#investments">Investments</a><span class="separator">&rsaquo;</span>' +
+        '<a href="#investments">Financial</a><span class="separator">&rsaquo;</span>' +
         '<a href="' + returnHref + '">' + returnLabel + '</a><span class="separator">&rsaquo;</span>' +
         '<span>' + (isNew ? 'Add Account' : 'Edit Account') + '</span>';
     document.getElementById('headerTitle').innerHTML =
@@ -1244,7 +1244,7 @@ async function _investEnsureMeGroup() {
 
 async function loadInvestmentsGroupsPage() {
     document.getElementById('breadcrumbBar').innerHTML =
-        '<a href="#investments">Investments</a><span class="separator">&rsaquo;</span><span>Manage Groups</span>';
+        '<a href="#investments">Financial</a><span class="separator">&rsaquo;</span><span>Manage Groups</span>';
     document.getElementById('headerTitle').innerHTML =
         '<a href="#main" class="home-link">' + escapeHtml(window.appName || 'My Life') + '</a>';
 
@@ -1326,7 +1326,7 @@ async function loadInvestmentsGroupEditPage(groupId) {
     var title = isNew ? 'Add Group' : 'Edit Group';
 
     document.getElementById('breadcrumbBar').innerHTML =
-        '<a href="#investments">Investments</a><span class="separator">&rsaquo;</span>' +
+        '<a href="#investments">Financial</a><span class="separator">&rsaquo;</span>' +
         '<a href="#investments/groups">Manage Groups</a><span class="separator">&rsaquo;</span>' +
         '<span>' + title + '</span>';
     document.getElementById('headerTitle').innerHTML =
@@ -1778,7 +1778,7 @@ async function loadInvestmentsAccountPage(ns, accountId) {
                     : 'Accounts';
     _investAccountReturnTo = null;
     document.getElementById('breadcrumbBar').innerHTML =
-        '<a href="#investments">Investments</a><span class="separator">&rsaquo;</span>' +
+        '<a href="#investments">Financial</a><span class="separator">&rsaquo;</span>' +
         '<a href="' + returnHref + '">' + returnLabel + '</a><span class="separator">&rsaquo;</span>' +
         '<span>' + escapeHtml(acct.nickname || 'Account') + '</span>';
     document.getElementById('headerTitle').innerHTML =
@@ -2479,7 +2479,7 @@ function _investSnapshotCol() {
 
 async function loadInvestmentsSnapshotsPage() {
     document.getElementById('breadcrumbBar').innerHTML =
-        '<a href="#investments">Investments</a><span class="separator">&rsaquo;</span><span>Snapshots</span>';
+        '<a href="#investments">Financial</a><span class="separator">&rsaquo;</span><span>Snapshots</span>';
     document.getElementById('headerTitle').innerHTML =
         '<a href="#main" class="home-link">' + escapeHtml(window.appName || 'My Life') + '</a>';
 
@@ -2811,7 +2811,7 @@ async function _investCheckAndUpdateATH(type, netWorth, date, groupId) {
 
 async function loadInvestmentsSummaryPage() {
     document.getElementById('breadcrumbBar').innerHTML =
-        '<a href="#investments">Investments</a><span class="separator">&rsaquo;</span><span>Summary</span>';
+        '<a href="#investments">Financial</a><span class="separator">&rsaquo;</span><span>Summary</span>';
     document.getElementById('headerTitle').innerHTML =
         '<a href="#main" class="home-link">' + escapeHtml(window.appName || 'My Life') + '</a>';
 
@@ -3278,7 +3278,7 @@ var _investStocksExpandIds = {};         // { ticker: bool } — which rows are 
 
 async function loadInvestmentsStocksPage() {
     document.getElementById('breadcrumbBar').innerHTML =
-        '<a href="#investments">Investments</a><span class="separator">&rsaquo;</span><span>Stock Rollup</span>';
+        '<a href="#investments">Financial</a><span class="separator">&rsaquo;</span><span>Stock Rollup</span>';
     document.getElementById('headerTitle').innerHTML =
         '<a href="#main" class="home-link">' + escapeHtml(window.appName || 'My Life') + '</a>';
 

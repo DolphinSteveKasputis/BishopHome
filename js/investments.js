@@ -2871,10 +2871,10 @@ async function _investRenderSummaryPage() {
                 '</div>';
 
             // After the daily ATH card, inject the "% from ATH" companion card
-            if (t === 'daily' && baselines.daily && ath.value > 0) {
-                var snapVal  = baselines.daily.netWorth || 0;
-                var snapDate = baselines.daily.date || '';
-                var athDiff  = snapVal - ath.value;
+            // Uses live current net worth vs the daily ATH value.
+            // e.g. ATH=$100, current=$90 → -10%
+            if (t === 'daily' && ath.value > 0) {
+                var athDiff  = cats.netWorth - ath.value;
                 var athPct   = athDiff / ath.value * 100;
                 var athIsUp  = athDiff >= 0;
                 var athPctFmt = (athIsUp ? '+' : '') + athPct.toFixed(2) + '%';
@@ -2883,7 +2883,7 @@ async function _investRenderSummaryPage() {
                     '<div class="invest-snap-ath-item ' + athCls + '">' +
                         '<span class="invest-snap-ath-label">vs Daily ATH</span>' +
                         '<span class="invest-snap-ath-value invest-ath-pct-value">' + escapeHtml(athPctFmt) + '</span>' +
-                        '<span class="invest-snap-ath-date">snapshot ' + escapeHtml(snapDate) + '</span>' +
+                        '<span class="invest-snap-ath-date">' + _investFmtCurrency(cats.netWorth) + ' now</span>' +
                     '</div>';
             }
         });

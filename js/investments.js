@@ -2854,6 +2854,7 @@ async function _investRenderSummaryPage() {
     }
 
     // All-Time Highs section (reuses snapshot page styles)
+    // Also computes a "% from Daily ATH" card using the last daily snapshot as the reference value.
     var athTypes       = ['daily', 'weekly', 'monthly', 'yearly'];
     var athSummaryHtml = '';
     if (athTypes.some(function(t) { return !!_investConfig['allTimeHigh' + t.charAt(0).toUpperCase() + t.slice(1)]; })) {
@@ -2868,6 +2869,23 @@ async function _investRenderSummaryPage() {
                     '<span class="invest-snap-ath-value">' + _investFmtCurrency(ath.value) + '</span>' +
                     '<span class="invest-snap-ath-date">' + escapeHtml(ath.date) + '</span>' +
                 '</div>';
+
+            // After the daily ATH card, inject the "% from ATH" companion card
+            if (t === 'daily' && baselines.daily && ath.value > 0) {
+                var snapVal  = baselines.daily.netWorth || 0;
+                var snapDate = baselines.daily.date || '';
+                var athDiff  = snapVal - ath.value;
+                var athPct   = athDiff / ath.value * 100;
+                var athIsUp  = athDiff >= 0;
+                var athPctFmt = (athIsUp ? '+' : '') + athPct.toFixed(2) + '%';
+                var athCls   = athIsUp ? 'invest-snap-ath-item--gain' : 'invest-snap-ath-item--loss';
+                athSummaryHtml +=
+                    '<div class="invest-snap-ath-item ' + athCls + '">' +
+                        '<span class="invest-snap-ath-label">vs Daily ATH</span>' +
+                        '<span class="invest-snap-ath-value invest-ath-pct-value">' + escapeHtml(athPctFmt) + '</span>' +
+                        '<span class="invest-snap-ath-date">snapshot ' + escapeHtml(snapDate) + '</span>' +
+                    '</div>';
+            }
         });
         athSummaryHtml += '</div>';
     }
@@ -2928,7 +2946,19 @@ async function _investRenderSummaryPage() {
             '</div>' +
         '</div>' +
 
-        // Category breakdown
+        // All-Time Highs (above category breakdown)
+        (athSummaryHtml ? '<div class="invest-summary-section-title">All-Time Highs</div>' + athSummaryHtml : '') +
+
+        // Period Performance (above category breakdown)
+        '<div class="invest-summary-section-title">Period Performance</div>' +
+        '<div class="invest-summary-perf">' +
+            _investPerfRowLive('Day',   'daily',   baselines.daily,   cats.netWorth) +
+            _investPerfRowLive('Week',  'weekly',  baselines.weekly,  cats.netWorth) +
+            _investPerfRowLive('Month', 'monthly', baselines.monthly, cats.netWorth) +
+            _investPerfRowLive('YTD',   'yearly',  baselines.yearly,  cats.netWorth) +
+        '</div>' +
+
+        // Category breakdown (now below ATH + performance)
         '<div class="invest-summary-section-title">Category Breakdown</div>' +
         '<div class="invest-summary-categories">' +
             _investCategoryRow('Roth',            cats.roth,      cats.netWorth, 'invest-badge--roth') +
@@ -2941,16 +2971,6 @@ async function _investRenderSummaryPage() {
                 '<div class="invest-summary-cat-value">' + _investFmtCurrency(cats.netWorth) + '</div>' +
                 '<div class="invest-summary-cat-pct"></div>' +
             '</div>' +
-        '</div>' +
-
-        (athSummaryHtml ? '<div class="invest-summary-section-title">All-Time Highs</div>' + athSummaryHtml : '') +
-
-        '<div class="invest-summary-section-title">Period Performance</div>' +
-        '<div class="invest-summary-perf">' +
-            _investPerfRowLive('Day',   'daily',   baselines.daily,   cats.netWorth) +
-            _investPerfRowLive('Week',  'weekly',  baselines.weekly,  cats.netWorth) +
-            _investPerfRowLive('Month', 'monthly', baselines.monthly, cats.netWorth) +
-            _investPerfRowLive('YTD',   'yearly',  baselines.yearly,  cats.netWorth) +
         '</div>' +
 
         // Per-account breakdown

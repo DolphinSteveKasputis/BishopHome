@@ -1350,16 +1350,16 @@ Dashboard page showing totals for the selected group.
 
 **If I retired today widget**: Green card showing estimated Annual and Monthly income. Formula: `Invested × projectedRoR × afterTaxPct`. Inline fields let the user edit Return Rate and After-Tax % and tap **Recalculate** to save and re-render. Config stored in `userCol('investmentConfig').doc('main')` (auto-created with defaults `projectedRoR: 0.06`, `afterTaxPct: 0.82`).
 
+**All-Time Highs**: Orange cards (reuses `.invest-snap-ath-*` styles) showing the highest Net Worth ever recorded for each snapshot type (Daily/Weekly/Monthly/Yearly), sourced from `investmentConfig` ATH fields. Only rendered when at least one ATH is recorded. Immediately after the Daily ATH card, a **"vs Daily ATH"** companion card shows the percentage difference between the most recent daily snapshot's net worth and the daily ATH value. Green card = at or above ATH; red card = below ATH. Formula: `(lastDailySnapshot.netWorth − dailyATH.value) / dailyATH.value × 100`.
+
+**Period Performance**: Four rows — Day, Week, Month, YTD — each wired to the most recent snapshot of the corresponding type (daily/weekly/monthly/yearly) for the current group. Loaded via `_investLoadPeriodBaselines(groupId)` which queries `investmentSnapshots` ordered by `date desc`, limit 200, and takes the first of each type client-side (no composite index required). Each row shows: baseline date, Gain/Loss $ (green `+` / red `−`), and Gain/Loss %. Shows "No [type] snapshot yet" when no snapshot of that type exists.
+
 **Category Breakdown table** (rows: Roth, Pre-Tax, Brokerage, Cash, Uninvested Cash, Net Worth total): value + % of Net Worth.
 - Roth/Pre-Tax/Brokerage buckets = **full account total** (holdings + cashBalance + pendingActivity) for accounts of that type
 - Cash bucket = total balance of bank accounts (checking/savings/money market/CD)
 - Uninvested Cash = informational display only — sum of `cashBalance + pendingActivity` across all non-bank investment accounts; already baked into the category rows above, **not** added to Net Worth
 - `t.netWorth = t.roth + t.preTax + t.brokerage + t.cash` (no `+ t.invCash`)
 - `t.invested = t.netWorth - t.invCash` (how much is in actual positions vs. sitting idle)
-
-**All-Time Highs**: Orange cards (reuses `.invest-snap-ath-*` styles) showing the highest Net Worth ever recorded for each snapshot type (Daily/Weekly/Monthly/Yearly), sourced from `investmentConfig` ATH fields. Only rendered when at least one ATH is recorded.
-
-**Period Performance**: Four rows — Day, Week, Month, YTD — each wired to the most recent snapshot of the corresponding type (daily/weekly/monthly/yearly) for the current group. Loaded via `_investLoadPeriodBaselines(groupId)` which queries `investmentSnapshots` ordered by `date desc`, limit 200, and takes the first of each type client-side (no composite index required). Each row shows: baseline date, Gain/Loss $ (green `+` / red `−`), and Gain/Loss %. Shows "No [type] snapshot yet" when no snapshot of that type exists.
 
 **Accounts section**: Per-person groups listing each account's name, tax category badge, and total value. Joint accounts appear in a separate "Joint Accounts" section.
 

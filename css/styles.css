@@ -14631,6 +14631,30 @@ a.invest-hub-card:hover {
     color: #888;
 }
 
+/* "% from Daily ATH" companion card — gain variant */
+.invest-snap-ath-item--gain {
+    background: #e8f5e9;
+    border-color: #a5d6a7;
+}
+.invest-snap-ath-item--gain .invest-snap-ath-label {
+    color: #2e7d32;
+}
+.invest-snap-ath-item--gain .invest-ath-pct-value {
+    color: #1b5e20;
+}
+
+/* "% from Daily ATH" companion card — loss variant */
+.invest-snap-ath-item--loss {
+    background: #fce4ec;
+    border-color: #f48fb1;
+}
+.invest-snap-ath-item--loss .invest-snap-ath-label {
+    color: #c62828;
+}
+.invest-snap-ath-item--loss .invest-ath-pct-value {
+    color: #b71c1c;
+}
+
 /* Snapshot type section */
 .invest-snap-type-section {
     margin-bottom: 20px;

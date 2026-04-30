@@ -15894,6 +15894,13 @@ a.legacy-fin-card:hover {
     display: none;
 }
 
+/* Cross-category drag-over highlight */
+.budget-cat-drag-over {
+    outline: 2px dashed #6a5acd;
+    outline-offset: -2px;
+    background: #f3f0ff;
+}
+
 /* Line item note toggle */
 .budget-item-wrap {
     display: flex;

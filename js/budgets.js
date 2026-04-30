@@ -9,7 +9,8 @@ var _budgetDraft       = null; // working copy: {id, name, categories[], lineIte
 var _budgetOriginalIds = null; // {categories: Set, lineItems: Set, incomeItems: Set} — ids present in Firestore at load time
 var _budgetDirty       = false;
 var _budgetDefaultId   = null; // from settings doc
-var _budgetDragSrcId   = null; // drag-and-drop source item localId
+var _budgetDragSrcId    = null; // drag-and-drop source item localId
+var _budgetDragSrcCatId = null; // source item's categoryId (for cross-category detection)
 var _budgetCollapsed   = {};   // localId → true/false — accordion collapse state
 var _budgetNoteOpen    = {};   // lineItem localId → true/false — note row open state
 
@@ -305,6 +306,8 @@ function _budgetRender(page) {
         _budgetWireItemDrag(document.getElementById('budgetCatRows_' + cat.localId));
     });
     _budgetWireIncomeDrag();
+    // Wire category containers as drop zones for cross-category item moves
+    _budgetWireCategoryDrop();
 }
 
 function _budgetDropdownHtml() {
@@ -1094,6 +1097,9 @@ function _budgetWireIncomeDrag() {
 function _budgetDragStart(e) {
     var row = e.currentTarget;
     _budgetDragSrcId = row.dataset.itemId || row.dataset.incomeId;
+    // Record source category so cross-category drops can re-render the right containers
+    var srcItem = _budgetDraft.lineItems.find(function(i) { return i.localId === _budgetDragSrcId; });
+    _budgetDragSrcCatId = srcItem ? srcItem.categoryId : null;
     row.classList.add('budget-dragging');
     e.dataTransfer.effectAllowed = 'move';
 }
@@ -1106,29 +1112,47 @@ function _budgetDragOver(e) {
 function _budgetDragEnd(e) {
     e.currentTarget.classList.remove('budget-dragging');
     document.querySelectorAll('.budget-item-row').forEach(function(r) { r.classList.remove('budget-drag-over'); });
+    document.querySelectorAll('.budget-cat-drag-over').forEach(function(el) { el.classList.remove('budget-cat-drag-over'); });
+    _budgetDragSrcId    = null;
+    _budgetDragSrcCatId = null;
+}
+
+// Shared helper: re-render one category's item rows and re-wire drag events
+function _budgetRefreshCategoryRows(catLocalId) {
+    var rowsEl = document.getElementById('budgetCatRows_' + catLocalId);
+    if (!rowsEl) return;
+    var items = _budgetDraft.lineItems.filter(function(i) { return i.categoryId === catLocalId; });
+    rowsEl.innerHTML = items.map(_budgetLineItemRowHtml).join('');
+    _budgetWireItemDrag(rowsEl);
 }
 
 function _budgetDropItem(e) {
     e.preventDefault();
-    var targetRow  = e.currentTarget;
-    var targetId   = targetRow.dataset.itemId;
+    var targetRow = e.currentTarget;
+    var targetId  = targetRow.dataset.itemId;
     if (!targetId || targetId === _budgetDragSrcId) return;
 
-    var srcIdx  = _budgetDraft.lineItems.findIndex(function(i) { return i.localId === _budgetDragSrcId; });
-    var tgtIdx  = _budgetDraft.lineItems.findIndex(function(i) { return i.localId === targetId; });
-    if (srcIdx < 0 || tgtIdx < 0) return;
+    var srcItem = _budgetDraft.lineItems.find(function(i) { return i.localId === _budgetDragSrcId; });
+    var tgtItem = _budgetDraft.lineItems.find(function(i) { return i.localId === targetId; });
+    if (!srcItem || !tgtItem) return;
 
-    var moved = _budgetDraft.lineItems.splice(srcIdx, 1)[0];
-    _budgetDraft.lineItems.splice(tgtIdx, 0, moved);
+    var srcCatId = srcItem.categoryId;
+    var tgtCatId = tgtItem.categoryId;
+    var crossCat = srcCatId !== tgtCatId;
+
+    // Remove src, insert before target (splice mutates array so re-find target index after removal)
+    _budgetDraft.lineItems = _budgetDraft.lineItems.filter(function(i) { return i.localId !== _budgetDragSrcId; });
+    var tgtIdx = _budgetDraft.lineItems.findIndex(function(i) { return i.localId === targetId; });
+    srcItem.categoryId = tgtCatId; // update category on cross-cat drop (no-op if same cat)
+    _budgetDraft.lineItems.splice(tgtIdx, 0, srcItem);
     _budgetMarkDirty();
 
-    // Re-render just this category's rows
-    var catLocalId = moved.categoryId;
-    var rowsEl = document.getElementById('budgetCatRows_' + catLocalId);
-    if (rowsEl) {
-        var items = _budgetDraft.lineItems.filter(function(i) { return i.categoryId === catLocalId; });
-        rowsEl.innerHTML = items.map(_budgetLineItemRowHtml).join('');
-        _budgetWireItemDrag(rowsEl);
+    _budgetRefreshCategoryRows(tgtCatId);
+    if (crossCat) {
+        _budgetRefreshCategoryRows(srcCatId);
+        _budgetRefreshCategorySubtotal(srcCatId);
+        _budgetRefreshCategorySubtotal(tgtCatId);
+        _budgetRefreshSummary();
     }
 }
 
@@ -1151,6 +1175,56 @@ function _budgetDropIncome(e) {
         rowsEl.innerHTML = _budgetDraft.incomeItems.map(_budgetIncomeRowHtml).join('');
         _budgetWireIncomeDrag();
     }
+}
+
+// Wire each category container as a drop zone so items can be moved between categories.
+// - Dragging over a collapsed category auto-expands it.
+// - Dropping on the container (not on a specific row) appends the item to that category.
+function _budgetWireCategoryDrop() {
+    document.querySelectorAll('.budget-category[data-cat-id]').forEach(function(catEl) {
+        var catId = catEl.dataset.catId;
+
+        catEl.addEventListener('dragover', function(e) {
+            if (!_budgetDragSrcCatId) return; // only handle line-item drags
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            catEl.classList.add('budget-cat-drag-over');
+            // Auto-expand collapsed categories so the user can drop onto a specific row
+            if (_budgetCollapsed[catId]) _budgetToggleCategory(catId);
+        });
+
+        catEl.addEventListener('dragleave', function(e) {
+            // Only remove highlight when the cursor truly leaves this category
+            if (!catEl.contains(e.relatedTarget)) {
+                catEl.classList.remove('budget-cat-drag-over');
+            }
+        });
+
+        catEl.addEventListener('drop', function(e) {
+            catEl.classList.remove('budget-cat-drag-over');
+            // If the drop landed on a specific row, the row's handler takes over
+            if (e.target.closest('.budget-item-row')) return;
+
+            var srcItem = _budgetDraft.lineItems.find(function(i) { return i.localId === _budgetDragSrcId; });
+            if (!srcItem) return;
+
+            var srcCatId = srcItem.categoryId;
+            if (srcCatId === catId) return; // dropped back in same category — no-op
+
+            e.preventDefault();
+            // Move item: remove from current position, append to target category
+            _budgetDraft.lineItems = _budgetDraft.lineItems.filter(function(i) { return i.localId !== _budgetDragSrcId; });
+            srcItem.categoryId = catId;
+            _budgetDraft.lineItems.push(srcItem);
+            _budgetMarkDirty();
+
+            _budgetRefreshCategoryRows(srcCatId);
+            _budgetRefreshCategoryRows(catId);
+            _budgetRefreshCategorySubtotal(srcCatId);
+            _budgetRefreshCategorySubtotal(catId);
+            _budgetRefreshSummary();
+        });
+    });
 }
 
 // ---------------------------------------------------------------------------

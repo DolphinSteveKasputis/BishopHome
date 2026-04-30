@@ -2512,6 +2512,35 @@ async function _investLoadSnapshots(groupId) {
     return list;
 }
 
+// Recompute group-scoped ATH from actual snapshot history.
+// Runs whenever the snapshot page loads — self-heals missing or stale ATH keys
+// (e.g. after migrating from the old global key format to group-scoped keys).
+async function _investRecomputeGroupATH(snapshots, groupId) {
+    var best = {}; // type → {value, date}
+    snapshots.forEach(function(s) {
+        var t   = s.type;
+        var nw  = s.netWorth || 0;
+        if (!best[t] || nw > best[t].value) {
+            best[t] = { value: nw, date: s.date };
+        }
+    });
+
+    var patch = {};
+    var changed = false;
+    Object.keys(best).forEach(function(t) {
+        var key     = _investAthKey(t, groupId);
+        var current = _investConfig[key];
+        if (!current || best[t].value > (current.value || 0)) {
+            _investConfig[key] = best[t];
+            patch[key]         = best[t];
+            changed = true;
+        }
+    });
+    if (changed) {
+        await _investConfigCol().doc('main').set(patch, { merge: true });
+    }
+}
+
 async function _investRenderSnapshotsPage() {
     var page = document.getElementById('page-investments-snapshots');
     if (!page) return;
@@ -2525,6 +2554,11 @@ async function _investRenderSnapshotsPage() {
     }
 
     var snapshots = await _investLoadSnapshots(group.id);
+
+    // Self-heal: recompute group-scoped ATH from snapshot history.
+    // This migrates any data from the old global ATH key format and
+    // ensures ATH is always correct even after key-format changes.
+    await _investRecomputeGroupATH(snapshots, group.id);
 
     // Group switcher
     var switcherHtml = '';
@@ -2815,6 +2849,11 @@ async function _investRenderSummaryPage() {
     var accounts  = await _investLoadGroupAccounts(group);
     var cats      = _investComputeGroupTotals(accounts);
     var baselines = await _investLoadPeriodBaselines(group.id);
+
+    // Self-heal ATH from baselines (each baseline is the most recent snapshot of its type).
+    // Lightweight alternative to loading all snapshots — enough to catch the common migration case.
+    await _investRecomputeGroupATH(Object.values(baselines).filter(Boolean), group.id);
+
     var ror       = _investConfig.projectedRoR || 0.06;
     var atp      = _investConfig.afterTaxPct  || 0.82;
     var annual   = cats.netWorth * ror * atp;

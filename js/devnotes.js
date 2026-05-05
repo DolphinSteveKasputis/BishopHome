@@ -284,7 +284,12 @@ function _dnGetFixedFields() {
 
 // ---------- Save ----------
 
-async function _dnSaveNote() {
+/**
+ * Saves the current note.
+ * @param {boolean} navigateAfter - If true, navigates back to the list after saving.
+ *   Pass false when calling internally (e.g. auto-save before photo upload).
+ */
+async function _dnSaveNote(navigateAfter) {
     var text = document.getElementById('devNoteTextarea').value.trim();
     if (!text) { alert('Please enter some text.'); return; }
 
@@ -315,7 +320,12 @@ async function _dnSaveNote() {
             _dnSetBreadcrumb(_dnCurrentId);
             history.replaceState(null, '', '#devnote/' + _dnCurrentId);
         }
-        if (btn) { btn.disabled = false; btn.textContent = 'Saved ✓'; setTimeout(function() { if (btn) btn.textContent = 'Save'; }, 2000); }
+
+        if (navigateAfter) {
+            location.hash = '#devnotes';
+        } else {
+            if (btn) { btn.disabled = false; btn.textContent = 'Saved ✓'; setTimeout(function() { if (btn) btn.textContent = 'Save'; }, 2000); }
+        }
     } catch (err) {
         console.error('_dnSaveNote error:', err);
         alert('Error saving note.');
@@ -611,7 +621,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Detail page — Save button
     var saveBtn = document.getElementById('devNoteSaveBtn');
-    if (saveBtn) saveBtn.addEventListener('click', _dnSaveNote);
+    if (saveBtn) saveBtn.addEventListener('click', function() { _dnSaveNote(true); });
 
     // Detail page — Ctrl+Enter to save
     var textarea = document.getElementById('devNoteTextarea');

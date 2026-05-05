@@ -1,21 +1,26 @@
 // ============================================================
 // Devnotes.js — Shared dev scratchpad
 // Notes stored in shared Firestore collection visible to ALL users.
-// Photos stored in sharedDevNotePhotos (not per-user).
+// Photos stored in userCol('photos') with targetType:'devnote'.
 //
-// Shared collections (NOT under /users/{uid}/):
-//   sharedDevNotes       — { text, author, createdAt }
-//   sharedDevNotePhotos  — { noteId, imageData, createdAt }
+// Shared collection (NOT under /users/{uid}/):
+//   sharedDevNotes  — { text, author, createdAt }
+// Per-user (via userCol):
+//   photos          — { targetType:'devnote', targetId, imageData, caption, createdAt }
 // ============================================================
 
 /** Firestore ID of the note currently open on #devnote page. */
 var _dnCurrentId = null;
 
-/** Photos loaded for the currently open note. Array of { id, noteId, imageData, createdAt } */
+/** Photos loaded for the currently open note. Array of { id, imageData, createdAt } */
 var _dnPhotos = [];
 
 /** Photo index open in the lightbox. */
 var _dnLightboxIdx = -1;
+
+/** Pending copy-to-notebook data — set by _dnOpenCopyModal, read by _dnExecuteCopy. */
+var _dnCopyNoteId = null;
+var _dnCopyText   = '';
 
 // ---------- Author ----------
 
@@ -384,10 +389,10 @@ async function _dnDeleteLightboxPhoto(photoId) {
  * detail page (uses _dnCurrentId + textarea value).
  */
 async function _dnOpenCopyModal(noteId, text) {
+    _dnCopyNoteId = noteId;
+    _dnCopyText   = text;
     var select = document.getElementById('devNoteCopySelect');
     select.innerHTML = '<option value="">— loading notebooks… —</option>';
-    select.dataset.noteId = noteId;
-    select.dataset.text   = text;
     openModal('devNoteCopyModal');
 
     try {
@@ -415,8 +420,8 @@ async function _dnOpenCopyModal(noteId, text) {
 async function _dnExecuteCopy() {
     var select     = document.getElementById('devNoteCopySelect');
     var notebookId = select.value;
-    var noteId     = select.dataset.noteId;
-    var text       = select.dataset.text;
+    var noteId     = _dnCopyNoteId;
+    var text       = _dnCopyText;
 
     if (!notebookId) { alert('Please select a notebook.'); return; }
 

@@ -14490,6 +14490,17 @@ a.invest-hub-card:hover {
     color: #aaa;
     font-style: italic;
 }
+.invest-hub-update-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 6px 0 10px;
+}
+.invest-update-time-note {
+    font-size: 0.8rem;
+    color: #aaa;
+    font-style: italic;
+}
 .invest-price-ok   { color: #2e7d32; font-weight: 600; margin: 0; }
 .invest-price-fail-list { margin: 0.5rem 0 0.75rem 1.2rem; padding: 0; }
 .invest-price-fail-list li { margin-bottom: 0.25rem; font-size: 0.9rem; }

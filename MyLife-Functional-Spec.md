@@ -1150,6 +1150,8 @@ Live dashboard above a static nav-card grid.
 - **Quick-stat row**: three cells (Week / Month / YTD) showing $ gain and % gain vs. the most recent weekly, monthly, and yearly snapshots respectively. Cells show "—" when no snapshot of that type has been captured.
 - **ATH callout**: shows the highest net-worth value recorded across all snapshot types. Displays "🏆 All-time high: $X on [date]"; upgrades to "🏆 NEW all-time high!" if the current value equals or exceeds the stored ATH.
 
+**📡 Update All Prices bar**: Shown between the group switcher and the dashboard body. Button calls `_investUpdateHubAllPrices()`, which routes through `_investUpdateAllPrices()` using the hub's active group, then re-renders the dashboard. A formatted last-updated timestamp (e.g. "5/5 10:15am") appears beside the button and is populated on page load from `_investConfig.lastUpdateAllTimestamp`.
+
 **Nav cards** (always visible below the dashboard):
 - **Accounts** → `#investments/accounts`
 - **Summary** → `#investments/summary`
@@ -1326,7 +1328,7 @@ Per-ticker aggregated fields:
 
 **CSS classes**: `.ist-table-wrap`, `.ist-row` (9-col grid), `.ist-header-row`, `.ist-cell`, `.ist-cell-sym`, `.ist-cell-num`, `.ist-cell-chev`, `.ist-main-row`, `.ist-sub-row`, `.ist-detail`, `.ist-sub-label`, `.ist-val`, `.ist-gain`, `.ist-loss`, `.ist-dim`, `.ist-pct-acct`, `.ist-acct-link`.
 
-**📡 Update All Prices button**: In the page header (top right). Calls `_investUpdateStocksAllPrices()` — loads all accounts for ALL enrolled people via `_investLoadAllAccountsForStocks()` (not group-filtered), runs the two-phase Finnhub → Yahoo fetch, batch-writes results, re-renders the page, then shows `_investShowPriceResultModal`.
+**📡 Update All Prices button**: In the page header (top right). Calls `_investUpdateStocksAllPrices()` — loads all accounts for ALL enrolled people via `_investLoadAllAccountsForStocks()` (not group-filtered), runs the two-phase Finnhub → Yahoo fetch, batch-writes results, saves `lastUpdateAllTimestamp`, re-renders the page, shows `_investShowPriceResultModal`, then updates the last-updated note (`investStocksUpdateNote`) beside the button.
 
 **Hub card**: Added as 4th card on `#investments` hub.
 
@@ -1352,7 +1354,7 @@ Each row shows date (daily rows also show day-of-week, e.g. "2026-05-05 · Tuesd
 - "Since date" date input to show all snapshots on or after a date (takes precedence over count when set)
 - Rows are read-only expand/collapse (Delete still works; closes modal and re-renders page)
 
-**Prices last updated**: `investmentConfig/main.lastUpdateAllDate` (YYYY-MM-DD) is written every time `_investUpdateAllPrices()` completes successfully. Displayed on both the Summary page (below the button) and the Snapshots page (below the frequency badges).
+**Prices last updated**: `investmentConfig/main.lastUpdateAllDate` (YYYY-MM-DD) and `lastUpdateAllTimestamp` (ISO string) are written every time `_investUpdateAllPrices()` or `_investUpdateStocksAllPrices()` completes successfully. Displayed formatted as "M/D h:mmam/pm" (e.g. "5/5 10:15am") via `_investFmtUpdateTime()`. Shown on: Summary page status note, Snapshots page, Stock Rollup button area, and main hub update bar.
 
 **Stale-price warning on capture**: When the user opens the Capture Snapshot modal, if `lastUpdateAllDate` is before today (or null), a confirm dialog asks whether to update prices first. Confirming runs `_investUpdateAllPrices()` before computing the snapshot values. Cancelling proceeds with current (potentially stale) prices.
 

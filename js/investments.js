@@ -113,11 +113,20 @@ async function loadInvestmentsPage() {
             '</div>' +
         '</div>' +
         '<div id="investHubGroupSwitcher"></div>' +
+        '<div class="invest-hub-update-bar">' +
+            '<button class="btn btn-secondary btn-small" id="investHubUpdateBtn" onclick="_investUpdateHubAllPrices()">📡 Update All Prices</button>' +
+            '<span class="invest-update-time-note" id="investHubUpdateNote"></span>' +
+        '</div>' +
         '<div id="investHubBody"><p class="muted-text">Loading…</p></div>' +
         _investHubNavCards();
 
     await _investLoadGroups();
     await _investLoadConfig();
+
+    var hubNote = document.getElementById('investHubUpdateNote');
+    if (hubNote && _investConfig.lastUpdateAllTimestamp) {
+        hubNote.textContent = _investFmtUpdateTime(_investConfig.lastUpdateAllTimestamp);
+    }
 
     _investGroupSwitchHandler = function(gid) {
         _investActiveGroupId = gid;
@@ -2374,6 +2383,18 @@ function _investFmtCurrency(val) {
     return '$' + parseFloat(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+// Formats an ISO timestamp as "M/D h:mmam/pm" (e.g. "5/5 10:15am")
+function _investFmtUpdateTime(isoStr) {
+    if (!isoStr) return '';
+    var d = new Date(isoStr);
+    if (isNaN(d.getTime())) return '';
+    var h    = d.getHours();
+    var ampm = h >= 12 ? 'pm' : 'am';
+    var h12  = h % 12 || 12;
+    var m    = d.getMinutes() < 10 ? '0' + d.getMinutes() : '' + d.getMinutes();
+    return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + h12 + ':' + m + ampm;
+}
+
 // ---------- Cash Field Blur/Focus Formatting ----------
 // On blur: display "$1,234.56"; on focus: strip to raw number for editing.
 function _investFmtCashField(el) {
@@ -3092,9 +3113,11 @@ async function _investRenderSummaryPage() {
         '</div>' +
         (switcherHtml ? '<div class="invest-summary-switcher-row">' + switcherHtml + '</div>' : '') +
         '<div class="invest-prices-note" id="investSummaryPricesStatus">' +
-            (_investConfig.lastUpdateAllDate
-                ? 'Prices last updated: <strong>' + escapeHtml(_investConfig.lastUpdateAllDate) + '</strong>'
-                : '') +
+            (_investConfig.lastUpdateAllTimestamp
+                ? 'Prices last updated: <strong>' + escapeHtml(_investFmtUpdateTime(_investConfig.lastUpdateAllTimestamp)) + '</strong>'
+                : (_investConfig.lastUpdateAllDate
+                    ? 'Prices last updated: <strong>' + escapeHtml(_investConfig.lastUpdateAllDate) + '</strong>'
+                    : '')) +
         '</div>' +
 
         // Hero cards
@@ -3381,7 +3404,7 @@ async function _investUpdateAllPrices() {
         } catch (e) {
             if (e.message === 'invalid key') {
                 if (status) { status.textContent = 'Invalid Finnhub API key'; status.style.color = '#c62828'; }
-                btn.disabled = false; btn.textContent = '📡 Update All Prices';
+                if (btn) { btn.disabled = false; btn.textContent = '📡 Update All Prices'; }
                 return;
             }
             needYahoo.push(ticker);
@@ -3413,10 +3436,12 @@ async function _investUpdateAllPrices() {
     });
     await batch.commit();
 
-    // Record the date prices were last updated so the snapshot page can warn when stale
+    // Record when prices were last updated
     var todayDate = new Date().toISOString().split('T')[0];
-    _investConfig.lastUpdateAllDate = todayDate;
-    await _investConfigCol().doc('main').set({ lastUpdateAllDate: todayDate }, { merge: true });
+    var timestamp = new Date().toISOString();
+    _investConfig.lastUpdateAllDate      = todayDate;
+    _investConfig.lastUpdateAllTimestamp = timestamp;
+    await _investConfigCol().doc('main').set({ lastUpdateAllDate: todayDate, lastUpdateAllTimestamp: timestamp }, { merge: true });
 
     // Re-render the page (will reload fresh holdings from Firestore)
     await _investRenderSummaryPage();
@@ -3426,6 +3451,31 @@ async function _investUpdateAllPrices() {
 
     var updatedCount = Object.keys(priceMap).filter(function(t) { return priceMap[t] != null; }).length;
     _investShowPriceResultModal(updatedCount, failed, failedMsg, await _investGetYahooWorkerUrl());
+}
+
+// Called from the main hub page Update All button.
+// Routes through _investUpdateAllPrices using the hub's active group.
+async function _investUpdateHubAllPrices() {
+    var btn  = document.getElementById('investHubUpdateBtn');
+    var note = document.getElementById('investHubUpdateNote');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Updating…'; }
+
+    // Temporarily set _investSummaryGroupId so _investUpdateAllPrices uses the hub group
+    var prev = _investSummaryGroupId;
+    _investSummaryGroupId = _investHubGroupId;
+    try {
+        await _investUpdateAllPrices();
+    } finally {
+        _investSummaryGroupId = prev;
+    }
+
+    // Refresh the hub dashboard numbers
+    await _investRenderHubBody(_investHubGroupId);
+
+    btn = document.getElementById('investHubUpdateBtn');
+    if (btn) { btn.disabled = false; btn.textContent = '📡 Update All Prices'; }
+    note = document.getElementById('investHubUpdateNote');
+    if (note) note.textContent = _investFmtUpdateTime(_investConfig.lastUpdateAllTimestamp);
 }
 
 // ============================================================
@@ -3499,6 +3549,7 @@ async function _investRenderStocksPage() {
             '<h2>📈 Stock Rollup</h2>' +
             '<div class="page-header-actions">' +
                 '<button class="btn btn-secondary btn-small" id="investStocksUpdateBtn" onclick="_investUpdateStocksAllPrices()">📡 Update All Prices</button>' +
+                (_investConfig.lastUpdateAllTimestamp ? '<span class="invest-update-time-note" id="investStocksUpdateNote">' + escapeHtml(_investFmtUpdateTime(_investConfig.lastUpdateAllTimestamp)) + '</span>' : '<span class="invest-update-time-note" id="investStocksUpdateNote"></span>') +
             '</div>' +
         '</div>' +
         '<div class="invest-stocks-summary">' +
@@ -3562,11 +3613,19 @@ async function _investUpdateStocksAllPrices() {
     });
     await batch.commit();
 
+    var todayDate = new Date().toISOString().split('T')[0];
+    var timestamp = new Date().toISOString();
+    _investConfig.lastUpdateAllDate      = todayDate;
+    _investConfig.lastUpdateAllTimestamp = timestamp;
+    await _investConfigCol().doc('main').set({ lastUpdateAllDate: todayDate, lastUpdateAllTimestamp: timestamp }, { merge: true });
+
     var updatedCount = Object.keys(priceMap).filter(function(t) { return priceMap[t] != null; }).length;
     await _investRenderStocksPage();
 
     btn = document.getElementById('investStocksUpdateBtn');
     if (btn) { btn.disabled = false; btn.textContent = '📡 Update All Prices'; }
+    var stocksNote = document.getElementById('investStocksUpdateNote');
+    if (stocksNote) stocksNote.textContent = _investFmtUpdateTime(timestamp);
 
     _investShowPriceResultModal(updatedCount, failedList, failed, await _investGetYahooWorkerUrl());
 }

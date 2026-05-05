@@ -1707,6 +1707,7 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 - The **🏆 All-time high** callout shows your best net worth recorded across all snapshot types. When your current value equals or exceeds it, it displays as "NEW all-time high!"
 - Below the dashboard are nav cards linking to **Accounts**, **Summary**, **Stock Rollup**, **Snapshots**, **Budgets**, **SS Benefits**, and two coming-soon sections
 - Tap **⚙ Groups** (top right) to create or manage portfolio groups
+- **📡 Update All Prices** button (below the group switcher) fetches the latest prices for all tickers in the active group and refreshes the dashboard numbers. The last-updated time (e.g. "5/5 10:15am") is shown beside the button
 
 ---
 
@@ -1832,7 +1833,7 @@ Requires a Finnhub API key in Settings. Prices persist in Firestore across sessi
 
 **Expanding a row**: Tap any ticker row to see a per-account breakdown — each account that holds the ticker, with its own shares, price, cost, gain, value, and % of that account's total. Account names are clickable and navigate directly to the holdings page for that account. A breadcrumb at the top of the holdings page takes you back to **Stock Rollup**.
 
-**Prices**: Uses the last fetched price stored on each holding. Tap **📡 Update All Prices** (top right of this page, or on the Summary page) to refresh prices across all accounts before reviewing the rollup. The Stock Rollup button updates all enrolled people's accounts — not just the current group.
+**Prices**: Uses the last fetched price stored on each holding. Tap **📡 Update All Prices** (top right of this page, or on the main hub or Summary page) to refresh prices across all accounts before reviewing the rollup. The Stock Rollup button updates all enrolled people's accounts — not just the current group. The last-updated time (e.g. "5/5 10:15am") is shown beside the button.
 
 **Sort by Value**: Highest-value tickers at the top — shows your largest positions first.
 
@@ -1922,7 +1923,7 @@ Requires a Finnhub API key in Settings. Prices persist in Firestore across sessi
 - **Category Breakdown**: Roth, Pre-Tax, Brokerage, Cash, and Uninvested Cash totals with % of Net Worth
 - **Period Performance**: Day / Week / Month / YTD gain or loss vs the most recent snapshot of each type
 - **All-Time Highs**: highest Net Worth ever recorded per snapshot type (Daily/Weekly/Monthly/Yearly)
-- **📡 Update All Prices**: fetches live Finnhub prices for every holding across all accounts in the group
+- **📡 Update All Prices**: fetches live Finnhub prices for every holding across all accounts in the group; last-updated time (e.g. "5/5 10:15am") is shown below the button
 
 ### Details
 

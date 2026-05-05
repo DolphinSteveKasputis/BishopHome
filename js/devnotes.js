@@ -237,6 +237,8 @@ async function loadDevNotePage(noteId) {
 
     document.getElementById('devNotePageTitle').textContent = 'Dev Note';
     document.getElementById('devNoteTextarea').value        = 'Loading…';
+    var saveBtn = document.getElementById('devNoteSaveBtn');
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save'; }
     document.getElementById('devNoteDocIdRow').classList.add('hidden');
     document.getElementById('devNoteActionRow').classList.add('hidden');
     document.getElementById('devNotePhotosGrid').innerHTML  = '';
@@ -355,6 +357,7 @@ async function _dnSaveNote(navigateAfter) {
         }
 
         if (navigateAfter) {
+            if (btn) { btn.disabled = false; btn.textContent = 'Save'; }
             location.hash = '#devnotes';
         } else {
             if (btn) { btn.disabled = false; btn.textContent = 'Saved ✓'; setTimeout(function() { if (btn) btn.textContent = 'Save'; }, 2000); }

@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=661">
+    <link rel="stylesheet" href="css/styles.css?v=662">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -1161,6 +1161,75 @@
             <div id="devNotesContainer"></div>
             <p id="devNotesEmptyState" style="color:#888;text-align:center;padding:24px 0;"></p>
         </section>
+
+        <!-- Page: Dev Note Detail / Edit -->
+        <section class="page hidden" id="page-devnote">
+            <div class="page-header">
+                <button class="btn btn-secondary btn-small" id="devNoteBackBtn">← Back</button>
+                <h2 id="devNotePageTitle">Dev Note</h2>
+                <div class="page-header-actions">
+                    <button class="btn btn-primary btn-small" id="devNoteSaveBtn">Save</button>
+                </div>
+            </div>
+
+            <!-- Doc ID badge -->
+            <div id="devNoteDocIdRow" class="devnote-docid-row hidden">
+                <span class="devnote-docid-label">Doc ID:</span>
+                <span id="devNoteDocId" class="devnote-docid-value" title="Click to copy"></span>
+                <span id="devNoteDocIdCopied" class="devnote-docid-copied hidden">Copied!</span>
+            </div>
+
+            <!-- Text area -->
+            <div class="devnote-body-section">
+                <textarea id="devNoteTextarea" class="devnote-textarea" rows="12" placeholder="Write your note here…"></textarea>
+            </div>
+
+            <!-- Photos section -->
+            <div class="devnote-photos-section">
+                <div class="devnote-photos-header">
+                    <span class="devnote-photos-title">Photos</span>
+                    <div class="devnote-photo-actions">
+                        <button class="btn btn-secondary btn-small" id="devNoteAddPhotoBtn">+ Add from Gallery</button>
+                        <button class="btn btn-secondary btn-small" id="devNotePastePhotoBtn">📋 Paste</button>
+                    </div>
+                </div>
+                <input type="file" id="devNotePhotoInput" accept="image/*" style="display:none">
+                <div id="devNotePhotosGrid" class="devnote-photos-grid"></div>
+                <p id="devNotePhotosEmpty" class="devnote-photos-empty hidden">No photos attached.</p>
+            </div>
+
+            <!-- Actions (edit mode only) -->
+            <div id="devNoteActionRow" class="devnote-action-row hidden">
+                <button class="btn btn-secondary btn-small" id="devNoteCopyBtn">Copy to Notebook…</button>
+                <button class="btn btn-danger btn-small" id="devNoteDeleteBtn">Delete Note</button>
+            </div>
+        </section>
+
+        <!-- Dev Note photo lightbox -->
+        <div class="modal-overlay hidden" id="devNotePhotoModal">
+            <div class="modal photo-lightbox-modal">
+                <img id="devNotePhotoModalImg" src="" alt="" style="max-width:100%;max-height:70vh;border-radius:6px;">
+                <div class="modal-buttons" style="margin-top:12px;">
+                    <button class="btn btn-danger btn-small" id="devNotePhotoDeleteBtn">Delete</button>
+                    <button class="btn btn-secondary btn-small" onclick="closeModal('devNotePhotoModal')">Close</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dev Note Copy to Notebook picker -->
+        <div class="modal-overlay hidden" id="devNoteCopyModal">
+            <div class="modal">
+                <h3>Copy to Notebook</h3>
+                <p style="margin:0 0 12px;color:#666;font-size:14px;">Choose a notebook to copy this note and its photos into:</p>
+                <select id="devNoteCopySelect" class="form-control" style="width:100%;margin-bottom:16px;">
+                    <option value="">— select a notebook —</option>
+                </select>
+                <div class="modal-buttons">
+                    <button class="btn btn-primary" id="devNoteCopyConfirmBtn">Copy</button>
+                    <button class="btn btn-secondary" onclick="closeModal('devNoteCopyModal')">Cancel</button>
+                </div>
+            </div>
+        </div>
 
         <!-- Page: Change Password -->
         <section class="page hidden" id="page-changepassword">
@@ -10605,7 +10674,7 @@ export default {
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="js/gcal.js?v=6"></script>
     <script src="js/settings.js?v=653"></script>
-    <script src="js/devnotes.js?v=376"></script>
+    <script src="js/devnotes.js?v=537"></script>
     <script src="js/house.js?v=537"></script>
     <script src="js/floorplan.js?v=398"></script>
     <script src="js/floorplanitem.js?v=393"></script>
@@ -10644,7 +10713,7 @@ export default {
     <script src="js/investments.js?v=665"></script>
     <script src="js/budgets.js?v=659"></script>
     <script src="js/private.js?v=579"></script>
-    <script src="js/app.js?v=654"></script>
+    <script src="js/app.js?v=655"></script>
 
 </body>
 </html>

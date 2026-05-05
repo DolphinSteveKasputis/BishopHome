@@ -2648,13 +2648,28 @@ Legacy overlay fields (`currentValue`, `whatToDo`, `legacyNotes`) will be added 
 
 ### Dev Notes (Shared)
 
-**Route**: `#devnotes`  
+**Routes**: `#devnotes` (list), `#devnote/new` (create), `#devnote/{id}` (detail/edit)  
 **File**: `devnotes.js`  
-**Firestore**: `db.collection('sharedDevNotes')` — **not** per-user; all users share the same collection.
+**Firestore**:
+- `db.collection('sharedDevNotes')` — **not** per-user; all users share this collection. Fields: `text`, `author`, `createdAt`
+- `db.collection('sharedDevNotePhotos')` — photos attached to dev notes. Fields: `noteId`, `imageData` (Base64), `createdAt`
 
-Simple shared scratchpad accessible from Settings → Dev Notes. All logged-in users can read, add, edit, and delete notes.
+Shared scratchpad accessible from Settings → Dev Notes. All logged-in users can read, add, edit, and delete notes.
 
-- Each note has: `text`, `author` (email of the user who created it), `createdAt`
-- Notes display newest-first with date + author shown on each card
-- Edit preserves the original author (does not overwrite with editor's identity)
-- SecondBrain `ADD_DEV_NOTE` action writes to this shared collection **unless** the user selects a personal notebook in the confirm screen's "Save to" dropdown, in which case it saves to their own `notes` collection (with photo support) and navigates to that notebook instead
+#### List page (`#devnotes`)
+- Shows all notes newest-first; each card shows doc ID, date + author, text preview (200 chars)
+- **Open** — navigates to `#devnote/{id}` full-page view
+- **Copy to Notebook…** — opens notebook picker; copies text + all attached photos into the user's personal `notes` collection (photos saved as `targetType:'note'` in `userCol('photos')`)
+- **Delete** — confirms, then deletes note and all its photos from `sharedDevNotePhotos`
+
+#### Detail/Edit page (`#devnote/{id}` and `#devnote/new`)
+- Large textarea (full-page, resizable) for note text
+- **Doc ID badge** at the top — click to copy to clipboard
+- **Photos section**: "Add from Gallery" (file picker) and "Paste" (clipboard) buttons; photos stored in `sharedDevNotePhotos`; thumbnail grid with click-to-enlarge lightbox; delete individual photos from lightbox
+- **Save** button (also Ctrl+Enter); on new note, saves first then shows doc ID badge and action row
+- **Copy to Notebook…** — same as list-page copy; picks a personal notebook and copies text + photos
+- **Delete Note** — confirms, deletes note and all its photos, returns to list
+- Edit preserves the original author; does not overwrite with editor's identity
+
+#### SecondBrain integration
+- `ADD_DEV_NOTE` action writes to `sharedDevNotes` **unless** the user selects a personal notebook in the confirm screen's "Save to" dropdown, in which case it saves to `userCol('notes')` (with photo support) and navigates to that notebook

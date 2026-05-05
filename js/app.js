@@ -164,6 +164,7 @@ const ALL_PAGES = [
     'place',
     'person', 'contact',
     'notebook', 'note',
+    'devnote',
     'health-allergies', 'health-supplements', 'health-vaccinations', 'health-eye',
     'health-visit', 'health-visit-step2', 'health-medications', 'health-conditions', 'health-concerns', 'health-concern', 'health-condition',
     'health-bloodwork-detail', 'health-insurance-detail',
@@ -199,7 +200,7 @@ const THOUGHTS_PAGES = ['thoughts', 'top10lists', 'top10list-create', 'top10list
                         'views', 'view', 'view-history', 'views-categories'];
 
 // Settings pages — hide all section navbars (yard/house/life/thoughts)
-const SETTINGS_PAGES = ['settings', 'settings-general', 'settings-contact-lists', 'firebase-setup', 'changepassword', 'backup', 'devnotes', 'sb-issues'];
+const SETTINGS_PAGES = ['settings', 'settings-general', 'settings-contact-lists', 'firebase-setup', 'changepassword', 'backup', 'devnotes', 'devnote', 'sb-issues'];
 
 const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'journal-categories', 'people', 'contacts', 'person', 'contact',
                      'notes', 'notebook', 'note',
@@ -609,7 +610,13 @@ function handleRoute() {
     } else if (page === 'journal-categories') {
         showPage('journal-categories');
         loadJournalCategoriesPage();
-    // ---------- Dev Notes route (shared scratchpad) ----------
+    // ---------- Dev Notes routes (shared scratchpad) ----------
+    } else if (page === 'devnote' && id === 'new') {
+        showPage('devnote');
+        loadNewDevNotePage();
+    } else if (page === 'devnote' && id) {
+        showPage('devnote');
+        loadDevNotePage(id);
     } else if (page === 'devnotes') {
         showPage('devnotes');
         loadDevNotesPage();

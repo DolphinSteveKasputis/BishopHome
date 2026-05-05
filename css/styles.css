@@ -16213,3 +16213,122 @@ a.legacy-fin-card:hover {
     .ss-snapshot-meta { flex-wrap: wrap; }
     .ss-entry-input { width: 80px; }
 }
+
+/* ============================================================
+   Dev Note full-page styles
+   ============================================================ */
+
+/* Doc ID badge row */
+.devnote-docid-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f5f5f5;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 6px 12px;
+    margin: 0 0 12px;
+    font-size: 0.82rem;
+}
+.devnote-docid-label {
+    font-weight: 600;
+    color: #666;
+    white-space: nowrap;
+}
+.devnote-docid-value {
+    font-family: monospace;
+    color: #1a237e;
+    cursor: pointer;
+    word-break: break-all;
+}
+.devnote-docid-value:hover { text-decoration: underline; }
+.devnote-docid-copied {
+    font-size: 0.78rem;
+    color: #388e3c;
+    font-weight: 600;
+}
+
+/* Body / textarea section */
+.devnote-body-section {
+    margin-bottom: 20px;
+}
+.devnote-textarea {
+    width: 100%;
+    min-height: 240px;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-family: inherit;
+    resize: vertical;
+    box-sizing: border-box;
+    line-height: 1.5;
+}
+
+/* Photos section */
+.devnote-photos-section {
+    margin-bottom: 20px;
+}
+.devnote-photos-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+.devnote-photos-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #333;
+}
+.devnote-photo-actions {
+    display: flex;
+    gap: 8px;
+}
+.devnote-photos-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.devnote-photo-thumb {
+    width: 90px;
+    height: 90px;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid #e0e0e0;
+    cursor: pointer;
+}
+.devnote-photo-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.devnote-photo-thumb:hover { border-color: #1976d2; }
+.devnote-photos-empty {
+    color: #aaa;
+    font-size: 0.88rem;
+    font-style: italic;
+    margin: 4px 0 0;
+}
+
+/* Action row (Copy + Delete) */
+.devnote-action-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+/* List-card doc ID */
+.devnote-list-docid {
+    font-family: monospace;
+    font-size: 0.75rem;
+    color: #999;
+    margin-bottom: 4px;
+}
+
+@media (max-width: 480px) {
+    .devnote-photo-thumb { width: 72px; height: 72px; }
+    .devnote-photos-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+}
+

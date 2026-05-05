@@ -3195,3 +3195,34 @@ Downloads a JSON file of all your Firestore data (activities, plants, zones, hea
 
 **Restore:**
 Replaces all current data with a previously downloaded backup file. Data and photos restore independently. This is permanent and cannot be undone.
+
+---
+
+## screen:devnotes
+
+### Quick Help
+- Shared scratchpad visible to all users — great for developer feedback and quick cross-device notes
+- Each note has a **Doc ID** (Firestore document ID) shown on both the list and detail page
+- Tap **Open** on a card to view the full note, edit it, and manage its photos
+- **Copy to Notebook…** moves a note into your personal notebook section (text + photos)
+- Photos can be added via gallery picker or clipboard paste
+
+### Details
+
+**List page (`#devnotes`):**
+- Notes display newest-first; each card shows the Doc ID (small, monospace), date + author, and a text preview
+- **Open** — navigates to the full-page detail view
+- **Copy to Notebook…** — pick one of your personal notebooks; the note's text and all attached photos are copied into that notebook. The original dev note is not deleted.
+- **Delete** — confirms before deleting the note and all its attached photos
+
+**Detail/Edit page (`#devnote/{id}` and `#devnote/new`):**
+- Large resizable textarea for note text
+- **Doc ID badge** shown at the top for existing notes — click to copy the Firestore document ID to clipboard; a "Copied!" flash confirms success
+- **Save** button (also Ctrl+Enter) — for new notes, saving creates the note and reveals the Doc ID badge and action buttons
+- **Photos section**: attach photos with "Add from Gallery" (file picker) or "Paste" (reads an image from your clipboard); photos display as a thumbnail grid; click any thumbnail to open a lightbox; delete individual photos from the lightbox
+- **Copy to Notebook…** — same as list-page copy; only available after the note has been saved
+- **Delete Note** — confirms, deletes note and all photos, returns to list
+- Back button returns to the dev notes list
+
+**How Copy to Notebook works:**
+Creates a new note in your chosen personal notebook containing the same text, then copies all attached dev note photos into your personal photos collection linked to the new note. The source dev note is unchanged.

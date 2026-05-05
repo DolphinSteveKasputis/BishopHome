@@ -108,14 +108,6 @@ function _dnBuildListCard(noteId, data) {
     });
     actions.appendChild(editBtn);
 
-    var copyBtn = document.createElement('button');
-    copyBtn.className   = 'btn btn-small btn-secondary';
-    copyBtn.textContent = 'Copy to Notebook…';
-    copyBtn.addEventListener('click', function() {
-        _dnOpenCopyModal(noteId, data.text || '');
-    });
-    actions.appendChild(copyBtn);
-
     var deleteBtn = document.createElement('button');
     deleteBtn.className   = 'btn btn-small btn-danger';
     deleteBtn.textContent = 'Delete';
@@ -242,9 +234,8 @@ async function _dnSaveNote() {
 
 async function _dnDeleteNote(noteId) {
     try {
-        // Delete all photos first
-        var photoSnap = await db.collection('sharedDevNotePhotos')
-            .where('noteId', '==', noteId).get();
+        // Delete all photos in the subcollection first
+        var photoSnap = await db.collection('sharedDevNotes').doc(noteId).collection('photos').get();
         var batch = db.batch();
         photoSnap.forEach(function(d) { batch.delete(d.ref); });
         await batch.commit();
@@ -265,10 +256,8 @@ async function _dnDeleteNote(noteId) {
 
 async function _dnLoadPhotos(noteId) {
     try {
-        var snap = await db.collection('sharedDevNotePhotos')
-            .where('noteId', '==', noteId)
-            .orderBy('createdAt', 'asc')
-            .get();
+        var snap = await db.collection('sharedDevNotes').doc(noteId)
+            .collection('photos').orderBy('createdAt', 'asc').get();
 
         _dnPhotos = [];
         snap.forEach(function(doc) {
@@ -321,11 +310,11 @@ async function _dnAddPhotoFromFile(file) {
 
     try {
         var imageData = await compressImage(file);
-        await db.collection('sharedDevNotePhotos').add({
-            noteId:    _dnCurrentId,
-            imageData: imageData,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
+        await db.collection('sharedDevNotes').doc(_dnCurrentId)
+            .collection('photos').add({
+                imageData: imageData,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
         await _dnLoadPhotos(_dnCurrentId);
     } catch (err) {
         console.error('_dnAddPhotoFromFile error:', err);
@@ -371,7 +360,8 @@ function _dnOpenLightbox(idx) {
 async function _dnDeleteLightboxPhoto(photoId) {
     if (!confirm('Delete this photo?')) return;
     try {
-        await db.collection('sharedDevNotePhotos').doc(photoId).delete();
+        await db.collection('sharedDevNotes').doc(_dnCurrentId)
+            .collection('photos').doc(photoId).delete();
         closeModal('devNotePhotoModal');
         if (_dnCurrentId) await _dnLoadPhotos(_dnCurrentId);
     } catch (err) {
@@ -443,10 +433,10 @@ async function _dnExecuteCopy() {
             noteCount: firebase.firestore.FieldValue.increment(1)
         });
 
-        // Copy photos from sharedDevNotePhotos → userCol('photos')
+        // Copy photos from note subcollection → userCol('photos')
         if (noteId) {
-            var photoSnap = await db.collection('sharedDevNotePhotos')
-                .where('noteId', '==', noteId).get();
+            var photoSnap = await db.collection('sharedDevNotes').doc(noteId)
+                .collection('photos').get();
 
             var batch = db.batch();
             photoSnap.forEach(function(pDoc) {

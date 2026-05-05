@@ -1301,7 +1301,7 @@ Cross-account ticker concentration analysis. Loads ALL accounts for ALL enrolled
 
 **Data loading**: `_investLoadAllAccountsForStocks()` — reads enrolled person IDs from `settings/investments`, loads accounts for every namespace ('self' + each enrolled ID), then loads holdings for each account. Uses `_investPeople` module state (pre-populated by `_investLoadAll()`).
 
-**Aggregation**: `_investAggregateByTicker(accounts)` — iterates all investment-account holdings, groups by ticker symbol, sums shares and value. Also sums `_totals.holdings` across all non-cash accounts to produce `totalInvested` and `overallNetWorth` (includes cash accounts). Bank/cash accounts are excluded from ticker aggregation. Returns `{ tickers[], totalInvested, overallNetWorth }`.
+**Aggregation**: `_investAggregateByTicker(accounts)` — iterates all investment-account holdings, groups by ticker symbol, sums shares and value. Holdings with no ticker, or with zero/missing quantity, are skipped (zero-qty holdings would corrupt the weighted-average cost calculation). Also sums `_totals.holdings` across all non-cash accounts to produce `totalInvested` and `overallNetWorth` (includes cash accounts). Bank/cash accounts are excluded from ticker aggregation. Returns `{ tickers[], totalInvested, overallNetWorth }`.
 
 Per-ticker aggregated fields:
 - `totalShares` — sum of shares across all holdings of this ticker

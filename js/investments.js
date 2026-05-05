@@ -3789,6 +3789,7 @@ function _investAggregateByTicker(accounts) {
         (acct._holdings || []).forEach(function(h) {
             if (!h.ticker) return;
             var shares    = h.shares    != null ? h.shares    : 0;
+            if (!shares) return;  // zero or missing qty — would corrupt weighted-avg cost
             var price     = h.lastPrice != null ? h.lastPrice : null;
             var costBasis = h.costBasis != null ? h.costBasis : null;
             var value     = (price != null && shares) ? shares * price : 0;

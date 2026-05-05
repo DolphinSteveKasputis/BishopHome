@@ -4225,21 +4225,22 @@ button {
 
 /* ── Active Run Cards — Keep-style multi-column layout ─── */
 
-/* Container uses CSS columns for masonry-like layout */
+/* Container uses CSS grid so cards fill available width */
 #clActiveRunsContainer {
-    columns: 4 200px;
-    column-gap: 12px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+    align-items: start;
 }
 
-/* On phone, default to 1 column (full-width cards); cl-cols-2 switches to 2 */
+/* On phone, default to 1 column; cl-cols-2 switches to 2 equal columns */
 @media (max-width: 600px) {
-    #clActiveRunsContainer { columns: 1; }
-    #clActiveRunsContainer.cl-cols-2 { columns: 2 140px; }
+    #clActiveRunsContainer { grid-template-columns: 1fr; }
+    #clActiveRunsContainer.cl-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 .cl-run-card {
-    break-inside: avoid;
-    display: inline-block;
+    display: block;
     width: 100%;
     background: #fff;
     border: 1px solid #e0e0e0;
@@ -4481,6 +4482,8 @@ button {
 /* Inline label edit input (replaces the label span while editing) */
 .cl-item-label-edit {
     flex: 1;
+    min-width: 0;
+    box-sizing: border-box;
     font-size: 0.95rem;
     padding: 1px 4px;
     border: 1px solid #90caf9;

@@ -2364,7 +2364,7 @@ Formerly named "Future Projects" — renamed to "Quick Task List" to distinguish
 - **Search** (global `#search`): Templates searched by name/tags/items → context page. Active runs same (archived excluded) → `#checklist-focus/{runId}/…` scrolls to and briefly highlights that card. Notes body searched → parent notebook (`#notebook/{id}`); hint shows notebook name.
 - **Filter bar**: text input above Active runs. Filters by name, tags, or item labels. 250ms debounce. Applies to completed/archived when those sections are open.
 - **Active run cards (Google Keep-style inline cards)**:
-  - **Multi-column layout**: CSS `columns` — up to 4 columns on desktop, 1 column on phone by default (full-width cards). Phone has a grid/list toggle button (⊞/⊟) that switches to 2-column view; preference saved in `localStorage.clColumnLayout` ('1' = 1-col, '2' = 2-col; default '1').
+  - **Multi-column layout**: CSS grid (`auto-fill, minmax(280px, 1fr)`) — cards fill available width on desktop; on phone defaults to 1 column, toggle button (⊞/⊟) switches to 2-column view; preference saved in `localStorage.clColumnLayout` ('1' = 1-col, '2' = 2-col; default '1').
   - Items displayed directly on card — no accordion. Title, optional location badge, started date at top.
   - **Completed items**: collapse into a "▶ X completed" toggle row (click to expand/collapse inline). No progress bar.
   - **Footer**: tags chips on the left; action icon buttons on the right (✓ Mark Complete, ✏️ Edit, 📦 Archive, 🗑️ Abandon).

@@ -224,6 +224,26 @@ async function notesAddNote(notebookId, body) {
 }
 
 /**
+ * Moves a note from one notebook to another.
+ * Updates notebookId on the note document and adjusts noteCount on both notebooks.
+ * @param {string} noteId
+ * @param {string} oldNotebookId
+ * @param {string} newNotebookId
+ */
+async function notesMoveNote(noteId, oldNotebookId, newNotebookId) {
+    var now = firebase.firestore.FieldValue.serverTimestamp();
+    await userCol('notes').doc(noteId).update({ notebookId: newNotebookId, updatedAt: now });
+    await userCol('notebooks').doc(oldNotebookId).update({
+        noteCount: firebase.firestore.FieldValue.increment(-1),
+        updatedAt: now
+    });
+    await userCol('notebooks').doc(newNotebookId).update({
+        noteCount: firebase.firestore.FieldValue.increment(1),
+        updatedAt: now
+    });
+}
+
+/**
  * Updates the body of an existing note.
  * createdAt is never changed — only updatedAt is written.
  * @param {string} noteId
@@ -1011,6 +1031,10 @@ function loadNewNotePage() {
     if (photoEmpty) photoEmpty.classList.add('hidden');
     var photoContainer = document.getElementById('notePhotoContainer');
     if (photoContainer) photoContainer.innerHTML = '';
+
+    // Hide move section — no existing notebook to move from on a new note
+    var moveSection = document.getElementById('noteMoveSection');
+    if (moveSection) moveSection.classList.add('hidden');
 }
 
 // ============================================================
@@ -1022,9 +1046,11 @@ function _notesShowViewMode() {
     var viewEl = document.getElementById('noteViewMode');
     var editEl = document.getElementById('noteEditMode');
     var addPhotoSection = document.getElementById('noteAddPhotoSection');
+    var moveSection     = document.getElementById('noteMoveSection');
     if (viewEl) viewEl.classList.remove('hidden');
     if (editEl) editEl.classList.add('hidden');
     if (addPhotoSection) addPhotoSection.classList.add('hidden');
+    if (moveSection) moveSection.classList.add('hidden');
 }
 
 /**
@@ -1064,13 +1090,44 @@ function _notesShowEditMode(title) {
     }
 }
 
-/** Switches an existing note to edit mode and pre-fills the textarea. */
+/**
+ * Populates the Move-to-Notebook dropdown with all notebooks except the current one.
+ * Shows the row; hides it if there are no other notebooks to move to.
+ * @param {string} currentNotebookId
+ */
+async function _notesPopulateMoveDropdown(currentNotebookId) {
+    var sel     = document.getElementById('noteMoveSelect');
+    var section = document.getElementById('noteMoveSection');
+    if (!sel || !section) return;
+
+    sel.innerHTML = '<option value="">— keep in current notebook —</option>';
+    var notebooks = await notesLoadNotebooks();
+    var others = notebooks.filter(function(nb) { return nb.id !== currentNotebookId; });
+
+    if (others.length === 0) {
+        section.classList.add('hidden');
+        return;
+    }
+
+    others.forEach(function(nb) {
+        var opt = document.createElement('option');
+        opt.value       = nb.id;
+        opt.textContent = nb.name;
+        sel.appendChild(opt);
+    });
+    section.classList.remove('hidden');
+}
+
+/** Switches an existing note to edit mode, pre-fills the textarea, and populates the move dropdown. */
 function _notesEnterEditMode() {
     var textarea = document.getElementById('noteBodyInput');
     if (textarea && window.currentNote) {
         textarea.value = window.currentNote.body || '';
     }
     _notesShowEditMode('Edit Note');
+    var nbId = window.currentNotebook ? window.currentNotebook.id
+             : (window.currentNote ? window.currentNote.notebookId : null);
+    if (nbId) _notesPopulateMoveDropdown(nbId);
 }
 
 // ============================================================
@@ -1264,10 +1321,21 @@ async function _notesSaveExistingNote(note) {
 
     var notebookId = window.currentNotebook ? window.currentNotebook.id : note.notebookId;
 
+    // Check if the user wants to move to a different notebook
+    var moveSel    = document.getElementById('noteMoveSelect');
+    var moveToId   = moveSel ? moveSel.value : '';
+
     try {
         await notesUpdateNote(note.id, notebookId, body);
 
-        // Navigate back to the notebook — Save acts as Save and Close
+        if (moveToId && moveToId !== notebookId) {
+            await notesMoveNote(note.id, notebookId, moveToId);
+            // Navigate to the destination notebook so the user sees the note there
+            window.location.hash = '#notebook/' + moveToId;
+            return;
+        }
+
+        // No move — return to the current notebook
         var hash = window.currentNotebook ? '#notebook/' + window.currentNotebook.id : '#notes';
         window.location.hash = hash;
     } catch (e) {

@@ -2250,6 +2250,18 @@ Firebase Storage requires a one-time CORS configuration before files can be down
 - After saving a new note, the app navigates back to the notebook list (not the note page).
 - Tap any note card to open and edit it.
 - Notes show a preview of the first line in the notebook view.
+- Photos attached to a note appear as thumbnails on the note card and in full below the note body when viewing the note.
+
+**Moving a note to a different notebook:**
+- Open a note and tap **Edit**.
+- A **Move to Notebook** row appears below the text area with a dropdown listing all other notebooks.
+- Select the destination notebook and tap **Save** -- the note moves and the app navigates to the destination notebook.
+- Leave the dropdown set to "keep in current notebook" to save in place.
+
+**QuickLog "add a note" behavior:**
+- If you say "add a note" without naming a notebook, the note goes to your configured default notebook (starred).
+- Only name a notebook when you explicitly say it in your voice command (e.g. "add a note to travel"). The QuickLog does **not** infer a notebook from note content.
+- If QuickLog mistakenly fires the "Add Dev Note" action (developer feedback), the confirm screen shows a **Save to** dropdown -- select your personal notebook to redirect the note (and any attached photos) there instead.
 
 **Search:** Use the global search (magnifying glass in the nav) to search across all note body text. Results link directly to the matching note.
 

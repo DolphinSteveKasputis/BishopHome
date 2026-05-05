@@ -496,12 +496,13 @@ ctxJson,
 '{"action":"FIND_THING","payload":{"query":"user search term","found":true,"targetType":"floor|room|thing|subthing|item|garageroom|garagething|garagesubthing|structure|structurething|structuresubthing|zone|plant|vehicle|weed","targetId":"id","name":"exact matched name","path":"full path","ambiguous":false}}',
 '',
 'ADD_NOTE — add a note to a notebook. Use notebookNames from context to resolve the target notebook.',
-'- If no notebook is implied: set notebook="Default", notebookRequested=null (app will use the user\'s configured default notebook).',
-'- If a notebook is implied and matches a name in notebookNames (case-insensitive): set notebook=<matched name>, notebookRequested=<user term>.',
-'- If a notebook is implied but no match found: set notebook="Default", notebookRequested=<user term> (fallback — the app will warn the user).',
+'- ONLY use a specific notebook if the user explicitly names one in their command (e.g. "add a note to aao2026" or "save to my travel notebook"). Do NOT infer a notebook from the topic or content of the note.',
+'- If no notebook is explicitly named: set notebook="Default", notebookRequested=null (app will use the user\'s configured default notebook).',
+'- If a notebook is explicitly named and matches a name in notebookNames (case-insensitive): set notebook=<matched name>, notebookRequested=<user term>.',
+'- If a notebook is explicitly named but not found: set notebook="Default", notebookRequested=<user term> (fallback — the app will warn the user).',
 '{"action":"ADD_NOTE","payload":{"notebook":"Default","notebookRequested":null,"note":"the note text"}}',
 '',
-'ADD_DEV_NOTE — leave a note for the developer. Use when the user says "note to dev", "dev note", "note to developer", "tell the developer", "leave a dev note", or similar. Always routes to the "Dev Notes" notebook.',
+'ADD_DEV_NOTE — leave developer feedback for the app developer. ONLY use this when the user explicitly says "note to dev", "dev note", "note to developer", "tell the developer", "leave a dev note", or nearly identical phrasing. Do NOT use this for notes whose content happens to be about software, coding, technology, or development topics — those are ADD_NOTE.',
 '{"action":"ADD_DEV_NOTE","payload":{"note":"the note text"}}',
 '',
 'CHECK_IN — check in at a real-world place (restaurant, store, park, venue, etc.). Use when user says "check in at X", "I\'m at X", "I\'m here", "at the X", "just arrived at X", or similar location phrases.',
@@ -1393,11 +1394,20 @@ function _sbRenderConfirmFields(action, payload) {
             break;
         }
 
-        case 'ADD_DEV_NOTE':
+        case 'ADD_DEV_NOTE': {
+            // Notebook redirect — lets the user reroute to a personal notebook if LLM mis-fired
+            var devNbs = (_sbContext && _sbContext.notebooks) ? _sbContext.notebooks : [];
+            var devNbOpts = '<option value="">— send as developer feedback —</option>';
+            devNbs.forEach(function(nb) {
+                devNbOpts += '<option value="' + _sbEsc(nb.id) + '">' + _sbEsc(nb.name) + '</option>';
+            });
+            html += _sbFieldRow('Save to',
+                '<select class="sb-field" data-field="redirectNotebookId">' + devNbOpts + '</select>');
             html += _sbFieldRow('Note',
                 '<textarea class="sb-field" data-field="note" rows="4">' + _sbEsc(p.note || '') + '</textarea>');
-            html += '<div class="sb-info">ℹ Will be saved to the <strong>Dev Notes</strong> notebook.</div>';
+            html += '<div class="sb-info">ℹ Default sends to the app developer. Select a notebook above to save to your own notes instead.</div>';
             break;
+        }
 
         case 'ADD_PERSONAL_EVENT': {
             // Category dropdown from lifeCategories in context
@@ -2140,19 +2150,37 @@ async function _sbWrite(action, payload) {
         }
 
         // ---- Add Dev Note ----------------------------------------
-        // Writes to shared (non-user-scoped) collection so all users see it.
+        // Default: writes to shared (non-user-scoped) collection for developer feedback.
+        // If user selected a redirect notebook on the confirm screen, saves to their notes instead.
         case 'ADD_DEV_NOTE': {
             var devNoteText = (payload.note || '').trim();
-            var devNoteAuthor = (firebase.auth().currentUser && firebase.auth().currentUser.email)
-                ? firebase.auth().currentUser.email
-                : 'Unknown';
 
-            ref = await db.collection('sharedDevNotes').add({
-                text:      devNoteText,
-                author:    devNoteAuthor,
-                createdAt: ts
-            });
-            newId = ref.id;
+            if (payload.redirectNotebookId) {
+                // User redirected — save as a regular note in their chosen notebook
+                ref = await userCol('notes').add({
+                    notebookId: payload.redirectNotebookId,
+                    body:       devNoteText,
+                    createdAt:  ts,
+                    updatedAt:  null
+                });
+                newId = ref.id;
+                await userCol('notebooks').doc(payload.redirectNotebookId).update({
+                    noteCount: firebase.firestore.FieldValue.increment(1),
+                    updatedAt: ts
+                });
+                await _sbSavePhotos('note', newId, '');
+            } else {
+                // Default: developer feedback channel
+                var devNoteAuthor = (firebase.auth().currentUser && firebase.auth().currentUser.email)
+                    ? firebase.auth().currentUser.email
+                    : 'Unknown';
+                ref = await db.collection('sharedDevNotes').add({
+                    text:      devNoteText,
+                    author:    devNoteAuthor,
+                    createdAt: ts
+                });
+                newId = ref.id;
+            }
             break;
         }
 

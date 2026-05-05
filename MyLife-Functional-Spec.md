@@ -873,6 +873,8 @@ A notebook-organized note-taking system.
 
 **Default notebook (user-configured)**: Any notebook can be designated as the user's default via a toggle on the notebook detail page header (star icon + "Default" label). Only one notebook can be the default at a time; toggling another notebook sets the new one and clears the old. Stored in `userCol('settings').doc('main').defaultNotebookId`. The SecondBrain `ADD_NOTE` action uses this setting as a fallback when no notebook name is specified, before falling back to the built-in "Default" notebook.
 
+**Move to Notebook**: While editing an existing note, a "Move to Notebook" row appears below the text area showing a dropdown of all other notebooks. Selecting one and saving moves the note (updates `notebookId`, adjusts `noteCount` on both notebooks) and navigates to the destination notebook. The row is hidden for new notes.
+
 **Search**: Global search across all note body text.
 
 **New note save**: After saving a new note, the app navigates back to the notebook list (not to the note's edit page).
@@ -2115,7 +2117,8 @@ Natural language command interface for logging anything hands-free.
 | `ADD_TRACKING_ENTRY` | Logs a journal tracking value |
 | `ADD_THING` | Creates a house thing |
 | `ATTACH_PHOTOS` | Attaches photos to an entity |
-| `ADD_NOTE` | Adds a note to a notebook |
+| `ADD_NOTE` | Adds a note to a notebook. Routes to user's configured default notebook unless they explicitly name one in the command. Does NOT infer notebook from note content. |
+| `ADD_DEV_NOTE` | Sends developer feedback to the shared `sharedDevNotes` collection. Only triggers on explicit developer-feedback phrases ("note to dev", etc). Confirm screen includes a "Save to" notebook redirect dropdown — selecting a notebook saves to the user's notes instead (with photo support). |
 | `CHECK_IN` | Opens the check-in form for a named or GPS-based place (short-circuit — no Firestore write; navigates to the check-in form) |
 | `UNKNOWN_ACTION` | LLM could not determine intent — no action taken |
 
@@ -2639,4 +2642,4 @@ Simple shared scratchpad accessible from Settings → Dev Notes. All logged-in u
 - Each note has: `text`, `author` (email of the user who created it), `createdAt`
 - Notes display newest-first with date + author shown on each card
 - Edit preserves the original author (does not overwrite with editor's identity)
-- SecondBrain `ADD_DEV_NOTE` action also writes to this shared collection and navigates to `#devnotes`
+- SecondBrain `ADD_DEV_NOTE` action writes to this shared collection **unless** the user selects a personal notebook in the confirm screen's "Save to" dropdown, in which case it saves to their own `notes` collection (with photo support) and navigates to that notebook instead

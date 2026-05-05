@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=659">
+    <link rel="stylesheet" href="css/styles.css?v=660">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -7155,6 +7155,12 @@ service firebase.storage {
                 </div>
                 <textarea id="noteBodyInput" rows="12" placeholder="Write your note..." spellcheck="true"></textarea>
                 <button class="btn btn-secondary btn-small" id="noteSpeakBtn" title="Voice to text" style="margin-top:8px;">🎤 Speak</button>
+                <div id="noteMoveSection" class="note-move-row hidden">
+                    <label class="note-move-label">Move to Notebook:</label>
+                    <select id="noteMoveSelect" class="note-move-select">
+                        <option value="">— keep in current notebook —</option>
+                    </select>
+                </div>
             </div>
 
             <!-- ── Photos — visible in both modes ───────────────── -->
@@ -10592,14 +10598,14 @@ export default {
     <script src="js/beneficiaries.js?v=543"></script>
     <script src="js/collections.js?v=537"></script>
     <script src="js/health.js?v=380"></script>
-    <script src="js/notes.js?v=521"></script>
+    <script src="js/notes.js?v=522"></script>
     <script src="js/lifecalendar.js?v=411"></script>
     <script src="js/life-projects.js?v=458"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <!-- zip.js — AES-256 encrypted zip for Private Vault backup -->
     <script src="https://cdn.jsdelivr.net/npm/@zip.js/zip.js@2/dist/zip.min.js"></script>
     <script src="js/chat.js?v=350"></script>
-    <script src="js/secondbrain.js?v=535"></script>
+    <script src="js/secondbrain.js?v=536"></script>
     <script src="js/sbissues.js?v=350"></script>
     <script src="js/places.js?v=357"></script>
     <script src="js/thoughts.js?v=548"></script>

@@ -16448,6 +16448,11 @@ a.legacy-fin-card:hover {
     font-weight: 600;
     color: #555;
 }
+.devnote-fixed-readonly {
+    font-size: 0.9rem;
+    color: #555;
+    padding: 6px 0;
+}
 .devnote-fixed-date-input {
     padding: 6px 8px;
     border: 1px solid #ccc;

@@ -28,6 +28,24 @@ var _dnLightboxIdx = -1;
 var _dnCopyNoteId = null;
 var _dnCopyText   = '';
 
+// ---------- Date formatting ----------
+
+/**
+ * Formats a YYYY-MM-DD date string (as stored in fixedDate) to "May 5, 2026".
+ * Returns empty string if input is blank or unparseable.
+ * @param {string} dateStr
+ * @returns {string}
+ */
+function _dnFormatDateStr(dateStr) {
+    if (!dateStr) return '';
+    // Parse as local date to avoid UTC offset shifting the day
+    var parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    var d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
 // ---------- Author ----------
 
 function _devNoteAuthor() {
@@ -121,7 +139,8 @@ function _dnBuildListCard(noteId, data) {
     if (data.fixed) {
         var badge = document.createElement('div');
         badge.className = 'devnote-fixed-badge';
-        badge.textContent = '✓ Fixed' + (data.fixedDate ? ' · ' + data.fixedDate : '');
+        var fixedDateStr = _dnFormatDateStr(data.fixedDate);
+        badge.textContent = '✓ Fixed' + (fixedDateStr ? ' · ' + fixedDateStr : '');
         card.appendChild(badge);
     }
 
@@ -131,17 +150,18 @@ function _dnBuildListCard(noteId, data) {
     idBadge.textContent = 'ID: ' + noteId;
     card.appendChild(idBadge);
 
-    // Date + author
+    // Date + author — label "Reported:" on fixed notes so both dates are distinguishable
     var meta = document.createElement('div');
     meta.className = 'note-date';
-    var dateStr = '';
+    var createdStr = '';
     if (data.createdAt && data.createdAt.toDate) {
-        dateStr = data.createdAt.toDate().toLocaleString('en-US', {
+        createdStr = data.createdAt.toDate().toLocaleString('en-US', {
             month: 'short', day: 'numeric', year: 'numeric',
             hour: 'numeric', minute: '2-digit'
         });
     }
-    meta.textContent = dateStr + (data.author ? ' · ' + data.author : '');
+    var metaLabel = data.fixed ? 'Reported: ' : '';
+    meta.textContent = metaLabel + createdStr + (data.author ? ' · ' + data.author : '');
     card.appendChild(meta);
 
     // Note text (truncated preview)
@@ -234,7 +254,7 @@ async function loadDevNotePage(noteId) {
 
         var d = doc.data();
         document.getElementById('devNoteTextarea').value = d.text || '';
-        _dnSetFixedFields(!!d.fixed, d.fixedDate || '', d.fixedNote || '');
+        _dnSetFixedFields(!!d.fixed, d.fixedDate || '', d.fixedNote || '', d.createdAt || null);
 
         // Show doc ID
         document.getElementById('devNoteDocId').textContent = noteId;
@@ -265,11 +285,24 @@ function _dnSetBreadcrumb(noteId) {
 // ---------- Fixed fields helpers ----------
 
 /** Populates the fixed/resolved section on the detail page. */
-function _dnSetFixedFields(fixed, fixedDate, fixedNote) {
+function _dnSetFixedFields(fixed, fixedDate, fixedNote, createdAt) {
     document.getElementById('devNoteFixedToggle').checked = fixed;
     document.getElementById('devNoteFixedDate').value     = fixedDate;
     document.getElementById('devNoteFixedNote').value     = fixedNote;
     document.getElementById('devNoteFixedDetails').classList.toggle('hidden', !fixed);
+
+    // Show the reported (created) date when viewing a fixed note
+    var reportedEl = document.getElementById('devNoteReportedDate');
+    if (reportedEl) {
+        var reportedStr = '';
+        if (createdAt) {
+            var ts = createdAt.toDate ? createdAt.toDate() : new Date(createdAt);
+            if (!isNaN(ts.getTime())) {
+                reportedStr = ts.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            }
+        }
+        reportedEl.textContent = reportedStr;
+    }
 }
 
 /** Reads the fixed fields from the detail page UI. */

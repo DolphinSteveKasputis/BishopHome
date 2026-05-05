@@ -2666,6 +2666,8 @@ Shared scratchpad accessible from Settings → Dev Notes. All logged-in users ca
   - Fixed: shows only resolved notes; cards display a green "✓ Fixed · date" badge and resolution preview
   - Search filters within the active tab across note text and resolution text
 - Cards show: fixed badge (if resolved), doc ID, date + author, text preview, resolution preview (fixed notes)
+  - Fixed badge shows formatted fixed date: "✓ Fixed · May 5, 2026"
+  - Author line on fixed cards shows "Reported: &lt;date&gt; · &lt;author&gt;" to distinguish reported-date from fixed-date
 - **Open** — navigates to `#devnote/{id}` full-page view
 - **Delete** — confirms, then deletes note and all its photos
 
@@ -2673,9 +2675,10 @@ Shared scratchpad accessible from Settings → Dev Notes. All logged-in users ca
 - Large textarea (full-page, resizable) for note text
 - **Doc ID badge** at the top — click to copy to clipboard
 - **Fixed / Resolved section**: checkbox "Mark as Fixed / Resolved"; when checked reveals:
+  - **Reported** — read-only display of the note's `createdAt` date (e.g. "May 5, 2026")
   - **Fixed Date** — date picker, defaults to today when first checked
   - **Resolution** — textarea to describe what was done to fix the issue
-  - All three fields saved to `sharedDevNotes` as `fixed`, `fixedDate`, `fixedNote`
+  - All three editable fields saved to `sharedDevNotes` as `fixed`, `fixedDate`, `fixedNote`
 - **Photos section**: "Add from Gallery" (file picker) and "Paste" (clipboard) buttons; photos stored in `userCol('photos')` with `targetType:'devnote'`; thumbnail grid with click-to-enlarge lightbox; delete individual photos from lightbox
 - **Save** button (also Ctrl+Enter); on new note, saves first then shows doc ID badge and action row
 - **Copy to Notebook…** — picks a personal notebook and copies text + photos into `userCol('notes')` / `userCol('photos')`

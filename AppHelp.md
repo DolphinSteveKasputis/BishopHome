@@ -3238,7 +3238,8 @@ Replaces all current data with a previously downloaded backup file. Data and pho
 **List page (`#devnotes`):**
 - **Filter tabs**: "Open" (default, shows unresolved notes) / "Fixed" (shows resolved notes)
 - **Search box**: filters within the active tab — searches note text and resolution text
-- Fixed note cards show a green "✓ Fixed · date" badge and a preview of the resolution
+- Fixed note cards show a green "✓ Fixed · date" badge (formatted date, e.g. "May 5, 2026") and a preview of the resolution
+- The author line on fixed cards shows "Reported: &lt;date&gt;" to distinguish when the issue was first logged from when it was fixed
 - **Open** — navigates to the full-page detail view
 - **Delete** — confirms before deleting the note and all its attached photos
 
@@ -3246,6 +3247,7 @@ Replaces all current data with a previously downloaded backup file. Data and pho
 - Large resizable textarea for note text
 - **Doc ID badge** shown at the top for existing notes — click to copy the Firestore document ID to clipboard
 - **Mark as Fixed / Resolved** checkbox — when checked reveals:
+  - **Reported** — read-only display of when the note was originally created
   - **Fixed Date** — date picker, defaults to today when first checked; change if needed
   - **Resolution** — describe what was done to fix the issue
 - Save records all three fields; fixed notes disappear from the default Open view

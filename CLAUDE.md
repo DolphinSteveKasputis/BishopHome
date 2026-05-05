@@ -280,8 +280,18 @@ Bishop/
 ## Dev Note Fix Command — REQUIRED BEHAVIOR
 **IMPORTANT: When the user says "fix {id}", "please fix {id}", "do {id}", or any similar phrasing where `{id}` looks like a Firestore document ID (long alphanumeric string), always:**
 
-1. **Check `db.collection('sharedDevNotes').doc('{id}')` first** — if it exists, that's a dev note fix request.
-2. **Read the dev note** to understand what the issue is.
+1. **Read the dev note via the preview server** — do NOT try to read Firestore via REST, file reads, or any other method. Use this exact pattern:
+   - Start the dev server: `preview_start` → `bishop-dev`
+   - Log in with test credentials (see memory: `reference_test_account.md`)
+   - Query Firestore via `preview_eval`:
+     ```
+     (async () => {
+         var doc = await db.collection('sharedDevNotes').doc('{id}').get();
+         return doc.exists ? JSON.stringify(doc.data()) : 'NOT FOUND';
+     })()
+     ```
+   - If the doc exists, that's a dev note fix request. Read the `text` field to understand the issue.
+2. **Implement the fix** in the codebase (or ask a clarifying question if the issue is ambiguous).
 3. **Implement the fix** in the codebase (or ask a clarifying question if the issue is ambiguous).
 4. **Run the full pre-commit checklist** — the fix is a code change like any other:
    - Update `MyLife-Functional-Spec.md` if any user-visible behavior changed

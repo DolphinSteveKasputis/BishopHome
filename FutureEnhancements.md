@@ -4,6 +4,23 @@ Items that are out of scope for current work but should be revisited later.
 
 ---
 
+## Firebase SDK: Migrate Offline Persistence to `FirestoreSettings.cache`
+
+**Console warning seen:** `enableMultiTabIndexedDbPersistence() will be deprecated in the future, you can use FirestoreSettings.cache instead.`
+
+**What it is:** The app currently enables Firestore offline persistence using the old `enableMultiTabIndexedDbPersistence()` call in `js/firebase-config.js`. Firebase SDK v10+ deprecates this in favor of a new `FirestoreSettings` API that uses a `cache` property instead.
+
+**Current behavior:** Works fine — the warning is cosmetic. Offline caching is still active and functional. This is not causing any bugs or performance issues.
+
+**What needs to change when addressed:**
+- In `js/firebase-config.js`, replace the `db.enableMultiTabIndexedDbPersistence()` call with the new `FirestoreSettings.cache` initialization pattern using `initializeFirestore()` with `{ localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) }`
+- This requires Firebase SDK v10+ (already in use via CDN) but may require verifying the exact CDN module imports support this API
+- Test offline behavior after the change to ensure caching still works across tabs
+
+**When to fix:** When upgrading the Firebase SDK to a newer major version, or if Firebase removes the old API and the warning becomes a runtime error. Not urgent — the current approach still works.
+
+---
+
 ## Memories: Filter / Sort Toggle
 
 On the Memories list page, add the ability to:
@@ -134,3 +151,11 @@ General-purpose list creation feature. Details TBD.
 ## Goals
 
 Create and manage daily, weekly, monthly, and yearly goals. Details TBD.
+
+---
+
+## Budgets: Calendar Integration
+
+Budget line items have an "Est. Due Day" field. In a future phase, allow those items to optionally generate calendar reminders on their due day each month — so bills show up on the calendar automatically from the budget rather than needing to be entered twice.
+
+Related to: Budgets feature, Calendar Events.

@@ -234,8 +234,10 @@ async function _dnSaveNote() {
 
 async function _dnDeleteNote(noteId) {
     try {
-        // Delete all photos in the subcollection first
-        var photoSnap = await db.collection('sharedDevNotes').doc(noteId).collection('photos').get();
+        // Delete this user's photos for the note
+        var photoSnap = await userCol('photos')
+            .where('targetType', '==', 'devnote')
+            .where('targetId', '==', noteId).get();
         var batch = db.batch();
         photoSnap.forEach(function(d) { batch.delete(d.ref); });
         await batch.commit();
@@ -256,8 +258,9 @@ async function _dnDeleteNote(noteId) {
 
 async function _dnLoadPhotos(noteId) {
     try {
-        var snap = await db.collection('sharedDevNotes').doc(noteId)
-            .collection('photos').orderBy('createdAt', 'asc').get();
+        var snap = await userCol('photos')
+            .where('targetType', '==', 'devnote')
+            .where('targetId', '==', noteId).get();
 
         _dnPhotos = [];
         snap.forEach(function(doc) {
@@ -310,11 +313,13 @@ async function _dnAddPhotoFromFile(file) {
 
     try {
         var imageData = await compressImage(file);
-        await db.collection('sharedDevNotes').doc(_dnCurrentId)
-            .collection('photos').add({
-                imageData: imageData,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
+        await userCol('photos').add({
+            targetType: 'devnote',
+            targetId:   _dnCurrentId,
+            imageData:  imageData,
+            caption:    '',
+            createdAt:  firebase.firestore.FieldValue.serverTimestamp()
+        });
         await _dnLoadPhotos(_dnCurrentId);
     } catch (err) {
         console.error('_dnAddPhotoFromFile error:', err);
@@ -360,8 +365,7 @@ function _dnOpenLightbox(idx) {
 async function _dnDeleteLightboxPhoto(photoId) {
     if (!confirm('Delete this photo?')) return;
     try {
-        await db.collection('sharedDevNotes').doc(_dnCurrentId)
-            .collection('photos').doc(photoId).delete();
+        await userCol('photos').doc(photoId).delete();
         closeModal('devNotePhotoModal');
         if (_dnCurrentId) await _dnLoadPhotos(_dnCurrentId);
     } catch (err) {
@@ -433,10 +437,11 @@ async function _dnExecuteCopy() {
             noteCount: firebase.firestore.FieldValue.increment(1)
         });
 
-        // Copy photos from note subcollection → userCol('photos')
+        // Copy photos: create new photo docs pointing at the new note
         if (noteId) {
-            var photoSnap = await db.collection('sharedDevNotes').doc(noteId)
-                .collection('photos').get();
+            var photoSnap = await userCol('photos')
+                .where('targetType', '==', 'devnote')
+                .where('targetId', '==', noteId).get();
 
             var batch = db.batch();
             photoSnap.forEach(function(pDoc) {

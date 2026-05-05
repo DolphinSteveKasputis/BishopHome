@@ -283,11 +283,16 @@ Bishop/
 1. **Check `db.collection('sharedDevNotes').doc('{id}')` first** — if it exists, that's a dev note fix request.
 2. **Read the dev note** to understand what the issue is.
 3. **Implement the fix** in the codebase (or ask a clarifying question if the issue is ambiguous).
-4. **Mark the dev note as resolved** by updating the Firestore document:
+4. **Run the full pre-commit checklist** — the fix is a code change like any other:
+   - Update `MyLife-Functional-Spec.md` if any user-visible behavior changed
+   - Update `AppHelp.md` if any screen with a `## screen:X` section was affected
+   - Update any specialized plan files that cover the changed area (e.g., `HealthEnhancements.md`, `ModifyProjects.md`, etc.)
+   - Bump `?v=N` on changed JS/CSS files and `CACHE_NAME` in `sw.js`
+5. **Mark the dev note as resolved** by updating the Firestore document:
    - `fixed: true`
    - `fixedDate: '<today's date in YYYY-MM-DD format>'`
    - `fixedNote: '<plain-English description of what was done to fix it>'`
-5. Do this for the stated ID only. Never touch other dev notes.
+6. Do this for the stated ID only. Never touch other dev notes.
 
 This applies to: "fix abc123", "please fix abc123", "go fix abc123", "do abc123", "handle abc123", or any similar shorthand where the ID is clearly being called out as a work item.
 

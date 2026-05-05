@@ -1286,6 +1286,11 @@ async function saveJournalEntry() {
 
     if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
 
+    // Copy entry text to clipboard before saving so it's recoverable if the save fails
+    if (text) {
+        try { await navigator.clipboard.writeText(text); } catch (e) { /* non-fatal */ }
+    }
+
     var mentionedIds  = [..._journalMentionedPersonIds];
     var placeIds      = [..._journalPlaceIds];
     var isCheckinEntry = _journalCheckinMode;  // capture before any async work

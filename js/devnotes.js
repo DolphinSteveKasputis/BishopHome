@@ -249,8 +249,12 @@ async function _dnDeleteNote(noteId) {
 
         await db.collection('sharedDevNotes').doc(noteId).delete();
 
-        // Navigate back to list
-        location.hash = '#devnotes';
+        // If already on the list page reload it; otherwise navigate there
+        if (location.hash === '#devnotes') {
+            loadDevNotesPage();
+        } else {
+            location.hash = '#devnotes';
+        }
     } catch (err) {
         console.error('_dnDeleteNote error:', err);
         alert('Error deleting note.');

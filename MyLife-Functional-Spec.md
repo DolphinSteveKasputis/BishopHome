@@ -2657,17 +2657,24 @@ Legacy overlay fields (`currentValue`, `whatToDo`, `legacyNotes`) will be added 
 Shared scratchpad accessible from Settings → Dev Notes. All logged-in users can read, add, edit, and delete notes.
 
 #### List page (`#devnotes`)
-- Shows all notes newest-first; each card shows doc ID, date + author, text preview (200 chars)
+- **Filter bar**: "Open" (default) / "Fixed" toggle buttons + search box
+  - Open: shows only notes where `fixed` is false or absent
+  - Fixed: shows only resolved notes; cards display a green "✓ Fixed · date" badge and resolution preview
+  - Search filters within the active tab across note text and resolution text
+- Cards show: fixed badge (if resolved), doc ID, date + author, text preview, resolution preview (fixed notes)
 - **Open** — navigates to `#devnote/{id}` full-page view
-- **Copy to Notebook…** — opens notebook picker; copies text + all attached photos into the user's personal `notes` collection (photos saved as `targetType:'note'` in `userCol('photos')`)
-- **Delete** — confirms, then deletes note and all its photos from `sharedDevNotePhotos`
+- **Delete** — confirms, then deletes note and all its photos
 
 #### Detail/Edit page (`#devnote/{id}` and `#devnote/new`)
 - Large textarea (full-page, resizable) for note text
 - **Doc ID badge** at the top — click to copy to clipboard
-- **Photos section**: "Add from Gallery" (file picker) and "Paste" (clipboard) buttons; photos stored in `sharedDevNotePhotos`; thumbnail grid with click-to-enlarge lightbox; delete individual photos from lightbox
+- **Fixed / Resolved section**: checkbox "Mark as Fixed / Resolved"; when checked reveals:
+  - **Fixed Date** — date picker, defaults to today when first checked
+  - **Resolution** — textarea to describe what was done to fix the issue
+  - All three fields saved to `sharedDevNotes` as `fixed`, `fixedDate`, `fixedNote`
+- **Photos section**: "Add from Gallery" (file picker) and "Paste" (clipboard) buttons; photos stored in `userCol('photos')` with `targetType:'devnote'`; thumbnail grid with click-to-enlarge lightbox; delete individual photos from lightbox
 - **Save** button (also Ctrl+Enter); on new note, saves first then shows doc ID badge and action row
-- **Copy to Notebook…** — same as list-page copy; picks a personal notebook and copies text + photos
+- **Copy to Notebook…** — picks a personal notebook and copies text + photos into `userCol('notes')` / `userCol('photos')`
 - **Delete Note** — confirms, deletes note and all its photos, returns to list
 - Edit preserves the original author; does not overwrite with editor's identity
 

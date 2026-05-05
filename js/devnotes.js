@@ -4,13 +4,19 @@
 // Photos stored in userCol('photos') with targetType:'devnote'.
 //
 // Shared collection (NOT under /users/{uid}/):
-//   sharedDevNotes  — { text, author, createdAt }
+//   sharedDevNotes  — { text, author, createdAt, fixed, fixedDate, fixedNote }
 // Per-user (via userCol):
 //   photos          — { targetType:'devnote', targetId, imageData, caption, createdAt }
 // ============================================================
 
 /** Firestore ID of the note currently open on #devnote page. */
 var _dnCurrentId = null;
+
+/** All notes loaded from Firestore for the list page. */
+var _dnAllNotes = [];
+
+/** Current list filter: 'open' or 'fixed'. */
+var _dnFilter = 'open';
 
 /** Photos loaded for the currently open note. Array of { id, imageData, createdAt } */
 var _dnPhotos = [];
@@ -35,36 +41,73 @@ function _devNoteAuthor() {
 // ============================================================
 
 /**
- * Loads the dev notes list page. Called by router for #devnotes.
+ * Loads all dev notes from Firestore, stores them, then renders with current filter.
+ * Called by router for #devnotes.
  */
 async function loadDevNotesPage() {
     var crumb = document.getElementById('breadcrumbBar');
     if (crumb) crumb.innerHTML = '<a href="#settings">Settings</a><span class="separator">&rsaquo;</span><span>Dev Notes</span>';
 
-    var container  = document.getElementById('devNotesContainer');
+    // Reset filter to 'open' each time the page is freshly loaded
+    _dnFilter = 'open';
+    _dnSetFilterButtons('open');
+
     var emptyState = document.getElementById('devNotesEmptyState');
-    container.innerHTML     = '';
-    emptyState.textContent  = 'Loading…';
+    emptyState.textContent   = 'Loading…';
     emptyState.style.display = 'block';
+    document.getElementById('devNotesContainer').innerHTML = '';
+    document.getElementById('devNotesSearch').value = '';
 
     try {
         var snap = await db.collection('sharedDevNotes').orderBy('createdAt', 'desc').get();
         emptyState.style.display = 'none';
-
-        if (snap.empty) {
-            emptyState.textContent   = 'No notes yet. Press + Add Note to write one.';
-            emptyState.style.display = 'block';
-            return;
-        }
-
+        _dnAllNotes = [];
         snap.forEach(function(doc) {
-            container.appendChild(_dnBuildListCard(doc.id, doc.data()));
+            _dnAllNotes.push({ id: doc.id, data: doc.data() });
         });
+        _dnRenderList();
     } catch (err) {
         console.error('loadDevNotesPage error:', err);
         emptyState.textContent   = 'Error loading notes.';
         emptyState.style.display = 'block';
     }
+}
+
+/** Re-renders the list applying the current filter and search query. */
+function _dnRenderList() {
+    var query     = (document.getElementById('devNotesSearch').value || '').trim().toLowerCase();
+    var container = document.getElementById('devNotesContainer');
+    var emptyState = document.getElementById('devNotesEmptyState');
+    container.innerHTML = '';
+
+    var filtered = _dnAllNotes.filter(function(n) {
+        var isFixed = !!n.data.fixed;
+        if (_dnFilter === 'open'  && isFixed)  return false;
+        if (_dnFilter === 'fixed' && !isFixed) return false;
+        if (query) {
+            var haystack = ((n.data.text || '') + ' ' + (n.data.fixedNote || '')).toLowerCase();
+            if (!haystack.includes(query)) return false;
+        }
+        return true;
+    });
+
+    if (filtered.length === 0) {
+        var msg = query ? 'No notes match your search.' :
+                  (_dnFilter === 'fixed' ? 'No fixed notes yet.' : 'No open notes.');
+        emptyState.textContent   = msg;
+        emptyState.style.display = 'block';
+        return;
+    }
+    emptyState.style.display = 'none';
+    filtered.forEach(function(n) {
+        container.appendChild(_dnBuildListCard(n.id, n.data));
+    });
+}
+
+function _dnSetFilterButtons(filter) {
+    document.querySelectorAll('.devnotes-filter-btn').forEach(function(btn) {
+        btn.classList.toggle('active', btn.dataset.filter === filter);
+    });
 }
 
 /**
@@ -73,6 +116,14 @@ async function loadDevNotesPage() {
 function _dnBuildListCard(noteId, data) {
     var card = document.createElement('div');
     card.className = 'note-card';
+
+    // Fixed badge (if resolved)
+    if (data.fixed) {
+        var badge = document.createElement('div');
+        badge.className = 'devnote-fixed-badge';
+        badge.textContent = '✓ Fixed' + (data.fixedDate ? ' · ' + data.fixedDate : '');
+        card.appendChild(badge);
+    }
 
     // Doc ID badge
     var idBadge = document.createElement('div');
@@ -100,6 +151,14 @@ function _dnBuildListCard(noteId, data) {
     if ((data.text || '').length > 200) preview += '…';
     textEl.textContent = preview;
     card.appendChild(textEl);
+
+    // Resolution preview (fixed notes only)
+    if (data.fixed && data.fixedNote) {
+        var fixPreview = document.createElement('div');
+        fixPreview.className = 'devnote-fixed-note-preview';
+        fixPreview.textContent = 'Fix: ' + data.fixedNote.slice(0, 120) + (data.fixedNote.length > 120 ? '…' : '');
+        card.appendChild(fixPreview);
+    }
 
     // Actions row
     var actions = document.createElement('div');
@@ -143,6 +202,7 @@ function loadNewDevNotePage() {
     document.getElementById('devNoteActionRow').classList.add('hidden');
     document.getElementById('devNotePhotosGrid').innerHTML  = '';
     document.getElementById('devNotePhotosEmpty').classList.remove('hidden');
+    _dnSetFixedFields(false, '', '');
 
     _dnSetBreadcrumb(null);
 }
@@ -161,6 +221,7 @@ async function loadDevNotePage(noteId) {
     document.getElementById('devNoteActionRow').classList.add('hidden');
     document.getElementById('devNotePhotosGrid').innerHTML  = '';
     document.getElementById('devNotePhotosEmpty').classList.remove('hidden');
+    _dnSetFixedFields(false, '', '');
 
     _dnSetBreadcrumb(noteId);
 
@@ -171,11 +232,12 @@ async function loadDevNotePage(noteId) {
             return;
         }
 
-        document.getElementById('devNoteTextarea').value = doc.data().text || '';
+        var d = doc.data();
+        document.getElementById('devNoteTextarea').value = d.text || '';
+        _dnSetFixedFields(!!d.fixed, d.fixedDate || '', d.fixedNote || '');
 
         // Show doc ID
-        var idEl = document.getElementById('devNoteDocId');
-        idEl.textContent = noteId;
+        document.getElementById('devNoteDocId').textContent = noteId;
         document.getElementById('devNoteDocIdRow').classList.remove('hidden');
 
         // Show action row (Copy to Notebook + Delete)
@@ -200,6 +262,26 @@ function _dnSetBreadcrumb(noteId) {
     }
 }
 
+// ---------- Fixed fields helpers ----------
+
+/** Populates the fixed/resolved section on the detail page. */
+function _dnSetFixedFields(fixed, fixedDate, fixedNote) {
+    document.getElementById('devNoteFixedToggle').checked = fixed;
+    document.getElementById('devNoteFixedDate').value     = fixedDate;
+    document.getElementById('devNoteFixedNote').value     = fixedNote;
+    document.getElementById('devNoteFixedDetails').classList.toggle('hidden', !fixed);
+}
+
+/** Reads the fixed fields from the detail page UI. */
+function _dnGetFixedFields() {
+    var fixed = document.getElementById('devNoteFixedToggle').checked;
+    return {
+        fixed:     fixed,
+        fixedDate: fixed ? (document.getElementById('devNoteFixedDate').value || '') : '',
+        fixedNote: fixed ? (document.getElementById('devNoteFixedNote').value.trim() || '') : ''
+    };
+}
+
 // ---------- Save ----------
 
 async function _dnSaveNote() {
@@ -209,15 +291,21 @@ async function _dnSaveNote() {
     var btn = document.getElementById('devNoteSaveBtn');
     if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
 
+    var fixedFields = _dnGetFixedFields();
+
     try {
         if (_dnCurrentId) {
-            await db.collection('sharedDevNotes').doc(_dnCurrentId).update({ text: text });
+            await db.collection('sharedDevNotes').doc(_dnCurrentId).update(
+                Object.assign({ text: text }, fixedFields)
+            );
         } else {
-            var ref = await db.collection('sharedDevNotes').add({
-                text:      text,
-                author:    _devNoteAuthor(),
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
+            var ref = await db.collection('sharedDevNotes').add(
+                Object.assign({
+                    text:      text,
+                    author:    _devNoteAuthor(),
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, fixedFields)
+            );
             _dnCurrentId = ref.id;
 
             // Show doc ID and action row now that the note exists
@@ -489,6 +577,30 @@ document.addEventListener('DOMContentLoaded', function() {
     var addBtn = document.getElementById('addDevNoteBtn');
     if (addBtn) addBtn.addEventListener('click', function() {
         location.hash = '#devnote/new';
+    });
+
+    // List page — filter toggle buttons
+    document.querySelectorAll('.devnotes-filter-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            _dnFilter = this.dataset.filter;
+            _dnSetFilterButtons(_dnFilter);
+            _dnRenderList();
+        });
+    });
+
+    // List page — search input
+    var searchInput = document.getElementById('devNotesSearch');
+    if (searchInput) searchInput.addEventListener('input', _dnRenderList);
+
+    // Detail page — Fixed toggle shows/hides the date+note fields and defaults date to today
+    var fixedToggle = document.getElementById('devNoteFixedToggle');
+    if (fixedToggle) fixedToggle.addEventListener('change', function() {
+        var details = document.getElementById('devNoteFixedDetails');
+        details.classList.toggle('hidden', !this.checked);
+        if (this.checked && !document.getElementById('devNoteFixedDate').value) {
+            // Default to today
+            document.getElementById('devNoteFixedDate').value = new Date().toISOString().slice(0, 10);
+        }
     });
 
     // Detail page — Back button

@@ -3202,27 +3202,30 @@ Replaces all current data with a previously downloaded backup file. Data and pho
 
 ### Quick Help
 - Shared scratchpad visible to all users — great for developer feedback and quick cross-device notes
-- Each note has a **Doc ID** (Firestore document ID) shown on both the list and detail page
-- Tap **Open** on a card to view the full note, edit it, and manage its photos
-- **Copy to Notebook…** moves a note into your personal notebook section (text + photos)
-- Photos can be added via gallery picker or clipboard paste
+- Default view shows **Open** (unresolved) notes only — click **Fixed** to see resolved ones
+- Use the search box to filter by keyword within the active tab
+- Mark a note as fixed on its detail page to record the resolution date and description
+- Tap **Open** on a card to view the full note, edit it, add photos, or mark it resolved
 
 ### Details
 
 **List page (`#devnotes`):**
-- Notes display newest-first; each card shows the Doc ID (small, monospace), date + author, and a text preview
+- **Filter tabs**: "Open" (default, shows unresolved notes) / "Fixed" (shows resolved notes)
+- **Search box**: filters within the active tab — searches note text and resolution text
+- Fixed note cards show a green "✓ Fixed · date" badge and a preview of the resolution
 - **Open** — navigates to the full-page detail view
-- **Copy to Notebook…** — pick one of your personal notebooks; the note's text and all attached photos are copied into that notebook. The original dev note is not deleted.
 - **Delete** — confirms before deleting the note and all its attached photos
 
 **Detail/Edit page (`#devnote/{id}` and `#devnote/new`):**
 - Large resizable textarea for note text
-- **Doc ID badge** shown at the top for existing notes — click to copy the Firestore document ID to clipboard; a "Copied!" flash confirms success
-- **Save** button (also Ctrl+Enter) — for new notes, saving creates the note and reveals the Doc ID badge and action buttons
-- **Photos section**: attach photos with "Add from Gallery" (file picker) or "Paste" (reads an image from your clipboard); photos display as a thumbnail grid; click any thumbnail to open a lightbox; delete individual photos from the lightbox
-- **Copy to Notebook…** — same as list-page copy; only available after the note has been saved
+- **Doc ID badge** shown at the top for existing notes — click to copy the Firestore document ID to clipboard
+- **Mark as Fixed / Resolved** checkbox — when checked reveals:
+  - **Fixed Date** — date picker, defaults to today when first checked; change if needed
+  - **Resolution** — describe what was done to fix the issue
+- Save records all three fields; fixed notes disappear from the default Open view
+- **Photos section**: "Add from Gallery" or "Paste" to attach images; click thumbnail to enlarge; delete from lightbox
+- **Copy to Notebook…** — copies note text + all photos into a chosen personal notebook
 - **Delete Note** — confirms, deletes note and all photos, returns to list
-- Back button returns to the dev notes list
 
-**How Copy to Notebook works:**
-Creates a new note in your chosen personal notebook containing the same text, then copies all attached dev note photos into your personal photos collection linked to the new note. The source dev note is unchanged.
+**Filtering explained:**
+Open tab = notes where Fixed is unchecked (or never set). Fixed tab = notes where Fixed is checked. Search runs across both the note body and the resolution text within whichever tab is active.

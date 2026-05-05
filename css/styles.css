@@ -16332,3 +16332,128 @@ a.legacy-fin-card:hover {
     .devnote-photos-header { flex-direction: column; align-items: flex-start; gap: 8px; }
 }
 
+/* Dev Notes list filter bar */
+.devnotes-filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 14px;
+    flex-wrap: wrap;
+}
+.devnotes-filter-toggles {
+    display: flex;
+    gap: 0;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid #ccc;
+    flex-shrink: 0;
+}
+.devnotes-filter-btn {
+    border-radius: 0;
+    border: none;
+    background: #f5f5f5;
+    color: #555;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+.devnotes-filter-btn.active {
+    background: #1976d2;
+    color: #fff;
+    font-weight: 600;
+}
+.devnotes-search {
+    flex: 1;
+    min-width: 160px;
+    padding: 6px 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 0.9rem;
+}
+
+/* Fixed badge on list cards */
+.devnote-fixed-badge {
+    display: inline-block;
+    background: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #a5d6a7;
+    border-radius: 12px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    margin-bottom: 4px;
+}
+.devnote-fixed-date-meta {
+    font-size: 0.78rem;
+    color: #888;
+    margin-bottom: 2px;
+}
+.devnote-fixed-note-preview {
+    font-size: 0.82rem;
+    color: #388e3c;
+    font-style: italic;
+    margin-top: 4px;
+}
+
+/* Fixed section on detail page */
+.devnote-fixed-section {
+    background: #f9f9f9;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+}
+.devnote-fixed-toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+}
+.devnote-fixed-toggle-label input[type=checkbox] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+.devnote-fixed-details {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.devnote-fixed-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.devnote-fixed-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #555;
+}
+.devnote-fixed-date-input {
+    padding: 6px 8px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    width: 180px;
+}
+.devnote-fixed-note {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    resize: vertical;
+    box-sizing: border-box;
+}
+
+@media (max-width: 480px) {
+    .devnotes-filter-bar { flex-direction: column; align-items: stretch; }
+    .devnotes-filter-toggles { width: fit-content; }
+    .devnote-fixed-date-input { width: 100%; }
+}
+

@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=660">
+    <link rel="stylesheet" href="css/styles.css?v=661">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -7036,6 +7036,30 @@ service firebase.storage {
             </div>
         </div>
 
+        <!-- Modal: Snapshot Full History ("More") -->
+        <div class="modal-overlay" id="investSnapMoreModal">
+            <div class="modal modal--wide">
+                <h3 id="investSnapMoreTitle">Snapshots — Full History</h3>
+                <div class="invest-snap-more-filters">
+                    <div class="invest-snap-more-filter-row">
+                        <label class="invest-snap-more-filter-label">Show last:</label>
+                        <input type="number" id="investSnapMoreCount" class="invest-snap-more-filter-input"
+                               min="1" max="500" value="10"
+                               oninput="_investRenderMoreModalList(document.getElementById('investSnapMoreModal').dataset.type)">
+                        <span class="invest-snap-more-filter-sep">or</span>
+                        <label class="invest-snap-more-filter-label">Since date:</label>
+                        <input type="date" id="investSnapMoreSince" class="invest-snap-more-filter-input"
+                               oninput="_investRenderMoreModalList(document.getElementById('investSnapMoreModal').dataset.type)">
+                    </div>
+                    <p class="invest-snap-more-filter-hint">If a date is entered it overrides the count.</p>
+                </div>
+                <div id="investSnapMoreList" class="invest-snap-more-list"></div>
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" onclick="closeModal('investSnapMoreModal')">Close</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Modal: Add/Edit Holding (Investments Account Detail) -->
         <div class="modal-overlay" id="investHoldingModal">
             <div class="modal">
@@ -10617,7 +10641,7 @@ export default {
     <script src="js/legacy-crypto.js?v=2"></script>
     <script src="js/legacy.js?v=28"></script>
     <script src="js/credentials.js?v=583"></script>
-    <script src="js/investments.js?v=664"></script>
+    <script src="js/investments.js?v=665"></script>
     <script src="js/budgets.js?v=659"></script>
     <script src="js/private.js?v=579"></script>
     <script src="js/app.js?v=654"></script>

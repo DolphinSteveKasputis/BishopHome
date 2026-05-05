@@ -14685,13 +14685,87 @@ a.invest-hub-card:hover {
 .invest-snap-type-section {
     margin-bottom: 20px;
 }
+.invest-snap-type-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+}
 .invest-snap-type-title {
     font-size: 0.78rem;
     font-weight: 700;
     color: #888;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    margin-bottom: 6px;
+}
+.invest-snap-more-btn {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #6366f1;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+.invest-snap-more-btn:hover { color: #4338ca; }
+.invest-snap-empty-period {
+    color: #aaa;
+    font-size: 0.85rem;
+    padding: 6px 0 0;
+}
+/* Last prices-updated notice on the snapshot page */
+.invest-snap-prices-note {
+    font-size: 0.82rem;
+    color: #666;
+    margin: 0 0 12px;
+}
+/* More modal — overlay gets the wide class; inner .modal inherits */
+.modal-overlay.modal--wide > .modal {
+    max-width: 640px;
+    width: 95vw;
+}
+.invest-snap-more-filters {
+    background: var(--bg-secondary, #f5f5f5);
+    border: 1px solid var(--border, #e0e0e0);
+    border-radius: 8px;
+    padding: 12px 14px 8px;
+    margin-bottom: 14px;
+}
+.invest-snap-more-filter-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.invest-snap-more-filter-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted, #555);
+    white-space: nowrap;
+}
+.invest-snap-more-filter-input {
+    padding: 5px 8px;
+    border: 1px solid var(--border, #ccc);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    width: auto;
+}
+input[type="number"].invest-snap-more-filter-input { width: 70px; }
+input[type="date"].invest-snap-more-filter-input   { width: 160px; }
+.invest-snap-more-filter-sep {
+    font-size: 0.8rem;
+    color: #aaa;
+}
+.invest-snap-more-filter-hint {
+    font-size: 0.75rem;
+    color: #aaa;
+    margin: 6px 0 0;
+}
+.invest-snap-more-list {
+    max-height: 55vh;
+    overflow-y: auto;
 }
 
 /* Snapshot row */

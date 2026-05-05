@@ -1335,11 +1335,26 @@ Point-in-time portfolio recordings used to compute period performance on the Sum
 
 **Snapshot doc fields**: `groupId`, `type` (daily/weekly/monthly/yearly), `date` (YYYY-MM-DD), `netWorth`, `invested`, `perAccount` (map: accountId → total value), `perCategory` (roth/preTax/brokerage/cash/invCash), `notes` (nullable), `createdAt`.
 
-**Snapshot list**: Grouped by type (Yearly → Monthly → Weekly → Daily), most recent first within each group. Each row shows date, notes (if any), Net Worth, and Invested. Tap to expand → shows category breakdown table (reuses `.invest-summary-cat-row` styles) + Delete button.
+**Snapshot list**: Grouped by type (Yearly → Monthly → Weekly → Daily), most recent first within each group. Default view is filtered to a recent window per type:
+- **Yearly / Monthly**: current calendar year only
+- **Weekly**: last 3 snapshots
+- **Daily**: all since the most-recent Sunday (start of current week)
+
+Each row shows date (daily rows also show day-of-week, e.g. "2026-05-05 · Tuesday"), notes (if any), Net Worth, and Invested. Tap to expand → shows category breakdown + per-account breakdown + Delete button.
+
+**More button**: When a section has snapshots outside the default window, a "More ›" link appears next to the section heading. Opens the `investSnapMoreModal` showing full history for that type:
+- Default: last 10 snapshots
+- "Show last N" number input to change count
+- "Since date" date input to show all snapshots on or after a date (takes precedence over count when set)
+- Rows are read-only expand/collapse (Delete still works; closes modal and re-renders page)
+
+**Prices last updated**: `investmentConfig/main.lastUpdateAllDate` (YYYY-MM-DD) is written every time `_investUpdateAllPrices()` completes successfully. Displayed on both the Summary page (below the button) and the Snapshots page (below the frequency badges).
+
+**Stale-price warning on capture**: When the user opens the Capture Snapshot modal, if `lastUpdateAllDate` is before today (or null), a confirm dialog asks whether to update prices first. Confirming runs `_investUpdateAllPrices()` before computing the snapshot values. Cancelling proceeds with current (potentially stale) prices.
 
 **All-Time Highs**: One ATH per snapshot type per group, stored in `investmentConfig/main` as `allTimeHighDaily_<groupId>`, `allTimeHighWeekly_<groupId>`, etc. — each `{value, date}`. Updated automatically on each capture via `_investCheckAndUpdateATH(type, netWorth, date, groupId)` using a targeted `set({merge:true})`. Group-scoped so capturing a snapshot for one group never affects another group's ATH display. Shown as orange cards at the top of the page.
 
-**Delete**: Confirm dialog → removes doc from Firestore → re-renders page. Note: deleting a snapshot used as a period baseline causes the corresponding period row on Summary to revert to "—".
+**Delete**: Confirm dialog → removes doc from Firestore → closes More modal if open → re-renders page. Note: deleting a snapshot used as a period baseline causes the corresponding period row on Summary to revert to "—".
 
 **Firestore query**: All snapshots loaded with `.orderBy('date','desc')` (single-field index, no composite needed); groupId filtering done client-side.
 

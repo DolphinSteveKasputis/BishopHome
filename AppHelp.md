@@ -1844,20 +1844,31 @@ Requires a Finnhub API key in Settings. Prices persist in Firestore across sessi
 
 ### Quick Help
 - Records a point-in-time snapshot of your portfolio — Net Worth, Invested, and per-category breakdown
-- Tap **+ Capture** to record a new snapshot; choose Daily, Weekly, Monthly, or Yearly
-- Tap any snapshot row to expand the full category breakdown
+- Tap **+ Capture** — you'll be warned if prices haven't been updated today; you can update them right from the dialog
+- Each section (Yearly/Monthly/Weekly/Daily) shows only recent snapshots by default; tap **More ›** to see the full history
+- Daily rows show the day of the week beside the date (e.g. "2026-05-05 · Tuesday")
 - **All-Time Highs** show the highest Net Worth ever recorded for each snapshot type
-- Snapshots are used by the Summary page to compute period performance (Day/Week/Month/YTD gains)
 
 ### Details
 
-**Capturing a snapshot**: Tap **+ Capture** → select type (only types configured for the current group appear) → optionally add notes → tap **Capture**. The app loads current account values, computes Net Worth and category totals, then saves to Firestore. This may take a few seconds while it reads all accounts and holdings.
+**Capturing a snapshot**: Tap **+ Capture** → if prices haven't been updated today, you'll see a prompt — tap OK to update prices first (recommended) or Cancel to proceed with current cached values → select type → add optional notes → tap **Capture**.
+
+**Prices last updated**: Shown just below the frequency badges. Also shown on the Summary page below the "Update All Prices" button. This tells you at a glance whether your prices are fresh before capturing.
 
 **Snapshot types**: Daily, Weekly, Monthly, Yearly — configured per group in Manage Groups. The "Me" group defaults to all four. A kids' or secondary group might only track Yearly.
 
-**Best practice**: Tap **Update All Prices** on the Summary page first, then come here to capture a snapshot. This ensures the snapshot reflects current market prices rather than stale cached values.
+**Default list filtering**: Each section shows a focused window of recent data:
+- Yearly and Monthly: current calendar year only
+- Weekly: last 3 snapshots
+- Daily: all snapshots since the most recent Sunday (current week)
 
-**Expanded view**: Tap a snapshot row to see the full category breakdown (Roth, Pre-Tax, Brokerage, Cash, Uninvested Cash) with values and % of Net Worth at that moment.
+**More ›**: Appears next to a section heading when there is history beyond the default window. Tap it to open a full-history panel:
+- Shows the last 10 snapshots by default
+- **Show last N** — change the count
+- **Since date** — enter a date to see all snapshots on or after that day (overrides the count)
+- Tap any row to expand the detail view; tap Delete to remove (same as the main list)
+
+**Expanded view**: Tap any snapshot row to see the full category breakdown (Roth, Pre-Tax, Brokerage, Cash, Uninvested Cash) with values and % of Net Worth at that moment.
 
 **All-Time Highs**: Updated automatically whenever a new snapshot exceeds the previous ATH for that type. Shown in the orange cards at the top. Each type (Daily/Weekly/Monthly/Yearly) tracks its own high-water mark.
 

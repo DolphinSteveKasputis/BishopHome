@@ -1186,6 +1186,18 @@ var _investGroupEditId = null;  // null = add mode; group doc ID = edit mode
 var _investConfig         = { projectedRoR: 0.06, afterTaxPct: 0.82 };
 var _investSummaryGroupId = null;  // selected group on the summary page
 
+// ---------- Snapshot page state ----------
+
+// Caches full snapshot arrays (per type) for the "More" modal
+var _investSnapshotsAll = {};
+
+// Returns the ISO date string (YYYY-MM-DD) of the most-recent Sunday <= today.
+function _investWeekStart() {
+    var d = new Date();
+    d.setDate(d.getDate() - d.getDay()); // back to Sunday
+    return d.toISOString().split('T')[0];
+}
+
 function _investConfigCol() {
     return userCol('investmentConfig');
 }
@@ -2607,23 +2619,57 @@ async function _investRenderSnapshotsPage() {
         athHtml += '</div>';
     }
 
-    // Snapshot list grouped by type
+    // Snapshot list grouped by type — default view is filtered to a recent window.
+    // Full history is accessible via the "More" button on each section.
     var typeOrder = ['yearly', 'monthly', 'weekly', 'daily'];
     var grouped   = {};
     typeOrder.forEach(function(t) { grouped[t] = []; });
     snapshots.forEach(function(s) { if (grouped[s.type]) grouped[s.type].push(s); });
 
+    // Store full arrays for the More modal (module-level so onclick handlers can reach them)
+    _investSnapshotsAll = grouped;
+
+    var curYear    = new Date().toISOString().split('T')[0].slice(0, 4);
+    var weekStart  = _investWeekStart();
+
+    // How many items to show by default per type
+    var typeFilters = {
+        yearly:  function(a) { return a.filter(function(s) { return s.date && s.date.slice(0, 4) === curYear; }); },
+        monthly: function(a) { return a.filter(function(s) { return s.date && s.date.slice(0, 4) === curYear; }); },
+        weekly:  function(a) { return a.slice(0, 3); },
+        daily:   function(a) { return a.filter(function(s) { return s.date >= weekStart; }); }
+    };
+
     var listHtml = '';
     typeOrder.forEach(function(type) {
-        if (grouped[type].length === 0) return;
-        var label = type.charAt(0).toUpperCase() + type.slice(1);
-        listHtml += '<div class="invest-snap-type-section"><div class="invest-snap-type-title">' + label + '</div>';
-        grouped[type].forEach(function(s) { listHtml += _investSnapshotRowHtml(s); });
+        var all = grouped[type];
+        if (all.length === 0) return;
+        var filtered = typeFilters[type](all);
+        var hasMore  = all.length > filtered.length;
+        var label    = type.charAt(0).toUpperCase() + type.slice(1);
+        var moreBtn  = hasMore
+            ? '<button class="invest-snap-more-btn" onclick="_investOpenSnapMoreModal(\'' + type + '\')">More ›</button>'
+            : '';
+        listHtml += '<div class="invest-snap-type-section">';
+        listHtml += '<div class="invest-snap-type-header"><span class="invest-snap-type-title">' +
+                        escapeHtml(label) + '</span>' + moreBtn + '</div>';
+        if (filtered.length === 0) {
+            listHtml += '<div class="invest-snap-empty-period">No ' + label.toLowerCase() +
+                        ' snapshots for the current period.</div>';
+        } else {
+            filtered.forEach(function(s) { listHtml += _investSnapshotRowHtml(s); });
+        }
         listHtml += '</div>';
     });
     if (snapshots.length === 0) {
         listHtml = '<div class="empty-state">No snapshots yet — tap "+ Capture" to record your first.</div>';
     }
+
+    // Last prices-update notice for this page
+    var pricesNote = _investConfig.lastUpdateAllDate
+        ? '<div class="invest-snap-prices-note">Prices last updated: <strong>' +
+              escapeHtml(_investConfig.lastUpdateAllDate) + '</strong></div>'
+        : '';
 
     page.innerHTML =
         '<div class="page-header">' +
@@ -2634,12 +2680,33 @@ async function _investRenderSnapshotsPage() {
         '</div>' +
         (switcherHtml ? '<div class="invest-summary-switcher-row">' + switcherHtml + '</div>' : '') +
         '<div class="invest-snap-group-freqs">Tracking: ' + freqBadges + '</div>' +
+        pricesNote +
         (athHtml ? '<div class="invest-summary-section-title">All-Time Highs</div>' + athHtml : '') +
         '<div class="invest-summary-section-title">History</div>' +
         '<div class="invest-snap-list">' + listHtml + '</div>';
 }
 
-function _investSnapshotRowHtml(s) {
+// opts: { suffix: string, noDelete: bool }
+// suffix — unique ID prefix used by the More modal to avoid duplicate DOM IDs
+// noDelete — hides the Delete button (used in the More modal)
+function _investSnapshotRowHtml(s, opts) {
+    var suffix   = (opts && opts.suffix)   || '';
+    var noDelete = !!(opts && opts.noDelete);
+
+    var rowId    = 'snapRow-'    + s.id + suffix;
+    var detailId = 'snapDetail-' + s.id + suffix;
+    var toggleFn = suffix
+        ? '_investToggleSnapDetailById(\'' + rowId + '\',\'' + detailId + '\')'
+        : '_investToggleSnapDetail(\'' + s.id + '\')';
+
+    // For daily snapshots, append the day-of-week name next to the date
+    var dateLabel = s.date || '—';
+    if (s.type === 'daily' && s.date) {
+        var dp = s.date.split('-');
+        var dow = new Date(+dp[0], +dp[1] - 1, +dp[2]).toLocaleDateString('en-US', { weekday: 'long' });
+        dateLabel = s.date + ' · ' + dow;
+    }
+
     var perCat = s.perCategory || {};
     var catRows =
         _investCategoryRow('Roth',            perCat.roth,      s.netWorth, 'invest-badge--roth') +
@@ -2648,10 +2715,10 @@ function _investSnapshotRowHtml(s) {
         _investCategoryRow('Cash',            perCat.cash,      s.netWorth, 'invest-badge--cash') +
         _investCategoryRow('Uninvested Cash', perCat.invCash,   s.netWorth, 'invest-badge--other');
 
-    return '<div class="invest-snap-row" id="snapRow-' + s.id + '">' +
-        '<div class="invest-snap-row-main" onclick="_investToggleSnapDetail(\'' + s.id + '\')">' +
+    return '<div class="invest-snap-row" id="' + rowId + '">' +
+        '<div class="invest-snap-row-main" onclick="' + toggleFn + '">' +
             '<div class="invest-snap-row-left">' +
-                '<span class="invest-snap-date">' + escapeHtml(s.date || '—') + '</span>' +
+                '<span class="invest-snap-date">' + escapeHtml(dateLabel) + '</span>' +
                 (s.notes ? '<span class="invest-snap-notes">' + escapeHtml(s.notes) + '</span>' : '') +
             '</div>' +
             '<div class="invest-snap-row-right">' +
@@ -2660,14 +2727,26 @@ function _investSnapshotRowHtml(s) {
             '</div>' +
             '<span class="invest-snap-chevron">›</span>' +
         '</div>' +
-        '<div class="invest-snap-detail hidden" id="snapDetail-' + s.id + '">' +
+        '<div class="invest-snap-detail hidden" id="' + detailId + '">' +
             '<div class="invest-snap-detail-cats">' + catRows + '</div>' +
             _investSnapAccountsHtml(s.perAccount) +
-            '<div class="invest-snap-detail-actions">' +
-                '<button class="btn btn-danger btn-small" onclick="_investDeleteSnapshot(\'' + s.id + '\')">Delete</button>' +
-            '</div>' +
+            (!noDelete
+                ? '<div class="invest-snap-detail-actions">' +
+                      '<button class="btn btn-danger btn-small" onclick="_investDeleteSnapshot(\'' + s.id + '\')">Delete</button>' +
+                  '</div>'
+                : '') +
         '</div>' +
     '</div>';
+}
+
+// Toggle expand/collapse by explicit row and detail element IDs — used by the More modal.
+function _investToggleSnapDetailById(rowId, detailId) {
+    var detail = document.getElementById(detailId);
+    if (!detail) return;
+    detail.classList.toggle('hidden');
+    var row = document.getElementById(rowId);
+    var chevron = row ? row.querySelector('.invest-snap-chevron') : null;
+    if (chevron) chevron.textContent = detail.classList.contains('hidden') ? '›' : '⌄';
 }
 
 function _investSnapAccountsHtml(perAccount) {
@@ -2713,7 +2792,56 @@ function _investToggleSnapDetail(snapId) {
 async function _investDeleteSnapshot(snapId) {
     if (!confirm('Delete this snapshot? This cannot be undone.')) return;
     await _investSnapshotCol().doc(snapId).delete();
+    closeModal('investSnapMoreModal');
     await _investRenderSnapshotsPage();
+}
+
+// ---------- Snapshot "More" Modal ----------
+
+function _investOpenSnapMoreModal(type) {
+    var label = type.charAt(0).toUpperCase() + type.slice(1);
+    var titleEl = document.getElementById('investSnapMoreTitle');
+    if (titleEl) titleEl.textContent = label + ' Snapshots — Full History';
+
+    var modal = document.getElementById('investSnapMoreModal');
+    if (modal) modal.dataset.type = type;
+
+    // Reset filters to defaults
+    var countEl = document.getElementById('investSnapMoreCount');
+    var sinceEl = document.getElementById('investSnapMoreSince');
+    if (countEl) countEl.value = '10';
+    if (sinceEl) sinceEl.value = '';
+
+    _investRenderMoreModalList(type);
+    openModal('investSnapMoreModal');
+}
+
+function _investRenderMoreModalList(type) {
+    var listEl  = document.getElementById('investSnapMoreList');
+    if (!listEl) return;
+
+    var all     = (_investSnapshotsAll[type] || []);
+    var countEl = document.getElementById('investSnapMoreCount');
+    var sinceEl = document.getElementById('investSnapMoreSince');
+    var since   = sinceEl ? sinceEl.value.trim() : '';
+    var count   = parseInt(countEl ? countEl.value : '10') || 10;
+
+    var filtered;
+    if (since) {
+        // Since-date takes precedence over count
+        filtered = all.filter(function(s) { return s.date >= since; });
+    } else {
+        filtered = all.slice(0, count);
+    }
+
+    if (filtered.length === 0) {
+        listEl.innerHTML = '<div class="empty-state" style="padding:24px 0;">No snapshots match the filter.</div>';
+        return;
+    }
+
+    listEl.innerHTML = filtered.map(function(s) {
+        return _investSnapshotRowHtml(s, { suffix: '-more', noDelete: false });
+    }).join('');
 }
 
 // ---------- Capture Snapshot ----------
@@ -2746,6 +2874,21 @@ async function _investCaptureSnapshot() {
 
     var group = _investGroups.find(function(g) { return g.id === _investSnapshotsGroupId; });
     if (!group) return;
+
+    // Warn if prices haven't been updated today
+    var snapToday = new Date().toISOString().split('T')[0];
+    var lastUpdate = _investConfig.lastUpdateAllDate || null;
+    if (!lastUpdate || lastUpdate < snapToday) {
+        var staleMsg = lastUpdate
+            ? 'Prices were last updated on ' + lastUpdate + ', not today. Update all prices first for an accurate snapshot?'
+            : 'Prices have not been updated today. Update all prices first for an accurate snapshot?';
+        if (confirm(staleMsg)) {
+            // Update prices before capturing — runs without requiring the summary-page button
+            if (statusEl) { statusEl.textContent = 'Updating prices…'; statusEl.style.color = '#555'; }
+            await _investUpdateAllPrices();
+            if (statusEl) { statusEl.textContent = ''; }
+        }
+    }
 
     if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Computing…'; }
     if (statusEl) { statusEl.textContent = 'Loading current account values…'; statusEl.style.color = '#555'; }
@@ -2948,7 +3091,11 @@ async function _investRenderSummaryPage() {
             '</div>' +
         '</div>' +
         (switcherHtml ? '<div class="invest-summary-switcher-row">' + switcherHtml + '</div>' : '') +
-        '<div class="invest-prices-note" id="investSummaryPricesStatus"></div>' +
+        '<div class="invest-prices-note" id="investSummaryPricesStatus">' +
+            (_investConfig.lastUpdateAllDate
+                ? 'Prices last updated: <strong>' + escapeHtml(_investConfig.lastUpdateAllDate) + '</strong>'
+                : '') +
+        '</div>' +
 
         // Hero cards
         '<div class="invest-summary-heroes">' +
@@ -3194,7 +3341,7 @@ function _investComputeGroupTotals(accounts) {
 async function _investUpdateAllPrices() {
     var btn    = document.getElementById('investUpdateAllBtn');
     var status = document.getElementById('investSummaryPricesStatus');
-    if (!btn) return;
+    // btn may not exist when called from the snapshot-capture flow — that's fine
 
     var apiKey = await _investGetFinnhubKey();
     if (!apiKey) {
@@ -3208,8 +3355,7 @@ async function _investUpdateAllPrices() {
     var group = _investGroups.find(function(g) { return g.id === _investSummaryGroupId; });
     if (!group) return;
 
-    btn.disabled    = true;
-    btn.textContent = '⏳ Updating…';
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Updating…'; }
     if (status) { status.textContent = ''; }
 
     var accounts = await _investLoadGroupAccounts(group);
@@ -3266,6 +3412,11 @@ async function _investUpdateAllPrices() {
         });
     });
     await batch.commit();
+
+    // Record the date prices were last updated so the snapshot page can warn when stale
+    var todayDate = new Date().toISOString().split('T')[0];
+    _investConfig.lastUpdateAllDate = todayDate;
+    await _investConfigCol().doc('main').set({ lastUpdateAllDate: todayDate }, { merge: true });
 
     // Re-render the page (will reload fresh holdings from Firestore)
     await _investRenderSummaryPage();

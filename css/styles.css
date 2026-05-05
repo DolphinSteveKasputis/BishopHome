@@ -4231,10 +4231,10 @@ button {
     column-gap: 12px;
 }
 
-/* On phone, default to 2 columns; cl-cols-1 switches to 1 */
+/* On phone, default to 1 column (full-width cards); cl-cols-2 switches to 2 */
 @media (max-width: 600px) {
-    #clActiveRunsContainer { columns: 2 140px; }
-    #clActiveRunsContainer.cl-cols-1 { columns: 1; }
+    #clActiveRunsContainer { columns: 1; }
+    #clActiveRunsContainer.cl-cols-2 { columns: 2 140px; }
 }
 
 .cl-run-card {
@@ -4471,6 +4471,21 @@ button {
 .cl-item-label--done {
     text-decoration: line-through;
     color: #aaa;
+}
+
+/* In edit mode, labels are clickable to edit inline */
+.cl-run-card--editing .cl-item-label:not(.cl-item-label--url) {
+    cursor: text;
+}
+
+/* Inline label edit input (replaces the label span while editing) */
+.cl-item-label-edit {
+    flex: 1;
+    font-size: 0.95rem;
+    padding: 1px 4px;
+    border: 1px solid #90caf9;
+    border-radius: 3px;
+    background: #f0f7ff;
 }
 
 /* Completion date shown inline next to a done item's strikethrough label */

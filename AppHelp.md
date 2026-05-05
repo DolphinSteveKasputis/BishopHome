@@ -2236,6 +2236,31 @@ Firebase Storage requires a one-time CORS configuration before files can be down
 
 ---
 
+## screen:checklists
+
+### Quick Help
+- Create reusable **templates** and run them as interactive to-do lists
+- Active checklists stay open until you mark them complete or archive them
+- Tap **✏️ Edit** on a card to reorder, add, or remove items — and to edit item text inline
+- Use **📝** on any item to add or edit a note
+
+### Details
+
+**Templates vs. runs**: A template is a saved checklist blueprint. Tapping **▶ Start** creates a "run" — a live copy you work through. Runs are independent; edits to a run don't affect the original template.
+
+**Active run cards**:
+- Items are shown directly on the card. Undone items are at the top; checked items collapse into a "▶ X completed" toggle.
+- **Check an item**: tap the checkbox. A completion date is recorded and shown next to the label.
+- **Edit mode** (tap ✏️): drag handles appear for reordering, ✕ buttons appear for removal, and an "Add item" row appears at the bottom. In edit mode, **tap any item's text to edit it inline** — press Enter or tap away to save, Escape to cancel.
+- **Add a note to an item**: tap the 📝 icon to open a small text area below the item. Press Enter or tap away to save. Tap the note text (or 📝 again) to re-edit it.
+- **Width on phone**: cards default to full-width (1-column) for readability. Use the ⊞ button to switch to a 2-column compact view. Your preference is saved.
+
+**Completing a run**: tap ✓ in the footer — the run moves to the Completed section (toggle "Show completed" to view it).
+
+**Archiving**: tap 📦 to archive a run without marking it complete. Toggle "Show archived" to see archived runs.
+
+---
+
 ## screen:notes
 
 ### Quick Help

@@ -116,8 +116,8 @@ async function loadChecklistsPage() {
         var colToggleBtn = document.getElementById('clColumnToggleBtn');
         if (colToggleBtn) {
             colToggleBtn.addEventListener('click', function() {
-                var current = localStorage.getItem('clColumnLayout') || '2';
-                var next = current === '1' ? '2' : '1';
+                var current = localStorage.getItem('clColumnLayout') || '1';
+                var next = current === '2' ? '1' : '2';
                 localStorage.setItem('clColumnLayout', next);
                 clApplyColumnLayout();
             });
@@ -149,15 +149,15 @@ async function loadChecklistsPage() {
  * The toggle button icon also updates to match.
  */
 function clApplyColumnLayout() {
-    var layout = localStorage.getItem('clColumnLayout') || '2';
+    var layout = localStorage.getItem('clColumnLayout') || '1';
     var container = document.getElementById('clActiveRunsContainer');
     var btn = document.getElementById('clColumnToggleBtn');
     if (container) {
-        container.classList.toggle('cl-cols-1', layout === '1');
+        container.classList.toggle('cl-cols-2', layout === '2');
     }
     if (btn) {
-        btn.title = layout === '1' ? 'Switch to 2-column view' : 'Switch to 1-column view';
-        btn.textContent = layout === '1' ? '⊟' : '⊞';
+        btn.title = layout === '2' ? 'Switch to 1-column view' : 'Switch to 2-column view';
+        btn.textContent = layout === '2' ? '⊟' : '⊞';
     }
 }
 
@@ -662,6 +662,10 @@ function clBuildItemEl(runId, item, idx, card) {
         clSaveItemNote(runId, idx, text);
     }
 
+    // Prevent the blur/click race: without this, clicking the 📝 button when the editor is open
+    // fires blur first (hiding the editor), then click sees it hidden and re-opens it.
+    noteBtn.addEventListener('mousedown', function(e) { e.preventDefault(); });
+
     // 📝 button: open if closed, save+close if open
     noteBtn.addEventListener('click', function() {
         if (!noteWrap.classList.contains('hidden')) {
@@ -673,7 +677,16 @@ function clBuildItemEl(runId, item, idx, card) {
         }
     });
 
-    // Also save on blur (user clicks away) and on Ctrl+Enter / Enter
+    // Clicking the note text itself also opens the editor for re-editing
+    noteDisplay.style.cursor = 'text';
+    noteDisplay.addEventListener('click', function() {
+        noteWrap.classList.remove('hidden');
+        noteInput.focus();
+        var len = noteInput.value.length;
+        noteInput.setSelectionRange(len, len);
+    });
+
+    // Save on blur (user clicks away) and on Enter
     noteInput.addEventListener('blur', collapseNoteEditor);
     noteInput.addEventListener('keydown', function(e) {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -685,6 +698,35 @@ function clBuildItemEl(runId, item, idx, card) {
             noteWrap.classList.add('hidden');
         }
     });
+
+    // In edit mode, clicking the item label makes it editable inline
+    if (!isUrl) {
+        label.addEventListener('click', function() {
+            if (!card.classList.contains('cl-run-card--editing')) return;
+            var inp = document.createElement('input');
+            inp.type      = 'text';
+            inp.value     = item.label;
+            inp.className = 'cl-item-label-edit';
+            row.replaceChild(inp, label);
+            inp.focus();
+            inp.select();
+
+            function saveLabel() {
+                var newLabel = inp.value.trim();
+                row.replaceChild(label, inp);
+                if (newLabel && newLabel !== item.label) {
+                    label.textContent = newLabel;
+                    item.label = newLabel;
+                    clSaveItemLabel(runId, idx, newLabel);
+                }
+            }
+            inp.addEventListener('blur', saveLabel);
+            inp.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') { e.preventDefault(); saveLabel(); }
+                if (e.key === 'Escape') { row.replaceChild(label, inp); }
+            });
+        });
+    }
 
     return li;
 }
@@ -823,6 +865,24 @@ async function clSaveItemNote(runId, idx, noteText) {
 
     } catch (err) {
         console.error('Error saving item note:', err);
+    }
+}
+
+/**
+ * Updates the label text of one item in a run.
+ * @param {string} runId
+ * @param {number} idx
+ * @param {string} newLabel
+ */
+async function clSaveItemLabel(runId, idx, newLabel) {
+    try {
+        var doc = await userCol('checklistRuns').doc(runId).get();
+        if (!doc.exists) return;
+        var items = doc.data().items;
+        items[idx] = Object.assign({}, items[idx], { label: newLabel });
+        await userCol('checklistRuns').doc(runId).update({ items: items });
+    } catch (err) {
+        console.error('Error saving item label:', err);
     }
 }
 

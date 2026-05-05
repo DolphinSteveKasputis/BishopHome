@@ -2254,6 +2254,7 @@ Firebase Storage requires a one-time CORS configuration before files can be down
 - **Default notebook (user-configured):** Tap the star icon on any notebook's detail page to make it your default. Only one notebook can be the default at a time. The star label "Default" appears in the header. The SecondBrain/QuickLog "ADD_NOTE" voice command saves to your configured default notebook before falling back to the built-in Default.
 - **Add a notebook:** Tap **+ Add Notebook** -- enter a name and pick a color.
 - **Edit or delete a notebook:** Use the pencil icon on the notebook card. The built-in Default notebook cannot be deleted.
+- **Export a notebook:** Tap **Export** on the notebook detail page. Downloads a `.json` file containing all notes and their photos (as Base64). File is named `{NotebookName}-{YYYY-MM-DD}.json`. You can use this to back up a notebook or reconstruct photos from the export.
 
 **Notes within a notebook:**
 - Tap any notebook card to open it and see its notes.

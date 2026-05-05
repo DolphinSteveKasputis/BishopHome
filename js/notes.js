@@ -578,6 +578,9 @@ function _notesWireNotebookDetailPage(notebook) {
     var backBtn = document.getElementById('notebookBackBtn');
     if (backBtn) backBtn.onclick = function() { window.location.hash = '#notes'; };
 
+    var exportBtn = document.getElementById('exportNotebookBtn');
+    if (exportBtn) exportBtn.onclick = function() { notesExportNotebook(notebook); };
+
     var editBtn = document.getElementById('editNotebookBtn');
     if (editBtn) editBtn.onclick = function() { _notesOpenNotebookModal(notebook); };
 
@@ -1421,6 +1424,83 @@ async function _notesLoadNoteThumbnails(noteIds) {
             thumbsEl.appendChild(img);
         });
     });
+}
+
+// ============================================================
+// Export Notebook
+// ============================================================
+
+/**
+ * Exports all notes (and their photos) in a notebook as a JSON file.
+ * File is named: "{NotebookName}-{YYYY-MM-DD}.json"
+ * Photos are included as their stored Base64 imageData strings.
+ * @param {Object} notebook - The notebook to export.
+ */
+async function notesExportNotebook(notebook) {
+    var btn = document.getElementById('exportNotebookBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Exporting…'; }
+
+    try {
+        var notes = await notesLoadNotes(notebook.id);
+
+        // Load photos for all notes in one query, then group by note ID
+        var photosSnap = await userCol('photos').where('targetType', '==', 'note').get();
+        var photosByNote = {};
+        photosSnap.docs.forEach(function(doc) {
+            var d = doc.data();
+            if (!photosByNote[d.targetId]) photosByNote[d.targetId] = [];
+            photosByNote[d.targetId].push({
+                id:        doc.id,
+                imageData: d.imageData || '',
+                caption:   d.caption   || '',
+                createdAt: d.createdAt ? d.createdAt.toDate().toISOString() : null
+            });
+        });
+
+        var exportedNotes = notes.map(function(note) {
+            var photos = (photosByNote[note.id] || []).sort(function(a, b) {
+                return (a.createdAt || '') < (b.createdAt || '') ? -1 : 1;
+            });
+            return {
+                id:        note.id,
+                body:      note.body      || '',
+                createdAt: note.createdAt ? note.createdAt.toDate().toISOString() : null,
+                updatedAt: note.updatedAt ? note.updatedAt.toDate().toISOString() : null,
+                photos:    photos
+            };
+        });
+
+        var today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+        var payload = {
+            notebook: {
+                id:         notebook.id,
+                name:       notebook.name,
+                color:      notebook.color || '',
+                exportedAt: today
+            },
+            notes: exportedNotes
+        };
+
+        var json     = JSON.stringify(payload, null, 2);
+        var safeName = notebook.name.replace(/[^a-zA-Z0-9_\-]/g, '_');
+        var filename = safeName + '-' + today + '.json';
+
+        var blob = new Blob([json], { type: 'application/json' });
+        var url  = URL.createObjectURL(blob);
+        var a    = document.createElement('a');
+        a.href     = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+    } catch (e) {
+        console.error('notesExportNotebook error:', e);
+        alert('Export failed. See console for details.');
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Export'; }
+    }
 }
 
 // ============================================================

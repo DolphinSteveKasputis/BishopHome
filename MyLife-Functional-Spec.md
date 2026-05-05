@@ -879,6 +879,8 @@ A notebook-organized note-taking system.
 
 **Search**: Global search across all note body text.
 
+**Export notebook**: On the notebook detail page, an **Export** button downloads the entire notebook as a JSON file. The file contains the notebook metadata and all notes with their full body text and attached photos (photos stored as their Base64 `imageData` strings). File is named `{NotebookName}-{YYYY-MM-DD}.json` (spaces and special characters in the name are replaced with underscores). The JSON structure is: `{ notebook: { id, name, color, exportedAt }, notes: [{ id, body, createdAt, updatedAt, photos: [{ id, imageData, caption, createdAt }] }] }`. Photos are sorted oldest-first per note. The export button shows "Exporting…" while running and restores on completion or error.
+
 **New note save**: After saving a new note, the app navigates back to the notebook list (not to the note's edit page).
 
 **Tab key**: In the note body textarea, pressing Tab inserts 4 spaces instead of moving focus to the next field.

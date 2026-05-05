@@ -277,6 +277,20 @@ Bishop/
 - Do this in the same commit as the code change — not a separate commit.
 - This applies to every deploy, no exceptions.
 
+## Dev Note Fix Command — REQUIRED BEHAVIOR
+**IMPORTANT: When the user says "fix {id}", "please fix {id}", "do {id}", or any similar phrasing where `{id}` looks like a Firestore document ID (long alphanumeric string), always:**
+
+1. **Check `db.collection('sharedDevNotes').doc('{id}')` first** — if it exists, that's a dev note fix request.
+2. **Read the dev note** to understand what the issue is.
+3. **Implement the fix** in the codebase (or ask a clarifying question if the issue is ambiguous).
+4. **Mark the dev note as resolved** by updating the Firestore document:
+   - `fixed: true`
+   - `fixedDate: '<today's date in YYYY-MM-DD format>'`
+   - `fixedNote: '<plain-English description of what was done to fix it>'`
+5. Do this for the stated ID only. Never touch other dev notes.
+
+This applies to: "fix abc123", "please fix abc123", "go fix abc123", "do abc123", "handle abc123", or any similar shorthand where the ID is clearly being called out as a work item.
+
 ## Git Push — REQUIRED BEHAVIOR
 **IMPORTANT: git push requires a Windows credential confirmation prompt. Always notify BEFORE pushing.**
 - Before every `git push`, send this curl notification first:

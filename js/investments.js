@@ -1999,10 +1999,6 @@ async function _investSaveQtyEdits() {
 }
 
 function _investHoldingsHtml() {
-    if (_investCurrentHoldings.length === 0) {
-        return '<div class="empty-state">No holdings yet. Add one above.</div>';
-    }
-
     // Total account value (holdings + cash) used for % of account column
     var holdingsTotal = _investCurrentHoldings.reduce(function(sum, h) {
         return (h.lastPrice != null && h.shares != null) ? sum + h.shares * h.lastPrice : sum;
@@ -2011,6 +2007,10 @@ function _investHoldingsHtml() {
 
     var rows = '';
     var totalValue = 0, totalGain = 0, totalGainHasBasis = true;
+
+    if (_investCurrentHoldings.length === 0) {
+        rows = '<tr><td colspan="9" class="iht-dim" style="text-align:center;padding:12px">No holdings yet. Add one above.</td></tr>';
+    }
 
     _investCurrentHoldings.forEach(function(h) {
         var hasPrice  = h.lastPrice != null && h.shares != null;

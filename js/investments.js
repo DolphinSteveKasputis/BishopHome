@@ -2867,6 +2867,7 @@ async function _investRenderSnapshotsPage() {
         '<div class="page-header">' +
             '<h2>📷 Snapshots</h2>' +
             '<div class="page-header-actions">' +
+                '<a class="btn btn-secondary" href="#investments/import">↑ Import</a>' +
                 '<button class="btn btn-primary" onclick="_investOpenSnapModal()">+ Capture</button>' +
             '</div>' +
         '</div>' +

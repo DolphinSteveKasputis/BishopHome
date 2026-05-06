@@ -850,6 +850,9 @@ function handleRoute() {
     } else if (page === 'investments' && id === 'ai-analysis') {
         showPage('investments-ai');
         loadInvestmentsAiPage();
+    } else if (page === 'investments' && id === 'import') {
+        showPage('investments-import');
+        loadInvestmentsImportPage();
     } else if (page === 'investments') {
         showPage('investments');
         loadInvestmentsPage();

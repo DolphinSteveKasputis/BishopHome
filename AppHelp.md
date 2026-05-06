@@ -1849,6 +1849,7 @@ Requires a Finnhub API key in Settings. Prices persist in Firestore across sessi
 ### Quick Help
 - Records a point-in-time snapshot of your portfolio — Net Worth, Invested, and per-category breakdown
 - Tap **+ Capture** — you'll be warned if prices haven't been updated today; you can update them right from the dialog
+- Tap **↑ Import** to bulk-load historical snapshots from a spreadsheet screenshot using AI
 - Each section (Yearly/Monthly/Weekly/Daily) shows only recent snapshots by default; tap **More ›** to see the full history
 - Daily rows show the day of the week beside the date (e.g. "2026-05-05 · Tuesday")
 - **All-Time Highs** show the highest Net Worth ever recorded for each snapshot type
@@ -1879,6 +1880,34 @@ Requires a Finnhub API key in Settings. Prices persist in Firestore across sessi
 **Deleting a snapshot**: Expand the row → tap **Delete** → confirm. Deleting a snapshot that was used as a period baseline will cause that period's gain/loss on the Summary page to show "—" again until a new snapshot of that type is captured.
 
 **Group switcher**: If more than one group exists, a dropdown appears to switch between groups. Each group has its own snapshot history.
+
+**↑ Import button**: Opens the Import Snapshots screen where you can upload a spreadsheet screenshot and use AI to bulk-import historical snapshots.
+
+---
+
+## screen:investments-import
+
+### Quick Help
+- Upload a screenshot of your spreadsheet — AI reads the numbers and maps each column to your accounts
+- Choose the snapshot type (Weekly, Monthly, or Yearly) before parsing
+- Review the grid: adjust any column header dropdowns if the AI mapped something incorrectly
+- Columns highlighted **yellow** are ones the AI wasn't confident about — check those dropdowns
+- Rows tagged **overwrite** already have a snapshot for that date — they'll be replaced on import
+- Click **Import N Snapshots** when the grid looks right
+
+### Details
+
+**Step 1 — Upload**: Select the snapshot type, then choose a screenshot file (PNG, JPG, etc.) from your device. A thumbnail preview appears so you can confirm the right image is loaded.
+
+**Step 2 — Parse with AI**: Click **Parse with AI**. The app sends the screenshot plus your full account list (names and IDs) to your configured LLM. The AI identifies each column — Net Worth, category totals (Roth, Pre-Tax, Brokerage, Cash, Inv Cash), and individual accounts — and returns structured data.
+
+**Step 3 — Review grid**: Every column from the screenshot gets a dropdown in the header. The AI pre-selects the most likely match. Yellow-highlighted columns are uncertain — click the dropdown to pick the correct account or category. The bottom of each column header shows the original spreadsheet text so you can cross-check.
+
+**Duplicate dates**: If a snapshot already exists for a date in the screenshot (same type), that row is tagged "overwrite" and highlighted. The existing snapshot will be deleted and replaced when you import.
+
+**Importing**: Click **Import N Snapshots**. Each snapshot is written with the full perCategory breakdown, per-account totals, and Net Worth. Holdings detail (shares, cost basis) is not imported — only the total balance per account.
+
+**After import**: A confirmation message appears with links to view the snapshots or import more. The newly imported snapshots appear immediately on the Snapshots page under their respective type sections.
 
 ---
 

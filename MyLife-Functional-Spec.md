@@ -1364,7 +1364,26 @@ Each row shows date (daily rows also show day-of-week, e.g. "2026-05-05 · Tuesd
 
 **Delete**: Confirm dialog → removes doc from Firestore → closes More modal if open → re-renders page. Note: deleting a snapshot used as a period baseline causes the corresponding period row on Summary to revert to "—".
 
+**Import button**: `↑ Import` button in the page header navigates to `#investments/import`.
+
 **Firestore query**: All snapshots loaded with `.orderBy('date','desc')` (single-field index, no composite needed); groupId filtering done client-side.
+
+### Import Snapshots (`#investments/import`)
+Bulk-imports historical snapshots from a spreadsheet screenshot using AI vision.
+
+**Flow**:
+1. User selects group (if >1 group), snapshot type (weekly/monthly/yearly), and uploads a screenshot of their spreadsheet.
+2. "Parse with AI" sends the screenshot + account list (id/name/type) to the configured LLM (OpenAI `gpt-4o` or Grok vision) with a structured prompt.
+3. AI returns JSON: `{ columns: [{header, mapping, uncertain}], rows: [{date, values[]}] }`. Each column has a `mapping` (`netWorth`, `category:roth`, `account:{id}`, `ignore`) and an `uncertain` flag.
+4. Review grid: rows = snapshot dates, columns = spreadsheet columns. Column headers show the original text and a dropdown pre-selected by AI. Uncertain columns highlighted yellow. Dates already having a snapshot for the same type tagged "overwrite".
+5. User adjusts any mismatched dropdowns → clicks **Import N Snapshots**.
+6. Existing snapshots for overwritten dates deleted via batch; new docs written to `investmentSnapshots`.
+
+**Snapshot document**: Same structure as a captured snapshot — `groupId`, `type`, `date`, `netWorth`, `invested: 0`, `perCategory` (roth/preTax/brokerage/cash/invCash), `perAccount` (holdings/cash/pending = 0, total = spreadsheet value), `notes: null`, `createdAt`.
+
+**Vision model**: If configured model is `gpt-4o-mini` (OpenAI) or non-vision Grok, import upgrades automatically to `gpt-4o` / `grok-2-vision-1212`.
+
+**Route**: `#investments/import` → `page-investments-import` → `loadInvestmentsImportPage()` in `investments-import.js`.
 
 **investmentSnapshots collection**: Added to `BACKUP_DATA_COLLECTIONS` in settings.js.
 
@@ -1432,6 +1451,7 @@ Dashboard page showing totals for the selected group.
 | `#investments/ss-benefits/new` | Create new SS Benefits snapshot |
 | `#investments/ss-benefits/edit/:id` | Edit existing SS Benefits snapshot |
 | `#investments/ai-analysis` | AI Investment Analysis — LLM-generated plain-English portfolio analysis |
+| `#investments/import` | Import Snapshots — AI vision parses screenshot, review grid, bulk write |
 
 ---
 

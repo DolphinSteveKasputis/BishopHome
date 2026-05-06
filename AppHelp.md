@@ -1919,7 +1919,7 @@ Requires a Finnhub API key in Settings. Prices persist in Firestore across sessi
 
 ### Quick Help
 - Shows **Net Worth** and **Invested** totals across all accounts in the selected group
-- **If I retire today at age XX**: estimated annual and monthly income combining investments + Social Security; tap ⚙ to set retirement ages, return rate, after-tax %, and budget comparison
+- **If I retire today at age XX**: six stat cards (Annual, Monthly, Current Income, % To Goal, NW Shortfall, % of Target) — tap **?** on any card to see a plain-English explanation plus the formula with your real numbers; tap ⚙ to configure return rate, after-tax %, ages, and budget
 - **Category Breakdown**: Roth, Pre-Tax, Brokerage, Cash, and Uninvested Cash totals with % of Net Worth
 - **Period Performance**: Day / Week / Month / YTD gain or loss vs the most recent snapshot of each type
 - **All-Time Highs**: highest Net Worth ever recorded per snapshot type (Daily/Weekly/Monthly/Yearly)
@@ -1943,6 +1943,7 @@ Requires a Finnhub API key in Settings. Prices persist in Firestore across sessi
 - **Budget**: pick any budget to compare. Default budget shows **Current Income** (your actual income). Other budgets show **Total Expenses** under the budget's name. The **% To Goal** stat shows monthly retirement income ÷ that budget value.
 - **NW Shortfall**: answers "how much more net worth do I need to reach 100%?" Backs out the SS contribution first — `investNeeded = budget − (SS × afterTaxPct)` — then computes `targetNW = (investNeeded × 12) / (RoR × afterTaxPct)`. The shortfall is `targetNW − current Net Worth`. Shown in red; turns "At Goal" in green once you're there. Hover for the full formula and target NW amount.
 - **% of Target**: your current Net Worth as a percentage of the target NW calculated above. Gives a single at-a-glance number for how close you are to retirement from an investments perspective, with SS already accounted for.
+- Each stat card has a **?** button. Tapping it opens a popup with: a plain-English explanation of what the number means, the generic formula, and the same formula with your actual numbers substituted in (copy-pasteable for manual verification). Close by tapping the backdrop or the ✕ button.
 - Hover over the Annual or Monthly values to see the exact formula used (with actual rates filled in).
 - If no birthday is set for your "me" contact, the widget prompts you to add it (used for age display only — not required for the calculations).
 

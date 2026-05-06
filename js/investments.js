@@ -3235,7 +3235,7 @@ function _investBuildRetireWidget(p) {
         var isDefault   = budgetData.isDefault;
         var budgetVal   = isDefault ? budgetData.totalIncome : budgetData.totalExpenses;
         var budgetLabel = isDefault ? 'Current Income' : budgetData.name;
-        var pctGoal     = monthly > 0 ? Math.round(budgetVal / monthly * 100) : 0;
+        var pctGoal     = budgetVal > 0 ? Math.round(monthly / budgetVal * 100) : 0;
         budgetStatHtml =
             '<div class="invest-summary-retire-stat invest-summary-retire-stat--budget">' +
                 '<span class="invest-summary-retire-label">' + escapeHtml(budgetLabel) + '</span>' +

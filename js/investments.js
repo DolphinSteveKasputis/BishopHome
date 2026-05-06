@@ -2981,6 +2981,106 @@ async function _investCheckAndUpdateATH(type, netWorth, date, groupId) {
 }
 
 // ============================================================
+// "ME" CONTACT — birthday lookup helpers
+// ============================================================
+
+// Returns { age, meContactId, meContactName } on success.
+// Returns { noBirthday, meContactId, meContactName } if isMe contact exists but has no birthday with year.
+// Returns { noContact } if no contact has isMe === true.
+async function _investGetMeAge() {
+    try {
+        var snap = await userCol('people').where('isMe', '==', true).limit(1).get();
+        if (snap.empty) return { noContact: true };
+        var meDoc  = snap.docs[0];
+        var meId   = meDoc.id;
+        var meName = meDoc.data().name || 'Me';
+
+        var datesSnap = await userCol('peopleImportantDates').where('personId', '==', meId).get();
+        var entry = null;
+        datesSnap.forEach(function(d) {
+            var lbl = (d.data().label || '').toLowerCase().replace(/\s+/g, '');
+            if (lbl === 'birthday' || lbl === 'bday' || lbl === 'birthdate') entry = d.data();
+        });
+
+        if (!entry || !entry.year) return { noBirthday: true, meContactId: meId, meContactName: meName };
+
+        var today = new Date();
+        var age   = today.getFullYear() - parseInt(entry.year);
+        var m = entry.month || 0, dy = entry.day || 0;
+        if (m && dy && (today.getMonth() + 1 < m || (today.getMonth() + 1 === m && today.getDate() < dy))) age--;
+        return { age: age, meContactId: meId, meContactName: meName };
+    } catch (e) {
+        console.error('_investGetMeAge error', e);
+        return { noContact: true };
+    }
+}
+
+// Creates a "Me" contact with isMe=true and saves a Birthday important date on it.
+// Clears isMe from any existing contacts first. Returns the new contact ID, or null on error.
+async function _investCreateMeContactWithBirthday(month, day, year) {
+    try {
+        var existing = await userCol('people').where('isMe', '==', true).get();
+        if (!existing.empty) {
+            var clrBatch = db.batch();
+            existing.forEach(function(doc) { clrBatch.update(doc.ref, { isMe: false }); });
+            await clrBatch.commit();
+        }
+        var meRef = await userCol('people').add({
+            name: 'Me', isMe: true, quickMention: false, category: 'Personal',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        await userCol('peopleImportantDates').add({
+            personId: meRef.id, label: 'Birthday',
+            month: month, day: day, year: year,
+            recurrence: 'annual',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        return meRef.id;
+    } catch (e) {
+        console.error('_investCreateMeContactWithBirthday error', e);
+        return null;
+    }
+}
+
+// Returns the birthday prompt HTML to embed in the retire widget, or '' if age is known.
+function _investBirthdayPromptHtml(meAgeInfo) {
+    if (meAgeInfo.age !== undefined) return ''; // age known — no prompt needed
+
+    if (meAgeInfo.noBirthday) {
+        // isMe contact exists but has no birthday — link to their contact page
+        return '<div class="invest-bday-prompt">' +
+            '⚠ <a href="#contact/' + meAgeInfo.meContactId + '">Add your birthday</a> ' +
+            'to enable retirement age calculations.' +
+        '</div>';
+    }
+
+    // No isMe contact — show inline birthday entry form
+    var monthOpts = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+        .map(function(m, i) { return '<option value="' + (i + 1) + '">' + m + '</option>'; }).join('');
+    return '<div class="invest-bday-prompt">' +
+        '<span>Enter your birthday to enable retirement age calculations:</span>' +
+        '<div class="invest-bday-form">' +
+            '<select id="investBdayMonth"><option value="">Month</option>' + monthOpts + '</select>' +
+            '<input type="number" id="investBdayDay" min="1" max="31" placeholder="Day">' +
+            '<input type="number" id="investBdayYear" min="1900" max="2099" placeholder="Year">' +
+            '<button id="investBdaySaveBtn" class="btn btn-primary btn-small" onclick="_investSaveBirthdayPrompt()">Save</button>' +
+        '</div>' +
+    '</div>';
+}
+
+// Called when user submits the inline birthday form on the summary card (no-contact case).
+async function _investSaveBirthdayPrompt() {
+    var month = parseInt(document.getElementById('investBdayMonth').value) || 0;
+    var day   = parseInt(document.getElementById('investBdayDay').value)   || 0;
+    var year  = parseInt(document.getElementById('investBdayYear').value)  || 0;
+    if (!month || !day || !year) { alert('Please enter month, day, and year.'); return; }
+    var btn = document.getElementById('investBdaySaveBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+    await _investCreateMeContactWithBirthday(month, day, year);
+    await _investRenderSummaryPage();
+}
+
+// ============================================================
 // PORTFOLIO SUMMARY PAGE  (#investments/summary)
 // ============================================================
 
@@ -3024,6 +3124,7 @@ async function _investRenderSummaryPage() {
     var accounts  = await _investLoadGroupAccounts(group);
     var cats      = _investComputeGroupTotals(accounts);
     var baselines = await _investLoadPeriodBaselines(group.id);
+    var meAgeInfo = await _investGetMeAge();
 
     // Self-heal ATH from baselines (each baseline is the most recent snapshot of its type).
     // Lightweight alternative to loading all snapshots — enough to catch the common migration case.
@@ -3151,6 +3252,7 @@ async function _investRenderSummaryPage() {
                     '<span class="invest-summary-retire-val">' + _investFmtCurrency(monthly) + '</span>' +
                 '</div>' +
             '</div>' +
+            _investBirthdayPromptHtml(meAgeInfo) +
             '<div class="invest-summary-retire-config" id="investRetireConfig"' +
                     ' style="' + (_investRetireConfigOpen ? '' : 'display:none') + '">' +
                 '<div class="invest-summary-retire-config-row">' +

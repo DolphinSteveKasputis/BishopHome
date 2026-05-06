@@ -15064,6 +15064,32 @@ input[type="date"].invest-snap-more-filter-input   { width: 160px; }
     background: #fff;
 }
 
+/* Birthday prompt on retire widget */
+.invest-bday-prompt {
+    border-top: 1px solid #c8e6c9;
+    padding-top: 8px;
+    margin-top: 4px;
+    font-size: 0.82rem;
+    color: #555;
+}
+.invest-bday-form {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+}
+.invest-bday-form select,
+.invest-bday-form input[type="number"] {
+    padding: 4px 6px;
+    border: 1px solid #aed581;
+    border-radius: 4px;
+    font-size: 0.82rem;
+    background: #fff;
+}
+.invest-bday-form input[type="number"] { width: 72px; }
+.invest-bday-form select { width: 90px; }
+
 /* Section title */
 .invest-summary-section-title {
     font-size: 0.8rem;

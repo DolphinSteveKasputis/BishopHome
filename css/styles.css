@@ -16826,6 +16826,13 @@ a.legacy-fin-card:hover {
     line-height: 1.5;
 }
 
+.invest-import-file-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
 .invest-import-preview {
     margin-top: 8px;
 }

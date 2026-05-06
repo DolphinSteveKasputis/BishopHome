@@ -125,7 +125,10 @@ function _importRenderForm() {
 
             '<div class="form-group">',
                 '<label>Screenshot</label>',
-                '<input type="file" id="importImageFile" accept="image/*" onchange="_importImageSelected(this)">',
+                '<div class="invest-import-file-row">',
+                    '<input type="file" id="importImageFile" accept="image/*" onchange="_importImageSelected(this)">',
+                    '<button class="btn btn-secondary btn-small" onclick="_importPasteImage()" title="Paste image from clipboard">+ Paste</button>',
+                '</div>',
                 '<div id="importImagePreview" class="invest-import-preview"></div>',
             '</div>',
 
@@ -166,6 +169,37 @@ function _importImageSelected(input) {
         document.getElementById('importParseBtn').disabled = false;
     };
     reader.readAsDataURL(file);
+}
+
+async function _importPasteImage() {
+    try {
+        var items = await navigator.clipboard.read();
+        var imageItem = null;
+        for (var i = 0; i < items.length; i++) {
+            var type = items[i].types.find(function(t) { return t.startsWith('image/'); });
+            if (type) { imageItem = { item: items[i], type: type }; break; }
+        }
+        if (!imageItem) {
+            alert('No image found in clipboard. Copy a screenshot first, then click Paste.');
+            return;
+        }
+        var blob   = await imageItem.item.getType(imageItem.type);
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            var dataUrl  = e.target.result;
+            var comma    = dataUrl.indexOf(',');
+            _importState.imageBase64  = dataUrl.substring(comma + 1);
+            _importState.imageType    = imageItem.type;
+            _importState.imageDataUrl = dataUrl;
+            document.getElementById('importImagePreview').innerHTML =
+                '<img src="' + dataUrl + '" class="invest-import-thumb">';
+            document.getElementById('importParseBtn').disabled = false;
+        };
+        reader.readAsDataURL(blob);
+    } catch (e) {
+        // Permission denied or no clipboard access
+        alert('Could not read clipboard: ' + e.message + '\n\nTry clicking the file input instead.');
+    }
 }
 
 // ─── Step 2: Parse with AI ────────────────────────────────────────────────────

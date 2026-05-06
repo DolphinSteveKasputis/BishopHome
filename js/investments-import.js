@@ -57,12 +57,13 @@ async function _importLoadAccounts(group) {
 
     for (var i = 0; i < personIds.length; i++) {
         var ns = personIds[i];
-        var snap = await userCol('investments').doc(ns).collection('accounts')
-            .orderBy('sortOrder').get();
+        // Use plain .get() — no orderBy needed here, and avoids index issues
+        var snap = await userCol('investments').doc(ns).collection('accounts').get();
         snap.forEach(function(doc) {
             var d = doc.data();
             if (!d.archived && d.ownerType !== 'joint') {
-                all.push({ id: doc.id, _ns: ns, name: d.name || '', accountType: d.accountType || '', ownerType: 'individual' });
+                // Accounts are stored with 'nickname' field (not 'name')
+                all.push(Object.assign({ id: doc.id, _ns: ns }, d));
             }
         });
     }
@@ -76,7 +77,7 @@ async function _importLoadAccounts(group) {
                 var alreadyIn      = all.find(function(a) { return a.id === doc.id; });
                 var coOwnerInGroup = personIds.indexOf(d.primaryContactId) >= 0;
                 if (!alreadyIn && coOwnerInGroup) {
-                    all.push({ id: doc.id, _ns: 'self', name: d.name || '', accountType: d.accountType || '', ownerType: 'joint' });
+                    all.push(Object.assign({ id: doc.id, _ns: 'self' }, d));
                 }
             }
         });
@@ -270,7 +271,8 @@ async function _importParse() {
 
 function _importBuildPrompt(accounts, snapshotType) {
     var accountList = accounts.map(function(a) {
-        return '  ' + a.id + ' | ' + a.name + ' | ' + (a.accountType || '') + ' | ' + a.ownerType;
+        var label = a.nickname || a.name || a.id;
+        return '  ' + a.id + ' | ' + label + ' | ' + (a.accountType || '') + ' | ' + a.ownerType;
     }).join('\n');
 
     return [
@@ -412,7 +414,8 @@ function _importRenderGrid() {
     ].join('');
 
     var accountOptionHtml = accounts.map(function(a) {
-        return '<option value="account:' + escapeHtml(a.id) + '">' + escapeHtml(a.name) + '</option>';
+        var label = a.nickname || a.name || a.id;
+        return '<option value="account:' + escapeHtml(a.id) + '">' + escapeHtml(label) + '</option>';
     }).join('');
 
     // Header row — one <th> per column with a dropdown + column name label
@@ -566,7 +569,7 @@ async function _importExecute() {
                     var acct   = accounts.find(function(a) { return a.id === acctId; });
                     perAccount[acctId] = {
                         id      : acctId,
-                        name    : acct ? (acct.name || acctId) : acctId,
+                        name    : acct ? (acct.nickname || acct.name || acctId) : acctId,
                         type    : acct ? (acct.accountType || '') : '',
                         ns      : acct ? (acct._ns || 'self') : 'self',
                         holdings: 0,

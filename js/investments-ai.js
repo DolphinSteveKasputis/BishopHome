@@ -380,20 +380,29 @@ async function _investAiBuildPayload(groupId) {
 
     var accountList = accounts.map(function(acct) {
         var holdings = (acct._holdings || []).map(function(h) {
-            var value = (h.shares || 0) * (h.lastPrice || 0);
+            var value      = (h.shares || 0) * (h.lastPrice || 0);
+            var costBasisTotal = (h.costBasis != null && h.shares != null)
+                ? Math.round(h.costBasis * h.shares * 100) / 100
+                : null;
             if (h.ticker) {
                 if (!holdingRollup[h.ticker]) {
                     holdingRollup[h.ticker] = { companyName: h.companyName || '', totalValue: 0 };
                 }
                 holdingRollup[h.ticker].totalValue += value;
             }
-            return {
-                ticker     : h.ticker      || '',
-                companyName: h.companyName || '',
-                shares     : h.shares      || 0,
-                lastPrice  : h.lastPrice   || 0,
-                value      : Math.round(value * 100) / 100
+            var holding = {
+                ticker          : h.ticker      || '',
+                companyName     : h.companyName || '',
+                shares          : h.shares      || 0,
+                lastPrice       : h.lastPrice   || 0,
+                value           : Math.round(value * 100) / 100
             };
+            if (costBasisTotal !== null) {
+                holding.costBasisPerShare  = Math.round(h.costBasis * 100) / 100;
+                holding.totalCostBasis     = costBasisTotal;
+                holding.estimatedGainLoss  = Math.round((value - costBasisTotal) * 100) / 100;
+            }
+            return holding;
         });
         return {
             name       : acct.nickname || '(untitled)',
@@ -492,7 +501,11 @@ async function _investAiBuildPayload(groupId) {
             byCategory       : {
                 roth          : Math.round(cats.roth      * 100) / 100,
                 preTax        : Math.round(cats.preTax    * 100) / 100,
-                brokerage     : Math.round(cats.brokerage * 100) / 100,
+                brokerage     : cats.brokerageCostBasisKnown ? {
+                    total               : Math.round(cats.brokerage * 100) / 100,
+                    costBasis           : Math.round(cats.brokerageCostBasisTotal * 100) / 100,
+                    estimatedTaxableGain: Math.round((cats.brokerage - cats.brokerageCostBasisTotal) * 100) / 100
+                } : Math.round(cats.brokerage * 100) / 100,
                 cash          : Math.round(cats.cash      * 100) / 100,
                 investmentCash: Math.round(cats.invCash   * 100) / 100
             },

@@ -660,6 +660,8 @@ async function _investToggleCard(id) {
                 var h = doc.data();
                 if (h.shares != null && h.lastPrice != null) total += h.shares * h.lastPrice;
             });
+            total += parseFloat(acct.cashBalance    || 0) || 0;
+            total += parseFloat(acct.pendingActivity || 0) || 0;
             _investCardTotalsCache[id] = total;
         }
     }

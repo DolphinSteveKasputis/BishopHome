@@ -15085,6 +15085,113 @@ input[type="date"].invest-snap-more-filter-input   { width: 160px; }
     color: #dc2626;
 }
 
+/* Retire widget ? help button */
+.invest-retire-help-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: #d1d5db;
+    color: #4b5563;
+    font-size: 10px;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    margin-left: 3px;
+    vertical-align: middle;
+    line-height: 1;
+    flex-shrink: 0;
+}
+.invest-retire-help-btn:hover {
+    background: #9ca3af;
+    color: #111827;
+}
+
+/* Retire widget help popup overlay + popup */
+.invest-retire-help-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1100;
+}
+.invest-retire-help-popup {
+    background: #fff;
+    border-radius: 10px;
+    max-width: 500px;
+    width: 92%;
+    max-height: 82vh;
+    overflow-y: auto;
+    padding: 20px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.22);
+}
+.invest-retire-help-popup-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    gap: 8px;
+}
+.invest-retire-help-popup-title {
+    font-weight: 700;
+    font-size: 1rem;
+    color: #1a3c2e;
+    flex: 1;
+}
+.invest-retire-help-close {
+    background: none;
+    border: none;
+    font-size: 1.1rem;
+    cursor: pointer;
+    color: #6b7280;
+    padding: 0;
+    line-height: 1;
+    flex-shrink: 0;
+}
+.invest-retire-help-close:hover { color: #111827; }
+.invest-retire-help-exp {
+    color: #374151;
+    line-height: 1.55;
+    margin: 0 0 14px;
+    font-size: 0.9rem;
+}
+.invest-retire-help-block {
+    background: #f3f4f6;
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+}
+.invest-retire-help-block--real {
+    background: #ecfdf5;
+}
+.invest-retire-help-block-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6b7280;
+    margin-bottom: 6px;
+}
+.invest-retire-help-block--real .invest-retire-help-block-label {
+    color: #15803d;
+}
+.invest-retire-help-line {
+    margin-bottom: 4px;
+}
+.invest-retire-help-line:last-child { margin-bottom: 0; }
+.invest-retire-help-line code {
+    font-family: ui-monospace, 'Cascadia Code', monospace;
+    font-size: 0.8rem;
+    color: #1f2937;
+    word-break: break-all;
+    white-space: pre-wrap;
+}
+
 /* Birthday prompt on retire widget */
 .invest-bday-prompt {
     border-top: 1px solid #c8e6c9;

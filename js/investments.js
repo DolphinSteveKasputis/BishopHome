@@ -73,6 +73,7 @@ var _investRevealedIds      = {};    // {accountId: bool} — sensitive fields d
 var _investDecryptCache     = {};    // {accountId: {accountNumber, username, password}}
 var _investCardTotalsCache  = {};    // {accountId: totalValue} — current value for investment accounts in accordion
 var _investRetireConfigOpen = false; // whether the retire widget config (RoR / after-tax) is visible
+var _investRetireHelpData   = {};    // populated each render; keyed by stat name; drives the ? popups
 var _investHubGroupId       = null;  // selected group on the hub landing page
 var _investActiveGroupId    = null;  // shared: last group selected on any invest page (persists across pages)
 
@@ -3229,6 +3230,32 @@ function _investBuildRetireWidget(p) {
     var annualTip = '(Investments × ' + rorPct + '% × ' + atpPct + '%)' + ssNote;
     var monthlyTip = annualTip + ' ÷ 12';
 
+    // Build ? popup help data for Annual and Monthly
+    var ssRaw = ssData.totalSSMonthly || 0;
+    var rorStr = rorPct + '%';
+    var atpStr = atpPct + '%';
+    var investAnnualAmt = netWorth * ror * atp;
+    _investRetireHelpData = {
+        annual: {
+            title: 'Annual Retirement Income',
+            explanation: 'Your estimated total yearly income if you retired today. It combines what your investment portfolio generates at your expected return rate with your Social Security benefit — both reduced by your estimated tax rate.',
+            generic: ssRaw > 0
+                ? '(Net Worth × Return Rate × After-Tax %) + (SS Monthly × After-Tax % × 12)'
+                : 'Net Worth × Return Rate × After-Tax %',
+            real: ssRaw > 0
+                ? '(' + _investFmtCurrency(netWorth) + ' × ' + rorStr + ' × ' + atpStr + ')' +
+                  ' + (' + _investFmtCurrency(ssRaw) + ' × ' + atpStr + ' × 12)' +
+                  ' = ' + _investFmtCurrency(annual)
+                : _investFmtCurrency(netWorth) + ' × ' + rorStr + ' × ' + atpStr + ' = ' + _investFmtCurrency(annual)
+        },
+        monthly: {
+            title: 'Monthly Retirement Income',
+            explanation: 'Your annual retirement income divided by 12 — the amount you would receive each month in retirement.',
+            generic: 'Annual Retirement Income ÷ 12',
+            real: _investFmtCurrency(annual) + ' ÷ 12 = ' + _investFmtCurrency(monthly)
+        }
+    };
+
     // Budget comparison stat
     var budgetStatHtml = '';
     var pctGoalHtml    = '';
@@ -3279,6 +3306,42 @@ function _investBuildRetireWidget(p) {
                     pctOfTarget + '%' +
                 '</span>' +
             '</div>';
+
+        // ? popup help data for budget-dependent stats
+        _investRetireHelpData.budget = {
+            title: 'Income Target — ' + budgetLabel,
+            explanation: isDefault
+                ? 'Your current monthly income — the benchmark you want retirement to match. This comes from your default budget\'s total income. You are trying to replace this number with retirement income.'
+                : 'Your selected budget\'s total monthly expenses, used as your retirement income target.',
+            generic: isDefault ? 'Default budget → Total Income' : 'Selected budget → Total Expenses',
+            real: budgetLabel + ' = ' + _investFmtCurrency(budgetVal) + ' / month'
+        };
+        _investRetireHelpData.pctGoal = {
+            title: '% of Income Goal Covered',
+            explanation: 'What percentage of your income target is covered by your projected retirement income (investments + Social Security). When this reaches 100%, retirement income fully replaces your current income.',
+            generic: '(Monthly Retirement Income ÷ Income Target) × 100',
+            real: '(' + _investFmtCurrency(monthly) + ' ÷ ' + _investFmtCurrency(budgetVal) + ') × 100 = ' + pctGoal + '%'
+        };
+        _investRetireHelpData.shortfall = {
+            title: 'Net Worth Shortfall',
+            explanation: 'How much more net worth you would need today — in today\'s dollars — for your investments alone to cover the gap between Social Security and your income target. Social Security is subtracted first because it is fixed and does not depend on your portfolio. The remaining gap must come from investment returns.',
+            generic: [
+                'Step 1 — Investment gap:  Income Target − (SS Monthly × After-Tax %)',
+                'Step 2 — Target NW:       (Investment Gap × 12) ÷ (Return Rate × After-Tax %)',
+                'Step 3 — Shortfall:       max(0, Target NW − Current NW)'
+            ],
+            real: [
+                'Step 1 — Investment gap:  ' + _investFmtCurrency(budgetVal) + ' − (' + _investFmtCurrency(ssRaw) + ' × ' + atpStr + ') = ' + _investFmtCurrency(investMonthlyNeeded),
+                'Step 2 — Target NW:       (' + _investFmtCurrency(investMonthlyNeeded) + ' × 12) ÷ (' + rorStr + ' × ' + atpStr + ') = ' + _investFmtCurrency(nwNeeded),
+                'Step 3 — Shortfall:       max(0, ' + _investFmtCurrency(nwNeeded) + ' − ' + _investFmtCurrency(netWorth) + ') = ' + (atGoal ? 'At Goal ($0)' : _investFmtCurrency(shortfall))
+            ]
+        };
+        _investRetireHelpData.pctTarget = {
+            title: '% of Target Net Worth',
+            explanation: 'Your current net worth as a percentage of the target net worth needed for your investments to cover 100% of your income goal — with Social Security already accounted for. When this reaches 100% your shortfall is zero and you are fully retirement-ready.',
+            generic: '(Current NW ÷ Target NW) × 100',
+            real: '(' + _investFmtCurrency(netWorth) + ' ÷ ' + _investFmtCurrency(nwNeeded) + ') × 100 = ' + pctOfTarget + '%'
+        };
     }
 
     // Gear panel — per-person age rows
@@ -3317,24 +3380,46 @@ function _investBuildRetireWidget(p) {
           '</div>'
         : '';
 
+    var helpBtn = function(key) {
+        return '<button class="invest-retire-help-btn" type="button" onclick="_investRetireHelp(\'' + key + '\')" title="What does this mean?">?</button>';
+    };
+
     return '<div class="invest-summary-retire">' +
+        // Shared help popup (hidden until a ? button is clicked)
+        '<div class="invest-retire-help-overlay" id="investRetireHelpOverlay" style="display:none" onclick="_investRetireHelpClose()">' +
+            '<div class="invest-retire-help-popup" onclick="event.stopPropagation()">' +
+                '<div class="invest-retire-help-popup-header">' +
+                    '<span class="invest-retire-help-popup-title" id="investRetireHelpTitle"></span>' +
+                    '<button class="invest-retire-help-close" type="button" onclick="_investRetireHelpClose()">✕</button>' +
+                '</div>' +
+                '<div class="invest-retire-help-popup-body" id="investRetireHelpBody"></div>' +
+            '</div>' +
+        '</div>' +
         '<div class="invest-summary-retire-title">' +
             escapeHtml(retireTitle) +
             '<button class="invest-retire-gear" id="investRetireGearBtn" onclick="_investToggleRetireConfig()" title="Settings">⚙</button>' +
         '</div>' +
         '<div class="invest-summary-retire-amounts">' +
             '<div class="invest-summary-retire-stat">' +
-                '<span class="invest-summary-retire-label">Annual</span>' +
+                '<span class="invest-summary-retire-label">Annual ' + helpBtn('annual') + '</span>' +
                 '<span class="invest-summary-retire-val" title="' + escapeHtml(annualTip) + '">' + _investFmtCurrency(annual) + '</span>' +
             '</div>' +
             '<div class="invest-summary-retire-stat">' +
-                '<span class="invest-summary-retire-label">Monthly</span>' +
+                '<span class="invest-summary-retire-label">Monthly ' + helpBtn('monthly') + '</span>' +
                 '<span class="invest-summary-retire-val" title="' + escapeHtml(monthlyTip) + '">' + _investFmtCurrency(monthly) + '</span>' +
             '</div>' +
-            budgetStatHtml +
-            pctGoalHtml +
-            shortfallHtml +
-            nwGoalPctHtml +
+            (budgetData ?
+                '<div class="invest-summary-retire-stat invest-summary-retire-stat--budget">' +
+                    '<span class="invest-summary-retire-label">' + escapeHtml(budgetData.isDefault ? 'Current Income' : budgetData.name) + ' ' + helpBtn('budget') + '</span>' +
+                    '<span class="invest-summary-retire-val">' + _investFmtCurrency(budgetData.isDefault ? budgetData.totalIncome : budgetData.totalExpenses) + '</span>' +
+                '</div>' +
+                '<div class="invest-summary-retire-stat invest-summary-retire-stat--pct">' +
+                    '<span class="invest-summary-retire-label">% To Goal ' + helpBtn('pctGoal') + '</span>' +
+                    '<span class="invest-summary-retire-val invest-retire-pct' + (pctGoal >= 100 ? ' invest-retire-pct--good' : '') + '">' + pctGoal + '%</span>' +
+                '</div>' +
+                shortfallHtml.replace('>NW Shortfall<', '>NW Shortfall ' + helpBtn('shortfall') + '<') +
+                nwGoalPctHtml.replace('>% of Target<', '>% of Target ' + helpBtn('pctTarget') + '<')
+            : '') +
         '</div>' +
         _investBirthdayPromptHtml(meAgeInfo) +
         '<div class="invest-summary-retire-config" id="investRetireConfig" style="' + (_investRetireConfigOpen ? '' : 'display:none') + '">' +
@@ -3361,6 +3446,48 @@ function _investToggleOtherAge(sel) {
     if (!txt) return;
     txt.style.display = sel.value === 'other' ? '' : 'none';
     if (sel.value === 'other') txt.focus();
+}
+
+// Opens the ? help popup for a retire widget stat.
+function _investRetireHelp(key) {
+    var item = _investRetireHelpData[key];
+    if (!item) return;
+    var overlay = document.getElementById('investRetireHelpOverlay');
+    if (!overlay) return;
+
+    document.getElementById('investRetireHelpTitle').textContent = item.title;
+
+    var body = '<p class="invest-retire-help-exp">' + escapeHtml(item.explanation) + '</p>';
+
+    body += '<div class="invest-retire-help-block">';
+    body += '<div class="invest-retire-help-block-label">Formula</div>';
+    if (Array.isArray(item.generic)) {
+        item.generic.forEach(function(line) {
+            body += '<div class="invest-retire-help-line"><code>' + escapeHtml(line) + '</code></div>';
+        });
+    } else {
+        body += '<div class="invest-retire-help-line"><code>' + escapeHtml(item.generic) + '</code></div>';
+    }
+    body += '</div>';
+
+    body += '<div class="invest-retire-help-block invest-retire-help-block--real">';
+    body += '<div class="invest-retire-help-block-label">With your numbers</div>';
+    if (Array.isArray(item.real)) {
+        item.real.forEach(function(line) {
+            body += '<div class="invest-retire-help-line"><code>' + escapeHtml(line) + '</code></div>';
+        });
+    } else {
+        body += '<div class="invest-retire-help-line"><code>' + escapeHtml(item.real) + '</code></div>';
+    }
+    body += '</div>';
+
+    document.getElementById('investRetireHelpBody').innerHTML = body;
+    overlay.style.display = 'flex';
+}
+
+function _investRetireHelpClose() {
+    var overlay = document.getElementById('investRetireHelpOverlay');
+    if (overlay) overlay.style.display = 'none';
 }
 
 async function _investRenderSummaryPage() {

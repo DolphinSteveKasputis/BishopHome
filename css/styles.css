@@ -16923,6 +16923,7 @@ a.legacy-fin-card:hover {
     color: #333;
     margin-bottom: 4px;
     max-width: 140px;
+    min-height: 1em;   /* keeps blank headers from collapsing and floating the dropdown */
     overflow: hidden;
     text-overflow: ellipsis;
 }

@@ -15,7 +15,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=678">
+    <link rel="stylesheet" href="css/styles.css?v=679">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -7108,6 +7108,11 @@ service firebase.storage {
             <!-- Populated by loadInvestmentsSsFormPage() in investments.js -->
         </section>
 
+        <!-- Page: AI Investment Analysis (#investments/ai-analysis) -->
+        <section class="page hidden" id="page-investments-ai">
+            <!-- Populated by loadInvestmentsAiPage() in investments-ai.js -->
+        </section>
+
         <!-- ==========================================
              BUDGET PAGES — #budget
              ========================================== -->
@@ -10756,7 +10761,8 @@ export default {
     <script src="js/legacy-crypto.js?v=2"></script>
     <script src="js/legacy.js?v=28"></script>
     <script src="js/credentials.js?v=583"></script>
-    <script src="js/investments.js?v=572"></script>
+    <script src="js/investments.js?v=573"></script>
+    <script src="js/investments-ai.js?v=1"></script>
     <script src="js/budgets.js?v=659"></script>
     <script src="js/private.js?v=579"></script>
     <script src="js/app.js?v=655"></script>

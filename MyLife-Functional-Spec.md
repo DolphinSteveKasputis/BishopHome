@@ -1431,6 +1431,51 @@ Dashboard page showing totals for the selected group.
 | `#investments/ss-benefits` | SS Benefits list — snapshots per person |
 | `#investments/ss-benefits/new` | Create new SS Benefits snapshot |
 | `#investments/ss-benefits/edit/:id` | Edit existing SS Benefits snapshot |
+| `#investments/ai-analysis` | AI Investment Analysis — LLM-generated plain-English portfolio analysis |
+
+---
+
+### AI Analysis (`#investments/ai-analysis`)
+
+Sends a structured JSON snapshot of the selected group's financial picture to the configured LLM and displays a plain-English analysis. Accessed via **🤖 Ask AI** buttons on the hub and summary pages.
+
+**Entry points**:
+- Hub page: "Ask AI" button near the Retire Estimate accordion (sets back route to `#investments`)
+- Summary page: "Ask AI" button near the Retire Estimate accordion (sets back route to `#investments/summary`)
+
+**Page layout**:
+- Back button (returns to hub or summary depending on entry point)
+- Group name shown as subtitle
+- Optional specific-question textarea + **Ask AI** button (runs full analysis)
+- Status / loading area
+- Result area (rendered markdown from LLM)
+- Cached result displayed below on load if one exists, with a "Re-run" button
+
+**Call 1 — Full Analysis**:
+- Assembles JSON payload via `_investAiBuildPayload(groupId)` (see Payload below)
+- Sends system prompt + JSON + optional user question to LLM
+- Renders markdown response; caches result per group in `userCol('investmentConfig').doc('aiAnalysis_{groupId}')`
+- Follow-up textarea + "Ask follow-up" button appear below the result
+
+**Call 2 — Follow-Up Question**:
+- Sends same JSON + prior analysis text + follow-up question to LLM
+- LLM responds only to the follow-up; does not repeat the full analysis
+- Follow-up response shown in a visually distinct block (blue tint)
+- Not cached — transient for the current page visit
+
+**Caching**: Per group. Each group stores its last analysis in `investmentConfig/aiAnalysis_{groupId}` with fields: `responseText`, `question`, `groupId`, `groupName`, `asOfDate`, `runAt` (ISO string). Cached result loads automatically on page entry; "Re-run" overwrites it.
+
+**Payload** (`_investAiBuildPayload`): Assembled from live Firestore reads each run:
+- `group.members[]`: label, currentAge (from birthday in `peopleImportantDates`), retirementAge, yearsToRetirement
+- `socialSecurity[]`: all breakpoints per person from the most recent `ssBenefits` snapshot
+- `portfolioSummary`: totalValue, byCategory (roth/preTax/brokerage/cash/investmentCash), top 15 holdings by value
+- `accounts[]`: per-account name, type, owner, cashBalance, holdings (ticker, shares, lastPrice, value)
+- `budgets[]`: all non-archived budgets with monthlyTotal, annualTotal, isDefault, category totals
+- `investmentConfig`: projectedRoR, afterTaxPct
+
+**LLM**: Uses the same provider config as SecondBrain (`userCol('settings').doc('llm')`). Supports OpenAI (`gpt-4o`) and Grok (`grok-3`). System prompt instructs "knowledgeable friend" tone with 7 sections: Summary, Retirement Readiness, Budget Gap Analysis, SS Strategy, Portfolio Composition, Concentration Risk, Cash Position, Key Observations. Uses configured `projectedRoR` — not the 4% rule.
+
+**Module**: `js/investments-ai.js`. Module state: `_investAiBackRoute`, `_investAiGroupId`, `_investAiAnalysis`.
 
 ---
 

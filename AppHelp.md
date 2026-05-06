@@ -1705,6 +1705,7 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 - If you have more than one group, a **Group** selector appears at the top — switch groups to see a different portfolio view
 - **Performance** accordion: four cards (Day, Week, Month, YTD) showing $ gain and % vs. your most recent snapshot of each type. "—" means no snapshot of that type yet
 - **Retire Estimate** accordion: the same retirement income widget as the Summary page — estimated annual/monthly income, budget comparison, NW Shortfall, % of Target, and the ⚙ settings gear
+- **🤖 Ask AI** button (below the Retire Estimate accordion): opens the AI Analysis page and generates a plain-English analysis of your full portfolio picture for the active group
 - **All-Time Highs** accordion: four ATH cards (Daily / Weekly / Monthly / Yearly) plus a "vs Daily ATH" companion card showing how far above or below you are right now
 - Each accordion remembers its open/closed state across sessions
 - Below the dashboard are nav cards linking to **Accounts**, **Summary**, **Stock Rollup**, **Snapshots**, **Budgets**, **SS Benefits**, and two coming-soon sections
@@ -1905,6 +1906,27 @@ Requires a Finnhub API key in Settings. Prices persist in Firestore across sessi
 
 ---
 
+## screen:investments-ai
+
+### Quick Help
+- Sends your portfolio data to an AI and returns a plain-English analysis — written like advice from a knowledgeable friend, not a formal advisor
+- Optionally type a **specific question** before clicking **✨ Ask AI** (e.g. "Am I on track to retire at 65?") — the AI answers it in addition to the full analysis
+- After reading the analysis, use the **Ask a follow-up question** field to ask anything specific without re-running the full analysis
+- Results are **cached per group** — come back anytime to read the last analysis without paying for a new LLM call; click **Re-run** to refresh
+- The analysis always uses the currently selected group; switch groups to analyze a different portfolio
+- Data sent to the AI: accounts + holdings, portfolio category totals, Social Security breakpoints, all budgets (category totals), ages, retirement ages, and your configured return rate
+
+### Analysis Sections
+1. **Summary** — 2–4 sentence big-picture overview
+2. **Retirement Readiness** — math on whether the portfolio supports retirement at your configured ages
+3. **Budget Gap Analysis** — gap or surplus for each budget scenario at retirement
+4. **Social Security Strategy** — early vs. delayed claiming tradeoffs
+5. **Portfolio Composition** — Roth/Pre-Tax/Brokerage/Cash mix appropriateness
+6. **Concentration Risk** — any ticker or account-type that's too large a share
+7. **Key Observations** — anything else worth flagging
+
+---
+
 ## screen:investments-ss-form
 
 ### Quick Help
@@ -1922,6 +1944,7 @@ Requires a Finnhub API key in Settings. Prices persist in Firestore across sessi
 ### Quick Help
 - Shows **Net Worth** and **Invested** totals across all accounts in the selected group
 - **Retire Estimate** section: six stat cards (Annual, Monthly, Current Income, % To Goal, NW Shortfall, % of Target) — tap **?** on any card to see a plain-English explanation plus the formula with your real numbers; tap ⚙ to configure return rate, after-tax %, ages, and budget
+- **🤖 Ask AI** button (below the Retire Estimate accordion): opens the AI Analysis page and generates a plain-English analysis of your full portfolio picture for the active group
 - **All-Time Highs** section: four ATH cards plus a "vs Daily ATH" card — collapsible accordion; open/closed state is remembered
 - **Category Breakdown**: Roth, Pre-Tax, Brokerage, Cash, and Uninvested Cash totals with % of Net Worth
 - **Period Performance**: Day / Week / Month / YTD gain or loss vs the most recent snapshot of each type

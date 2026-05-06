@@ -280,6 +280,13 @@ function _investHubDashboardHtml(totals, baselines, groupId, retireData) {
         toggleFn: '_investToggleHubAth', isOpen: _investHubAthOpen
     }) : '';
 
+    var askAiBtn = retireAccHtml
+        ? '<div class="invest-ai-entry-wrap">' +
+              '<a class="btn btn-secondary btn-small invest-ai-entry-btn" href="#investments/ai-analysis" ' +
+                  'onclick="_investAiBackRoute=\'investments\'">🤖 Ask AI</a>' +
+          '</div>'
+        : '';
+
     return '<div class="invest-hub-dashboard">' +
         '<div class="invest-hub-heroes">' +
             '<div class="invest-hub-hero">' +
@@ -293,6 +300,7 @@ function _investHubDashboardHtml(totals, baselines, groupId, retireData) {
         '</div>' +
         perfHtml +
         retireAccHtml +
+        askAiBtn +
         athAccHtml +
     '</div>';
 }
@@ -3758,6 +3766,11 @@ async function _investRenderSummaryPage() {
             }),
             toggleFn: '_investToggleSumRetire', isOpen: _investSumRetireOpen
         }) +
+
+        '<div class="invest-ai-entry-wrap">' +
+            '<a class="btn btn-secondary btn-small invest-ai-entry-btn" href="#investments/ai-analysis" ' +
+                'onclick="_investAiBackRoute=\'investments/summary\'">🤖 Ask AI</a>' +
+        '</div>' +
 
         // All-Time Highs — sticky collapsible accordion
         (athBodyHtml ? _investBuildAccordion({

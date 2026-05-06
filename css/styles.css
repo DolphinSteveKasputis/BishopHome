@@ -16676,3 +16676,143 @@ a.legacy-fin-card:hover {
     .devnote-fixed-date-input { width: 100%; }
 }
 
+/* ============================================================
+   AI Investment Analysis page (#investments/ai-analysis)
+   ============================================================ */
+
+/* "Ask AI" entry button on hub and summary pages */
+.invest-ai-entry-wrap {
+    margin: 8px 0 4px;
+    display: flex;
+    justify-content: flex-end;
+}
+.invest-ai-entry-btn {
+    font-size: 0.85rem;
+}
+
+/* Group name subtitle on the AI page */
+.invest-ai-group-name {
+    font-size: 0.9rem;
+    margin: -4px 0 12px;
+}
+
+/* Run section — question textarea + Ask AI button */
+.invest-ai-run-section {
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+}
+.invest-ai-run-section .form-group {
+    margin-bottom: 10px;
+}
+
+/* Divider between run section and result */
+.invest-ai-divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 20px 0 12px;
+    color: #888;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.invest-ai-divider::before,
+.invest-ai-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e0e0e0;
+}
+
+/* Cached result notice bar */
+.invest-ai-cached-notice {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: #fff8e1;
+    border: 1px solid #ffe082;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    color: #5d4037;
+    margin-bottom: 10px;
+}
+
+/* Question-asked label shown above a cached result */
+.invest-ai-question-asked {
+    font-size: 0.82rem;
+    color: #666;
+    margin-bottom: 10px;
+    font-style: italic;
+}
+
+/* Loading state */
+.invest-ai-loading {
+    padding: 14px 0;
+    color: #555;
+    font-size: 0.9rem;
+}
+
+/* Main response area — rendered markdown */
+.invest-ai-response {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 16px 20px;
+    font-size: 0.92rem;
+    line-height: 1.65;
+}
+.invest-ai-response h1,
+.invest-ai-response h2,
+.invest-ai-response h3 {
+    margin: 14px 0 6px;
+    font-size: 1rem;
+    color: #1a1a1a;
+}
+.invest-ai-response p  { margin: 0 0 10px; }
+.invest-ai-response ul,
+.invest-ai-response ol { margin: 0 0 10px; padding-left: 22px; }
+.invest-ai-response li { margin-bottom: 4px; }
+.invest-ai-response hr { border: none; border-top: 1px solid #e0e0e0; margin: 14px 0; }
+.invest-ai-response strong { color: #1a1a1a; }
+.invest-ai-response em    { color: #555; }
+
+/* Follow-up section */
+.invest-ai-followup-section {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #e8e8e8;
+}
+.invest-ai-followup-section .form-group {
+    margin-bottom: 8px;
+}
+
+/* Follow-up response block — visually distinct from main analysis */
+.invest-ai-followup-response {
+    background: #f0f4ff;
+    border: 1px solid #c5cae9;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-top: 12px;
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+.invest-ai-followup-q {
+    font-size: 0.85rem;
+    color: #3949ab;
+    margin-bottom: 8px;
+}
+.invest-ai-followup-a p  { margin: 0 0 8px; }
+.invest-ai-followup-a ul { margin: 0 0 8px; padding-left: 20px; }
+
+@media (max-width: 600px) {
+    .invest-ai-response  { padding: 12px 14px; }
+    .invest-ai-run-section { padding: 12px 14px; }
+    .invest-ai-cached-notice { flex-direction: column; align-items: flex-start; gap: 6px; }
+}
+

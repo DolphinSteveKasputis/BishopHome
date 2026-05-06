@@ -2907,6 +2907,7 @@ async function _investCaptureSnapshot() {
             : 'Prices have not been updated today. Update all prices first for an accurate snapshot?';
         if (confirm(staleMsg)) {
             // Update prices before capturing — runs without requiring the summary-page button
+            if (saveBtn)  { saveBtn.disabled = true; saveBtn.textContent = 'Updating…'; }
             if (statusEl) { statusEl.textContent = 'Updating prices…'; statusEl.style.color = '#555'; }
             await _investUpdateAllPrices();
             if (statusEl) { statusEl.textContent = ''; }

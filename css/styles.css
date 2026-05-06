@@ -15022,21 +15022,32 @@ input[type="date"].invest-snap-more-filter-input   { width: 160px; }
 .iht-btn.invest-summary-acct-url:hover { color: #1a3a6b !important; }
 .invest-summary-retire-amounts {
     display: flex;
-    gap: 24px;
+    gap: 10px;
+    flex-wrap: wrap;
     margin-bottom: 14px;
 }
 .invest-summary-retire-stat {
+    background: #fff;
+    border: 1px solid #a5d6a7;
+    border-radius: 8px;
+    padding: 8px 12px;
     display: flex;
     flex-direction: column;
     gap: 2px;
+    min-width: 110px;
 }
 .invest-summary-retire-label {
-    font-size: 0.75rem;
-    color: #555;
-    font-weight: 600;
+    font-size: 0.72rem;
+    color: #2e7d32;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    display: flex;
+    align-items: center;
+    gap: 3px;
 }
 .invest-summary-retire-val {
-    font-size: 1.2rem;
+    font-size: 1.15rem;
     font-weight: 700;
     color: #1b5e20;
 }
@@ -15069,11 +15080,9 @@ input[type="date"].invest-snap-more-filter-input   { width: 160px; }
 .invest-retire-age-sel {
     width: 90px;
 }
-/* Budget comparison + % To Goal stats */
-.invest-summary-retire-stat--budget,
-.invest-summary-retire-stat--pct {
-    border-left: 1px solid #c8e6c9;
-    padding-left: 12px;
+/* Shortfall card: red border tint when in deficit */
+.invest-summary-retire-stat--shortfall:has(.invest-retire-shortfall--deficit) {
+    border-color: #fca5a5;
 }
 .invest-retire-pct {
     color: #b45309;

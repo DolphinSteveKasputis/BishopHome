@@ -3220,6 +3220,7 @@ function _investBuildRetireWidget(p) {
     var ror = p.ror, atp = p.atp, annual = p.annual, monthly = p.monthly;
     var meAgeInfo = p.meAgeInfo, retireTitle = p.retireTitle;
     var group = p.group, ssData = p.ssData, budgetData = p.budgetData;
+    var netWorth = p.netWorth || 0;
 
     // Tooltip math strings
     var rorPct   = Math.round(ror * 100 * 10) / 10;   // e.g. 6
@@ -3231,6 +3232,8 @@ function _investBuildRetireWidget(p) {
     // Budget comparison stat
     var budgetStatHtml = '';
     var pctGoalHtml    = '';
+    var shortfallHtml  = '';
+    var nwGoalPctHtml  = '';
     if (budgetData) {
         var isDefault   = budgetData.isDefault;
         var budgetVal   = isDefault ? budgetData.totalIncome : budgetData.totalExpenses;
@@ -3245,6 +3248,36 @@ function _investBuildRetireWidget(p) {
             '<div class="invest-summary-retire-stat invest-summary-retire-stat--pct">' +
                 '<span class="invest-summary-retire-label">% To Goal</span>' +
                 '<span class="invest-summary-retire-val invest-retire-pct' + (pctGoal >= 100 ? ' invest-retire-pct--good' : '') + '">' + pctGoal + '%</span>' +
+            '</div>';
+
+        // Shortfall: how much more NW is needed so investments (after SS) cover 100% of budget.
+        // investMonthlyNeeded = budget − SS(after-tax)  →  the gap investments must fill each month
+        // nwNeeded = (investMonthlyNeeded × 12) / (RoR × afterTaxPct)
+        var ssAfterTax          = (ssData.totalSSMonthly || 0) * atp;
+        var investMonthlyNeeded = budgetVal - ssAfterTax;
+        var nwNeeded            = (investMonthlyNeeded > 0 && ror > 0 && atp > 0)
+                                    ? (investMonthlyNeeded * 12) / (ror * atp)
+                                    : 0;
+        var shortfall           = Math.max(0, nwNeeded - netWorth);
+        var pctOfTarget         = nwNeeded > 0 ? Math.min(999, Math.round(netWorth / nwNeeded * 100)) : 100;
+        var atGoal              = shortfall <= 0;
+        var shortfallTip        = 'Target NW: ' + _investFmtCurrency(nwNeeded) +
+                                  ' = (Budget − SS after-tax) × 12 / (RoR × ATP)';
+        shortfallHtml =
+            '<div class="invest-summary-retire-stat invest-summary-retire-stat--shortfall">' +
+                '<span class="invest-summary-retire-label">NW Shortfall</span>' +
+                '<span class="invest-summary-retire-val' + (atGoal ? ' invest-retire-pct--good' : ' invest-retire-shortfall--deficit') + '"' +
+                    ' title="' + escapeHtml(shortfallTip) + '">' +
+                    (atGoal ? 'At Goal' : _investFmtCurrency(shortfall)) +
+                '</span>' +
+            '</div>';
+        nwGoalPctHtml =
+            '<div class="invest-summary-retire-stat invest-summary-retire-stat--nwpct">' +
+                '<span class="invest-summary-retire-label">% of Target</span>' +
+                '<span class="invest-summary-retire-val invest-retire-pct' + (pctOfTarget >= 100 ? ' invest-retire-pct--good' : '') + '"' +
+                    ' title="' + escapeHtml(shortfallTip) + '">' +
+                    pctOfTarget + '%' +
+                '</span>' +
             '</div>';
     }
 
@@ -3300,6 +3333,8 @@ function _investBuildRetireWidget(p) {
             '</div>' +
             budgetStatHtml +
             pctGoalHtml +
+            shortfallHtml +
+            nwGoalPctHtml +
         '</div>' +
         _investBirthdayPromptHtml(meAgeInfo) +
         '<div class="invest-summary-retire-config" id="investRetireConfig" style="' + (_investRetireConfigOpen ? '' : 'display:none') + '">' +
@@ -3482,7 +3517,7 @@ async function _investRenderSummaryPage() {
             ror: ror, atp: atp, annual: annual, monthly: monthly,
             meAgeInfo: meAgeInfo, retireTitle: retireTitle,
             group: group, ssData: ssData,
-            budgetData: budgetData
+            budgetData: budgetData, netWorth: cats.netWorth
         }) +
 
         // All-Time Highs (above category breakdown)

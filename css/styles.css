@@ -15081,6 +15081,9 @@ input[type="date"].invest-snap-more-filter-input   { width: 160px; }
 .invest-retire-pct--good {
     color: #15803d;
 }
+.invest-retire-shortfall--deficit {
+    color: #dc2626;
+}
 
 /* Birthday prompt on retire widget */
 .invest-bday-prompt {

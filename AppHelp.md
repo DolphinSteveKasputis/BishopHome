@@ -1940,7 +1940,9 @@ Requires a Finnhub API key in Settings. Prices persist in Firestore across sessi
 - **Retirement age per person**: each person in your group gets their own age — picks from 62/63/64/65/67/70 or a custom number. Drives the SS lookup (exact age match in their SS benefits snapshot) and the card title.
 - **Return Rate**: decimal (e.g. 0.06 = 6%) — applied to Net Worth for investment income
 - **After-Tax %**: decimal (e.g. 0.82 = 82%) — applied to both investment income and SS income
-- **Budget**: pick any budget to compare. Default budget shows **Current Income** (your actual income). Other budgets show **Total Expenses** under the budget's name. The **% To Goal** stat shows that budget number ÷ monthly retirement income.
+- **Budget**: pick any budget to compare. Default budget shows **Current Income** (your actual income). Other budgets show **Total Expenses** under the budget's name. The **% To Goal** stat shows monthly retirement income ÷ that budget value.
+- **NW Shortfall**: answers "how much more net worth do I need to reach 100%?" Backs out the SS contribution first — `investNeeded = budget − (SS × afterTaxPct)` — then computes `targetNW = (investNeeded × 12) / (RoR × afterTaxPct)`. The shortfall is `targetNW − current Net Worth`. Shown in red; turns "At Goal" in green once you're there. Hover for the full formula and target NW amount.
+- **% of Target**: your current Net Worth as a percentage of the target NW calculated above. Gives a single at-a-glance number for how close you are to retirement from an investments perspective, with SS already accounted for.
 - Hover over the Annual or Monthly values to see the exact formula used (with actual rates filled in).
 - If no birthday is set for your "me" contact, the widget prompts you to add it (used for age display only — not required for the calculations).
 

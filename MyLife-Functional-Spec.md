@@ -1146,9 +1146,11 @@ Live dashboard above a static nav-card grid.
 **Dashboard card** (loads async after page renders):
 - **Group selector**: dropdown shown only when >1 group exists; switching re-renders the dashboard for the selected group.
 - **Heroes row**: Net Worth and Invested side-by-side in large type (computed live from holdings `lastPrice` × shares + cash balances, same as the Summary page).
-- **Performance accordion**: collapsible section (label "PERFORMANCE", toggle button with ▾/▸ chevron) containing all four period cards and the ATH callout. Open/closed state persists to `localStorage` key `investHubPerfOpen` (default open). Toggle function: `_investToggleHubPerf()`.
-  - **Four stat cards** (Day / Week / Month / YTD) — all same card format (`invest-hub-stat-cell`), displayed on one row with `flex-wrap`. Each shows label, $ gain/loss, and % change vs. the most recent snapshot of that type. Shows "—" when no snapshot exists.
-  - **ATH callout**: shows the highest net-worth value across all snapshot types. "🏆 All-time high: $X on [date]"; upgrades to "🏆 NEW all-time high!" when current NW ≥ ATH.
+Three collapsible accordions appear below the heroes row. Each has a toggle button (▾/▸ chevron) and persists its open/closed state to `localStorage` (default open). Shared builder: `_investBuildAccordion()`.
+
+- **Performance accordion** (`investHubPerfOpen`, toggle: `_investToggleHubPerf()`): four stat cards (Day / Week / Month / YTD), all same `invest-hub-stat-cell` format on one row. Each shows label, $ gain/loss, and % change vs. the most recent snapshot of that type. Shows "—" when no snapshot exists.
+- **Retire Estimate accordion** (`investHubRetireOpen`, toggle: `_investToggleHubRetire()`): the full "If I Retire Today" widget (same as Summary page) including all six stat cards, ? help popups, gear settings panel, and SS/budget data. Retire widget data (SS, budgets, me-age) is loaded in parallel with period baselines in `_investRenderHubBody()`.
+- **All-Time Highs accordion** (`investHubAthOpen`, toggle: `_investToggleHubAth()`): four ATH cards (Daily / Weekly / Monthly / Yearly) plus the "vs Daily ATH" companion card. Built by shared `_investBuildAthHtml(groupId, currentNetWorth)` (also used on Summary page).
 
 **📡 Update All Prices bar**: Shown between the group switcher and the dashboard body. Button calls `_investUpdateHubAllPrices()`, which routes through `_investUpdateAllPrices()` using the hub's active group, then re-renders the dashboard. A formatted last-updated timestamp (e.g. "5/5 10:15am") appears beside the button and is populated on page load from `_investConfig.lastUpdateAllTimestamp`.
 
@@ -1372,6 +1374,8 @@ Each row shows date (daily rows also show day-of-week, e.g. "2026-05-05 · Tuesd
 Dashboard page showing totals for the selected group.
 
 **Hero row**: Net Worth card + Invested card (two columns).
+
+**Layout**: The Retire Estimate and All-Time Highs sections are wrapped in always-open accordion chrome (same `invest-hub-perf-accordion` / `invest-hub-perf-toggle--static` style as hub, but not collapsible — `cursor:default`, no toggle function). This keeps the visual language consistent between the hub page and the summary page.
 
 **If I retired today widget**: Green card with estimated Annual and Monthly retirement income. Full spec:
 

@@ -13947,6 +13947,7 @@ a.invest-hub-card:hover {
     cursor: pointer;
 }
 .invest-hub-perf-toggle:hover { color: #444; }
+.invest-hub-perf-toggle--static { cursor: default; pointer-events: none; }
 .invest-hub-perf-chevron { font-size: 0.9rem; }
 .invest-hub-gain { color: #2e7d32; }
 .invest-hub-loss { color: #c62828; }

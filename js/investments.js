@@ -75,7 +75,9 @@ var _investCardTotalsCache  = {};    // {accountId: totalValue} — current valu
 var _investRetireConfigOpen = false; // whether the retire widget config (RoR / after-tax) is visible
 var _investRetireHelpData   = {};    // populated each render; keyed by stat name; drives the ? popups
 var _investHubGroupId       = null;  // selected group on the hub landing page
-var _investHubPerfOpen      = localStorage.getItem('investHubPerfOpen') !== 'false'; // accordion default open
+var _investHubPerfOpen      = localStorage.getItem('investHubPerfOpen')   !== 'false'; // accordion default open
+var _investHubRetireOpen    = localStorage.getItem('investHubRetireOpen') !== 'false'; // retire accordion default open
+var _investHubAthOpen       = localStorage.getItem('investHubAthOpen')    !== 'false'; // ATH accordion default open
 var _investActiveGroupId    = null;  // shared: last group selected on any invest page (persists across pages)
 
 // ---------- Firestore Path ----------
@@ -102,6 +104,10 @@ async function loadInvestmentsPage() {
         '<a href="#main" class="home-link">' + escapeHtml(window.appName || 'My Life') + '</a>';
 
     await _investEnsureMeGroup();
+
+    // Load people enrollment so retire widget (SS breakdown) can resolve names on this page.
+    // _investLoadAll also loads raw accounts as a side-effect; harmless on the hub page.
+    await _investLoadAll();
 
     var page = document.getElementById('page-investments');
     if (!page) return;
@@ -162,23 +168,41 @@ async function _investRenderHubBody(groupId) {
     body.innerHTML = '<p class="muted-text">Loading…</p>';
 
     try {
-        var group     = _investGroups.find(function(g) { return g.id === groupId; }) || null;
-        var accounts  = await _investLoadGroupAccounts(group);
-        var totals    = _investComputeGroupTotals(accounts);
-        var baselines = await _investLoadPeriodBaselines(groupId);
-        body.innerHTML = _investHubDashboardHtml(totals, baselines, groupId);
+        var group    = _investGroups.find(function(g) { return g.id === groupId; }) || null;
+        var accounts = await _investLoadGroupAccounts(group);
+        var totals   = _investComputeGroupTotals(accounts);
+
+        // Load period baselines + retire widget data in parallel
+        var results   = await Promise.all([
+            _investLoadPeriodBaselines(groupId),
+            _investGetMeAge(),
+            _investLoadBudgets(),                                            // populates _investBudgets / _investDefaultBudgetId
+            _investLoadGroupSS(group),
+            _investLoadBudgetTotals(_investConfig.selectedBudgetId || null)
+        ]);
+        var baselines  = results[0];
+        var meAgeInfo  = results[1];
+        // results[2] is void — _investLoadBudgets uses side-effects
+        var ssData     = results[3];
+        var budgetData = results[4];
+
+        body.innerHTML = _investHubDashboardHtml(totals, baselines, groupId, {
+            group: group, meAgeInfo: meAgeInfo, ssData: ssData, budgetData: budgetData
+        });
     } catch (e) {
         console.error('Hub dashboard error', e);
         body.innerHTML = '<p class="muted-text">Error loading portfolio data.</p>';
     }
 }
 
-// Builds the dashboard card HTML from computed totals and period baselines.
-function _investHubDashboardHtml(totals, baselines, groupId) {
+// Builds the dashboard card HTML from computed totals, period baselines, and retire widget data.
+// retireData: { group, meAgeInfo, ssData, budgetData }
+function _investHubDashboardHtml(totals, baselines, groupId, retireData) {
     var nw       = totals.netWorth || 0;
     var invested = totals.invested || 0;
+    retireData   = retireData || {};
 
-    // Quick-stat cards — Day / Week / Month / YTD all use the same card format
+    // ---- Performance accordion: Day / Week / Month / YTD stat cards ----
     function statCell(label, baseline) {
         if (!baseline) {
             return '<div class="invest-hub-stat-cell invest-hub-dim">' +
@@ -209,35 +233,50 @@ function _investHubDashboardHtml(totals, baselines, groupId) {
             statCell('YTD',   baselines.yearly) +
         '</div>';
 
-    // ATH callout — pick the best (highest) ATH across all snapshot types for this group
-    var bestAth = null;
-    ['daily', 'weekly', 'monthly', 'yearly'].forEach(function(t) {
-        var ath = groupId ? _investConfig[_investAthKey(t, groupId)] : null;
-        if (ath && ath.value && (!bestAth || ath.value > bestAth.value)) bestAth = ath;
+    var perfHtml = _investBuildAccordion({
+        id: 'investHubPerf', title: 'Performance',
+        bodyHtml: statsHtml,
+        toggleFn: '_investToggleHubPerf', isOpen: _investHubPerfOpen
     });
-    var athHtml = '';
-    if (bestAth) {
-        var isNew = nw >= bestAth.value;
-        athHtml =
-            '<div class="invest-hub-ath' + (isNew ? ' invest-hub-ath--new' : '') + '">' +
-                (isNew ? '🏆 NEW all-time high! ' : '🏆 All-time high: ') +
-                escapeHtml(_investFmtCurrency(bestAth.value)) +
-                ' <span class="invest-hub-ath-date">on ' + escapeHtml(bestAth.date || '') + '</span>' +
-            '</div>';
-    }
 
-    var perfOpen = _investHubPerfOpen;
-    var perfHtml =
-        '<div class="invest-hub-perf-accordion">' +
-            '<button class="invest-hub-perf-toggle" type="button" onclick="_investToggleHubPerf()">' +
-                'Performance' +
-                '<span class="invest-hub-perf-chevron">' + (perfOpen ? '▾' : '▸') + '</span>' +
-            '</button>' +
-            '<div class="invest-hub-perf-body"' + (perfOpen ? '' : ' style="display:none"') + '>' +
-                statsHtml +
-                athHtml +
-            '</div>' +
-        '</div>';
+    // ---- Retire Estimate accordion ----
+    var retireHtml = '';
+    var group      = retireData.group;
+    if (group) {
+        var ror          = _investConfig.projectedRoR || 0.06;
+        var atp          = _investConfig.afterTaxPct  || 0.82;
+        var ssData       = retireData.ssData    || { totalSSMonthly: 0, breakdown: [] };
+        var meAgeInfo    = retireData.meAgeInfo || {};
+        var budgetData   = retireData.budgetData;
+        var investAnnual = nw * ror * atp;
+        var ssMonthly    = (ssData.totalSSMonthly || 0) * atp;
+        var annual       = investAnnual + ssMonthly * 12;
+        var monthly      = annual / 12;
+        var selfAge      = (_investConfig.retirementAges || {})['self'] || null;
+        var retireTitle  = selfAge
+            ? 'If I retire today at age ' + selfAge + ' (after est. taxes)'
+            : 'If I retire today (after est. taxes)';
+
+        retireHtml = _investBuildRetireWidget({
+            ror: ror, atp: atp, annual: annual, monthly: monthly,
+            meAgeInfo: meAgeInfo, retireTitle: retireTitle,
+            group: group, ssData: ssData,
+            budgetData: budgetData, netWorth: nw
+        });
+    }
+    var retireAccHtml = retireHtml ? _investBuildAccordion({
+        id: 'investHubRetire', title: 'Retire Estimate',
+        bodyHtml: retireHtml,
+        toggleFn: '_investToggleHubRetire', isOpen: _investHubRetireOpen
+    }) : '';
+
+    // ---- All-Time Highs accordion ----
+    var athBodyHtml = _investBuildAthHtml(groupId, nw);
+    var athAccHtml  = athBodyHtml ? _investBuildAccordion({
+        id: 'investHubAth', title: 'All-Time Highs',
+        bodyHtml: athBodyHtml,
+        toggleFn: '_investToggleHubAth', isOpen: _investHubAthOpen
+    }) : '';
 
     return '<div class="invest-hub-dashboard">' +
         '<div class="invest-hub-heroes">' +
@@ -251,17 +290,98 @@ function _investHubDashboardHtml(totals, baselines, groupId) {
             '</div>' +
         '</div>' +
         perfHtml +
+        retireAccHtml +
+        athAccHtml +
     '</div>';
 }
+
+// ---------- Shared Accordion Builder ----------
+
+// Builds accordion HTML.  opts:
+//   id         – string used to create element IDs (opts.id + 'Body' / opts.id + 'Chevron')
+//   title      – plain-text label (escaped internally)
+//   bodyHtml   – inner HTML for the collapsible body
+//   toggleFn   – JS function name (string) to call on click; null = always-open (no button)
+//   isOpen     – initial open state (ignored when toggleFn is null)
+function _investBuildAccordion(opts) {
+    var titleEsc = escapeHtml(opts.title);
+    if (!opts.toggleFn) {
+        return '<div class="invest-hub-perf-accordion">' +
+            '<div class="invest-hub-perf-toggle invest-hub-perf-toggle--static">' + titleEsc + '</div>' +
+            '<div class="invest-hub-perf-body">' + opts.bodyHtml + '</div>' +
+        '</div>';
+    }
+    return '<div class="invest-hub-perf-accordion">' +
+        '<button class="invest-hub-perf-toggle" type="button" onclick="' + opts.toggleFn + '()">' +
+            titleEsc +
+            '<span id="' + opts.id + 'Chevron">' + (opts.isOpen ? '▾' : '▸') + '</span>' +
+        '</button>' +
+        '<div class="invest-hub-perf-body" id="' + opts.id + 'Body"' + (opts.isOpen ? '' : ' style="display:none"') + '>' +
+            opts.bodyHtml +
+        '</div>' +
+    '</div>';
+}
+
+// ---------- ATH HTML Builder (shared between hub and summary) ----------
+
+// Returns the invest-snap-ath-row HTML for a group's all-time highs.
+// currentNetWorth is used for the "vs Daily ATH" companion card.
+// Returns '' if no ATH data exists for the group.
+function _investBuildAthHtml(groupId, currentNetWorth) {
+    var athTypes = ['daily', 'weekly', 'monthly', 'yearly'];
+    if (!athTypes.some(function(t) { return !!_investConfig[_investAthKey(t, groupId)]; })) return '';
+    var html = '<div class="invest-snap-ath-row">';
+    athTypes.forEach(function(t) {
+        var ath = _investConfig[_investAthKey(t, groupId)];
+        if (!ath) return;
+        html +=
+            '<div class="invest-snap-ath-item">' +
+                '<span class="invest-snap-ath-label">' + t.charAt(0).toUpperCase() + t.slice(1) + ' ATH</span>' +
+                '<span class="invest-snap-ath-value">' + _investFmtCurrency(ath.value) + '</span>' +
+                '<span class="invest-snap-ath-date">' + escapeHtml(ath.date || '') + '</span>' +
+            '</div>';
+        if (t === 'daily' && ath.value > 0) {
+            var athDiff   = currentNetWorth - ath.value;
+            var athPct    = athDiff / ath.value * 100;
+            var athIsUp   = athDiff >= 0;
+            var athPctFmt = (athIsUp ? '+' : '') + athPct.toFixed(2) + '%';
+            var athCls    = athIsUp ? 'invest-snap-ath-item--gain' : 'invest-snap-ath-item--loss';
+            html +=
+                '<div class="invest-snap-ath-item ' + athCls + '">' +
+                    '<span class="invest-snap-ath-label">vs Daily ATH</span>' +
+                    '<span class="invest-snap-ath-value invest-ath-pct-value">' + escapeHtml(athPctFmt) + '</span>' +
+                    '<span class="invest-snap-ath-date">' + _investFmtCurrency(currentNetWorth) + ' now</span>' +
+                '</div>';
+        }
+    });
+    html += '</div>';
+    return html;
+}
+
+// ---------- Hub Accordion Toggle Functions ----------
 
 // Toggles the Performance accordion on the hub and persists state to localStorage.
 function _investToggleHubPerf() {
     _investHubPerfOpen = !_investHubPerfOpen;
     localStorage.setItem('investHubPerfOpen', String(_investHubPerfOpen));
-    var body    = document.querySelector('.invest-hub-perf-body');
-    var chevron = document.querySelector('.invest-hub-perf-chevron');
-    if (body)    body.style.display  = _investHubPerfOpen ? '' : 'none';
-    if (chevron) chevron.textContent = _investHubPerfOpen ? '▾' : '▸';
+    document.getElementById('investHubPerfBody').style.display    = _investHubPerfOpen ? '' : 'none';
+    document.getElementById('investHubPerfChevron').textContent   = _investHubPerfOpen ? '▾' : '▸';
+}
+
+// Toggles the Retire Estimate accordion on the hub and persists state to localStorage.
+function _investToggleHubRetire() {
+    _investHubRetireOpen = !_investHubRetireOpen;
+    localStorage.setItem('investHubRetireOpen', String(_investHubRetireOpen));
+    document.getElementById('investHubRetireBody').style.display  = _investHubRetireOpen ? '' : 'none';
+    document.getElementById('investHubRetireChevron').textContent = _investHubRetireOpen ? '▾' : '▸';
+}
+
+// Toggles the All-Time Highs accordion on the hub and persists state to localStorage.
+function _investToggleHubAth() {
+    _investHubAthOpen = !_investHubAthOpen;
+    localStorage.setItem('investHubAthOpen', String(_investHubAthOpen));
+    document.getElementById('investHubAthBody').style.display     = _investHubAthOpen ? '' : 'none';
+    document.getElementById('investHubAthChevron').textContent    = _investHubAthOpen ? '▾' : '▸';
 }
 
 // Returns the static nav-card grid HTML (always shown below the live dashboard).
@@ -3578,41 +3698,8 @@ async function _investRenderSummaryPage() {
         breakdownHtml += '</div>';
     }
 
-    // All-Time Highs section — group-scoped so each group tracks its own ATH.
-    // Also computes a "% from Daily ATH" card using current live net worth.
-    var athTypes       = ['daily', 'weekly', 'monthly', 'yearly'];
-    var athSummaryHtml = '';
-    if (athTypes.some(function(t) { return !!_investConfig[_investAthKey(t, group.id)]; })) {
-        athSummaryHtml = '<div class="invest-snap-ath-row">';
-        athTypes.forEach(function(t) {
-            var ath = _investConfig[_investAthKey(t, group.id)];
-            if (!ath) return;
-            athSummaryHtml +=
-                '<div class="invest-snap-ath-item">' +
-                    '<span class="invest-snap-ath-label">' + t.charAt(0).toUpperCase() + t.slice(1) + ' ATH</span>' +
-                    '<span class="invest-snap-ath-value">' + _investFmtCurrency(ath.value) + '</span>' +
-                    '<span class="invest-snap-ath-date">' + escapeHtml(ath.date) + '</span>' +
-                '</div>';
-
-            // After the daily ATH card, inject the "% from ATH" companion card
-            // Uses live current net worth vs the daily ATH value.
-            // e.g. ATH=$100, current=$90 → -10%
-            if (t === 'daily' && ath.value > 0) {
-                var athDiff  = cats.netWorth - ath.value;
-                var athPct   = athDiff / ath.value * 100;
-                var athIsUp  = athDiff >= 0;
-                var athPctFmt = (athIsUp ? '+' : '') + athPct.toFixed(2) + '%';
-                var athCls   = athIsUp ? 'invest-snap-ath-item--gain' : 'invest-snap-ath-item--loss';
-                athSummaryHtml +=
-                    '<div class="invest-snap-ath-item ' + athCls + '">' +
-                        '<span class="invest-snap-ath-label">vs Daily ATH</span>' +
-                        '<span class="invest-snap-ath-value invest-ath-pct-value">' + escapeHtml(athPctFmt) + '</span>' +
-                        '<span class="invest-snap-ath-date">' + _investFmtCurrency(cats.netWorth) + ' now</span>' +
-                    '</div>';
-            }
-        });
-        athSummaryHtml += '</div>';
-    }
+    // All-Time Highs — use shared builder (also used on the hub page)
+    var athBodyHtml = _investBuildAthHtml(group.id, cats.netWorth);
 
     var html =
         '<div class="page-header">' +
@@ -3642,16 +3729,20 @@ async function _investRenderSummaryPage() {
             '</div>' +
         '</div>' +
 
-        // Retirement widget
-        _investBuildRetireWidget({
-            ror: ror, atp: atp, annual: annual, monthly: monthly,
-            meAgeInfo: meAgeInfo, retireTitle: retireTitle,
-            group: group, ssData: ssData,
-            budgetData: budgetData, netWorth: cats.netWorth
+        // Retirement widget — always-open accordion (same chrome as hub, no toggle)
+        _investBuildAccordion({
+            title: 'Retire Estimate',
+            bodyHtml: _investBuildRetireWidget({
+                ror: ror, atp: atp, annual: annual, monthly: monthly,
+                meAgeInfo: meAgeInfo, retireTitle: retireTitle,
+                group: group, ssData: ssData,
+                budgetData: budgetData, netWorth: cats.netWorth
+            }),
+            toggleFn: null
         }) +
 
-        // All-Time Highs (above category breakdown)
-        (athSummaryHtml ? '<div class="invest-summary-section-title">All-Time Highs</div>' + athSummaryHtml : '') +
+        // All-Time Highs — always-open accordion
+        (athBodyHtml ? _investBuildAccordion({ title: 'All-Time Highs', bodyHtml: athBodyHtml, toggleFn: null }) : '') +
 
         // Period Performance (above category breakdown)
         '<div class="invest-summary-section-title">Period Performance</div>' +

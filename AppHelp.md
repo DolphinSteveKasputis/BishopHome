@@ -1701,10 +1701,12 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 ## screen:investments
 
 ### Quick Help
-- The **Financial** hub is a live dashboard showing **Net Worth**, **Invested** total, and a **Performance** section with Day / Week / Month / YTD gain/loss cards
+- The **Financial** hub shows **Net Worth** and **Invested** totals, then three collapsible accordions — **Performance**, **Retire Estimate**, and **All-Time Highs**
 - If you have more than one group, a **Group** selector appears at the top — switch groups to see a different portfolio view
-- **Performance** is a collapsible accordion — tap the header to show or hide it; the last state is remembered. Inside are four cards (Day, Week, Month, YTD) showing $ gain and % vs. your most recent snapshot of each type. "—" means no snapshot of that type yet
-- The **🏆 All-time high** callout (inside Performance) shows your best net worth recorded. When current value equals or exceeds it, it shows "NEW all-time high!"
+- **Performance** accordion: four cards (Day, Week, Month, YTD) showing $ gain and % vs. your most recent snapshot of each type. "—" means no snapshot of that type yet
+- **Retire Estimate** accordion: the same retirement income widget as the Summary page — estimated annual/monthly income, budget comparison, NW Shortfall, % of Target, and the ⚙ settings gear
+- **All-Time Highs** accordion: four ATH cards (Daily / Weekly / Monthly / Yearly) plus a "vs Daily ATH" companion card showing how far above or below you are right now
+- Each accordion remembers its open/closed state across sessions
 - Below the dashboard are nav cards linking to **Accounts**, **Summary**, **Stock Rollup**, **Snapshots**, **Budgets**, **SS Benefits**, and two coming-soon sections
 - Tap **⚙ Groups** (top right) to create or manage portfolio groups
 - **📡 Update All Prices** button (below the group switcher) fetches the latest prices for all tickers in the active group and refreshes the dashboard numbers. The last-updated time (e.g. "5/5 10:15am") is shown beside the button
@@ -1919,10 +1921,10 @@ Requires a Finnhub API key in Settings. Prices persist in Firestore across sessi
 
 ### Quick Help
 - Shows **Net Worth** and **Invested** totals across all accounts in the selected group
-- **If I retire today at age XX**: six stat cards (Annual, Monthly, Current Income, % To Goal, NW Shortfall, % of Target) — tap **?** on any card to see a plain-English explanation plus the formula with your real numbers; tap ⚙ to configure return rate, after-tax %, ages, and budget
+- **Retire Estimate** section: six stat cards (Annual, Monthly, Current Income, % To Goal, NW Shortfall, % of Target) — tap **?** on any card to see a plain-English explanation plus the formula with your real numbers; tap ⚙ to configure return rate, after-tax %, ages, and budget
+- **All-Time Highs** section: four ATH cards plus a "vs Daily ATH" card — always visible (not collapsible on this page)
 - **Category Breakdown**: Roth, Pre-Tax, Brokerage, Cash, and Uninvested Cash totals with % of Net Worth
 - **Period Performance**: Day / Week / Month / YTD gain or loss vs the most recent snapshot of each type
-- **All-Time Highs**: highest Net Worth ever recorded per snapshot type (Daily/Weekly/Monthly/Yearly)
 - **📡 Update All Prices**: fetches live Finnhub prices for every holding across all accounts in the group; last-updated time (e.g. "5/5 10:15am") is shown below the button
 
 ### Details

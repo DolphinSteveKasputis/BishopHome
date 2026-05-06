@@ -580,12 +580,15 @@ async function _importExecute() {
                 }
             });
 
+            // Match how capture computes invested: netWorth minus uninvested cash
+            var invested = netWorth - (perCategory.invCash || 0);
+
             return _investSnapshotCol().add({
                 groupId   : groupId,
                 type      : snapshotType,
                 date      : row.date,
                 netWorth  : netWorth,
-                invested  : 0,
+                invested  : invested,
                 perCategory: perCategory,
                 perAccount : perAccount,
                 notes     : null,

@@ -180,7 +180,7 @@ const ALL_PAGES = [
     'view', 'view-history', 'views-categories',
     'credentials-add', 'credentials-edit', 'credentials-categories',
     'investments', 'investments-accounts', 'investments-account', 'investments-groups', 'investments-form', 'investments-summary', 'investments-snapshots', 'investments-stocks',
-    'investments-ss-benefits', 'investments-ss-form', 'investments-ai',
+    'investments-ss-benefits', 'investments-ss-form', 'investments-ai', 'investments-import',
     'budget', 'budget-archive', 'budget-nonmonthly',
     'help'
 ];
@@ -220,7 +220,7 @@ const LIFE_PAGES  = ['life', 'journal', 'journal-entry', 'journal-tracking', 'jo
                      'private', 'private-bookmarks', 'private-documents', 'private-photos', 'private-photos-gallery',
                      'credentials', 'credentials-add', 'credentials-edit', 'credentials-categories',
                      'investments', 'investments-accounts', 'investments-account', 'investments-groups', 'investments-form', 'investments-summary', 'investments-snapshots', 'investments-stocks',
-                     'investments-ss-benefits', 'investments-ss-form', 'investments-ai',
+                     'investments-ss-benefits', 'investments-ss-form', 'investments-ai', 'investments-import',
                      'budget', 'budget-archive', 'budget-nonmonthly'];
 
 /** Tracks which nav context is currently active ('yard', 'house', or 'life'). */

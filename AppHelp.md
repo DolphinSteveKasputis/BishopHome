@@ -1897,7 +1897,7 @@ Requires a Finnhub API key in Settings. Prices persist in Firestore across sessi
 
 ### Details
 
-**Step 1 — Upload**: Select the snapshot type, then choose a screenshot file (PNG, JPG, etc.) from your device. A thumbnail preview appears so you can confirm the right image is loaded.
+**Step 1 — Upload**: Select the snapshot type, then load your screenshot — either choose a file from your device or click **+ Paste** to paste directly from the clipboard (after copying a screenshot with Print Screen or Snipping Tool). A thumbnail preview appears so you can confirm the right image is loaded.
 
 **Step 2 — Parse with AI**: Click **Parse with AI**. The app sends the screenshot plus your full account list (names and IDs) to your configured LLM. The AI identifies each column — Net Worth, category totals (Roth, Pre-Tax, Brokerage, Cash, Inv Cash), and individual accounts — and returns structured data.
 

@@ -3502,7 +3502,10 @@ async function _investRenderSummaryPage() {
         '<div class="invest-summary-categories">' +
             _investCategoryRow('Roth',            cats.roth,      cats.netWorth, 'invest-badge--roth') +
             _investCategoryRow('Pre-Tax',         cats.preTax,    cats.netWorth, 'invest-badge--pretax') +
-            _investCategoryRow('Brokerage',       cats.brokerage, cats.netWorth, 'invest-badge--brokerage') +
+            _investCategoryRow('Brokerage',       cats.brokerage, cats.netWorth, 'invest-badge--brokerage',
+                cats.brokerageCostBasisKnown
+                    ? 'taxable ' + _investFmtCurrency(cats.brokerage - cats.brokerageCostBasisTotal)
+                    : null) +
             _investCategoryRow('Cash',            cats.cash,      cats.netWorth, 'invest-badge--cash') +
             _investCategoryRow('Uninvested Cash', cats.invCash,   cats.netWorth, 'invest-badge--other') +
             '<div class="invest-summary-cat-row invest-summary-cat-total">' +
@@ -3521,13 +3524,16 @@ async function _investRenderSummaryPage() {
 
 // ---------- Summary Helpers ----------
 
-function _investCategoryRow(label, value, total, badgeCls) {
+function _investCategoryRow(label, value, total, badgeCls, taxableNote) {
     var pct = (total > 0) ? (value / total * 100).toFixed(1) + '%' : '—';
+    var noteHtml = taxableNote
+        ? '<span class="invest-cat-taxable-note">' + escapeHtml(taxableNote) + '</span>'
+        : '';
     return '<div class="invest-summary-cat-row">' +
         '<div class="invest-summary-cat-label">' +
             '<span class="invest-type-badge ' + escapeHtml(badgeCls) + '">' + escapeHtml(label) + '</span>' +
         '</div>' +
-        '<div class="invest-summary-cat-value">' + _investFmtCurrency(value) + '</div>' +
+        '<div class="invest-summary-cat-value">' + noteHtml + _investFmtCurrency(value) + '</div>' +
         '<div class="invest-summary-cat-pct">' + escapeHtml(pct) + '</div>' +
     '</div>';
 }
@@ -3653,7 +3659,8 @@ async function _investLoadGroupAccounts(group) {
 // ---------- Category Totals ----------
 
 function _investComputeGroupTotals(accounts) {
-    var t = { roth: 0, preTax: 0, brokerage: 0, cash: 0, invCash: 0 };
+    var t = { roth: 0, preTax: 0, brokerage: 0, cash: 0, invCash: 0,
+              brokerageCostBasisTotal: 0, brokerageCostBasisKnown: false };
 
     accounts.forEach(function(acct) {
         var type   = acct.accountType || '';
@@ -3666,7 +3673,16 @@ function _investComputeGroupTotals(accounts) {
             // Category buckets include the full account total (holdings + cash + pending)
             if      (_INVEST_ROTH_TYPES.indexOf(type)   >= 0) t.roth      += totals.total;
             else if (_INVEST_PRETAX_TYPES.indexOf(type) >= 0) t.preTax    += totals.total;
-            else if (_INVEST_BROKER_TYPES.indexOf(type) >= 0) t.brokerage += totals.total;
+            else if (_INVEST_BROKER_TYPES.indexOf(type) >= 0) {
+                t.brokerage += totals.total;
+                // Sum cost basis for brokerage holdings (costBasis is per-share)
+                (acct._holdings || []).forEach(function(h) {
+                    if (h.costBasis != null && h.shares != null) {
+                        t.brokerageCostBasisTotal += h.costBasis * h.shares;
+                        t.brokerageCostBasisKnown  = true;
+                    }
+                });
+            }
             // invCash tracked separately so the Uninvested Cash row shows what portion is idle
             t.invCash += totals.cash + (totals.pending || 0);
         }

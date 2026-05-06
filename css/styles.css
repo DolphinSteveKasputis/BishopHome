@@ -15147,6 +15147,12 @@ input[type="date"].invest-snap-more-filter-input   { width: 160px; }
     text-align: right;
     white-space: nowrap;
 }
+.invest-cat-taxable-note {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: #888;
+    margin-right: 8px;
+}
 .invest-summary-cat-pct {
     font-size: 0.78rem;
     color: #888;

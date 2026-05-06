@@ -1919,7 +1919,7 @@ Requires a Finnhub API key in Settings. Prices persist in Firestore across sessi
 
 ### Quick Help
 - Shows **Net Worth** and **Invested** totals across all accounts in the selected group
-- **If I retired today**: estimated annual and monthly income based on your return rate and after-tax percentage
+- **If I retire today at age XX**: estimated annual and monthly income combining investments + Social Security; tap ⚙ to set retirement ages, return rate, after-tax %, and budget comparison
 - **Category Breakdown**: Roth, Pre-Tax, Brokerage, Cash, and Uninvested Cash totals with % of Net Worth
 - **Period Performance**: Day / Week / Month / YTD gain or loss vs the most recent snapshot of each type
 - **All-Time Highs**: highest Net Worth ever recorded per snapshot type (Daily/Weekly/Monthly/Yearly)
@@ -1936,7 +1936,13 @@ Requires a Finnhub API key in Settings. Prices persist in Firestore across sessi
 - **Cash** (blue): Checking, Savings, Money Market, CD — the account's full balance
 - **Uninvested Cash**: informational row only — shows the combined idle cash and pending activity sitting inside your Roth/Pre-Tax/Brokerage accounts. Already included in those category totals above; **not** added to Net Worth a second time.
 
-**Retirement widget**: Computed as `Invested × Return Rate × After-Tax %`. Edit **Return Rate** (e.g. 0.06 = 6%) and **After-Tax %** (e.g. 0.82 = 82%) inline, then tap **Recalculate** to update and save. Values are stored in `investmentConfig/main` and persist across sessions.
+**"If I retire today" widget**: Shows estimated retirement income combining investments and Social Security. Tap **⚙** to open settings:
+- **Retirement age per person**: each person in your group gets their own age — picks from 62/63/64/65/67/70 or a custom number. Drives the SS lookup (exact age match in their SS benefits snapshot) and the card title.
+- **Return Rate**: decimal (e.g. 0.06 = 6%) — applied to Net Worth for investment income
+- **After-Tax %**: decimal (e.g. 0.82 = 82%) — applied to both investment income and SS income
+- **Budget**: pick any budget to compare. Default budget shows **Current Income** (your actual income). Other budgets show **Total Expenses** under the budget's name. The **% To Goal** stat shows that budget number ÷ monthly retirement income.
+- Hover over the Annual or Monthly values to see the exact formula used (with actual rates filled in).
+- If no birthday is set for your "me" contact, the widget prompts you to add it (used for age display only — not required for the calculations).
 
 **Group switcher**: If more than one group exists, a dropdown appears at the top to switch between groups. Joint accounts are only included in a group's totals when ALL parties of the joint account are members of that group.
 

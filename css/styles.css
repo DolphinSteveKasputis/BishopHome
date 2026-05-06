@@ -15063,6 +15063,24 @@ input[type="date"].invest-snap-more-filter-input   { width: 160px; }
     font-size: 0.82rem;
     background: #fff;
 }
+.invest-config-budget-sel {
+    width: 160px;
+}
+.invest-retire-age-sel {
+    width: 90px;
+}
+/* Budget comparison + % To Goal stats */
+.invest-summary-retire-stat--budget,
+.invest-summary-retire-stat--pct {
+    border-left: 1px solid #c8e6c9;
+    padding-left: 12px;
+}
+.invest-retire-pct {
+    color: #b45309;
+}
+.invest-retire-pct--good {
+    color: #15803d;
+}
 
 /* Birthday prompt on retire widget */
 .invest-bday-prompt {

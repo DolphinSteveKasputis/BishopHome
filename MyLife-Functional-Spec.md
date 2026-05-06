@@ -1373,7 +1373,20 @@ Dashboard page showing totals for the selected group.
 
 **Hero row**: Net Worth card + Invested card (two columns).
 
-**If I retired today widget**: Green card showing estimated Annual and Monthly income. Formula: `Invested × projectedRoR × afterTaxPct`. Inline fields let the user edit Return Rate and After-Tax % and tap **Recalculate** to save and re-render. Config stored in `userCol('investmentConfig').doc('main')` (auto-created with defaults `projectedRoR: 0.06`, `afterTaxPct: 0.82`).
+**If I retired today widget**: Green card with estimated Annual and Monthly retirement income. Full spec:
+
+- **Title**: "If I retire today at age XX (after est. taxes)" — XX = self person's configured retirement age. Falls back to "If I retire today (after est. taxes)" if no age set.
+- **Annual / Monthly stats**: Include both investment income and SS income. Formula: `Annual = (NetWorth × RoR × afterTaxPct) + (totalSSMonthly × afterTaxPct × 12)`. Monthly = Annual ÷ 12. Each value has a `title` tooltip showing the formula with actual percentages substituted (e.g. "Investments × 6% × 82% + (SS × 82%)").
+- **Budget comparison stat**: Appears to the right of Monthly when a budget is selected in gear. If selected budget is the default budget → shows `totalIncome` labeled "Current Income". Otherwise → shows `totalExpenses` labeled with the budget name. Includes non-monthly reserve in expenses (consistent with the budget screen).
+- **% To Goal stat**: Rightmost stat. Formula: `budgetValue / monthly × 100`. Label: "% To Goal". Green when ≥ 100%, amber otherwise.
+- **Birthday prompt**: If no "me" contact exists → inline birthday entry form (month/day/year + Save). Saving auto-creates a contact named "Me" with `isMe=true` and adds a Birthday important date; then re-renders. If "me" contact exists but has no Birthday important date (label match: "birthday", "bday", "birthdate" case-insensitive) → link to that contact's detail page.
+- **Gear panel (⚙)**: Toggled via gear button. Contains:
+  - Per-person retirement age rows (one per person in the active group): label = person's name (or their isMe contact name for 'self'); dropdown 62/63/64/65/67/70/Other; "Other" reveals a number input.
+  - Return Rate field (decimal, e.g. 0.06)
+  - After-Tax % field (decimal, e.g. 0.82)
+  - Budget dropdown (all non-archived budgets; "— No budget —" to clear)
+  - **Recalculate** button saves all settings and re-renders
+- **Config stored** in `userCol('investmentConfig').doc('main')`: `projectedRoR`, `afterTaxPct`, `retirementAges` (object keyed by personId), `selectedBudgetId`. Auto-created on first load with defaults.
 
 **All-Time Highs**: Orange cards (reuses `.invest-snap-ath-*` styles) showing the highest Net Worth ever recorded for each snapshot type (Daily/Weekly/Monthly/Yearly), sourced from `investmentConfig` ATH fields. Only rendered when at least one ATH is recorded. Immediately after the Daily ATH card, a **"vs Daily ATH"** companion card shows the percentage difference between the most recent daily snapshot's net worth and the daily ATH value. Green card = at or above ATH; red card = below ATH. Formula: `(lastDailySnapshot.netWorth − dailyATH.value) / dailyATH.value × 100`.
 
@@ -1392,7 +1405,7 @@ Dashboard page showing totals for the selected group.
 
 **Group switcher**: Shown at top when >1 group exists; switching re-renders the page for the new group. Sets `_investGroupSwitchHandler` to re-render on change.
 
-**investmentConfig collection**: `userCol('investmentConfig')`, single doc `'main'`, fields: `projectedRoR` (number), `afterTaxPct` (number). Auto-created on first summary page load if absent. Included in backup.
+**investmentConfig collection**: `userCol('investmentConfig')`, single doc `'main'`, fields: `projectedRoR` (number), `afterTaxPct` (number), `retirementAges` (object — personId → age), `selectedBudgetId` (string|null). Auto-created on first summary page load if absent. Included in backup.
 
 ### Routes
 | Hash | Page |

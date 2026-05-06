@@ -1194,8 +1194,10 @@ var _investGroupEditId = null;  // null = add mode; group doc ID = edit mode
 
 // ---------- Investment Config State ----------
 
-var _investConfig         = { projectedRoR: 0.06, afterTaxPct: 0.82 };
+var _investConfig         = { projectedRoR: 0.06, afterTaxPct: 0.82, retirementAges: {}, selectedBudgetId: null };
 var _investSummaryGroupId = null;  // selected group on the summary page
+var _investBudgets        = [];    // [{id, name}] all non-archived budgets
+var _investDefaultBudgetId = null; // from settings/app.defaultBudgetId
 
 // ---------- Snapshot page state ----------
 
@@ -1217,10 +1219,10 @@ async function _investLoadConfig() {
     try {
         var doc = await _investConfigCol().doc('main').get();
         if (doc.exists) {
-            _investConfig = Object.assign({ projectedRoR: 0.06, afterTaxPct: 0.82 }, doc.data());
+            _investConfig = Object.assign({ projectedRoR: 0.06, afterTaxPct: 0.82, retirementAges: {}, selectedBudgetId: null }, doc.data());
         } else {
             // Auto-create with defaults
-            await _investConfigCol().doc('main').set({ projectedRoR: 0.06, afterTaxPct: 0.82 });
+            await _investConfigCol().doc('main').set({ projectedRoR: 0.06, afterTaxPct: 0.82, retirementAges: {}, selectedBudgetId: null });
         }
     } catch (e) { console.error('Error loading investmentConfig', e); }
 }
@@ -1242,6 +1244,23 @@ async function _investSaveConfig() {
     if (isNaN(atp) || atp <= 0 || atp > 1) { alert('Enter a decimal fraction (e.g. 0.82 for 82%).'); return; }
     _investConfig.projectedRoR = ror;
     _investConfig.afterTaxPct  = atp;
+
+    // Read per-person retirement ages
+    var ages = {};
+    document.querySelectorAll('.invest-retire-age-row').forEach(function(row) {
+        var pid = row.dataset.personId;
+        var sel = row.querySelector('.invest-retire-age-sel');
+        var txt = row.querySelector('.invest-retire-age-txt');
+        if (!pid || !sel) return;
+        var val = sel.value === 'other' ? parseInt((txt || {}).value || '') : parseInt(sel.value);
+        if (val > 0) ages[pid] = val;
+    });
+    _investConfig.retirementAges = ages;
+
+    // Read selected budget
+    var budgetSel = document.getElementById('investConfigBudget');
+    _investConfig.selectedBudgetId = budgetSel ? (budgetSel.value || null) : _investConfig.selectedBudgetId;
+
     await _investConfigCol().doc('main').set(_investConfig);
     await _investRenderSummaryPage();
 }
@@ -2981,6 +3000,95 @@ async function _investCheckAndUpdateATH(type, netWorth, date, groupId) {
 }
 
 // ============================================================
+// BUDGET HELPERS  (used by retire widget)
+// ============================================================
+
+async function _investLoadBudgets() {
+    try {
+        var [budgetsSnap, settingsDoc] = await Promise.all([
+            userCol('budgets').where('isArchived', '==', false).get(),
+            userCol('settings').doc('app').get()
+        ]);
+        _investBudgets = [];
+        budgetsSnap.forEach(function(d) {
+            _investBudgets.push({ id: d.id, name: d.data().name || 'Budget' });
+        });
+        _investDefaultBudgetId = (settingsDoc.exists && settingsDoc.data().defaultBudgetId) || null;
+    } catch (e) { console.error('_investLoadBudgets error', e); }
+}
+
+async function _investLoadBudgetTotals(budgetId) {
+    if (!budgetId) return null;
+    try {
+        var ref = userCol('budgets').doc(budgetId);
+        var results = await Promise.all([
+            ref.get(),
+            ref.collection('categories').orderBy('sortOrder').get(),
+            ref.collection('lineItems').get(),
+            ref.collection('incomeItems').get(),
+            ref.collection('nonMonthlyItems').get()
+        ]);
+        var budgetDoc = results[0], catsSnap = results[1], itemsSnap = results[2],
+            incomeSnap = results[3], nonMonthlySnap = results[4];
+        if (!budgetDoc.exists) return null;
+        var cats = catsSnap.docs.map(function(d) { return Object.assign({ localId: d.id }, d.data()); });
+        var byCat = {};
+        itemsSnap.docs.forEach(function(d) {
+            var item = d.data();
+            if (item.categoryId && item.amount) byCat[item.categoryId] = (byCat[item.categoryId] || 0) + (parseFloat(item.amount) || 0);
+        });
+        var nonMonthlyReserve = Math.round(
+            nonMonthlySnap.docs
+                .filter(function(d) { return d.data().isActive !== false; })
+                .reduce(function(s, d) { return s + (parseFloat(d.data().amount) || 0); }, 0) / 12
+        );
+        var totalExpenses = cats.reduce(function(s, c) { return s + (byCat[c.localId] || 0); }, 0) + nonMonthlyReserve;
+        var totalIncome   = incomeSnap.docs.reduce(function(s, d) { return s + (parseFloat(d.data().amount) || 0); }, 0);
+        return {
+            id: budgetId,
+            name: budgetDoc.data().name || 'Budget',
+            isDefault: budgetId === _investDefaultBudgetId,
+            totalExpenses: totalExpenses,
+            totalIncome: totalIncome
+        };
+    } catch (e) { console.error('_investLoadBudgetTotals error', e); return null; }
+}
+
+// Loads SS monthly income for each person in the group at their configured retirement age.
+// Returns { totalSSMonthly, breakdown: [{personId, name, age, ssMonthly}] }
+async function _investLoadGroupSS(group) {
+    var personIds      = group.personIds || ['self'];
+    var retirementAges = _investConfig.retirementAges || {};
+    var result         = { totalSSMonthly: 0, breakdown: [] };
+    try {
+        var allSnap = await userCol('ssBenefits').get();
+        var byPerson = {};
+        allSnap.forEach(function(d) {
+            var data = d.data();
+            if (!byPerson[data.personId]) byPerson[data.personId] = [];
+            byPerson[data.personId].push(data);
+        });
+        Object.keys(byPerson).forEach(function(pid) {
+            byPerson[pid].sort(function(a, b) { return (b.asOfDate || '').localeCompare(a.asOfDate || ''); });
+        });
+        personIds.forEach(function(pid) {
+            var retireAge = parseInt(retirementAges[pid] || 0);
+            if (!retireAge) return;
+            var snapshots = byPerson[pid] || [];
+            if (!snapshots.length) return;
+            var entries   = snapshots[0].entries || [];
+            var entry     = entries.find(function(e) { return parseInt(e.age) === retireAge; });
+            if (!entry) return;
+            var monthly = parseFloat(entry.monthly) || 0;
+            result.totalSSMonthly += monthly;
+            var name = pid === 'self' ? 'Me' : ((_investPeople.find(function(p) { return p.id === pid; }) || {}).name || pid);
+            result.breakdown.push({ personId: pid, name: name, age: retireAge, ssMonthly: monthly });
+        });
+    } catch (e) { console.error('_investLoadGroupSS error', e); }
+    return result;
+}
+
+// ============================================================
 // "ME" CONTACT — birthday lookup helpers
 // ============================================================
 
@@ -3107,6 +3215,119 @@ async function loadInvestmentsSummaryPage() {
     await _investRenderSummaryPage();
 }
 
+// Builds the full HTML for the "If I Retire Today" widget on the summary page.
+function _investBuildRetireWidget(p) {
+    var ror = p.ror, atp = p.atp, annual = p.annual, monthly = p.monthly;
+    var meAgeInfo = p.meAgeInfo, retireTitle = p.retireTitle;
+    var group = p.group, ssData = p.ssData, budgetData = p.budgetData;
+
+    // Tooltip math strings
+    var rorPct   = Math.round(ror * 100 * 10) / 10;   // e.g. 6
+    var atpPct   = Math.round(atp * 100);               // e.g. 82
+    var ssNote   = ssData.totalSSMonthly > 0 ? ' + (SS × ' + atpPct + '%)' : '';
+    var annualTip = '(Investments × ' + rorPct + '% × ' + atpPct + '%)' + ssNote;
+    var monthlyTip = annualTip + ' ÷ 12';
+
+    // Budget comparison stat
+    var budgetStatHtml = '';
+    var pctGoalHtml    = '';
+    if (budgetData) {
+        var isDefault   = budgetData.isDefault;
+        var budgetVal   = isDefault ? budgetData.totalIncome : budgetData.totalExpenses;
+        var budgetLabel = isDefault ? 'Current Income' : budgetData.name;
+        var pctGoal     = monthly > 0 ? Math.round(budgetVal / monthly * 100) : 0;
+        budgetStatHtml =
+            '<div class="invest-summary-retire-stat invest-summary-retire-stat--budget">' +
+                '<span class="invest-summary-retire-label">' + escapeHtml(budgetLabel) + '</span>' +
+                '<span class="invest-summary-retire-val">' + _investFmtCurrency(budgetVal) + '</span>' +
+            '</div>';
+        pctGoalHtml =
+            '<div class="invest-summary-retire-stat invest-summary-retire-stat--pct">' +
+                '<span class="invest-summary-retire-label">% To Goal</span>' +
+                '<span class="invest-summary-retire-val invest-retire-pct' + (pctGoal >= 100 ? ' invest-retire-pct--good' : '') + '">' + pctGoal + '%</span>' +
+            '</div>';
+    }
+
+    // Gear panel — per-person age rows
+    var personIds  = group.personIds || ['self'];
+    var ages       = _investConfig.retirementAges || {};
+    var ageOptions = [62, 63, 64, 65, 67, 70];
+    var ageRowsHtml = personIds.map(function(pid) {
+        var pName    = pid === 'self' ? (meAgeInfo.meContactName || 'Me') : ((_investPeople.find(function(p) { return p.id === pid; }) || {}).name || pid);
+        var curAge   = ages[pid] || '';
+        var isOther  = curAge && ageOptions.indexOf(parseInt(curAge)) === -1;
+        var selHtml  = '<select class="invest-config-input invest-retire-age-sel" onchange="_investToggleOtherAge(this)">' +
+            '<option value="">— Age —</option>' +
+            ageOptions.map(function(a) {
+                return '<option value="' + a + '"' + (parseInt(curAge) === a ? ' selected' : '') + '>' + a + '</option>';
+            }).join('') +
+            '<option value="other"' + (isOther ? ' selected' : '') + '>Other</option>' +
+        '</select>';
+        var txtHtml = '<input type="number" class="invest-config-input invest-retire-age-txt" min="40" max="85" placeholder="Age"' +
+            ' value="' + (isOther ? curAge : '') + '"' +
+            ' style="' + (isOther ? '' : 'display:none') + '">';
+        return '<div class="invest-summary-retire-config-row invest-retire-age-row" data-person-id="' + escapeHtml(pid) + '">' +
+            '<label>' + escapeHtml(pName) + ' retires at</label>' + selHtml + txtHtml +
+        '</div>';
+    }).join('');
+
+    // Gear panel — budget dropdown
+    var budgetOpts = '<option value="">— No budget —</option>';
+    _investBudgets.forEach(function(b) {
+        var sel = (_investConfig.selectedBudgetId === b.id) ? ' selected' : '';
+        budgetOpts += '<option value="' + escapeHtml(b.id) + '"' + sel + '>' + escapeHtml(b.name) + '</option>';
+    });
+    var budgetRowHtml = _investBudgets.length > 0
+        ? '<div class="invest-summary-retire-config-row">' +
+              '<label>Budget</label>' +
+              '<select id="investConfigBudget" class="invest-config-input invest-config-budget-sel">' + budgetOpts + '</select>' +
+          '</div>'
+        : '';
+
+    return '<div class="invest-summary-retire">' +
+        '<div class="invest-summary-retire-title">' +
+            escapeHtml(retireTitle) +
+            '<button class="invest-retire-gear" id="investRetireGearBtn" onclick="_investToggleRetireConfig()" title="Settings">⚙</button>' +
+        '</div>' +
+        '<div class="invest-summary-retire-amounts">' +
+            '<div class="invest-summary-retire-stat">' +
+                '<span class="invest-summary-retire-label">Annual</span>' +
+                '<span class="invest-summary-retire-val" title="' + escapeHtml(annualTip) + '">' + _investFmtCurrency(annual) + '</span>' +
+            '</div>' +
+            '<div class="invest-summary-retire-stat">' +
+                '<span class="invest-summary-retire-label">Monthly</span>' +
+                '<span class="invest-summary-retire-val" title="' + escapeHtml(monthlyTip) + '">' + _investFmtCurrency(monthly) + '</span>' +
+            '</div>' +
+            budgetStatHtml +
+            pctGoalHtml +
+        '</div>' +
+        _investBirthdayPromptHtml(meAgeInfo) +
+        '<div class="invest-summary-retire-config" id="investRetireConfig" style="' + (_investRetireConfigOpen ? '' : 'display:none') + '">' +
+            ageRowsHtml +
+            '<div class="invest-summary-retire-config-row">' +
+                '<label>Return Rate</label>' +
+                '<input type="number" id="investConfigRoR" class="invest-config-input" step="0.001" min="0.001" max="1" placeholder="0.06" value="' + ror + '">' +
+            '</div>' +
+            '<div class="invest-summary-retire-config-row">' +
+                '<label>After-Tax %</label>' +
+                '<input type="number" id="investConfigAfterTax" class="invest-config-input" step="0.01" min="0.01" max="1" placeholder="0.82" value="' + atp + '">' +
+            '</div>' +
+            budgetRowHtml +
+            '<button class="btn btn-secondary btn-small" onclick="_investSaveConfig()">Recalculate</button>' +
+        '</div>' +
+    '</div>';
+}
+
+// Shows/hides the "other age" text input when user picks "Other" from age dropdown.
+function _investToggleOtherAge(sel) {
+    var row = sel.closest('.invest-retire-age-row');
+    if (!row) return;
+    var txt = row.querySelector('.invest-retire-age-txt');
+    if (!txt) return;
+    txt.style.display = sel.value === 'other' ? '' : 'none';
+    if (sel.value === 'other') txt.focus();
+}
+
 async function _investRenderSummaryPage() {
     var page = document.getElementById('page-investments-summary');
     if (!page) return;
@@ -3123,17 +3344,37 @@ async function _investRenderSummaryPage() {
 
     var accounts  = await _investLoadGroupAccounts(group);
     var cats      = _investComputeGroupTotals(accounts);
-    var baselines = await _investLoadPeriodBaselines(group.id);
-    var meAgeInfo = await _investGetMeAge();
+    var results   = await Promise.all([
+        _investLoadPeriodBaselines(group.id),
+        _investGetMeAge(),
+        _investLoadBudgets(),
+        _investLoadGroupSS(group),
+        _investLoadBudgetTotals(_investConfig.selectedBudgetId || null)
+    ]);
+    var baselines   = results[0];
+    var meAgeInfo   = results[1];
+    // _investLoadBudgets populates _investBudgets/_investDefaultBudgetId as side-effects (result[2] is void)
+    var ssData      = results[3];
+    var budgetData  = results[4];
 
     // Self-heal ATH from baselines (each baseline is the most recent snapshot of its type).
     // Lightweight alternative to loading all snapshots — enough to catch the common migration case.
     await _investRecomputeGroupATH(Object.values(baselines).filter(Boolean), group.id);
 
-    var ror       = _investConfig.projectedRoR || 0.06;
-    var atp      = _investConfig.afterTaxPct  || 0.82;
-    var annual   = cats.netWorth * ror * atp;
-    var monthly  = annual / 12;
+    var ror           = _investConfig.projectedRoR || 0.06;
+    var atp           = _investConfig.afterTaxPct  || 0.82;
+    var investAnnual  = cats.netWorth * ror * atp;
+    var ssMonthly     = (ssData.totalSSMonthly || 0) * atp;
+    var annual        = investAnnual + ssMonthly * 12;
+    var monthly       = annual / 12;
+
+    // Self person's retirement age (drives card title)
+    var selfAge       = (_investConfig.retirementAges || {})['self'] || null;
+
+    // Build retire card title
+    var retireTitle   = selfAge
+        ? 'If I retire today at age ' + selfAge + ' (after est. taxes)'
+        : 'If I retire today (after est. taxes)';
 
     // Group switcher (only shown when >1 group exists)
     var switcherHtml = '';
@@ -3237,39 +3478,12 @@ async function _investRenderSummaryPage() {
         '</div>' +
 
         // Retirement widget
-        '<div class="invest-summary-retire">' +
-            '<div class="invest-summary-retire-title">' +
-                'If I retired today (after est. taxes)' +
-                '<button class="invest-retire-gear" id="investRetireGearBtn" onclick="_investToggleRetireConfig()" title="Settings">⚙</button>' +
-            '</div>' +
-            '<div class="invest-summary-retire-amounts">' +
-                '<div class="invest-summary-retire-stat">' +
-                    '<span class="invest-summary-retire-label">Annual</span>' +
-                    '<span class="invest-summary-retire-val">' + _investFmtCurrency(annual) + '</span>' +
-                '</div>' +
-                '<div class="invest-summary-retire-stat">' +
-                    '<span class="invest-summary-retire-label">Monthly</span>' +
-                    '<span class="invest-summary-retire-val">' + _investFmtCurrency(monthly) + '</span>' +
-                '</div>' +
-            '</div>' +
-            _investBirthdayPromptHtml(meAgeInfo) +
-            '<div class="invest-summary-retire-config" id="investRetireConfig"' +
-                    ' style="' + (_investRetireConfigOpen ? '' : 'display:none') + '">' +
-                '<div class="invest-summary-retire-config-row">' +
-                    '<label>Return Rate</label>' +
-                    '<input type="number" id="investConfigRoR" class="invest-config-input"' +
-                        ' step="0.001" min="0.001" max="1" placeholder="0.06"' +
-                        ' value="' + ror + '">' +
-                '</div>' +
-                '<div class="invest-summary-retire-config-row">' +
-                    '<label>After-Tax %</label>' +
-                    '<input type="number" id="investConfigAfterTax" class="invest-config-input"' +
-                        ' step="0.01" min="0.01" max="1" placeholder="0.82"' +
-                        ' value="' + atp + '">' +
-                '</div>' +
-                '<button class="btn btn-secondary btn-small" onclick="_investSaveConfig()">Recalculate</button>' +
-            '</div>' +
-        '</div>' +
+        _investBuildRetireWidget({
+            ror: ror, atp: atp, annual: annual, monthly: monthly,
+            meAgeInfo: meAgeInfo, retireTitle: retireTitle,
+            group: group, ssData: ssData,
+            budgetData: budgetData
+        }) +
 
         // All-Time Highs (above category breakdown)
         (athSummaryHtml ? '<div class="invest-summary-section-title">All-Time Highs</div>' + athSummaryHtml : '') +

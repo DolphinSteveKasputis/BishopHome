@@ -2215,7 +2215,7 @@ Firebase Storage requires a one-time CORS configuration before files can be down
 
 **Contact detail page sections:**
 - **Contact info:** Phone (tappable tel: link), email (tappable mailto: link), address (tappable Google Maps link), website (external link), Facebook, how known, specialty (Medical Professional), notes.
-- **Important Dates:** Birthdays, anniversaries, and other recurring dates. Month and day required; year optional (age calculation requires year). Annual dates feed the Coming Up section on the Life home page. Add with **+ Add Date** -- label, month, day, optional year, recurrence.
+- **Important Dates:** Birthdays, anniversaries, and other recurring dates. Month and day required; year optional (age calculation requires year). Annual dates feed the Coming Up section on the Life home page. Add with **+ Add Date** -- label (type freely or pick from suggestions: Birthday, Wedding Anniversary, Graduation, Work Anniversary), month, day, optional year, recurrence.
 - **Photos:** Full photo gallery with profile photo support. First photo uploaded auto-sets the profile thumbnail shown on the contact list card.
 - **Interactions:** A log of times you met, talked, or interacted with this person. Add entries with date and free-form text. Interactions also appear in the All Activity timeline.
 - **Shared Life Events:** Life Calendar events that tag this contact appear here, showing what events you have attended or planned together.

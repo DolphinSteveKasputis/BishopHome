@@ -15,7 +15,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=669">
+    <link rel="stylesheet" href="css/styles.css?v=670">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -4739,7 +4739,13 @@ service firebase.storage {
             <h3 id="importantDateModalTitle">Add Important Date</h3>
             <div class="form-group">
                 <label for="importantDateLabelInput">Label</label>
-                <input type="text" id="importantDateLabelInput" placeholder="e.g., Birthday, Anniversary, Graduation">
+                <input type="text" id="importantDateLabelInput" list="importantDateLabelSuggestions" placeholder="e.g., Birthday, Anniversary, Graduation">
+                <datalist id="importantDateLabelSuggestions">
+                    <option value="Birthday">
+                    <option value="Wedding Anniversary">
+                    <option value="Graduation">
+                    <option value="Work Anniversary">
+                </datalist>
             </div>
             <div class="form-group">
                 <label>Date</label>

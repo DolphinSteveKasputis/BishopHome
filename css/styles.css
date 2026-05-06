@@ -6526,6 +6526,15 @@ img.collection-item-row-thumb {
     color: #888;
     font-style: italic;
 }
+.person-me-badge {
+    background: #dcfce7;
+    color: #15803d;
+    border-radius: 10px;
+    padding: 2px 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
 .person-category-badge {
     background: #e0f2fe;
     color: #0369a1;

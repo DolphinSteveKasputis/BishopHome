@@ -762,7 +762,7 @@ Daily entry logging with optional tracking metrics.
 Renamed from "People". Tracks personal contacts and medical/service professionals and facilities.
 
 **Firestore** (collection name unchanged: `people`):
-- `people` — `name`, `nickname`, `category` (see below), `specialty?`, `personalType?`, `businessType?`, `phone`, `email`, `address`, `website?`, `facebookUrl`, `howKnown`, `notes`, `quickMention` (bool — shown as "Include in quick mentions" checkbox in add/edit modal), `profilePhotoData?`, `parentPersonId?`, `createdAt`
+- `people` — `name`, `nickname`, `category` (see below), `specialty?`, `personalType?`, `businessType?`, `phone`, `email`, `address`, `website?`, `facebookUrl`, `howKnown`, `notes`, `quickMention` (bool — shown as "Include in quick mentions" checkbox in add/edit modal), `isMe` (bool — exclusive; only one contact may have `true` at a time; saving with `isMe=true` clears the flag on all other contacts via batch write; used by Investments to find the user's birthday for age/retirement calculations; shown as a green "✓ This is me" badge on the contact detail page), `profilePhotoData?`, `parentPersonId?`, `createdAt`
 - `peopleImportantDates` — `personId`, `label`, `month`, `day`, `year?`, `recurrence`, `createdAt`
 - `peopleInteractions` — `personId`, `date`, `text`, `sourceType`, `createdAt`
 - `lookups/serviceTrades` — `{ values: [...] }` full list of trades (defaults: Plumber, Electrician, HVAC, Pest Control, Handyman)

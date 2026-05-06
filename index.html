@@ -15,7 +15,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=668">
+    <link rel="stylesheet" href="css/styles.css?v=669">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -4714,6 +4714,12 @@ service firebase.storage {
             </div>
             <div class="form-group">
                 <label class="show-toggle" style="font-weight:normal;">
+                    <input type="checkbox" id="personIsMeInput">
+                    This is me (used for age/retirement calculations)
+                </label>
+            </div>
+            <div class="form-group">
+                <label class="show-toggle" style="font-weight:normal;">
                     <input type="checkbox" id="personQuickMentionInput">
                     Include in quick mentions (@)
                 </label>
@@ -9379,6 +9385,7 @@ service firebase.storage {
                 <div id="personDetailAvatar"></div>
                 <div class="person-identity-info">
                     <div id="personDetailNickname" class="person-nickname-display"></div>
+                    <span id="personDetailMeBadge" class="person-me-badge" style="display:none;">&#10003; This is me</span>
                     <span id="personDetailCategory" class="person-category-badge" style="display:none;"></span>
                 </div>
             </div>
@@ -10720,7 +10727,7 @@ export default {
     <script src="js/structures.js?v=537"></script>
     <script src="js/moveThings.js?v=350"></script>
     <script src="js/journal.js?v=547"></script>
-    <script src="js/contacts.js?v=545"></script>
+    <script src="js/contacts.js?v=546"></script>
     <script src="js/beneficiaries.js?v=543"></script>
     <script src="js/collections.js?v=537"></script>
     <script src="js/health.js?v=380"></script>

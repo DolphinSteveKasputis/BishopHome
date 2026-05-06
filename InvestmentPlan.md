@@ -639,3 +639,131 @@ Each phase is a complete, testable chunk. Build in order — later phases depend
 ## Open Questions — SS Benefits (Screen 6.5)
 
 *(none — all decisions resolved. Ready to build.)*
+
+---
+
+## Modifications Part 1 — "If I Retire Today" Card Enhancements
+
+*Status: DISCUSSING — not yet implemented*
+
+### What we're changing
+The "If I Retire Today" card on the Portfolio Summary screen (`#investments/summary`).
+
+**Current state of the card:**
+- Est. annual income: Net Worth × `projectedRoR` (default 6%)
+- Est. monthly after-tax: (annual ÷ 12) × `afterTaxPct` (default 82%)
+- SS rows: placeholder (not yet wired up)
+
+### Proposed changes
+
+| # | Change | Status |
+|---|--------|--------|
+| 1 | Add retirement age dropdown to gear (62,63,64,65,67,70,Other) | Discussing |
+| 2 | Change card title to "If I retire today at age XX (...)" | Discussing |
+| 3 | Roll SS income into annual/monthly numbers; tooltip shows math formula | Discussing |
+| 4 | Add budget selector to gear dropdown | Discussing |
+| 5 | Show budget comparison value (income or expenses) to the right of Monthly | Discussing |
+| 6 | Show "% To Goal" = budget_value / monthly_expected to the right of that | Discussing |
+
+### Detail
+
+**Item 1 — Retirement age in gear:**
+- Dropdown options: 62, 63, 64, 65, 67, 70, Other
+- "Other" reveals a text input for custom age entry
+- Stored in `investmentConfig` doc alongside `projectedRoR` and `afterTaxPct`
+- Sticky (persists across sessions, same as the other two settings)
+
+**Item 2 — Card title:**
+- Changes from `"If I retired today (after est. taxes)"` to `"If I retire today at age XX (after est. taxes)"`
+- XX filled with selected retirement age
+
+**Item 3 — SS rolled into annual/monthly:**
+- For each person in the active group, look up their most recent SS snapshot in `ssBenefits`
+- If the selected retirement age exactly matches an entry in their snapshot → use that monthly amount
+- If no exact match → no SS contribution for that person (no interpolation)
+- SS tax calculation: SS_monthly × `afterTaxPct` (same tax rate as investments; SS has no RoR multiplier)
+- Investment portion: `(netWorth × projectedRoR / 12) × afterTaxPct`
+- Combined monthly: investment_monthly_aftertax + Σ(ss_monthly_per_person × afterTaxPct)
+- Annual: combined_monthly × 12
+- **Tooltip on Annual value:** shows formula like `(Investments × 0.06 × 0.82) + (SS × 0.82)` with actual config values substituted
+- **Tooltip on Monthly value:** same formula ÷ 12
+
+**Item 4 — Budget selector in gear:**
+- Dropdown populated from `userCol('budgets')` where `isArchived == false`
+- Default selection: the user's default budget (stored in `settings/app.defaultBudgetId`)
+- Stored in `investmentConfig` doc as `selectedBudgetId`
+
+**Item 5 — Budget comparison value:**
+- Displayed to the right of the Monthly stat on the card
+- If selected budget IS the default budget → show `totalIncome` from that budget, label = "Current Income"
+- If selected budget is NOT the default → show `totalExpenses`, label = budget name
+- Note: these totals are computed from budget subcollections (categories, lineItems, incomeItems); need a fresh load when gear selection changes
+
+**Item 6 — % To Goal:**
+- Formula: `budget_value / monthly_expected` × 100
+- Displayed to the right of the budget comparison value
+- Label: "% To Goal"
+- Goal: see how much of expected retirement income is covered by (or needed for) the selected budget
+
+### Decisions Made
+
+| # | Decision |
+|---|----------|
+| 2 | Extra Firestore reads for budget subcollections are fine — load fresh |
+| 3 | "Other" retirement age: accept any whole number, no range restriction |
+| 4 | `totalExpenses` includes the non-monthly reserve (consistent with budget screen) |
+| 5 | Per-person retirement ages — each person in the group gets their own age input in the gear |
+
+---
+
+## Modifications Part 1 — Prerequisite: Contact "Me" Flag + Birthday
+
+*These are foundational changes required before age-based calculations work.*
+
+### A — "This Is Me" flag on contacts
+
+- Add `isMe: boolean` field to `userCol('people')` docs
+- Add a "This is me" checkbox to the person add/edit modal
+- **Exclusive flag:** when checked for one contact, immediately clears `isMe` on all others (Firestore batch update)
+- Only one contact can ever have `isMe: true` at a time
+- Used by investments to find the user's own birthdate + SS data
+
+### B — Important Dates: label field → datalist combobox
+
+- The label field in the Add/Edit Important Date modal is currently a plain `<input type="text">`
+- Change it to an `<input list="importantDateLabels">` + `<datalist>` with pre-built suggestions:
+  - **Birthday**
+  - **Wedding Anniversary**
+- User can still type any free-form label — datalist is suggestions only, not a hard constraint
+- No existing data is affected (labels are already just strings)
+- `peopleImportantDates` collection fields unchanged: `{ personId, label, month, day, year, recurrence }`
+
+### C — Birthday lookup flow (used by investments summary)
+
+1. Find contact where `isMe === true` in `userCol('people')`
+2. Query `userCol('peopleImportantDates')` where `personId = meContact.id`
+3. Find entry where `label` matches `'Birthday'` (case-insensitive)
+4. Use `{ month, day, year }` to compute current age (year is required; month/day for precision)
+5. **If no birthday found on the "me" contact:** show a prompt on the invest summary card: "Add your birthday to calculate retirement age" — tapping opens the important date modal for that contact pre-filled with label="Birthday"
+6. **If no "me" contact exists at all:** show prompt: "Set up a 'This is me' contact to enable age features" — tapping navigates to contacts page
+7. Age = current year - birth year, adjusted if birthday hasn't occurred yet this year
+
+### D — Per-person retirement ages in the gear
+
+- `investmentConfig` gains field: `retirementAges: { 'self': 65, '{contactId}': 63 }` (keyed by personId)
+- In the gear panel, show one retirement age row per person in the active group:
+  - Label = person's name (or "Me" for self)
+  - Dropdown: 62, 63, 64, 65, 67, 70, Other — same options for each
+  - "Other" on any row reveals a number input for that person
+- Card title: uses the self person's selected retirement age → `"If I retire today at age XX (after est. taxes)"`
+- SS lookup per person: uses their individual retirement age from `retirementAges`
+
+### Decisions
+
+| # | Decision |
+|---|----------|
+| 1 | Birthday label match: case-insensitive, matches "birthday", "bday", "birth day" |
+| 2 | Gear shows person's actual name from contact; falls back to "Me" if no isMe contact |
+| 3a | isMe contact exists but no birthday → navigate to their contact detail page |
+| 3b | No isMe contact at all → show inline prompt for bday only; auto-create a contact named "Me" with isMe=true and save the birthday as an important date on it |
+| 4 | Card title uses self person's retirement age only: "If I retire today at age XX (after est. taxes)" |

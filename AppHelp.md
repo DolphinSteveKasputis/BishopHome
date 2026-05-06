@@ -2211,6 +2211,8 @@ Firebase Storage requires a one-time CORS configuration before files can be down
 **Adding a contact:**
 - Tap **+ Add Contact** -- select category, fill in name, type/specialty/trade as applicable, phone, email, address, website, Facebook URL, how you know them, notes, and whether to include in quick @mentions.
 
+**"This is me" flag:** One contact can be flagged as you. Check "This is me" on a contact's add/edit form. Only one contact can hold this flag at a time -- saving it here clears it from everyone else. A green **✓ This is me** badge appears on that contact's detail page. The Investments section uses this contact to find your birthday for retirement age calculations.
+
 **Contact detail page sections:**
 - **Contact info:** Phone (tappable tel: link), email (tappable mailto: link), address (tappable Google Maps link), website (external link), Facebook, how known, specialty (Medical Professional), notes.
 - **Important Dates:** Birthdays, anniversaries, and other recurring dates. Month and day required; year optional (age calculation requires year). Annual dates feed the Coming Up section on the Life home page. Add with **+ Add Date** -- label, month, day, optional year, recurrence.

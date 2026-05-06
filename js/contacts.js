@@ -543,6 +543,10 @@ function renderPersonDetail(person, parentPerson) {
     document.getElementById('personDetailName').textContent     = person.name || '';
     document.getElementById('personDetailNickname').textContent = person.nickname ? '"' + person.nickname + '"' : '';
 
+    // "This is me" badge
+    var meBadgeEl = document.getElementById('personDetailMeBadge');
+    if (meBadgeEl) meBadgeEl.style.display = person.isMe ? '' : 'none';
+
     // Contact type badge (show new-style, fall back gracefully for old records)
     var contactType = CONTACT_CATEGORIES.indexOf(person.category) !== -1
         ? person.category
@@ -729,6 +733,7 @@ async function openAddContactModal(parentPersonId) {
     document.getElementById('personFacebookInput').value   = '';
     document.getElementById('personNotesInput').value      = '';
     document.getElementById('personSpecialtyInput').value  = '';
+    document.getElementById('personIsMeInput').checked           = false;
     document.getElementById('personQuickMentionInput').checked   = false;
     document.getElementById('personModalDeleteBtn').style.display = 'none';
 
@@ -767,6 +772,7 @@ async function openEditContactModal(person) {
     document.getElementById('personFacebookInput').value   = person.facebookUrl || '';
     document.getElementById('personNotesInput').value      = person.notes       || '';
     document.getElementById('personSpecialtyInput').value  = person.specialty   || '';
+    document.getElementById('personIsMeInput').checked           = !!person.isMe;
     document.getElementById('personQuickMentionInput').checked   = !!person.quickMention;
     document.getElementById('personModalDeleteBtn').style.display = '';
 
@@ -841,6 +847,7 @@ async function handleContactModalSave() {
                           ? document.getElementById('personBusinessTypeSelect').value
                           : '',
         quickMention: document.getElementById('personQuickMentionInput').checked,
+        isMe:         document.getElementById('personIsMeInput').checked,
     };
 
     var modal          = document.getElementById('personModal');
@@ -854,6 +861,16 @@ async function handleContactModalSave() {
     }
 
     try {
+        // If isMe is being set, clear the flag from all other contacts first
+        if (data.isMe) {
+            var allPeople = await userCol('people').where('isMe', '==', true).get();
+            var batch = db.batch();
+            allPeople.forEach(function(doc) {
+                if (doc.id !== editId) batch.update(doc.ref, { isMe: false });
+            });
+            await batch.commit();
+        }
+
         if (mode === 'add') {
             data.parentPersonId   = parentPersonId;
             data.profilePhotoData = null;

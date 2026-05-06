@@ -78,6 +78,8 @@ var _investHubGroupId       = null;  // selected group on the hub landing page
 var _investHubPerfOpen      = localStorage.getItem('investHubPerfOpen')   !== 'false'; // accordion default open
 var _investHubRetireOpen    = localStorage.getItem('investHubRetireOpen') !== 'false'; // retire accordion default open
 var _investHubAthOpen       = localStorage.getItem('investHubAthOpen')    !== 'false'; // ATH accordion default open
+var _investSumRetireOpen    = localStorage.getItem('investSumRetireOpen') !== 'false'; // summary retire accordion
+var _investSumAthOpen       = localStorage.getItem('investSumAthOpen')    !== 'false'; // summary ATH accordion
 var _investActiveGroupId    = null;  // shared: last group selected on any invest page (persists across pages)
 
 // ---------- Firestore Path ----------
@@ -382,6 +384,22 @@ function _investToggleHubAth() {
     localStorage.setItem('investHubAthOpen', String(_investHubAthOpen));
     document.getElementById('investHubAthBody').style.display     = _investHubAthOpen ? '' : 'none';
     document.getElementById('investHubAthChevron').textContent    = _investHubAthOpen ? '▾' : '▸';
+}
+
+// ---------- Summary Page Accordion Toggle Functions ----------
+
+function _investToggleSumRetire() {
+    _investSumRetireOpen = !_investSumRetireOpen;
+    localStorage.setItem('investSumRetireOpen', String(_investSumRetireOpen));
+    document.getElementById('investSumRetireBody').style.display    = _investSumRetireOpen ? '' : 'none';
+    document.getElementById('investSumRetireChevron').textContent   = _investSumRetireOpen ? '▾' : '▸';
+}
+
+function _investToggleSumAth() {
+    _investSumAthOpen = !_investSumAthOpen;
+    localStorage.setItem('investSumAthOpen', String(_investSumAthOpen));
+    document.getElementById('investSumAthBody').style.display       = _investSumAthOpen ? '' : 'none';
+    document.getElementById('investSumAthChevron').textContent      = _investSumAthOpen ? '▾' : '▸';
 }
 
 // Returns the static nav-card grid HTML (always shown below the live dashboard).
@@ -3729,20 +3747,24 @@ async function _investRenderSummaryPage() {
             '</div>' +
         '</div>' +
 
-        // Retirement widget — always-open accordion (same chrome as hub, no toggle)
+        // Retirement widget — sticky collapsible accordion
         _investBuildAccordion({
-            title: 'Retire Estimate',
+            id: 'investSumRetire', title: 'Retire Estimate',
             bodyHtml: _investBuildRetireWidget({
                 ror: ror, atp: atp, annual: annual, monthly: monthly,
                 meAgeInfo: meAgeInfo, retireTitle: retireTitle,
                 group: group, ssData: ssData,
                 budgetData: budgetData, netWorth: cats.netWorth
             }),
-            toggleFn: null
+            toggleFn: '_investToggleSumRetire', isOpen: _investSumRetireOpen
         }) +
 
-        // All-Time Highs — always-open accordion
-        (athBodyHtml ? _investBuildAccordion({ title: 'All-Time Highs', bodyHtml: athBodyHtml, toggleFn: null }) : '') +
+        // All-Time Highs — sticky collapsible accordion
+        (athBodyHtml ? _investBuildAccordion({
+            id: 'investSumAth', title: 'All-Time Highs',
+            bodyHtml: athBodyHtml,
+            toggleFn: '_investToggleSumAth', isOpen: _investSumAthOpen
+        }) : '') +
 
         // Period Performance (above category breakdown)
         '<div class="invest-summary-section-title">Period Performance</div>' +

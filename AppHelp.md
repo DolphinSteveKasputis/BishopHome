@@ -1922,7 +1922,7 @@ Requires a Finnhub API key in Settings. Prices persist in Firestore across sessi
 ### Quick Help
 - Shows **Net Worth** and **Invested** totals across all accounts in the selected group
 - **Retire Estimate** section: six stat cards (Annual, Monthly, Current Income, % To Goal, NW Shortfall, % of Target) — tap **?** on any card to see a plain-English explanation plus the formula with your real numbers; tap ⚙ to configure return rate, after-tax %, ages, and budget
-- **All-Time Highs** section: four ATH cards plus a "vs Daily ATH" card — always visible (not collapsible on this page)
+- **All-Time Highs** section: four ATH cards plus a "vs Daily ATH" card — collapsible accordion; open/closed state is remembered
 - **Category Breakdown**: Roth, Pre-Tax, Brokerage, Cash, and Uninvested Cash totals with % of Net Worth
 - **Period Performance**: Day / Week / Month / YTD gain or loss vs the most recent snapshot of each type
 - **📡 Update All Prices**: fetches live Finnhub prices for every holding across all accounts in the group; last-updated time (e.g. "5/5 10:15am") is shown below the button

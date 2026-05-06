@@ -1375,7 +1375,7 @@ Dashboard page showing totals for the selected group.
 
 **Hero row**: Net Worth card + Invested card (two columns).
 
-**Layout**: The Retire Estimate and All-Time Highs sections are wrapped in always-open accordion chrome (same `invest-hub-perf-accordion` / `invest-hub-perf-toggle--static` style as hub, but not collapsible — `cursor:default`, no toggle function). This keeps the visual language consistent between the hub page and the summary page.
+**Layout**: The Retire Estimate and All-Time Highs sections are wrapped in sticky collapsible accordions (same `invest-hub-perf-accordion` style as hub). Toggle functions: `_investToggleSumRetire()` / `_investToggleSumAth()`. State keys: `investSumRetireOpen` / `investSumAthOpen` (both default open).
 
 **If I retired today widget**: Green card with estimated Annual and Monthly retirement income. Full spec:
 

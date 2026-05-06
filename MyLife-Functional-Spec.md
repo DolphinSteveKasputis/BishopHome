@@ -763,7 +763,7 @@ Renamed from "People". Tracks personal contacts and medical/service professional
 
 **Firestore** (collection name unchanged: `people`):
 - `people` — `name`, `nickname`, `category` (see below), `specialty?`, `personalType?`, `businessType?`, `phone`, `email`, `address`, `website?`, `facebookUrl`, `howKnown`, `notes`, `quickMention` (bool — shown as "Include in quick mentions" checkbox in add/edit modal), `isMe` (bool — exclusive; only one contact may have `true` at a time; saving with `isMe=true` clears the flag on all other contacts via batch write; used by Investments to find the user's birthday for age/retirement calculations; shown as a green "✓ This is me" badge on the contact detail page), `profilePhotoData?`, `parentPersonId?`, `createdAt`
-- `peopleImportantDates` — `personId`, `label`, `month`, `day`, `year?`, `recurrence`, `createdAt`
+- `peopleImportantDates` — `personId`, `label`, `month`, `day`, `year?`, `recurrence`, `createdAt`. The `label` input is a datalist combobox with built-in suggestions (Birthday, Wedding Anniversary, Graduation, Work Anniversary); any free-form text is also accepted.
 - `peopleInteractions` — `personId`, `date`, `text`, `sourceType`, `createdAt`
 - `lookups/serviceTrades` — `{ values: [...] }` full list of trades (defaults: Plumber, Electrician, HVAC, Pest Control, Handyman)
 - `lookups/personalContactTypes` — `{ values: [...] }` full list of relationship types (defaults: Friend, Family, Neighbor, Coworker, Acquaintance)
@@ -1211,7 +1211,7 @@ Account Type (required), Nickname (required), Owner radio (Personal / Joint), Jo
 
 **Header**: Nickname, Edit Account button, institution, tax category badge, account type label, joint co-owner (if applicable).
 
-**Total Value card**: Total = Σ(shares × lastPrice) + cashBalance. Also shows Holdings subtotal and Cash Balance subtotal (for non-cash accounts).
+**Total Value card**: Total = Σ(shares × lastPrice) + cashBalance + pendingActivity. Also shows Holdings subtotal and Cash Balance subtotal (for non-cash accounts).
 
 **Cash Balance editor**: `type="text"` inline field + Save button. Displays formatted as `$X,XXX.XX`; click to edit raw number. For bank accounts labeled "Account Balance"; for investment accounts labeled "Uninvested Cash Balance". Writes directly to the account doc.
 
@@ -1337,7 +1337,7 @@ Per-ticker aggregated fields:
 ### Historical Snapshots (`#investments/snapshots`)
 Point-in-time portfolio recordings used to compute period performance on the Summary page.
 
-**Capture flow**: Tap **+ Capture** → modal opens with type selector (filtered to the current group's configured `snapshotFrequencies`) + optional notes field → tap **Capture** → app calls `_investLoadGroupAccounts()` and `_investComputeGroupTotals()` for current values → saves to `investmentSnapshots` collection → checks and updates ATH → closes modal → re-renders page.
+**Capture flow**: Tap **+ Capture** → modal opens with type selector (filtered to the current group's configured `snapshotFrequencies`) + optional notes field → tap **Capture** → app calls `_investLoadGroupAccounts()` and `_investComputeGroupTotals()` for current values → saves to `investmentSnapshots` collection → checks and updates ATH → closes modal → re-renders page. If prices haven't been updated today, a stale-price confirm dialog appears first; the OK/Capture button is disabled (shows "Updating…") while the price update runs, then re-enabled when complete.
 
 **Snapshot doc fields**: `groupId`, `type` (daily/weekly/monthly/yearly), `date` (YYYY-MM-DD), `netWorth`, `invested`, `perAccount` (map: accountId → total value), `perCategory` (roth/preTax/brokerage/cash/invCash), `notes` (nullable), `createdAt`.
 

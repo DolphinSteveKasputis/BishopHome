@@ -1772,7 +1772,7 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 
 ### Quick Help
 - Shows all holdings for one account in a compact table — ticker, shares, price, cost basis, gain/loss, value, and % of account
-- **Total Value** = sum of all holdings × last price + cash balance
+- **Total Value** = sum of all holdings × last price + cash balance + pending activity
 - Tap **+ Add Holding** to add a stock or mutual fund position
 - The cash balance field formats as **$X,XXX.XX** on blur — click it to edit the raw number, click away to reformat
 - For bank accounts (Checking/Savings/Money Market/CD): only the balance field is shown — no holdings
@@ -1783,7 +1783,7 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 
 **Gain $ / Gain %**: Calculated as (last price − cost basis) × shares and (last price − cost basis) / cost basis. Shows "—" if no cost basis is set or no price has been fetched.
 
-**% Acct**: Each holding's current value as a percentage of the full account total (holdings + cash balance).
+**% Acct**: Each holding's current value as a percentage of the full account total (holdings + cash balance + pending activity).
 
 **Account Holder dropdown**: The first field on the Add/Edit Account form. Shows "Me" plus any enrolled contacts. Defaults to whoever was selected on the Accounts screen when adding, or the actual owner when editing. You can change it to correct a mistake — if you change the owner on an existing account, all holdings are migrated to the new owner's namespace automatically.
 
@@ -1797,7 +1797,7 @@ The status cycles Active -> Managed -> Resolved -> Active. Tap the status badge 
 
 **Pending Activity**: A separate row in the holdings table (labeled **PEND / Pending Activity**), always present on investment accounts. Tracks things like unsettled trades, dividends not yet credited, or any temporary cash-equivalent amount that doesn't belong in your permanent cash balance. Can be positive or negative — tap ✏ to edit inline. Rolls up into the **Uninvested Cash** category on the Summary page.
 
-**Total Value**: Σ(shares × last price) + cash balance. Holdings without a fetched price contribute $0 until **📡 Update Prices** is tapped.
+**Total Value**: Σ(shares × last price) + cash balance + pending activity. Holdings without a fetched price contribute $0 until **📡 Update Prices** is tapped.
 
 **📡 Update Prices**: Fetches the latest price for every holding in this account. Works in two phases:
 
@@ -1852,7 +1852,7 @@ Requires a Finnhub API key in Settings. Prices persist in Firestore across sessi
 
 ### Details
 
-**Capturing a snapshot**: Tap **+ Capture** → if prices haven't been updated today, you'll see a prompt — tap OK to update prices first (recommended) or Cancel to proceed with current cached values → select type → add optional notes → tap **Capture**.
+**Capturing a snapshot**: Tap **+ Capture** → if prices haven't been updated today, you'll see a prompt — tap OK to update prices first (recommended) or Cancel to proceed with current cached values. While prices are updating, the OK/Capture button is disabled and shows "Updating…" so you can't proceed mid-update → select type → add optional notes → tap **Capture**.
 
 **Prices last updated**: Shown just below the frequency badges. Also shown on the Summary page below the "Update All Prices" button. This tells you at a glance whether your prices are fresh before capturing.
 
@@ -1932,7 +1932,7 @@ Requires a Finnhub API key in Settings. Prices persist in Firestore across sessi
 **Tax categories**:
 - **Roth** (green): Roth IRA, Roth 401k, HSA — full account total (holdings + uninvested cash + pending activity)
 - **Pre-Tax** (orange): Traditional IRA, Traditional 401k, Self-directed 401k, 403b, 529 — full account total
-- **Brokerage** (purple): Brokerage Individual, Brokerage Joint — full account total
+- **Brokerage** (purple): Brokerage Individual, Brokerage Joint — full account total. When at least one brokerage holding has a cost basis recorded, a dimmed "taxable $X" note appears to the left of the total, showing the estimated taxable gain (brokerage total − Σ cost basis).
 - **Cash** (blue): Checking, Savings, Money Market, CD — the account's full balance
 - **Uninvested Cash**: informational row only — shows the combined idle cash and pending activity sitting inside your Roth/Pre-Tax/Brokerage accounts. Already included in those category totals above; **not** added to Net Worth a second time.
 

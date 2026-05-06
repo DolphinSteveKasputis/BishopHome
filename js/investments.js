@@ -75,6 +75,7 @@ var _investCardTotalsCache  = {};    // {accountId: totalValue} — current valu
 var _investRetireConfigOpen = false; // whether the retire widget config (RoR / after-tax) is visible
 var _investRetireHelpData   = {};    // populated each render; keyed by stat name; drives the ? popups
 var _investHubGroupId       = null;  // selected group on the hub landing page
+var _investHubPerfOpen      = localStorage.getItem('investHubPerfOpen') !== 'false'; // accordion default open
 var _investActiveGroupId    = null;  // shared: last group selected on any invest page (persists across pages)
 
 // ---------- Firestore Path ----------
@@ -177,27 +178,7 @@ function _investHubDashboardHtml(totals, baselines, groupId) {
     var nw       = totals.netWorth || 0;
     var invested = totals.invested || 0;
 
-    // Day gain/loss row
-    var dayHtml;
-    if (baselines.daily) {
-        var dayDiff = nw - (baselines.daily.netWorth || 0);
-        var dayBase = baselines.daily.netWorth || 0;
-        var dayPct  = (dayBase > 0) ? (dayDiff / dayBase * 100) : 0;
-        var dayCls  = dayDiff >= 0 ? 'invest-hub-gain' : 'invest-hub-loss';
-        dayHtml =
-            '<div class="invest-hub-day-row ' + dayCls + '">' +
-                '<span class="invest-hub-day-label">Day</span>' +
-                '<span class="invest-hub-day-value">' + escapeHtml(_investFmtGain(dayDiff, dayPct)) + '</span>' +
-            '</div>';
-    } else {
-        dayHtml =
-            '<div class="invest-hub-day-row invest-hub-dim">' +
-                '<span class="invest-hub-day-label">Day</span>' +
-                '<span class="invest-hub-day-value">No daily snapshot yet</span>' +
-            '</div>';
-    }
-
-    // Quick-stat cells (Week / Month / YTD)
+    // Quick-stat cards — Day / Week / Month / YTD all use the same card format
     function statCell(label, baseline) {
         if (!baseline) {
             return '<div class="invest-hub-stat-cell invest-hub-dim">' +
@@ -209,8 +190,8 @@ function _investHubDashboardHtml(totals, baselines, groupId) {
         var base    = baseline.netWorth || 0;
         var pct     = (base > 0) ? (diff / base * 100) : 0;
         var cls     = diff >= 0 ? 'invest-hub-gain' : 'invest-hub-loss';
-        var sign    = diff >= 0 ? '+' : '\u2212';
-        var pctSign = pct  >= 0 ? '+' : '\u2212';
+        var sign    = diff >= 0 ? '+' : '−';
+        var pctSign = pct  >= 0 ? '+' : '−';
         return '<div class="invest-hub-stat-cell ' + cls + '">' +
             '<div class="invest-hub-stat-label">' + escapeHtml(label) + '</div>' +
             '<div class="invest-hub-stat-value">' + sign + '$' +
@@ -222,6 +203,7 @@ function _investHubDashboardHtml(totals, baselines, groupId) {
 
     var statsHtml =
         '<div class="invest-hub-stats-row">' +
+            statCell('Day',   baselines.daily) +
             statCell('Week',  baselines.weekly) +
             statCell('Month', baselines.monthly) +
             statCell('YTD',   baselines.yearly) +
@@ -244,6 +226,19 @@ function _investHubDashboardHtml(totals, baselines, groupId) {
             '</div>';
     }
 
+    var perfOpen = _investHubPerfOpen;
+    var perfHtml =
+        '<div class="invest-hub-perf-accordion">' +
+            '<button class="invest-hub-perf-toggle" type="button" onclick="_investToggleHubPerf()">' +
+                'Performance' +
+                '<span class="invest-hub-perf-chevron">' + (perfOpen ? '▾' : '▸') + '</span>' +
+            '</button>' +
+            '<div class="invest-hub-perf-body"' + (perfOpen ? '' : ' style="display:none"') + '>' +
+                statsHtml +
+                athHtml +
+            '</div>' +
+        '</div>';
+
     return '<div class="invest-hub-dashboard">' +
         '<div class="invest-hub-heroes">' +
             '<div class="invest-hub-hero">' +
@@ -255,10 +250,18 @@ function _investHubDashboardHtml(totals, baselines, groupId) {
                 '<div class="invest-hub-hero-value">' + escapeHtml(_investFmtCurrency(invested)) + '</div>' +
             '</div>' +
         '</div>' +
-        dayHtml +
-        statsHtml +
-        athHtml +
+        perfHtml +
     '</div>';
+}
+
+// Toggles the Performance accordion on the hub and persists state to localStorage.
+function _investToggleHubPerf() {
+    _investHubPerfOpen = !_investHubPerfOpen;
+    localStorage.setItem('investHubPerfOpen', String(_investHubPerfOpen));
+    var body    = document.querySelector('.invest-hub-perf-body');
+    var chevron = document.querySelector('.invest-hub-perf-chevron');
+    if (body)    body.style.display  = _investHubPerfOpen ? '' : 'none';
+    if (chevron) chevron.textContent = _investHubPerfOpen ? '▾' : '▸';
 }
 
 // Returns the static nav-card grid HTML (always shown below the live dashboard).

@@ -13925,23 +13925,29 @@ a.invest-hub-card:hover {
     font-weight: 700;
     color: #1a1a1a;
 }
-.invest-hub-day-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 0;
-    border-top: 1px solid #efefef;
+.invest-hub-perf-accordion {
     margin-bottom: 10px;
 }
-.invest-hub-day-label {
-    font-size: 0.78rem;
+.invest-hub-perf-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    background: none;
+    border: none;
+    border-top: 1px solid #e8e8e8;
+    border-bottom: 1px solid #e8e8e8;
+    padding: 6px 0;
+    margin-bottom: 10px;
+    font-size: 0.72rem;
     font-weight: 700;
+    color: #888;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #999;
-    min-width: 38px;
+    letter-spacing: 0.06em;
+    cursor: pointer;
 }
-.invest-hub-day-value { font-size: 0.92rem; font-weight: 600; }
+.invest-hub-perf-toggle:hover { color: #444; }
+.invest-hub-perf-chevron { font-size: 0.9rem; }
 .invest-hub-gain { color: #2e7d32; }
 .invest-hub-loss { color: #c62828; }
 .invest-hub-dim  { color: #aaa; }

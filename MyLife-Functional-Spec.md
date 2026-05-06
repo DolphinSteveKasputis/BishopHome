@@ -1146,9 +1146,9 @@ Live dashboard above a static nav-card grid.
 **Dashboard card** (loads async after page renders):
 - **Group selector**: dropdown shown only when >1 group exists; switching re-renders the dashboard for the selected group.
 - **Heroes row**: Net Worth and Invested side-by-side in large type (computed live from holdings `lastPrice` × shares + cash balances, same as the Summary page).
-- **Day row**: gain/loss vs. the group's most recent daily snapshot (green if positive, red if negative). Shows "No daily snapshot yet" if none exists.
-- **Quick-stat row**: three cells (Week / Month / YTD) showing $ gain and % gain vs. the most recent weekly, monthly, and yearly snapshots respectively. Cells show "—" when no snapshot of that type has been captured.
-- **ATH callout**: shows the highest net-worth value recorded across all snapshot types. Displays "🏆 All-time high: $X on [date]"; upgrades to "🏆 NEW all-time high!" if the current value equals or exceeds the stored ATH.
+- **Performance accordion**: collapsible section (label "PERFORMANCE", toggle button with ▾/▸ chevron) containing all four period cards and the ATH callout. Open/closed state persists to `localStorage` key `investHubPerfOpen` (default open). Toggle function: `_investToggleHubPerf()`.
+  - **Four stat cards** (Day / Week / Month / YTD) — all same card format (`invest-hub-stat-cell`), displayed on one row with `flex-wrap`. Each shows label, $ gain/loss, and % change vs. the most recent snapshot of that type. Shows "—" when no snapshot exists.
+  - **ATH callout**: shows the highest net-worth value across all snapshot types. "🏆 All-time high: $X on [date]"; upgrades to "🏆 NEW all-time high!" when current NW ≥ ATH.
 
 **📡 Update All Prices bar**: Shown between the group switcher and the dashboard body. Button calls `_investUpdateHubAllPrices()`, which routes through `_investUpdateAllPrices()` using the hub's active group, then re-renders the dashboard. A formatted last-updated timestamp (e.g. "5/5 10:15am") appears beside the button and is populated on page load from `_investConfig.lastUpdateAllTimestamp`.
 

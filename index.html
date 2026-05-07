@@ -15,7 +15,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=685">
+    <link rel="stylesheet" href="css/styles.css?v=686">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -186,6 +186,8 @@
             <a href="#" class="nav-link nav-help-link" onclick="openHelpForCurrentScreen(event)" title="Help">?</a>
             <button class="nav-signout-btn" id="signOutBtnThoughts" title="Sign out">Sign Out</button>
         </nav>
+        <!-- Favorite star — bookmarks the current screen -->
+        <button class="fav-star-btn" id="favStarBtn" onclick="favToggle()" title="Add to favorites" style="display:none">☆</button>
         <!-- Hamburger menu for mobile -->
         <button class="hamburger" id="hamburgerBtn" aria-label="Toggle menu">
             <span></span>
@@ -262,6 +264,9 @@
             <button class="sb-home-btn" id="sbHomeBtn">⚡ QuickLog — Tell me something</button>
             <!-- Quick Check-In button -->
             <button class="checkin-home-btn" onclick="openCheckIn()">📍 Check In</button>
+
+            <!-- Favorites shortcut cards — populated by favorites.js -->
+            <div id="favoritesSection"></div>
 
             <div class="landing-tiles">
                 <a href="#zones" class="landing-tile landing-tile--yard">
@@ -10744,6 +10749,7 @@ export default {
     <script src="js/moveThings.js?v=350"></script>
     <script src="js/journal.js?v=547"></script>
     <script src="js/contacts.js?v=547"></script>
+    <script src="js/favorites.js?v=1"></script>
     <script src="js/beneficiaries.js?v=543"></script>
     <script src="js/collections.js?v=537"></script>
     <script src="js/health.js?v=380"></script>
@@ -10771,7 +10777,7 @@ export default {
     <script src="js/investments-import.js?v=5"></script>
     <script src="js/budgets.js?v=659"></script>
     <script src="js/private.js?v=579"></script>
-    <script src="js/app.js?v=657"></script>
+    <script src="js/app.js?v=658"></script>
 
 </body>
 </html>

@@ -363,6 +363,9 @@ function showPage(page) {
             '<a href="#main" class="home-link">' +
             escapeHtml(window.appName || 'My House') + '</a>';
     }
+
+    // Refresh the favorite star to reflect the newly visible page
+    if (typeof favUpdateStar === 'function') favUpdateStar();
 }
 
 /**
@@ -396,6 +399,7 @@ function handleRoute() {
     } else if (page === 'main') {
         window.clLastEntityType = null;
         showPage('main');
+        if (typeof favRenderHomeSection === 'function') favRenderHomeSection();
     } else if (page === 'weeds') {
         showPage('weeds');
         loadWeedsList();
@@ -1068,6 +1072,8 @@ function initApp() {
     if (typeof privateCheckActivated === 'function') privateCheckActivated();
     // Pre-load GCal settings so gcalIsConnected() works on any page without visiting Settings first
     if (typeof gcalLoadSettings === 'function') gcalLoadSettings();
+    // Load favorites (star button + home page widget)
+    if (typeof favInit === 'function') favInit();
     _initTabIndentTextareas();
     _initChecklistsNavLinks();
     console.log("Bishop app initialized.");

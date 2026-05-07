@@ -13958,18 +13958,18 @@ a.invest-hub-card:hover {
     display: flex;
     gap: 8px;
     margin-bottom: 0;
+    flex-wrap: wrap;
 }
 .invest-hub-stat-cell {
-    flex: 1;
     background: #f5f5f5;
     border: 1px solid #e0e0e0;
     border-radius: 8px;
-    padding: 8px 12px;
+    padding: 6px 10px;
     text-align: center;
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    min-width: 72px;
+    gap: 1px;
+    min-width: 90px;
 }
 .invest-hub-stat-label {
     font-size: 0.68rem;
@@ -13980,12 +13980,12 @@ a.invest-hub-card:hover {
     margin-bottom: 3px;
 }
 .invest-hub-stat-value {
-    font-size: 0.92rem;
+    font-size: 0.85rem;
     font-weight: 700;
     line-height: 1.2;
 }
 .invest-hub-stat-pct {
-    font-size: 0.72rem;
+    font-size: 0.68rem;
     font-weight: 500;
     margin-top: 1px;
 }

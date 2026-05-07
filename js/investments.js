@@ -225,8 +225,6 @@ function _investHubDashboardHtml(totals, baselines, groupId, retireData) {
             '<span class="invest-update-time-note" id="investHubUpdateNote">' +
                 (_investConfig.lastUpdateAllTimestamp ? escapeHtml(_investFmtUpdateTime(_investConfig.lastUpdateAllTimestamp)) : '') +
             '</span>' +
-            '<a class="btn btn-secondary btn-small invest-ai-entry-btn" style="margin-left:auto" href="#investments/ai-analysis" ' +
-                'onclick="_investAiBackRoute=\'investments\'">🤖 Ask AI</a>' +
         '</div>';
 
     var statsHtml =
@@ -271,9 +269,16 @@ function _investHubDashboardHtml(totals, baselines, groupId, retireData) {
             budgetData: budgetData, netWorth: nw
         });
     }
+    var retireBarHtml = retireHtml
+        ? '<div class="invest-hub-update-bar">' +
+              '<a class="btn btn-secondary btn-small invest-ai-entry-btn" href="#investments/ai-analysis" ' +
+                  'onclick="_investAiBackRoute=\'investments\'">🤖 Ask AI</a>' +
+          '</div>'
+        : '';
+
     var retireAccHtml = retireHtml ? _investBuildAccordion({
         id: 'investHubRetire', title: 'Retire Estimate',
-        bodyHtml: retireHtml,
+        bodyHtml: retireBarHtml + retireHtml,
         toggleFn: '_investToggleHubRetire', isOpen: _investHubRetireOpen
     }) : '';
 

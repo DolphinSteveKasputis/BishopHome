@@ -15,7 +15,7 @@
     <meta name="apple-mobile-web-app-title" content="Bishop">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="stylesheet" href="css/styles.css?v=684">
+    <link rel="stylesheet" href="css/styles.css?v=685">
 
     <!-- Leaflet.js — map display library (free, open source) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -6855,47 +6855,47 @@ service firebase.storage {
         <section class="page hidden" id="page-life">
             <div class="page-header"><h2>Life</h2></div>
             <div class="landing-grid" id="lifeFeatureGrid">
-                <a href="#journal" class="landing-tile landing-tile--journal">
+                <a href="#journal" class="landing-tile landing-tile--journal" data-tile-id="journal">
                     <span class="landing-tile-icon">📓</span>
                     <span class="landing-tile-label">Journal</span>
                 </a>
-                <a href="#contacts" class="landing-tile landing-tile--people">
+                <a href="#contacts" class="landing-tile landing-tile--people" data-tile-id="contacts">
                     <span class="landing-tile-icon">👥</span>
                     <span class="landing-tile-label">Contacts</span>
                 </a>
-                <a href="#health" class="landing-tile landing-tile--health">
+                <a href="#health" class="landing-tile landing-tile--health" data-tile-id="health">
                     <span class="landing-tile-icon">❤️</span>
                     <span class="landing-tile-label">My Health</span>
                 </a>
-                <a href="#notes" class="landing-tile landing-tile--notes">
+                <a href="#notes" class="landing-tile landing-tile--notes" data-tile-id="notes">
                     <span class="landing-tile-icon">📒</span>
                     <span class="landing-tile-label">Notes</span>
                 </a>
-                <a href="#life-calendar" class="landing-tile landing-tile--life-calendar">
+                <a href="#life-calendar" class="landing-tile landing-tile--life-calendar" data-tile-id="life-calendar">
                     <span class="landing-tile-icon">🗓️</span>
                     <span class="landing-tile-label">Calendar</span>
                 </a>
-                <a href="#life-projects" class="landing-tile landing-tile--life-projects">
+                <a href="#life-projects" class="landing-tile landing-tile--life-projects" data-tile-id="life-projects">
                     <span class="landing-tile-icon">📋</span>
                     <span class="landing-tile-label">Projects</span>
                 </a>
-                <a href="#checklists/life" class="landing-tile landing-tile--life-checklists" data-page="checklists">
+                <a href="#checklists/life" class="landing-tile landing-tile--life-checklists" data-page="checklists" data-tile-id="checklists">
                     <span class="landing-tile-icon">✅</span>
                     <span class="landing-tile-label">Checklists</span>
                 </a>
-                <a href="#legacy" class="landing-tile landing-tile--legacy">
+                <a href="#legacy" class="landing-tile landing-tile--legacy" data-tile-id="legacy">
                     <span class="landing-tile-icon">🕊️</span>
                     <span class="landing-tile-label">My Legacy</span>
                 </a>
-                <a href="#credentials" class="landing-tile landing-tile--credentials">
+                <a href="#credentials" class="landing-tile landing-tile--credentials" data-tile-id="credentials">
                     <span class="landing-tile-icon">🔑</span>
                     <span class="landing-tile-label">Credentials</span>
                 </a>
-                <a href="#investments" class="landing-tile landing-tile--investments">
+                <a href="#investments" class="landing-tile landing-tile--investments" data-tile-id="investments">
                     <span class="landing-tile-icon">📈</span>
                     <span class="landing-tile-label">Financial</span>
                 </a>
-                <a href="#private" class="landing-tile landing-tile--private hidden" id="private-life-tile">
+                <a href="#private" class="landing-tile landing-tile--private hidden" id="private-life-tile" data-tile-id="private">
                     <span class="landing-tile-icon">🔐</span>
                     <span class="landing-tile-label">Private</span>
                 </a>
@@ -10743,7 +10743,7 @@ export default {
     <script src="js/structures.js?v=537"></script>
     <script src="js/moveThings.js?v=350"></script>
     <script src="js/journal.js?v=547"></script>
-    <script src="js/contacts.js?v=546"></script>
+    <script src="js/contacts.js?v=547"></script>
     <script src="js/beneficiaries.js?v=543"></script>
     <script src="js/collections.js?v=537"></script>
     <script src="js/health.js?v=380"></script>

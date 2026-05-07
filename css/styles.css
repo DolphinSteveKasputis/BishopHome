@@ -7573,6 +7573,42 @@ textarea.sb-field { resize: vertical; min-height: 60px; }
 /* Slightly more compact tiles inside the health hub grid */
 .landing-grid .landing-tile {
     padding: 24px 12px;
+    position: relative; /* needed for drag handle positioning */
+}
+
+/* ── Life tile drag-and-drop (desktop only) ─────────────────── */
+.life-drag-handle {
+    position: absolute;
+    bottom: 5px;
+    right: 7px;
+    font-size: 0.85rem;
+    color: rgba(0, 0, 0, 0.22);
+    line-height: 1;
+    cursor: grab;
+    user-select: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    pointer-events: none; /* let clicks pass through to the tile link */
+}
+.landing-tile:hover .life-drag-handle {
+    opacity: 1;
+}
+.landing-tile[draggable="true"] {
+    cursor: grab;
+}
+.landing-tile[draggable="true"]:active {
+    cursor: grabbing;
+}
+.life-tile--dragging {
+    opacity: 0.35;
+    outline: 2px dashed #94a3b8;
+    outline-offset: -2px;
+}
+.life-tile--drop-before {
+    box-shadow: -4px 0 0 0 #3b82f6, 0 0 0 2px #bfdbfe;
+}
+.life-tile--drop-after {
+    box-shadow: 4px 0 0 0 #3b82f6, 0 0 0 2px #bfdbfe;
 }
 
 /* ── My Health sub-feature tile colors ─────────────────────── */

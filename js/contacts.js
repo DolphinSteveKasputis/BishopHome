@@ -1434,6 +1434,8 @@ document.addEventListener('DOMContentLoaded', function() {
  * within the next 30 days, sorted by proximity.
  */
 async function loadLifePage() {
+    _lifeInitTileOrder();  // apply saved order + wire drag on desktop (non-blocking)
+
     var section   = document.getElementById('lifeCalendarSection');
     var container = document.getElementById('lifeCalendarContainer');
     if (!section || !container) return;
@@ -1574,6 +1576,134 @@ async function loadLifePage() {
     } catch (err) {
         console.error('loadLifePage error:', err);
         section.style.display = 'none';
+    }
+}
+
+// ============================================================
+// LIFE PAGE — TILE ORDER (drag-and-drop reorder on desktop)
+// ============================================================
+
+// Loads the saved tile order from Firestore, applies it to the DOM,
+// and (on pointer/mouse devices only) wires up drag-and-drop handles.
+async function _lifeInitTileOrder() {
+    var grid = document.getElementById('lifeFeatureGrid');
+    if (!grid) return;
+
+    // Guard: only set up drag listeners once per grid instance.
+    // The grid is static HTML that persists across navigations, so we
+    // track initialisation with a data attribute.
+    var alreadyDraggable = grid.dataset.dragInit === 'true';
+
+    try {
+        var doc = await userCol('settings').doc('lifeTileOrder').get();
+        var savedOrder = doc.exists ? (doc.data().order || []) : [];
+        _lifeApplyTileOrder(grid, savedOrder);
+    } catch (e) {
+        // Non-fatal: leave tiles in default HTML order if Firestore fails.
+    }
+
+    if (!alreadyDraggable && window.matchMedia('(pointer: fine)').matches) {
+        _lifeSetupDrag(grid);
+        grid.dataset.dragInit = 'true';
+    } else if (alreadyDraggable) {
+        // Re-add handles to any tiles that were freshly reordered into the DOM
+        // (handles survive because the tiles themselves are persistent elements).
+    }
+}
+
+// Reorders tile elements in the grid according to the saved order array.
+// Tiles whose ID is not in the saved array are appended after the rest.
+function _lifeApplyTileOrder(grid, order) {
+    if (!order || order.length === 0) return;
+    var tiles = Array.from(grid.querySelectorAll('[data-tile-id]'));
+    tiles.sort(function(a, b) {
+        var ia = order.indexOf(a.dataset.tileId);
+        var ib = order.indexOf(b.dataset.tileId);
+        if (ia === -1) ia = 999;
+        if (ib === -1) ib = 999;
+        return ia - ib;
+    });
+    tiles.forEach(function(tile) { grid.appendChild(tile); });
+}
+
+// Adds drag handles to each tile and wires the grid's HTML5 DnD events.
+// Called once per page session (guarded by grid.dataset.dragInit).
+function _lifeSetupDrag(grid) {
+    var dragging = null;
+
+    // Add grip handle and draggable attribute to every tile
+    Array.from(grid.querySelectorAll('[data-tile-id]')).forEach(function(tile) {
+        tile.setAttribute('draggable', 'true');
+        if (!tile.querySelector('.life-drag-handle')) {
+            var handle = document.createElement('span');
+            handle.className = 'life-drag-handle';
+            handle.textContent = '⣿'; // ⣿ braille dots — classic grip icon
+            handle.setAttribute('aria-hidden', 'true');
+            tile.appendChild(handle);
+        }
+    });
+
+    grid.addEventListener('dragstart', function(e) {
+        var tile = e.target.closest('[data-tile-id]');
+        if (!tile) return;
+        dragging = tile;
+        e.dataTransfer.effectAllowed = 'move';
+        // Delay so the browser captures the un-faded tile as the drag image
+        setTimeout(function() { tile.classList.add('life-tile--dragging'); }, 0);
+    });
+
+    grid.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        var target = e.target.closest('[data-tile-id]');
+        if (!target || target === dragging) return;
+        grid.querySelectorAll('.life-tile--drop-before, .life-tile--drop-after').forEach(function(el) {
+            el.classList.remove('life-tile--drop-before', 'life-tile--drop-after');
+        });
+        var rect = target.getBoundingClientRect();
+        target.classList.add(e.clientX < rect.left + rect.width / 2
+            ? 'life-tile--drop-before'
+            : 'life-tile--drop-after');
+    });
+
+    grid.addEventListener('dragleave', function(e) {
+        // Only clear indicators when the cursor truly leaves the grid
+        if (!grid.contains(e.relatedTarget)) {
+            _lifeClearDragClasses(grid);
+        }
+    });
+
+    grid.addEventListener('drop', function(e) {
+        e.preventDefault();
+        var target = e.target.closest('[data-tile-id]');
+        _lifeClearDragClasses(grid);
+        if (!target || !dragging || target === dragging) return;
+        var rect = target.getBoundingClientRect();
+        var insertBefore = e.clientX < rect.left + rect.width / 2;
+        grid.insertBefore(dragging, insertBefore ? target : target.nextSibling);
+        _lifeSaveTileOrder(grid);
+    });
+
+    grid.addEventListener('dragend', function() {
+        _lifeClearDragClasses(grid);
+        dragging = null;
+    });
+}
+
+function _lifeClearDragClasses(grid) {
+    grid.querySelectorAll('.life-tile--dragging, .life-tile--drop-before, .life-tile--drop-after')
+        .forEach(function(el) {
+            el.classList.remove('life-tile--dragging', 'life-tile--drop-before', 'life-tile--drop-after');
+        });
+}
+
+async function _lifeSaveTileOrder(grid) {
+    var order = Array.from(grid.querySelectorAll('[data-tile-id]'))
+        .map(function(t) { return t.dataset.tileId; });
+    try {
+        await userCol('settings').doc('lifeTileOrder').set({ order: order }, { merge: true });
+    } catch (e) {
+        console.error('Failed to save tile order', e);
     }
 }
 

@@ -123,20 +123,11 @@ async function loadInvestmentsPage() {
             '</div>' +
         '</div>' +
         '<div id="investHubGroupSwitcher"></div>' +
-        '<div class="invest-hub-update-bar">' +
-            '<button class="btn btn-secondary btn-small" id="investHubUpdateBtn" onclick="_investUpdateHubAllPrices()">📡 Update All Prices</button>' +
-            '<span class="invest-update-time-note" id="investHubUpdateNote"></span>' +
-        '</div>' +
         '<div id="investHubBody"><p class="muted-text">Loading…</p></div>' +
         _investHubNavCards();
 
     await _investLoadGroups();
     await _investLoadConfig();
-
-    var hubNote = document.getElementById('investHubUpdateNote');
-    if (hubNote && _investConfig.lastUpdateAllTimestamp) {
-        hubNote.textContent = _investFmtUpdateTime(_investConfig.lastUpdateAllTimestamp);
-    }
 
     _investGroupSwitchHandler = function(gid) {
         _investActiveGroupId = gid;
@@ -191,6 +182,7 @@ async function _investRenderHubBody(groupId) {
         body.innerHTML = _investHubDashboardHtml(totals, baselines, groupId, {
             group: group, meAgeInfo: meAgeInfo, ssData: ssData, budgetData: budgetData
         });
+        _investApplyStaleIndicators();
     } catch (e) {
         console.error('Hub dashboard error', e);
         body.innerHTML = '<p class="muted-text">Error loading portfolio data.</p>';
@@ -227,12 +219,23 @@ function _investHubDashboardHtml(totals, baselines, groupId, retireData) {
         '</div>';
     }
 
+    var updateBarHtml =
+        '<div class="invest-hub-update-bar">' +
+            '<button class="btn btn-secondary btn-small" id="investHubUpdateBtn" onclick="_investUpdateHubAllPrices()">📡 Update All Prices</button>' +
+            '<span class="invest-update-time-note" id="investHubUpdateNote">' +
+                (_investConfig.lastUpdateAllTimestamp ? escapeHtml(_investFmtUpdateTime(_investConfig.lastUpdateAllTimestamp)) : '') +
+            '</span>' +
+        '</div>';
+
     var statsHtml =
-        '<div class="invest-hub-stats-row">' +
-            statCell('Day',   baselines.daily) +
-            statCell('Week',  baselines.weekly) +
-            statCell('Month', baselines.monthly) +
-            statCell('YTD',   baselines.yearly) +
+        '<div class="invest-hub-perf-body-wrap">' +
+            updateBarHtml +
+            '<div class="invest-hub-stats-row">' +
+                statCell('Day',   baselines.daily) +
+                statCell('Week',  baselines.weekly) +
+                statCell('Month', baselines.monthly) +
+                statCell('YTD',   baselines.yearly) +
+            '</div>' +
         '</div>';
 
     var perfHtml = _investBuildAccordion({
@@ -266,9 +269,14 @@ function _investHubDashboardHtml(totals, baselines, groupId, retireData) {
             budgetData: budgetData, netWorth: nw
         });
     }
+    var askAiBtnHtml = '<div class="invest-ai-entry-wrap" style="margin-top:10px">' +
+        '<a class="btn btn-secondary btn-small invest-ai-entry-btn" href="#investments/ai-analysis" ' +
+            'onclick="_investAiBackRoute=\'investments\'">🤖 Ask AI</a>' +
+        '</div>';
+
     var retireAccHtml = retireHtml ? _investBuildAccordion({
         id: 'investHubRetire', title: 'Retire Estimate',
-        bodyHtml: retireHtml,
+        bodyHtml: retireHtml + askAiBtnHtml,
         toggleFn: '_investToggleHubRetire', isOpen: _investHubRetireOpen
     }) : '';
 
@@ -279,13 +287,6 @@ function _investHubDashboardHtml(totals, baselines, groupId, retireData) {
         bodyHtml: athBodyHtml,
         toggleFn: '_investToggleHubAth', isOpen: _investHubAthOpen
     }) : '';
-
-    var askAiBtn = retireAccHtml
-        ? '<div class="invest-ai-entry-wrap">' +
-              '<a class="btn btn-secondary btn-small invest-ai-entry-btn" href="#investments/ai-analysis" ' +
-                  'onclick="_investAiBackRoute=\'investments\'">🤖 Ask AI</a>' +
-          '</div>'
-        : '';
 
     return '<div class="invest-hub-dashboard">' +
         '<div class="invest-hub-heroes">' +
@@ -300,7 +301,6 @@ function _investHubDashboardHtml(totals, baselines, groupId, retireData) {
         '</div>' +
         perfHtml +
         retireAccHtml +
-        askAiBtn +
         athAccHtml +
     '</div>';
 }
@@ -3812,6 +3812,7 @@ async function _investRenderSummaryPage() {
         '<div class="invest-summary-accounts">' + breakdownHtml + '</div>';
 
     page.innerHTML = html;
+    _investApplyStaleIndicators();
 }
 
 // ---------- Summary Helpers ----------
@@ -4103,6 +4104,30 @@ async function _investUpdateHubAllPrices() {
     if (btn) { btn.disabled = false; btn.textContent = '📡 Update All Prices'; }
     note = document.getElementById('investHubUpdateNote');
     if (note) note.textContent = _investFmtUpdateTime(_investConfig.lastUpdateAllTimestamp);
+    _investApplyStaleIndicators();
+}
+
+// Applies or removes the stale-price visual indicator on all Update All Prices buttons and
+// date labels across the hub, summary, and stocks pages.  A stale date means prices were
+// last updated before today and the user should refresh them.
+function _investApplyStaleIndicators() {
+    var today    = new Date().toISOString().split('T')[0];
+    var lastDate = _investConfig.lastUpdateAllDate || null;
+    var isStale  = !lastDate || lastDate < today;
+
+    var btnIds  = ['investHubUpdateBtn', 'investUpdateAllBtn', 'investStocksUpdateBtn'];
+    var noteIds = ['investHubUpdateNote', 'investStocksUpdateNote', 'investSummaryPricesStatus'];
+
+    btnIds.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.classList.toggle('invest-update-stale-btn', isStale);
+    });
+    noteIds.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.classList.toggle('invest-update-stale-note', isStale);
+    });
 }
 
 // ============================================================
@@ -4191,6 +4216,7 @@ async function _investRenderStocksPage() {
         '</div>' +
         sortBtns +
         tableHtml;
+    _investApplyStaleIndicators();
 }
 
 async function _investUpdateStocksAllPrices() {

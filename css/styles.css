@@ -13949,20 +13949,27 @@ a.invest-hub-card:hover {
 .invest-hub-perf-toggle:hover { color: #444; }
 .invest-hub-perf-toggle--static { cursor: default; pointer-events: none; }
 .invest-hub-perf-chevron { font-size: 0.9rem; }
-.invest-hub-gain { color: #2e7d32; }
-.invest-hub-loss { color: #c62828; }
+.invest-hub-gain { color: #2e7d32; background: #e8f5e9; border-color: #a5d6a7; }
+.invest-hub-loss { color: #c62828; background: #fce4ec; border-color: #f48fb1; }
 .invest-hub-dim  { color: #aaa; }
+.invest-hub-gain .invest-hub-stat-label { color: #2e7d32; }
+.invest-hub-loss .invest-hub-stat-label { color: #c62828; }
 .invest-hub-stats-row {
     display: flex;
     gap: 8px;
-    margin-bottom: 10px;
+    margin-bottom: 0;
 }
 .invest-hub-stat-cell {
     flex: 1;
-    background: #f8f8f8;
+    background: #f5f5f5;
+    border: 1px solid #e0e0e0;
     border-radius: 8px;
-    padding: 8px 6px;
+    padding: 8px 12px;
     text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 72px;
 }
 .invest-hub-stat-label {
     font-size: 0.68rem;
@@ -13981,6 +13988,14 @@ a.invest-hub-card:hover {
     font-size: 0.72rem;
     font-weight: 500;
     margin-top: 1px;
+}
+/* Colored background wrap for the performance accordion body */
+.invest-hub-perf-body-wrap {
+    background: #e3f2fd;
+    border: 1px solid #bbdefb;
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 6px;
 }
 .invest-hub-ath {
     font-size: 0.8rem;
@@ -14510,12 +14525,26 @@ a.invest-hub-card:hover {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin: 6px 0 10px;
+    margin-bottom: 10px;
 }
 .invest-update-time-note {
     font-size: 0.8rem;
     color: #aaa;
     font-style: italic;
+}
+/* Stale-price indicator — shown when last update date is before today */
+.invest-update-stale-btn {
+    background-color: #c62828 !important;
+    border-color: #b71c1c !important;
+    color: #fff !important;
+}
+.invest-update-stale-note {
+    background: #ffcdd2;
+    color: #000 !important;
+    font-weight: 700 !important;
+    font-style: normal !important;
+    padding: 2px 7px;
+    border-radius: 4px;
 }
 .invest-price-ok   { color: #2e7d32; font-weight: 600; margin: 0; }
 .invest-price-fail-list { margin: 0.5rem 0 0.75rem 1.2rem; padding: 0; }
